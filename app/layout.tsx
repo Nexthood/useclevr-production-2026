@@ -42,6 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Next.js automatically injects meta tags here */}
+      </head>
       <body>
         <ThemeProvider
           attribute="class"
