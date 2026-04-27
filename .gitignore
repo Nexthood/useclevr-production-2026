@@ -1,8 +1,54 @@
-node_modules
-.next
+# Dependencies
+node_modules/
+package-lock.json
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment variables (local only)
 .env
 .env.local
-.reports-data
-tsconfig.tsbuildinfo
+.env.local.neon
+.env.*.local
+
+# Production
 .env.production
-PRISMA_MIGRATION_GUIDE.md
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Build artifacts
+dist/
+.turbo/
+tsconfig.tsbuildinfo
+
+# Editor & IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Reports & Data
+.reports-data/
+*.pdf
+*.csv
+
+# Railway (local deployment files)
+.railway/
+
+# DO NOT IGNORE (needed for CI/CD):
+# .github/ - GitHub Actions workflows
+# .vscode/extensions.json - VSCode recommended extensions
+# .vscode/settings.json - VSCode settings (team config)
