@@ -3,5 +3,5 @@ node_modules
 .env
 .env.local
 .reports-data
-.kilo
 tsconfig.tsbuildinfo
+.env.production
