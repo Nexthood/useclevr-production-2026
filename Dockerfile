@@ -15,11 +15,19 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
+RUN npm prune --production
+
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+
+USER nextjs
 
 EXPOSE 8080
 
