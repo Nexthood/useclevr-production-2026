@@ -5,3 +5,4 @@ node_modules
 .reports-data
 tsconfig.tsbuildinfo
 .env.production
+PRISMA_MIGRATION_GUIDE.md
