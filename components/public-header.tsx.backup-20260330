@@ -1,0 +1,29 @@
+'use client'
+
+import Link from 'next/link'
+import { Button } from './ui/button'
+
+export function PublicHeader() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="font-bold text-xl">UseClevr</span>
+          </Link>
+        </div>
+        <nav className="flex items-center gap-4">
+          <Link href="/pricing">
+            <Button variant="ghost" size="sm">Pricing</Button>
+          </Link>
+          <Link href="/login">
+            <Button variant="ghost" size="sm">Log in</Button>
+          </Link>
+          <Link href="/signup">
+            <Button size="sm" className="bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90">Sign up</Button>
+          </Link>
+        </nav>
+      </div>
+    </header>
+  )
+}

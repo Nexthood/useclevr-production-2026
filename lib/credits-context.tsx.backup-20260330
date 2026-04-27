@@ -1,0 +1,33 @@
+'use client'
+
+interface CreditsContextType {
+  credits: number
+  setCredits: (credits: number) => void
+  decrementCredits: (amount: number) => void
+}
+
+import { createContext, useContext, useState, ReactNode } from 'react'
+
+const CreditsContext = createContext<CreditsContextType | undefined>(undefined)
+
+export function CreditsProvider({ children }: { children: ReactNode }) {
+  const [credits, setCredits] = useState(0)
+
+  const decrementCredits = (amount: number) => {
+    setCredits(prev => Math.max(0, prev - amount))
+  }
+
+  return (
+    <CreditsContext.Provider value={{ credits, setCredits, decrementCredits }}>
+      {children}
+    </CreditsContext.Provider>
+  )
+}
+
+export function useCredits() {
+  const context = useContext(CreditsContext)
+  if (context === undefined) {
+    throw new Error('useCredits must be used within a CreditsProvider')
+  }
+  return context
+}

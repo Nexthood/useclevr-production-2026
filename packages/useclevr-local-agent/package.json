@@ -1,0 +1,36 @@
+{
+  "name": "@useclevr/local-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UseClevr Local Agent – UseClevr Hybrid AI Runtime (companion service)",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "main": "dist/server.js",
+  "bin": {
+    "useclevr-local-agent": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node dist/server.js",
+    "dev": "ts-node --transpile-only src/server.ts",
+    "pack:linux:appdir": "ts-node --transpile-only scripts/pack-linux.ts",
+    "pack:linux:appimage": "appimagetool out/UseClevr-Hybrid-Runtime.AppDir out/UseClevr-Hybrid-Runtime.AppImage"
+  },
+  "keywords": [
+    "UseClevr",
+    "Hybrid AI Runtime",
+    "UseClevr Local Agent"
+  ],
+  "useclevrProduct": {
+    "productName": "UseClevr Hybrid Runtime",
+    "packageNames": {
+      "linux": "UseClevr-Hybrid-Runtime.AppImage",
+      "mac": "UseClevr-Hybrid-Runtime.dmg",
+      "windows": "UseClevr-Hybrid-Runtime-Setup.exe"
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "ts-node": "^10.9.2"
+  }
+}

@@ -1,0 +1,53 @@
+'use client'
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+
+type Theme = 'dark' | 'light' | 'system'
+
+interface ThemeProviderProps {
+  children: ReactNode
+  attribute?: string
+  defaultTheme?: Theme
+  enableSystem?: boolean
+  disableTransitionOnChange?: boolean
+}
+
+interface ThemeContextType {
+  theme: Theme
+  setTheme: (theme: Theme) => void
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+
+export function ThemeProvider({
+  children,
+  attribute = 'class',
+  defaultTheme = 'system',
+  enableSystem = true,
+  disableTransitionOnChange = false,
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(defaultTheme)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme') as Theme | null
+    if (stored) {
+      setTheme(stored)
+    }
+  }, [])
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      <div className={attribute} data-theme={theme}>
+        {children}
+      </div>
+    </ThemeContext.Provider>
+  )
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext)
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider')
+  }
+  return context
+}

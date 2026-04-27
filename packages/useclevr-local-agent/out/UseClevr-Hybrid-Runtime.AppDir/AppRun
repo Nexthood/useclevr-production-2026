@@ -1,0 +1,4 @@
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+NODE_BIN="node"
+exec "$NODE_BIN" "$HERE/usr/bin/useclevr-local-agent.js" "$@"
