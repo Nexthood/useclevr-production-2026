@@ -9,15 +9,15 @@
   },
   "deploy": {
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 5,
+    "restartPolicyMaxRetries": 3,
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 30,
-    "healthcheckInterval": 10,
-    "healthcheckInitialDelay": 10,
-    "memoryLimit": "512Mi",
-    "memoryRequest": "256Mi",
-    "cpuLimit": "500m",
-    "cpuRequest": "250m"
+    "healthcheckInterval": 30,
+    "healthcheckInitialDelay": 30,
+    "memoryLimit": "1Gi",
+    "memoryRequest": "512Mi",
+    "cpuLimit": "1000m",
+    "cpuRequest": "500m"
   },
   "variables": {
     "NODE_ENV": "production",
