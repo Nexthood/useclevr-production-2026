@@ -15,6 +15,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     name: Lint & Type Check
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -30,16 +31,17 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint || true  # Optional: don't fail on lint errors yet
+        run: npm run lint
 
       - name: TypeScript compilation check
-        run: npx tsc --noEmit || true
+        run: npx tsc --noEmit
 
   # Build verification
   build:
     runs-on: ubuntu-latest
     name: Build & Verify
     needs: lint
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -74,6 +76,7 @@ jobs:
     name: Docker Build Verification
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -96,16 +99,17 @@ jobs:
     runs-on: ubuntu-latest
     name: Security Scan
     needs: lint
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Run npm audit
-        run: npm audit --audit-level=moderate || true  # Don't fail, just report
+        run: npm audit --audit-level=moderate
 
       - name: Check for known vulnerabilities
-        uses: snyk/actions/node@master
+        uses: snyk/actions/node@v1
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -116,6 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Run Tests
     needs: lint
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -131,8 +136,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test || echo "No tests configured"
-        continue-on-error: true
+        run: npm test
 
   # Deploy status summary
   deploy-ready:
@@ -140,6 +144,7 @@ jobs:
     name: Deploy Ready Check
     needs: [lint, build, security, test]
     if: always()
+    timeout-minutes: 5
 
     steps:
       - name: Check job statuses
@@ -172,6 +177,7 @@ jobs:
     name: Notify Failures
     needs: [lint, build, test]
     if: failure()
+    timeout-minutes: 5
 
     steps:
       - name: Notify on failure

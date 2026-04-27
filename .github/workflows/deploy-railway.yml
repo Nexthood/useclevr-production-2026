@@ -9,11 +9,12 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # Optional: Additional verification before Railway auto-deploy
+  # Additional verification before Railway auto-deploy
   pre-deploy-checks:
     runs-on: ubuntu-latest
     name: Pre-Deployment Checks
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -41,12 +42,13 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
-  # Optional: Notify deployment status
+  # Notify deployment status
   notify-deployment:
     runs-on: ubuntu-latest
     name: Notify Deployment
     needs: pre-deploy-checks
     if: success()
+    timeout-minutes: 5
 
     steps:
       - name: Deployment notification
@@ -67,24 +69,29 @@ jobs:
               body: '🚀 Deploying to Railway...\n\nRailway will automatically build from the Dockerfile and deploy your application.\n\nCheck deployment status at: https://railway.app'
             })
 
-  # Optional: Manual Railway deployment trigger (requires Railway token)
+  # Deploy to Railway
   deploy-railway:
     runs-on: ubuntu-latest
     name: Trigger Railway Deployment
     needs: pre-deploy-checks
     if: github.ref == 'refs/heads/main'
     environment: production
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Railway (manual trigger)
-        if: env.RAILWAY_TOKEN != ''
-        run: |
-          # Optional: Use Railway CLI to trigger deployment
-          echo "ℹ️  Railway auto-deploys on push"
-          echo "No manual trigger needed - Railway webhook detected the push"
+      - name: Install Railway CLI
+        if: "${{ secrets.RAILWAY_TOKEN != '' }}"
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        if: "${{ secrets.RAILWAY_TOKEN != '' }}"
+        run: railway deploy
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        continue-on-error: true
+
+      - name: Deployment status
+        if: "${{ secrets.RAILWAY_TOKEN == '' }}"
+        run: echo "⚠️ RAILWAY_TOKEN not configured - Railway auto-deploy on push enabled"
