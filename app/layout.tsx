@@ -1,11 +1,38 @@
-import type React from "react"
-import type { Metadata } from "next"
-import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import type { Metadata } from "next"
+import type React from "react"
+import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "UseClevr - Test",
-  description: "Test",
+  title: {
+    default: "UseClevr - AI-Powered Business Intelligence",
+    template: "%s | UseClevr",
+  },
+  description: "AI-powered business intelligence without the complexity. Analyze data, get insights in natural language. Free for 14 days.",
+  keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
+  icons: {
+    icon: "/favicon.ico",
+  },
+  metadataBase: new URL("https://useclevr.com"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://useclevr.com",
+    siteName: "UseClevr",
+    title: "UseClevr - AI-Powered Business Intelligence",
+    description: "AI-powered business intelligence without the complexity.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@useclevr",
+    creator: "@useclevr",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+  },
 }
 
 export default function RootLayout({

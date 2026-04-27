@@ -1,14 +1,33 @@
-import { PublicHeader } from "@/components/public-header"
+import { CheckoutButton } from "@/components/checkout-form"
 import { PublicFooter } from "@/components/public-footer"
+import { PublicHeader } from "@/components/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Check, Sparkles, Zap, Building2, Brain, Cpu } from "lucide-react"
+import { Brain, Building2, Check, Cpu, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
-import { CheckoutButton } from "@/components/checkout-form"
 
 export const metadata = {
-  title: "Pricing - UseClevr",
-  description: "Simple, transparent pricing for teams of all sizes",
+  title: "Pricing Plans - UseClevr | Free & Pro Tiers",
+  description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial. No credit card required. Scale as you grow.",
+  keywords: ["pricing", "plans", "billing", "subscription", "data analysis"],
+  openGraph: {
+    title: "Pricing Plans - UseClevr",
+    description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial.",
+    url: "https://useclevr.com/pricing",
+    siteName: "UseClevr",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pricing Plans - UseClevr",
+    description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  canonical: "https://useclevr.com/pricing",
 }
 
 export default function PricingPage() {

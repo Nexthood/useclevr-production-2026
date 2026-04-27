@@ -1,11 +1,13 @@
-import Link from "next/link"
-import { PublicHeader } from "@/components/public-header"
+"use client"
+
+import { DataProcessingFlow } from "@/components/data-processing-flow"
 import { PublicFooter } from "@/components/public-footer"
+import { PublicHeader } from "@/components/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Database, MessageSquare, Shield, Zap, BarChart3 } from "lucide-react"
-import { DataProcessingFlow } from "@/components/data-processing-flow"
 import { WaitlistSignup } from "@/components/waitlist-signup"
+import { BarChart3, Database, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
+import Link from "next/link"
 
 export default function HomePage() {
   return (
