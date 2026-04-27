@@ -9,7 +9,7 @@ This project includes GitHub Actions workflows for continuous integration and de
 Railway automatically deploys when you push to the configured branch. GitHub Actions adds:
 
 ✅ **Pre-deployment validation** - Catch issues before Railway builds
-✅ **Lint & type checks** - Ensure code quality  
+✅ **Lint & type checks** - Ensure code quality
 ✅ **Build verification** - Confirm the app builds successfully
 ✅ **Security scanning** - Check for vulnerabilities
 ✅ **PR feedback** - Auto-comment on pull requests
@@ -98,7 +98,7 @@ GitHub Settings → Branches → Branch protection rules:
   ✓ Lint & Type Check
   ✓ Build & Verify
   ✓ Security Scan
-  
+
 - Dismiss stale PR approvals when new commits are pushed
 - Require branches to be up to date before merging
 ```
