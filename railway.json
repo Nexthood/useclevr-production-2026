@@ -1,13 +1,57 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "projectId": "useclevr",
+  "environmentId": "production",
   "build": {
-    "builder": "dockerfile"
+    "builder": "dockerfile",
+    "context": ".",
+    "dockerfile": "./Dockerfile"
   },
   "deploy": {
     "startCommand": "npm run start -- --hostname 0.0.0.0 --port $PORT",
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3,
+    "restartPolicyMaxRetries": 5,
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 30
+    "healthcheckTimeout": 30,
+    "healthcheckInterval": 10,
+    "healthcheckInitialDelay": 10,
+    "memoryLimit": "512Mi",
+    "memoryRequest": "256Mi",
+    "cpuLimit": "500m",
+    "cpuRequest": "250m"
+  },
+  "variables": {
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "TRUST_PROXY": "true"
+  },
+  "requiredSecrets": [
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "AUTH_SECRET",
+    "NEXTAUTH_URL",
+    "NEXT_PUBLIC_APP_URL",
+    "GEMINI_API_KEY"
+  ],
+  "optionalSecrets": [
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PRICE_ID_PRO_MONTHLY",
+    "STRIPE_PRICE_ID_PRO_YEARLY",
+    "OPENAI_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "AWS_S3_BUCKET",
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY"
+  ],
+  "documentation": {
+    "description": "UseClevr - AI-Powered Business Intelligence Platform",
+    "buildTime": "~2-3 minutes",
+    "startTime": "~30 seconds",
+    "port": 8080,
+    "db": "Neon PostgreSQL",
+    "repository": "https://github.com/Nexthood/useclevr-production-2026"
   }
 }
