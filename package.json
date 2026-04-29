@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
     "railway:ci": "pnpm install --frozen-lockfile && pnpm build && pnpm start",
-    "railway:ci:min": "pnpm install --frozen-lockfile --reporter=silent && pnpm --silent build && pnpm --silent start",
+    "railway:ci:min": "pnpm install --frozen-lockfile --reporter=silent > /dev/null 2>&1 && pnpm --silent build > /dev/null 2>&1 && pnpm --silent start 2>&1 | grep -E --line-buffered '(http://|https://|Local:|Network:|Ready in)'",
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
