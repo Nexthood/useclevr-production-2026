@@ -1,3 +1,5 @@
+"use client"
+
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
