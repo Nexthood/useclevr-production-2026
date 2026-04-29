@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
+    "start:min": "next start --hostname 0.0.0.0 --port ${PORT:-8080} 2>&1 | grep -E --line-buffered '(http://|https://|Local:|Network:|Ready in)'",
     "railway:ci": "pnpm install --frozen-lockfile && pnpm build && pnpm start",
-    "railway:ci:min": "pnpm install --frozen-lockfile --reporter=silent > /dev/null 2>&1 && pnpm --silent build > /dev/null 2>&1 && pnpm --silent start 2>&1 | grep -E --line-buffered '(http://|https://|Local:|Network:|Ready in)'",
+    "railway:ci:min": "NEXT_TELEMETRY_DISABLED=1 pnpm install --frozen-lockfile --reporter=silent > /dev/null 2>&1 && NEXT_TELEMETRY_DISABLED=1 pnpm --silent build > /dev/null 2>&1 && NEXT_TELEMETRY_DISABLED=1 pnpm --silent start:min",
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",

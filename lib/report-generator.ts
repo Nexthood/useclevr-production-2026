@@ -11,8 +11,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { generatePdfReport, getPdfPath } from './pdf-report-generator';
 
-// File-based storage path - use /tmp for cloud compatibility, fallback to local file
-const REPORTS_DIR = process.env.TEMP_DIR || path.join(process.cwd(), '.reports-data');
+// File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
+const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
 
 console.log('[REPORT] Reports file path:', REPORTS_FILE);

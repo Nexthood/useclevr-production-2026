@@ -1,5 +1,3 @@
-"use client"
-
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
@@ -10,7 +8,6 @@ import { Upload, Database, Sparkles, ArrowRight, FileSpreadsheet, TrendingUp, Za
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { MegaButton } from "@/components/mega-button"
-import { useState, useEffect } from "react"
 
 async function getUserStats() {
   try {

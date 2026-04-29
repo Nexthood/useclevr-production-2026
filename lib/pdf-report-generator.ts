@@ -16,8 +16,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Report, ReportChart } from './report-generator';
 
-// PDF storage directory
-const PDF_DIR = path.join(process.cwd(), '.reports-data', 'pdfs');
+// PDF storage directory: use explicit temp directory to avoid broad project tracing in Next/Turbopack
+const PDF_DIR = path.join(process.env.TEMP_DIR || '/tmp/useclevr-reports', 'pdfs');
 
 // Ensure PDF directory exists
 function ensurePdfDir() {
