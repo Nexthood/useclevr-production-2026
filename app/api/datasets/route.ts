@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets, datasetRows } from "@/lib/db/schema"
@@ -73,7 +75,7 @@ export async function POST(request: Request) {
       }
     })
   } catch (error) {
-    console.error("Error creating dataset:", error)
+    debugError("Error creating dataset:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

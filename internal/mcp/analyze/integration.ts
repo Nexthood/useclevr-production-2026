@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { executeTool, cacheDataset } from '../index';
 
 let currentDatasetId: string | null = null;
@@ -18,7 +20,7 @@ export async function getDatasetSummarySafe(datasetId: string): Promise<unknown>
   try {
     return await executeTool('getDatasetSummary', { datasetId });
   } catch (error) {
-    console.error('[MCP] getDatasetSummary failed:', error);
+    debugError('[MCP] getDatasetSummary failed:', error);
     return null;
   }
 }

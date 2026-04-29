@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Live Data Scheduler
  * 
@@ -119,15 +121,15 @@ async function scheduleRefresh(datasetId: string, interval: RefreshInterval): Pr
   // Schedule recurring job
   const jobId = setInterval(async () => {
     try {
-      console.log(`[SCHEDULER] Running scheduled refresh for ${datasetId}`);
+      debugLog(`[SCHEDULER] Running scheduled refresh for ${datasetId}`);
       await performRefresh(datasetId);
     } catch (error) {
-      console.error(`[SCHEDULER] Refresh failed for ${datasetId}:`, error);
+      debugError(`[SCHEDULER] Refresh failed for ${datasetId}:`, error);
     }
   }, intervalMs);
   
   scheduledJobs.set(datasetId, jobId);
-  console.log(`[SCHEDULER] Scheduled ${interval} refresh for ${datasetId}`);
+  debugLog(`[SCHEDULER] Scheduled ${interval} refresh for ${datasetId}`);
 }
 
 /**
@@ -138,7 +140,7 @@ async function cancelRefresh(datasetId: string): Promise<void> {
   if (existingJob) {
     clearInterval(existingJob);
     scheduledJobs.delete(datasetId);
-    console.log(`[SCHEDULER] Cancelled refresh for ${datasetId}`);
+    debugLog(`[SCHEDULER] Cancelled refresh for ${datasetId}`);
   }
 }
 
@@ -209,7 +211,7 @@ export async function performRefresh(datasetId: string): Promise<RefreshResult> 
         break;
       case 'cloud':
         // Placeholder for cloud storage
-        console.log('[SCHEDULER] Cloud storage refresh not implemented');
+        debugLog('[SCHEDULER] Cloud storage refresh not implemented');
         break;
     }
     
@@ -238,17 +240,17 @@ export async function performRefresh(datasetId: string): Promise<RefreshResult> 
       // Rebuild dashboard
       Promise.resolve(buildDashboard(datasetId, newData)).then(() => {
         result.dashboardRebuilt = true;
-      }).catch(console.error),
+      }).catch(debugError),
       
       // Generate predictions
       Promise.resolve(generatePredictions(datasetId, newData)).then(() => {
         result.predictionsGenerated = true;
-      }).catch(console.error),
+      }).catch(debugError),
       
       // Run investigation
       Promise.resolve(investigateDataset(datasetId, newData)).then(() => {
         result.investigationCompleted = true;
-      }).catch(console.error)
+      }).catch(debugError)
     ]);
     
     // Update last update time
@@ -269,12 +271,12 @@ export async function performRefresh(datasetId: string): Promise<RefreshResult> 
       .where(eq(datasets.id, datasetId));
     
     result.success = true;
-    console.log(`[SCHEDULER] Refresh completed for ${datasetId}: ${result.rowsUpdated} rows`);
+    debugLog(`[SCHEDULER] Refresh completed for ${datasetId}: ${result.rowsUpdated} rows`);
     
     return result;
   } catch (error: any) {
     result.error = error.message;
-    console.error(`[SCHEDULER] Refresh error for ${datasetId}:`, error);
+    debugError(`[SCHEDULER] Refresh error for ${datasetId}:`, error);
     return result;
   }
 }
@@ -326,7 +328,7 @@ async function fetchAPIData(url: string): Promise<Record<string, unknown>[]> {
  * Initialize scheduler from database (for server restart)
  */
 export async function initializeScheduler(): Promise<void> {
-  console.log('[SCHEDULER] Initializing scheduler...');
+  debugLog('[SCHEDULER] Initializing scheduler...');
   
   const allDatasets = await db.query.datasets.findMany();
   
@@ -341,5 +343,5 @@ export async function initializeScheduler(): Promise<void> {
     }
   }
   
-  console.log(`[SCHEDULER] Initialized ${scheduledJobs.size} scheduled jobs`);
+  debugLog(`[SCHEDULER] Initialized ${scheduledJobs.size} scheduled jobs`);
 }

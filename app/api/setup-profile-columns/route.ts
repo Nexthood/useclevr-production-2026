@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Setup Profile columns that might be missing from older DB schema
  * This is a safety migration to ensure columns exist
@@ -22,7 +24,7 @@ export async function GET() {
       message: "Profile columns guaranteed" 
     })
   } catch (error) {
-    console.error("[SETUP] Schema migration error:", error)
+    debugError("[SETUP] Schema migration error:", error)
     return Response.json({ 
       success: false, 
       error: String(error) 

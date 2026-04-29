@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/workspaces/route.ts
 // Workspace management API - CRUD operations for workspaces
 
@@ -16,7 +18,7 @@ export async function GET() {
     
     return NextResponse.json({ workspaces });
   } catch (error: any) {
-    console.error('[WORKSPACES] Error:', error.message);
+    debugError('[WORKSPACES] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ workspace });
   } catch (error: any) {
-    console.error('[WORKSPACES] Error:', error.message);
+    debugError('[WORKSPACES] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

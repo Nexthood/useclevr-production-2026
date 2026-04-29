@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { MessageSquare } from "lucide-react"
@@ -21,7 +25,7 @@ export function AiChatButton() {
       if (match) {
         const id = match[1]
         setDatasetId(id)
-        console.log("[CHAT-BUTTON] Detected datasetId from URL:", id)
+        debugLog("[CHAT-BUTTON] Detected datasetId from URL:", id)
         
         // Fetch dataset info
         fetch(`/api/datasets/${id}`)
@@ -29,7 +33,7 @@ export function AiChatButton() {
           .then(data => {
             if (data.dataset?.name) {
               setDatasetName(data.dataset.name)
-              console.log("[CHAT-BUTTON] Detected datasetName:", data.dataset.name)
+              debugLog("[CHAT-BUTTON] Detected datasetName:", data.dataset.name)
             }
             if (data.dataset?.rowCount) {
               setRowCount(data.dataset.rowCount)
@@ -38,7 +42,7 @@ export function AiChatButton() {
               setColumnCount(data.dataset.columns.length)
             }
           })
-          .catch(err => console.log("[CHAT-BUTTON] Error fetching dataset:", err))
+          .catch(err => debugLog("[CHAT-BUTTON] Error fetching dataset:", err))
       } else {
         setDatasetId(undefined)
         setDatasetName(undefined)

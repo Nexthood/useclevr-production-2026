@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import * as React from "react"
 import { Download, FileText, Loader2 } from "lucide-react"
 
@@ -48,7 +52,7 @@ export function DownloadReportButton({ analysisData, disabled = false }: Downloa
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
-      console.error("Download error:", error)
+      debugError("Download error:", error)
     } finally {
       setIsDownloading(false)
     }

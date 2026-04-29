@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // Intelligent Business Dataset Processor - Preprocessing Normalization Layer
 // ============================================================================
@@ -341,8 +343,8 @@ export async function processDataset(
     normalizationExamples: {},
   };
   
-  console.log('\n========== PREPROCESSING NORMALIZATION LAYER ==========');
-  console.log(`[NORMALIZE] Input: ${data.length} rows`);
+  debugLog('\n========== PREPROCESSING NORMALIZATION LAYER ==========');
+  debugLog(`[NORMALIZE] Input: ${data.length} rows`);
   
   const columns = data.length > 0 ? Object.keys(data[0]) : [];
   
@@ -353,7 +355,7 @@ export async function processDataset(
       currencyCodeColumns.add(col);
     }
   }
-  console.log(`[NORMALIZE] Currency code columns (will not normalize): ${[...currencyCodeColumns].join(', ')}`);
+  debugLog(`[NORMALIZE] Currency code columns (will not normalize): ${[...currencyCodeColumns].join(', ')}`);
   
   // Detect monetary columns (excluding currency code columns)
   const monetaryColumns: string[] = [];
@@ -364,19 +366,19 @@ export async function processDataset(
     const values = data.map(row => row[col]);
     if (isMonetaryColumn(values)) {
       monetaryColumns.push(col);
-      console.log(`[NORMALIZE] ✓ Detected monetary column: ${col}`);
+      debugLog(`[NORMALIZE] ✓ Detected monetary column: ${col}`);
       
       const example = values.find(v => v !== null && v !== undefined && String(v).trim() !== '');
       if (example) {
         const cleaned = normalizeMonetaryValue(example);
-        console.log(`[NORMALIZE]   Example: "${example}" → ${cleaned}`);
+        debugLog(`[NORMALIZE]   Example: "${example}" → ${cleaned}`);
         derivationLog.normalizationExamples[col] = [String(example), String(cleaned)];
       }
     }
   }
   
   // Normalize monetary columns IN PLACE
-  console.log(`[NORMALIZE] Normalizing ${monetaryColumns.length} monetary columns...`);
+  debugLog(`[NORMALIZE] Normalizing ${monetaryColumns.length} monetary columns...`);
   
   for (const col of monetaryColumns) {
     for (const row of data) {
@@ -409,7 +411,7 @@ export async function processDataset(
     }
   }
   
-  console.log(`[NORMALIZE] Column mappings:`, columnTypes);
+  debugLog(`[NORMALIZE] Column mappings:`, columnTypes);
   
   // Auto-derive revenue if missing
   let quantityCol = columnTypes.quantity;
@@ -422,7 +424,7 @@ export async function processDataset(
   let currencyCol = columnTypes.currency;
   
   if (!revenueCol && quantityCol && priceCol) {
-    console.log(`[NORMALIZE] ⚡ Auto-deriving REVENUE from ${quantityCol} × ${priceCol}`);
+    debugLog(`[NORMALIZE] ⚡ Auto-deriving REVENUE from ${quantityCol} × ${priceCol}`);
     
     for (const row of data) {
       const qty = Number(row[quantityCol!]) || 0;
@@ -446,7 +448,7 @@ export async function processDataset(
   if (currencyCol) {
     const currencies = [...new Set(data.map(row => String(row[currencyCol!] || '')).filter(Boolean))];
     isMultiCurrency = currencies.length > 1;
-    console.log(`[NORMALIZE] Currency column: ${currencyCol}, currencies: ${currencies.join(', ')}`);
+    debugLog(`[NORMALIZE] Currency column: ${currencyCol}, currencies: ${currencies.join(', ')}`);
     
     if (currencies.length > 0 && isValidISOCurrency(currencies[0])) {
       detectedCurrency = currencies[0].toUpperCase();
@@ -472,17 +474,17 @@ export async function processDataset(
     isMultiCurrency,
   });
   
-  console.log(`\n[CLASSIFY] ========== DATASET CLASSIFICATION ==========`);
-  console.log(`[CLASSIFY] Type: ${classification.type.toUpperCase()} (${Math.round(classification.confidence * 100)}% confidence)`);
-  console.log(`[CLASSIFY] Indicators:`);
-  classification.indicators.forEach(ind => console.log(`  - ${ind}`));
-  console.log(`[CLASSIFY] ========== CLASSIFICATION COMPLETE ==========\n`);
+  debugLog(`\n[CLASSIFY] ========== DATASET CLASSIFICATION ==========`);
+  debugLog(`[CLASSIFY] Type: ${classification.type.toUpperCase()} (${Math.round(classification.confidence * 100)}% confidence)`);
+  debugLog(`[CLASSIFY] Indicators:`);
+  classification.indicators.forEach(ind => debugLog(`  - ${ind}`));
+  debugLog(`[CLASSIFY] ========== CLASSIFICATION COMPLETE ==========\n`);
   
   // Debug log: detected numeric columns
-  console.log(`\n[NORMALIZE] ========== DETECTED NUMERIC COLUMNS (After Normalization) ==========`);
-  console.log(`[NORMALIZE] Normalized columns: ${derivationLog.normalizedColumns.join(', ')}`);
-  console.log(`[NORMALIZE] Total: ${derivationLog.normalizedColumns.length} columns converted to numeric`);
-  console.log(`[NORMALIZE] ========== NORMALIZATION COMPLETE ==========\n`);
+  debugLog(`\n[NORMALIZE] ========== DETECTED NUMERIC COLUMNS (After Normalization) ==========`);
+  debugLog(`[NORMALIZE] Normalized columns: ${derivationLog.normalizedColumns.join(', ')}`);
+  debugLog(`[NORMALIZE] Total: ${derivationLog.normalizedColumns.length} columns converted to numeric`);
+  debugLog(`[NORMALIZE] ========== NORMALIZATION COMPLETE ==========\n`);
   
   const canGenerateKPIs = !!revenueCol;
   
@@ -540,10 +542,10 @@ export interface ExecutiveKPIs {
 export function calculateKPIs(processed: ProcessedDataset): ExecutiveKPIs {
   const { data, columnMappings, currencyInfo, canGenerateKPIs, derivationLog } = processed;
   
-  console.log('\n========== KPI ENGINE ==========');
+  debugLog('\n========== KPI ENGINE ==========');
   
   if (!canGenerateKPIs) {
-    console.log('[KPI] Insufficient data - cannot generate KPIs');
+    debugLog('[KPI] Insufficient data - cannot generate KPIs');
     return {
       status: 'insufficient_data',
       reason: derivationLog.warnings[0] || 'Revenue cannot be derived',
@@ -599,9 +601,9 @@ export function calculateKPIs(processed: ProcessedDataset): ExecutiveKPIs {
     : 0;
   const concentrationRisk = concentrationIndex > 0.5 ? 'HIGH' : concentrationIndex > 0.25 ? 'MEDIUM' : 'LOW';
   
-  console.log(`[KPI] Total Revenue: ${totalRevenue}`);
-  console.log(`[KPI] Top Region: ${topRegion ? topRegion[0] : 'N/A'}`);
-  console.log('========== KPI COMPLETE ==========\n');
+  debugLog(`[KPI] Total Revenue: ${totalRevenue}`);
+  debugLog(`[KPI] Top Region: ${topRegion ? topRegion[0] : 'N/A'}`);
+  debugLog('========== KPI COMPLETE ==========\n');
   
   return {
     status: 'success',
@@ -647,7 +649,7 @@ export interface ExecutiveInsights {
 }
 
 export function generateExecutiveInsights(kpis: ExecutiveKPIs, mappings: ColumnMappings): ExecutiveInsights {
-  console.log('\n========== EXECUTIVE INSIGHTS ==========');
+  debugLog('\n========== EXECUTIVE INSIGHTS ==========');
   
   if (kpis.status === 'insufficient_data') {
     return {
@@ -697,8 +699,8 @@ export function generateExecutiveInsights(kpis: ExecutiveKPIs, mappings: ColumnM
   
   const summary = `Total revenue: ${kpis.total_revenue?.toLocaleString()}. Top: ${kpis.top_contributor?.name} (${kpis.top_contributor?.pct}%)`;
   
-  console.log(`[INSIGHTS] Generated ${insights.length} insights`);
-  console.log('========== INSIGHTS COMPLETE ==========\n');
+  debugLog(`[INSIGHTS] Generated ${insights.length} insights`);
+  debugLog('========== INSIGHTS COMPLETE ==========\n');
   
   return {
     status: 'success',

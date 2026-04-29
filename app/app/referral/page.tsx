@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Card } from "@/components/ui/card"
@@ -35,7 +39,7 @@ export default function ReferralCenter() {
           url: referralLink,
         })
       } catch (err) {
-        console.log("Share cancelled")
+        debugLog("Share cancelled")
       }
     } else {
       handleCopy()

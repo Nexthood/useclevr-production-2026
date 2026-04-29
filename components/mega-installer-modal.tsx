@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -132,7 +136,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
           const storedData = JSON.parse(stored)
           if (storedData.url === url && storedData.downloaded > 0) {
             startByte = storedData.downloaded
-            console.log(`Resuming ${filename} from byte ${startByte}`)
+            debugLog(`Resuming ${filename} from byte ${startByte}`)
           }
         } catch (e) {
           // Invalid stored data

@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * AI Dataset Memory
  * 
@@ -65,7 +67,7 @@ export function storeDatasetMemory(
   
   datasetMemories.set(datasetId, memory);
   
-  console.log('[MEMORY] Stored intelligence for dataset:', datasetName);
+  debugLog('[MEMORY] Stored intelligence for dataset:', datasetName);
   
   return memory;
 }
@@ -208,5 +210,5 @@ export function clearDatasetMemory(datasetId: string): boolean {
  */
 export function clearAllMemories(): void {
   datasetMemories.clear();
-  console.log('[MEMORY] Cleared all stored memories');
+  debugLog('[MEMORY] Cleared all stored memories');
 }

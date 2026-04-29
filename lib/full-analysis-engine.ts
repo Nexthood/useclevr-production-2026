@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // FULL DATASET ANALYSIS ENGINE - Deterministic KPI Computation
 // ============================================================================
@@ -99,7 +101,7 @@ export function runFullDatasetAnalysis(
   detectedColumns: DetectedBusinessColumns,
   cleaningStats: CleaningStats
 ): PrecomputedMetrics {
-  console.log(`[ANALYSIS] Running full analysis on ${cleanedRows.length} rows`);
+  debugLog(`[ANALYSIS] Running full analysis on ${cleanedRows.length} rows`);
 
   const { mappings } = columnMapping;
   
@@ -275,7 +277,7 @@ export function runFullDatasetAnalysis(
     cleanedRows.length
   );
 
-  console.log('[ANALYSIS] Analysis complete:', {
+  debugLog('[ANALYSIS] Analysis complete:', {
     totalRevenue,
     totalProfit,
     profitMargin,

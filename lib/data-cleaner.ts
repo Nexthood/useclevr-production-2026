@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // DATA CLEANER & NORMALIZER - Deterministic Data Cleaning
 // ============================================================================
@@ -198,7 +200,7 @@ export function cleanAndNormalizeDataset(
   cleanedRows: Record<string, any>[];
   cleaningStats: CleaningStats;
 } {
-  console.log(`[CLEAN] Starting cleaning for ${rows.length} rows`);
+  debugLog(`[CLEAN] Starting cleaning for ${rows.length} rows`);
 
   const stats: CleaningStats = {
     originalRowCount: rows.length,
@@ -303,7 +305,7 @@ export function cleanAndNormalizeDataset(
   }
 
   // Log cleaning results
-  console.log('[CLEAN] Cleaning complete:', {
+  debugLog('[CLEAN] Cleaning complete:', {
     originalRows: stats.originalRowCount,
     validRows: stats.validRowCount,
     invalidRows: stats.invalidRowCount,

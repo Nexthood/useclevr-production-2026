@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/query/route.ts - Direct SQL execution for analytical questions
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -6,18 +8,18 @@ import { eq } from 'drizzle-orm';
 import { processQuestion } from '@/lib/ai-query-generator';
 
 export async function POST(request: Request) {
-  console.log('========== QUERY REQUEST START ==========');
+  debugLog('========== QUERY REQUEST START ==========');
   
   try {
     const body = await request.json();
     const { datasetId, question } = body;
 
-    console.log('Query:', question);
-    console.log('DatasetID:', datasetId);
+    debugLog('Query:', question);
+    debugLog('DatasetID:', datasetId);
 
     // 1. Validate datasetId - reject if missing
     if (!datasetId) {
-      console.log('ERROR: No datasetId provided');
+      debugLog('ERROR: No datasetId provided');
       return NextResponse.json(
         { error: "No active dataset selected" },
         { status: 400 }
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
     });
 
     if (!dataset) {
-      console.log('ERROR: Dataset not found:', datasetId);
+      debugLog('ERROR: Dataset not found:', datasetId);
       return NextResponse.json(
         { error: "No active dataset selected" },
         { status: 400 }
@@ -41,10 +43,10 @@ export async function POST(request: Request) {
     const data = (dataset.data as Record<string, any>[]) || [];
     const columns = (dataset.columns as string[]) || [];
     
-    console.log('Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
+    debugLog('Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
 
     if (data.length === 0) {
-      console.log('ERROR: Dataset has no data');
+      debugLog('ERROR: Dataset has no data');
       return NextResponse.json(
         { error: "Dataset has no data", datasetId },
         { status: 400 }
@@ -71,8 +73,8 @@ export async function POST(request: Request) {
       if (q.includes('how many') || q.includes('count row') || q.includes('number of row')) {
         generatedSql = `SELECT COUNT(*) as count FROM dataset`;
         result = { count: data.length, operation: 'count' };
-        console.log('Generated SQL:', generatedSql);
-        console.log('SQL Result:', result);
+        debugLog('Generated SQL:', generatedSql);
+        debugLog('SQL Result:', result);
       }
       // TOTAL / SUM (revenue, sales, etc)
       else if (q.includes('total') || q.includes('sum') || q.includes('revenue') || q.includes('sales') || q.includes('profit')) {
@@ -81,10 +83,10 @@ export async function POST(request: Request) {
           const total = data.reduce((sum, row) => sum + (parseFloat(String(row[valueCol]).replace(/[^0-9.-]/g, '')) || 0), 0);
           generatedSql = `SELECT SUM(${valueCol}) as total FROM dataset`;
           result = { total, column: valueCol, operation: 'sum' };
-          console.log('Generated SQL:', generatedSql);
-          console.log('SQL Result:', result);
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('SQL Result:', result);
         } else {
-          console.log('ERROR: No numeric column found for sum');
+          debugLog('ERROR: No numeric column found for sum');
           result = { error: 'No numeric column found', availableColumns: columns };
         }
       }
@@ -101,7 +103,7 @@ export async function POST(request: Request) {
         const priceCol = findColumn(['price', 'unit_price', 'sale_price', 'item_price']);
         const refundCol = findColumn(['refund', 'refund_amount', 'returns']);
         
-        console.log('Profit calculation - found columns:', { revenueCol, costCol, discountCol, shippingCol, taxCol, unitsCol, priceCol, refundCol });
+        debugLog('Profit calculation - found columns:', { revenueCol, costCol, discountCol, shippingCol, taxCol, unitsCol, priceCol, refundCol });
         
         // Get grouping column
         const groupCol = findColumn(['product', 'product_id', 'product_name', 'region', 'country', 'category', 'segment', 'channel', 'customer_segment']);
@@ -175,11 +177,11 @@ export async function POST(request: Request) {
             rankPosition: returnIndex + 1,
             operation: 'profit' 
           };
-          console.log('Generated SQL:', generatedSql);
-          console.log('SQL Result:', JSON.stringify(grouped).slice(0, 200));
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('SQL Result:', JSON.stringify(grouped).slice(0, 200));
         } else if (!revenueCol && !priceCol) {
           // Cannot calculate profit without revenue or price - but give more helpful message
-          console.log('ERROR: Cannot calculate profit - no revenue or price column');
+          debugLog('ERROR: Cannot calculate profit - no revenue or price column');
           result = { 
             error: 'Calculation not possible – dataset lacks required columns (price, quantity, discount, tax, shipping, refund)' ,
             availableColumns: columns,
@@ -207,8 +209,8 @@ export async function POST(request: Request) {
           }
           generatedSql = `SELECT computed_profit FROM dataset`;
           result = { totalProfit, operation: 'profit' };
-          console.log('Generated SQL:', generatedSql);
-          console.log('SQL Result:', result);
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('SQL Result:', result);
         }
       }
       // AVERAGE
@@ -219,10 +221,10 @@ export async function POST(request: Request) {
           const avg = values.reduce((a, b) => a + b, 0) / values.length;
           generatedSql = `SELECT AVG(${valueCol}) as average FROM dataset`;
           result = { average: avg, column: valueCol, operation: 'avg' };
-          console.log('Generated SQL:', generatedSql);
-          console.log('SQL Result:', result);
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('SQL Result:', result);
         } else {
-          console.log('ERROR: No numeric column found for average');
+          debugLog('ERROR: No numeric column found for average');
           result = { error: 'No numeric column found', availableColumns: columns };
         }
       }
@@ -234,13 +236,13 @@ export async function POST(request: Request) {
       const hasHighest = /highest|top|most|best|first|rank.*1/i.test(q);
       const hasLowest = /lowest|worst|bottom|last|minimum/i.test(q);
       
-      console.log('=== DEBUG: Question Analysis ===');
-      console.log('Has 2nd place keywords:', has2ndPlace);
-      console.log('Has country keywords:', hasCountry);
-      console.log('Has region keywords:', hasRegion);
-      console.log('Has highest keywords:', hasHighest);
-      console.log('Has lowest keywords:', hasLowest);
-      console.log('Question:', q);
+      debugLog('=== DEBUG: Question Analysis ===');
+      debugLog('Has 2nd place keywords:', has2ndPlace);
+      debugLog('Has country keywords:', hasCountry);
+      debugLog('Has region keywords:', hasRegion);
+      debugLog('Has highest keywords:', hasHighest);
+      debugLog('Has lowest keywords:', hasLowest);
+      debugLog('Question:', q);
       
       if (q.includes('region') || q.includes('country') || q.includes('product') || q.includes('category') ||
                q.includes('highest') || q.includes('lowest') || q.includes('most') || q.includes('top') || q.includes('best')) {
@@ -251,13 +253,13 @@ export async function POST(request: Request) {
         if (hasCountry) {
           const countryCol = findColumn(['country', 'nation']);
           if (countryCol) groupCol = countryCol;
-          console.log('DEBUG: User asked for country, using column:', groupCol);
+          debugLog('DEBUG: User asked for country, using column:', groupCol);
         }
         // If user specifically asked about region, prioritize region column  
         if (hasRegion) {
           const regionCol = findColumn(['region', 'area', 'zone']);
           if (regionCol) groupCol = regionCol;
-          console.log('DEBUG: User asked for region, using column:', groupCol);
+          debugLog('DEBUG: User asked for region, using column:', groupCol);
         }
         const valueCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'total']);
         
@@ -281,7 +283,7 @@ export async function POST(request: Request) {
             });
           
           // DEBUG: Log the sorted results
-          console.log('DEBUG: Sorted grouped results (first 5):', grouped.slice(0, 5).map((g: any) => `${g.name}: ${g.value}`));
+          debugLog('DEBUG: Sorted grouped results (first 5):', grouped.slice(0, 5).map((g: any) => `${g.name}: ${g.value}`));
           
           // Determine which position to return based on user question
           let returnIndex = 0; // Default: 1st place
@@ -300,7 +302,7 @@ export async function POST(request: Request) {
           }
           
           const rankedResult = grouped[returnIndex];
-          console.log('DEBUG: Returning position', returnIndex + 1, ':', rankedResult);
+          debugLog('DEBUG: Returning position', returnIndex + 1, ':', rankedResult);
           
           generatedSql = `SELECT ${groupCol}, SUM(${valueCol}) as total FROM dataset GROUP BY ${groupCol}`;
           result = { 
@@ -311,10 +313,10 @@ export async function POST(request: Request) {
             rankPosition: returnIndex + 1, // 1-based position (1st, 2nd, 3rd, etc.)
             operation: 'group_by' 
           };
-          console.log('Generated SQL:', generatedSql);
-          console.log('SQL Result:', JSON.stringify(grouped).slice(0, 200));
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('SQL Result:', JSON.stringify(grouped).slice(0, 200));
         } else {
-          console.log('ERROR: Could not identify group/value columns');
+          debugLog('ERROR: Could not identify group/value columns');
           result = { error: 'Could not identify columns', groupCol, valueCol, availableColumns: columns };
         }
       }
@@ -328,10 +330,10 @@ export async function POST(request: Request) {
           const isMin = q.includes('minimum') || q.includes('lowest');
           generatedSql = `SELECT ${isMin ? 'MIN' : 'MAX'}(${minMaxCol}) as result FROM dataset`;
           result = { [isMin ? 'minimum' : 'maximum']: isMin ? minVal : maxVal, column: minMaxCol, operation: isMin ? 'min' : 'max' };
-          console.log('Generated SQL:', generatedSql);
-          console.log('SQL Result:', result);
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('SQL Result:', result);
         } else {
-          console.log('ERROR: No numeric column found');
+          debugLog('ERROR: No numeric column found');
           result = { error: 'No numeric column found', availableColumns: columns };
         }
       }
@@ -397,10 +399,10 @@ export async function POST(request: Request) {
             costMethod,
             operation: 'margin' 
           };
-          console.log('Generated SQL:', generatedSql);
-          console.log('Margin calculation:', result);
+          debugLog('Generated SQL:', generatedSql);
+          debugLog('Margin calculation:', result);
         } else {
-          console.log('ERROR: Could not find revenue column');
+          debugLog('ERROR: Could not find revenue column');
           result = { error: 'Calculation not possible – dataset lacks required columns (price, quantity, discount, tax, shipping, refund)', availableColumns: columns };
         }
       }
@@ -436,19 +438,19 @@ export async function POST(request: Request) {
           
           generatedSql = `SELECT channel, SUM(revenue) / (SUM(COALESCE(ad_spend, revenue * 0.15))) as roAS FROM dataset GROUP BY channel`;
           result = { type: 'roas_analysis', data: roasData, operation: 'roas' };
-          console.log('ROAS calculation:', result);
+          debugLog('ROAS calculation:', result);
         } else {
           result = { error: 'ROAS calculation requires revenue and channel columns', availableColumns: columns };
         }
       }
       // Default - try AI for complex queries
       else {
-        console.log('No keyword match, trying AI query generator...');
+        debugLog('No keyword match, trying AI query generator...');
         let aiExplanation = '';
         try {
           const aiResult = await processQuestion(question, data);
-          console.log('AI Generated SQL:', aiResult.sql);
-          console.log('AI Result:', aiResult.result);
+          debugLog('AI Generated SQL:', aiResult.sql);
+          debugLog('AI Result:', aiResult.result);
           
           generatedSql = aiResult.sql;
           result = aiResult.result;
@@ -459,7 +461,7 @@ export async function POST(request: Request) {
           // Add explanation to result for debugging
           (result as any).explanation = aiResult.explanation;
         } catch (aiError: any) {
-          console.log('AI Query failed, returning sample:', aiError.message);
+          debugLog('AI Query failed, returning sample:', aiError.message);
           generatedSql = `SELECT * FROM dataset LIMIT 10`;
           result = { sample: data.slice(0, 10), rowCount: data.length, columns, operation: 'sample' };
           aiExplanation = `Dataset has ${result.rowCount} rows with columns: ${result.columns.join(', ')}`;
@@ -471,7 +473,7 @@ export async function POST(request: Request) {
 
       // 5. If SQL execution failed
       if (!generatedSql || !result || result.error) {
-        console.log('ERROR: SQL generation failed:', result?.error);
+        debugLog('ERROR: SQL generation failed:', result?.error);
         return NextResponse.json(
           { 
             error: "Query failed", 
@@ -525,7 +527,7 @@ export async function POST(request: Request) {
         }
       }
 
-      console.log('========== QUERY REQUEST END ==========');
+      debugLog('========== QUERY REQUEST END ==========');
 
       return NextResponse.json({
         success: true,
@@ -540,7 +542,7 @@ export async function POST(request: Request) {
       });
 
     } catch (sqlError: any) {
-      console.error('SQL Execution error:', sqlError.message);
+      debugError('SQL Execution error:', sqlError.message);
       return NextResponse.json(
         { 
           error: "Query failed", 
@@ -552,7 +554,7 @@ export async function POST(request: Request) {
     }
 
   } catch (error: any) {
-    console.error('Error:', error.message);
+    debugError('Error:', error.message);
     return NextResponse.json(
       { error: "Query failed", reason: error.message?.slice(0, 200) || "Unknown error" },
       { status: 500 }

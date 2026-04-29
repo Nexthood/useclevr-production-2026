@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // PIPELINE ORCHESTRATOR - Deterministic Pipeline Coordination
 // ============================================================================
@@ -151,7 +153,7 @@ export class PipelineOrchestrator {
       const aiInsights = await this.aiInsightsStep(metrics);
       
       const duration = Date.now() - startTime;
-      console.log(`[PIPELINE] Completed in ${duration}ms`);
+      debugLog(`[PIPELINE] Completed in ${duration}ms`);
       
       return {
         preview,
@@ -194,7 +196,7 @@ export class PipelineOrchestrator {
     // Detect dataset type from preview data
     const datasetTypeDetection = detectDatasetType(preview);
     
-    console.log('[PIPELINE] Dataset type detected:', {
+    debugLog('[PIPELINE] Dataset type detected:', {
       type: datasetTypeDetection.datasetType,
       confidence: `${(datasetTypeDetection.confidence * 100).toFixed(0)}%`,
     });
@@ -258,17 +260,17 @@ export class PipelineOrchestrator {
         .map(c => c.message)
         .join('; ');
       
-      console.error('[PIPELINE] Validation errors:', errors);
+      debugError('[PIPELINE] Validation errors:', errors);
       
       // Log but don't fail - the analysis is still valid
       if (validation.checks.some(c => !c.passed && c.severity === 'error')) {
-        console.warn('[PIPELINE] Some validation checks failed');
+        debugWarn('[PIPELINE] Some validation checks failed');
       }
     }
     
     // Check for data quality issues
     if (metrics.cleaningStats.invalidRowPercentage > 10) {
-      console.warn(`[PIPELINE] Data quality warning: ${metrics.cleaningStats.invalidRowPercentage}% invalid rows`);
+      debugWarn(`[PIPELINE] Data quality warning: ${metrics.cleaningStats.invalidRowPercentage}% invalid rows`);
     }
   }
   

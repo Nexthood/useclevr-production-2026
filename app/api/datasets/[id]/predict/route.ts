@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/predict/route.ts
 // Predictive Insight Engine - detect trends and generate forward-looking insights
 
@@ -13,7 +15,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    console.log('[PREDICT] Generating predictions for dataset:', id);
+    debugLog('[PREDICT] Generating predictions for dataset:', id);
 
     // Get dataset
     const dataset = await db.query.datasets.findFirst({
@@ -36,12 +38,12 @@ export async function POST(
       );
     }
 
-    console.log('[PREDICT] Analyzing', data.length, 'rows for predictions');
+    debugLog('[PREDICT] Analyzing', data.length, 'rows for predictions');
 
     // Generate predictions
     const result = await generatePredictions(id, data);
 
-    console.log('[PREDICT] Generated', result.predictions.length, 'predictions and', result.insights.length, 'insights');
+    debugLog('[PREDICT] Generated', result.predictions.length, 'predictions and', result.insights.length, 'insights');
 
     return NextResponse.json({
       success: true,
@@ -49,7 +51,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('[PREDICT] Error:', error.message);
+    debugError('[PREDICT] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

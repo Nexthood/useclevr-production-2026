@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import {
   DatasetSchemaOutput,
   PrecomputedKpisOutput,
@@ -20,7 +22,7 @@ const mcpCache: Map<string, MCPCache> = new Map();
 
 export function setAnalysisCache(datasetId: string, metrics: PrecomputedMetrics): void {
   mcpCache.set(datasetId, { metrics });
-  console.log(`[MCP] Cached analysis for dataset: ${datasetId}`);
+  debugLog(`[MCP] Cached analysis for dataset: ${datasetId}`);
 }
 
 export function getAnalysisCache(datasetId: string): PrecomputedMetrics | undefined {

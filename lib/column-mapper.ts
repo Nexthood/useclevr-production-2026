@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // SEMANTIC COLUMN MAPPER - Business Column Detection & User Override
 // ============================================================================
@@ -236,7 +238,7 @@ function detectCostComponents(
     result.discount_amount = discountResult.column;
   }
 
-  console.log('[MAPPER] Cost components detected:', result);
+  debugLog('[MAPPER] Cost components detected:', result);
   return result;
 }
 
@@ -332,7 +334,7 @@ export function detectBusinessColumnsFromPreview(
   // Cost components
   detected.costComponents = detectCostComponents(columns, rows);
 
-  console.log('[MAPPER] Business columns detected:', {
+  debugLog('[MAPPER] Business columns detected:', {
     revenue: detected.revenueColumn,
     profit: detected.profitColumn,
     cost: detected.costColumn,
@@ -448,7 +450,7 @@ export function validateColumnMapping(
 
   for (const [, columnName] of Object.entries(mapping.mappings)) {
     if (columnName && !columnSet.has(columnName.toLowerCase())) {
-      console.error('[MAPPER] Invalid mapping: column not found:', columnName);
+      debugError('[MAPPER] Invalid mapping: column not found:', columnName);
       return false;
     }
   }

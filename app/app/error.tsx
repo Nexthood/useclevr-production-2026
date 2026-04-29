@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 
@@ -11,7 +15,7 @@ export default function AppError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error("App error:", error)
+    debugError("App error:", error)
   }, [error])
 
   return (

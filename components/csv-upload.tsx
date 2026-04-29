@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import * as React from "react"
 import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Cloud, Wifi, WifiOff, Cpu } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -75,7 +79,7 @@ export function CsvUpload() {
           // Create a minimal file-like object for retry
           await uploadFile(new File([], item.file.name, { type: 'text/csv' }))
         } catch (e) {
-          console.error('Failed to process queued upload:', e)
+          debugError('Failed to process queued upload:', e)
         }
       }
       localStorage.setItem('useclever_upload_queue', '[]')
@@ -203,24 +207,24 @@ export function CsvUpload() {
     formData.append("file", file)
 
     try {
-      console.log('[CSV-UPLOAD] Starting upload for file:', file.name)
+      debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)
       const result = await uploadCSV(formData)
-      console.log('[CSV-UPLOAD] Result:', result)
+      debugLog('[CSV-UPLOAD] Result:', result)
       
       if (progressInterval) clearInterval(progressInterval)
 
       if (result.success) {
-        console.log('[CSV-UPLOAD] Success! Redirecting to:', result.redirectTo)
+        debugLog('[CSV-UPLOAD] Success! Redirecting to:', result.redirectTo)
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
         setTimeout(() => {
           const redirectPath = result.redirectTo || `/app/datasets/${result.datasetId}/analyze`
-          console.log('[CSV-UPLOAD] Navigating to:', redirectPath)
+          debugLog('[CSV-UPLOAD] Navigating to:', redirectPath)
           window.location.href = redirectPath
         }, 2000)
       } else {
-        console.log('[CSV-UPLOAD] Failed:', result.error)
+        debugLog('[CSV-UPLOAD] Failed:', result.error)
         // Only queue if truly offline (API unreachable and no local AI)
         if (isOffline) {
           setUploadStatus("offline")
@@ -240,7 +244,7 @@ export function CsvUpload() {
       }
     } catch (error) {
       if (progressInterval) clearInterval(progressInterval)
-      console.error("Upload failed:", error)
+      debugError("Upload failed:", error)
       
       // Only queue if truly offline (API unreachable and no local AI)
       if (isOffline) {

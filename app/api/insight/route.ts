@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/insight/route.ts
 import { NextResponse } from 'next/server';
 import { getBusinessInsight } from '@/lib/business-insight-engine';
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
       ...insight
     });
   } catch (error) {
-    console.error('[INSIGHT] Error:', error);
+    debugError('[INSIGHT] Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate insight' },
       { status: 500 }

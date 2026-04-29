@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/chat/route.ts
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
@@ -98,7 +100,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
   result?: any;
   error?: string;
 }> {
-  console.log('[STRICT_SQL] Generating SQL for question:', question);
+  debugLog('[STRICT_SQL] Generating SQL for question:', question);
   
   // Get dataset
   const dataset = await db.query.datasets.findFirst({
@@ -117,7 +119,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     return { success: false, error: 'Dataset has no data' };
   }
   
-  console.log('[STRICT_SQL] Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
+  debugLog('[STRICT_SQL] Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
   
   const q = question.toLowerCase();
   let sql = '';
@@ -163,7 +165,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
       let groupCol = findColumn(['region', 'country', 'product', 'category', 'segment', 'channel', 'source', 'medium', 'campaign', 'customer', 'industry', 'area', 'zone']);
       const valueCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'total', 'value', 'income']);
       
-      console.log('[STRICT_SQL] GROUP BY - groupCol:', groupCol, 'valueCol:', valueCol);
+      debugLog('[STRICT_SQL] GROUP BY - groupCol:', groupCol, 'valueCol:', valueCol);
       
       if (groupCol && valueCol) {
         const agg: Record<string, number> = {};
@@ -220,8 +222,8 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
       }
     }
     
-    console.log('[STRICT_SQL] Generated SQL:', sql);
-    console.log('[STRICT_SQL] Result:', JSON.stringify(result)?.slice(0, 200));
+    debugLog('[STRICT_SQL] Generated SQL:', sql);
+    debugLog('[STRICT_SQL] Result:', JSON.stringify(result)?.slice(0, 200));
     
     if (!sql || !result) {
       return { success: false, error: 'Could not generate SQL for this question type' };
@@ -230,7 +232,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     return { success: true, sql, result };
     
   } catch (err: any) {
-    console.error('[STRICT_SQL] Error:', err.message);
+    debugError('[STRICT_SQL] Error:', err.message);
     return { success: false, error: err.message };
   }
 }
@@ -342,7 +344,7 @@ function logChatExecution(
     ...(options.success !== undefined && { success: options.success }),
   };
   
-  console.log(`[CHAT] ${action}:`, JSON.stringify(logEntry));
+  debugLog(`[CHAT] ${action}:`, JSON.stringify(logEntry));
 }
 
 // ============================================================================
@@ -511,7 +513,7 @@ function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
   
   const monetaryColumns = columns.filter(col => monetaryPatterns.test(col));
   
-  console.log('[NORMALIZE] Detected monetary columns:', monetaryColumns);
+  debugLog('[NORMALIZE] Detected monetary columns:', monetaryColumns);
   
   // Normalize each row
   return data.map(row => {
@@ -521,7 +523,7 @@ function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
       const value = row[col];
       if (typeof value === 'string' && /[€$¥£C$A₹CHF₽]/.test(value)) {
         normalized[col] = normalizeCurrencyValue(value);
-        console.log(`[NORMALIZE] ${col}: "${value}" -> ${normalized[col]}`);
+        debugLog(`[NORMALIZE] ${col}: "${value}" -> ${normalized[col]}`);
       }
     }
     
@@ -551,7 +553,7 @@ export async function POST(request: Request) {
     
     // STRICT: Require datasetId for analytical queries
     if (isAnalyticalQuery && !datasetId) {
-      console.log('[CHAT] REJECTED: Analytical query without datasetId');
+      debugLog('[CHAT] REJECTED: Analytical query without datasetId');
       return NextResponse.json(
         { 
           success: false, 
@@ -577,7 +579,7 @@ export async function POST(request: Request) {
       if (profile && profile.subscriptionTier !== 'pro') {
         const analysisCount = profile.analysisCount || 0;
         if (analysisCount >= 2) {
-          console.log('[CHAT] REJECTED: Free limit reached');
+          debugLog('[CHAT] REJECTED: Free limit reached');
           return NextResponse.json(
             {
               success: false,
@@ -595,13 +597,13 @@ export async function POST(request: Request) {
 
     // Validate datasetId exists and belongs to user (if provided)
     if (datasetId) {
-      console.log('[CHAT] Validating datasetId:', datasetId);
+      debugLog('[CHAT] Validating datasetId:', datasetId);
       const dataset = await db.query.datasets.findFirst({
         where: eq(datasets.id, datasetId),
       });
       
       if (!dataset) {
-        console.log('[CHAT] REJECTED: Dataset not found:', datasetId);
+        debugLog('[CHAT] REJECTED: Dataset not found:', datasetId);
         return NextResponse.json(
           { 
             success: false, 
@@ -612,15 +614,15 @@ export async function POST(request: Request) {
         );
       }
       
-      console.log('[CHAT] Dataset validated:', dataset.name, '- rows:', dataset.rowCount);
+      debugLog('[CHAT] Dataset validated:', dataset.name, '- rows:', dataset.rowCount);
     } else {
-      console.log('[CHAT] No datasetId - non-analytical query allowed');
+      debugLog('[CHAT] No datasetId - non-analytical query allowed');
     }
 
     const sessionKey = datasetId || 'no-dataset';
     
-    console.log('[CHAT] Incoming message:', lastMessage);
-    console.log('[CHAT] Dataset ID:', datasetId);
+    debugLog('[CHAT] Incoming message:', lastMessage);
+    debugLog('[CHAT] Dataset ID:', datasetId);
 
     // ============================================================================
     // SAFEGUARD: Check for chat loops
@@ -658,7 +660,7 @@ export async function POST(request: Request) {
     const isAnalyticalQuestion = isAnalyticalQuery || requiresComputation(lastMessage);
     
     if (datasetId && isAnalyticalQuestion) {
-      console.log('[CHAT] Question requires verified computation (analytical detected:', isAnalyticalQuery, ', computation:', requiresComputation(lastMessage), ')');
+      debugLog('[CHAT] Question requires verified computation (analytical detected:', isAnalyticalQuery, ', computation:', requiresComputation(lastMessage), ')');
       
       // STRICT: First validate datasetId
       const validation = await validateDatasetId(datasetId);
@@ -670,12 +672,12 @@ export async function POST(request: Request) {
       }
       
       // STRICT: Execute SQL directly first (never let LLM compute numbers)
-      console.log('[STRICT_SQL] Executing strict SQL for:', lastMessage);
+      debugLog('[STRICT_SQL] Executing strict SQL for:', lastMessage);
       const sqlResult = await executeStrictSQL(datasetId, lastMessage);
       
       if (!sqlResult.success) {
         // SQL execution failed - return error with available columns, don't fallback to LLM
-        console.log('[STRICT_SQL] Failed:', sqlResult.error);
+        debugLog('[STRICT_SQL] Failed:', sqlResult.error);
         
         // If analytical query but SQL failed, return specific error with available columns
         const dataset = await db.query.datasets.findFirst({
@@ -692,7 +694,7 @@ export async function POST(request: Request) {
       }
       
       // SQL succeeded - use the result
-      console.log('[STRICT_SQL] Success! Result:', JSON.stringify(sqlResult.result).slice(0, 200));
+      debugLog('[STRICT_SQL] Success! Result:', JSON.stringify(sqlResult.result).slice(0, 200));
       
       // Generate explanation using verified result (LLM can only format, not compute)
       const explanationPrompt = generateExplanationPrompt({
@@ -750,11 +752,11 @@ export async function POST(request: Request) {
 
     if (processedData && Array.isArray(processedData) && processedData.length > 0) {
       // Use pre-processed data from frontend (already normalized)
-      console.log('[CHAT] Using processed data from frontend:', processedData.length, 'rows');
+      debugLog('[CHAT] Using processed data from frontend:', processedData.length, 'rows');
       datasetRowsData = processedData.slice(0, 50);
       useProcessedData = true;
     } else if (datasetId) {
-      console.log('[CHAT] Fetching dataset from database...');
+      debugLog('[CHAT] Fetching dataset from database...');
       const dataset = await db.query.datasets.findFirst({
         where: eq(datasets.id, datasetId),
       });
@@ -767,14 +769,14 @@ export async function POST(request: Request) {
           columnCount: dataset.columnCount,
           columns: dataset.columns,
         };
-        console.log('[CHAT] Dataset found:', datasetInfo.name, '-', datasetInfo.rowCount, 'rows');
+        debugLog('[CHAT] Dataset found:', datasetInfo.name, '-', datasetInfo.rowCount, 'rows');
 
         // FIXED: Fetch data from datasets.data column (not datasetRows table)
         const rawData = (dataset.data as Record<string, any>[]) || [];
         datasetRowsData = normalizeDataset(rawData).slice(0, 50);
-        console.log('[CHAT] Fetched and normalized', datasetRowsData.length, 'sample rows for context');
+        debugLog('[CHAT] Fetched and normalized', datasetRowsData.length, 'sample rows for context');
       } else {
-        console.log('[CHAT] Dataset not found in database');
+        debugLog('[CHAT] Dataset not found in database');
       }
     }
 
@@ -949,7 +951,7 @@ No dataset is currently loaded. Ask the user to upload a CSV file first.`;
 
 Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
 
-    console.log('[GEMINI] API Key present:', !!process.env.GEMINI_API_KEY);
+    debugLog('[GEMINI] API Key present:', !!process.env.GEMINI_API_KEY);
     
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
@@ -978,11 +980,11 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
       }),
     });
 
-    console.log('[GEMINI] Status:', deepSeekResponse.status);
+    debugLog('[GEMINI] Status:', deepSeekResponse.status);
 
     if (!deepSeekResponse.ok) {
       const errorText = await deepSeekResponse.text();
-      console.error('[GEMINI ERROR]', deepSeekResponse.status, errorText);
+      debugError('[GEMINI ERROR]', deepSeekResponse.status, errorText);
 
       return NextResponse.json(
         {
@@ -996,7 +998,7 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
     const data = await deepSeekResponse.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    console.log('[GEMINI] Response received:', content.slice(0, 100));
+    debugLog('[GEMINI] Response received:', content.slice(0, 100));
     
     // ============================================================================
     // AI CALL COMPLETE - Log execution
@@ -1022,7 +1024,7 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
           responseData.analysisCount = newCount;
         }
       } catch (usageError) {
-        console.error('[CHAT] Failed to increment usage:', usageError);
+        debugError('[CHAT] Failed to increment usage:', usageError);
       }
     }
 
@@ -1035,7 +1037,7 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
     return NextResponse.json(responseData);
 
   } catch (err: any) {
-    console.error('[CHAT CRASH]', {
+    debugError('[CHAT CRASH]', {
       message: err.message,
       stack: err.stack?.slice(0, 500),
     });

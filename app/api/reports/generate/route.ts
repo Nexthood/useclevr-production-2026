@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/reports/generate/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -277,7 +279,7 @@ export async function POST(request: Request) {
       .set({ credits: profile.credits - 1 })
       .where(eq(profiles.userId, userId));
 
-    console.log(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${profile.credits - 1}`);
+    debugLog(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${profile.credits - 1}`);
 
     return NextResponse.json({
       success: true,
@@ -286,7 +288,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('[REPORT ERROR]', error);
+    debugError('[REPORT ERROR]', error);
     return NextResponse.json(
       { success: false, error: 'Failed to generate report' },
       { status: 500 }

@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/analyst/route.ts
 // UseClevr AI Analyst Mode - Multi-step analysis with structured report
 
@@ -13,7 +15,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    console.log('[ANALYST] Starting analyst mode for dataset:', id);
+    debugLog('[ANALYST] Starting analyst mode for dataset:', id);
 
     // Get dataset
     const dataset = await db.query.datasets.findFirst({
@@ -36,13 +38,13 @@ export async function POST(
       );
     }
 
-    console.log('[ANALYST] Running analyst mode on', data.length, 'rows...');
+    debugLog('[ANALYST] Running analyst mode on', data.length, 'rows...');
 
     // Run complete analyst mode
     const result = await runAnalystMode(id, data);
 
-    console.log('[ANALYST] Completed with plan:', result.plan.analysis_plan.length, 'steps');
-    console.log('[ANALYST] Report overview:', result.report.overview.substring(0, 100) + '...');
+    debugLog('[ANALYST] Completed with plan:', result.plan.analysis_plan.length, 'steps');
+    debugLog('[ANALYST] Report overview:', result.report.overview.substring(0, 100) + '...');
 
     return NextResponse.json({
       success: true,
@@ -50,7 +52,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('[ANALYST] Error:', error.message);
+    debugError('[ANALYST] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

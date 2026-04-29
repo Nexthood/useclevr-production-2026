@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/suggestions/route.ts
 // Get smart question suggestions for a dataset
 
@@ -13,7 +15,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    console.log('[SUGGESTIONS] Getting suggestions for dataset:', id);
+    debugLog('[SUGGESTIONS] Getting suggestions for dataset:', id);
 
     // Get dataset
     const dataset = await db.query.datasets.findFirst({
@@ -41,7 +43,7 @@ export async function GET(
     // Generate suggestions
     const suggestions = generateSuggestions(intelligence);
 
-    console.log('[SUGGESTIONS] Generated', suggestions.length, 'suggestions');
+    debugLog('[SUGGESTIONS] Generated', suggestions.length, 'suggestions');
 
     return NextResponse.json({
       suggestions,
@@ -50,7 +52,7 @@ export async function GET(
     });
 
   } catch (error: any) {
-    console.error('[SUGGESTIONS] Error:', error.message);
+    debugError('[SUGGESTIONS] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

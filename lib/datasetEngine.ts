@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Dataset Engine - Pure JavaScript Query Engine
  * 
@@ -20,7 +22,7 @@ let jsColumns: string[] = [];
 export function loadDataJS(data: any[]): void {
   jsData = data;
   jsColumns = Object.keys(data[0] || {});
-  console.log('[DatasetEngine] Data loaded:', jsData.length, 'rows,', jsColumns.length, 'columns');
+  debugLog('[DatasetEngine] Data loaded:', jsData.length, 'rows,', jsColumns.length, 'columns');
 }
 
 /**
@@ -28,7 +30,7 @@ export function loadDataJS(data: any[]): void {
  */
 export async function loadDataFromJSON(data: any[], _tableName: string = 'dataset'): Promise<boolean> {
   if (!data || data.length === 0) {
-    console.log('[DatasetEngine] No data provided');
+    debugLog('[DatasetEngine] No data provided');
     return false;
   }
   loadDataJS(data);
@@ -61,7 +63,7 @@ export function runQuery(sql: string): any[] {
 }
 
 export function runQueryJS(query: string): any[] {
-  console.log('[DatasetEngine-JS] Running query:', query);
+  debugLog('[DatasetEngine-JS] Running query:', query);
   
   const q = query.toLowerCase().trim();
   let result: any[] = [];
@@ -157,5 +159,5 @@ export function runQueryJS(query: string): any[] {
 export async function closeDatasetEngine(): Promise<void> {
   jsData = [];
   jsColumns = [];
-  console.log('[DatasetEngine] Cleared');
+  debugLog('[DatasetEngine] Cleared');
 }

@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // Exchange Rate Service for Multi-Currency Financial Processing
 // ============================================================================
@@ -162,7 +164,7 @@ export function detectCurrencyFromValues(values: string[]): string | null {
   // First: Check for ISO 4217 currency codes (highest priority)
   const codes = nonEmpty.filter(v => isValidISOCurrency(v.trim()));
   if (codes.length > nonEmpty.length * 0.3) {
-    console.log(`[FX] Detected currency code: ${codes[0].toUpperCase()}`);
+    debugLog(`[FX] Detected currency code: ${codes[0].toUpperCase()}`);
     return codes[0].toUpperCase();
   }
   
@@ -170,7 +172,7 @@ export function detectCurrencyFromValues(values: string[]): string | null {
   for (const [currency, pattern] of Object.entries(CURRENCY_SYMBOLS)) {
     const matches = nonEmpty.filter(v => pattern.test(v));
     if (matches.length > nonEmpty.length * 0.3) {
-      console.log(`[FX] Detected currency symbol: ${currency}`);
+      debugLog(`[FX] Detected currency symbol: ${currency}`);
       return currency;
     }
   }
@@ -182,7 +184,7 @@ export function detectCurrencyFromValues(values: string[]): string | null {
 export async function fetchExchangeRates(baseCurrency: string = 'EUR'): Promise<ExchangeRates> {
   // Validate currency code against ISO 4217
   if (!isValidISOCurrency(baseCurrency)) {
-    console.error(`[FX] Invalid currency code: ${baseCurrency}, using EUR as fallback`);
+    debugError(`[FX] Invalid currency code: ${baseCurrency}, using EUR as fallback`);
     baseCurrency = 'EUR';
   }
 
@@ -190,7 +192,7 @@ export async function fetchExchangeRates(baseCurrency: string = 'EUR'): Promise<
   if (cachedRates && 
       cachedRates.base === baseCurrency && 
       Date.now() - cachedRatesTimestamp < CACHE_TTL) {
-    console.log(`[FX] Using cached rates (age: ${Math.round((Date.now() - cachedRatesTimestamp) / 3600000)}h)`);
+    debugLog(`[FX] Using cached rates (age: ${Math.round((Date.now() - cachedRatesTimestamp) / 3600000)}h)`);
     return cachedRates;
   }
 
@@ -219,7 +221,7 @@ export async function fetchExchangeRates(baseCurrency: string = 'EUR'): Promise<
     
     return cachedRates;
   } catch (error) {
-    console.error('FX Rate fetch failed, using fallback rates:', error);
+    debugError('FX Rate fetch failed, using fallback rates:', error);
     return getFallbackRates(baseCurrency);
   }
 }

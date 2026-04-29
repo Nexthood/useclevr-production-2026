@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Hybrid AI Router
  * 
@@ -46,16 +48,16 @@ export async function checkLocalAIAvailability(): Promise<boolean> {
     
     if (response.ok) {
       localAIAvailable = true
-      console.log("[AI-ROUTER] Local: AVAILABLE ✓")
+      debugLog("[AI-ROUTER] Local: AVAILABLE ✓")
       return true
     } else {
       localAIAvailable = false
-      console.log("[AI-ROUTER] Local: NOT AVAILABLE (status:", response.status, ")")
+      debugLog("[AI-ROUTER] Local: NOT AVAILABLE (status:", response.status, ")")
       return false
     }
   } catch (error) {
     localAIAvailable = false
-    console.log("[AI-ROUTER] Local: NOT AVAILABLE (network error)")
+    debugLog("[AI-ROUTER] Local: NOT AVAILABLE (network error)")
     return false
   }
 }
@@ -118,7 +120,7 @@ export async function askLocalAI(request: LocalAIRequest): Promise<LocalAIRespon
 export function isCloudAIAvailable(): boolean {
   if (!isCloudAvailable) {
     if (Date.now() - lastCloudSuccess > RETRY_INTERVAL_MS) {
-      console.log("[AI-ROUTER] Retrying cloud after cooldown")
+      debugLog("[AI-ROUTER] Retrying cloud after cooldown")
       isCloudAvailable = true
     }
   }
@@ -135,9 +137,9 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   
   // Priority 1: LOCAL AI - use if available (offline/hybrid mode)
   if (localIsAvailable) {
-    console.log("[AI-ROUTER] ═══ SELECTED ═══")
-    console.log("[AI-ROUTER] Provider: LOCAL AI (offline/hybrid)")
-    console.log("[AI-ROUTER] Reason: Local AI is available")
+    debugLog("[AI-ROUTER] ═══ SELECTED ═══")
+    debugLog("[AI-ROUTER] Provider: LOCAL AI (offline/hybrid)")
+    debugLog("[AI-ROUTER] Reason: Local AI is available")
     return {
       provider: google("gemini-2.5-flash") as LanguageModel,
       type: "local",
@@ -149,9 +151,9 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   // Priority 2: CLOUD AI - fallback when Local unavailable
   // Use Gemini only
   if (cloudKey) {
-    console.log("[AI-ROUTER] ═══ SELECTED ═══")
-    console.log("[AI-ROUTER] Provider: CLOUD (Gemini Flash 2.5)")
-    console.log("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
+    debugLog("[AI-ROUTER] ═══ SELECTED ═══")
+    debugLog("[AI-ROUTER] Provider: CLOUD (Gemini Flash 2.5)")
+    debugLog("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
     return {
       provider: google("gemini-2.5-flash"),
       type: "cloud",
@@ -161,10 +163,10 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   }
   
   // Priority 3: ERROR - no providers available
-  console.log("[AI-ROUTER] ═══ ERROR ═══")
-  console.log("[AI-ROUTER] No AI provider available!")
-  console.log("[AI-ROUTER] Local: NOT AVAILABLE")
-  console.log("[AI-ROUTER] Cloud: NOT CONFIGURED")
+  debugLog("[AI-ROUTER] ═══ ERROR ═══")
+  debugLog("[AI-ROUTER] No AI provider available!")
+  debugLog("[AI-ROUTER] Local: NOT AVAILABLE")
+  debugLog("[AI-ROUTER] Cloud: NOT CONFIGURED")
   throw new Error("No AI provider. Configure GEMINI_API_KEY in .env.local or start Local AI server.")
 }
 
@@ -172,7 +174,7 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
 export function markCloudSuccess(): void {
   lastCloudSuccess = Date.now()
   if (!isCloudAvailable) {
-    console.log("[AI-ROUTER] Cloud AI recovered")
+    debugLog("[AI-ROUTER] Cloud AI recovered")
   }
   isCloudAvailable = true
   currentProvider = "cloud"
@@ -181,12 +183,12 @@ export function markCloudSuccess(): void {
 // Mark cloud AI as failed
 export function markCloudFailed(): void {
   if (localAIAvailable === true) {
-    console.log("[AI-ROUTER] Cloud failed - Local fallback available")
+    debugLog("[AI-ROUTER] Cloud failed - Local fallback available")
     isCloudAvailable = false
     currentProvider = "local"
     lastCloudSuccess = Date.now()
   } else {
-    console.log("[AI-ROUTER] Cloud failed - no fallback available!")
+    debugLog("[AI-ROUTER] Cloud failed - no fallback available!")
     isCloudAvailable = false
   }
 }
@@ -212,7 +214,7 @@ export async function withAIFallback<T>(
       const result = await localCall()
       return { result, provider: "local" }
     } catch (localError) {
-      console.error("[AI-ROUTER] Local AI failed:", localError)
+      debugError("[AI-ROUTER] Local AI failed:", localError)
     }
   }
   
@@ -228,7 +230,7 @@ export async function withAIFallback<T>(
       markCloudSuccess()
       return { result, provider: "cloud" }
     } catch (error) {
-      console.error("[AI-ROUTER] Cloud AI failed:", error)
+      debugError("[AI-ROUTER] Cloud AI failed:", error)
       markCloudFailed()
     }
   }

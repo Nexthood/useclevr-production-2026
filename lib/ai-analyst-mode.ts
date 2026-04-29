@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * UseClevr AI Analyst Mode
  * 
@@ -358,7 +360,7 @@ Rules:
       }
     }
   } catch (error) {
-    console.warn('[ANALYST] AI report generation failed:', error);
+    debugWarn('[ANALYST] AI report generation failed:', error);
   }
   
   // Fallback report
@@ -377,20 +379,20 @@ export async function runAnalystMode(
   datasetId: string,
   data: Record<string, unknown>[]
 ): Promise<AnalystResult> {
-  console.log('[ANALYST] Starting analyst mode for dataset:', datasetId);
+  debugLog('[ANALYST] Starting analyst mode for dataset:', datasetId);
   
   // Build intelligence
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
   
   // 1. Generate analysis plan
   const plan = generateAnalysisPlan(intelligence);
-  console.log('[ANALYST] Generated plan with', plan.analysis_plan.length, 'steps');
+  debugLog('[ANALYST] Generated plan with', plan.analysis_plan.length, 'steps');
   
   // 2. Execute plan step by step
   const executionDetails: { step: string; query: string; result_count: number }[] = [];
   
   for (const step of plan.analysis_plan) {
-    console.log('[ANALYST] Executing step:', step);
+    debugLog('[ANALYST] Executing step:', step);
     const result = executeAnalysisStep(step, data, intelligence);
     executionDetails.push({
       step,

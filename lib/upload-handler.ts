@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // UPLOAD & STORAGE HANDLER - S3/Cloudflare R2 Integration
 // ============================================================================
@@ -132,7 +134,7 @@ async function uploadToS3(
     
     return { success: true };
   } catch (error: any) {
-    console.error('[UPLOAD] S3 upload failed:', error);
+    debugError('[UPLOAD] S3 upload failed:', error);
     return { success: false, error: error.message };
   }
 }
@@ -172,7 +174,7 @@ async function uploadToR2(
     
     return { success: true };
   } catch (error: any) {
-    console.error('[UPLOAD] R2 upload failed:', error);
+    debugError('[UPLOAD] R2 upload failed:', error);
     return { success: false, error: error.message };
   }
 }
@@ -199,7 +201,7 @@ async function uploadToLocal(
     
     return { success: true };
   } catch (error: any) {
-    console.error('[UPLOAD] Local upload failed:', error);
+    debugError('[UPLOAD] Local upload failed:', error);
     return { success: false, error: error.message };
   }
 }
@@ -220,7 +222,7 @@ export async function uploadFile(
   const datasetId = uuidv4();
   const storageKey = generateStorageKey(datasetId, filename);
   
-  console.log(`[UPLOAD] Uploading ${filename} (${buffer.length} bytes) to ${config.provider}`);
+  debugLog(`[UPLOAD] Uploading ${filename} (${buffer.length} bytes) to ${config.provider}`);
   
   let uploadResult: { success: boolean; error?: string };
   
@@ -249,7 +251,7 @@ export async function uploadFile(
   // Calculate checksum
   const checksum = await calculateChecksum(buffer);
   
-  console.log(`[UPLOAD] Successfully uploaded to ${storageKey}`);
+  debugLog(`[UPLOAD] Successfully uploaded to ${storageKey}`);
   
   return {
     success: true,
@@ -305,10 +307,10 @@ export async function deleteFile(storageKey: string): Promise<boolean> {
       await fs.unlink(path.join(uploadDir, storageKey));
     }
     
-    console.log(`[UPLOAD] Deleted file: ${storageKey}`);
+    debugLog(`[UPLOAD] Deleted file: ${storageKey}`);
     return true;
   } catch (error: any) {
-    console.error('[UPLOAD] Delete failed:', error);
+    debugError('[UPLOAD] Delete failed:', error);
     return false;
   }
 }
@@ -399,7 +401,7 @@ export async function parseExcelFile(buffer: Buffer): Promise<{
 }> {
   // Basic XLSX parsing - in production, use 'xlsx' package
   // This is a placeholder that converts to CSV-like parsing
-  console.log('[UPLOAD] Excel parsing not fully implemented, treating as CSV');
+  debugLog('[UPLOAD] Excel parsing not fully implemented, treating as CSV');
   return parseCSVFile(buffer);
 }
 

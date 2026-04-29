@@ -1,3 +1,4 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
 /**
  * Auto Question Engine
  * 
@@ -283,7 +284,7 @@ Suggested Questions:
       }
     }
   } catch (error) {
-    console.warn('[AUTO_QUESTIONS] AI generation failed, using fallback:', error);
+    debugWarn('[AUTO_QUESTIONS] AI generation failed, using fallback:', error);
   }
   
   // Fallback to pattern-based generation

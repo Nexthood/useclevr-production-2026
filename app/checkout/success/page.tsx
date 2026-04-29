@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { getCheckoutSession } from "@/app/actions/stripe"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
@@ -26,7 +28,7 @@ export default async function CheckoutSuccessPage({
     try {
       session = await getCheckoutSession(session_id)
     } catch (error) {
-      console.error("Error fetching session:", error)
+      debugError("Error fetching session:", error)
     }
   }
 

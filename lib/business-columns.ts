@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // UNIVERSAL COST COLUMN DETECTOR
 // ============================================================================
@@ -89,7 +91,7 @@ function calculateVerifiedProfit(
   
   if (margin !== null && margin > 80 && total_cost > 0) {
     // Flag warning but don't fail
-    console.log('[PROFIT WARNING] Margin > 80% with costs - verifying calculation');
+    debugLog('[PROFIT WARNING] Margin > 80% with costs - verifying calculation');
   }
   
   return { revenue, profit, margin, costs: { cogs, marketing_cost: marketing, shipping_cost: shipping, refunds, discount_amount: discount, total_cost }, isValid, error };
@@ -238,7 +240,7 @@ export function detectBusinessColumns(rows: any[]): DetectedBusinessColumns {
   const detectedCostComponents = detectCostComponents(columns);
   
   // DEBUG: Log detected cost components
-  console.log('[DETECT] Cost components:', detectedCostComponents);
+  debugLog('[DETECT] Cost components:', detectedCostComponents);
   
   if (!rows || rows.length === 0) {
     return {
@@ -295,7 +297,7 @@ export function detectBusinessColumns(rows: any[]): DetectedBusinessColumns {
     /quantity|qty|units|volume|count/i.test(col) && isNumericColumn(rows, col)
   ) || null;
   
-  console.log('[DETECT] Universal column detection:', {
+  debugLog('[DETECT] Universal column detection:', {
     revenue: revenueColumn,
     profit: profitColumn,
     cost: validCostColumn,
@@ -394,10 +396,10 @@ export function analyzeBusinessData(
   const aggregationColumn = regionColumn || fallbackRegionColumn;
   
   // DEBUG: Log detected columns
-  console.log('[AGGREGATION] Detected columns:', Object.keys(detectedColumns));
-  console.log('[AGGREGATION] Cost components:', costComponents);
-  console.log('[AGGREGATION] First row sample:', rows[0] ? Object.keys(rows[0]) : 'no data');
-  console.log('[AGGREGATION] Using regionColumn:', regionColumn, '| fallbackRegionColumn:', fallbackRegionColumn, '| aggregationColumn:', aggregationColumn);
+  debugLog('[AGGREGATION] Detected columns:', Object.keys(detectedColumns));
+  debugLog('[AGGREGATION] Cost components:', costComponents);
+  debugLog('[AGGREGATION] First row sample:', rows[0] ? Object.keys(rows[0]) : 'no data');
+  debugLog('[AGGREGATION] Using regionColumn:', regionColumn, '| fallbackRegionColumn:', fallbackRegionColumn, '| aggregationColumn:', aggregationColumn);
   
   // ========== REVENUE & VERIFIED PROFIT ==========
   let totalRevenue = 0;
@@ -481,11 +483,11 @@ export function analyzeBusinessData(
   // FINANCIAL VALIDATION
   if (totalProfit > totalRevenue) {
     flagFinancialError = true;
-    console.log('[PROFIT ERROR] profit > revenue - calculation may be invalid');
+    debugLog('[PROFIT ERROR] profit > revenue - calculation may be invalid');
   }
   
   // DEBUG: Log detailed financials for validation
-  console.log('[DEBUG] Financial Validation:', { 
+  debugLog('[DEBUG] Financial Validation:', { 
     revenue: totalRevenue, 
     profit: totalProfit, 
     costs: { cogs: totalCOGS, marketing: totalMarketing, shipping: totalShipping, refunds: totalRefunds, discount: totalDiscount },
@@ -559,10 +561,10 @@ export function analyzeBusinessData(
     }));
   
   // DEBUG: Log for validation
-  console.log('[DEBUG] Revenue by region:', JSON.stringify(revenueByRegion));
-  console.log('[DEBUG] Profit by region:', JSON.stringify(profitByRegion));
-  console.log('[DEBUG] Top regions (by revenue):', topRegions.map(r => ({ name: r.name, revenue: r.revenue })));
-  console.log('[DEBUG] Top regions (by profit):', topRegionsByProfit.map(r => ({ name: r.name, profit: r.profit })));
+  debugLog('[DEBUG] Revenue by region:', JSON.stringify(revenueByRegion));
+  debugLog('[DEBUG] Profit by region:', JSON.stringify(profitByRegion));
+  debugLog('[DEBUG] Top regions (by revenue):', topRegions.map(r => ({ name: r.name, revenue: r.revenue })));
+  debugLog('[DEBUG] Top regions (by profit):', topRegionsByProfit.map(r => ({ name: r.name, profit: r.profit })));
   
   // Worst performing products (negative profit)
   const worstProducts = Object.entries(profitByProduct)
@@ -778,7 +780,7 @@ export function analyzeBusinessData(
   };
   
   // DEBUG: Log aggregated chart data
-  console.log('[AGGREGATION] Chart data - revenueByRegion:', JSON.stringify(revenueByRegion));
-  console.log('[AGGREGATION] Chart data - revenueByProduct:', JSON.stringify(revenueByProduct));
-  console.log('[AGGREGATION] Chart data - topRegions count:', Object.keys(revenueByRegion).length);
+  debugLog('[AGGREGATION] Chart data - revenueByRegion:', JSON.stringify(revenueByRegion));
+  debugLog('[AGGREGATION] Chart data - revenueByProduct:', JSON.stringify(revenueByProduct));
+  debugLog('[AGGREGATION] Chart data - topRegions count:', Object.keys(revenueByRegion).length);
 }

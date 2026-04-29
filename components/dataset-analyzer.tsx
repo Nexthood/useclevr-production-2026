@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import * as React from "react"
 import { 
   Sparkles, 
@@ -401,7 +405,7 @@ export function DatasetAnalyzer({
   const renderCount = React.useRef(0)
   renderCount.current++
   React.useEffect(() => {
-    console.log('[DatasetAnalyzer] Render count:', renderCount.current)
+    debugLog('[DatasetAnalyzer] Render count:', renderCount.current)
   })
 
   // Auto-trigger analysis on mount if not already analyzed
@@ -433,7 +437,7 @@ export function DatasetAnalyzer({
         setIsAnalyzed(true)
       }
     } catch (error) {
-      console.error('Analysis failed:', error)
+      debugError('Analysis failed:', error)
     } finally {
       setIsAnalyzing(false)
     }
@@ -442,7 +446,7 @@ export function DatasetAnalyzer({
   // Handle generate report action
   const handleGenerateReport = async () => {
     if (!analysis?.business_analysis?.kpis) {
-      console.error('No analysis data available')
+      debugError('No analysis data available')
       return
     }
     
@@ -525,7 +529,7 @@ export function DatasetAnalyzer({
       
       if (response.ok) {
         const result = await response.json()
-        console.log('Report generated:', result)
+        debugLog('Report generated:', result)
         setReportGenerated(true)
         // Store the report ID in sessionStorage so Downloads page can highlight it
         if (result.reportId) {
@@ -536,12 +540,12 @@ export function DatasetAnalyzer({
           window.location.href = '/app/downloads'
         }, 1500)
       } else {
-        console.error('Report generation failed')
+        debugError('Report generation failed')
         const errorText = await response.text()
-        console.error('Error response:', errorText)
+        debugError('Error response:', errorText)
       }
     } catch (error) {
-      console.error('Report generation error:', error)
+      debugError('Report generation error:', error)
     } finally {
       setIsGeneratingReport(false)
     }
@@ -570,7 +574,7 @@ export function DatasetAnalyzer({
         }
       }
     } catch (error) {
-      console.error('Investigation failed:', error)
+      debugError('Investigation failed:', error)
     } finally {
       setIsInvestigating(false)
     }
@@ -1376,8 +1380,8 @@ export function DatasetAnalyzer({
                   ? Object.entries(breakdowns.revenueByRegion)
                   : null;
                 
-                console.log('[Overview] Using regionData:', regionData ? regionData.length + ' entries' : 'null');
-                console.log('[Overview] revenueByRegion keys:', breakdowns.revenueByRegion ? Object.keys(breakdowns.revenueByRegion) : 'none');
+                debugLog('[Overview] Using regionData:', regionData ? regionData.length + ' entries' : 'null');
+                debugLog('[Overview] revenueByRegion keys:', breakdowns.revenueByRegion ? Object.keys(breakdowns.revenueByRegion) : 'none');
                 
                 // Use revenueByProduct if available (from processed analysis)
                 const productData = breakdowns.revenueByProduct && Object.keys(breakdowns.revenueByProduct).length > 0
@@ -1421,7 +1425,7 @@ export function DatasetAnalyzer({
                     .sort((a, b) => b.value - a.value)
                     .slice(0, 8);
                   
-                  console.log('Overview aggregated revenue data:', entries);
+                  debugLog('Overview aggregated revenue data:', entries);
                   
                   if (entries.length === 0) return null;
                   
@@ -1999,11 +2003,11 @@ function DebugRegionData({
   rawData?: any[];
 }) {
   React.useEffect(() => {
-    console.log('[Overview] topRegions (from kpis):', topRegions);
-    console.log('[Overview] breakdowns.revenueByRegion:', breakdowns?.revenueByRegion);
-    console.log('[Overview] raw data sample:', rawData?.slice(0, 3));
+    debugLog('[Overview] topRegions (from kpis):', topRegions);
+    debugLog('[Overview] breakdowns.revenueByRegion:', breakdowns?.revenueByRegion);
+    debugLog('[Overview] raw data sample:', rawData?.slice(0, 3));
     if (rawData && rawData.length > 0) {
-      console.log('[Overview] raw data columns:', Object.keys(rawData[0]));
+      debugLog('[Overview] raw data columns:', Object.keys(rawData[0]));
     }
   }, [topRegions, breakdowns, rawData]);
   return null; // Render nothing
@@ -2021,9 +2025,9 @@ function RegionBarChart({
 }) {
   // Aggregate data from raw dataset - show ALL regions, not just top 5
   const chartData = React.useMemo(() => {
-    console.log('[RegionBarChart] rawData length:', rawData?.length);
-    console.log('[RegionBarChart] fallbackData length:', fallbackData?.length);
-    console.log('[RegionBarChart] breakdowns.revenueByRegion:', breakdowns?.revenueByRegion);
+    debugLog('[RegionBarChart] rawData length:', rawData?.length);
+    debugLog('[RegionBarChart] fallbackData length:', fallbackData?.length);
+    debugLog('[RegionBarChart] breakdowns.revenueByRegion:', breakdowns?.revenueByRegion);
     
     // FIRST: Use breakdowns.revenueByRegion if available - this has ALL regions computed correctly
     if (breakdowns?.revenueByRegion && Object.keys(breakdowns.revenueByRegion).length > 0) {
@@ -2032,14 +2036,14 @@ function RegionBarChart({
         .filter(item => item.revenue > 0)
         .sort((a, b) => b.revenue - a.revenue);
       
-      console.log('[RegionBarChart] Using breakdowns - ALL regions:', entries.length);
+      debugLog('[RegionBarChart] Using breakdowns - ALL regions:', entries.length);
       return entries;
     }
     
     // SECOND: Try to aggregate from rawData
     if (rawData && rawData.length > 0) {
       const columns = Object.keys(rawData[0] || {});
-      console.log('[RegionBarChart] Available columns:', columns);
+      debugLog('[RegionBarChart] Available columns:', columns);
       
       // Find country/region column
       const countryCol = columns.find(c => /country/i.test(c));
@@ -2052,7 +2056,7 @@ function RegionBarChart({
         c.toLowerCase().includes('order_total')
       );
       
-      console.log('[RegionBarChart] Detected columns:', { countryCol, regionCol, revenueCol });
+      debugLog('[RegionBarChart] Detected columns:', { countryCol, regionCol, revenueCol });
       
       const groupCol = countryCol || regionCol;
       
@@ -2071,26 +2075,26 @@ function RegionBarChart({
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 20); // Increased to 20 to show more regions
         
-        console.log('[RegionBarChart] Aggregated from rawData - ALL regions:', result);
-        console.log('[RegionBarChart] Total unique regions:', result.length);
+        debugLog('[RegionBarChart] Aggregated from rawData - ALL regions:', result);
+        debugLog('[RegionBarChart] Total unique regions:', result.length);
         return result;
       }
     }
     
     // Fallback to topRegions only if rawData fails
-    console.log('[RegionBarChart] Using fallback - rawData not available or columns not detected');
+    debugLog('[RegionBarChart] Using fallback - rawData not available or columns not detected');
     const result = fallbackData.map(item => ({
       name: item.name,
       revenue: item.revenue,
     }));
-    console.log('[RegionBarChart] Fallback result:', result);
+    debugLog('[RegionBarChart] Fallback result:', result);
     return result;
   }, [rawData, fallbackData, breakdowns]);
   
-  console.log('[RegionBarChart] FINAL chartData:', chartData);
-  console.log('[RegionBarChart] Rendering', chartData.length, 'bars');
+  debugLog('[RegionBarChart] FINAL chartData:', chartData);
+  debugLog('[RegionBarChart] Rendering', chartData.length, 'bars');
   
-  console.log('[RegionBarChart] Final chartData:', chartData);
+  debugLog('[RegionBarChart] Final chartData:', chartData);
   
   // Colors for bars
   const COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', '#fff7ed', '#fbbf24', '#f59e0b', '#ea580c', '#c2410c'];
@@ -2101,7 +2105,7 @@ function RegionBarChart({
   
   return (
     <div className="w-full h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
+       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart 
           data={chartData} 
           layout="vertical"

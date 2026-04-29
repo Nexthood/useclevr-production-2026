@@ -28,6 +28,9 @@ lerna-debug.log*
 dist/
 .turbo/
 tsconfig.tsbuildinfo
+public/generated/
+.codex
+.codex/
 
 # Editor & IDE
 .vscode/settings.json

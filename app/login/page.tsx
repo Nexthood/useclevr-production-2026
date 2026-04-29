@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import type React from "react"
 
 import Link from "next/link"
@@ -51,22 +55,22 @@ export default function LoginPage() {
     setError("")
 
     try {
-      console.log("[LOGIN] Attempting demo login...")
+      debugLog("[LOGIN] Attempting demo login...")
       const result = await signIn("demo", {
         redirect: false,
       })
-      console.log("[LOGIN] Demo login result:", result)
+      debugLog("[LOGIN] Demo login result:", result)
 
       if (result?.error) {
-        console.error("[LOGIN] Demo login error:", result.error)
+        debugError("[LOGIN] Demo login error:", result.error)
         setError("Demo login failed. Please try again.")
       } else {
-        console.log("[LOGIN] Demo login successful, redirecting to /app")
+        debugLog("[LOGIN] Demo login successful, redirecting to /app")
         router.push("/app")
         router.refresh()
       }
     } catch (error) {
-      console.error("[LOGIN] Demo login exception:", error)
+      debugError("[LOGIN] Demo login exception:", error)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)

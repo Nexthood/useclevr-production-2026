@@ -1,5 +1,9 @@
 "use server"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { db } from "@/lib/db"
 import { users, profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -33,7 +37,7 @@ export async function signup(formData: FormData) {
       where: eq(users.email, email),
     })
   } catch (dbError) {
-    console.error("Database connection error during signup:", dbError)
+    debugError("Database connection error during signup:", dbError)
     return { error: "Database connection failed. Please check your configuration." }
   }
 
@@ -55,7 +59,7 @@ export async function signup(formData: FormData) {
     }).returning()
     user = result[0]
   } catch (dbError) {
-    console.error("Database connection error creating user:", dbError)
+    debugError("Database connection error creating user:", dbError)
     return { error: "Database connection failed. Please check your configuration." }
   }
 
@@ -68,7 +72,7 @@ export async function signup(formData: FormData) {
       fullName: name,
     })
   } catch (dbError) {
-    console.error("Database connection error creating profile:", dbError)
+    debugError("Database connection error creating profile:", dbError)
     // User was created but profile failed - still return success
     // The profile can be created later
   }

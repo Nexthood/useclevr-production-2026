@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
@@ -41,13 +43,13 @@ export default async function AnalyzePage({
   const columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
   
   // Log for debugging
-  console.log('[DEBUG-PAGE] Dataset from DB:', { 
+  debugLog('[DEBUG-PAGE] Dataset from DB:', { 
     id: dataset.id, 
     name: dataset.name,
     totalRowCount: rowCount,
     columnCount: columns.length
   })
-  console.log('[DEBUG-PAGE] Column types from database:', JSON.stringify(columnTypes))
+  debugLog('[DEBUG-PAGE] Column types from database:', JSON.stringify(columnTypes))
 
   // Check if dataset already has analysis results (for state persistence)
   const hasAnalysis: boolean = Boolean(
@@ -55,7 +57,7 @@ export default async function AnalyzePage({
   )
   const initialAnalysis = hasAnalysis ? (dataset.analysis as AnalysisResult) : undefined
   
-  console.log('[DEBUG-PAGE] Dataset analysis status:', { 
+  debugLog('[DEBUG-PAGE] Dataset analysis status:', { 
     id: dataset.id, 
     name: dataset.name,
     hasAnalysis 

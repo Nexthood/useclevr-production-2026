@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import {
   mcpTools,
   getToolByName,
@@ -35,8 +37,8 @@ export interface MCPToolResult {
 export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPToolResult> {
   const { name, input } = invocation;
   
-  console.log(`[MCP] Invoking tool: ${name}`);
-  console.log(`[MCP] Input:`, input);
+  debugLog(`[MCP] Invoking tool: ${name}`);
+  debugLog(`[MCP] Input:`, input);
 
   try {
     const tool = getToolByName(name);
@@ -101,7 +103,7 @@ export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPTool
         };
     }
   } catch (error: any) {
-    console.error(`[MCP] Tool invocation error:`, error);
+    debugError(`[MCP] Tool invocation error:`, error);
     return {
       success: false,
       error: error?.message || 'Unknown error',

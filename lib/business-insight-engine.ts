@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Business Insight Engine
  * 
@@ -358,7 +360,7 @@ function executeQuery(sql: string, data: any[], question: string, columns: strin
     return [{ name: valueCol, value: result }];
     
   } catch (error) {
-    console.error('Query execution error:', error);
+    debugError('Query execution error:', error);
     return [];
   }
 }

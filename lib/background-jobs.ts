@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // BACKGROUND JOB SYSTEM - Simple Queue for Large Dataset Processing
 // ============================================================================
@@ -41,7 +43,7 @@ export function createAnalysisJob(
   jobQueue.set(job.id, job);
   pendingQueue.push(job.id);
   
-  console.log(`[JOB] Created job ${job.id} for dataset ${datasetId}`);
+  debugLog(`[JOB] Created job ${job.id} for dataset ${datasetId}`);
   
   return job;
 }
@@ -106,7 +108,7 @@ export function completeJob(jobId: string, error?: string): AnalysisJob | null {
   job.completedAt = new Date().toISOString();
   job.error = error;
   
-  console.log(`[JOB] Job ${jobId} ${error ? 'failed' : 'completed'}`);
+  debugLog(`[JOB] Job ${jobId} ${error ? 'failed' : 'completed'}`);
   
   return job;
 }
@@ -122,7 +124,7 @@ export function retryJob(jobId: string): AnalysisJob | null {
     job.status = 'failed';
     job.completedAt = new Date().toISOString();
     job.error = 'Max retries exceeded';
-    console.log(`[JOB] Job ${jobId} failed: max retries exceeded`);
+    debugLog(`[JOB] Job ${jobId} failed: max retries exceeded`);
     return job;
   }
   
@@ -131,7 +133,7 @@ export function retryJob(jobId: string): AnalysisJob | null {
   job.startedAt = undefined;
   pendingQueue.push(jobId);
   
-  console.log(`[JOB] Job ${jobId} queued for retry (attempt ${job.retryCount}/${job.maxRetries})`);
+  debugLog(`[JOB] Job ${jobId} queued for retry (attempt ${job.retryCount}/${job.maxRetries})`);
   
   return job;
 }
@@ -150,7 +152,7 @@ export function cancelJob(jobId: string): AnalysisJob | null {
   const idx = pendingQueue.indexOf(jobId);
   if (idx > -1) pendingQueue.splice(idx, 1);
   
-  console.log(`[JOB] Job ${jobId} cancelled`);
+  debugLog(`[JOB] Job ${jobId} cancelled`);
   
   return job;
 }
@@ -191,7 +193,7 @@ export function startJobProcessor(
   intervalMs: number = 5000
 ): void {
   if (isProcessorRunning) {
-    console.log('[PROCESSOR] Already running');
+    debugLog('[PROCESSOR] Already running');
     return;
   }
   
@@ -201,21 +203,21 @@ export function startJobProcessor(
     try {
       const job = getNextJob();
       if (job) {
-        console.log(`[PROCESSOR] Processing job ${job.id}`);
+        debugLog(`[PROCESSOR] Processing job ${job.id}`);
         try {
           await processFn(job);
           completeJob(job.id);
         } catch (error: any) {
-          console.error(`[PROCESSOR] Job ${job.id} failed:`, error.message);
+          debugError(`[PROCESSOR] Job ${job.id} failed:`, error.message);
           retryJob(job.id);
         }
       }
     } catch (error) {
-      console.error('[PROCESSOR] Error in processing loop:', error);
+      debugError('[PROCESSOR] Error in processing loop:', error);
     }
   }, intervalMs);
   
-  console.log('[PROCESSOR] Started background job processor');
+  debugLog('[PROCESSOR] Started background job processor');
 }
 
 /**
@@ -227,7 +229,7 @@ export function stopJobProcessor(): void {
     processorInterval = null;
   }
   isProcessorRunning = false;
-  console.log('[PROCESSOR] Stopped background job processor');
+  debugLog('[PROCESSOR] Stopped background job processor');
 }
 
 // ============================================================================
@@ -278,7 +280,7 @@ export function cleanupOldJobs(maxAgeHours: number = 24): number {
   }
   
   if (cleaned > 0) {
-    console.log(`[JOBS] Cleaned up ${cleaned} old jobs`);
+    debugLog(`[JOBS] Cleaned up ${cleaned} old jobs`);
   }
   
   return cleaned;

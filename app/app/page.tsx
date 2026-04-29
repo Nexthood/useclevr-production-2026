@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
@@ -32,7 +34,7 @@ async function getUserStats() {
       totalRows,
     }
   } catch (error) {
-    console.error("[DASHBOARD] Database error:", error)
+    debugError("[DASHBOARD] Database error:", error)
     return null
   }
 }

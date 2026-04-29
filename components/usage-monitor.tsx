@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import * as React from "react"
 
 interface UsageMonitorProps {
@@ -87,7 +91,7 @@ export function useUsage() {
           setIsPro(data.subscriptionTier === "pro")
         }
       } catch (error) {
-        console.error("Failed to fetch usage:", error)
+        debugError("Failed to fetch usage:", error)
       } finally {
         setIsLoading(false)
       }
@@ -104,7 +108,7 @@ export function useUsage() {
         setIsPro(data.subscriptionTier === "pro")
       }
     } catch (error) {
-      console.error("Failed to refresh usage:", error)
+      debugError("Failed to refresh usage:", error)
     }
   }
 

@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * UseClevr AI MEGA Installer
  * 
@@ -18,7 +20,7 @@ let installationProgress = '';
 let installationError = '';
 
 export async function POST(request: Request) {
-  console.log('[INSTALLER] Starting AI engine installation...');
+  debugLog('[INSTALLER] Starting AI engine installation...');
   
   try {
     installationStatus = 'checking';
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
     });
     
   } catch (error: any) {
-    console.error('[INSTALLER] Error:', error);
+    debugError('[INSTALLER] Error:', error);
     installationStatus = 'error';
     installationError = error.message;
     
@@ -184,15 +186,15 @@ async function checkModelDownloaded(): Promise<{ downloaded: boolean; model?: st
  */
 async function downloadModel(model: string): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log(`[INSTALLER] Downloading ${model} model...`);
+    debugLog(`[INSTALLER] Downloading ${model} model...`);
     
     // Run ollama pull in background
     await execAsync(`ollama pull ${model}`, { timeout: 600000 }); // 10 min timeout
     
-    console.log(`[INSTALLER] ${model} model downloaded successfully`);
+    debugLog(`[INSTALLER] ${model} model downloaded successfully`);
     return { success: true };
   } catch (error: any) {
-    console.error('[INSTALLER] Model download failed:', error);
+    debugError('[INSTALLER] Model download failed:', error);
     return { success: false, error: error.message };
   }
 }
@@ -239,7 +241,7 @@ async function startLocalAIService(): Promise<{ success: boolean; error?: string
     // The bridge server should be started separately
     // Here we just verify Ollama is accessible
     const { stdout } = await execAsync('ollama list');
-    console.log('[INSTALLER] Ollama is running and has models');
+    debugLog('[INSTALLER] Ollama is running and has models');
     
     return { success: true };
   } catch (error: any) {

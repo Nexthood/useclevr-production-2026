@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/auto-questions/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
       ...result
     });
   } catch (error) {
-    console.error('[AUTO_QUESTIONS] Error:', error);
+    debugError('[AUTO_QUESTIONS] Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate questions' },
       { status: 500 }

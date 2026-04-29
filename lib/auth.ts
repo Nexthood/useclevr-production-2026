@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { db, getDb } from "@/lib/db"
@@ -7,14 +9,14 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 
 // DIAGNOSTIC: Log when auth module is loaded
-console.log('[Auth] Module loading - initializing NextAuth v5')
-console.log('[Auth] Drizzle client available:', !!getDb())
+debugLog('[Auth] Module loading - initializing NextAuth v5')
+debugLog('[Auth] Drizzle client available:', !!getDb())
 
 // Helper to get db with null safety
 const getDbClient = () => {
   const client = getDb()
   if (!client) {
-    console.warn('[Auth] Database client is null - using demo mode only')
+    debugWarn('[Auth] Database client is null - using demo mode only')
     return null
   }
   return client
@@ -59,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize() {
         // Return demo user directly - no database lookup
-        console.log('[Demo] Demo login authenticated')
+        debugLog('[Demo] Demo login authenticated')
         return DEMO_USER
       },
     }),
@@ -89,7 +91,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             })
             user = userResult
           } catch (dbError) {
-            console.error("Database connection error during auth:", dbError)
+            debugError("Database connection error during auth:", dbError)
             return null
           }
 
@@ -112,7 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: user.image,
           }
         } catch (error) {
-          console.error("Auth error:", error)
+          debugError("Auth error:", error)
           return null
         }
       },
@@ -185,7 +187,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Use Drizzle properly to avoid connection issues
      */
     async createUser({ user }) {
-      console.log("New user created:", user.email)
+      debugLog("New user created:", user.email)
       // You could send welcome email here
     },
     /**
@@ -193,16 +195,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Log for debugging, don't throw
      */
     async signIn({ user, isNewUser }) {
-      console.log(`User signed in: ${user.email}, isNewUser: ${isNewUser}`)
+      debugLog(`User signed in: ${user.email}, isNewUser: ${isNewUser}`)
     },
   },
   debug: process.env.NODE_ENV === "development",
   logger: {
     error: (error) => {
-      console.error("NextAuth error:", error)
+      debugError("NextAuth error:", error)
     },
     warn: (warning) => {
-      console.warn("NextAuth warning:", warning)
+      debugWarn("NextAuth warning:", warning)
     },
   },
   /**

@@ -1,3 +1,4 @@
+import { debugLog, debugError, debugWarn } from "../../../lib/debug"
 /**
  * UseClevr Local Agent (MVP)
  * Minimal localhost server exposing a health/status endpoint.
@@ -8,6 +9,28 @@ import http from 'http'
 import { URL } from 'url'
 
 const PORT = Number(process.env.USECLEVR_AGENT_PORT || 5143)
+const allowedOrigins = new Set(
+  (process.env.USECLEVR_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+)
+
+function getAllowedOrigin(origin: string | undefined) {
+  if (!origin) return undefined
+  if (allowedOrigins.has(origin)) return origin
+
+  try {
+    const url = new URL(origin)
+    if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && /^https?:$/.test(url.protocol)) {
+      return origin
+    }
+  } catch {
+    return undefined
+  }
+
+  return undefined
+}
 
 // Basic JSON responder utility
 function json(res: http.ServerResponse, code: number, body: unknown) {
@@ -34,8 +57,10 @@ const server = http.createServer((req, res) => {
     if (!req.url) return json(res, 404, { success: false })
     const u = new URL(req.url, `http://localhost:${PORT}`)
 
-    // CORS for local web app usage (minimal, localhost only)
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000')
+    // CORS for local web app usage across dynamic Next dev/build ports.
+    const corsOrigin = getAllowedOrigin(req.headers.origin)
+    if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin)
+    res.setHeader('Vary', 'Origin')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
     if (req.method === 'OPTIONS') {
@@ -59,5 +84,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   // eslint-disable-next-line no-console
-  console.log(`[UseClevr Local Agent] listening on http://127.0.0.1:${PORT}`)
+  debugLog(`[UseClevr Local Agent] listening on http://127.0.0.1:${PORT}`)
 })

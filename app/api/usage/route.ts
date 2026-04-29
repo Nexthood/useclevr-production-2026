@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Usage API Route
  * 
@@ -47,7 +49,7 @@ export async function GET() {
       canAnalyze,
     })
   } catch (error) {
-    console.error("[USAGE] Error fetching usage:", error)
+    debugError("[USAGE] Error fetching usage:", error)
     return Response.json({
       analysisCount: 0,
       subscriptionTier: "free",

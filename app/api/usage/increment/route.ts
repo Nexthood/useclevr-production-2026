@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Usage Increment API Route
  * 
@@ -57,7 +59,7 @@ export async function POST() {
       canAnalyze: true,
     })
   } catch (error) {
-    console.error("[USAGE INCREMENT] Error:", error)
+    debugError("[USAGE INCREMENT] Error:", error)
     return Response.json({
       success: false,
       error: "Failed to increment usage",

@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "./lib/debug"
+
 // Full business analysis - using query builder
 import { db } from './lib/db';
 import { datasets } from './lib/db/schema';
@@ -13,17 +15,17 @@ async function main() {
   const dataset = result[0];
   
   if (!dataset) {
-    console.log('No dataset found');
+    debugLog('No dataset found');
     return;
   }
   
   // Data is stored in the JSONB column
   const data = (dataset as any).data || [];
-  console.log('Total rows:', data.length);
-  console.log('Dataset name:', dataset.name);
+  debugLog('Total rows:', data.length);
+  debugLog('Dataset name:', dataset.name);
   
   if (data.length === 0) {
-    console.log('No data in dataset');
+    debugLog('No data in dataset');
     return;
   }
   
@@ -37,11 +39,11 @@ async function main() {
     customersByPlan[plan] = (customersByPlan[plan] || 0) + 1;
   });
   
-  console.log('\n=== REVENUE BY PLAN ===');
+  debugLog('\n=== REVENUE BY PLAN ===');
   Object.entries(revenueByPlan)
     .sort((a: any, b: any) => b[1] - a[1])
     .forEach(([plan, revenue]: [string, number]) => {
-      console.log(`${plan}: $${revenue.toLocaleString()} (${customersByPlan[plan]} customers)`);
+      debugLog(`${plan}: $${revenue.toLocaleString()} (${customersByPlan[plan]} customers)`);
     });
   
   // Revenue by region
@@ -51,11 +53,11 @@ async function main() {
     revenueByRegion[region] = (revenueByRegion[region] || 0) + (row.revenue || 0);
   });
   
-  console.log('\n=== REVENUE BY REGION ===');
+  debugLog('\n=== REVENUE BY REGION ===');
   Object.entries(revenueByRegion)
     .sort((a: any, b: any) => b[1] - a[1])
     .forEach(([region, revenue]: [string, number]) => {
-      console.log(`${region}: $${revenue.toLocaleString()}`);
+      debugLog(`${region}: $${revenue.toLocaleString()}`);
     });
   
   // Revenue by channel
@@ -65,11 +67,11 @@ async function main() {
     revenueByChannel[channel] = (revenueByChannel[channel] || 0) + (row.revenue || 0);
   });
   
-  console.log('\n=== REVENUE BY ACQUISITION CHANNEL ===');
+  debugLog('\n=== REVENUE BY ACQUISITION CHANNEL ===');
   Object.entries(revenueByChannel)
     .sort((a: any, b: any) => b[1] - a[1])
     .forEach(([channel, revenue]: [string, number]) => {
-      console.log(`${channel}: $${revenue.toLocaleString()}`);
+      debugLog(`${channel}: $${revenue.toLocaleString()}`);
     });
   
   // Top countries
@@ -79,16 +81,16 @@ async function main() {
     revenueByCountry[country] = (revenueByCountry[country] || 0) + (row.revenue || 0);
   });
   
-  console.log('\n=== TOP COUNTRIES BY REVENUE ===');
+  debugLog('\n=== TOP COUNTRIES BY REVENUE ===');
   Object.entries(revenueByCountry)
     .sort((a: any, b: any) => b[1] - a[1])
     .slice(0, 10)
     .forEach(([country, revenue]: [string, number]) => {
-      console.log(`${country}: $${revenue.toLocaleString()}`);
+      debugLog(`${country}: $${revenue.toLocaleString()}`);
     });
   
   // Profit margin by plan
-  console.log('\n=== PROFIT MARGIN BY PLAN ===');
+  debugLog('\n=== PROFIT MARGIN BY PLAN ===');
   const profitByPlan: Record<string, { revenue: number; profit: number }> = {};
   data.forEach((row: any) => {
     const plan = row.plan || 'Unknown';
@@ -101,7 +103,7 @@ async function main() {
     .sort((a: any, b: any) => (b[1].profit/b[1].revenue) - (a[1].profit/a[1].revenue))
     .forEach(([plan, vals]: [string, { revenue: number; profit: number }]) => {
       const margin = (vals.profit / vals.revenue * 100).toFixed(1);
-      console.log(`${plan}: ${margin}% margin (Revenue: $${vals.revenue.toLocaleString()}, Profit: $${vals.profit.toLocaleString()})`);
+      debugLog(`${plan}: ${margin}% margin (Revenue: $${vals.revenue.toLocaleString()}, Profit: $${vals.profit.toLocaleString()})`);
     });
   
   // Startup stage
@@ -113,11 +115,11 @@ async function main() {
     byStage[stage].count += 1;
   });
   
-  console.log('\n=== REVENUE BY STARTUP STAGE ===');
+  debugLog('\n=== REVENUE BY STARTUP STAGE ===');
   Object.entries(byStage)
     .sort((a: any, b: any) => b[1].revenue - a[1].revenue)
     .forEach(([stage, vals]: [string, { revenue: number; count: number }]) => {
-      console.log(`${stage}: $${vals.revenue.toLocaleString()} (${vals.count} orders)`);
+      debugLog(`${stage}: $${vals.revenue.toLocaleString()} (${vals.count} orders)`);
     });
   
   // Totals
@@ -126,13 +128,13 @@ async function main() {
   const totalProfit = data.reduce((sum: number, row: any) => sum + (row.profit || 0), 0);
   const totalUsers = data.reduce((sum: number, row: any) => sum + (row.users || 0), 0);
   
-  console.log('\n=== TOTAL METRICS ===');
-  console.log(`Total Revenue: $${totalRevenue.toLocaleString()}`);
-  console.log(`Total Cost: $${totalCost.toLocaleString()}`);
-  console.log(`Total Profit: $${totalProfit.toLocaleString()}`);
-  console.log(`Total Users: ${totalUsers.toLocaleString()}`);
-  console.log(`Overall Margin: ${(totalProfit/totalRevenue*100).toFixed(1)}%`);
-  console.log(`Average Revenue Per Order: $${(totalRevenue/data.length).toFixed(2)}`);
+  debugLog('\n=== TOTAL METRICS ===');
+  debugLog(`Total Revenue: $${totalRevenue.toLocaleString()}`);
+  debugLog(`Total Cost: $${totalCost.toLocaleString()}`);
+  debugLog(`Total Profit: $${totalProfit.toLocaleString()}`);
+  debugLog(`Total Users: ${totalUsers.toLocaleString()}`);
+  debugLog(`Overall Margin: ${(totalProfit/totalRevenue*100).toFixed(1)}%`);
+  debugLog(`Average Revenue Per Order: $${(totalRevenue/data.length).toFixed(2)}`);
 }
 
-main().catch(console.error);
+main().catch(debugError);

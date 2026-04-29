@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/investigate/route.ts
 // AI Investigation Autopilot - automatically analyze dataset and generate findings
 // Uses DuckDB for all calculations, AI only generates explanations
@@ -15,7 +17,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    console.log('[INVESTIGATE] Starting investigation for dataset:', id);
+    debugLog('[INVESTIGATE] Starting investigation for dataset:', id);
 
     // Get dataset
     const dataset = await db.query.datasets.findFirst({
@@ -38,13 +40,13 @@ export async function POST(
       );
     }
 
-    console.log('[INVESTIGATE] Analyzing', data.length, 'rows using DuckDB...');
+    debugLog('[INVESTIGATE] Analyzing', data.length, 'rows using DuckDB...');
 
     // Run investigation with DuckDB
     const result = await investigateDataset(id, data);
 
-    console.log('[INVESTIGATE] Found', result.findings.length, 'findings');
-    console.log('[INVESTIGATE] Executed', result.queries.length, 'DuckDB queries');
+    debugLog('[INVESTIGATE] Found', result.findings.length, 'findings');
+    debugLog('[INVESTIGATE] Executed', result.queries.length, 'DuckDB queries');
 
     // Store dataset memory for future comparisons
     storeDatasetMemory(id, dataset.name || 'Unknown', data);
@@ -62,7 +64,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('[INVESTIGATE] Error:', error.message);
+    debugError('[INVESTIGATE] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

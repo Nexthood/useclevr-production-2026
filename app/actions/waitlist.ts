@@ -1,5 +1,9 @@
 "use server"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { db } from "@/lib/db"
 import { waitlist } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -36,11 +40,11 @@ export async function joinWaitlist(email: string, source: string = "landing_page
       status: "new",
     })
 
-    console.log("[WAITLIST] New signup:", normalizedEmail, "from:", source)
+    debugLog("[WAITLIST] New signup:", normalizedEmail, "from:", source)
 
     return { success: true }
   } catch (error) {
-    console.error("[WAITLIST] Error:", error)
+    debugError("[WAITLIST] Error:", error)
     return { success: false, error: "Failed to join waitlist. Please try again." }
   }
 }

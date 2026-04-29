@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/public/ai/route.ts
 // UseClevr AI Data API - External application access
 // Endpoints: analyze, investigate, predict, compare
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
         );
     }
   } catch (error: any) {
-    console.error('[AI-API] Error:', error.message);
+    debugError('[AI-API] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -85,7 +87,7 @@ async function handleAnalyze(body: { action: string; dataset: unknown[]; questio
   try {
     results = executeDuckDBQuery(sql, dataset as Record<string, unknown>[]);
   } catch (e) {
-    console.warn('[AI-API] Query execution failed:', e);
+    debugWarn('[AI-API] Query execution failed:', e);
   }
   
   return NextResponse.json({

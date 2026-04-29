@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // Executive KPI Engine - Core Analysis Function
 // ============================================================================
@@ -456,11 +458,11 @@ function generateChartData(
  * No legacy metadata usage.
  */
 export function analyzeDataset(rows: any[]): DatasetAnalysis {
-  console.log('[ANALYZE] Starting dataset analysis with', rows.length, 'rows');
+  debugLog('[ANALYZE] Starting dataset analysis with', rows.length, 'rows');
   
   // Step 1: Detect Columns
   const { columns, numericColumns, dateColumns, categoricalColumns } = detectColumns(rows);
-  console.log('[ANALYZE] Detected columns:', {
+  debugLog('[ANALYZE] Detected columns:', {
     total: columns.length,
     numeric: numericColumns.length,
     dates: dateColumns.length,
@@ -470,7 +472,7 @@ export function analyzeDataset(rows: any[]): DatasetAnalysis {
   // Step 2: Financial Metrics
   const revenueColumn = detectRevenueColumn(numericColumns);
   const { totalRevenue, avgRevenue } = calculateFinancialMetrics(rows, revenueColumn);
-  console.log('[ANALYZE] Financial metrics:', { revenueColumn, totalRevenue, avgRevenue });
+  debugLog('[ANALYZE] Financial metrics:', { revenueColumn, totalRevenue, avgRevenue });
   
   // Step 3: Category Analysis
   const { categoryColumn, topCategory, categoryDistribution } = analyzeCategories(
@@ -478,7 +480,7 @@ export function analyzeDataset(rows: any[]): DatasetAnalysis {
     categoricalColumns,
     revenueColumn
   );
-  console.log('[ANALYZE] Category analysis:', { categoryColumn, topCategory });
+  debugLog('[ANALYZE] Category analysis:', { categoryColumn, topCategory });
   
   // Step 4: Growth Analysis
   const dateColumn = dateColumns.length > 0 ? dateColumns[0] : null;
@@ -489,11 +491,11 @@ export function analyzeDataset(rows: any[]): DatasetAnalysis {
     dateRange, 
     monthlyRevenue 
   } = analyzeGrowth(rows, dateColumn || '', revenueColumn);
-  console.log('[ANALYZE] Growth analysis:', { growthPercentage, growthTrend, dateRange });
+  debugLog('[ANALYZE] Growth analysis:', { growthPercentage, growthTrend, dateRange });
   
   // Step 5: Numeric Statistics
   const numericStats = calculateNumericStats(rows, numericColumns);
-  console.log('[ANALYZE] Numeric stats calculated for', Object.keys(numericStats).length, 'columns');
+  debugLog('[ANALYZE] Numeric stats calculated for', Object.keys(numericStats).length, 'columns');
   
   // Step 6: Visualization Data
   const charts = generateChartData(
@@ -503,7 +505,7 @@ export function analyzeDataset(rows: any[]): DatasetAnalysis {
     dateColumn || null,
     monthlyRevenue
   );
-  console.log('[ANALYZE] Chart data generated:', {
+  debugLog('[ANALYZE] Chart data generated:', {
     revenueByCategory: charts.revenueByCategory.length,
     revenueOverTime: charts.revenueOverTime.length,
     distribution: charts.distribution.length
@@ -543,7 +545,7 @@ export function analyzeDataset(rows: any[]): DatasetAnalysis {
 export async function generateAIExecutiveSummary(analysis: DatasetAnalysis): Promise<string> {
   // Always use deterministic summary for consistency with KPI cards
   // Skip AI to ensure values match exactly
-  console.log('[AI SUMMARY] Using deterministic summary for consistency');
+  debugLog('[AI SUMMARY] Using deterministic summary for consistency');
   return generateFallbackSummary(analysis);
 }
 

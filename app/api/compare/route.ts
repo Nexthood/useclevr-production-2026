@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/compare/route.ts
 // Dataset Comparison API
 
@@ -23,14 +25,14 @@ export async function POST(request: Request) {
       );
     }
     
-    console.log('[COMPARE] Comparing datasets:', datasetA.name, 'vs', datasetB.name);
+    debugLog('[COMPARE] Comparing datasets:', datasetA.name, 'vs', datasetB.name);
     
     const result = await compareDatasets(
       { id: datasetA.id, name: datasetA.name, data: datasetA.data },
       { id: datasetB.id, name: datasetB.name, data: datasetB.data }
     );
     
-    console.log('[COMPARE] Found', result.metrics.length, 'comparable metrics');
+    debugLog('[COMPARE] Found', result.metrics.length, 'comparable metrics');
     
     return NextResponse.json({
       success: true,
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
     });
     
   } catch (error: any) {
-    console.error('[COMPARE] Error:', error.message);
+    debugError('[COMPARE] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

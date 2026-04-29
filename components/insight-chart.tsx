@@ -259,7 +259,7 @@ export function InsightChart({
       {title && (
         <h3 className="text-lg font-semibold mb-4 text-foreground">{title}</h3>
       )}
-      <ResponsiveContainer width="100%" height={height}>
+      <ResponsiveContainer width="100%" height={height} minWidth={0} minHeight={0}>
         {renderChart()}
       </ResponsiveContainer>
     </div>

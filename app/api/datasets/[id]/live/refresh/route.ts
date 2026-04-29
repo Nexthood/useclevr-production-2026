@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/live/refresh/route.ts
 // Trigger manual refresh for live data
 
@@ -9,7 +11,7 @@ export async function POST(
 ) {
   const { id } = await params;
   
-  console.log(`[LIVE-REFRESH] Manual refresh triggered for ${id}`);
+  debugLog(`[LIVE-REFRESH] Manual refresh triggered for ${id}`);
   
   // This would in production:
   // 1. Fetch new data from source (CSV, API, cloud)

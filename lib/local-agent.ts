@@ -85,18 +85,18 @@ export class LocalAgentClient implements LocalAgentAPI {
 
   // MVP: bridge to existing internal endpoint for status to avoid behavior changes
   async status(): Promise<LocalAgentStatus> {
-    // Use existing app route to detect runtime and list models via Ollama when available
+    // Use app routes for all browser calls so dev, build, and deployed origins work consistently.
     const res = await fetch('/api/local-ai-status', { method: 'GET' })
     if (!res.ok) {
       return { runtime: 'error', models: [], info: `status_http_${res.status}` }
     }
-    const data: { available: boolean; baseUrl?: string } = await res.json()
-    if (!data.available || !data.baseUrl) {
+    const data: { available: boolean } = await res.json()
+    if (!data.available) {
       return { runtime: 'unavailable', models: [] }
     }
+
     try {
-      const base = data.baseUrl.replace(/\/$/, '')
-      const tagsRes = await fetch(`${base}/api/tags`, { method: 'GET' })
+      const tagsRes = await fetch('/api/ollama/tags', { method: 'GET' })
       if (!tagsRes.ok) return { runtime: 'available', models: [], info: 'tags_unreachable' }
       const tagsJson: { models?: Array<{ name: string }> } = await tagsRes.json()
       return { runtime: 'available', models: tagsJson.models || [] }
@@ -115,7 +115,7 @@ export class LocalAgentClient implements LocalAgentAPI {
   }
 
   async pullModel(req: PullModelRequest): Promise<Response> {
-    return fetch(`${this.baseUrl}/pull-model`, {
+    return fetch('/api/ollama/pull', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
@@ -123,7 +123,7 @@ export class LocalAgentClient implements LocalAgentAPI {
   }
 
   async verify(req: VerifyRequest): Promise<Response> {
-    return fetch(`${this.baseUrl}/verify`, {
+    return fetch('/api/ollama/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)

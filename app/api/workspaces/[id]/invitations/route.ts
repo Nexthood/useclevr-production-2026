@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/workspaces/[id]/invitations/route.ts
 // Workspace invitations management
 
@@ -30,7 +32,7 @@ export async function POST(
     
     return NextResponse.json({ success: true, message: 'Invitation sent' });
   } catch (error: any) {
-    console.error('[WORKSPACE-INVITATIONS] Error:', error.message);
+    debugError('[WORKSPACE-INVITATIONS] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

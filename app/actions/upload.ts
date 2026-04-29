@@ -1,5 +1,9 @@
 "use server"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { db } from "@/lib/db"
 import { datasets, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -24,7 +28,7 @@ async function isDbAvailable(): Promise<boolean> {
     return true
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error("[UPLOAD] DB health check failed:", msg)
+    debugError("[UPLOAD] DB health check failed:", msg)
     return false
   }
 }
@@ -45,8 +49,8 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Check authentication
     const session = await auth()
     
-    console.log("[UPLOAD] Session:", session ? { userId: session.user?.id, email: session.user?.email } : null)
-    console.log("[UPLOAD] FormData keys:", Array.from(formData.keys()))
+    debugLog("[UPLOAD] Session:", session ? { userId: session.user?.id, email: session.user?.email } : null)
+    debugLog("[UPLOAD] FormData keys:", Array.from(formData.keys()))
     
     // FIXED: Check for demo-user-id specifically and force demo mode
     const sessionUserId = session?.user?.id
@@ -56,20 +60,20 @@ export async function uploadCSV(formData: FormData): Promise<{
     const envDemoMode = process.env.DEMO_MODE === "true"
     const isDemoMode = envDemoMode || !sessionUserId || isDemoUserId
     
-    console.log("[UPLOAD] ========== DEBUG MODE CHECK ==========")
-    console.log("[UPLOAD] process.env.DEMO_MODE:", process.env.DEMO_MODE)
-    console.log("[UPLOAD] envDemoMode (process.env.DEMO_MODE === 'true'):", envDemoMode)
-    console.log("[UPLOAD] sessionUserId:", sessionUserId)
-    console.log("[UPLOAD] !sessionUserId (no user):", !sessionUserId)
-    console.log("[UPLOAD] isDemoUserId (userId === 'demo-user-id'):", isDemoUserId)
-    console.log("[UPLOAD] isDemoMode FINAL:", isDemoMode)
-    console.log("[UPLOAD] ======================================")
+    debugLog("[UPLOAD] ========== DEBUG MODE CHECK ==========")
+    debugLog("[UPLOAD] process.env.DEMO_MODE:", process.env.DEMO_MODE)
+    debugLog("[UPLOAD] envDemoMode (process.env.DEMO_MODE === 'true'):", envDemoMode)
+    debugLog("[UPLOAD] sessionUserId:", sessionUserId)
+    debugLog("[UPLOAD] !sessionUserId (no user):", !sessionUserId)
+    debugLog("[UPLOAD] isDemoUserId (userId === 'demo-user-id'):", isDemoUserId)
+    debugLog("[UPLOAD] isDemoMode FINAL:", isDemoMode)
+    debugLog("[UPLOAD] ======================================")
     
     // Check if this is a profitability analysis upload (by checking for fileType)
     const fileType = formData.get('fileType') as string
     const isProfitabilityUpload = fileType?.startsWith('profitability_') || fileType?.includes('profitability')
-    console.log("[UPLOAD] fileType:", fileType)
-    console.log("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)
+    debugLog("[UPLOAD] fileType:", fileType)
+    debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)
     
     // Demo mode should ONLY apply to profitability uploads - NOT standard uploads
     // For standard uploads, we should always try to insert into the database
@@ -78,7 +82,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Demo mode: skip normal Dataset insert, return success with demo result
     // Only for profitability analysis - NOT for standard CSV uploads
     if (shouldUseDemoMode) {
-      console.log("[UPLOAD] === DEMO MODE - Using non-persistent profitability flow ===")
+      debugLog("[UPLOAD] === DEMO MODE - Using non-persistent profitability flow ===")
       
       const profitabilityDataStr = formData.get('profitabilityData') as string
       let profitabilityData = null
@@ -86,11 +90,11 @@ export async function uploadCSV(formData: FormData): Promise<{
         try {
           profitabilityData = JSON.parse(profitabilityDataStr)
         } catch (e) {
-          console.log("[UPLOAD] Could not parse profitabilityData:", e)
+          debugLog("[UPLOAD] Could not parse profitabilityData:", e)
         }
       }
       
-      console.log("[UPLOAD] Demo mode - returning demo result (no DB insert)")
+      debugLog("[UPLOAD] Demo mode - returning demo result (no DB insert)")
       return {
         success: true,
         datasetId: `demo_${Date.now()}`,
@@ -110,7 +114,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     
     // For standard uploads (non-profitability), proceed with normal database insert
     // Even in demo mode, standard uploads should create actual dataset records
-    console.log("[UPLOAD] Standard upload mode - proceeding with database insert")
+    debugLog("[UPLOAD] Standard upload mode - proceeding with database insert")
     
     // EARLY FAIL: If DB is unavailable, return a clean structured error and stop
     const dbOk = await isDbAvailable()
@@ -124,13 +128,13 @@ export async function uploadCSV(formData: FormData): Promise<{
     
     // Authenticated user path - use demo user as fallback for standard uploads
     let effectiveUserId = session?.user?.id
-    console.log("[UPLOAD] Authenticated user:", effectiveUserId)
+    debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
     
     // HARD GUARD: If session user is "demo-user-id", this is NOT a real user
     // We must NOT insert with this fake ID - either find real demo user or use non-persistent mode
     if (effectiveUserId === 'demo-user-id') {
-      console.log("[UPLOAD] WARNING: session.userId is 'demo-user-id' - this is NOT a real user!")
-      console.log("[UPLOAD] Searching for REAL demo user in DB...")
+      debugLog("[UPLOAD] WARNING: session.userId is 'demo-user-id' - this is NOT a real user!")
+      debugLog("[UPLOAD] Searching for REAL demo user in DB...")
       
       try {
         const demoUser = await (db as any).query.users.findFirst({
@@ -139,12 +143,12 @@ export async function uploadCSV(formData: FormData): Promise<{
         
         if (demoUser) {
           effectiveUserId = demoUser.id
-          console.log("[UPLOAD] SUCCESS: Found REAL demo user, using:", effectiveUserId)
-          console.log("[UPLOAD] CHOSEN PATH: real-db-insert")
+          debugLog("[UPLOAD] SUCCESS: Found REAL demo user, using:", effectiveUserId)
+          debugLog("[UPLOAD] CHOSEN PATH: real-db-insert")
         } else {
           // No real demo user - must use non-persistent mode
-          console.log("[UPLOAD] ERROR: No demo user in DB!")
-          console.log("[UPLOAD] CHOSEN PATH: demo-non-persistent")
+          debugLog("[UPLOAD] ERROR: No demo user in DB!")
+          debugLog("[UPLOAD] CHOSEN PATH: demo-non-persistent")
           
           // Parse file for preview
           const file = formData.get("file") as File | null
@@ -165,7 +169,7 @@ export async function uploadCSV(formData: FormData): Promise<{
                 preview = { headers, rows: previewRows }
               }
             } catch (e) {
-              console.log("[UPLOAD] Could not parse preview:", e)
+              debugLog("[UPLOAD] Could not parse preview:", e)
             }
           }
           
@@ -178,7 +182,7 @@ export async function uploadCSV(formData: FormData): Promise<{
           }
         }
       } catch (e) {
-        console.log("[UPLOAD] Error finding demo user:", e)
+        debugLog("[UPLOAD] Error finding demo user:", e)
         return { 
           success: false, 
           error: "Unable to create dataset. Please try again or sign in." 
@@ -189,7 +193,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // For standard uploads, if no user is logged in, we MUST find a real demo user from DB
     // We CANNOT use a fake user ID or the insert will fail with FK violation
     if (!effectiveUserId) {
-      console.log("[UPLOAD] No user session - searching for real demo user in DB...")
+      debugLog("[UPLOAD] No user session - searching for real demo user in DB...")
       try {
         const demoUser = await (db as any).query.users.findFirst({
           where: (users as any).email === 'demo@useclever.app',
@@ -197,12 +201,12 @@ export async function uploadCSV(formData: FormData): Promise<{
         
         if (demoUser) {
           effectiveUserId = demoUser.id
-          console.log("[UPLOAD] Found REAL demo user in DB:", effectiveUserId)
+          debugLog("[UPLOAD] Found REAL demo user in DB:", effectiveUserId)
         } else {
           // CRITICAL: No demo user exists - we cannot insert with a fake ID
           // Fall back to non-persistent demo mode for standard uploads
-          console.log("[UPLOAD] ERROR: No demo user found in DB!")
-          console.log("[UPLOAD] Falling back to non-persistent mode for standard upload")
+          debugLog("[UPLOAD] ERROR: No demo user found in DB!")
+          debugLog("[UPLOAD] Falling back to non-persistent mode for standard upload")
           
           // Parse file for preview (we already have it in formData)
           const file = formData.get("file") as File | null
@@ -223,7 +227,7 @@ export async function uploadCSV(formData: FormData): Promise<{
                 preview = { headers, rows: previewRows }
               }
             } catch (e) {
-              console.log("[UPLOAD] Could not parse preview:", e)
+              debugLog("[UPLOAD] Could not parse preview:", e)
             }
           }
           
@@ -236,7 +240,7 @@ export async function uploadCSV(formData: FormData): Promise<{
           }
         }
       } catch (e) {
-        console.log("[UPLOAD] Error finding demo user:", e)
+        debugLog("[UPLOAD] Error finding demo user:", e)
         // Database error - return error instead of using fake ID
         return { 
           success: false, 
@@ -246,15 +250,15 @@ export async function uploadCSV(formData: FormData): Promise<{
     }
 
     // If we get here, we have a valid userId (either from session or real demo user from DB)
-    console.log("[UPLOAD] FINAL effectiveUserId:", effectiveUserId)
+    debugLog("[UPLOAD] FINAL effectiveUserId:", effectiveUserId)
     
     // PROOF LOGGING: Confirm we're using a REAL user ID, not "demo-user-id"
     if (effectiveUserId && effectiveUserId !== 'demo-user-id') {
-      console.log("[UPLOAD] CHOSEN PATH: real-db-insert")
-      console.log("[UPLOAD] FINAL USER ID IS REAL - proceeding with Dataset insert")
+      debugLog("[UPLOAD] CHOSEN PATH: real-db-insert")
+      debugLog("[UPLOAD] FINAL USER ID IS REAL - proceeding with Dataset insert")
     } else {
       // This should never happen if guards above are working correctly
-      console.log("[UPLOAD] ERROR: EffectiveUserId is still invalid!")
+      debugLog("[UPLOAD] ERROR: EffectiveUserId is still invalid!")
       return { 
         success: false, 
         error: "Unable to create dataset. Please sign in." 
@@ -323,8 +327,8 @@ export async function uploadCSV(formData: FormData): Promise<{
     const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`
     const datasetName = file.name.replace(/\.csv$/i, '')
 
-    console.log("[UPLOAD] Creating dataset:", datasetId, "for user:", effectiveUserId)
-    console.log("[UPLOAD] Total rows:", totalRowCount)
+    debugLog("[UPLOAD] Creating dataset:", datasetId, "for user:", effectiveUserId)
+    debugLog("[UPLOAD] Total rows:", totalRowCount)
 
     // Get profitability data if present
     const profitabilityDataStr = formData.get('profitabilityData') as string
@@ -334,11 +338,11 @@ export async function uploadCSV(formData: FormData): Promise<{
       try {
         profitabilityData = JSON.parse(profitabilityDataStr)
       } catch (e) {
-        console.log("[UPLOAD] Could not parse profitabilityData:", e)
+        debugLog("[UPLOAD] Could not parse profitabilityData:", e)
       }
     }
 
-    console.log("[UPLOAD] profitabilityData:", profitabilityData ? "present" : "none")
+    debugLog("[UPLOAD] profitabilityData:", profitabilityData ? "present" : "none")
 
     // Check if this is a profitability analysis (has profitability data)
     const isProfitabilityAnalysis = !!profitabilityData
@@ -351,8 +355,8 @@ export async function uploadCSV(formData: FormData): Promise<{
       const now = new Date()
       
       // Insert dataset record - with minimal data for profitability
-      console.log("[UPLOAD] Inserting dataset...")
-      console.log("[UPLOAD] Payload:", {
+      debugLog("[UPLOAD] Inserting dataset...")
+      debugLog("[UPLOAD] Payload:", {
         id: datasetId,
         userId: effectiveUserId,
         name: datasetName,
@@ -411,22 +415,22 @@ export async function uploadCSV(formData: FormData): Promise<{
         updatedAt: now,
       }
 
-      console.log("[UPLOAD] Insert values (data length):", insertData.data?.length || 0)
+      debugLog("[UPLOAD] Insert values (data length):", insertData.data?.length || 0)
       
       // PROOF LOGGING: Log exact userId being used for insert
-      console.log("[UPLOAD] ========== PROOF ==========")
-      console.log("[UPLOAD] isDemoMode:", isDemoMode)
-      console.log("[UPLOAD] effectiveUserId being used:", effectiveUserId)
-      console.log("[UPLOAD] isProfitabilityAnalysis:", isProfitabilityAnalysis)
-      console.log("[UPLOAD] Will insert into Dataset with userId:", effectiveUserId)
-      console.log("[UPLOAD] ============================")
+      debugLog("[UPLOAD] ========== PROOF ==========")
+      debugLog("[UPLOAD] isDemoMode:", isDemoMode)
+      debugLog("[UPLOAD] effectiveUserId being used:", effectiveUserId)
+      debugLog("[UPLOAD] isProfitabilityAnalysis:", isProfitabilityAnalysis)
+      debugLog("[UPLOAD] Will insert into Dataset with userId:", effectiveUserId)
+      debugLog("[UPLOAD] ============================")
       
       try {
         await (db as any).insert(datasets).values(insertData)
-        console.log("[UPLOAD] Dataset created with", totalRowCount, "rows")
+        debugLog("[UPLOAD] Dataset created with", totalRowCount, "rows")
       } catch (insertErr) {
-        console.error("[UPLOAD] INSERT FAILED:", insertErr)
-        console.error("[UPLOAD] INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
+        debugError("[UPLOAD] INSERT FAILED:", insertErr)
+        debugError("[UPLOAD] INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
         // Return actual error instead of masking as success
         return { 
           success: false, 
@@ -434,9 +438,9 @@ export async function uploadCSV(formData: FormData): Promise<{
         }
       }
     } catch (err) {
-      console.error("[UPLOAD] Database error:", err)
-      console.error("[UPLOAD] Error stack:", err instanceof Error ? err.stack : 'No stack')
-      console.error("[UPLOAD] Error message:", err instanceof Error ? err.message : String(err))
+      debugError("[UPLOAD] Database error:", err)
+      debugError("[UPLOAD] Error stack:", err instanceof Error ? err.stack : 'No stack')
+      debugError("[UPLOAD] Error message:", err instanceof Error ? err.message : String(err))
       
       // Return sanitized error - never expose internal details
       return { success: false, error: "Database error: " + (err instanceof Error ? err.message : "Failed to save dataset") }
@@ -445,7 +449,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Revalidate datasets page
     revalidatePath("/app/datasets")
 
-    console.log("[UPLOAD] Dataset created successfully:", datasetId)
+    debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 
     return {
       success: true,
@@ -458,11 +462,11 @@ export async function uploadCSV(formData: FormData): Promise<{
       },
     }
   } catch (error) {
-    console.error("Upload error:", error)
-    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack')
+    debugError("Upload error:", error)
+    debugError("Error stack:", error instanceof Error ? error.stack : 'No stack')
     
     const errorMessage = error instanceof Error ? error.message : "Failed to upload file"
-    console.error("Error message:", errorMessage)
+    debugError("Error message:", errorMessage)
     
     if (errorMessage.includes("Can't reach database") || 
         errorMessage.includes("ECONNREFUSED")) {
@@ -500,7 +504,7 @@ export async function getDataset(datasetId: string) {
 
     return dataset
   } catch (error) {
-    console.error("Error fetching dataset:", error)
+    debugError("Error fetching dataset:", error)
     return { error: "Failed to fetch dataset" }
   }
 }

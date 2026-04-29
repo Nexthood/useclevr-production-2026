@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // DATASET TYPE DETECTOR - Auto Business Model Detection
 // ============================================================================
@@ -173,7 +175,7 @@ export function detectDatasetType(previewData: PreviewData): DatasetTypeDetectio
   const columnNames = previewData.columns;
   const columnTypes = previewData.columnTypes;
   
-  console.log('[DATASET-TYPE] Starting detection for columns:', columnNames);
+  debugLog('[DATASET-TYPE] Starting detection for columns:', columnNames);
   
   // Calculate scores for each dataset type
   const scores: Record<DatasetType, number> = {
@@ -264,7 +266,7 @@ export function detectDatasetType(previewData: PreviewData): DatasetTypeDetectio
   // Get suggested metrics and charts based on type
   const { suggestedMetrics, recommendedCharts } = getRecommendationsForType(detectedType);
   
-  console.log('[DATASET-TYPE] Detection result:', {
+  debugLog('[DATASET-TYPE] Detection result:', {
     type: detectedType,
     confidence: `${(confidence * 100).toFixed(0)}%`,
     indicators: detectedIndicators,

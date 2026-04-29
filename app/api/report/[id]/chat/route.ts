@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/report/[id]/chat/route.ts
 // Interactive AI chat for report pages - only uses report snapshot context
 
@@ -20,7 +22,7 @@ export async function POST(
       );
     }
     
-    console.log('[REPORT-CHAT] Question for report:', id);
+    debugLog('[REPORT-CHAT] Question for report:', id);
     
     // Get the report
     const report = getReport(id);
@@ -42,7 +44,7 @@ export async function POST(
     });
     
   } catch (error: any) {
-    console.error('[REPORT-CHAT] Error:', error.message);
+    debugError('[REPORT-CHAT] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

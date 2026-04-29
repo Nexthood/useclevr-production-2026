@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Report AI Chat
  * 
@@ -120,7 +122,7 @@ export async function answerReportQuestion(
       };
     }
   } catch (error) {
-    console.error('[REPORT-CHAT] Error:', error);
+    debugError('[REPORT-CHAT] Error:', error);
   }
   
   // Fallback response

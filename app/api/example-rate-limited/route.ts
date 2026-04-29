@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error:', error)
+    debugError('Error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

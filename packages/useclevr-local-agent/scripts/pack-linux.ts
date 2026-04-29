@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "../../../lib/debug"
+
 /**
  * Minimal Linux packaging scaffold for UseClevr Local Agent
  * This does NOT create an AppImage yet. It prepares an AppDir-like folder
@@ -76,8 +78,8 @@ function main() {
   scaffoldAppDir()
   // Print next-step guidance without faking success
   // eslint-disable-next-line no-console
-  console.log('\n[pack-linux] AppDir prepared at:', APPDIR)
-  console.log('[pack-linux] Next step: bundle this AppDir into an AppImage named: UseClevr-Hybrid-Runtime.AppImage')
+  debugLog('\n[pack-linux] AppDir prepared at:', APPDIR)
+  debugLog('[pack-linux] Next step: bundle this AppDir into an AppImage named: UseClevr-Hybrid-Runtime.AppImage')
 }
 
 main()

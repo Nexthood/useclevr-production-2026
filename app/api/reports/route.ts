@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/reports/route.ts
 // Report generation and management API
 
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
       ...analysisData 
     } = body;
     
-    console.log('[REPORTS POST] Received request:', { datasetId, datasetName, visibility });
+    debugLog('[REPORTS POST] Received request:', { datasetId, datasetName, visibility });
     
     if (!datasetId || !datasetName) {
       return NextResponse.json(
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
       analysisData
     );
     
-    console.log('[REPORTS POST] Generated report:', report.id);
+    debugLog('[REPORTS POST] Generated report:', report.id);
     
     return NextResponse.json({
       success: true,
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
     });
     
   } catch (error: any) {
-    console.error('[REPORTS POST] Error:', error.message, error.stack);
+    debugError('[REPORTS POST] Error:', error.message, error.stack);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -61,16 +63,16 @@ export async function GET(request: Request) {
   const datasetId = searchParams.get('datasetId');
   const listAll = searchParams.get('list');
   
-  console.log('[REPORTS API] GET called with:', { datasetId, listAll });
+  debugLog('[REPORTS API] GET called with:', { datasetId, listAll });
   
   // If list=true, return all reports
   if (listAll === 'true') {
     try {
       const reports = listAllReports(); // Get all reports
-      console.log('[REPORTS API] Returning all reports:', reports.length);
+      debugLog('[REPORTS API] Returning all reports:', reports.length);
       return NextResponse.json({ reports });
     } catch (err) {
-      console.error('[REPORTS API] Error listing reports:', err);
+      debugError('[REPORTS API] Error listing reports:', err);
       return NextResponse.json({ reports: [], error: 'Failed to load reports' }, { status: 500 });
     }
   }
@@ -103,7 +105,7 @@ export async function DELETE(request: Request) {
         fs.unlinkSync(report.pdfPath)
       }
     } catch (fileErr) {
-      console.warn('[REPORTS DELETE] Failed to delete PDF file:', fileErr)
+      debugWarn('[REPORTS DELETE] Failed to delete PDF file:', fileErr)
       // Continue; metadata should still be removed
     }
 
@@ -114,7 +116,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    console.error('[REPORTS DELETE] Error:', err?.message || err)
+    debugError('[REPORTS DELETE] Error:', err?.message || err)
     return NextResponse.json({ error: err?.message || 'Delete failed' }, { status: 500 })
   }
 }

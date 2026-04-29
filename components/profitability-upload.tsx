@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { uploadCSV } from "@/app/actions/upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,7 +44,7 @@ export function ProfitabilityUpload() {
   // Handle generate report action
   const handleGenerateReport = async () => {
     if (!profitabilityResult) {
-      console.error('[REPORT] No profitability result available')
+      debugError('[REPORT] No profitability result available')
       toast({ title: "Error", description: "No analysis data available", variant: "destructive" })
       return
     }
@@ -49,7 +53,7 @@ export function ProfitabilityUpload() {
     setReportGenerated(false)
 
     try {
-      console.log('[REPORT] Generating report for profitability analysis')
+      debugLog('[REPORT] Generating report for profitability analysis')
 
       const kpis = {
         totalRevenue: profitabilityResult.totalRevenue || 0,
@@ -159,7 +163,7 @@ export function ProfitabilityUpload() {
       const datasetName = 'Profitability Analysis'
       const datasetId = 'profitability-demo'
 
-      console.log('[REPORT] Sending report request with:', { datasetId, datasetName, kpis, charts: charts.length })
+      debugLog('[REPORT] Sending report request with:', { datasetId, datasetName, kpis, charts: charts.length })
 
       const response = await fetch('/api/reports', {
         method: 'POST',
@@ -185,7 +189,7 @@ export function ProfitabilityUpload() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('[REPORT] Report generated:', result)
+        debugLog('[REPORT] Report generated:', result)
         setReportGenerated(true)
 
         if (result.reportId) {
@@ -200,11 +204,11 @@ export function ProfitabilityUpload() {
         }, 1500)
       } else {
         const errorText = await response.text()
-        console.error('[REPORT] Report generation failed:', errorText)
+        debugError('[REPORT] Report generation failed:', errorText)
         toast({ title: "Error", description: "Failed to generate report", variant: "destructive" })
       }
     } catch (error) {
-      console.error('[REPORT] Error:', error)
+      debugError('[REPORT] Error:', error)
       toast({ title: "Error", description: "Failed to generate report", variant: "destructive" })
     } finally {
       setIsGeneratingReport(false)
@@ -271,7 +275,7 @@ export function ProfitabilityUpload() {
         description: `${file.name} (${data.length} rows)`
       })
     } catch (error) {
-      console.error("File processing error:", error)
+      debugError("File processing error:", error)
       toast({ title: "Error", description: "Failed to process file", variant: "destructive" })
     } finally {
       setIsUploading(false)
@@ -602,7 +606,7 @@ export function ProfitabilityUpload() {
         toast({ title: "Error", description: result.error || "Failed to create analysis", variant: "destructive" })
       }
     } catch (error) {
-      console.error("Create error:", error)
+      debugError("Create error:", error)
       toast({ title: "Error", description: "Failed to create analysis", variant: "destructive" })
     } finally {
       setIsUploading(false)
@@ -1379,20 +1383,20 @@ export function ProfitabilityUpload() {
                   <CardTitle className="text-white text-base">Expense Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={expenseChartData} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                        <XAxis type="number" stroke="#666" tickFormatter={(v) => formatCurrencyForKPI(v)} />
-                        <YAxis type="category" dataKey="name" stroke="#666" width={120} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                          formatter={(value) => [formatCurrencyForKPI(value as number), 'Amount']}
-                        />
-                        <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+<div className="h-[300px]">
+                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                       <BarChart data={expenseChartData} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
+                         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                         <XAxis type="number" stroke="#666" tickFormatter={(v) => formatCurrencyForKPI(v)} />
+                         <YAxis type="category" dataKey="name" stroke="#666" width={120} />
+                         <Tooltip
+                           contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
+                           formatter={(value) => [formatCurrencyForKPI(value as number), 'Amount']}
+                         />
+                         <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   </div>
                 </CardContent>
               </Card>
             )}
@@ -1404,20 +1408,20 @@ export function ProfitabilityUpload() {
                   <CardTitle className="text-white text-base">Revenue Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={revenueChartData} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                        <XAxis type="number" stroke="#666" tickFormatter={(v) => formatCurrencyForKPI(v)} />
-                        <YAxis type="category" dataKey="name" stroke="#666" width={120} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                          formatter={(value) => [formatCurrencyForKPI(value as number), 'Amount']}
-                        />
-                        <Bar dataKey="value" fill="#22d3ee" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+<div className="h-[300px]">
+                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                       <BarChart data={revenueChartData} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
+                         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                         <XAxis type="number" stroke="#666" tickFormatter={(v) => formatCurrencyForKPI(v)} />
+                         <YAxis type="category" dataKey="name" stroke="#666" width={120} />
+                         <Tooltip
+                           contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
+                           formatter={(value) => [formatCurrencyForKPI(value as number), 'Amount']}
+                         />
+                         <Bar dataKey="value" fill="#22d3ee" radius={[0, 4, 4, 0]} />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   </div>
                 </CardContent>
               </Card>
             )}

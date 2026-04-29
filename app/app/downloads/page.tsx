@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -63,7 +67,7 @@ export default function DownloadsPage() {
           usageData = await usageRes.json()
         }
       } catch (usageErr) {
-        console.warn('Failed to fetch usage:', usageErr)
+        debugWarn('Failed to fetch usage:', usageErr)
       }
       
       // Update usage state
@@ -73,16 +77,16 @@ export default function DownloadsPage() {
       // Fetch reports
       try {
         const reportsRes = await fetch("/api/reports?list=true")
-        console.log('[Downloads] Fetch reports response status:', reportsRes.status)
+        debugLog('[Downloads] Fetch reports response status:', reportsRes.status)
         if (reportsRes.ok) {
           reportsData = await reportsRes.json()
-          console.log('[Downloads] Reports data received:', reportsData)
+          debugLog('[Downloads] Reports data received:', reportsData)
         } else {
           const errorText = await reportsRes.text()
-          console.error('[Downloads] Reports fetch failed:', reportsRes.status, errorText)
+          debugError('[Downloads] Reports fetch failed:', reportsRes.status, errorText)
         }
       } catch (reportsErr) {
-        console.error('[Downloads] Reports fetch exception:', reportsErr)
+        debugError('[Downloads] Reports fetch exception:', reportsErr)
       }
       
       // Transform reports to download items
@@ -103,7 +107,7 @@ export default function DownloadsPage() {
         setDownloads([])
       }
     } catch (err) {
-      console.error("Error fetching downloads:", err)
+      debugError("Error fetching downloads:", err)
       setError("Failed to load downloads")
     } finally {
       setIsLoading(false)
@@ -162,7 +166,7 @@ export default function DownloadsPage() {
         setDownloadCount(prev => prev + 1)
       }
     } catch (err) {
-      console.error("Download error:", err)
+      debugError("Download error:", err)
       setError(err instanceof Error ? err.message : "Download failed")
     } finally {
       setDownloadingId(null)
@@ -182,7 +186,7 @@ export default function DownloadsPage() {
       // Remove from list locally
       setDownloads(prev => prev.filter(d => d.id !== item.id))
     } catch (err) {
-      console.error('Delete error:', err)
+      debugError('Delete error:', err)
       setError(err instanceof Error ? err.message : 'Delete failed')
     }
   }

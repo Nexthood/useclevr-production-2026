@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Analysis API Route
  * 
@@ -145,7 +147,7 @@ let currentColumns: string[] = [];
 let datasetLoaded = false;
 
 export async function POST(request: Request) {
-  console.log('\n========== ANALYZE REQUEST ==========');
+  debugLog('\n========== ANALYZE REQUEST ==========');
   
   try {
     // Parse request
@@ -153,7 +155,7 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('[ANALYZE] Failed to parse request body:', parseError);
+      debugError('[ANALYZE] Failed to parse request body:', parseError);
       return Response.json({
         success: false,
         error: "Invalid request format",
@@ -168,19 +170,19 @@ export async function POST(request: Request) {
 
     const { question, datasetId, data, columns, analysis: precomputedAnalysis } = body;
     
-    console.log('[ANALYZE] Question:', question);
-    console.log('[ANALYZE] Dataset ID:', datasetId);
-    console.log('[ANALYZE] Data rows:', data?.length || 0);
-    console.log('[ANALYZE] Columns:', columns?.length || 0);
-    console.log('[ANALYZE] Precomputed analysis:', precomputedAnalysis ? 'YES - using unified KPIs' : 'NO - will compute');
+    debugLog('[ANALYZE] Question:', question);
+    debugLog('[ANALYZE] Dataset ID:', datasetId);
+    debugLog('[ANALYZE] Data rows:', data?.length || 0);
+    debugLog('[ANALYZE] Columns:', columns?.length || 0);
+    debugLog('[ANALYZE] Precomputed analysis:', precomputedAnalysis ? 'YES - using unified KPIs' : 'NO - will compute');
 
     // Initialize MCP context if precomputed analysis is available
     if (precomputedAnalysis && datasetId) {
       try {
         initializeMCPContext(datasetId, precomputedAnalysis as unknown as PrecomputedMetrics);
-        console.log('[ANALYZE] MCP context initialized for dataset:', datasetId);
+        debugLog('[ANALYZE] MCP context initialized for dataset:', datasetId);
       } catch (mcpError) {
-        console.log('[ANALYZE] MCP initialization skipped:', mcpError);
+        debugLog('[ANALYZE] MCP initialization skipped:', mcpError);
       }
     }
 
@@ -200,7 +202,7 @@ export async function POST(request: Request) {
         if (profile && profile.subscriptionTier !== 'pro') {
           const analysisCount = profile.analysisCount || 0;
           if (analysisCount >= 2) {
-            console.log('[ANALYZE] REJECTED: Free limit reached');
+            debugLog('[ANALYZE] REJECTED: Free limit reached');
             return Response.json({
               success: false,
               error: 'Free limit reached',
@@ -213,22 +215,22 @@ export async function POST(request: Request) {
         }
       } catch (profileError: any) {
         // Log the DB error but do NOT block the analyze request
-        console.error('[ANALYZE] Profile query failed:', profileError?.message || profileError);
+        debugError('[ANALYZE] Profile query failed:', profileError?.message || profileError);
         // Continue without blocking - usage tracking is secondary
       }
     }
     
     // Check if data was provided directly
     if (data && Array.isArray(data) && data.length > 0) {
-      console.log('[ANALYZE] Loading dataset into memory...');
+      debugLog('[ANALYZE] Loading dataset into memory...');
       try {
         loadDataJS(data);
         currentDataset = data;
         currentColumns = columns || Object.keys(data[0] || {});
         datasetLoaded = true;
-        console.log('[ANALYZE] Dataset loaded:', getDatasetInfo());
+        debugLog('[ANALYZE] Dataset loaded:', getDatasetInfo());
       } catch (loadError) {
-        console.error('[ANALYZE] Failed to load data:', loadError);
+        debugError('[ANALYZE] Failed to load data:', loadError);
         return Response.json({
           success: false,
           error: "Failed to load dataset",
@@ -244,7 +246,7 @@ export async function POST(request: Request) {
 
     // Check if dataset is loaded
     if (!datasetLoaded || currentDataset.length === 0) {
-      console.log('[ANALYZE] No dataset loaded');
+      debugLog('[ANALYZE] No dataset loaded');
       return Response.json({
         success: false,
         error: "No dataset loaded",
@@ -262,19 +264,19 @@ export async function POST(request: Request) {
     if (availableColumns.length === 0) {
       availableColumns = Object.keys(currentDataset[0] || {});
     }
-    console.log('[ANALYZE] Available columns:', availableColumns.length);
+    debugLog('[ANALYZE] Available columns:', availableColumns.length);
 
     // Step 1: Generate SQL query
     let sqlQuery: string;
     try {
-      console.log('[ANALYZE] Generating SQL query...');
+      debugLog('[ANALYZE] Generating SQL query...');
       sqlQuery = await generateQuery(question, availableColumns);
-      console.log('[ANALYZE] Generated SQL:', sqlQuery);
+      debugLog('[ANALYZE] Generated SQL:', sqlQuery);
     } catch (genError) {
-      console.error('[ANALYZE] Query generation failed:', genError);
+      debugError('[ANALYZE] Query generation failed:', genError);
       // Fallback to simple query
       sqlQuery = 'SELECT * FROM dataset LIMIT 50';
-      console.log('[ANALYZE] Using fallback query:', sqlQuery);
+      debugLog('[ANALYZE] Using fallback query:', sqlQuery);
     }
 
     // Step 2: Execute SQL query
@@ -282,21 +284,21 @@ export async function POST(request: Request) {
     let queryError: string | null = null;
     
     try {
-      console.log('[ANALYZE] Executing query...');
+      debugLog('[ANALYZE] Executing query...');
       result = runQueryJS(sqlQuery);
-      console.log('[ANALYZE] Query returned:', result.length, 'rows');
+      debugLog('[ANALYZE] Query returned:', result.length, 'rows');
     } catch (execError: any) {
       queryError = execError?.message || 'Unknown query error';
-      console.error('[ANALYZE] Query execution failed:', queryError);
+      debugError('[ANALYZE] Query execution failed:', queryError);
       
       // Try simpler fallback query
       try {
-        console.log('[ANALYZE] Trying fallback query...');
+        debugLog('[ANALYZE] Trying fallback query...');
         result = runQueryJS('SELECT * FROM dataset LIMIT 10');
-        console.log('[ANALYZE] Fallback returned:', result.length, 'rows');
+        debugLog('[ANALYZE] Fallback returned:', result.length, 'rows');
         queryError = null; // Fallback worked
       } catch (fallbackError: any) {
-        console.error('[ANALYZE] Fallback query also failed:', fallbackError);
+        debugError('[ANALYZE] Fallback query also failed:', fallbackError);
         return Response.json({
           success: false,
           error: "Query execution failed: " + queryError,
@@ -312,7 +314,7 @@ export async function POST(request: Request) {
 
     // Step 3: Check if results are empty
     if (!result || result.length === 0) {
-      console.log('[ANALYZE] No matching data found');
+      debugLog('[ANALYZE] No matching data found');
       return Response.json({
         success: true,
         answer: "No matching data found in the dataset.",
@@ -327,7 +329,7 @@ export async function POST(request: Request) {
     // Step 4: Determine chart type and metric
     const chartType = detectChartType(sqlQuery, result);
     const metricColumn = detectMetricColumn(result);
-    console.log('[ANALYZE] Chart type:', chartType, '| Metric:', metricColumn);
+    debugLog('[ANALYZE] Chart type:', chartType, '| Metric:', metricColumn);
 
     // Step 5: Generate LLM explanation (but always return results)
     let answer = "";
@@ -349,7 +351,7 @@ export async function POST(request: Request) {
     };
 
     try {
-      console.log('[ANALYZE] Checking AI availability...');
+      debugLog('[ANALYZE] Checking AI availability...');
       
       // Import the new AI router that supports hybrid cloud + local
       const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, isLocalAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai-router');
@@ -362,12 +364,12 @@ export async function POST(request: Request) {
       overrideLocalAvailability(localAvailable)
       const cloudAvailable = isCloudAIAvailable();
       
-      console.log('[ANALYZE] AI Status - Cloud:', cloudAvailable, '| Local:', localAvailable);
+      debugLog('[ANALYZE] AI Status - Cloud:', cloudAvailable, '| Local:', localAvailable);
       
       // Get the appropriate provider
       const { provider, type: providerType, providerName, modelName } = getAIProvider();
       
-      console.log('[ANALYZE] Using AI Provider:', providerName, '(', providerType, ') | Model:', modelName || 'N/A');
+      debugLog('[ANALYZE] Using AI Provider:', providerName, '(', providerType, ') | Model:', modelName || 'N/A');
       
       // Build MCP tools prompt if dataset is available
       let mcpToolsPrompt = '';
@@ -384,16 +386,16 @@ export async function POST(request: Request) {
           try {
             const localRes = await askLocalAI({ prompt })
             answer = localRes.response
-            console.log('[ANALYZE] LLM response received from: Local (Ollama)')
+            debugLog('[ANALYZE] LLM response received from: Local (Ollama)')
           } catch (e) {
-            console.warn('[ANALYZE] Local path failed at runtime, attempting safe cloud fallback')
+            debugWarn('[ANALYZE] Local path failed at runtime, attempting safe cloud fallback')
             // Disable local for this decision and get a cloud provider
             overrideLocalAvailability(false)
             try {
               const { provider: cloudProvider, providerName: cloudName } = getAIProvider()
               const { text } = await generateText({ model: cloudProvider, prompt })
               answer = text
-              console.log('[ANALYZE] LLM response received from (fallback):', cloudName)
+              debugLog('[ANALYZE] LLM response received from (fallback):', cloudName)
             } catch (cloudErr) {
               throw cloudErr
             }
@@ -405,7 +407,7 @@ export async function POST(request: Request) {
             prompt: prompt,
           });
           answer = text;
-          console.log('[ANALYZE] LLM response received from:', providerName);
+          debugLog('[ANALYZE] LLM response received from:', providerName);
         }
         
         // Parse structured response
@@ -431,21 +433,21 @@ export async function POST(request: Request) {
         if (!recommendation) recommendation = 'Review the data for actionable insights.';
       } catch (llmRunError: any) {
         llmError = llmRunError?.message || 'LLM execution failed';
-        console.error('[ANALYZE] LLM execution failed:', llmError);
-        console.log('[ANALYZE] Falling back to data-based analysis');
+        debugError('[ANALYZE] LLM execution failed:', llmError);
+        debugLog('[ANALYZE] Falling back to data-based analysis');
         // Will fall through to fallback
       }
     } catch (llmCheckError: any) {
       llmError = llmCheckError?.message || 'AI check failed';
-      console.error('[ANALYZE] AI check failed:', llmError);
-      console.log('[ANALYZE] Falling back to data-based analysis');
+      debugError('[ANALYZE] AI check failed:', llmError);
+      debugLog('[ANALYZE] Falling back to data-based analysis');
       // Will fall through to fallback
     }
 
     // If LLM failed or not available, generate business insights from the data
     // Use precomputed analysis if available for unified context
     if (!answer || llmError) {
-      console.log('[ANALYZE] Using fallback response (LLM unavailable or failed)');
+      debugLog('[ANALYZE] Using fallback response (LLM unavailable or failed)');
       
       // Try MCP-based analysis first if dataset is available
       if (datasetId && precomputedAnalysis) {
@@ -458,7 +460,7 @@ export async function POST(request: Request) {
           );
           
           if (mcpResult.usedMCPTools && mcpResult.answer) {
-            console.log('[ANALYZE] Using MCP-based analysis');
+            debugLog('[ANALYZE] Using MCP-based analysis');
             answer = mcpResult.answer;
             insight = mcpResult.insight;
             explanation = mcpResult.explanation;
@@ -469,7 +471,7 @@ export async function POST(request: Request) {
             recommendation = cleanInsight(recommendation);
           }
         } catch (mcpError) {
-          console.log('[ANALYZE] MCP analysis failed, using precomputed KPIs:', mcpError);
+          debugLog('[ANALYZE] MCP analysis failed, using precomputed KPIs:', mcpError);
         }
       }
       
@@ -507,8 +509,8 @@ export async function POST(request: Request) {
     }
 
     // Step 6: Return response (ALWAYS includes data)
-    console.log('[ANALYZE] Returning response with', result.length, 'rows');
-    console.log('========== ANALYZE COMPLETE ==========\n');
+    debugLog('[ANALYZE] Returning response with', result.length, 'rows');
+    debugLog('========== ANALYZE COMPLETE ==========\n');
     
     // Increment usage count for non-demo users after successful analysis
     if (userId && userId !== 'demo-user-id') {
@@ -524,7 +526,7 @@ export async function POST(request: Request) {
             .where(eq(profiles.userId, userId));
         }
       } catch (usageError) {
-        console.error('[ANALYZE] Failed to increment usage:', usageError);
+        debugError('[ANALYZE] Failed to increment usage:', usageError);
       }
     }
     
@@ -541,8 +543,8 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('[ANALYZE] FATAL ERROR:', error);
-    console.error('[ANALYZE] Stack:', error?.stack);
+    debugError('[ANALYZE] FATAL ERROR:', error);
+    debugError('[ANALYZE] Stack:', error?.stack);
     
     // NEVER crash the UI - always return valid response
     return Response.json({

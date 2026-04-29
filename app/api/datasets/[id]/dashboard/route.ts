@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/dashboard/route.ts
 // Auto Dashboard Builder - generates KPIs and charts from dataset
 
@@ -13,7 +15,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    console.log('[DASHBOARD] Building auto dashboard for dataset:', id);
+    debugLog('[DASHBOARD] Building auto dashboard for dataset:', id);
 
     // Get dataset
     const dataset = await db.query.datasets.findFirst({
@@ -36,12 +38,12 @@ export async function POST(
       );
     }
 
-    console.log('[DASHBOARD] Building dashboard from', data.length, 'rows');
+    debugLog('[DASHBOARD] Building dashboard from', data.length, 'rows');
 
     // Build dashboard
     const dashboard = buildDashboard(id, data);
 
-    console.log('[DASHBOARD] Generated', dashboard.kpis.length, 'KPIs and', dashboard.charts.length, 'charts');
+    debugLog('[DASHBOARD] Generated', dashboard.kpis.length, 'KPIs and', dashboard.charts.length, 'charts');
 
     return NextResponse.json({
       success: true,
@@ -49,7 +51,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('[DASHBOARD] Error:', error.message);
+    debugError('[DASHBOARD] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

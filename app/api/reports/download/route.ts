@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Download Report API Route
  * 
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Fallback to CSV if no PDF
-    console.log('[DOWNLOAD] No PDF found, generating CSV');
+    debugLog('[DOWNLOAD] No PDF found, generating CSV');
     const csvContent = generateReportCSV(report)
     const filename = `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.csv`
     
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[DOWNLOAD] Error:', error)
+    debugError('[DOWNLOAD] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to download report' },
       { status: 500 }
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[DOWNLOAD] Error:', error)
+    debugError('[DOWNLOAD] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to generate report' },
       { status: 500 }

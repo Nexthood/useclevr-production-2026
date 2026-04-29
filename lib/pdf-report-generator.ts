@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * PDF Report Generator for UseClevr
  * 
@@ -504,7 +506,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
   const pdfBuffer = doc.output('arraybuffer');
   fs.writeFileSync(filepath, Buffer.from(pdfBuffer));
   
-  console.log('[PDF] Generated executive report:', filepath, `(${pageNum} page(s))`);
+  debugLog('[PDF] Generated executive report:', filepath, `(${pageNum} page(s))`);
   
   return filepath;
 }

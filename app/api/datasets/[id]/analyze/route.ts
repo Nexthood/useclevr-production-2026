@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { datasets } from "@/lib/db/schema";
@@ -58,7 +60,7 @@ function checkAnalyzeLoop(datasetId: string): { allowed: boolean; message?: stri
  * Log analysis execution
  */
 function logAnalyzeExecution(action: string, details: Record<string, any>) {
-  console.log(`[ANALYZE] ${action}:`, JSON.stringify({
+  debugLog(`[ANALYZE] ${action}:`, JSON.stringify({
     ...details,
     timestamp: new Date().toISOString()
   }));
@@ -93,7 +95,7 @@ export async function POST(
   try {
     const { id }: { id: string } = await params;
 
-    console.log('[ANALYZE] Received dataset ID:', id);
+    debugLog('[ANALYZE] Received dataset ID:', id);
 
     if (!id || typeof id !== "string" || id.trim() === "") {
       return NextResponse.json<ErrorResponse>(
@@ -120,7 +122,7 @@ export async function POST(
     logAnalyzeExecution('ANALYSIS_INITIATED', { datasetId: id });
 
     // Accept any valid ID format (UUID, ds_xxx format, etc.)
-    console.log('[ANALYZE] Processing dataset ID:', id);
+    debugLog('[ANALYZE] Processing dataset ID:', id);
 
     let userId: string | null = null;
 
@@ -187,7 +189,7 @@ export async function POST(
       data: DatasetRecord[];
     };
 
-    console.log('[ANALYZE] Dataset found:', {
+    debugLog('[ANALYZE] Dataset found:', {
       id: datasetData.id,
       name: datasetData.name,
       status: datasetData.status,
@@ -198,7 +200,7 @@ export async function POST(
 
     // Accept analysis on processing, ready, or completed datasets
     if (datasetData.status !== "completed" && datasetData.status !== "processing" && datasetData.status !== "ready") {
-      console.log('[ANALYZE] Invalid status:', datasetData.status);
+      debugLog('[ANALYZE] Invalid status:', datasetData.status);
       return NextResponse.json<ErrorResponse>(
         { error: "Dataset is not ready for analysis", details: `Current status: ${datasetData.status}` },
         { status: 422 }
@@ -211,15 +213,15 @@ export async function POST(
     const data: DatasetRecord[] = limit > 0 ? allData.slice(0, limit) : allData;
     
     // DEBUG: Log detailed query info
-    console.log('[DEBUG] Query params id:', id);
-    console.log('[DEBUG] Dataset ID from DB:', datasetData.id);
-    console.log('[DEBUG] IDs match:', id === datasetData.id);
-    console.log('[DEBUG] Rows found:', data.length, 'out of', datasetData.rowCount, 'expected');
-    console.log('[DEBUG] First row sample:', data.length > 0 ? JSON.stringify(data[0]) : 'none');
+    debugLog('[DEBUG] Query params id:', id);
+    debugLog('[DEBUG] Dataset ID from DB:', datasetData.id);
+    debugLog('[DEBUG] IDs match:', id === datasetData.id);
+    debugLog('[DEBUG] Rows found:', data.length, 'out of', datasetData.rowCount, 'expected');
+    debugLog('[DEBUG] First row sample:', data.length > 0 ? JSON.stringify(data[0]) : 'none');
 
     // If we have rowCount but no actual rows, log error
     if (data.length === 0 && datasetData.rowCount > 0) {
-      console.error('[DEBUG] FATAL: Dataset has rowCount=%d but 0 rows in data!', datasetData.rowCount);
+      debugError('[DEBUG] FATAL: Dataset has rowCount=%d but 0 rows in data!', datasetData.rowCount);
       return NextResponse.json<ErrorResponse & { _debug?: any }>(
         { 
           error: "Data inconsistency: Dataset shows rows but data column is empty",
@@ -235,7 +237,7 @@ export async function POST(
     }
 
     if (data.length === 0 && datasetData.rowCount === 0) {
-      console.log('[ANALYZE] No data available yet - dataset still processing');
+      debugLog('[ANALYZE] No data available yet - dataset still processing');
       return NextResponse.json<ErrorResponse>(
         { error: "Dataset is still processing", details: "No data rows have been uploaded yet" },
         { status: 422 }
@@ -247,7 +249,7 @@ export async function POST(
 
     // NEW: Run Executive KPI Engine
     const executiveAnalysis: DatasetAnalysis = analyzeDataset(data);
-    console.log('[ANALYZE] Executive KPI Engine completed:', {
+    debugLog('[ANALYZE] Executive KPI Engine completed:', {
       totalRows: executiveAnalysis.totalRows,
       totalColumns: executiveAnalysis.totalColumns,
       revenueColumn: executiveAnalysis.revenueColumn,
@@ -306,7 +308,7 @@ export async function POST(
     }
     analysis.data_quality.duplicates = duplicateCount;
 
-    console.log('[ANALYZE] Computed from data - rows:', analysis.total_rows, 'cols:', analysis.total_columns, 'numeric:', numericCols.length, 'dates:', dateCols.length);
+    debugLog('[ANALYZE] Computed from data - rows:', analysis.total_rows, 'cols:', analysis.total_columns, 'numeric:', numericCols.length, 'dates:', dateCols.length);
 
     // Add executive KPI analysis to the result
     (analysis as any).executive_analysis = executiveAnalysis;
@@ -321,9 +323,9 @@ export async function POST(
     };
 
     // NEW: Run Business Column Detection & KPI Engine
-    console.log('[ANALYZE] Running Business Column Detection...');
+    debugLog('[ANALYZE] Running Business Column Detection...');
     const detectedColumns = detectBusinessColumns(data);
-    console.log('[ANALYZE] Detected columns:', {
+    debugLog('[ANALYZE] Detected columns:', {
       revenueColumn: detectedColumns.revenueColumn,
       profitColumn: detectedColumns.profitColumn,
       costColumn: detectedColumns.costColumn,
@@ -334,7 +336,7 @@ export async function POST(
 
     // Run Business KPI Analysis
     const businessAnalysis = analyzeBusinessData(data, detectedColumns);
-    console.log('[ANALYZE] Business analysis complete:', {
+    debugLog('[ANALYZE] Business analysis complete:', {
       totalRevenue: businessAnalysis.kpis.totalRevenue,
       totalProfit: businessAnalysis.kpis.totalProfit,
       profitMargin: businessAnalysis.kpis.profitMargin,
@@ -369,9 +371,9 @@ export async function POST(
       };
       const aiSummary = await generateAIExecutiveSummary(enrichedAnalysis);
       (analysis as any).ai_summary = aiSummary;
-      console.log('[ANALYZE] AI Executive Summary generated');
+      debugLog('[ANALYZE] AI Executive Summary generated');
     } catch (aiError) {
-      console.error('[ANALYZE] Failed to generate AI summary:', aiError);
+      debugError('[ANALYZE] Failed to generate AI summary:', aiError);
       (analysis as any).ai_summary = null;
     }
 
@@ -383,15 +385,15 @@ export async function POST(
           updatedAt: new Date()
         })
         .where(eq(datasets.id, id));
-      console.log('[ANALYZE] Analysis saved to database for dataset:', id);
+      debugLog('[ANALYZE] Analysis saved to database for dataset:', id);
     } catch (saveError) {
-      console.error('[ANALYZE] Failed to save analysis to database:', saveError);
+      debugError('[ANALYZE] Failed to save analysis to database:', saveError);
       // Continue anyway - we still want to return the analysis result
     }
 
     return NextResponse.json<CSVAnalysisResult>(analysis);
   } catch (error) {
-    console.error("Dataset analysis error:", error);
+    debugError("Dataset analysis error:", error);
 
     if (error instanceof Error) {
       if (error.message.includes("P2025")) {

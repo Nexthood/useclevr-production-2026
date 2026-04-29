@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Shareable Report Generator
  * 
@@ -15,17 +17,17 @@ import { generatePdfReport, getPdfPath } from './pdf-report-generator';
 const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
 
-console.log('[REPORT] Reports file path:', REPORTS_FILE);
+debugLog('[REPORT] Reports file path:', REPORTS_FILE);
 
 // Ensure reports directory exists
 function ensureReportsDir() {
   try {
     if (!fs.existsSync(REPORTS_DIR)) {
       fs.mkdirSync(REPORTS_DIR, { recursive: true });
-      console.log('[REPORT] Created reports directory:', REPORTS_DIR);
+      debugLog('[REPORT] Created reports directory:', REPORTS_DIR);
     }
   } catch (error) {
-    console.error('[REPORT] Error creating reports directory:', error);
+    debugError('[REPORT] Error creating reports directory:', error);
   }
 }
 
@@ -35,9 +37,9 @@ function loadReports(): Map<string, Report> {
   try {
     if (fs.existsSync(REPORTS_FILE)) {
       const data = fs.readFileSync(REPORTS_FILE, 'utf-8');
-      console.log('[REPORT] Raw file data length:', data.length);
+      debugLog('[REPORT] Raw file data length:', data.length);
       const reportsArray = JSON.parse(data);
-      console.log('[REPORT] Parsed reports array:', JSON.stringify(reportsArray).substring(0, 200));
+      debugLog('[REPORT] Parsed reports array:', JSON.stringify(reportsArray).substring(0, 200));
       
       // Array is [[id, report], [id, report], ...]
       // Need to convert to Map
@@ -50,13 +52,13 @@ function loadReports(): Map<string, Report> {
           }
         }
       }
-      console.log('[REPORT] Loaded reports count:', result.size);
+      debugLog('[REPORT] Loaded reports count:', result.size);
       return result;
     } else {
-      console.log('[REPORT] No reports file found, starting fresh');
+      debugLog('[REPORT] No reports file found, starting fresh');
     }
   } catch (error) {
-    console.error('[REPORT] Error loading reports:', error);
+    debugError('[REPORT] Error loading reports:', error);
   }
   return new Map();
 }
@@ -67,9 +69,9 @@ function saveReports(reports: Map<string, Report>) {
   try {
     const data = JSON.stringify(Array.from(reports.entries()));
     fs.writeFileSync(REPORTS_FILE, data, 'utf-8');
-    console.log('[REPORT] Saved reports, count:', reports.size);
+    debugLog('[REPORT] Saved reports, count:', reports.size);
   } catch (error) {
-    console.error('[REPORT] Error saving reports:', error);
+    debugError('[REPORT] Error saving reports:', error);
   }
 }
 
@@ -79,7 +81,7 @@ let reportsCache: Map<string, Report> | null = null;
 function getReports(): Map<string, Report> {
   if (!reportsCache) {
     reportsCache = loadReports();
-    console.log('[REPORT] getReports() returning count:', reportsCache.size);
+    debugLog('[REPORT] getReports() returning count:', reportsCache.size);
   }
   return reportsCache;
 }
@@ -217,17 +219,17 @@ export async function generateReport(
     const pdfPath = await generatePdfReport(report);
     report.pdfPath = pdfPath;
     report.pdfFilename = `${datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${reportId}.pdf`;
-    console.log(`[REPORT] PDF generated: ${pdfPath}`);
+    debugLog(`[REPORT] PDF generated: ${pdfPath}`);
   } catch (pdfError) {
-    console.error('[REPORT] PDF generation failed:', pdfError);
+    debugError('[REPORT] PDF generation failed:', pdfError);
   }
   
   // Store report
   getReports().set(reportId, report);
   setReports(getReports());
   
-  console.log(`[REPORT] Generated report ${reportId} for dataset ${datasetId}`);
-  console.log(`[REPORT] Total reports in storage after save: ${getReports().size}`);
+  debugLog(`[REPORT] Generated report ${reportId} for dataset ${datasetId}`);
+  debugLog(`[REPORT] Total reports in storage after save: ${getReports().size}`);
   
   return report;
 }
@@ -255,7 +257,7 @@ export function getReport(reportId: string): Report | null {
  * List all reports
  */
 export function listAllReports(): Report[] {
-  console.log('[REPORTS] listAllReports called, Map size:', getReports().size);
+  debugLog('[REPORTS] listAllReports called, Map size:', getReports().size);
   return Array.from(getReports().values())
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }

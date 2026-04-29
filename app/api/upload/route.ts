@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { datasets, datasetRows, users } from '@/lib/db/schema'
@@ -23,19 +25,19 @@ async function executeWithRetry<T>(
 ): Promise<T> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`[DB] ${operationName} - Attempt ${attempt}/${maxRetries}`)
+      debugLog(`[DB] ${operationName} - Attempt ${attempt}/${maxRetries}`)
       const result = await operation()
-      console.log(`[DB] ${operationName} - Success on attempt ${attempt}`)
+      debugLog(`[DB] ${operationName} - Success on attempt ${attempt}`)
       return result
     } catch (error: any) {
-      console.error(`[DB] ${operationName} - Attempt ${attempt} failed:`, error.message)
+      debugError(`[DB] ${operationName} - Attempt ${attempt} failed:`, error.message)
       
       if (attempt === maxRetries) {
-        console.error(`[DB] ${operationName} - All ${maxRetries} attempts failed`)
+        debugError(`[DB] ${operationName} - All ${maxRetries} attempts failed`)
         throw error
       }
       
-      console.log(`[DB] ${operationName} - Retrying in ${delayMs}ms...`)
+      debugLog(`[DB] ${operationName} - Retrying in ${delayMs}ms...`)
       await new Promise(resolve => setTimeout(resolve, delayMs))
     }
   }
@@ -118,7 +120,7 @@ function checkExecutionLoop(commandKey: string, args: string): { allowed: boolea
  * Log execution for debugging
  */
 function logExecution(action: string, details: Record<string, any>) {
-  console.log(`[EXECUTION] ${action}:`, JSON.stringify({
+  debugLog(`[EXECUTION] ${action}:`, JSON.stringify({
     ...details,
     timestamp: new Date().toISOString(),
     activeCommands: executionLog.size
@@ -143,8 +145,8 @@ function detectDelimiter(text: string): string {
   
   const best = counts.reduce((a, b) => a.count > b.count ? a : b)
   
-  console.log('[DELIMITER] Delimiter counts:', counts.map(c => `${c.delimiter}: ${c.count}`).join(', '))
-  console.log('[DELIMITER] Selected:', best.delimiter === '\t' ? 'tab' : best.delimiter)
+  debugLog('[DELIMITER] Delimiter counts:', counts.map(c => `${c.delimiter}: ${c.count}`).join(', '))
+  debugLog('[DELIMITER] Selected:', best.delimiter === '\t' ? 'tab' : best.delimiter)
   
   return best.delimiter
 }
@@ -302,13 +304,13 @@ function processRows(rows: any[], headers: string[]): { processed: any[], column
     columnTypes[header] = detectColumnType(values)
   }
   
-  console.log('[TYPE] Detected column types:', JSON.stringify(columnTypes))
+  debugLog('[TYPE] Detected column types:', JSON.stringify(columnTypes))
   
   // Count numeric/date columns
   const numericCols = Object.values(columnTypes).filter(t => t === 'numeric' || t === 'currency').length
   const dateCols = Object.values(columnTypes).filter(t => t === 'date').length
-  console.log('[TYPE] Numeric columns:', numericCols)
-  console.log('[TYPE] Date columns:', dateCols)
+  debugLog('[TYPE] Numeric columns:', numericCols)
+  debugLog('[TYPE] Date columns:', dateCols)
   
   // Process all rows
   const processed = rows.map(row => {
@@ -351,7 +353,7 @@ function processRows(rows: any[], headers: string[]): { processed: any[], column
 
 export async function POST(request: Request) {
   try {
-    console.log('[UPLOAD] Upload received')
+    debugLog('[UPLOAD] Upload received')
 
     // Auth
     const session = await auth()
@@ -359,7 +361,7 @@ export async function POST(request: Request) {
     
     let userId: string
     if (isDemoMode) {
-      console.log('[UPLOAD] Demo mode - finding demo user')
+      debugLog('[UPLOAD] Demo mode - finding demo user')
       const demoUser = await executeWithRetry(
         () => db.query.users.findFirst({
           where: eq((users as any).email, 'demo@useclever.app'),
@@ -388,15 +390,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only CSV files allowed' }, { status: 400 })
     }
 
-    console.log('[UPLOAD] Parsing CSV')
+    debugLog('[UPLOAD] Parsing CSV')
 
     // Read file
     const fileBuffer = await file.arrayBuffer()
     const fileText = Buffer.from(fileBuffer).toString('utf-8')
     
-    console.log('[UPLOAD] File size:', file.size, 'bytes')
-    console.log('[UPLOAD] File text length:', fileText.length, 'chars')
-    console.log('[UPLOAD] First 200 chars:', fileText.slice(0, 200))
+    debugLog('[UPLOAD] File size:', file.size, 'bytes')
+    debugLog('[UPLOAD] File text length:', fileText.length, 'chars')
+    debugLog('[UPLOAD] First 200 chars:', fileText.slice(0, 200))
 
     // Detect delimiter
     const delimiter = detectDelimiter(fileText)
@@ -410,8 +412,8 @@ export async function POST(request: Request) {
       delimiter: delimiter,
     });
 
-    console.log('Parsed rows:', parseResult.data.length, 'First row:', parseResult.data[0]);
-    console.log('[PARSER] Headers detected:', parseResult.meta.fields?.length || 0);
+    debugLog('Parsed rows:', parseResult.data.length, 'First row:', parseResult.data[0]);
+    debugLog('[PARSER] Headers detected:', parseResult.meta.fields?.length || 0);
 
     const rawRows = parseResult.data as any[]
     const headers = parseResult.meta.fields || []
@@ -428,28 +430,28 @@ export async function POST(request: Request) {
     // Process rows with type detection
     const { processed, columnTypes } = processRows(rawRows, headers)
     
-    console.log('[PROCESSED] First processed row:', JSON.stringify(processed[0]))
+    debugLog('[PROCESSED] First processed row:', JSON.stringify(processed[0]))
     
     // Count columns
     const numericCount = Object.values(columnTypes).filter(t => t === 'numeric' || t === 'currency').length
     const dateCount = Object.values(columnTypes).filter(t => t === 'date').length
     const categoricalCount = Object.values(columnTypes).filter(t => t === 'text').length
     
-    console.log('[SUMMARY] Total rows:', processed.length)
-    console.log('[SUMMARY] Total columns:', headers.length)
-    console.log('[SUMMARY] Numeric columns:', numericCount)
-    console.log('[SUMMARY] Date columns:', dateCount)
-    console.log('[SUMMARY] Categorical columns:', categoricalCount)
+    debugLog('[SUMMARY] Total rows:', processed.length)
+    debugLog('[SUMMARY] Total columns:', headers.length)
+    debugLog('[SUMMARY] Numeric columns:', numericCount)
+    debugLog('[SUMMARY] Date columns:', dateCount)
+    debugLog('[SUMMARY] Categorical columns:', categoricalCount)
 
     // Generate IDs
     const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`
     const datasetName = file.name.replace(/\.csv$/i, '')
     
-    console.log('[UPLOAD] Creating dataset:', datasetId)
+    debugLog('[UPLOAD] Creating dataset:', datasetId)
 
     // Verify user exists before insert (foreign key check)
-    console.log('[UPLOAD] Connecting to database')
-    console.log('[UPLOAD] Verifying user exists:', userId)
+    debugLog('[UPLOAD] Connecting to database')
+    debugLog('[UPLOAD] Verifying user exists:', userId)
     try {
       const userExists = await executeWithRetry(
         () => db.query.users.findFirst({
@@ -458,20 +460,20 @@ export async function POST(request: Request) {
         'Verify user exists'
       )
       if (!userExists) {
-        console.error('[UPLOAD] User does not exist:', userId)
+        debugError('[UPLOAD] User does not exist:', userId)
         return NextResponse.json({ 
           error: 'User not found. Please sign in again.'
         }, { status: 400 })
       }
-      console.log('[UPLOAD] User verified:', userExists.id)
+      debugLog('[UPLOAD] User verified:', userExists.id)
     } catch (userCheckError) {
-      console.error('[UPLOAD] Error checking user:', userCheckError)
+      debugError('[UPLOAD] Error checking user:', userCheckError)
       return NextResponse.json({ 
         message: "Database temporarily unavailable. Retrying..."
       }, { status: 503 })
     }
 
-    console.log('[UPLOAD] Saving metadata')
+    debugLog('[UPLOAD] Saving metadata')
 
     // Insert dataset - metadata only (no data column, no datasetRows)
     const now = new Date()
@@ -494,16 +496,16 @@ export async function POST(request: Request) {
       updatedAt: now,
     }
 
-    console.log('[UPLOAD] =============================================')
-    console.log('[UPLOAD] Saving METADATA only (no data column)')
-    console.log('[UPLOAD] Payload keys:', Object.keys(datasetValues))
-    console.log('[UPLOAD] NOTE: Data processed in-memory, not stored in DB')
-    console.log('[UPLOAD] =============================================')
+    debugLog('[UPLOAD] =============================================')
+    debugLog('[UPLOAD] Saving METADATA only (no data column)')
+    debugLog('[UPLOAD] Payload keys:', Object.keys(datasetValues))
+    debugLog('[UPLOAD] NOTE: Data processed in-memory, not stored in DB')
+    debugLog('[UPLOAD] =============================================')
 
     // Insert with detailed error handling
     try {
-      console.log('[UPLOAD] Inserting dataset record...')
-      console.log('[UPLOAD] Dataset values:', JSON.stringify({
+      debugLog('[UPLOAD] Inserting dataset record...')
+      debugLog('[UPLOAD] Dataset values:', JSON.stringify({
         id: datasetValues.id,
         name: datasetValues.name,
         userId: datasetValues.userId,
@@ -521,11 +523,11 @@ export async function POST(request: Request) {
         () => (db as any).insert(datasets).values(datasetValues),
         'Insert dataset'
       )
-      console.log('[UPLOAD] Insert dataset success')
+      debugLog('[UPLOAD] Insert dataset success')
     } catch (insertError) {
-      console.error('[UPLOAD] DATABASE ERROR - Failed to save file metadata')
-      console.error('[UPLOAD] Insert error:', insertError)
-      console.error('[UPLOAD] Error message:', insertError instanceof Error ? insertError.message : String(insertError))
+      debugError('[UPLOAD] DATABASE ERROR - Failed to save file metadata')
+      debugError('[UPLOAD] Insert error:', insertError)
+      debugError('[UPLOAD] Error message:', insertError instanceof Error ? insertError.message : String(insertError))
       return NextResponse.json({ 
         message: "Database temporarily unavailable. Retrying..."
       }, { status: 503 })
@@ -537,15 +539,15 @@ export async function POST(request: Request) {
       await fs.mkdir(datasetsDir, { recursive: true })
       const filePath = path.join(datasetsDir, `${datasetId}.csv`)
       await fs.writeFile(filePath, fileText, 'utf-8')
-      console.log('[UPLOAD] CSV file saved to:', filePath)
+      debugLog('[UPLOAD] CSV file saved to:', filePath)
     } catch (fileError) {
-      console.error('[UPLOAD] Failed to save CSV file:', fileError)
+      debugError('[UPLOAD] Failed to save CSV file:', fileError)
       // Don't fail the upload if file save fails, but log it
     }
 
     // SKIP: datasetRows insertion - data is processed in-memory with DuckDB
     // Analysis will be done separately via /api/datasets/[id]/analyze
-    console.log('[UPLOAD] Skipping datasetRows insertion - data processed in-memory')
+    debugLog('[UPLOAD] Skipping datasetRows insertion - data processed in-memory')
 
     // ============================================================================
     // UPLOAD COMPLETE - Metadata stored, data processed in-memory
@@ -565,20 +567,20 @@ export async function POST(request: Request) {
       columnTypes
     })
 
-    console.log('[UPLOAD] =============================================')
-    console.log('[UPLOAD] UPLOAD COMPLETE - Dataset stored successfully')
-    console.log('[UPLOAD] Dataset ID:', datasetId)
-    console.log('[UPLOAD] Parsed rows:', processed.length)
-    console.log('[UPLOAD] Inserted rows: 0 (metadata only)')
-    console.log('[UPLOAD] Columns:', headers.length)
-    console.log('[UPLOAD] Numeric columns:', numericCount)
-    console.log('[UPLOAD] Date columns:', dateCount)
-    console.log('[UPLOAD] Categorical columns:', categoricalCount)
-    console.log('[UPLOAD] Column types:', JSON.stringify(columnTypes))
-    console.log('[UPLOAD] =============================================')
-    console.log('[UPLOAD] NOTE: AI analysis NOT auto-triggered.')
-    console.log('[UPLOAD] Use /api/datasets/[id]/analyze to analyze.')
-    console.log('[UPLOAD] =============================================')
+    debugLog('[UPLOAD] =============================================')
+    debugLog('[UPLOAD] UPLOAD COMPLETE - Dataset stored successfully')
+    debugLog('[UPLOAD] Dataset ID:', datasetId)
+    debugLog('[UPLOAD] Parsed rows:', processed.length)
+    debugLog('[UPLOAD] Inserted rows: 0 (metadata only)')
+    debugLog('[UPLOAD] Columns:', headers.length)
+    debugLog('[UPLOAD] Numeric columns:', numericCount)
+    debugLog('[UPLOAD] Date columns:', dateCount)
+    debugLog('[UPLOAD] Categorical columns:', categoricalCount)
+    debugLog('[UPLOAD] Column types:', JSON.stringify(columnTypes))
+    debugLog('[UPLOAD] =============================================')
+    debugLog('[UPLOAD] NOTE: AI analysis NOT auto-triggered.')
+    debugLog('[UPLOAD] Use /api/datasets/[id]/analyze to analyze.')
+    debugLog('[UPLOAD] =============================================')
 
     // Return success
     return NextResponse.json({
@@ -598,7 +600,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error: any) {
-    console.error('[UPLOAD] Error:', error)
+    debugError('[UPLOAD] Error:', error)
     return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 })
   }
 }

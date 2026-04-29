@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import * as React from "react"
 import {
   Sparkles,
@@ -316,7 +320,7 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
       await navigator.clipboard.writeText(shareUrl)
       alert("Share link copied to clipboard!")
     } catch {
-      console.error("Failed to copy share link")
+      debugError("Failed to copy share link")
     }
   }
 

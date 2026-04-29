@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/live/route.ts
 // Live Data Mode - configure and manage scheduled data refresh
 
@@ -101,7 +103,7 @@ export async function POST(
     
     liveDataConfigs.set(id, config);
     
-    console.log(`[LIVE] Configured live data for ${id}: ${interval || 'disabled'}`);
+    debugLog(`[LIVE] Configured live data for ${id}: ${interval || 'disabled'}`);
     
     return NextResponse.json({
       success: true,
@@ -118,7 +120,7 @@ export async function POST(
     });
     
   } catch (error: any) {
-    console.error('[LIVE] Error:', error.message);
+    debugError('[LIVE] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

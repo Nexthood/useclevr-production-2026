@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * AI Query Generator
  * 
@@ -82,7 +84,7 @@ SQL Query:`;
 
     return sql;
   } catch (error) {
-    console.error('[QUERY-GEN] AI SQL generation failed:', error);
+    debugError('[QUERY-GEN] AI SQL generation failed:', error);
     throw new Error('Failed to generate SQL query');
   }
 }

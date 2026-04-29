@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * LLM Adapter
  * 
@@ -46,7 +48,7 @@ export async function runLLM(
     const data: LLMResponse = await response.json();
     return data.response;
   } catch (error) {
-    console.error('[LLMAdapter] Error running LLM:', error);
+    debugError('[LLMAdapter] Error running LLM:', error);
     throw error;
   }
 }

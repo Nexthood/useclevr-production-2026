@@ -4,7 +4,6 @@ import { NextResponse } from "next/server"
 
 const DEFAULT_AGENT_BASE = "http://127.0.0.1:5143"
 const AGENT_STATUS_PATH = "/status"
-const DEFAULT_OLLAMA_BASE = "http://localhost:11434" // preserved for current UI model listing flow
 const TIMEOUT_MS = 5000
 
 type Status = "reachable" | "unavailable" | "error"
@@ -51,15 +50,10 @@ export async function GET() {
     error = e instanceof Error ? e.message : "connection failed"
   }
 
-  // For backward-compat the UI expects a baseUrl to query tags when available.
-  // Keep providing the Ollama base only when agent reports runtime available.
-  const baseUrl = available ? (process.env.OLLAMA_BASE_URL?.trim() || DEFAULT_OLLAMA_BASE) : undefined
-
   return NextResponse.json({
     available,
     status,
     provider: "useclevr_hybrid",
-    ...(baseUrl ? { baseUrl } : {}),
     ...(error ? { error } : {}),
     localAIAvailable: available,
   })

@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -46,7 +50,7 @@ export function CheckoutButton({
         window.location.href = url
       }
     } catch (error) {
-      console.error("Checkout error:", error)
+      debugError("Checkout error:", error)
       alert("Failed to start checkout. Please try again.")
     } finally {
       setLoading(false)

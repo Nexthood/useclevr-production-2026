@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/datasets/[id]/alerts/route.ts
 // AI Alert System - detect significant changes and anomalies
 
@@ -10,7 +12,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    console.log('[ALERTS] Generating alerts for dataset:', id);
+    debugLog('[ALERTS] Generating alerts for dataset:', id);
 
     // Get data from request body
     const body = await request.json();
@@ -23,12 +25,12 @@ export async function POST(
       );
     }
 
-    console.log('[ALERTS] Analyzing', data.length, 'rows');
+    debugLog('[ALERTS] Analyzing', data.length, 'rows');
 
     // Generate alerts
     const result = await generateAlerts(id, data);
 
-    console.log('[ALERTS] Generated', result.alerts.length, 'alerts');
+    debugLog('[ALERTS] Generated', result.alerts.length, 'alerts');
 
     return NextResponse.json({
       success: true,
@@ -36,7 +38,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('[ALERTS] Error:', error.message);
+    debugError('[ALERTS] Error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

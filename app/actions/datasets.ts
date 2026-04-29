@@ -1,5 +1,9 @@
 "use server"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import { db } from "@/lib/db"
 import { datasets, datasetRows } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
@@ -22,7 +26,7 @@ export async function deleteDataset(datasetId: string) {
     revalidatePath("/app/datasets")
     return { success: true }
   } catch (error) {
-    console.error("Error deleting dataset:", error)
+    debugError("Error deleting dataset:", error)
     return { error: "Failed to delete dataset" }
   }
 }
@@ -50,7 +54,7 @@ export async function getUserDatasets() {
       },
     }))
   } catch (error) {
-    console.error("Error fetching datasets:", error)
+    debugError("Error fetching datasets:", error)
     return []
   }
 }
@@ -70,7 +74,7 @@ export async function getDatasetById(datasetId: string) {
     })
     return dataset
   } catch (error) {
-    console.error("Error fetching dataset:", error)
+    debugError("Error fetching dataset:", error)
     return null
   }
 }
@@ -100,7 +104,7 @@ export async function getDatasetRows(datasetId: string) {
     })
     return rows
   } catch (error) {
-    console.error("Error fetching dataset rows:", error)
+    debugError("Error fetching dataset rows:", error)
     return []
   }
 }

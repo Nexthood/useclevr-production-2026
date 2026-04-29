@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * Query Engine
  * 
@@ -26,7 +28,7 @@ export async function generateQuery(question: string, columns: string[] = []): P
     }
   }
   
-  console.log('[QueryEngine] Available columns:', columns);
+  debugLog('[QueryEngine] Available columns:', columns);
   
   // Detect actual column names in the dataset
   const revenueCol = columns.find(c => /revenue|income|sales/i.test(c)) || 'net_revenue';

@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { drizzle } from 'drizzle-orm/neon-http'
 import { neon, neonConfig } from '@neondatabase/serverless'
 import * as schema from './schema'
@@ -11,7 +13,7 @@ function createDbClient() {
   const connectionUrl = process.env.DATABASE_URL || process.env.DIRECT_URL
   
   if (!connectionUrl) {
-    console.warn('[DB] DATABASE_URL not set - database features will be unavailable')
+    debugWarn('[DB] DATABASE_URL not set - database features will be unavailable')
     return null
   }
 
@@ -27,19 +29,19 @@ function createDbClient() {
     const maxRetries = 5
     
     const tryConnect = () => {
-      console.log(`[DB] Testing connection to database... (attempt ${retries + 1}/${maxRetries})`)
+      debugLog(`[DB] Testing connection to database... (attempt ${retries + 1}/${maxRetries})`)
       sql`SELECT NOW()`.then(() => {
-        console.log('[DB] Successfully connected to database')
+        debugLog('[DB] Successfully connected to database')
       }).catch((err) => {
-        console.error(`[DB] Failed to connect (attempt ${retries + 1}):`, err.message)
+        debugError(`[DB] Failed to connect (attempt ${retries + 1}):`, err.message)
         retries++
         if (retries < maxRetries) {
           // Exponential backoff
           const delay = Math.min(1000 * Math.pow(2, retries), 10000)
-          console.log(`[DB] Retrying in ${delay}ms...`)
+          debugLog(`[DB] Retrying in ${delay}ms...`)
           setTimeout(tryConnect, delay)
         } else {
-          console.error('[DB] Max retries reached. Database may be in cold-start.')
+          debugError('[DB] Max retries reached. Database may be in cold-start.')
         }
       })
     }

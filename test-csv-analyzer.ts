@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "./lib/debug"
+
 // Test script for CSV analyzer
 import { analyzeCSV, DatasetRecord } from './lib/csv-analyzer'
 
@@ -11,11 +13,11 @@ const testData: DatasetRecord[] = [
 
 // Run analysis (async for FX rate fetching)
 async function runTest() {
-  console.log('Running CSV analysis...\n')
+  debugLog('Running CSV analysis...\n')
   const result = await analyzeCSV(testData)
 
   // Output result as formatted JSON
-  console.log(JSON.stringify(result, null, 2))
+  debugLog(JSON.stringify(result, null, 2))
 }
 
-runTest().catch(console.error)
+runTest().catch(debugError)

@@ -1,5 +1,9 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
+
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { UserFormattingPreferences, getDefaultPreferences } from '@/lib/formatting'
 
@@ -22,7 +26,7 @@ export function FormattingProvider({ children }: { children: ReactNode }) {
       try {
         setPreferences(JSON.parse(stored))
       } catch {
-        console.error('Failed to parse stored formatting preferences')
+        debugError('Failed to parse stored formatting preferences')
       }
     }
     setIsLoading(false)

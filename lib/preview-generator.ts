@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // PREVIEW GENERATOR - Deterministic Preview Extraction
 // ============================================================================
@@ -173,7 +175,7 @@ export function generatePreview(
     Math.min(MAX_PREVIEW_ROWS, allRows.length)
   );
 
-  console.log(`[PREVIEW] Generating preview with ${previewSize} rows from ${allRows.length} total rows`);
+  debugLog(`[PREVIEW] Generating preview with ${previewSize} rows from ${allRows.length} total rows`);
 
   // Extract preview rows
   const previewRows = allRows.slice(0, previewSize);
@@ -208,8 +210,8 @@ export function generatePreview(
   }
 
   // Log preview generation
-  console.log('[PREVIEW] Column types detected:', JSON.stringify(columnTypes));
-  console.log('[PREVIEW] Preview generated at:', new Date().toISOString());
+  debugLog('[PREVIEW] Column types detected:', JSON.stringify(columnTypes));
+  debugLog('[PREVIEW] Preview generated at:', new Date().toISOString());
 
   return {
     datasetId,

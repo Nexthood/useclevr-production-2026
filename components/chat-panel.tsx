@@ -1,5 +1,7 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import * as React from "react"
 import { Sparkles, Send, X, MessageSquare, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -37,7 +39,7 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
             setSuggestions(data.suggestions)
           }
         })
-        .catch(console.error)
+        .catch(debugError)
     } else {
       setSuggestions([])
     }

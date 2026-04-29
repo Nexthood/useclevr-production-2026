@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { users, datasets } from "@/lib/db/schema"
@@ -26,7 +28,7 @@ export default async function DatasetsPage() {
         demoUserId = allUsers[0].id
       }
     } catch (dbError) {
-      console.error("[DATASETS] Database error finding demo user:", dbError)
+      debugError("[DATASETS] Database error finding demo user:", dbError)
     }
   }
 
@@ -51,7 +53,7 @@ export default async function DatasetsPage() {
       
       datasetsList = data
     } catch (e) {
-      console.error("[DATASETS] Query error:", e)
+      debugError("[DATASETS] Query error:", e)
       datasetsList = []
     }
   }

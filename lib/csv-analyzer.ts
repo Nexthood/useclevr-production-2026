@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // CSV Data Analysis Library for SaaS Dataset Analysis
 // ============================================================================
@@ -703,8 +705,8 @@ function logColumnClassification(
   columnStats: Record<string, ColumnStatistics>,
   rowCount: number
 ): void {
-  console.log("[ANALYZER] Column Classification Results:");
-  console.log("[ANALYZER] Total columns:", columns.length, "| Rows:", rowCount);
+  debugLog("[ANALYZER] Column Classification Results:");
+  debugLog("[ANALYZER] Total columns:", columns.length, "| Rows:", rowCount);
   
   const classificationCounts: Record<string, number> = {
     id: 0,
@@ -724,15 +726,15 @@ function logColumnClassification(
       
       // Log ID columns for debugging
       if (classification === "id") {
-        console.log(`[ANALYZER] ID column detected: "${col}" (unique: ${stats.unique})`);
+        debugLog(`[ANALYZER] ID column detected: "${col}" (unique: ${stats.unique})`);
       }
     }
   });
   
-  console.log("[ANALYZER] Classification breakdown:", classificationCounts);
+  debugLog("[ANALYZER] Classification breakdown:", classificationCounts);
   
   const financial = hasFinancialData(columns);
-  console.log("[ANALYZER] Financial data:", financial);
+  debugLog("[ANALYZER] Financial data:", financial);
 }
 
 function calculateSum(values: number[]): number {
@@ -902,14 +904,14 @@ async function normalizeFinancialData(
   if (currencyColumns.codeColumn) {
     const currencyValues = data.map(row => String(row[currencyColumns.codeColumn!] || '')).filter(Boolean);
     detectedCurrency = detectCurrencyFromValues(currencyValues);
-    console.log(`[FX] Detected from Currency_Code column: ${detectedCurrency}`);
+    debugLog(`[FX] Detected from Currency_Code column: ${detectedCurrency}`);
   }
   
   // Check Currency_Symbol column if no code found
   if (!detectedCurrency && currencyColumns.symbolColumn) {
     const symbolValues = data.map(row => String(row[currencyColumns.symbolColumn!] || '')).filter(Boolean);
     detectedCurrency = detectCurrencyFromValues(symbolValues);
-    console.log(`[FX] Detected from Currency_Symbol column: ${detectedCurrency}`);
+    debugLog(`[FX] Detected from Currency_Symbol column: ${detectedCurrency}`);
   }
   
   // If not found in currency columns, check monetary column names and values
@@ -2303,9 +2305,9 @@ export async function analyzeCSV(data: DatasetRecord[], baseCurrency: string = '
   const businessCategoricalCols = getBusinessCategoricalColumns(columns, columnStats);
   const financial = hasFinancialData(columns);
   
-  console.log("[ANALYZER] Business numeric columns:", businessNumericCols);
-  console.log("[ANALYZER] Business categorical columns:", businessCategoricalCols);
-  console.log("[ANALYZER] Financial data present:", financial);
+  debugLog("[ANALYZER] Business numeric columns:", businessNumericCols);
+  debugLog("[ANALYZER] Business categorical columns:", businessCategoricalCols);
+  debugLog("[ANALYZER] Financial data present:", financial);
 
   // Normalize financial data (detect currency and convert to base)
   const financialNormalization = await normalizeFinancialData(
@@ -2321,21 +2323,21 @@ export async function analyzeCSV(data: DatasetRecord[], baseCurrency: string = '
   let executiveSummary: ExecutiveSummary | null = null;
   
   try {
-    console.log('[ANALYZER] Starting multi-currency processing...');
+    debugLog('[ANALYZER] Starting multi-currency processing...');
     multiCurrencyProcessed = await processMultiCurrencyDataset(data, baseCurrency);
     
     if (multiCurrencyProcessed.monetaryColumns.length > 0) {
-      console.log('[ANALYZER] Calculating KPIs from processed data...');
+      debugLog('[ANALYZER] Calculating KPIs from processed data...');
       businessKPIs = calculateKPIs(multiCurrencyProcessed);
       executiveSummary = generateExecutiveSummary(businessKPIs);
-      console.log('[ANALYZER] Multi-currency processing complete:', {
+      debugLog('[ANALYZER] Multi-currency processing complete:', {
         currencies: Object.keys(businessKPIs.revenue_by_currency),
         topMarket: businessKPIs.top_performing_market,
         baseCurrency: businessKPIs.base_currency,
       });
     }
   } catch (error) {
-    console.error('[ANALYZER] Multi-currency processing error:', error);
+    debugError('[ANALYZER] Multi-currency processing error:', error);
   }
 
   const inferredTypeResult = detectDatasetType(columns, columnStats);

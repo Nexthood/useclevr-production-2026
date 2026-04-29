@@ -1,5 +1,7 @@
 "use client"
 
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 type Props = {
   // Optional extra classes; responsive height ensures readability
   className?: string
@@ -25,7 +27,7 @@ export function Logo({ className = "h-[120px] md:h-[155px] w-auto" }: Props) {
         onError={() => {
           // Helps diagnose missing asset issues without altering UX
           if (typeof window !== "undefined") {
-            console.warn(
+            debugWarn(
               "Logo asset missing: /logos/publiclogosuseclevr-dark.png. Place it in /public/logos with transparent background (black wordmark for light mode)."
             )
           }
@@ -45,7 +47,7 @@ export function Logo({ className = "h-[120px] md:h-[155px] w-auto" }: Props) {
         decoding="async"
         onError={() => {
           if (typeof window !== "undefined") {
-            console.warn(
+            debugWarn(
               "Logo asset missing: /logos/publiclogosuseclevr-light.png. Place it in /public/logos with transparent background (white wordmark for dark mode)."
             )
           }

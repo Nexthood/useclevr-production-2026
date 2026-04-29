@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { invokeTool, setAnalysisCache } from './server';
 import { PrecomputedMetrics } from '../pipeline-types';
 
@@ -8,7 +10,7 @@ export interface MCPToolContext {
 
 export function initializeMCPContext(datasetId: string, metrics: PrecomputedMetrics): void {
   setAnalysisCache(datasetId, metrics);
-  console.log(`[MCP-INTEGRATION] Initialized MCP context for dataset: ${datasetId}`);
+  debugLog(`[MCP-INTEGRATION] Initialized MCP context for dataset: ${datasetId}`);
 }
 
 export function buildMCPToolsPrompt(datasetId: string): string {
@@ -51,7 +53,7 @@ export async function callMCPToolSafely(
       return { success: false, error: result.error };
     }
   } catch (error: any) {
-    console.error(`[MCP-INTEGRATION] Tool call failed: ${toolName}`, error);
+    debugError(`[MCP-INTEGRATION] Tool call failed: ${toolName}`, error);
     return { success: false, error: error?.message || 'Tool call failed' };
   }
 }
@@ -102,7 +104,7 @@ export async function analyzeWithMCP(
   queryResult: any[],
   availableColumns: string[]
 ): Promise<AnalysisWithMCPResult> {
-  console.log(`[MCP-INTEGRATION] Analyzing with MCP tools for dataset: ${datasetId}`);
+  debugLog(`[MCP-INTEGRATION] Analyzing with MCP tools for dataset: ${datasetId}`);
   
   const mcpToolResults: Record<string, any> = {};
   let usedMCPTools = false;
@@ -156,7 +158,7 @@ export async function analyzeWithMCP(
   let recommendation = '';
 
   if (usedMCPTools && Object.keys(mcpToolResults).length > 0) {
-    console.log(`[MCP-INTEGRATION] Using MCP tool results for analysis`);
+    debugLog(`[MCP-INTEGRATION] Using MCP tool results for analysis`);
     
     const kpis = mcpToolResults.kpis;
     const regions = mcpToolResults.topRegions;

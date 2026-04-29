@@ -1,3 +1,4 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
 import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { getStripe } from "@/lib/stripe"
@@ -65,13 +66,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || request.nextUrl.origin
+
     // Create checkout session
     const sessionData = await stripe.checkout.sessions.create({
       mode,
       line_items: lineItems,
       customer_email: userEmail || undefined,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pricing`,
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/pricing`,
       metadata: {
         productId,
         userId: session?.user?.id || "",
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: sessionData.url })
   } catch (error) {
-    console.error("Checkout error:", error)
+    debugError("Checkout error:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

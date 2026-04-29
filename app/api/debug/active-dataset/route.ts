@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // app/api/debug/active-dataset/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
     const columns = dataset.columns as string[] || [];
     const sampleRow = data.length > 0 ? data[0] : null;
 
-    console.log('[DEBUG] Dataset verification:', {
+    debugLog('[DEBUG] Dataset verification:', {
       datasetId,
       rowCount: data.length,
       columns: columns.length,
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
       createdAt: dataset.createdAt,
     });
   } catch (error) {
-    console.error('[DEBUG] Error:', error);
+    debugError('[DEBUG] Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch dataset info', details: String(error) },
       { status: 500 }

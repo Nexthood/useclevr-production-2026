@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 /**
  * AI Investigation Autopilot
  * 
@@ -402,7 +404,7 @@ Rules:
       return [text];
     }
   } catch (error) {
-    console.warn('[INVESTIGATOR] AI explanation failed:', error);
+    debugWarn('[INVESTIGATOR] AI explanation failed:', error);
   }
   
   // Fallback: use descriptions from findings
@@ -421,14 +423,14 @@ export async function investigateDataset(
   datasetId: string,
   data: Record<string, unknown>[]
 ): Promise<InvestigationResult> {
-  console.log('[INVESTIGATOR] Starting investigation for dataset:', datasetId);
+  debugLog('[INVESTIGATOR] Starting investigation for dataset:', datasetId);
   
   // Build intelligence to understand the dataset
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
   
   // Generate analytical queries (DuckDB SQL)
   const queries = generateInvestigationQueries(intelligence);
-  console.log('[INVESTIGATOR] Generated', queries.length, 'DuckDB queries');
+  debugLog('[INVESTIGATOR] Generated', queries.length, 'DuckDB queries');
   
   // Execute queries via DuckDB
   const queryResults: QueryResult[] = [];
@@ -440,17 +442,17 @@ export async function investigateDataset(
         results: results
       });
     } catch (error) {
-      console.warn('[INVESTIGATOR] Query failed:', query.name, error);
+      debugWarn('[INVESTIGATOR] Query failed:', query.name, error);
     }
   }
   
   // Analyze results for patterns
   const patternFindings = analyzeResultsForPatterns(queryResults, intelligence);
-  console.log('[INVESTIGATOR] Found', patternFindings.length, 'patterns');
+  debugLog('[INVESTIGATOR] Found', patternFindings.length, 'patterns');
   
   // Generate AI explanations (only explanations, not calculations)
   const explanations = await generateAIExplanations(patternFindings, intelligence);
-  console.log('[INVESTIGATOR] Generated', explanations.length, 'AI explanations');
+  debugLog('[INVESTIGATOR] Generated', explanations.length, 'AI explanations');
   
   return {
     findings: explanations,

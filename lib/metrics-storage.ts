@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 // ============================================================================
 // PRECOMPUTED METRICS STORAGE - Single Source of Truth
 // ============================================================================
@@ -30,7 +32,7 @@ const aiInsightsCache: Map<string, AIInsightOutput> = new Map();
  */
 export function storeMetrics(datasetId: string, metrics: PrecomputedMetrics): void {
   metricsCache.set(datasetId, metrics);
-  console.log(`[STORAGE] Stored metrics for dataset ${datasetId}`);
+  debugLog(`[STORAGE] Stored metrics for dataset ${datasetId}`);
 }
 
 /**
@@ -53,7 +55,7 @@ export function hasMetrics(datasetId: string): boolean {
 export function deleteMetrics(datasetId: string): boolean {
   const deleted = metricsCache.delete(datasetId);
   if (deleted) {
-    console.log(`[STORAGE] Deleted metrics for dataset ${datasetId}`);
+    debugLog(`[STORAGE] Deleted metrics for dataset ${datasetId}`);
   }
   return deleted;
 }
@@ -74,7 +76,7 @@ export function getAllMetricDatasetIds(): string[] {
  */
 export function storeAIInsights(datasetId: string, insights: AIInsightOutput): void {
   aiInsightsCache.set(datasetId, insights);
-  console.log(`[STORAGE] Stored AI insights for dataset ${datasetId}`);
+  debugLog(`[STORAGE] Stored AI insights for dataset ${datasetId}`);
 }
 
 /**
@@ -112,7 +114,7 @@ export function storeAnalysisResults(
 ): void {
   storeMetrics(datasetId, metrics);
   storeAIInsights(datasetId, insights);
-  console.log(`[STORAGE] Stored complete analysis for dataset ${datasetId}`);
+  debugLog(`[STORAGE] Stored complete analysis for dataset ${datasetId}`);
 }
 
 /**
@@ -146,7 +148,7 @@ export function deserializeMetrics(data: string): PrecomputedMetrics | null {
   try {
     return JSON.parse(data) as PrecomputedMetrics;
   } catch (error) {
-    console.error('[STORAGE] Failed to deserialize metrics:', error);
+    debugError('[STORAGE] Failed to deserialize metrics:', error);
     return null;
   }
 }
@@ -165,7 +167,7 @@ export function deserializeAIInsights(data: string): AIInsightOutput | null {
   try {
     return JSON.parse(data) as AIInsightOutput;
   } catch (error) {
-    console.error('[STORAGE] Failed to deserialize AI insights:', error);
+    debugError('[STORAGE] Failed to deserialize AI insights:', error);
     return null;
   }
 }
@@ -195,7 +197,7 @@ export function getCacheStats(): {
 export function clearAllCache(): void {
   metricsCache.clear();
   aiInsightsCache.clear();
-  console.log('[STORAGE] Cleared all cached data');
+  debugLog('[STORAGE] Cleared all cached data');
 }
 
 /**
@@ -204,7 +206,7 @@ export function clearAllCache(): void {
 export function cleanupDataset(datasetId: string): void {
   deleteMetrics(datasetId);
   deleteAIInsights(datasetId);
-  console.log(`[STORAGE] Cleaned up dataset ${datasetId}`);
+  debugLog(`[STORAGE] Cleaned up dataset ${datasetId}`);
 }
 
 // ============================================================================
@@ -234,7 +236,7 @@ export function validateMetricsStructure(data: any): data is PrecomputedMetrics 
   
   for (const field of requiredFields) {
     if (!(field in data)) {
-      console.warn(`[STORAGE] Missing required field: ${field}`);
+      debugWarn(`[STORAGE] Missing required field: ${field}`);
       return false;
     }
   }

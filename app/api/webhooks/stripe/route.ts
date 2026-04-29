@@ -1,3 +1,5 @@
+import { debugLog, debugError, debugWarn } from "@/lib/debug"
+
 import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import Stripe from "stripe"
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err) {
-    console.error("Webhook signature verification failed:", err)
+    debugError("Webhook signature verification failed:", err)
     return NextResponse.json(
       { error: "Invalid signature" },
       { status: 400 }
@@ -79,12 +81,12 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        debugLog(`Unhandled event type: ${event.type}`)
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error("Webhook handler error:", error)
+    debugError("Webhook handler error:", error)
     return NextResponse.json(
       { error: "Webhook handler failed" },
       { status: 500 }
@@ -97,7 +99,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
   const productId = session.metadata?.productId
 
   if (!userId) {
-    console.log("No user ID in session metadata")
+    debugLog("No user ID in session metadata")
     return
   }
 
@@ -131,25 +133,25 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
   // Find user by Stripe customer ID and update
   // Note: This is a simplified implementation - you may need to adjust based on your schema
-  console.log(`Subscription updated for customer ${customerId}: ${subscription.status}`)
+  debugLog(`Subscription updated for customer ${customerId}: ${subscription.status}`)
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
-  console.log(`Subscription canceled for customer ${customerId}`)
+  debugLog(`Subscription canceled for customer ${customerId}`)
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string
   
   // Log successful payment
-  console.log(`Invoice paid for customer ${customerId}`)
+  debugLog(`Invoice paid for customer ${customerId}`)
 }
 
 async function handleInvoiceFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string
   
   // Could send email notification here
-  console.log(`Invoice payment failed for customer ${customerId}`)
+  debugLog(`Invoice payment failed for customer ${customerId}`)
 }
