@@ -20,7 +20,7 @@
 ## Configuration Files
 
 ### `railway.json` (This file)
-- **Build**: Uses Dockerfile with Node 20 Alpine
+- **Build**: Uses Nixpacks with Node 22 and pnpm
 - **Deploy**:
   - Auto-restart on failure (up to 5 retries)
   - Health checks every 10s
@@ -29,11 +29,10 @@
 ### `.env.railway.example`
 Template for all required environment variables (copy to Railway secrets panel)
 
-### `Dockerfile`
-Multi-stage build optimized for production:
-- Stage 1: Dependencies only
-- Stage 2: Build Next.js app
-- Stage 3: Final runtime (minimal size)
+### `package.json`
+Railway commands are driven by pnpm scripts:
+- Build: `pnpm build`
+- Start: `pnpm start`
 
 ---
 
@@ -48,8 +47,8 @@ DIRECT_URL=postgresql://user:password@host.neon.tech/dbname?sslmode=require
 ### Authentication (NextAuth v5)
 ```
 AUTH_SECRET=<generate: openssl rand -base64 32>
-NEXTAUTH_URL=https://your-app.railway.app
-NEXT_PUBLIC_APP_URL=https://your-app.railway.app
+# Optional only for custom domains/proxies:
+# AUTH_URL=https://your-app.railway.app
 ```
 
 ### AI Provider (at least one required)
@@ -58,15 +57,6 @@ GEMINI_API_KEY=<from https://aistudio.google.com/app/apikey>
 # Optional:
 # OPENAI_API_KEY=sk-...
 # DEEPSEEK_API_KEY=...
-```
-
-### Stripe (if payments enabled)
-```
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_ID_PRO_MONTHLY=price_...
-STRIPE_PRICE_ID_PRO_YEARLY=price_...
 ```
 
 ### Proxy Configuration
@@ -83,7 +73,6 @@ TRUST_PROXY=true
 - [ ] Database URL verified (test connection)
 - [ ] AUTH_SECRET generated (min 32 chars)
 - [ ] Gemini API key configured
-- [ ] Stripe keys added (if payment enabled)
 - [ ] Domain configured (custom or railway.app)
 - [ ] SSL certificate auto-configured (Railway handles)
 - [ ] Health check endpoint working (`/api/health`)
@@ -142,8 +131,8 @@ railway logs
 
 ### Current Settings
 - **Memory**: 512Mi (suitable for small-medium traffic)
-- **CPU**: 500m (shared container)
-- **Build Cache**: Enabled (Docker layer caching)
+- **CPU**: 500m shared runtime
+- **Build Cache**: Railway/Nixpacks cache
 - **Unoptimized Images**: Enabled (faster builds)
 
 ### Scaling Tips
@@ -181,7 +170,7 @@ GitHub webhook triggered
       ↓
 Railway detects push
       ↓
-Docker build starts
+Nixpacks build starts
       ↓
 Tests run (if configured)
       ↓
@@ -204,7 +193,6 @@ App goes live
 2. **Post-Launch**
    - Set up monitoring alerts
    - Configure custom domain
-   - Test Stripe webhook handling
    - Verify database backups
 
 3. **Ongoing**

@@ -79,7 +79,7 @@
 
 ```
 ┌──────────────┐
-│   GitHub     │ ──► Railway (Docker) ──► Neon Database
+│   GitHub     │ ──► Railway (Nixpacks/pnpm) ──► Neon Database
 │   (Push)    │
 └──────────────┘
 ```
@@ -93,6 +93,6 @@
 | Database | Neon PostgreSQL (serverless) |
 | ORM | Drizzle ORM |
 | AI | Google Gemini, DeepSeek |
-| Payments | Stripe |
+| Payments | Disabled |
 | Storage | AWS S3 / Cloudflare R2 |
-| Deployment | Docker, Railway |
+| Deployment | Railway, Nixpacks, pnpm |

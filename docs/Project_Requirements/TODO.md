@@ -18,7 +18,7 @@
 - [ ] Fix Railway deployment - website not showing
 - [ ] Verify health endpoint at /api/health
 - [ ] Check database connection pooling
-- [ ] Review memory usage in Docker container
+- [ ] Review memory usage in Railway runtime
 - [ ] Test cold start performance
 
 ## Priority: MEDIUM 🟡
@@ -66,7 +66,7 @@
 
 ## Completed ✅
 - [x] Remove Railway debug endpoint (homepage-html)
-- [x] Update Node.js 20 → 22 in Dockerfile
+- [x] Update Node.js 20 → 22 runtime target
 - [x] Update npm dependencies
 - [x] Organize docs folder with subfolders
 - [x] Create system flowchart

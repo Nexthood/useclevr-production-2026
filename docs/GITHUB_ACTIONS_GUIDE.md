@@ -35,9 +35,9 @@ Railway automatically deploys when you push to the configured branch. GitHub Act
 - Verifies `.next` directory created
 - Requires lint to pass
 
-#### Docker Build Verification
-- Builds Docker image without pushing
-- Verifies Dockerfile is valid
+#### Build Verification
+- Builds the Next.js app with pnpm
+- Verifies `.next` output exists
 - Only runs on push to main
 
 #### Security Scan
@@ -153,7 +153,7 @@ Commit gets comment with status
 
 ### Build Logs
 - Each job shows full stdout/stderr
-- Docker build logs visible
+- pnpm build logs visible
 - npm command outputs included
 
 ---
@@ -163,7 +163,7 @@ Commit gets comment with status
 ### Execution Time
 - **Lint + Build**: ~2-3 minutes
 - **Security Scan**: ~1 minute (optional)
-- **Docker Build**: ~1-2 minutes (push to main only)
+- **Production Build**: ~1-2 minutes (push to main only)
 - **Total**: ~5-7 minutes on main push
 
 ### GitHub Actions Limits
@@ -283,7 +283,7 @@ npm run build
 │  ┌──────────────▼───────────────────────┐│
 │  │        Railway Platform              ││
 │  │  • Detects push                      ││
-│  │  • Builds Docker image               ││
+│  │  • Runs pnpm build/start             ││
 │  │  • Runs health checks                ││
 │  │  • Deploys to production             ││
 │  └────────────────────────────────────┘ │
@@ -309,7 +309,7 @@ npm run build
 
 - [GitHub Actions Docs](https://docs.github.com/en/actions)
 - [Node.js Action](https://github.com/actions/setup-node)
-- [Docker Buildx](https://github.com/docker/build-push-action)
+- [Railway + GitHub](https://docs.railway.app/guides/github)
 - [Railway + GitHub](https://docs.railway.app/guides/github)
 
 ---

@@ -1,17 +1,16 @@
 # Deployment Skill
 
 ## Description
-Handles deployment to Railway with Docker, focusing on configuration and troubleshooting.
+Handles deployment to Railway with pnpm/Nixpacks, focusing on configuration and troubleshooting.
 
 ## Capabilities
 - Railway deployment setup
-- Docker configuration
+- pnpm build/start configuration
 - Environment variables
 - Health checks
 - Troubleshooting deployment
 
 ## Files
-- `Dockerfile` - Multi-stage Docker build
 - `railway.json` - Railway configuration
 - `.env.railway.example` - Environment template
 
@@ -27,14 +26,12 @@ Handles deployment to Railway with Docker, focusing on configuration and trouble
 - DATABASE_URL
 - DIRECT_URL
 - AUTH_SECRET
-- NEXTAUTH_URL
-- NEXT_PUBLIC_APP_URL
 - GEMINI_API_KEY
 
 ## Troubleshooting
 
 ### Build Failures
-- Check Dockerfile syntax
+- Check pnpm scripts and Node.js version compatibility
 - Verify Node.js version compatibility
 - Review package dependencies
 

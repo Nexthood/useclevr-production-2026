@@ -13,6 +13,11 @@ import { existsSync } from 'fs';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+const DEFAULT_LOCAL_AI_BRIDGE_BASE = 'http://localhost:3210';
+
+function getLocalAIBridgeBase() {
+  return (process.env.LOCAL_AI_BRIDGE_BASE_URL || DEFAULT_LOCAL_AI_BRIDGE_BASE).replace(/\/$/, '');
+}
 
 // Installation state
 let installationStatus: 'idle' | 'checking' | 'installing' | 'ready' | 'error' = 'idle';
@@ -96,8 +101,8 @@ export async function POST(request: Request) {
       progress: installationProgress,
       message: 'UseClevr AI MEGA installed – Hybrid mode active',
       endpoints: {
-        health: 'http://localhost:3210/health',
-        chat: 'http://localhost:3210/chat'
+        health: `${getLocalAIBridgeBase()}/health`,
+        chat: `${getLocalAIBridgeBase()}/chat`
       }
     });
     
@@ -204,7 +209,7 @@ async function downloadModel(model: string): Promise<{ success: boolean; error?:
  */
 async function checkServiceRunning(): Promise<{ running: boolean; pid?: number }> {
   try {
-    const response = await fetch('http://localhost:3210/health', { 
+    const response = await fetch(`${getLocalAIBridgeBase()}/health`, { 
       method: 'GET',
       signal: AbortSignal.timeout(2000)
     });
