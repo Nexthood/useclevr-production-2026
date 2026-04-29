@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  # Manual trigger
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # Additional verification before Railway auto-deploy
