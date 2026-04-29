@@ -11,7 +11,7 @@ const nextConfig = {
       bodySizeLimit: '100mb',
     },
   },
-  // Security headers for reverse proxy (Railway, etc)
+  // Security headers
   async headers() {
     return [
       {

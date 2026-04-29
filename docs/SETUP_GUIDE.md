@@ -1,4 +1,6 @@
-# Next.js 14 + NextAuth v5 + Prisma + Neon.tech Setup Guide
+# Next.js 14 + NextAuth v5 + Drizzle + Neon.tech + Railway Setup Guide
+
+> **Note**: This guide is updated for Railway Node.js deployment. Legacy Vercel docs are preserved for reference only.
 
 ## Prerequisites
 

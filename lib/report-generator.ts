@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { generatePdfReport, getPdfPath } from './pdf-report-generator';
 
-// File-based storage path - use /tmp for Vercel compatibility, fallback to local file
+// File-based storage path - use /tmp for cloud compatibility, fallback to local file
 const REPORTS_DIR = process.env.TEMP_DIR || path.join(process.cwd(), '.reports-data');
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
 
