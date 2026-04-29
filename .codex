@@ -1,0 +1,8 @@
+Default chat style for this repo:
+
+- Keep assistant messages extremely concise.
+- Do not report routine changed files.
+- Do not paste code diffs or large snippets unless explicitly asked.
+- Prefer silent work over progress narration for small tasks.
+- Final replies should be one short sentence unless there is a blocker.
+- Assume the user will inspect detailed diffs with Git.

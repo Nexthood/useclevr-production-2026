@@ -22,11 +22,13 @@ interface ConnectionStatus {
 // Check if local AI is available
 async function checkLocalAI(): Promise<boolean> {
   try {
-    const response = await fetch('http://localhost:3210/api/health', {
+    const response = await fetch('/api/local-ai-status', {
       method: 'GET',
       signal: AbortSignal.timeout(2000)
     });
-    return response.ok;
+    if (!response.ok) return false;
+    const data: { available?: boolean } = await response.json().catch(() => ({}));
+    return Boolean(data.available);
   } catch {
     return false;
   }

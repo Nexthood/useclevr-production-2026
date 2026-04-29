@@ -393,14 +393,13 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
         setTierStatus(prev => ({ ...prev, [tierId]: 'error' }))
         return
       }
-      const data: { available: boolean; baseUrl?: string } = await res.json()
-      if (!data.available || !data.baseUrl) {
+      const data: { available: boolean } = await res.json()
+      if (!data.available) {
         setTierStatus(prev => ({ ...prev, [tierId]: 'unavailable' }))
         return
       }
 
-      const base = data.baseUrl.replace(/\/$/, '')
-      const tagsRes = await fetch(`${base}/api/tags`, { method: 'GET' })
+      const tagsRes = await fetch('/api/ollama/tags', { method: 'GET' })
       if (!tagsRes.ok) {
         setTierStatus(prev => ({ ...prev, [tierId]: 'error' }))
         return
