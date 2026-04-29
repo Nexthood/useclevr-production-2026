@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
