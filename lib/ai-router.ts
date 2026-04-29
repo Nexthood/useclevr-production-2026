@@ -12,8 +12,6 @@
  */
 
 import { google } from "@ai-sdk/google"
-import { openai } from "@ai-sdk/openai"
-import { deepseek } from "@ai-sdk/deepseek"
 import type { LanguageModel } from "ai"
 
 // Configuration
@@ -27,7 +25,7 @@ const RETRY_INTERVAL_MS = 60000 // Retry cloud every 60 seconds
 
 // Provider type
 export type AIProvider = "local" | "cloud"
-export type CloudProvider = "gemini" | "deepseek" | "openai"
+export type CloudProvider = "gemini"
 
 // State tracking
 let lastCloudSuccess = Date.now()
@@ -131,11 +129,9 @@ export function isCloudAIAvailable(): boolean {
 // Priority: Local (preferred) > Cloud (fallback)
 export function getAIProvider(): { provider: LanguageModel; type: AIProvider; providerName: string; modelName: string } {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-  const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY
   
   const localIsAvailable = localAIAvailable === true
-  const cloudKey = GEMINI_API_KEY || DEEPSEEK_API_KEY || OPENAI_API_KEY
+  const cloudKey = GEMINI_API_KEY
   
   // Priority 1: LOCAL AI - use if available (offline/hybrid mode)
   if (localIsAvailable) {
@@ -143,7 +139,7 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
     console.log("[AI-ROUTER] Provider: LOCAL AI (offline/hybrid)")
     console.log("[AI-ROUTER] Reason: Local AI is available")
     return {
-      provider: openai("gpt-4o-mini") as LanguageModel,
+      provider: google("gemini-2.5-flash") as LanguageModel,
       type: "local",
       providerName: "Local AI",
       modelName: "ollama-local"
@@ -151,38 +147,16 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   }
   
   // Priority 2: CLOUD AI - fallback when Local unavailable
-  // Try cloud providers in priority order: Gemini > DeepSeek > OpenAI
+  // Use Gemini only
   if (cloudKey) {
-    if (GEMINI_API_KEY) {
-      console.log("[AI-ROUTER] ═══ SELECTED ═══")
-      console.log("[AI-ROUTER] Provider: CLOUD (Gemini Flash 2.5)")
-      console.log("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
-      return {
-        provider: google("gemini-2.0-flash"),
-        type: "cloud",
-        providerName: "Gemini Flash 2.5",
-        modelName: "gemini-2.0-flash"
-      }
-    } else if (DEEPSEEK_API_KEY) {
-      console.log("[AI-ROUTER] ═══ SELECTED ═══")
-      console.log("[AI-ROUTER] Provider: CLOUD (DeepSeek)")
-      console.log("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
-      return {
-        provider: deepseek("deepseek-chat"),
-        type: "cloud",
-        providerName: "DeepSeek",
-        modelName: "deepseek-chat"
-      }
-    } else if (OPENAI_API_KEY) {
-      console.log("[AI-ROUTER] ═══ SELECTED ═══")
-      console.log("[AI-ROUTER] Provider: CLOUD (OpenAI)")
-      console.log("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
-      return {
-        provider: openai("gpt-4o-mini"),
-        type: "cloud",
-        providerName: "OpenAI",
-        modelName: "gpt-4o-mini"
-      }
+    console.log("[AI-ROUTER] ═══ SELECTED ═══")
+    console.log("[AI-ROUTER] Provider: CLOUD (Gemini Flash 2.5)")
+    console.log("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
+    return {
+      provider: google("gemini-2.5-flash"),
+      type: "cloud",
+      providerName: "Gemini Flash 2.5",
+      modelName: "gemini-2.5-flash"
     }
   }
   

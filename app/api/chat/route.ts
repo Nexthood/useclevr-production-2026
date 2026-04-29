@@ -704,14 +704,14 @@ export async function POST(request: Request) {
         row_count: validation.dataset?.rowCount
       }, lastMessage);
       
-      const explanationResponse = await fetch('https://api.deepseek.com/chat/completions', {
+      const explanationResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: 'gemini-2.5-flash',
           messages: [
             { role: 'system', content: EXPLANATION_SYSTEM_PROMPT },
             { role: 'user', content: explanationPrompt },
@@ -949,23 +949,23 @@ No dataset is currently loaded. Ask the user to upload a CSV file first.`;
 
 Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
 
-    console.log('[DEEPSEEK] API Key present:', !!process.env.DEEPSEEK_API_KEY);
+    console.log('[GEMINI] API Key present:', !!process.env.GEMINI_API_KEY);
     
-    if (!process.env.DEEPSEEK_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
         success: false,
         error: 'AI service not configured. Please contact support.',
       });
     }
 
-    const deepSeekResponse = await fetch('https://api.deepseek.com/chat/completions', {
+    const deepSeekResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -978,11 +978,11 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
       }),
     });
 
-    console.log('[DEEPSEEK] Status:', deepSeekResponse.status);
+    console.log('[GEMINI] Status:', deepSeekResponse.status);
 
     if (!deepSeekResponse.ok) {
       const errorText = await deepSeekResponse.text();
-      console.error('[DEEPSEEK ERROR]', deepSeekResponse.status, errorText);
+      console.error('[GEMINI ERROR]', deepSeekResponse.status, errorText);
 
       return NextResponse.json(
         {
@@ -996,7 +996,7 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
     const data = await deepSeekResponse.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    console.log('[DEEPSEEK] Response received:', content.slice(0, 100));
+    console.log('[GEMINI] Response received:', content.slice(0, 100));
     
     // ============================================================================
     // AI CALL COMPLETE - Log execution
