@@ -29,6 +29,7 @@ dist/
 .turbo/
 tsconfig.tsbuildinfo
 public/generated/
+datasets/
 .codex
 .codex/
 

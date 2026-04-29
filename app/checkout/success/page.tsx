@@ -3,7 +3,6 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
 import { getCheckoutSession } from "@/app/actions/stripe"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import type Stripe from "stripe"
 import { PublicHeader } from "@/components/public-header"
 import { PublicFooter } from "@/components/public-footer"
 import { Button } from "@/components/ui/button"
@@ -23,7 +22,7 @@ export default async function CheckoutSuccessPage({
 }) {
   const { session_id } = await searchParams
 
-  let session: Stripe.Checkout.Session | null = null
+  let session: Awaited<ReturnType<typeof getCheckoutSession>> = null
   if (session_id) {
     try {
       session = await getCheckoutSession(session_id)
@@ -35,7 +34,7 @@ export default async function CheckoutSuccessPage({
   // Minimal unlock + guidance: if this checkout was for Hybrid AI Lite,
   // set cookie so the modal unlocks Lite and redirect to app with setup hint
   try {
-    const isLite = Boolean(session?.metadata && session.metadata.productId === "hybrid_ai_lite")
+    const isLite = Boolean(session && "metadata" in session && session.metadata?.productId === "hybrid_ai_lite")
     if (isLite) {
       const store = await cookies()
       store.set("hybridAiLiteEnabled", "1", { path: "/", maxAge: 60 * 60 * 24 * 365 })
@@ -71,7 +70,7 @@ export default async function CheckoutSuccessPage({
               <p>
                 A confirmation email has been sent to{" "}
                 <span className="font-medium text-foreground">
-                  {(session.customer as any)?.email || session.customer_email}
+                  {"your email"}
                 </span>
               </p>
             </div>
