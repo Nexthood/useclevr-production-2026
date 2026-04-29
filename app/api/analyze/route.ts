@@ -399,7 +399,7 @@ export async function POST(request: Request) {
             }
           }
         } else {
-          // Use Vercel AI SDK to call the provider (cloud)
+          // Use AI SDK to call the provider (cloud)
           const { text } = await generateText({
             model: provider,
             prompt: prompt,

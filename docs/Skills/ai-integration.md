@@ -1,7 +1,7 @@
 # AI Integration Skill
 
 ## Description
-Handles AI integrations using Vercel AI SDK with Gemini, DeepSeek, and OpenAI providers.
+Handles AI integrations using AI SDK with Gemini provider.
 
 ## Capabilities
 - Multi-provider AI setup

@@ -206,7 +206,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   /**
-   * CRITICAL: Trust host for production deployments (Vercel, etc.)
+   * CRITICAL: Trust host for production deployments
    */
   trustHost: true,
 })
