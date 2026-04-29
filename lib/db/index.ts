@@ -16,9 +16,7 @@ function createDbClient() {
   }
 
   // Use Neon HTTP client for serverless/edge compatibility
-  // Important: enable fetch connection cache for Next.js serverless to prevent intermittent
-  // `TypeError: fetch failed` due to connection reuse/cold starts.
-  neonConfig.fetchConnectionCache = true
+  // fetchConnectionCache is now always enabled by Neon and deprecated for manual assignment
   const sql = neon(connectionUrl)
   // Initialize Drizzle with Neon client and attach schema for typed `db.query`
   const db = drizzle(sql, { schema })

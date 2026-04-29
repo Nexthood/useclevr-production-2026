@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Logo } from "@/components/logo"
-import { Linkedin, Twitter, Youtube } from "lucide-react"
+import { FaLinkedin, FaXTwitter, FaYoutube } from "react-icons/fa6"
 
 // Static year to prevent hydration mismatch from new Date().getFullYear()
 const CURRENT_YEAR = 2026
@@ -23,7 +23,7 @@ export function PublicFooter() {
                 className="text-muted-foreground hover:text-[#0A66C2] transition-colors"
                 aria-label="LinkedIn"
               >
-                <Linkedin className="h-5 w-5" />
+                <FaLinkedin className="h-5 w-5" />
               </a>
               <a 
                 href="https://www.x.com/UseClevr" 
@@ -32,7 +32,7 @@ export function PublicFooter() {
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="X (Twitter)"
               >
-                <Twitter className="h-5 w-5" />
+                <FaXTwitter className="h-5 w-5" />
               </a>
               <a 
                 href="https://www.youtube.com/@UseClevr" 
@@ -41,7 +41,7 @@ export function PublicFooter() {
                 className="text-muted-foreground hover:text-[#FF0000] transition-colors"
                 aria-label="YouTube"
               >
-                <Youtube className="h-5 w-5" />
+                <FaYoutube className="h-5 w-5" />
               </a>
             </div>
           </div>

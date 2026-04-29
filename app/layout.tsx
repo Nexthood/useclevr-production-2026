@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import type React from "react"
 import "./globals.css"
 
@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   },
   description: "AI-powered business intelligence without the complexity. Analyze data, get insights in natural language. Free for 14 days.",
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
   icons: {
     icon: "/favicon.ico",
   },
@@ -33,6 +32,12 @@ export const metadata: Metadata = {
     follow: true,
     nocache: false,
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({

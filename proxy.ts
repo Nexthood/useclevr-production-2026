@@ -14,7 +14,7 @@ export default auth((request) => {
                       pathname.startsWith("/static") ||
                       pathname.includes(".")
 
-  // Skip middleware for static files and most API routes
+  // Skip proxy for static files and most API routes
   if (isOnStatic || (isOnApi && pathname !== "/api/auth")) {
     return NextResponse.next()
   }
