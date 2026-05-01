@@ -1,29 +1,28 @@
 /**
  * Insight Chart Component
- * 
+ *
  * Renders charts based on insight data using Recharts.
  * Supports BarChart, LineChart, PieChart, and AreaChart.
  */
 
 "use client";
 
-import React from 'react';
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell
+    Area,
+    AreaChart,
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Legend,
+    Line,
+    LineChart,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
 } from 'recharts';
 
 interface InsightChartProps {
@@ -49,8 +48,8 @@ const COLORS = [
   '#f97316', // Orange
 ];
 
-export function InsightChart({ 
-  data, 
+export function InsightChart({
+  data,
   chartType = 'bar',
   title,
   height = 300,
@@ -105,22 +104,22 @@ export function InsightChart({
         return (
           <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               tick={{ fontSize: 12 }}
               stroke="hsl(var(--muted-foreground))"
             />
-            <YAxis 
+            <YAxis
               tickFormatter={formatValue}
               tick={{ fontSize: 12 }}
               stroke="hsl(var(--muted-foreground))"
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke="#a855f7" 
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#a855f7"
               strokeWidth={2}
               dot={{ fill: '#a855f7', strokeWidth: 2 }}
               activeDot={{ r: 6 }}
@@ -161,23 +160,23 @@ export function InsightChart({
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               tick={{ fontSize: 12 }}
               stroke="hsl(var(--muted-foreground))"
             />
-            <YAxis 
+            <YAxis
               tickFormatter={formatValue}
               tick={{ fontSize: 12 }}
               stroke="hsl(var(--muted-foreground))"
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Area 
-              type="monotone" 
-              dataKey="value" 
-              stroke="#a855f7" 
-              fillOpacity={1} 
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="#a855f7"
+              fillOpacity={1}
               fill="url(#colorValue)"
               name="Value"
             />
@@ -192,9 +191,9 @@ export function InsightChart({
             <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 80, bottom: 8 }}>
               {/* No grid for minimal look */}
               <XAxis type="number" hide />
-              <YAxis 
-                type="category" 
-                dataKey="name" 
+              <YAxis
+                type="category"
+                dataKey="name"
                 width={80}
                 tick={{ fontSize: 11, fill: '#a1a1aa' }}
               />
@@ -210,8 +209,8 @@ export function InsightChart({
         return (
           <BarChart data={data} margin={{ top: 10, right: 30, left: leftMargin, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               tick={{ fontSize: 11, fill: '#a1a1aa' }}
               stroke="hsl(var(--muted-foreground))"
               angle={-45}
@@ -220,13 +219,13 @@ export function InsightChart({
               interval={0}
               minTickGap={40}
             />
-            <YAxis 
+            <YAxis
               tickFormatter={formatValue}
               tick={{ fontSize: 11, fill: '#a1a1aa' }}
               stroke="hsl(var(--muted-foreground))"
               width={70}
             />
-            <Tooltip 
+            <Tooltip
               content={<CustomTooltip />}
               cursor={{ fill: 'rgba(255,255,255,0.05)' }}
             />
@@ -244,22 +243,22 @@ export function InsightChart({
   // Determine best chart type based on data
   const getChartType = (): 'bar' | 'line' | 'pie' | 'area' => {
     if (chartType && chartType !== 'auto') return chartType;
-    
+
     // If data has many points, use line
     if (data.length > 10) return 'line';
-    
+
     // If data is categorical with few items, use bar
     if (data.length <= 10) return 'bar';
-    
+
     return 'bar';
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0 min-h-0" style={{ minWidth: 0, minHeight: 0 }}>
       {title && (
         <h3 className="text-lg font-semibold mb-4 text-foreground">{title}</h3>
       )}
-      <ResponsiveContainer width="100%" height={height} minWidth={0} minHeight={0}>
+      <ResponsiveContainer width="100%" height={height} minWidth={0} minHeight={0} aspect={undefined}>
         {renderChart()}
       </ResponsiveContainer>
     </div>
@@ -271,22 +270,22 @@ export function InsightChart({
  */
 export function suggestChartType(question: string, data: { name: string; value: number }[]): 'bar' | 'line' | 'pie' | 'area' {
   const q = question.toLowerCase();
-  
+
   // Trends over time
   if (q.includes('trend') || q.includes('over time') || q.includes('period') || q.includes('month') || q.includes('year')) {
     return 'line';
   }
-  
+
   // Distribution
   if (q.includes('distribution') || q.includes('breakdown') || q.includes('share')) {
     return 'pie';
   }
-  
+
   // Growth
   if (q.includes('growth') || q.includes('increase') || q.includes('accumulated')) {
     return 'area';
   }
-  
+
   // Default to bar for comparisons
   return 'bar';
 }

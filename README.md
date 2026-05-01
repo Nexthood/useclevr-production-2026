@@ -46,7 +46,7 @@ Railway:
 - Start: `pnpm railway:start`
 - Health: `/api/health`
 
-Guide: [docs/Developer_Guides/Deployment/DEPLOYMENT.md](docs/Developer_Guides/Deployment/DEPLOYMENT.md)
+Guide: [docs/Developer_Guides/Ops/deploy.md](docs/Developer_Guides/Ops/deploy.md)
 
 ## Docs
 

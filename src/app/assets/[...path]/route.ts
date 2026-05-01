@@ -1,9 +1,9 @@
+import { NextResponse } from "next/server"
 import { createReadStream, existsSync, statSync } from "node:fs"
 import { extname, relative, resolve } from "node:path"
 import { Readable } from "node:stream"
-import { NextResponse } from "next/server"
 
-const ASSETS_DIR = resolve(process.cwd(), "assets")
+const ASSETS_DIR = resolve(process.cwd(), "src/assets")
 
 const CONTENT_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",

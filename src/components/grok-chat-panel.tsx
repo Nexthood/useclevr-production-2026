@@ -1,42 +1,32 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError } from "@/lib/debug"
 
 
 
+import { Button } from "@/components/ui/button"
+import {
+  BarChart3,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  X,
+  Zap
+} from "lucide-react"
 import * as React from "react"
 import {
-  Sparkles,
-  Send,
-  Loader2,
-  X,
-  Lightbulb,
-  TrendingUp,
-  ArrowRight,
-  BarChart3,
-  Paperclip,
-  Share2,
-  Zap,
-  TrendingDown,
-  Users,
-  Plus,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  BarChart,
   Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
+  BarChart,
   CartesianGrid,
-  Tooltip,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
-  Legend,
+  Tooltip,
+  XAxis,
+  YAxis
 } from "recharts"
 
 interface Message {
@@ -87,7 +77,7 @@ const CHART_COLORS = ['#22D3EE', '#8B5CF6', '#22C55E', '#F59E0B', '#EF4444', '#E
 // Number formatter - compact display like 301K or 2.67M
 const formatCompactNumber = (num: number | undefined): string => {
   if (num === null || num === undefined || isNaN(num)) return '0';
-  
+
   if (num >= 1000000) {
     return (num / 1000000).toFixed(2) + 'M';
   } else if (num >= 1000) {
@@ -114,21 +104,21 @@ function ChartRenderer({ data, chartType, metricColumn }: { data: any[], chartTy
 
   if (chartType === 'line') {
     return (
-      <div className="animate-fade-in mt-3">
-        <ResponsiveContainer width="100%" height={160}>
+      <div className="animate-fade-in mt-3 min-w-0 min-h-0" style={{ minWidth: 0, minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0} aspect={undefined}>
           <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#252C38" />
             <XAxis dataKey="name" stroke="#8B97A8" fontSize={12} />
             <YAxis stroke="#8B97A8" fontSize={12} />
-            <Tooltip 
+            <Tooltip
               contentStyle={{ backgroundColor: '#141A23', border: '1px solid #252C38', borderRadius: '8px' }}
               labelStyle={{ color: '#E6EDF3' }}
               formatter={(value: number | undefined) => [formatCompactNumber(value), '']}
             />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke="#22D3EE" 
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#22D3EE"
               strokeWidth={2}
               dot={{ fill: '#22D3EE', strokeWidth: 2 }}
               activeDot={{ r: 6, fill: '#8B5CF6' }}
@@ -141,8 +131,8 @@ function ChartRenderer({ data, chartType, metricColumn }: { data: any[], chartTy
 
   if (chartType === 'pie') {
     return (
-      <div className="animate-fade-in mt-3">
-        <ResponsiveContainer width="100%" height={160}>
+      <div className="animate-fade-in mt-3 min-w-0 min-h-0" style={{ minWidth: 0, minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0} aspect={undefined}>
           <PieChart>
             <Pie
               data={chartData}
@@ -158,7 +148,7 @@ function ChartRenderer({ data, chartType, metricColumn }: { data: any[], chartTy
                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip 
+            <Tooltip
               contentStyle={{ backgroundColor: '#141A23', border: '1px solid #252C38', borderRadius: '8px' }}
               labelStyle={{ color: '#E6EDF3' }}
               formatter={(value: number | undefined) => [formatCompactNumber(value), '']}
@@ -187,13 +177,13 @@ function ChartRenderer({ data, chartType, metricColumn }: { data: any[], chartTy
   }
 
   return (
-    <div className="animate-fade-in mt-3">
-      <ResponsiveContainer width="100%" height={160}>
+    <div className="animate-fade-in mt-3 min-w-0 min-h-0" style={{ minWidth: 0, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0} aspect={undefined}>
         <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#252C38" />
           <XAxis dataKey="name" stroke="#8B97A8" fontSize={12} />
           <YAxis stroke="#8B97A8" fontSize={12} />
-          <Tooltip 
+          <Tooltip
             contentStyle={{ backgroundColor: '#141A23', border: '1px solid #252C38', borderRadius: '8px' }}
             labelStyle={{ color: '#E6EDF3' }}
             formatter={(value: number | undefined) => [formatCompactNumber(value), '']}
@@ -272,7 +262,7 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
       if (!response.ok) throw new Error("Failed to get response")
 
       const responseData = await response.json()
-      
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -352,13 +342,13 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
   return (
     <>
       {/* Sliding Panel Overlay */}
-      <div 
+      <div
         className={`fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
-      
+
       {/* Main Panel - Full height AI workspace */}
-      <div 
+      <div
         className={`fixed top-0 right-0 h-full w-[calc(100%-240px)] bg-background z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex flex-col h-full overflow-hidden">
@@ -370,7 +360,7 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
               </div>
               <h2 className="text-lg font-semibold text-foreground">AI Analyst</h2>
             </div>
-            
+
             {/* Right side actions */}
             <div className="flex items-center gap-2">
               {/* New Analysis Button */}
@@ -382,7 +372,7 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
               >
                 New Analysis
               </Button>
-              
+
               {/* Share Button */}
               <Button
                 variant="ghost"
@@ -392,7 +382,7 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
               >
                 Share
               </Button>
-              
+
               {/* Close Button */}
               <Button
                 variant="ghost"
@@ -443,7 +433,7 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
 
                         {/* Chart Card - separated from text */}
                         {message.data && message.data.length > 0 && message.chartType && message.chartType !== 'table' && (
-                          <div 
+                          <div
                             className="mt-3 rounded-[14px] border p-4"
                             style={{
                               background: '#141A23',
@@ -453,9 +443,9 @@ export function GrokChatPanel({ isOpen = false, onClose, datasetId, datasetName,
                             <p className="text-[13px] uppercase tracking-wide font-medium mb-3" style={{ color: '#8B5CF6' }}>
                               VISUAL RESULT
                             </p>
-                            <ChartRenderer 
-                              data={message.data} 
-                              chartType={message.chartType} 
+                            <ChartRenderer
+                              data={message.data}
+                              chartType={message.chartType}
                               metricColumn={message.metricColumn}
                             />
                           </div>

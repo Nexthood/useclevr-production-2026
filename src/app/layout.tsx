@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@/components/theme-provider"
 import type { Metadata, Viewport } from "next"
 import type React from "react"
-import "./globals.css"
+import "./../assets/styles/globals.css"
 
 export const metadata: Metadata = {
   title: {
