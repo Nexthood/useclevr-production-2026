@@ -1,7 +1,7 @@
 const fs = require("node:fs")
 const path = require("node:path")
 
-const rootPackage = require("../package.json")
+const rootPackage = require("../../../package.json")
 
 const distPackage = {
   name: rootPackage.name,
