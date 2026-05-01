@@ -2,5 +2,5 @@
 
 | Group | Link |
 | --- | --- |
-| Setup | [Setup/README.md](Setup/README.md) |
-| Ops | [Ops/README.md](Ops/README.md) |
+| Technical Requirements | [technical-requirements.md](technical-requirements.md) |
+| Operations | [operations-guide.md](operations-guide.md) |

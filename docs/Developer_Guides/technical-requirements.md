@@ -163,8 +163,7 @@ Response:
 
 ### Related
 
-- [Deterministic pipeline](../Ops/pipeline.md)
-- [Verified computation operations](../Ops/verified.md)
+- [Verified computation operations](verified-computation.md)
 
 ## Testing & Verification
 
@@ -189,7 +188,7 @@ curl http://localhost:3000/api/health
 
 ### Verified computation checks
 
-See [../Ops/verified.md](../Ops/verified.md) for query tests.
+See [verified-computation.md](verified-computation.md) for query tests.
 
 ### Deployment checks
 
@@ -198,4 +197,4 @@ See [../Ops/verified.md](../Ops/verified.md) for query tests.
 3. Confirm the app binds to Railway `$PORT`.
 4. Review Railway logs for build or runtime errors.
 
-Full deployment guide: [../Ops/deploy.md](../Ops/deploy.md)
+Full deployment guide: [deployment-guide.md](deployment-guide.md)
