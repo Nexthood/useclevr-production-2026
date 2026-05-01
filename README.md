@@ -48,6 +48,14 @@ pnpm build
 pnpm start
 ```
 
+Create and run the production web-app bundle:
+
+```bash
+pnpm prod
+```
+
+`pnpm prod:build` creates `dist/` as the runnable production web app. It packages the standalone Next.js server in `dist/server.js`, runtime assets under `dist/.next/`, and public assets under `dist/public/`. Runtime secrets are read from the environment and are not copied into `dist`. The `dist/` folder is generated output and is intentionally ignored by Git.
+
 ## Environment Variables
 
 Minimum required:
@@ -55,6 +63,14 @@ Minimum required:
 - `DIRECT_URL`
 - `AUTH_SECRET`
 - `GEMINI_API_KEY`
+
+Currently active integrations:
+- Cloud AI: Gemini via AI SDK
+- Database: Neon PostgreSQL via Drizzle
+- Auth: Auth.js / NextAuth credentials auth
+- Payments: disabled/not configured
+
+Removed or inactive integrations should not be configured for production unless they are reintroduced in code and dependencies.
 
 Reference template:
 - `.env.local.example`

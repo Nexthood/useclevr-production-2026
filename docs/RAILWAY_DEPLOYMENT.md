@@ -12,7 +12,7 @@
    - Add to Railway project settings
 
 3. **Deploy**
-   - Push to main branch → Railway auto-deploys
+   - Push to the deployment branch configured in Railway
    - Watch deployment status in Railway dashboard
 
 ---
@@ -30,9 +30,11 @@
 Template for all required environment variables (copy to Railway secrets panel)
 
 ### `package.json`
-Railway commands are driven by pnpm scripts:
-- Build: `pnpm build`
-- Start: `pnpm start`
+Railway commands are driven by pnpm scripts. For the production web-app bundle:
+- Build: `pnpm prod:build`
+- Start: `pnpm prod:start`
+
+`pnpm prod:build` creates `dist/` as a standalone production app containing `server.js`, `dist/.next/`, and `dist/public/`. Environment files are not copied into `dist`.
 
 ---
 
@@ -51,12 +53,9 @@ AUTH_SECRET=<generate: openssl rand -base64 32>
 # AUTH_URL=https://your-app.railway.app
 ```
 
-### AI Provider (at least one required)
+### AI Provider
 ```
 GEMINI_API_KEY=<from https://aistudio.google.com/app/apikey>
-# Optional:
-# OPENAI_API_KEY=sk-...
-# DEEPSEEK_API_KEY=...
 ```
 
 ### Proxy Configuration

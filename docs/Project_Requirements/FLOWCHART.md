@@ -38,13 +38,12 @@
 │   │                                                      │            │
 │   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │            │
 │   │  │  Database   │  │   Auth     │  │  Payments  │  │            │
-│   │  │  (Neon PG)  │  │ (NextAuth) │  │  (Stripe) │  │            │
+│   │  │  (Neon PG)  │  │ (NextAuth) │  │ Disabled  │  │            │
 │   │  └─────────────┘  └─────────────┘  └─────────────┘  │            │
 │   │                                                      │            │
 │   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │            │
 │   │  │   AI/ML     │  │   Storage   │  │   Email     │  │            │
-│   │  │ (Gemini,    │  │   (S3/R2)   │  │  (Resend)  │  │            │
-│   │  │  DeepSeek)  │  │            │  │            │  │            │
+│   │  │  (Gemini)   │  │   (S3/R2)   │  │  Future    │  │            │
 │   │  └─────────────┘  └─────────────┘  └─────────────┘  │            │
 │   └──────────────────────────────────────────────────────┘            │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -88,11 +87,11 @@
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Next.js 14, React 18, Tailwind CSS |
+| Frontend | Next.js 16, React 19, Tailwind CSS |
 | Backend | Next.js API Routes, NextAuth v5 |
 | Database | Neon PostgreSQL (serverless) |
 | ORM | Drizzle ORM |
-| AI | Google Gemini, DeepSeek |
-| Payments | Disabled |
+| AI | Google Gemini |
+| Payments | Disabled / not configured |
 | Storage | AWS S3 / Cloudflare R2 |
 | Deployment | Railway, Nixpacks, pnpm |

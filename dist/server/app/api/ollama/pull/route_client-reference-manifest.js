@@ -1,1 +1,0 @@
-globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/ollama/pull/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/home/csaba/Documents/Useclever-2026/app/api/ollama/pull/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

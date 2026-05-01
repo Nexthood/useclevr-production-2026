@@ -1,8 +1,8 @@
-# Next.js 14 Header Errors Guide
+# Next.js 16 Header Errors Guide
 
 ## Understanding "Cannot append headers after they are sent to the client"
 
-This error occurs when your code tries to modify HTTP headers after the response has already been sent to the client. In Next.js 14 with the App Router, this commonly happens when:
+This error occurs when your code tries to modify HTTP headers after the response has already been sent to the client. In Next.js 16 with the App Router, this commonly happens when:
 
 1. Multiple `redirect()` calls in the same execution path
 2. Calling `next()` in middleware after already returning a response
@@ -247,34 +247,18 @@ async jwt({ token, user }) {
 
 ---
 
-## Prisma Client Pattern for Next.js
+## Drizzle Client Pattern for Next.js
 
-**❌ WRONG - Multiple instances:**
+**Wrong - create clients casually in route modules:**
 ```typescript
-import { PrismaClient } from '@prisma/client'
+import { drizzle } from 'drizzle-orm/neon-http'
 
-// Creates new connection on every import
-const prisma = new PrismaClient()
-export default prisma
+const db = drizzle(process.env.DATABASE_URL!)
 ```
 
-**✅ CORRECT - Singleton pattern:**
+**Correct - use the shared client:**
 ```typescript
-// lib/prisma.ts
-import { PrismaClient } from '@prisma/client'
-
-// Global type for preventing multiple instances in development
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-// Reuse existing instance in development, create new in production
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-// Store in global to prevent hot-reload from creating new instances
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-
-export default prisma
+import { db } from '@/lib/db'
 ```
 
 **Why this prevents errors:**
@@ -306,14 +290,14 @@ NEXTAUTH_URL="http://localhost:3000"
 ### 3. Database Setup
 
 ```bash
-# Generate Prisma Client
-npm run db:generate
+# Generate Drizzle migrations/types
+pnpm db:generate
 
 # Push schema to database
-npm run db:push
+pnpm db:push
 
-# Open Prisma Studio (optional, for debugging)
-npm run db:studio
+# Open Drizzle Studio (optional, for debugging)
+pnpm db:studio
 ```
 
 ---
@@ -344,8 +328,8 @@ npm run build
 # Output directory
 .next
 
-# Install command (for Prisma)
-npm run postinstall
+# Install command
+pnpm install --frozen-lockfile
 ```
 
 ---
@@ -393,10 +377,10 @@ This is expected behavior - it's how Next.js handles redirects internally. The a
 │       └── auth-provider.tsx     # Client-side auth
 ├── lib/
 │   ├── auth.ts                   # NextAuth configuration
-│   └── prisma.ts                 # Prisma singleton
-├── middleware.ts                 # Route protection
-├── prisma/
-│   └── schema.prisma             # Database schema
+│   └── db/
+│       ├── index.ts              # Drizzle database client
+│       └── schema.ts             # Database schema
+├── proxy.ts                      # Route protection
 ├── .env.local                     # Environment variables
 ├── next.config.mjs
 ├── package.json
@@ -414,4 +398,4 @@ This is expected behavior - it's how Next.js handles redirects internally. The a
 | Client Component | Use useTransition() for navigation | Mix router.push() with redirect() |
 | API Route | Single return path | Multiple Response.json() calls |
 | NextAuth | Always return in callbacks | Throw after partial processing |
-| Prisma | Use singleton pattern | Create new client on every import |
+| Drizzle | Use shared `lib/db` client | Create ad hoc clients in each route |

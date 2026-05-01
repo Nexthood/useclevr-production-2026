@@ -26,8 +26,7 @@ yarn-error.log*
 lerna-debug.log*
 
 # Build artifacts
-# dist/
-dist/cache/
+dist/
 .turbo/
 tsconfig.tsbuildinfo
 public/generated/

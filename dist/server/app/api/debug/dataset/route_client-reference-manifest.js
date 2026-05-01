@@ -1,1 +1,0 @@
-globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/debug/dataset/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/home/csaba/Documents/Useclever-2026/app/api/debug/dataset/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

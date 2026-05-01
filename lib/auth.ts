@@ -49,6 +49,7 @@ const loginSchema = z.object({
 })
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   // Use a simple JWT adapter-like configuration without PrismaAdapter
   // to avoid database connections during module initialization
   providers: [

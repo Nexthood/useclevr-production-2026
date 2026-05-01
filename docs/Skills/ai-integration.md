@@ -1,18 +1,16 @@
 # AI Integration Skill
 
 ## Description
-Handles AI integrations using AI SDK with Gemini provider.
+Handles AI integrations using AI SDK with the Gemini provider.
 
 ## Capabilities
-- Multi-provider AI setup
 - Streaming responses
 - Error handling
-- Provider fallback
+- Local runtime fallback where the app explicitly supports it
 
 ## Supported Providers
-- Google Gemini (primary)
-- DeepSeek (fallback)
-- OpenAI (optional)
+- Google Gemini (cloud)
+- Local Ollama runtime where enabled by the app
 
 ## Usage
 
@@ -26,25 +24,10 @@ const result = await generateText({
 })
 ```
 
-### With Fallback
-```typescript
-import { generateText } from 'ai'
-import { deepseek } from '@ai-sdk/deepseek'
-
-const result = await generateText({
-  model: google('gemini-2.0-flash'),
-  prompt: 'Analyze this data...',
-  fallbackModels: [deepseek('deepseek-chat')]
-})
-```
-
 ## Environment Variables
 - GEMINI_API_KEY (required)
-- DEEPSEEK_API_KEY (optional)
-- OPENAI_API_KEY (optional)
 
 ## Best Practices
-- Always implement provider fallback
 - Handle rate limits
 - Add timeout handling
 - Log API errors for debugging

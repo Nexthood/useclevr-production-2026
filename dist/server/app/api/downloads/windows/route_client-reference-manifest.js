@@ -1,1 +1,0 @@
-globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/downloads/windows/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/home/csaba/Documents/Useclever-2026/app/api/downloads/windows/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

@@ -6,7 +6,7 @@ const __dirname = path.dirname(__filename)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  distDir: "dist",
+  output: "standalone",
   turbopack: {
     root: __dirname,
   },
