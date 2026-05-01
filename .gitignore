@@ -29,6 +29,12 @@ lerna-debug.log*
 .turbo/
 tsconfig.tsbuildinfo
 
+# Railway standalone deploy bundle
+!dist/.next/
+!dist/.next/**
+!dist/node_modules/
+!dist/node_modules/**
+
 # Editor & IDE
 .vscode/settings.json
 .idea/
