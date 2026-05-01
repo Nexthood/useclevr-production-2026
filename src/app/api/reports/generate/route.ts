@@ -1,12 +1,12 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError, debugLog } from "@/lib/debug";
 
 // app/api/reports/generate/route.ts
-import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
 import fs from 'fs';
+import { NextResponse } from 'next/server';
 import path from 'path';
 
 // ============================================================================
@@ -16,8 +16,14 @@ import path from 'path';
 // 1. User authentication and Pro plan validation
 // 2. Credit deduction (server-side)
 // 3. File generation in multiple formats (pdf, ppt, docx, xlsx)
-// 4. Temporary file storage in assets/generated
+// 4. Temporary file storage in src/assets/generated or dist/assets/generated
 // ============================================================================
+
+function getGeneratedAssetsDir() {
+  const distGeneratedDir = path.join(process.cwd(), 'dist', 'assets', 'generated')
+  const sourceGeneratedDir = path.join(process.cwd(), 'src', 'assets', 'generated')
+  return fs.existsSync(distGeneratedDir) ? distGeneratedDir : sourceGeneratedDir
+}
 
 /**
  * Generate a simple text-based report file
@@ -28,8 +34,8 @@ async function generateReportFile(
   reportData: any,
   fileName: string
 ): Promise<string> {
-  const publicDir = path.join(process.cwd(), 'assets', 'generated');
-  
+  const publicDir = getGeneratedAssetsDir()
+
   // Ensure directory exists
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });

@@ -1,9 +1,14 @@
+// This route serves all `/assets/*` requests from the canonical asset storage
+// folder at `src/assets/`. The `src/app/assets` directory contains only the
+// route handler, not the actual static files.
 import { NextResponse } from "next/server"
 import { createReadStream, existsSync, statSync } from "node:fs"
 import { extname, relative, resolve } from "node:path"
 import { Readable } from "node:stream"
 
-const ASSETS_DIR = resolve(process.cwd(), "src/assets")
+const distAssetsDir = resolve(process.cwd(), "dist", "assets")
+const srcAssetsDir = resolve(process.cwd(), "src", "assets")
+const ASSETS_DIR = existsSync(distAssetsDir) ? distAssetsDir : srcAssetsDir
 
 const CONTENT_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",

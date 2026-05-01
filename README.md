@@ -57,4 +57,10 @@ Guide: [docs/Developer_Guides/Ops/deploy.md](docs/Developer_Guides/Ops/deploy.md
 
 ## Assets
 
-Static files live in `assets/` and are served through `/assets/...`.
+Static files live in `src/assets/` and are served through `/assets/...`.
+The folder `src/app/assets/` is only the route handler that exposes those files.
+
+- `src/assets/images/` for images and branding assets
+- `src/assets/scripts/` for build/runtime helper scripts and SQL helpers
+- `src/assets/styles/` for global CSS
+- `src/assets/downloads/` for downloadable assets and README metadata

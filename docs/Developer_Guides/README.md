@@ -1,6 +1,13 @@
 # Developer Guides
 
-| Group | Link |
+We have consolidated documentation into a comprehensive guide for easier navigation.
+
+## Primary Guide
+
+| Guide | Description |
 | --- | --- |
-| Technical Requirements | [technical-requirements.md](technical-requirements.md) |
-| Operations | [operations-guide.md](operations-guide.md) |
+| **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** | **Complete single-guide** covering setup, data pipeline, verification, architecture, and deployment. **Start here.** |
+
+## Recommendation
+
+**Start with [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** for a complete overview of developing with UseClevr.

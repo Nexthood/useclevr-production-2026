@@ -13,7 +13,7 @@
 - [x] Move TODO and future recommendation docs into root `.TODO/`.
 - [x] Update docs links after folder changes.
 - [x] Add Mermaid VS Code recommendation.
-- [x] Move static files into root `assets/` and serve them through `/assets/...`.
+- [x] Move static files into `src/assets/` and serve them through `/assets/...`.
 - [ ] Document API endpoints and request/response contracts.
 - [ ] Create a user-facing product guide.
 

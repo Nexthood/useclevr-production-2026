@@ -29,7 +29,8 @@ lerna-debug.log*
 dist/
 .turbo/
 tsconfig.tsbuildinfo
-assets/generated/
+src/assets/generated/
+dist/assets/generated/
 datasets/
 
 # Editor & IDE
