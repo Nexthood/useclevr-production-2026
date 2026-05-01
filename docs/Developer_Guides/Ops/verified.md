@@ -1,16 +1,16 @@
 # Verified Computation Operations
 
-Purpose: operate and verify the code path where deterministic logic computes numbers and AI explains them.
+Operates and verifies the code path where deterministic logic computes numbers and AI explains them.
 
 ## Files
 
 | Area | File |
 | --- | --- |
-| Query engine | [`../../../lib/queryEngine.ts`](../../../lib/queryEngine.ts) |
-| Query prompt | [`../../../lib/queryIntentPrompt.ts`](../../../lib/queryIntentPrompt.ts) |
-| Query API | [`../../../app/api/query/route.ts`](../../../app/api/query/route.ts) |
-| Chat route | [`../../../app/api/chat/route.ts`](../../../app/api/chat/route.ts) |
-| Requirements | [`../Requirements/verified-computation-layer.md`](../Requirements/verified-computation-layer.md) |
+| Query engine | `lib/queryEngine.ts` |
+| Query prompt | `lib/queryIntentPrompt.ts` |
+| Query API | `app/api/query/route.ts` |
+| Chat route | `app/api/chat/route.ts` |
+| Requirements | ../Setup/SETUP.md#verified-computation-layer |
 
 ## Runtime Flow
 
@@ -44,7 +44,7 @@ Expected:
 
 ## Logs
 
-```text
+```
 [QueryEngine]
 [CHAT] Question requires verified computation
 [CHAT] Executing verified query
@@ -56,7 +56,7 @@ Expected:
 2. Confirm chat falls back.
 3. Revert chat/query route changes if needed.
 
-## Common Issues
+## Issues
 
 | Issue | Check |
 | --- | --- |

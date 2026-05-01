@@ -1,6 +1,6 @@
 # Deterministic Pipeline
 
-Purpose: compute metrics in code first, then let AI explain verified results.
+Compute metrics in code first, then let AI explain verified results.
 
 ## Flow
 
@@ -19,7 +19,7 @@ CSV upload
 | Rule | Reason |
 | --- | --- |
 | Compute numbers in TypeScript/query logic. | Prevent numeric hallucinations. |
-| Treat AI as explanation layer. | AI should not be source of truth for metrics. |
+| Treat AI as explanation layer. | AI is not source of truth for metrics. |
 | Keep schema/column mapping explicit. | Avoid wrong column assumptions. |
 | Return provenance where possible. | Make answers auditable. |
 | Fail clearly when data is missing. | Avoid fake confidence. |
@@ -35,12 +35,12 @@ CSV upload
 | Query/verified computation | `lib/queryEngine.ts`, `lib/queryIntentPrompt.ts`, `app/api/query/route.ts` |
 | AI explanation | `app/api/chat/route.ts`, `lib/llmAdapter.ts`, `lib/ai-*` |
 
-## Output Expectations
+## Outputs
 
 - KPIs use parsed dataset rows, not AI-generated values.
 - Forecasts include input columns and assumptions.
 - Query answers expose operation, column, row count, and computed value.
-- AI text must align with the computed result.
+- AI text aligns with the computed result.
 
 ## Checkpoints
 
@@ -59,5 +59,5 @@ Manual checks:
 
 ## Related
 
-- [Verified computation operations](VERIFIED_COMPUTATION_OPERATIONS.md)
-- [Verified computation requirements](../Requirements/verified-computation-layer.md)
+- [Verified computation operations](verified.md)
+- [Verified computation requirements](../Setup/SETUP.md#verified-computation-layer)

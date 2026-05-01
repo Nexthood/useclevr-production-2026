@@ -25,7 +25,7 @@ AUTH_SECRET=
 GEMINI_API_KEY=
 ```
 
-Setup guide: [docs/Developer_Guides/Setup/SETUP_GUIDE.md](docs/Developer_Guides/Setup/SETUP_GUIDE.md)
+Setup guide: [docs/Developer_Guides/Setup/SETUP.md](docs/Developer_Guides/Setup/SETUP.md)
 
 ## Commands
 
@@ -46,14 +46,12 @@ Railway:
 - Start: `pnpm railway:start`
 - Health: `/api/health`
 
-Guide: [docs/Developer_Guides/Deployment/RAILWAY.md](docs/Developer_Guides/Deployment/RAILWAY.md)
+Guide: [docs/Developer_Guides/Deployment/DEPLOYMENT.md](docs/Developer_Guides/Deployment/DEPLOYMENT.md)
 
 ## Docs
 
-- [Docs](docs/README.md)
 - [Developer guides](docs/Developer_Guides/README.md)
 - [User guides](docs/User_Guides/README.md)
-- [Flowcharts](docs/Developer_Guides/Flowcharts/README.md)
 - [TODO](.TODO/TODO.md)
 - [Local agent contract](app/api/local-agent/contract.md)
 

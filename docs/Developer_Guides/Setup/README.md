@@ -1,6 +1,7 @@
-# Setup Guides
+# Setup
 
-| Guide | Link |
+Environment, database, and local development.
+
+| Topic | Link |
 | --- | --- |
-| Local setup | [SETUP_GUIDE.md](SETUP_GUIDE.md) |
-| Neon database | [NEON.md](NEON.md) |
+| Full setup | [SETUP.md](SETUP.md) |
