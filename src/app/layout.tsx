@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
   icons: {
     icon: "/assets/images/favicon.svg",
+    apple: "/assets/images/icon.svg",
   },
   metadataBase: new URL("https://useclevr.com"),
   openGraph: {
