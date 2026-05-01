@@ -1,39 +1,104 @@
-UseClevr Local Agent – MVP API Contract
+# UseClevr Local Agent API Contract
 
-Base URL (local-only): http://127.0.0.1:5143
+The local agent is a local-only companion runtime used by the UseClevr web app for local AI features. The web app should reach it through same-origin Next API routes rather than direct browser calls.
 
-Endpoints
+Base URL:
 
-1) GET /status
-- Purpose: Report local runtime presence and installed models
-- Response 200 JSON:
-  {
-    "runtime": "unavailable" | "installing" | "available" | "starting" | "error",
-    "models": [{ "name": string }],
-    "info"?: string
-  }
+```text
+http://127.0.0.1:5143
+```
 
-2) POST /install-runtime
-- Purpose: Begin OS-specific runtime installation (non-blocking)
-- Request JSON: {}
-- Response 202 JSON: { "accepted": true }
+## Endpoints
 
-3) POST /start-runtime
-- Purpose: Start/ensure the local runtime is running
-- Request JSON: {}
-- Response 200 JSON: { "started": boolean }
+### `GET /status`
 
-4) POST /pull-model
-- Purpose: Download/install a model via the local runtime
-- Request JSON: { "model": string }
-- Response 202 JSON: { "accepted": true }
+Reports local runtime presence and installed models.
 
-5) POST /verify
-- Purpose: Run a minimal test prompt to verify the selected model
-- Request JSON: { "model": string }
-- Response 200 JSON: { "ok": boolean }
+Response `200`:
 
-Notes
-- All operations are local and UseClevr-branded in the host app.
-- Runtime/engine technicals are secondary; public UX remains UseClevr-first.
-- Long-running actions should be asynchronous; status polled via GET /status.
+```json
+{
+  "runtime": "unavailable",
+  "models": [{ "name": "string" }],
+  "info": "optional status details"
+}
+```
+
+Allowed `runtime` values:
+
+- `unavailable`
+- `installing`
+- `available`
+- `starting`
+- `error`
+
+### `POST /install-runtime`
+
+Starts OS-specific runtime installation. This operation should be non-blocking.
+
+Request:
+
+```json
+{}
+```
+
+Response `202`:
+
+```json
+{ "accepted": true }
+```
+
+### `POST /start-runtime`
+
+Starts or ensures the local runtime is running.
+
+Request:
+
+```json
+{}
+```
+
+Response `200`:
+
+```json
+{ "started": true }
+```
+
+### `POST /pull-model`
+
+Downloads or installs a model through the local runtime.
+
+Request:
+
+```json
+{ "model": "string" }
+```
+
+Response `202`:
+
+```json
+{ "accepted": true }
+```
+
+### `POST /verify`
+
+Runs a minimal test prompt to verify the selected model.
+
+Request:
+
+```json
+{ "model": "string" }
+```
+
+Response `200`:
+
+```json
+{ "ok": true }
+```
+
+## Implementation Notes
+
+- All operations are local and should keep the public UX UseClevr-branded.
+- Long-running operations should be asynchronous and report progress through `GET /status`.
+- Technical runtime details should stay secondary in product UI unless needed for troubleshooting.
+- Browser code should call the app's same-origin API routes, not `127.0.0.1:5143` directly.

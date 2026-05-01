@@ -1,124 +1,62 @@
 # UseClevr 2026
 
-AI-powered business intelligence platform for turning uploaded business datasets into KPI dashboards, natural-language insights, and downloadable reports.
+AI business intelligence for uploaded CSV/business datasets.
 
-## Frontend Features
+UseClevr turns data into dashboards, KPIs, forecasts, verified AI answers, and downloadable reports.
 
-- Dataset upload and analysis dashboard
-- KPI cards, charts, regional/product breakdowns, and report views
-- AI chat for dataset questions and verified computations
-- Local AI installer/status UI with dynamic same-origin API calls
-- Authenticated app shell, settings, downloads, referral, and assistant pages
-- Responsive public pages for landing, pricing, auth, legal, and contact
+## Stack
 
-## Tech Stack
+Next.js 16, React 19, TypeScript 6, Tailwind CSS, Drizzle, Neon PostgreSQL, Auth.js, Gemini AI, pnpm, Railway.
 
-- Next.js 16 App Router with React 19
-- TypeScript 6
-- Tailwind CSS with Radix UI primitives and lucide icons
-- Drizzle ORM with Neon PostgreSQL
-- Auth.js / NextAuth v5 credentials auth
-- Gemini via AI SDK for cloud AI
-- Local AI bridge routes for Ollama/local runtime support
-- pnpm 10 package management
-
-## Development
-
-Requirements:
-- Node.js 22+
-- pnpm 10+
-
-Install and run:
+## Start
 
 ```bash
 pnpm install
+cp .env.local.example .env.local
 pnpm dev
 ```
 
-Use a custom local port:
+Required env vars:
 
-```bash
-PORT=4000 pnpm dev
+```env
+DATABASE_URL=
+DIRECT_URL=
+AUTH_SECRET=
+GEMINI_API_KEY=
 ```
 
-Build and start:
+Setup guide: [docs/Developer_Guides/Setup/SETUP_GUIDE.md](docs/Developer_Guides/Setup/SETUP_GUIDE.md)
 
-```bash
-pnpm build
-pnpm start
-```
+## Commands
 
-Create and run the production web-app bundle:
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Local dev |
+| `pnpm build` | Build |
+| `pnpm start` | Start built app |
+| `pnpm prod` | Production bundle |
+| `pnpm db:push` | Push DB schema |
+| `pnpm db:studio` | Open Drizzle Studio |
 
-```bash
-pnpm prod
-```
+## Deploy
 
-`pnpm prod:build` creates `dist/` as the runnable production web app. It packages the standalone Next.js server in `dist/server.js`, runtime assets under `dist/.next/`, and public assets under `dist/public/`. Runtime secrets are read from the environment and are not copied into `dist`. The `dist/` folder is generated output and is intentionally ignored by Git.
+Railway:
 
-## Environment Variables
+- Build: `pnpm railway:install && pnpm railway:build`
+- Start: `pnpm railway:start`
+- Health: `/api/health`
 
-Minimum required:
-- `DATABASE_URL`
-- `DIRECT_URL`
-- `AUTH_SECRET`
-- `GEMINI_API_KEY`
+Guide: [docs/Developer_Guides/Deployment/RAILWAY.md](docs/Developer_Guides/Deployment/RAILWAY.md)
 
-Currently active integrations:
-- Cloud AI: Gemini via AI SDK
-- Database: Neon PostgreSQL via Drizzle
-- Auth: Auth.js / NextAuth credentials auth
-- Payments: disabled/not configured
+## Docs
 
-Removed or inactive integrations should not be configured for production unless they are reintroduced in code and dependencies.
+- [Docs](docs/README.md)
+- [Developer guides](docs/Developer_Guides/README.md)
+- [User guides](docs/User_Guides/README.md)
+- [Flowcharts](docs/Developer_Guides/Flowcharts/README.md)
+- [TODO](.TODO/TODO.md)
+- [Local agent contract](app/api/local-agent/contract.md)
 
-Reference template:
-- `.env.local.example`
-- `.env.railway.example`
+## Assets
 
-## Railway Deployment (pnpm)
-
-This project is configured for pnpm-based Railway deployments.
-
-### 1) Railway service setup
-- Connect repository in Railway
-- Set Runtime/Builder to Nixpacks (Node)
-- Ensure Node 22+ is used
-
-### 2) Railway build/start commands
-Use these in Railway service settings:
-
-- Build command:
-  - `pnpm railway:ci:min`
-- Start command:
-  - leave empty when using `pnpm railway:ci:min` as the build command
-
-Alternative split commands:
-- Install command: `pnpm install --frozen-lockfile`
-- Build command: `pnpm build`
-- Start command: `pnpm start`
-
-`pnpm railway:ci:min` runs install, build, and the minimal production start from `package.json`. The underlying start command is:
-
-```bash
-next start --hostname 0.0.0.0 --port ${PORT:-8080}
-```
-
-Railway provides `PORT` automatically. The fallback `8080` is only for local production-style starts.
-
-For non-silent deploy logs, use `pnpm railway:ci`.
-
-### 3) Environment variables in Railway
-Set all required variables from `.env.railway.example`.
-Do not set fixed frontend URLs unless you need a custom `AUTH_URL`; the app trusts Railway proxy host headers.
-
-### 4) Health check
-- Path: `/api/health`
-- Port: Railway `$PORT`
-
-## Notes
-
-- Proxy/auth edge logic uses `proxy.ts` (Next 16 convention)
-- Metadata viewport is exported via `viewport` in `app/layout.tsx`
-- Neon fetch connection cache deprecation handled in `lib/db/index.ts`
-- Runtime-generated files are ignored (`.next/`, `public/generated/`, `datasets/`, report temp data)
+Static files live in `assets/` and are served through `/assets/...`.

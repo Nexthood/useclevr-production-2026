@@ -16,7 +16,7 @@ import path from 'path';
 // 1. User authentication and Pro plan validation
 // 2. Credit deduction (server-side)
 // 3. File generation in multiple formats (pdf, ppt, docx, xlsx)
-// 4. Temporary file storage in /public
+// 4. Temporary file storage in assets/generated
 // ============================================================================
 
 /**
@@ -28,7 +28,7 @@ async function generateReportFile(
   reportData: any,
   fileName: string
 ): Promise<string> {
-  const publicDir = path.join(process.cwd(), 'public', 'generated');
+  const publicDir = path.join(process.cwd(), 'assets', 'generated');
   
   // Ensure directory exists
   if (!fs.existsSync(publicDir)) {
@@ -44,25 +44,25 @@ async function generateReportFile(
       // Simple text-based PDF alternative (actual PDF generation would require a library)
       content = generateTextReport(reportData);
       fs.writeFileSync(filePath.replace('.pdf', '.txt'), content);
-      return `/generated/${fileName.replace('.pdf', '.txt')}`;
+      return `/assets/generated/${fileName.replace('.pdf', '.txt')}`;
 
     case 'ppt':
       // Simple text-based presentation outline
       content = generatePptOutline(reportData);
       fs.writeFileSync(filePath.replace('.ppt', '.txt'), content);
-      return `/generated/${fileName.replace('.ppt', '.txt')}`;
+      return `/assets/generated/${fileName.replace('.ppt', '.txt')}`;
 
     case 'docx':
       // Simple text-based Word document
       content = generateDocContent(reportData);
       fs.writeFileSync(filePath.replace('.docx', '.txt'), content);
-      return `/generated/${fileName.replace('.docx', '.txt')}`;
+      return `/assets/generated/${fileName.replace('.docx', '.txt')}`;
 
     case 'xlsx':
       // Simple CSV-based Excel alternative
       content = generateCsvData(reportData);
       fs.writeFileSync(filePath.replace('.xlsx', '.csv'), content);
-      return `/generated/${fileName.replace('.xlsx', '.csv')}`;
+      return `/assets/generated/${fileName.replace('.xlsx', '.csv')}`;
 
     default:
       throw new Error(`Unsupported format: ${format}`);

@@ -8,14 +8,13 @@ type Props = {
 }
 
 // Renders the UseClevr brand logo as an image asset, swapping automatically
-// based on the active theme. Dark theme → white wordmark (/logos/publiclogosuseclevr-dark.png)
-// Light theme → black wordmark (/logos/publiclogosuseclevr-light.png)
+// based on the active theme.
 export function Logo({ className = "h-[120px] md:h-[155px] w-auto" }: Props) {
   return (
     <div className="flex items-center shrink-0">
       {/* Light mode: DARK/black wordmark */}
       <img
-        src="/logos/publiclogosuseclevr-dark.png"
+        src="/assets/logos/publiclogosuseclevr-dark.png"
         alt="UseClevr logo"
         className={[
           // Ensure sharp, clean rendering and preserve aspect ratio
@@ -28,7 +27,7 @@ export function Logo({ className = "h-[120px] md:h-[155px] w-auto" }: Props) {
           // Helps diagnose missing asset issues without altering UX
           if (typeof window !== "undefined") {
             debugWarn(
-              "Logo asset missing: /logos/publiclogosuseclevr-dark.png. Place it in /public/logos with transparent background (black wordmark for light mode)."
+              "Logo asset missing: /assets/logos/publiclogosuseclevr-dark.png. Place it in assets/logos with transparent background (black wordmark for light mode)."
             )
           }
         }}
@@ -36,7 +35,7 @@ export function Logo({ className = "h-[120px] md:h-[155px] w-auto" }: Props) {
 
       {/* Dark mode: LIGHT/white wordmark */}
       <img
-        src="/logos/publiclogosuseclevr-light.png"
+        src="/assets/logos/publiclogosuseclevr-light.png"
         alt="UseClevr logo"
         className={[
           // Swap in dark mode without layout shift; same sizing classes
@@ -48,7 +47,7 @@ export function Logo({ className = "h-[120px] md:h-[155px] w-auto" }: Props) {
         onError={() => {
           if (typeof window !== "undefined") {
             debugWarn(
-              "Logo asset missing: /logos/publiclogosuseclevr-light.png. Place it in /public/logos with transparent background (white wordmark for dark mode)."
+              "Logo asset missing: /assets/logos/publiclogosuseclevr-light.png. Place it in assets/logos with transparent background (white wordmark for dark mode)."
             )
           }
         }}

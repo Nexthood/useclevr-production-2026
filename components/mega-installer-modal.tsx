@@ -504,7 +504,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
     // UseClevr-branded direct-download targets (placeholders, ready for real assets)
     const targets: Record<Exclude<OS, 'unknown'>, string> = {
       windows: '/api/downloads/windows',
-      mac: '/downloads/UseClevr-Hybrid-Runtime.dmg',
+      mac: '/assets/downloads/UseClevr-Hybrid-Runtime.dmg',
       linux: '/api/downloads/linux',
     }
 
