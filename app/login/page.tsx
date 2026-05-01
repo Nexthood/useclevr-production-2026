@@ -34,6 +34,7 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
+        callbackUrl: "/app",
         redirect: false,
       })
 
@@ -57,6 +58,7 @@ export default function LoginPage() {
     try {
       debugLog("[LOGIN] Attempting demo login...")
       const result = await signIn("demo", {
+        callbackUrl: "/app",
         redirect: false,
       })
       debugLog("[LOGIN] Demo login result:", result)

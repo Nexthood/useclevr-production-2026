@@ -173,11 +173,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Return the redirect URL string, not a Response object
      */
     async redirect({ url, baseUrl }) {
-      // Allows relative URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      // Default to dashboard
+
+      try {
+        const parsedUrl = new URL(url)
+        if (parsedUrl.origin === baseUrl) return url
+      } catch {
+        return `${baseUrl}/${url.replace(/^\/+/, "")}`
+      }
+
       return `${baseUrl}/app`
     },
   },

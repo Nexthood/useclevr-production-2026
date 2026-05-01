@@ -51,6 +51,7 @@ export default function SignupPage() {
     const signInResult = await signIn("credentials", {
       email,
       password,
+      callbackUrl: "/app",
       redirect: false,
     })
 
@@ -78,6 +79,7 @@ export default function SignupPage() {
     } else {
       // Sign in with demo credentials
       const signInResult = await signIn("demo", {
+        callbackUrl: "/app",
         redirect: false,
       })
 
