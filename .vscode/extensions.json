@@ -1,23 +1,11 @@
 {
   "recommendations": [
+    "ms-vscode.vscode-typescript-next",
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
-    "bradlc.vscode-tailwindcss",
-    "ms-vscode.vscode-typescript-next",
-    "ms-vscode.makefile-tools",
     "eamodio.gitlens",
-    "GitHub.copilot",
-    "GitHub.copilot-chat",
-    "ms-playwright.playwright",
-    "ms-vscode.extension-test-runner",
-    "dsznajder.es7-react-js-snippets",
-    "firefox-devtools.vscode-firefox-debug",
-    "ms-vscode.live-server",
-    "Gruntfuggly.todo-tree",
-    "usernamehw.errorlens",
-    "ms-vscode.makefile-tools",
-    "ms-vscode-remote.remote-containers",
-    "ms-azuretools.vscode-docker",
-    "ms-vscode.extension-test-runner"
+    "databricks.neon-local-connect",
+    "openai.chatgpt",
+    "GitHub.codespaces"
   ]
 }
