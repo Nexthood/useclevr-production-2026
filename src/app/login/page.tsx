@@ -25,6 +25,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const goToSignedInApp = (url?: string | null) => {
+    const fallbackUrl = "/app"
+    const nextUrl = url
+      ? new URL(url, window.location.origin)
+      : new URL(fallbackUrl, window.location.origin)
+
+    if (nextUrl.origin === window.location.origin) {
+      router.replace(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`)
+      router.refresh()
+      return
+    }
+
+    window.location.assign(fallbackUrl)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -35,13 +50,13 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
+        redirectTo: "/app",
       })
 
       if (result?.error) {
         setError("Invalid email or password")
       } else {
-        router.push("/app")
-        router.refresh()
+        goToSignedInApp(result?.url)
       }
     } catch {
       setError("An unexpected error occurred. Please try again.")
@@ -58,6 +73,7 @@ export default function LoginPage() {
       debugLog("[LOGIN] Attempting demo login...")
       const result = await signIn("demo", {
         redirect: false,
+        redirectTo: "/app",
       })
       debugLog("[LOGIN] Demo login result:", result)
 
@@ -66,8 +82,7 @@ export default function LoginPage() {
         setError("Demo login failed. Please try again.")
       } else {
         debugLog("[LOGIN] Demo login successful, redirecting to /app")
-        router.push("/app")
-        router.refresh()
+        goToSignedInApp(result?.url)
       }
     } catch (error) {
       debugError("[LOGIN] Demo login exception:", error)

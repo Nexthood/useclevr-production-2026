@@ -2,7 +2,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
 
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { db, getDb } from "@/lib/db"
+import { getDb } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
@@ -83,11 +83,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           const { email, password } = validatedFields.data
+          const dbClient = getDbClient()
+
+          if (!dbClient) {
+            return null
+          }
 
           // Query database
           let user
           try {
-            const userResult = await db.query.users.findFirst({
+            const userResult = await dbClient.query.users.findFirst({
               where: eq(users.email, email),
             })
             user = userResult
