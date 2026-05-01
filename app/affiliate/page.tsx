@@ -47,7 +47,7 @@ export default async function AffiliatePage() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/signup">
+                 <Link href="/signup" prefetch={false}>
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:opacity-90 h-12 px-8 text-base rounded-full"
@@ -165,8 +165,8 @@ export default async function AffiliatePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-            ) : (
-              <Link href="/signup">
+             ) : (
+               <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:opacity-90 h-12 px-8 text-base rounded-full"

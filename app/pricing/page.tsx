@@ -110,7 +110,7 @@ export default function PricingPage() {
                   </p>
                 </div>
 
-                <Link href="/signup" className="block">
+                 <Link href="/signup" className="block" prefetch={false}>
                   <Button
                     variant="outline"
                     className="w-full bg-transparent border-border/50 hover:bg-accent/5 text-sm"

@@ -42,7 +42,7 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-              <Link href="/signup">
+               <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white hover:opacity-90 h-14 px-10 text-base rounded-full shadow-lg shadow-[#7C3AED]/25"
@@ -161,7 +161,7 @@ export default function HomePage() {
               Join leading organizations using UseClevr to drive data-informed decisions
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link href="/signup">
+               <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
                   className="bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 h-14 px-10 text-base rounded-full"

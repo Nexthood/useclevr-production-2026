@@ -88,11 +88,11 @@ export function PublicFooter() {
                   Sign in
                 </Link>
               </li>
-              <li>
-                <Link href="/signup" className="hover:text-foreground transition-colors">
-                  Sign up
-                </Link>
-              </li>
+               <li>
+                 <Link href="/signup" className="hover:text-foreground transition-colors" prefetch={false}>
+                   Sign up
+                 </Link>
+               </li>
             </ul>
           </div>
           <div>

@@ -151,7 +151,7 @@ export function PublicHeader() {
                 Sign in
               </Button>
             </Link>
-            <Link href="/signup">
+            <Link href="/signup" prefetch={false}>
               <Button size="sm">Get Started</Button>
             </Link>
           </div>
