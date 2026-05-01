@@ -78,8 +78,8 @@ CREATE POLICY "Users can delete own datasets" ON public.datasets
 CREATE POLICY "Users can view own dataset rows" ON public.dataset_rows
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM public.datasets 
-      WHERE datasets.id = dataset_rows.dataset_id 
+      SELECT 1 FROM public.datasets
+      WHERE datasets.id = dataset_rows.dataset_id
       AND datasets.user_id = auth.uid()
     )
   );
@@ -87,8 +87,8 @@ CREATE POLICY "Users can view own dataset rows" ON public.dataset_rows
 CREATE POLICY "Users can insert own dataset rows" ON public.dataset_rows
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.datasets 
-      WHERE datasets.id = dataset_rows.dataset_id 
+      SELECT 1 FROM public.datasets
+      WHERE datasets.id = dataset_rows.dataset_id
       AND datasets.user_id = auth.uid()
     )
   );
@@ -96,8 +96,8 @@ CREATE POLICY "Users can insert own dataset rows" ON public.dataset_rows
 CREATE POLICY "Users can delete own dataset rows" ON public.dataset_rows
   FOR DELETE USING (
     EXISTS (
-      SELECT 1 FROM public.datasets 
-      WHERE datasets.id = dataset_rows.dataset_id 
+      SELECT 1 FROM public.datasets
+      WHERE datasets.id = dataset_rows.dataset_id
       AND datasets.user_id = auth.uid()
     )
   );
