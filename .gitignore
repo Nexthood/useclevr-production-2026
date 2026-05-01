@@ -26,12 +26,8 @@ yarn-error.log*
 lerna-debug.log*
 
 # Build artifacts
-dist/
 .turbo/
 tsconfig.tsbuildinfo
-src/assets/generated/
-dist/assets/generated/
-datasets/
 
 # Editor & IDE
 .vscode/settings.json
@@ -46,13 +42,6 @@ Thumbs.db
 
 # Reports & Data
 .reports-data/
-*.pdf
-*.csv
 
-# Railway (local deployment files)
-.railway/
-
-# DO NOT IGNORE (needed for CI/CD):
-# .github/ - GitHub Actions workflows
-# .vscode/extensions.json - VSCode recommended extensions
-# .vscode/settings.json - VSCode settings (team config)
+# AI local
+.kilo/
