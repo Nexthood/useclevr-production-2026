@@ -137,15 +137,16 @@ export default function SignupPage() {
                   <Label htmlFor="name" className="text-brand-purple">Full name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                     <Input
+                       id="name"
+                       type="text"
+                       placeholder="John Doe"
+                       value={name}
+                       onChange={(e) => setName(e.target.value)}
+                       className="pl-10"
+                       required
+                       autoComplete="name"
+                     />
                   </div>
                 </div>
 
@@ -153,15 +154,16 @@ export default function SignupPage() {
                   <Label htmlFor="email" className="text-brand-purple">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                     <Input
+                       id="email"
+                       type="email"
+                       placeholder="you@example.com"
+                       value={email}
+                       onChange={(e) => setEmail(e.target.value)}
+                       className="pl-10"
+                       required
+                       autoComplete="email"
+                     />
                   </div>
                 </div>
 
@@ -169,15 +171,16 @@ export default function SignupPage() {
                   <Label htmlFor="password" className="text-brand-purple">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="At least 8 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                     <Input
+                       id="password"
+                       type="password"
+                       placeholder="At least 8 characters"
+                       value={password}
+                       onChange={(e) => setPassword(e.target.value)}
+                       className="pl-10"
+                       required
+                       autoComplete="new-password"
+                     />
                   </div>
                 </div>
 

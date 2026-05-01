@@ -42,6 +42,7 @@ Thumbs.db
 
 # Reports & Data
 .reports-data/
+public/assets/generated/
 
 # AI local
 .kilo/
