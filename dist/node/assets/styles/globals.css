@@ -24,14 +24,14 @@
     --popover-foreground: 210 40% 98%;
     
     /* Brand gradient for primary - Cyan #22D3EE to Purple #8B5CF6 */
-    --primary: 189 86% 53%;       /* #22D3EE Cyan */
+    --primary: 189 70% 60%;       /* #3CDDFB - Slightly less saturated, brighter cyan */
     --primary-foreground: 222 47% 4%;
-    --secondary: 263 70% 76%;      /* #8B5CF6 Purple */
+    --secondary: 263 55% 78%;      /* #A78BFA - Slightly less saturated, brighter purple */
     --secondary-foreground: 222 47% 4%;
     
-    --muted: 215 28% 17%;         /* #252C38 */
-    --muted-foreground: 215 24% 68%;
-    --accent: 189 86% 53%;         /* Cyan */
+    --muted: 215 20% 25%;         /* #333C4A - Adjusted for better contrast */
+    --muted-foreground: 215 18% 78%;
+    --accent: 189 70% 60%;         /* Cyan */
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
@@ -40,11 +40,11 @@
     --ring: 189 86% 53%;
     --radius: 14px;
     --sidebar: 222 47% 4%;        /* #0B0F14 */
-    --sidebar-foreground: 215 20% 60%;
+    --sidebar-foreground: 215 24% 78%;
     --sidebar-primary: 189 86% 53%;
     --sidebar-primary-foreground: 222 47% 4%;
     --sidebar-accent: 215 28% 17%;
-    --sidebar-accent-foreground: 215 20% 60%;
+    --sidebar-accent-foreground: 215 24% 82%;
     --sidebar-border: 215 28% 17%;
     --sidebar-ring: 189 86% 53%;
     --chart-1: 189 86% 53%;       /* Cyan */
@@ -132,7 +132,7 @@
     --secondary: 263 70% 76%;
     --secondary-foreground: 222 47% 4%;
     --muted: 215 28% 17%;
-    --muted-foreground: 215 24% 68%;
+    --muted-foreground: 215 24% 76%;
     --accent: 189 86% 53%;
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
@@ -141,11 +141,11 @@
     --input: 215 28% 17%;
     --ring: 189 86% 53%;
     --sidebar: 222 47% 4%;
-    --sidebar-foreground: 215 20% 60%;
+    --sidebar-foreground: 215 24% 78%;
     --sidebar-primary: 189 86% 53%;
     --sidebar-primary-foreground: 222 47% 4%;
     --sidebar-accent: 215 28% 17%;
-    --sidebar-accent-foreground: 215 20% 60%;
+    --sidebar-accent-foreground: 215 24% 82%;
     --sidebar-border: 215 28% 17%;
     --sidebar-ring: 189 86% 53%;
     --chart-1: 189 86% 53%;
@@ -164,6 +164,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+    font-size: 15px;
     overflow-x: hidden;
   }
 }

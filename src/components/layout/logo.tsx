@@ -9,7 +9,7 @@ type Props = {
 
 // Renders the UseClevr brand logo as an image asset, swapping automatically
 // based on the active theme.
-export function Logo({ className = "h-12 w-auto" }: Props) {
+export function Logo({ className = "h-14 w-auto" }: Props) {
   return (
     <div className="flex items-center shrink-0">
       {/* Light mode: DARK/black wordmark */}

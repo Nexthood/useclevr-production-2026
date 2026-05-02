@@ -48,15 +48,14 @@
   "/robots.txt/route": "/robots.txt",
   "/sitemap.xml/route": "/sitemap.xml",
   "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
-  "/api/agent/install-runtime/route": "/api/agent/install-runtime",
   "/api/debug/request-headers/route": "/api/debug/request-headers",
-  "/api/chat/route": "/api/chat",
-  "/api/local-ai-status/route": "/api/local-ai-status",
-  "/api/ollama/pull/route": "/api/ollama/pull",
   "/api/local-ai-install/route": "/api/local-ai-install",
   "/api/analyze/route": "/api/analyze",
+  "/api/local-ai-status/route": "/api/local-ai-status",
+  "/api/ollama/pull/route": "/api/ollama/pull",
+  "/api/agent/install-runtime/route": "/api/agent/install-runtime",
+  "/api/chat/route": "/api/chat",
   "/api/usage/route": "/api/usage",
-  "/api/query/route": "/api/query",
   "/affiliate/page": "/affiliate",
   "/demo/data-processing-flow/page": "/demo/data-processing-flow",
   "/login/page": "/login",
@@ -80,6 +79,7 @@
   "/contact/page": "/contact",
   "/pricing/page": "/pricing",
   "/security/page": "/security",
+  "/terms/page": "/terms",
   "/report/[id]/page": "/report/[id]",
-  "/terms/page": "/terms"
+  "/api/query/route": "/api/query"
 }

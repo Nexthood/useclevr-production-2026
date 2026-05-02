@@ -51,9 +51,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
   return (
       <aside className="fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-col border-r border-sidebar-border bg-sidebar">
         {/* Logo */}
-        <div className="border-b border-sidebar-border px-4 py-3">
-          <Link href="/app" className="flex h-10 items-center">
-            <Logo className="h-9 w-auto" />
+        <div className="border-b border-sidebar-border px-4 py-3.5">
+          <Link href="/" className="flex h-12 items-center">
+            <Logo className="h-11 w-auto" />
           </Link>
         </div>
 

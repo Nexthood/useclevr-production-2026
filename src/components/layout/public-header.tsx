@@ -36,10 +36,10 @@ export function PublicHeader() {
 
   return (
     <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-      <div className="flex h-16 w-full items-center justify-between px-4 md:px-6 lg:px-8">
+      <div className="flex h-[72px] w-full items-center justify-between px-4 md:px-6 lg:px-8">
         {/* Left - Logo */}
-        <Link href={isLoggedIn ? "/app" : "/"} className="flex h-10 items-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md">
-          <Logo className="h-10 w-auto" />
+        <Link href="/" className="flex h-14 items-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md">
+          <Logo className="h-14 w-auto" />
         </Link>
         
         {/* Center - Navigation */}

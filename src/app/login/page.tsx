@@ -104,9 +104,9 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/70 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex h-10 items-center">
-            <Logo className="h-10 w-auto" />
+        <div className="container mx-auto flex h-[72px] items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex h-14 items-center">
+            <Logo className="h-14 w-auto" />
           </Link>
           <ThemeToggle />
         </div>

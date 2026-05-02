@@ -8,7 +8,7 @@
     "start": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
     "start:min": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
     "prod:install": "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile",
-    "prod:build": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
+    "prod:build": "node ./scripts/build/clean-generated.cjs --prod && NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
     "prod:start": "NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/node/server.js",
     "prod": "pnpm prod:install && pnpm prod:build && pnpm prod:start",
 

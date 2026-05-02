@@ -32,6 +32,7 @@ tsconfig.tsbuildinfo
 # Production output bundle. Created by `pnpm prod:build`.
 # The dist folder contains the production deployment bundle
 !dist/
+dist/**/node_modules
 !dist/README.md
 !dist/node/
 !dist/node/**

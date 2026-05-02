@@ -8,6 +8,9 @@ import { Readable } from "node:stream"
 
 const distNodeAssetsDir = resolve(process.cwd(), "dist", "node", "assets")
 const distSharedAssetsDir = resolve(process.cwd(), "dist", "shared", "assets")
+const cwdAssetsDir = resolve(process.cwd(), "assets")
+const distRootNodeAssetsDir = resolve(process.cwd(), "node", "assets")
+const distRootSharedAssetsDir = resolve(process.cwd(), "shared", "assets")
 const srcAssetsDir = resolve(process.cwd(), "src", "assets")
 
 function getAssetsDir() {
@@ -15,12 +18,17 @@ function getAssetsDir() {
     return srcAssetsDir
   }
 
-  if (existsSync(distNodeAssetsDir)) {
-    return distNodeAssetsDir
-  }
-
-  if (existsSync(distSharedAssetsDir)) {
-    return distSharedAssetsDir
+  for (const candidate of [
+    cwdAssetsDir,
+    distRootNodeAssetsDir,
+    distNodeAssetsDir,
+    distRootSharedAssetsDir,
+    distSharedAssetsDir,
+    srcAssetsDir,
+  ]) {
+    if (existsSync(candidate)) {
+      return candidate
+    }
   }
 
   return srcAssetsDir
