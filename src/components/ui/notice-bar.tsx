@@ -31,9 +31,9 @@ const icons = {
 }
 
 const styles = {
-  error: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400",
-  success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  info: "border-cyan-500/20 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+  error: "border-red-500 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200",
+  success: "border-green-500 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200",
+  info: "border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
 }
 
 const getFailedInteractionMessage = (status: number) => {
@@ -85,10 +85,11 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       id: Date.now(),
     })
 
-    timerRef.current = setTimeout(() => {
-      setNotice(null)
-      timerRef.current = null
-    }, input.type === "error" ? 9000 : 5000)
+    // Remove auto-dismiss for permanent bar
+    // timerRef.current = setTimeout(() => {
+    //   setNotice(null)
+    //   timerRef.current = null
+    // }, input.type === "error" ? 9000 : 5000)
   }, [])
 
   React.useEffect(() => {
@@ -170,28 +171,28 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       {notice && (
         <div
           className={[
-            "fixed right-0 z-[100] flex justify-center pointer-events-none",
-            isAppPath ? "left-[240px] top-[84px]" : "left-0 top-0",
+            "fixed z-[100] flex justify-center pointer-events-none",
+            isAppPath ? "left-[240px] right-0 top-[84px]" : "left-4 right-4 top-4",
           ].join(" ")}
         >
           <div
             role={notice.type === "error" ? "alert" : "status"}
             className={[
-              "pointer-events-auto flex w-full items-center gap-3 border-b px-6 py-2 shadow-sm animate-in slide-in-from-top duration-300",
+              "pointer-events-auto flex w-full max-w-2xl items-center gap-3 border px-4 py-3 shadow-sm rounded-md",
               styles[notice.type],
             ].join(" ")}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
             <div className="flex flex-1 items-center gap-2 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-tight">{notice.title}</p>
+              <p className="text-sm font-semibold">{notice.title}</p>
               {notice.message && (
-                <p className="text-[11px] opacity-80 truncate">{notice.message}</p>
+                <p className="text-sm opacity-90">{notice.message}</p>
               )}
             </div>
             <button
               type="button"
               onClick={clearNotice}
-              className="rounded-md p-1 opacity-60 transition hover:opacity-100 focus-visible:outline-none"
+              className="rounded-md p-1 opacity-60 transition hover:opacity-100 focus-visible:outline-none hover:bg-black/10 dark:hover:bg-white/10"
               aria-label="Dismiss notice"
             >
               <X className="h-4 w-4" />

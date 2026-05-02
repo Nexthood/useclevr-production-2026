@@ -1,7 +1,5 @@
 "use client"
 
-import * as React from "react"
-import { GrokChatPanel } from "@/components/grok-chat-panel"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 export default function AssistantPage() {
@@ -17,7 +15,9 @@ export default function AssistantPage() {
       />
 
       <main className="h-[calc(100vh-136px)]">
-        <GrokChatPanel />
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          Select a dataset to begin AI analysis.
+        </div>
       </main>
     </div>
   )

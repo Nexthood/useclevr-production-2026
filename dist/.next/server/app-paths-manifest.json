@@ -49,10 +49,10 @@
   "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/api/agent/install-runtime/route": "app/api/agent/install-runtime/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/debug/request-headers/route": "app/api/debug/request-headers/route.js",
   "/api/analyze/route": "app/api/analyze/route.js",
-  "/api/local-ai-status/route": "app/api/local-ai-status/route.js",
+  "/api/debug/request-headers/route": "app/api/debug/request-headers/route.js",
   "/api/local-ai-install/route": "app/api/local-ai-install/route.js",
+  "/api/local-ai-status/route": "app/api/local-ai-status/route.js",
   "/api/ollama/pull/route": "app/api/ollama/pull/route.js",
   "/api/chat/route": "app/api/chat/route.js",
   "/api/usage/route": "app/api/usage/route.js",
@@ -80,7 +80,7 @@
   "/checkout/success/page": "app/checkout/success/page.js",
   "/contact/page": "app/contact/page.js",
   "/security/page": "app/security/page.js",
+  "/report/[id]/page": "app/report/[id]/page.js",
   "/pricing/page": "app/pricing/page.js",
-  "/terms/page": "app/terms/page.js",
-  "/report/[id]/page": "app/report/[id]/page.js"
+  "/terms/page": "app/terms/page.js"
 }

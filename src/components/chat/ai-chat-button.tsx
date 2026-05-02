@@ -1,14 +1,13 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog } from "@/lib/debug"
 
 
 
-import { useEffect, useState } from "react"
-import { usePathname } from "next/navigation"
-import { MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { GrokChatPanel } from "./grok-chat-panel"
+import { MessageSquare } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function AiChatButton() {
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -26,7 +25,7 @@ export function AiChatButton() {
         const id = match[1]
         setDatasetId(id)
         debugLog("[CHAT-BUTTON] Detected datasetId from URL:", id)
-        
+
         // Fetch dataset info
         fetch(`/api/datasets/${id}`)
           .then(res => res.json())
@@ -58,18 +57,10 @@ export function AiChatButton() {
         variant="default"
         size="icon"
         className="fixed bottom-7 right-7 h-14 w-14 rounded-full shadow-lg z-50 bg-gradient-primary hover:opacity-90"
-        onClick={() => setIsChatOpen(true)}
+        onClick={() => window.dispatchEvent(new CustomEvent('toggle-chat'))}
       >
         <MessageSquare className="h-6 w-6" />
       </Button>
-      <GrokChatPanel
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        datasetId={datasetId}
-        datasetName={datasetName}
-        rowCount={rowCount}
-        columnCount={columnCount}
-      />
     </>
   )
 }

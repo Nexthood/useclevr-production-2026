@@ -1,11 +1,11 @@
 "use client"
 
-import * as React from "react"
+import { InsightChart } from "@/components/insight-chart"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, FileText, Sparkles, Download } from "lucide-react"
-import { InsightChart } from "@/components/insight-chart"
 import jsPDF from "jspdf"
+import { Download, FileText, Sparkles, X } from "lucide-react"
+import * as React from "react"
 
 interface OnePagerProps {
   analysis: any
@@ -13,11 +13,12 @@ interface OnePagerProps {
   rowCount: number
   columns: string[]
   data: Record<string, unknown>[] | undefined
+  inline?: boolean
 }
 
 export function BusinessOnePager(props: OnePagerProps) {
-  const { analysis, datasetName, rowCount } = props
-  const [open, setOpen] = React.useState(false)
+  const { analysis, datasetName, rowCount, inline = false } = props
+  const [open, setOpen] = React.useState(inline ? true : false)
   const [generating, setGenerating] = React.useState(false)
 
   // Minimal manual inputs for MVP
@@ -409,29 +410,34 @@ export function BusinessOnePager(props: OnePagerProps) {
 
   return (
     <>
-      <Button 
-        onClick={openModal}
-        variant="outline"
-        className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-      >
-        {generating ? <Sparkles className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-        Generate Business One-Pager
-      </Button>
+      {!inline && (
+        <Button
+          onClick={openModal}
+          variant="outline"
+          className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+        >
+          {generating ? <Sparkles className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+          Generate Business One-Pager
+        </Button>
+      )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-[96vw] max-w-[1440px] h-[92vh] overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
-              <div className="flex items-center gap-2 text-white font-semibold text-base">
-                <FileText className="h-4 w-4 text-cyan-400" /> Business One-Pager (MVP)
+        <div className={inline ? "" : "fixed inset-0 z-50 flex items-center justify-center bg-black/50"}>
+          <div className={inline ? "w-full h-full" : "bg-neutral-900 border border-neutral-800 rounded-xl w-[96vw] max-w-[1440px] h-[92vh] overflow-hidden shadow-2xl"}>
+            {!inline && (
+              <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+                <div className="flex items-center gap-2 text-white font-semibold text-base">
+                  <FileText className="h-4 w-4 text-cyan-400" /> Business One-Pager (MVP)
+                </div>
+                <button onClick={closeModal} className="text-neutral-400 hover:text-white">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button onClick={closeModal} className="text-neutral-400 hover:text-white">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="grid md:grid-cols-[380px,1fr] gap-0 h-[calc(92vh-52px)]">
-              {/* Left: Inputs */}
-              <div className="p-5 border-r border-neutral-800 space-y-3 overflow-y-auto">
+            )}
+            <div className={inline ? "h-full" : "grid md:grid-cols-[380px,1fr] gap-0 h-[calc(92vh-52px)]"}>
+              {/* Left: Inputs - only show when not inline */}
+              {!inline && (
+                <div className="p-5 border-r border-neutral-800 space-y-3 overflow-y-auto">
                 <div>
                   <label className="block text-xs text-neutral-400 mb-1">Company / Startup Name</label>
                   <input value={company} onChange={e=>setCompany(e.target.value)} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white" placeholder={datasetName} />
@@ -483,9 +489,10 @@ export function BusinessOnePager(props: OnePagerProps) {
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Right: One-Pager Preview (document canvas) */}
-            <div className="p-6 bg-neutral-950/40 overflow-y-auto">
+              {/* Right: One-Pager Preview (document canvas) */}
+              <div className={inline ? "p-6 bg-neutral-950/40 overflow-y-auto h-full" : "p-6 bg-neutral-950/40 overflow-y-auto"}>
                 <div className="mx-auto w-full max-w-[980px] min-w-[820px] space-y-4">
                 {/* Branded Header/Hero */}
                 <div className="relative rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-900/90 to-neutral-800/80 p-6 overflow-hidden">

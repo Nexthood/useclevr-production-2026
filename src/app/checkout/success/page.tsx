@@ -1,14 +1,14 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError } from "@/lib/debug"
 
 import { getCheckoutSession } from "@/app/actions/stripe"
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { PublicHeader } from "@/components/public-header"
 import { PublicFooter } from "@/components/public-footer"
+import { PublicHeader } from "@/components/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { CheckCircle } from "lucide-react"
+import { cookies } from "next/headers"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
 export const metadata = {
   title: "Payment Successful - UseClevr",
@@ -34,7 +34,7 @@ export default async function CheckoutSuccessPage({
   // Minimal unlock + guidance: if this checkout was for Hybrid AI Lite,
   // set cookie so the modal unlocks Lite and redirect to app with setup hint
   try {
-    const isLite = Boolean(session && "metadata" in session && session.metadata?.productId === "hybrid_ai_lite")
+    const isLite = Boolean(session && "metadata" in session && (session as any).metadata?.productId === "hybrid_ai_lite")
     if (isLite) {
       const store = await cookies()
       store.set("hybridAiLiteEnabled", "1", { path: "/", maxAge: 60 * 60 * 24 * 365 })
