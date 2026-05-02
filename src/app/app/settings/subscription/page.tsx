@@ -9,7 +9,7 @@ export default async function SubscriptionSettingsPage() {
   const session = await auth()
   const usage = await getAnalystCreditUsage(session?.user?.id)
   const remaining = Math.max(0, usage.total - usage.analysisCount)
-  const isPro = usage.subscriptionTier === "pro"
+  const isUnlimited = usage.subscriptionTier === "pro" || usage.subscriptionTier === "superadmin"
 
   return (
     <Card className="bg-card border-border">
@@ -28,9 +28,11 @@ export default async function SubscriptionSettingsPage() {
         <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
           <div>
             <p className="font-medium text-foreground">Current plan</p>
-            <p className="text-sm text-muted-foreground">{isPro ? "Pro tier" : "Free tier"}</p>
+            <p className="text-sm text-muted-foreground">
+              {usage.subscriptionTier === "superadmin" ? "Super admin" : isUnlimited ? "Pro tier" : "Free tier"}
+            </p>
           </div>
-          {!isPro && (
+          {!isUnlimited && (
             <Link href="/pricing">
               <Button variant="outline" size="sm">Upgrade</Button>
             </Link>
@@ -44,9 +46,9 @@ export default async function SubscriptionSettingsPage() {
             <div>
               <p className="font-medium text-foreground">Analyst credits</p>
               <p className="text-sm text-muted-foreground">
-                {isPro ? "Unlimited analyst usage" : `${usage.analysisCount} / ${usage.total} free credits used`}
+                {isUnlimited ? "Unlimited analyst usage" : `${usage.analysisCount} / ${usage.total} free credits used`}
               </p>
-              {!isPro && (
+              {!isUnlimited && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   {usage.limitReached
                     ? "Free credits are used. Subscribe to Pro or top up to continue analysis."

@@ -23,12 +23,11 @@ import { runQueryJS, loadDataJS, getDatasetInfo } from "@/lib/datasetEngine";
 import { generateQuery, detectChartType, detectMetricColumn } from "@/lib/queryEngine";
 import { runLLM, generateAnalysisPrompt, checkOllamaStatus } from "@/lib/llmAdapter";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { profiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { generateText } from "ai";
 import { initializeMCPContext, buildMCPToolsPrompt, analyzeWithMCP } from "@/lib/mcp/integration";
 import { PrecomputedMetrics } from "@/lib/pipeline-types";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { isBuiltinUserId } from "@/lib/auth/builtin-users";
 
 // Generate business insights from query results without LLM
 function generateBusinessInsights(result: any[], question: string): { insight: string; explanation: string; recommendation: string } {
@@ -192,26 +191,20 @@ export async function POST(request: Request) {
     const session = await auth();
     const userId = session?.user?.id;
     
-    // Only check limits for non-demo users
-    if (userId && userId !== 'demo-user-id') {
+    // Only check limits for persisted customer users
+    if (userId && !isBuiltinUserId(userId)) {
       try {
-        const profile = await db.query.profiles.findFirst({
-          where: eq(profiles.userId, userId),
-        });
-
-        if (profile && profile.subscriptionTier !== 'pro') {
-          const analysisCount = profile.analysisCount || 0;
-          if (analysisCount >= 2) {
-            debugLog('[ANALYZE] REJECTED: Free limit reached');
-            return Response.json({
-              success: false,
-              error: 'Free limit reached',
-              message: 'You\'ve used your 2 included Analyst credits. Subscribe to Pro or top up your balance to continue.',
-              upgradeRequired: true,
-              analysisCount: analysisCount,
-              creditsRemaining: 0,
-            });
-          }
+        const usage = await getAnalystCreditUsage(userId);
+        if (usage.limitReached) {
+          debugLog('[ANALYZE] REJECTED: Free limit reached');
+          return Response.json({
+            success: false,
+            error: 'Free limit reached',
+            message: 'You\'ve used your 2 included Analyst credits. Subscribe to Pro or top up your balance to continue.',
+            upgradeRequired: true,
+            analysisCount: usage.analysisCount,
+            creditsRemaining: 0,
+          });
         }
       } catch (profileError: any) {
         // Log the DB error but do NOT block the analyze request
@@ -511,24 +504,6 @@ export async function POST(request: Request) {
     // Step 6: Return response (ALWAYS includes data)
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');
     debugLog('========== ANALYZE COMPLETE ==========\n');
-    
-    // Increment usage count for non-demo users after successful analysis
-    if (userId && userId !== 'demo-user-id') {
-      try {
-        const profile = await db.query.profiles.findFirst({
-          where: eq(profiles.userId, userId),
-        });
-
-        if (profile && profile.subscriptionTier !== 'pro') {
-          const newCount = (profile.analysisCount || 0) + 1;
-          await db.update(profiles)
-            .set({ analysisCount: newCount })
-            .where(eq(profiles.userId, userId));
-        }
-      } catch (usageError) {
-        debugError('[ANALYZE] Failed to increment usage:', usageError);
-      }
-    }
     
     return Response.json({
       success: true,

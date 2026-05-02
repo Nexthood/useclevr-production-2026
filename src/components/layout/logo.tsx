@@ -9,12 +9,12 @@ type Props = {
 
 // Renders the UseClevr brand logo as an image asset, swapping automatically
 // based on the active theme.
-export function Logo({ className = "h-24 w-auto" }: Props) {
+export function Logo({ className = "h-12 w-auto" }: Props) {
   return (
     <div className="flex items-center shrink-0">
       {/* Light mode: DARK/black wordmark */}
       <img
-        src="/assets/images/logos/publiclogosuseclevr-dark.png"
+        src="/assets/images/logos/useclevr-wordmark-dark.png"
         alt="UseClevr logo"
         className={[
           // Ensure sharp, clean rendering and preserve aspect ratio
@@ -27,7 +27,7 @@ export function Logo({ className = "h-24 w-auto" }: Props) {
           // Helps diagnose missing asset issues without altering UX
           if (typeof window !== "undefined") {
             debugWarn(
-              "Logo asset missing: /assets/images/logos/publiclogosuseclevr-dark.png. Place it in assets/images/logos with transparent background (black wordmark for light mode)."
+              "Logo asset missing: /assets/images/logos/useclevr-wordmark-dark.png. Place it in assets/images/logos with transparent background (black wordmark for light mode)."
             )
           }
         }}
@@ -35,7 +35,7 @@ export function Logo({ className = "h-24 w-auto" }: Props) {
 
       {/* Dark mode: LIGHT/white wordmark */}
       <img
-        src="/assets/images/logos/publiclogosuseclevr-light.png"
+        src="/assets/images/logos/useclevr-wordmark-light.png"
         alt="UseClevr logo"
         className={[
           // Swap in dark mode without layout shift; same sizing classes
@@ -47,7 +47,7 @@ export function Logo({ className = "h-24 w-auto" }: Props) {
         onError={() => {
           if (typeof window !== "undefined") {
             debugWarn(
-              "Logo asset missing: /assets/images/logos/publiclogosuseclevr-light.png. Place it in assets/images/logos with transparent background (white wordmark for dark mode)."
+              "Logo asset missing: /assets/images/logos/useclevr-wordmark-light.png. Place it in assets/images/logos with transparent background (white wordmark for dark mode)."
             )
           }
         }}

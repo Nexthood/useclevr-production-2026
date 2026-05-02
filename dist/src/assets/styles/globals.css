@@ -6,61 +6,60 @@
 
 @layer base {
   :root {
-    /* Calm Dark Theme - AI Workspace */
-    --workspace-bg: #0B0F14;
-    --workspace-card: #141A23;
-    --workspace-border: #252C38;
+    /* Default to light mode so server-rendered pages do not flash dark containers. */
+    --workspace-bg: #F1F5F9;
+    --workspace-card: #FFFFFF;
+    --workspace-border: #E2E8F0;
 
     /* UseClevr Brand Colors - Cyan to Purple */
     --brand-cyan: 185 91% 42%;      /* #06b6d4 */
     --brand-purple: 271 91% 65%;     /* #a855f7 */
 
-    /* Dark theme for AI workspace */
-    --background: 222 47% 3%;     /* Deepest black */
-    --foreground: 210 40% 98%;    /* Clean white */
-    --card: 222 47% 8%;          /* #141A23 */
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;        /* #141A23 */
-    --popover-foreground: 210 40% 98%;
+    --background: 210 33% 97%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 10%;
 
     /* Brand gradient for primary - Cyan #22D3EE to Purple #8B5CF6 */
-    --primary: 189 70% 60%;       /* #3CDDFB - Slightly less saturated, brighter cyan */
-    --primary-foreground: 222 47% 4%;
-    --secondary: 263 55% 78%;      /* #A78BFA - Slightly less saturated, brighter purple */
-    --secondary-foreground: 222 47% 4%;
+    --primary: 187 79% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 50% 65%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 215 25% 14%;         /* Distinct container background */
-    --muted-foreground: 215 20% 85%; /* High-contrast labels */
-    --accent: 189 70% 60%;         /* Cyan */
-    --accent-foreground: 222 47% 4%;
+    --muted: 214 28% 92%;
+    --muted-foreground: 215 30% 20%;
+    --accent: 187 79% 53%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 215 28% 17%;        /* #252C38 */
-    --input: 215 28% 17%;         /* #252C38 */
-    --ring: 189 86% 53%;
-    --radius: 14px;
-    --sidebar: 222 47% 4%;        /* #0B0F14 */
-    --sidebar-foreground: 215 24% 78%;
-    --sidebar-primary: 189 86% 53%;
-    --sidebar-primary-foreground: 222 47% 4%;
-    --sidebar-accent: 215 28% 17%;
-    --sidebar-accent-foreground: 215 24% 82%;
-    --sidebar-border: 215 28% 17%;
-    --sidebar-ring: 189 86% 53%;
-    --chart-1: 189 86% 53%;       /* Cyan */
-    --chart-2: 263 70% 76%;       /* Purple */
-    --chart-3: 270 60% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 24% 82%;
+    --input: 214 24% 80%;
+    --ring: 187 79% 53%;
+    --radius: 8px;
+    --sidebar: 210 33% 98%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 187 79% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 28% 92%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 214 24% 84%;
+    --sidebar-ring: 187 79% 53%;
+    --chart-1: 187 79% 53%;
+    --chart-2: 270 50% 65%;
+    --chart-3: 270 50% 55%;
     --chart-4: 175 90% 55%;
     --chart-5: 185 80% 50%;
 
     /* Gradient accents - Cyan to Purple */
-    --gradient-start: 189 86% 53%;  /* #22D3EE Cyan */
-    --gradient-end: 263 70% 76%;    /* #8B5CF6 Purple */
+    --gradient-start: 187 79% 53%;
+    --gradient-end: 270 50% 65%;
   }
 
   /* Light Mode */
   .light {
-    --background: 0 0% 96%;
+    --background: 210 33% 97%;
     --foreground: 0 0% 0%;  /* Pure black for light mode navigation */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 10%;
@@ -70,22 +69,22 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 270 50% 65%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 214 20% 94%;
+    --muted: 214 28% 92%;
     --muted-foreground: 215 30% 20%; /* Further darkened for light mode readability */
     --accent: 187 79% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 22% 78%;
-    --input: 214 22% 74%;
+    --border: 214 24% 82%;
+    --input: 214 24% 80%;
     --ring: 187 79% 53%;
-    --sidebar: 0 0% 100%;
+    --sidebar: 210 33% 98%;
     --sidebar-foreground: 0 0% 0%;  /* Pure black for nav text */
     --sidebar-primary: 187 79% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 20% 95%;
+    --sidebar-accent: 214 28% 92%;
     --sidebar-accent-foreground: 0 0% 0%;  /* Pure black for accent text */
-    --sidebar-border: 214 20% 85%;
+    --sidebar-border: 214 24% 84%;
     --sidebar-ring: 187 79% 53%;
     --chart-1: 187 79% 53%;
     --chart-2: 270 50% 65%;
@@ -121,9 +120,9 @@
 
 /* Dark Mode */
   .dark {
-    --background: 222 47% 4%;
+    --background: 222 39% 5%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
+    --card: 222 34% 9%;
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
@@ -131,7 +130,7 @@
     --primary-foreground: 222 47% 4%;
     --secondary: 263 70% 76%;
     --secondary-foreground: 222 47% 4%;
-    --muted: 215 28% 14%;         /* Deeper for contrast */
+    --muted: 217 27% 15%;         /* Deeper for contrast */
     --muted-foreground: 215 24% 85%; /* Balanced for dark mode secondary text */
     --accent: 189 86% 53%;
     --accent-foreground: 222 47% 4%;
@@ -164,8 +163,11 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
-    font-size: 15px;
+    font-size: 13px;
+    line-height: 1.55;
     overflow-x: hidden;
+    background:
+      linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(var(--background)) 38rem);
   }
 
   .dark body {
@@ -268,8 +270,8 @@
   /* Usage Monitor Styles */
   .usage-box {
     margin-top: 0;
-    padding: 12px;
-    border-radius: 10px;
+    padding: 10px;
+    border-radius: 8px;
     background: hsl(var(--sidebar-accent)); /* Use semantic variable */
     border: 1px solid hsl(var(--sidebar-border)); /* Use semantic variable */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Softer shadow */
@@ -278,17 +280,17 @@
   }
 
   .progress-bar {
-    height: 6px;
+    height: 4px;
     background: hsl(var(--muted));
-    border-radius: 6px;
+    border-radius: 4px;
     margin-top: 6px;
     overflow: hidden;
   }
 
   .progress-fill {
-    height: 6px;
+    height: 4px;
     background: linear-gradient(135deg, #22D3EE, #8B5CF6);
-    border-radius: 6px;
+    border-radius: 4px;
     transition: width 0.3s ease;
   }
 
@@ -310,33 +312,34 @@
 
   /* New Topbar for global info and actions */
   .app-topbar {
-    @apply fixed top-0 left-0 right-0 z-[60] w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
-    height: 48px; /* Example height */
+    @apply fixed top-0 right-0 z-[110] border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    height: 36px;
+    left: 220px; /* Aligned with sidebar width */
     display: flex;
     align-items: center;
-    padding: 0 1.5rem;
+    padding: 0 1rem;
     /* Add styles for account name, links, buttons */
   }
 
   /* Unified Header & Sidebar Styles */
   .app-header {
     /* Adjusted top to be below the new topbar */
-    @apply sticky top-[48px] z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
-    height: 64px;
+    @apply sticky top-[36px] z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    height: 48px;
     display: flex;
     align-items: center;
-    padding: 0 1.5rem;
+    padding: 0 1rem;
     /* Add subtle gradient or shadow for depth */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .app-subheader {
     /* Adjusted top to be below the app-header */
-    @apply sticky top-[112px] z-40 w-full border-b bg-muted/20 backdrop-blur-sm;
-    min-height: 48px; /* Slightly smaller than main header */
+    @apply sticky top-[84px] z-40 w-full border-b bg-muted/20 backdrop-blur-sm;
+    min-height: 36px; /* Slightly smaller than main header */
     display: flex;
     align-items: center;
-    padding: 0.5rem 1.5rem;
+    padding: 0.25rem 1rem;
     /* Add subtle gradient or shadow for depth */
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
@@ -348,7 +351,7 @@
 
   .sidebar-logo {
     @apply w-full h-auto object-contain;
-    min-width: 250px; /* Enforce minimum width */
+    min-width: 200px !important; /* Enforced per requirement */
     max-width: 290px; /* Allow some flexibility up to 290px */
   }
 }

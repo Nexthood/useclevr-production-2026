@@ -8,14 +8,17 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Upload, Database, Sparkles, ArrowRight, FileSpreadsheet, TrendingUp, Zap, Brain } from "lucide-react"
 import Link from "next/link"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { MegaButton } from "@/components/mega-button"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 
 async function getUserStats() {
   try {
     const session = await auth()
     
     if (!session?.user?.id) {
+      return null
+    }
+
+    if (!db) {
       return null
     }
     
@@ -73,19 +76,11 @@ export default async function AppDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card h-16">
-        <div className="flex h-16 items-center justify-between px-8">
-          <div className="pl-2">
-            <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Welcome back, {userName}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <MegaButton />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <AppPageHeader
+        title="Dashboard"
+        description={`Welcome back, ${userName}`}
+        breadcrumbs={[{ label: "Dashboard" }]}
+      />
 
       <main className="p-6">
         <div className="max-w-6xl mx-auto space-y-8 pt-6">

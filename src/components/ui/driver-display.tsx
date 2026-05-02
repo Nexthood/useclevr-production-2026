@@ -70,12 +70,12 @@ function DriverCard({ driver, showDetails }: { driver: MetricDriver; showDetails
   }[driver.significance];
 
   return (
-    <Card className="bg-neutral-900 border-neutral-800">
+    <Card className="border-border bg-card">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {directionIcon}
-            <CardTitle className="text-white text-base flex items-center gap-2">
+            <CardTitle className="text-foreground text-base flex items-center gap-2">
               {metricLabel}
               <span className={`text-sm font-normal ${directionColor}`}>
                 {driver.changePercent >= 0 ? '+' : ''}{driver.changePercent.toFixed(1)}%
@@ -114,12 +114,12 @@ function DriverRow({ driver }: { driver: DriverContribution }) {
   }[driver.type] || driver.type;
 
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-neutral-800/50 transition-colors">
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div className={`w-1.5 h-1.5 rounded-full ${isNegative ? 'bg-red-500' : 'bg-emerald-500'}`} />
         <div>
-          <span className="text-sm text-neutral-400">{typeLabel}:</span>
-          <span className="text-sm text-white ml-1">{driver.name}</span>
+          <span className="text-sm text-muted-foreground">{typeLabel}:</span>
+          <span className="text-sm text-foreground ml-1">{driver.name}</span>
         </div>
       </div>
       <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CreditCard, Settings, SlidersHorizontal, User } from "lucide-react"
+import { CreditCard, Settings, ShieldCheck, SlidersHorizontal, User } from "lucide-react"
 
 const items = [
   { href: "/app/settings/profile", label: "Profile", icon: User },
@@ -10,12 +10,17 @@ const items = [
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
 ]
 
-export function SettingsNav() {
+const adminItems = [
+  { href: "/app/settings/credits", label: "Credit Rules", icon: ShieldCheck },
+]
+
+export function SettingsNav({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname()
+  const visibleItems = showAdmin ? [...items, ...adminItems] : items
 
   return (
     <nav className="w-full shrink-0 space-y-1 md:w-56">
-      {items.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = pathname === item.href
         const Icon = item.icon
 
@@ -38,4 +43,3 @@ export function SettingsNav() {
     </nav>
   )
 }
-

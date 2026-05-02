@@ -1097,7 +1097,7 @@ export function DatasetAnalyzer({
               {capabilities.productRankingAvailable && analysis.business_analysis.kpis.topProducts.length > 0 && (
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white text-base">Top Products</CardTitle>
+                    <CardTitle className="text-foreground text-base">Top Products</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="space-y-1">
@@ -1110,7 +1110,7 @@ export function DatasetAnalyzer({
                             <span className={`text-sm font-medium ${idx === 0 ? 'text-violet-400' : 'text-muted-foreground'}`}>
                               {idx + 1}.
                             </span>
-                            <span className={`font-medium truncate ${idx === 0 ? 'text-white' : 'text-foreground'}`}>
+                            <span className="font-medium truncate text-foreground">
                               {item.name}
                             </span>
                           </div>
@@ -1132,7 +1132,7 @@ export function DatasetAnalyzer({
               {capabilities.regionRankingAvailable && analysis.business_analysis.kpis.topRegions.length > 0 && (
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white text-base">Revenue by Region/Country</CardTitle>
+                    <CardTitle className="text-foreground text-base">Revenue by Region/Country</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {/* Debug: Log the data */}
@@ -1163,7 +1163,7 @@ export function DatasetAnalyzer({
            {validatedInsights.length > 0 && (
              <Card className="bg-card border-border">
                <CardHeader className="pb-3">
-                 <CardTitle className="text-white flex items-center gap-2 text-base">
+                 <CardTitle className="text-foreground flex items-center gap-2 text-base">
                    <Lightbulb className="h-4 w-4 text-amber-400" />
                    Business Insights
                  </CardTitle>
@@ -1195,7 +1195,7 @@ export function DatasetAnalyzer({
                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                              insight.reliability === 'verified' ? 'bg-emerald-900/30 text-emerald-400' :
                              insight.reliability === 'estimated' ? 'bg-amber-900/30 text-amber-400' :
-                             'bg-neutral-700 text-muted-foreground'
+                             'bg-muted text-muted-foreground'
                            }`}>
                              {insight.reliability === 'verified' ? '✓ Verified' : 
                               insight.reliability === 'estimated' ? '~ Estimated' : 
@@ -1214,7 +1214,7 @@ export function DatasetAnalyzer({
           {validatedRecommendations.length > 0 && (
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white flex items-center gap-2 text-base">
+                <CardTitle className="text-foreground flex items-center gap-2 text-base">
                   <TrendingUp className="h-4 w-4 text-emerald-400" />
                   Recommended Actions
                 </CardTitle>
@@ -1291,13 +1291,13 @@ export function DatasetAnalyzer({
                          })
                        }}
                      >
-                       <div className="font-semibold text-white group-hover:text-emerald-400 transition-colors">{rec.action}</div>
+                       <div className="font-semibold text-foreground group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">{rec.action}</div>
                        <div className="text-sm text-muted-foreground mt-1">{rec.reason}</div>
                        <div className="text-xs mt-2">
                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                            rec.reliability === 'verified' ? 'bg-emerald-900/30 text-emerald-400' :
                            rec.reliability === 'estimated' ? 'bg-amber-900/30 text-amber-400' :
-                           'bg-neutral-700 text-muted-foreground'
+                           'bg-muted text-muted-foreground'
                          }`}>
                            {rec.reliability === 'verified' ? '✓ Verified' : 
                             rec.reliability === 'estimated' ? '~ Estimated' : 
@@ -1926,10 +1926,10 @@ export function DatasetAnalyzer({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
           <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden">
             <div className="border-b border-border px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">{drilldownItem.title}</h2>
+              <h2 className="text-xl font-bold text-foreground">{drilldownItem.title}</h2>
               <button 
                 onClick={() => setDrilldownItem(null)}
-                className="text-muted-foreground hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>

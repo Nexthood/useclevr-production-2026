@@ -9,9 +9,8 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Download, FileText, Image, File, Presentation, FileSpreadsheet, FileInput, Search, AlertCircle, CheckCircle, Loader2, RefreshCw, Trash2 } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { MegaButton } from "@/components/mega-button"
 import { UpgradeModal } from "@/components/upgrade-modal"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 
 interface DownloadItem {
   id: string
@@ -223,14 +222,14 @@ export default function DownloadsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card h-16">
-        <div className="flex h-16 items-center justify-between px-8">
-          <div className="pl-2">
-            <h1 className="text-xl font-semibold text-foreground">Downloads</h1>
-            <p className="text-sm text-muted-foreground">Manage your exported files</p>
-          </div>
-          <div className="flex items-center gap-3">
+      <AppPageHeader
+        title="Downloads"
+        description="Manage your exported files."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Downloads" },
+        ]}
+        actions={(
             <Button 
               variant="outline" 
               size="sm"
@@ -240,11 +239,8 @@ export default function DownloadsPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <MegaButton />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+        )}
+      />
 
       <main className="p-6">
         <div className="max-w-6xl mx-auto space-y-6 pt-6">

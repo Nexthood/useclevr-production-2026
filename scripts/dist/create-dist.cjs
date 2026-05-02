@@ -72,6 +72,9 @@ if (fs.existsSync(publicDir)) {
   }
 }
 
+// Load root package.json for syncing
+const rootPkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf-8"))
+
 // Write main distribution README
 fs.writeFileSync(
   path.join(distDir, "README.md"),
@@ -85,20 +88,22 @@ fs.writeFileSync(
   ].join("\n"),
 )
 
-// Write package.json and railway.json to dist root as a convenience for hosts
-// configured to deploy the whole dist directory instead of dist/node.
+// Write package.json and railway.json to dist root for hosts configured to
+// deploy `dist` as the project root.
 const rootDistPackage = {
   name: "useclever-2026-dist",
-  version: require(path.join(rootDir, "package.json")).version,
+  version: rootPkg.version,
   private: true,
   type: "commonjs",
   scripts: {
-    start: "AUTH_URL=${AUTH_URL} HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js", // Explicitly set host/port for consistency
+    start: "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
     prod: "pnpm start",
     "prod:start": "pnpm start",
   },
-  engines: require(path.join(rootDir, "package.json")).engines,
-  packageManager: require(path.join(rootDir, "package.json")).packageManager,
+  dependencies: rootPkg.dependencies,
+  devDependencies: { "drizzle-kit": rootPkg.devDependencies["drizzle-kit"] },
+  engines: rootPkg.engines,
+  packageManager: rootPkg.packageManager,
 }
 
 const rootDistRailwayConfig = {
@@ -108,7 +113,7 @@ const rootDistRailwayConfig = {
     buildCommand: "echo 'Using pre-built artifacts from dist/'",
   },
   deploy: {
-    startCommand: "AUTH_URL=${AUTH_URL} HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js", // Consistent with package.json
+    startCommand: "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
     preDeployCommand: "npx drizzle-kit push",
     healthcheckPath: "/api/health",
     healthcheckTimeout: 300,

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm"
 import { User } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProfileForm } from "./profile-form"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 
 export default async function ProfileSettingsPage() {
   const session = await auth()
@@ -13,7 +14,7 @@ export default async function ProfileSettingsPage() {
   let loadError: string | null = null
   let profile: { fullName: string | null; email: string | null } | null = null
 
-  if (user?.id && user.id !== "demo-user-id" && db) {
+  if (user?.id && !isBuiltinUserId(user.id) && db) {
     try {
       profile = await db.query.profiles.findFirst({
         where: eq(profiles.userId, user.id),
@@ -48,7 +49,7 @@ export default async function ProfileSettingsPage() {
         <ProfileForm
           fullName={fullName}
           email={email}
-          isDemo={user?.id === "demo-user-id"}
+          isDemo={isBuiltinUserId(user?.id)}
           loadError={loadError}
         />
       </CardContent>

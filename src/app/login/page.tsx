@@ -3,8 +3,8 @@
 import type React from "react"
 
 import Link from "next/link"
-import { Suspense, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useCallback, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -14,50 +14,81 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useNotice } from "@/components/ui/notice-bar"
 import { Loader2, ArrowRight, Sparkles, Mail, Lock, Rocket, Eye, EyeOff } from "lucide-react"
+import { BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
 
-const DEMO_EMAIL = "demo@useclever.app"
-const DEMO_PASSWORD = "demo"
+const loginPresets = [
+  {
+    label: "Demo account",
+    email: BUILTIN_DEMO_USER.email,
+    password: BUILTIN_DEMO_USER.password,
+    iconClassName: "text-primary",
+  },
+  {
+    label: "Super admin",
+    email: BUILTIN_SUPER_ADMIN_USER.email,
+    password: BUILTIN_SUPER_ADMIN_USER.password,
+    iconClassName: "text-amber-500",
+  },
+]
+
+const getLoginErrorMessage = (code?: string | null) => {
+  if (!code) {
+    return "We could not sign you in. Please try again."
+  }
+
+  if (code === "CredentialsSignin") {
+    return "The email or password does not match our records."
+  }
+
+  if (code === "Configuration") {
+    return "Login is temporarily unavailable. Please contact support."
+  }
+
+  return "We could not sign you in. Please try again."
+}
 
 function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { clearNotice, showNotice } = useNotice()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const getLoginErrorMessage = (code?: string | null) => {
-    if (!code) {
-      return "We could not sign you in. Please try again."
-    }
+  const showLoginError = useCallback(
+    (title: string, message?: string) => {
+      showNotice({
+        type: "error",
+        title,
+        message,
+      })
+    },
+    [showNotice],
+  )
 
-    if (code === "CredentialsSignin") {
-      return "The email or password does not match our records."
-    }
+  useEffect(() => {
+    const errorCode = searchParams.get("error")
+    if (!errorCode) return
 
-    if (code === "Configuration") {
-      return "Login is temporarily unavailable. Please contact support."
-    }
+    showLoginError(
+      getLoginErrorMessage(errorCode),
+      errorCode === "Configuration"
+        ? "The login page is still available, but the auth service needs attention."
+        : "Please check your details and try again.",
+    )
 
-    return "We could not sign you in. Please try again."
-  }
-
-  const showLoginError = (title: string, message?: string) => {
-    showNotice({
-      type: "error",
-      title,
-      message,
-    })
-  }
+    window.history.replaceState(null, "", "/login")
+  }, [searchParams, showLoginError])
 
   const goToDashboard = () => {
     router.replace("/app")
     router.refresh()
   }
 
-  const fillDemoCredentials = () => {
-    setEmail(DEMO_EMAIL)
-    setPassword(DEMO_PASSWORD)
+  const fillCredentials = (preset: (typeof loginPresets)[number]) => {
+    setEmail(preset.email)
+    setPassword(preset.password)
     setShowPassword(false)
   }
 
@@ -71,19 +102,26 @@ function LoginForm() {
         email,
         password,
         redirect: false,
-        redirectTo: "/app",
+        callbackUrl: "/app",
       })
 
-      if (result?.error) {
+      const returnedToLogin =
+        typeof result?.url === "string" &&
+        (result.url.includes("/login") || result.url.includes("error="))
+      const blockedStatus = result?.status === 401 || result?.status === 403
+      const signInSucceeded = Boolean(result && !result.error && !blockedStatus && !returnedToLogin)
+
+      if (!signInSucceeded) {
         showLoginError(
-          getLoginErrorMessage(result.error),
-          result.error === "CredentialsSignin"
+          getLoginErrorMessage(result?.error),
+          result?.error === "CredentialsSignin" || blockedStatus
             ? "Check for typos, then try again. Password resets are not self-service yet."
             : "Your data is safe. This usually means the auth service needs attention.",
         )
-      } else {
-        goToDashboard()
+        return
       }
+
+      goToDashboard()
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
       if (message.toLowerCase().includes("configuration")) {
@@ -104,9 +142,9 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/70 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto flex h-28 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex h-24 items-center">
-            <Logo className="h-24 w-auto" />
+        <div className="container mx-auto flex h-24 items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex h-20 items-center">
+            <Logo className="h-16 w-auto" />
           </Link>
           <ThemeToggle />
         </div>
@@ -126,26 +164,31 @@ function LoginForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <button
-              type="button"
-              onClick={fillDemoCredentials}
-              className="mb-5 w-full rounded-md border border-primary/30 bg-primary/10 p-4 text-left text-sm transition hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <div className="flex items-start gap-3">
-                <Rocket className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                <div className="min-w-0 space-y-1">
-                  <p className="font-semibold text-foreground">Demo account</p>
-                  <div className="grid gap-1 text-sm">
-                    <p className="break-all text-muted-foreground">
-                      Email: <span className="font-medium text-foreground">{DEMO_EMAIL}</span>
-                    </p>
-                    <p className="text-muted-foreground">
-                      Password: <span className="font-medium text-foreground">{DEMO_PASSWORD}</span>
-                    </p>
+            <div className="mb-5 grid gap-3">
+              {loginPresets.map((preset) => (
+                <button
+                  key={preset.email}
+                  type="button"
+                  onClick={() => fillCredentials(preset)}
+                  className="w-full rounded-md border border-primary/30 bg-primary/10 p-4 text-left text-sm transition hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-start gap-3">
+                    <Rocket className={`mt-0.5 h-4 w-4 flex-shrink-0 ${preset.iconClassName}`} />
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-semibold text-foreground">{preset.label}</p>
+                      <div className="grid gap-1 text-sm">
+                        <p className="break-all text-muted-foreground">
+                          Email: <span className="font-medium text-foreground">{preset.email}</span>
+                        </p>
+                        <p className="text-muted-foreground">
+                          Password: <span className="font-medium text-foreground">{preset.password}</span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </button>
+                </button>
+              ))}
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

@@ -252,6 +252,13 @@ export function CsvUpload() {
           setUploadStatus("error")
           setErrorMessage(result.error || "Upload failed")
           setProcessingStep(0)
+          if (result.usage?.limitReached) {
+            showNotice({
+              type: "info",
+              title: "Analyst credit limit reached.",
+              message: "You have used all free dataset credits. Subscribe to Pro or top up to upload another dataset.",
+            })
+          }
         }
       }
     } catch (error) {

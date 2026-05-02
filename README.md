@@ -22,6 +22,7 @@ Next.js 16, React 19, TypeScript 6, Tailwind CSS, Drizzle, Neon PostgreSQL, Auth
 ```bash
 pnpm install
 cp .env.local.example .env.local
+# Set AUTH_URL and AUTH_TRUST_HOST in .env.local
 pnpm dev
 ```
 
@@ -30,10 +31,12 @@ Required env vars:
 ```env
 DATABASE_URL=
 DIRECT_URL=
-AUTH_SECRET=
-AUTH_URL= # Production: https://useclevr-main.up.railway.app (or your custom domain)
-          # Local Dev (pnpm dev): http://localhost:3000
-          # Local Prod (pnpm prod:start): http://localhost:8080
+AUTH_SECRET= # Also supports NEXTAUTH_SECRET
+AUTH_URL= # Production: https://useclevr-main.up.railway.app
+          # Local Dev (pnpm dev): http://localhost:3000 (or comment out for auto-detection)
+          # Local Prod (pnpm prod:local): http://localhost:8080
+          # Also supports NEXTAUTH_URL
+AUTH_TRUST_HOST=true # Required for production, local prod testing, and network dev
 GEMINI_API_KEY=
 ```
 
@@ -63,9 +66,7 @@ Keep root clutter predictable:
 | Path | Purpose | Git policy |
 | --- | --- | --- |
 | `.next/` | Local Next.js dev/build cache created by `pnpm dev` and `pnpm build` | Ignored |
-| `dist/node/` | Standalone Next.js Node server bundle created by `pnpm prod:build` | Production artifact |
-| `dist/static/` | Reserved for future static host-anywhere output | Production artifact |
-| `dist/shared/` | Common copied assets/public files for production outputs | Production artifact |
+| `dist/` | Flat standalone production bundle for Railway deployment | Production artifact |
 | `src/assets/` | App images, downloads, styles, and static assets served through `/assets/...` | Tracked |
 | `src/assets/generated/` | Runtime-generated report files served through `/assets/generated/...` | Ignored except README |
 | `.kilo/agent/*.md` | Durable Kilo agent presets | Tracked |
@@ -77,10 +78,11 @@ Best practice during development: use `pnpm dev` and leave `.next/` ignored. If 
 
 Railway:
 
-- Root directory `/`: build `pnpm prod:build`, start `HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js`.
-- Root directory `dist`: build `echo 'Using pre-built artifacts from dist/'`, start `HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`.
+- Use Railway root directory `dist`.
+- Build command: `echo 'Using pre-built artifacts from dist/'`
+- Start command: `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
 - Health: `/api/health`
-- Railway reads `railway.json` from the selected root directory unless dashboard-level build/start settings override it.
+- Railway reads `dist/railway.json` when the selected root directory is `dist`. Dashboard-level build/start settings override the file if they are set.
 
 Guide: [docs/Developer_Guides/Ops/deploy.md](docs/Developer_Guides/Ops/deploy.md)
 
@@ -102,5 +104,5 @@ The folder `src/app/assets/` is only the route handler that exposes those files.
 - `src/assets/downloads/` for downloadable assets and README metadata
 - `src/assets/generated/` for runtime-generated report files
 ### Deployment Recommendation:
-- Use `dist/node` for Node-compatible hosting (e.g., Railway, Vercel, or a VPS).
+- Use `dist/` for Node-compatible hosting (e.g., Railway, Vercel, or a VPS).
 - Ensure the server has access to the environment variables defined in the project configuration.

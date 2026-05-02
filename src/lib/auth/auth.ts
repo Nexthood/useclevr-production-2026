@@ -7,6 +7,12 @@ import { profiles, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
+import {
+  BUILTIN_DEMO_USER,
+  type BuiltinUserRole,
+  findBuiltinUserByCredentials,
+  isBuiltinUserId,
+} from "@/lib/auth/builtin-users"
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog('[Auth] Module loading - initializing NextAuth v5')
@@ -21,17 +27,6 @@ const getDbClient = () => {
   }
   return client
 }
-
-// Demo user - no database required
-const DEMO_USER = {
-  id: "demo-user-id",
-  email: "demo@useclever.app",
-  name: "Demo User",
-  image: null,
-}
-
-const DEMO_PASSWORD = "demo"
-
 
 /**
  * NextAuth v5 (Auth.js) Configuration
@@ -65,7 +60,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize() {
         // Return demo user directly - no database lookup
         debugLog('[Demo] Demo login authenticated')
-        return DEMO_USER
+        return {
+          id: BUILTIN_DEMO_USER.id,
+          email: BUILTIN_DEMO_USER.email,
+          name: BUILTIN_DEMO_USER.name,
+          image: null,
+          role: BUILTIN_DEMO_USER.role,
+        }
       },
     }),
     // Regular credentials provider for real users
@@ -80,9 +81,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const rawEmail = typeof credentials?.email === "string" ? credentials.email : ""
           const rawPassword = typeof credentials?.password === "string" ? credentials.password : ""
 
-          if (rawEmail.toLowerCase() === DEMO_USER.email && rawPassword === DEMO_PASSWORD) {
-            debugLog('[Demo] Demo credentials authenticated')
-            return DEMO_USER
+          const builtinUser = findBuiltinUserByCredentials(rawEmail, rawPassword)
+          if (builtinUser) {
+            debugLog(`[Auth] Built-in ${builtinUser.role} credentials authenticated`)
+            return {
+              id: builtinUser.id,
+              email: builtinUser.email,
+              name: builtinUser.name,
+              image: null,
+              role: builtinUser.role,
+            }
           }
 
           // Validate input first
@@ -153,6 +161,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Add user ID to token on initial sign in
       if (user) {
         token.id = user.id
+        token.role = ("role" in user ? user.role : "user") as BuiltinUserRole
       }
       // Always return the token
       return token
@@ -168,8 +177,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.id && session.user) {
         const userId = token.id as string
         session.user.id = userId
+        session.user.role = (token.role || "user") as BuiltinUserRole
 
-        if (userId !== "demo-user-id") {
+        if (!isBuiltinUserId(userId)) {
           const dbClient = getDbClient()
 
           if (dbClient) {
@@ -224,12 +234,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Return the redirect URL string, not a Response object
      */
     async redirect({ url, baseUrl }) {
-      // Allows relative URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      // Default to dashboard
-      return `${baseUrl}/app`
+      try {
+        // Allows relative URLs
+        if (url.startsWith("/")) return `${baseUrl}${url}`
+        // Allows URLs on the same origin
+        if (new URL(url).origin === baseUrl) return url
+      } catch (error) {
+        debugWarn("[Auth] Ignoring invalid redirect URL:", error)
+      }
+
+      return `${baseUrl}/login`
     },
   },
   events: {

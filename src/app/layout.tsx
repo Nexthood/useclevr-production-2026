@@ -14,10 +14,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/assets/images/logos/publiclogosuseclevr-dark.png", type: "image/png", sizes: "500x500" },
     ],
     shortcut: "/favicon.svg",
-    apple: "/assets/images/logos/publiclogosuseclevr-dark.png",
+    apple: "/favicon.svg",
   },
   metadataBase: new URL("https://useclevr.com"),
   openGraph: {

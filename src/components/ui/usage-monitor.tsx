@@ -103,7 +103,7 @@ export function useUsage() {
           const data = await res.json()
           setUsage(data.analysisCount || 0)
           setTotal(data.total || 2)
-          setIsPro(data.subscriptionTier === "pro")
+          setIsPro(data.subscriptionTier === "pro" || data.subscriptionTier === "superadmin")
           setLimitReached(Boolean(data.limitReached))
           maybeShowLimitNotice(Boolean(data.limitReached))
         }
@@ -123,7 +123,7 @@ export function useUsage() {
         const data = await res.json()
         setUsage(data.analysisCount || 0)
         setTotal(data.total || 2)
-        setIsPro(data.subscriptionTier === "pro")
+        setIsPro(data.subscriptionTier === "pro" || data.subscriptionTier === "superadmin")
         setLimitReached(Boolean(data.limitReached))
         maybeShowLimitNotice(Boolean(data.limitReached))
       }

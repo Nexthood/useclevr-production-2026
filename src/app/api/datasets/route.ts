@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { datasets, datasetRows } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
-import { consumeAnalystCredit } from "@/lib/usage/analyst-credits"
+import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
 
 export async function GET() {
   try {
@@ -49,6 +49,15 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { name, fileName, fileSize, columns, rows } = body
+
+    const currentUsage = await requireAnalystCredit(session.user.id)
+    if (!currentUsage.canAnalyze) {
+      return NextResponse.json({
+        error: "Analyst credit limit reached",
+        message: "You have used your free dataset credits. Subscribe to Pro or top up to upload another dataset.",
+        usage: currentUsage,
+      }, { status: 402 })
+    }
 
     // Create dataset record
     const datasetId = `ds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

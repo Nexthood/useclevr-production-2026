@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 
 type UpdateProfileResult = {
   success?: boolean
@@ -31,10 +32,10 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
     return { error: "Use a valid email address." }
   }
 
-  if (userId === "demo-user-id") {
+  if (isBuiltinUserId(userId)) {
     return {
       success: true,
-      message: "Demo profile loaded. Changes are not saved for the shared demo account.",
+      message: "Built-in account loaded. Changes are not saved for shared built-in accounts.",
     }
   }
 

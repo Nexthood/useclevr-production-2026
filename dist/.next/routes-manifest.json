@@ -490,6 +490,12 @@
       "namedRegex": "^/app/settings(?:/)?$"
     },
     {
+      "page": "/app/settings/credits",
+      "regex": "^/app/settings/credits(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/credits(?:/)?$"
+    },
+    {
       "page": "/app/settings/preferences",
       "regex": "^/app/settings/preferences(?:/)?$",
       "routeKeys": {},

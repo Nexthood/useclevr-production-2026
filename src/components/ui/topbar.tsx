@@ -1,17 +1,13 @@
 import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { MegaButton } from "@/components/mega-button"
 import Link from "next/link"
 
 export default async function Topbar() {
   const session = await auth()
-
-  const profile = session?.user?.id
-    ? await db.query.profiles.findFirst({ where: eq(profiles.userId, session.user.id) })
-    : null
-
-  const hasCredits = profile ? (profile.subscriptionTier !== 'free' || profile.freeUploadsUsed < 2) : false
+  const usage = await getAnalystCreditUsage(session?.user?.id)
+  const hasCredits = usage.canAnalyze
 
   return (
     <div className="app-topbar">
@@ -32,7 +28,7 @@ export default async function Topbar() {
                 : "border-muted text-muted-foreground cursor-not-allowed opacity-50"
               }`}
             >
-              {hasCredits ? "↑ Upload" : "Limit Reached"}
+              {hasCredits ? "Upload" : "Limit Reached"}
             </Link>
             <Link
               href="/app/datasets"
@@ -44,12 +40,8 @@ export default async function Topbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="h-7 px-3 text-[10px] uppercase font-bold tracking-widest border border-primary/30 rounded-md hover:bg-primary/10 transition-colors">
-            Hybrid AI
-          </button>
-          <div className="h-7 w-7 rounded-md border border-border flex items-center justify-center bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
-             <span className="text-xs">🌓</span>
-          </div>
+          <MegaButton />
+          <ThemeToggle />
         </div>
       </div>
     </div>

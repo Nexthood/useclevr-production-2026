@@ -1,7 +1,8 @@
 import { debugError } from "@/lib/debug"
 import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { datasets, profiles } from "@/lib/db/schema"
+import { count, eq } from "drizzle-orm"
+import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
 
 export const FREE_ANALYST_CREDITS = 2
 
@@ -22,7 +23,17 @@ const defaultUsage: AnalystCreditUsage = {
 }
 
 export async function getAnalystCreditUsage(userId?: string | null): Promise<AnalystCreditUsage> {
-  if (!userId || userId === "demo-user-id") {
+  if (isSuperAdminUserId(userId)) {
+    return {
+      analysisCount: 0,
+      total: 0,
+      subscriptionTier: "superadmin",
+      canAnalyze: true,
+      limitReached: false,
+    }
+  }
+
+  if (!userId || isBuiltinUserId(userId)) {
     return defaultUsage
   }
 
@@ -32,15 +43,21 @@ export async function getAnalystCreditUsage(userId?: string | null): Promise<Ana
   }
 
   try {
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-      columns: {
-        analysisCount: true,
-        subscriptionTier: true,
-      },
-    })
+    const [profile, datasetCountResult] = await Promise.all([
+      db.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+        columns: {
+          subscriptionTier: true,
+        },
+      }),
+      db
+        .select({ value: count() })
+        .from(datasets)
+        .where(eq(datasets.userId, userId)),
+    ])
 
-    const analysisCount = profile?.analysisCount || 0
+    const datasetCount = datasetCountResult[0]?.value || 0
+    const analysisCount = Math.min(datasetCount, FREE_ANALYST_CREDITS)
     const subscriptionTier = profile?.subscriptionTier || "free"
     const isPro = subscriptionTier === "pro"
 
@@ -58,8 +75,8 @@ export async function getAnalystCreditUsage(userId?: string | null): Promise<Ana
 }
 
 export async function consumeAnalystCredit(userId?: string | null): Promise<AnalystCreditUsage> {
-  if (!userId || userId === "demo-user-id") {
-    return defaultUsage
+  if (!userId || isBuiltinUserId(userId)) {
+    return getAnalystCreditUsage(userId)
   }
 
   const db = getDb()
@@ -67,29 +84,24 @@ export async function consumeAnalystCredit(userId?: string | null): Promise<Anal
     return defaultUsage
   }
 
-  const current = await getAnalystCreditUsage(userId)
-  if (current.subscriptionTier === "pro") {
-    return current
-  }
-
-  const nextCount = Math.min(current.analysisCount + 1, FREE_ANALYST_CREDITS)
+  const usage = await getAnalystCreditUsage(userId)
 
   try {
     await db.update(profiles)
       .set({
-        analysisCount: nextCount,
+        analysisCount: usage.analysisCount,
         updatedAt: new Date(),
       })
       .where(eq(profiles.userId, userId))
 
-    return {
-      ...current,
-      analysisCount: nextCount,
-      canAnalyze: nextCount < FREE_ANALYST_CREDITS,
-      limitReached: nextCount >= FREE_ANALYST_CREDITS,
-    }
+    return usage
   } catch (error) {
     debugError("[USAGE] Failed to consume analyst credit:", error)
-    return current
+    return usage
   }
+}
+
+export async function requireAnalystCredit(userId?: string | null): Promise<AnalystCreditUsage> {
+  const usage = await getAnalystCreditUsage(userId)
+  return usage
 }

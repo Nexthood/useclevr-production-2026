@@ -73,32 +73,32 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "14px",
-        md: "10px",
-        sm: "8px",
+        lg: "8px",
+        md: "6px",
+        sm: "4px",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
       },
       fontSize: {
         // Page title - 32px / 700
-        'page-title': ['32px', { lineHeight: '1.2', fontWeight: '700' }],
+        'page-title': ['24px', { lineHeight: '1.2', fontWeight: '700' }],
         // Card title / insight title - 20px / 600
-        'card-title': ['20px', { lineHeight: '1.4', fontWeight: '600' }],
+        'card-title': ['15px', { lineHeight: '1.4', fontWeight: '600' }],
         // Small title - 16px / 600
-        'small-title': ['16px', { lineHeight: '1.4', fontWeight: '600' }],
+        'small-title': ['13px', { lineHeight: '1.4', fontWeight: '600' }],
         // Body large - 16px / 400
-        'body-lg': ['16px', { lineHeight: '1.6', fontWeight: '400' }],
+        'body-lg': ['14px', { lineHeight: '1.6', fontWeight: '400' }],
         // Body default - 15px / 400
-        'body': ['15px', { lineHeight: '1.6', fontWeight: '400' }],
+        'body': ['13px', { lineHeight: '1.6', fontWeight: '400' }],
         // Small/meta text - 13px / 400
-        'meta': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+        'meta': ['11px', { lineHeight: '1.5', fontWeight: '400' }],
         // Caption - 12px / 500
-        'caption': ['12px', { lineHeight: '1.4', fontWeight: '500' }],
+        'caption': ['10px', { lineHeight: '1.4', fontWeight: '500' }],
         // Legacy tokens (for backward compatibility)
-        'title': ['30px', { lineHeight: '1.2', fontWeight: '600' }],
-        'section-title': ['22px', { lineHeight: '1.3', fontWeight: '600' }],
-        'insight': ['17px', { lineHeight: '1.5' }],
+        'title': ['20px', { lineHeight: '1.2', fontWeight: '600' }],
+        'section-title': ['16px', { lineHeight: '1.3', fontWeight: '600' }],
+        'insight': ['14px', { lineHeight: '1.5' }],
       },
       animation: {
         "clevr-float": "clevr-float 4s ease-in-out infinite",

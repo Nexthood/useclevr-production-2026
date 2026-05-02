@@ -1,39 +1,58 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/debug"
 
-import { drizzle } from 'drizzle-orm/neon-http'
-import { neon, neonConfig } from '@neondatabase/serverless'
+import { neon } from '@neondatabase/serverless'
+import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http'
+import { drizzle as drizzlePostgres } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
 import * as schema from './schema'
 
 const globalForDb = globalThis as unknown as {
   db: ReturnType<typeof createDbClient> | undefined
 }
 
+function isServerlessUrl(url: string) {
+  return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('neon://')
+}
+
+function shouldUseServerless(): boolean {
+  return process.env.NEON_USE_SERVERLESS === 'true'
+}
+
 /** Drizzle Database Client singleton with retry logic for cold-start */
 function createDbClient() {
-  const connectionUrl = process.env.DATABASE_URL || process.env.DIRECT_URL
-  
+  const connectionUrl = (process.env.DATABASE_URL || process.env.DIRECT_URL || '').trim()
+
   if (!connectionUrl) {
     debugWarn('[DB] DATABASE_URL not set - database features will be unavailable')
     return null
   }
 
-  // Use Neon HTTP client for serverless/edge compatibility
-  // fetchConnectionCache is now always enabled by Neon and deprecated for manual assignment
-  const sql = neon(connectionUrl)
-  // Initialize Drizzle with Neon client and attach schema for typed `db.query`
-  const db = drizzle(sql, { schema })
+  const useServerless = shouldUseServerless() || isServerlessUrl(connectionUrl)
+
+  let probe: { query: (query: string) => Promise<unknown> }
+  const db = useServerless
+    ? (() => {
+      const sql = neon(connectionUrl)
+      probe = sql
+      return drizzleNeon(sql, { schema })
+    })()
+    : (() => {
+      const pool = new Pool({ connectionString: connectionUrl })
+      probe = pool
+      return drizzlePostgres(pool, { schema })
+    })()
 
   // Test connection in development with retry logic for cold-start
   if (process.env.NODE_ENV === 'development') {
     let retries = 0
     const maxRetries = 5
-    
+
     const tryConnect = () => {
       debugLog(`[DB] Testing connection to database... (attempt ${retries + 1}/${maxRetries})`)
-      sql`SELECT NOW()`.then(() => {
+      probe.query('SELECT NOW()').then(() => {
         debugLog('[DB] Successfully connected to database')
-      }).catch((err) => {
-        debugError(`[DB] Failed to connect (attempt ${retries + 1}):`, err.message)
+      }).catch((err: unknown) => {
+        debugError(`[DB] Failed to connect (attempt ${retries + 1}):`, String(err))
         retries++
         if (retries < maxRetries) {
           // Exponential backoff
@@ -45,7 +64,7 @@ function createDbClient() {
         }
       })
     }
-    
+
     // Start first connection attempt
     setTimeout(tryConnect, 1000)
   }

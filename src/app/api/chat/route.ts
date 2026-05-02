@@ -4,9 +4,11 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { datasets, profiles } from '@/lib/db/schema';
+import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { analyzeCSV, DatasetRecord } from '@/lib/csv-analyzer';
+import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
+import { isBuiltinUserId } from '@/lib/auth/builtin-users';
 import {
   executeQueryPipeline,
   getDatasetSchema,
@@ -103,7 +105,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
   debugLog('[STRICT_SQL] Generating SQL for question:', question);
   
   // Get dataset
-  const dataset = await db.query.datasets.findFirst({
+  const dataset = await db!.query.datasets.findFirst({
     where: eq(datasets.id, datasetId),
   });
   
@@ -249,7 +251,7 @@ async function validateDatasetId(datasetId: string | undefined): Promise<{
     return { valid: false, error: 'No datasetId provided' };
   }
   
-  const dataset = await db.query.datasets.findFirst({
+  const dataset = await db!.query.datasets.findFirst({
     where: eq(datasets.id, datasetId),
   });
   
@@ -570,35 +572,29 @@ export async function POST(request: Request) {
     const session = await auth();
     const userId = session?.user?.id;
     
-    // Only check limits for non-demo users
-    if (userId && userId !== 'demo-user-id') {
-      const profile = await db.query.profiles.findFirst({
-        where: eq(profiles.userId, userId),
-      });
-
-      if (profile && profile.subscriptionTier !== 'pro') {
-        const analysisCount = profile.analysisCount || 0;
-        if (analysisCount >= 2) {
-          debugLog('[CHAT] REJECTED: Free limit reached');
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Free limit reached',
-              message: 'You\'ve used your 2 included Analyst credits. Subscribe to Pro or top up your balance to continue.',
-              upgradeRequired: true,
-              analysisCount: analysisCount,
-              creditsRemaining: 0,
-            },
-            { status: 403 }
-          );
-        }
+    // Only check limits for persisted customer users
+    if (userId && !isBuiltinUserId(userId)) {
+      const usage = await getAnalystCreditUsage(userId);
+      if (usage.limitReached) {
+        debugLog('[CHAT] REJECTED: Free limit reached');
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Free limit reached',
+            message: 'You\'ve used your 2 included Analyst credits. Subscribe to Pro or top up your balance to continue.',
+            upgradeRequired: true,
+            analysisCount: usage.analysisCount,
+            creditsRemaining: 0,
+          },
+          { status: 403 }
+        );
       }
     }
 
     // Validate datasetId exists and belongs to user (if provided)
     if (datasetId) {
       debugLog('[CHAT] Validating datasetId:', datasetId);
-      const dataset = await db.query.datasets.findFirst({
+      const dataset = await db!.query.datasets.findFirst({
         where: eq(datasets.id, datasetId),
       });
       
@@ -680,7 +676,7 @@ export async function POST(request: Request) {
         debugLog('[STRICT_SQL] Failed:', sqlResult.error);
         
         // If analytical query but SQL failed, return specific error with available columns
-        const dataset = await db.query.datasets.findFirst({
+        const dataset = await db!.query.datasets.findFirst({
           where: eq(datasets.id, datasetId),
         });
         const availableCols = (dataset?.columns as string[]) || [];
@@ -757,7 +753,7 @@ export async function POST(request: Request) {
       useProcessedData = true;
     } else if (datasetId) {
       debugLog('[CHAT] Fetching dataset from database...');
-      const dataset = await db.query.datasets.findFirst({
+      const dataset = await db!.query.datasets.findFirst({
         where: eq(datasets.id, datasetId),
       });
 
@@ -1007,26 +1003,6 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
       datasetId,
       responseLength: content.length
     });
-
-    // Increment usage count for non-demo users after successful analysis
-    if (isAnalyticalQuery && userId && userId !== 'demo-user-id') {
-      try {
-        const profile = await db.query.profiles.findFirst({
-          where: eq(profiles.userId, userId),
-        });
-
-        if (profile && profile.subscriptionTier !== 'pro') {
-          const newCount = (profile.analysisCount || 0) + 1;
-          await db.update(profiles)
-            .set({ analysisCount: newCount })
-            .where(eq(profiles.userId, userId));
-          
-          responseData.analysisCount = newCount;
-        }
-      } catch (usageError) {
-        debugError('[CHAT] Failed to increment usage:', usageError);
-      }
-    }
 
     responseData = { 
       success: true, 

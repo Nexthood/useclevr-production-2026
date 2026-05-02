@@ -6,7 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": "cd dist && npx drizzle-kit push",
-    "startCommand": "AUTH_URL=${AUTH_URL} HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js",
+    "startCommand": "cd dist && AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",

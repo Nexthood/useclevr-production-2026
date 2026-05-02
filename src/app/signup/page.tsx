@@ -123,9 +123,9 @@ function SignupForm() {
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col">
         <header className="border-b border-border/40 bg-background/80 backdrop-blur-sm">
-          <div className="container mx-auto flex h-28 items-center justify-between px-4 md:px-6">
-            <Link href="/" className="flex h-24 items-center">
-              <Logo className="h-24 w-auto" />
+          <div className="container mx-auto flex h-24 items-center justify-between px-4 md:px-6">
+            <Link href="/" className="flex h-20 items-center">
+              <Logo className="h-16 w-auto" />
             </Link>
             <ThemeToggle />
           </div>

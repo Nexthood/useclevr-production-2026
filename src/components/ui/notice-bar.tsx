@@ -52,9 +52,20 @@ const getFailedInteractionMessage = (status: number) => {
   return "The app could not complete that action. Check the form and try again."
 }
 
+const getFetchUrl = (input: Parameters<typeof window.fetch>[0]) => {
+  if (typeof input === "string") return input
+  if (input instanceof URL) return input.toString()
+  return input.url
+}
+
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
   const [notice, setNotice] = React.useState<Notice | null>(null)
+  const [isAppPath, setIsAppPath] = React.useState(false)
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    setIsAppPath(window.location.pathname.startsWith("/app"))
+  }, [])
 
   const clearNotice = React.useCallback(() => {
     if (timerRef.current) {
@@ -124,8 +135,10 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     window.fetch = async (...args) => {
       try {
         const response = await originalFetch(...args)
+        const requestUrl = getFetchUrl(args[0])
+        const isAuthRequest = requestUrl.includes("/api/auth/")
 
-        if (!response.ok) {
+        if (!response.ok && !isAuthRequest) {
           showNotice({
             type: "error",
             title: "Action failed.",
@@ -155,7 +168,12 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     <NoticeContext.Provider value={{ notice, showNotice, clearNotice }}>
       {children}
       {notice && (
-        <div className="fixed inset-x-0 top-3 z-[100] flex justify-center px-4 pointer-events-none">
+        <div
+          className={[
+            "fixed right-0 z-[100] flex justify-center px-4 pointer-events-none",
+            isAppPath ? "left-[220px] top-12" : "left-0 top-3",
+          ].join(" ")}
+        >
           <div
             role={notice.type === "error" ? "alert" : "status"}
             className={[

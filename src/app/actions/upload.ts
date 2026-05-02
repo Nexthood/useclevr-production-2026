@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
-import { consumeAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
 
 interface CsvRow {
   [key: string]: string | number | boolean | null
@@ -281,6 +281,15 @@ export async function uploadCSV(formData: FormData): Promise<{
     
     if (!effectiveUserId) {
       return { success: false, error: "User ID not found. Please sign in again." }
+    }
+
+    const currentUsage = await requireAnalystCredit(effectiveUserId)
+    if (!currentUsage.canAnalyze) {
+      return {
+        success: false,
+        error: "Analyst credit limit reached. Subscribe to Pro or top up to upload another dataset.",
+        usage: currentUsage,
+      }
     }
 
     const file = formData.get("file") as File | null

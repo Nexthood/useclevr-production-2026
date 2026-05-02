@@ -2,8 +2,8 @@ import { debugError, debugLog } from "@/lib/debug"
 
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { datasets, profiles, users } from '@/lib/db/schema'
-import { consumeAnalystCredit } from '@/lib/usage/analyst-credits'
+import { datasets, users } from '@/lib/db/schema'
+import { consumeAnalystCredit, requireAnalystCredit } from '@/lib/usage/analyst-credits'
 import { eq } from 'drizzle-orm'
 import { promises as fs } from 'fs'
 import { NextResponse } from 'next/server'
@@ -385,19 +385,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Pre-flight Credit Check: Prevent upload if limit reached
-    const userProfile = await executeWithRetry(
-      () => database.query.profiles.findFirst({
-        where: eq(profiles.userId, userId),
-      }),
-      'Check user credits'
-    )
-
-    if (userProfile && userProfile.subscriptionTier === 'free' && userProfile.freeUploadsUsed >= 2) {
+    const currentUsage = await requireAnalystCredit(userId)
+    if (!currentUsage.canAnalyze) {
       return NextResponse.json({
-        error: 'Credit limit reached',
-        message: 'You have used your 2 free dataset credits. Please upgrade for more.'
-      }, { status: 403 })
+        error: 'Analyst credit limit reached',
+        message: 'You have used your free dataset credits. Subscribe to Pro or top up to upload another dataset.',
+        usage: currentUsage,
+      }, { status: 402 })
     }
 
     // Get file
@@ -604,10 +598,6 @@ export async function POST(request: Request) {
     debugLog('[UPLOAD] Use /api/datasets/[id]/analyze to analyze.')
     debugLog('[UPLOAD] =============================================')
 
-    // IMPORTANT: Ensure consumeAnalystCredit correctly decrements the user's
-    // available credits or increments freeUploadsUsed in the 'profiles' table.
-    // This function reduces exactly 1 credit for the new dataset. It should be implemented to handle subscription tiers.
-    // The 'usage' object returned should reflect the updated credit status.
     const usage = await consumeAnalystCredit(userId)
 
     // Return success

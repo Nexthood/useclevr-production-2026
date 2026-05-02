@@ -603,6 +603,13 @@ export function ProfitabilityUpload() {
       } else if (result.success && result.redirectTo) {
         window.location.href = result.redirectTo
       } else {
+        if (result.usage?.limitReached) {
+          toast({
+            title: "Analyst credit limit reached",
+            description: "Subscribe to Pro or top up to upload another dataset.",
+            variant: "default",
+          })
+        }
         toast({ title: "Error", description: result.error || "Failed to create analysis", variant: "destructive" })
       }
     } catch (error) {
@@ -1206,7 +1213,7 @@ export function ProfitabilityUpload() {
                       : 'border-border'
                   }`}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <CardTitle className="text-foreground text-sm flex items-center gap-2">
                         Top Cost Categories
                         {/* Highlight salaries/personnel if it's the top cost */}
                         {profitabilityResult.expenseCategories[0]?.[0]?.toLowerCase().includes('salar') && (
@@ -1233,7 +1240,7 @@ export function ProfitabilityUpload() {
                               key={idx}
                               className={`flex items-center justify-between p-2 rounded-md transition-all duration-200 ${
                                 idx === 0
-                                  ? (isSalaries ? 'bg-orange-900/20 border border-orange-500/30' : 'bg-muted')
+                                  ? (isSalaries ? 'bg-orange-50 border border-orange-500/30 dark:bg-orange-900/20' : 'bg-muted')
                                   : 'hover:bg-muted/50'
                               }`}
                             >
@@ -1241,7 +1248,7 @@ export function ProfitabilityUpload() {
                                 <span className={`text-xs font-medium ${idx === 0 ? (isSalaries ? 'text-orange-400' : 'text-purple-400') : 'text-muted-foreground'} shrink-0`}>
                                   {idx + 1}.
                                 </span>
-                                <span className={`text-sm truncate ${idx === 0 ? 'text-white' : 'text-foreground'} ${isSalaries ? 'font-medium' : ''}`} title={name}>
+                                <span className={`text-sm truncate text-foreground ${isSalaries ? 'font-medium' : ''}`} title={name}>
                                   {name}
                                   {isSalaries && <span className="text-orange-400 ml-1 text-xs">(Personnel)</span>}
                                 </span>
@@ -1270,7 +1277,7 @@ export function ProfitabilityUpload() {
                       : 'border-border'
                   }`}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <CardTitle className="text-foreground text-sm flex items-center gap-2">
                         {profitabilityResult.revenueByProduct ? 'Revenue by Product' : 'Revenue by Region'}
                         {/* Active indicator */}
                         {activeSection === 'revenue' && (
@@ -1294,7 +1301,7 @@ export function ProfitabilityUpload() {
                                 <span className={`text-xs font-medium ${idx === 0 ? 'text-cyan-400' : 'text-muted-foreground'} shrink-0`}>
                                   {idx + 1}.
                                 </span>
-                                <span className={`text-sm truncate ${idx === 0 ? 'text-white' : 'text-foreground'}`} title={name}>
+                                <span className="text-sm truncate text-foreground" title={name}>
                                   {name}
                                 </span>
                               </div>
@@ -1325,7 +1332,7 @@ export function ProfitabilityUpload() {
             {insights.length > 0 && (
               <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
                     <Lightbulb className="h-4 w-4 text-amber-400" />
                     Business Insights
                   </CardTitle>
@@ -1352,7 +1359,7 @@ export function ProfitabilityUpload() {
             {recommendations.length > 0 && (
               <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
                     <TrendingUp className="h-4 w-4 text-emerald-400" />
                     Recommended Actions
                   </CardTitle>
@@ -1364,7 +1371,7 @@ export function ProfitabilityUpload() {
                         key={idx}
                         className="border-l-2 border-emerald-500 pl-3 py-2"
                       >
-                        <div className="font-medium text-sm text-white">{rec.action}</div>
+                        <div className="font-medium text-sm text-foreground">{rec.action}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">{rec.reason}</div>
                       </div>
                     ))}
@@ -1380,7 +1387,7 @@ export function ProfitabilityUpload() {
             {expenseChartData.length > 0 && (
               <Card className="bg-card border-border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white text-base">Expense Distribution</CardTitle>
+                  <CardTitle className="text-foreground text-base">Expense Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
 <div className="h-[300px]">
@@ -1405,7 +1412,7 @@ export function ProfitabilityUpload() {
             {revenueChartData.length > 0 && (
               <Card className="bg-card border-border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white text-base">Revenue Distribution</CardTitle>
+                  <CardTitle className="text-foreground text-base">Revenue Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
 <div className="h-[300px]">
@@ -1458,7 +1465,7 @@ export function ProfitabilityUpload() {
         <Card className="p-5 bg-card border-border">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-5 w-5 text-primary" />
-            <h3 className="text-base font-semibold text-white">What You'll Get</h3>
+            <h3 className="text-base font-semibold text-foreground">What You'll Get</h3>
           </div>
 
           {/* KPI Cards */}

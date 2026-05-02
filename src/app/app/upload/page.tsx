@@ -1,11 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { FileSpreadsheet, Shield, Zap, CheckCircle2, ArrowLeft, Sparkles, Lock, Gauge, TrendingUp } from "lucide-react"
+import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp } from "lucide-react"
 import { CsvUpload } from "@/components/csv-upload"
 import { ProfitabilityUpload } from "@/components/profitability-upload"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 
 export default function UploadPage() {
   const [uploadMode, setUploadMode] = React.useState<"standard" | "profitability">("standard")
@@ -18,17 +17,15 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card h-16">
-        <div className="flex h-16 items-center px-8 gap-4">
-          <Link href="/app/datasets">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Upload Dataset</h1>
-        </div>
-      </header>
+      <AppPageHeader
+        title="Upload Dataset"
+        description="Add a CSV file and prepare it for analysis."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Datasets", href: "/app/datasets" },
+          { label: "Upload" },
+        ]}
+      />
 
       <main className="flex-1">
         {/* Use wide container for profitability result, narrow for upload */}
