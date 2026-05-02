@@ -1,6 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider"
 import { NoticeProvider } from "@/components/ui/notice-bar"
-import { Topbar } from "@/components/ui/topbar"; // Assuming you'll create this component
 import type { Metadata, Viewport } from "next"
 import type React from "react"
 import "./../assets/styles/globals.css"
@@ -58,9 +57,6 @@ export default function RootLayout({
         {/* Next.js automatically injects meta tags here */}
       </head>
       <body className="flex flex-col min-h-screen">
-        {/* Placeholder for the new Topbar component */}
-        {/* You will need to create src/components/ui/topbar.tsx */}
-        <Topbar />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

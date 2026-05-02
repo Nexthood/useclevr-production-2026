@@ -310,8 +310,9 @@
 
   /* New Topbar for global info and actions */
   .app-topbar {
-    @apply fixed top-0 left-0 right-0 z-[60] w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    @apply fixed top-0 right-0 z-[60] border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
     height: 48px; /* Example height */
+    left: 280px; /* Offset for full-height sidebar width */
     display: flex;
     align-items: center;
     padding: 0 1.5rem;
@@ -348,7 +349,7 @@
 
   .sidebar-logo {
     @apply w-full h-auto object-contain;
-    min-width: 250px; /* Enforce minimum width */
+    min-width: 200px !important; /* Enforced per requirement */
     max-width: 290px; /* Allow some flexibility up to 290px */
   }
 }

@@ -1,4 +1,5 @@
 # Dependencies
+node_modules/
 package-lock.json
 
 # Next.js local dev/build cache. Created by `pnpm dev` and `pnpm build`.
@@ -31,7 +32,10 @@ tsconfig.tsbuildinfo
 # Production output bundle. Created by `pnpm prod:build`.
 # The dist folder contains the production deployment bundle
 !dist/
-!dist/node_modules/ # Ensure node_modules inside dist is ignored if it somehow gets there
+!dist/**
+
+dist/node_modules/
+dist/**/node_modules/
 
 # Editor & IDE
 .vscode/settings.json

@@ -8,6 +8,7 @@ Before making changes, agents should read:
 
 - `AGENTS.md`
 - `ai-chat-behavior.config.ts`
+- `gemini-behavior.config.ts`
 - `kilo.json` when running through Kilo
 
 `ai-chat-behavior.config.ts` is the shared behavior preset for Codex, Kilo, and other AI chat/coding agents. Keep durable project behavior there so it survives moving to a new computer or reinstalling local agent tooling.

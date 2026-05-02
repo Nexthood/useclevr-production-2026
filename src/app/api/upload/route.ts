@@ -1,15 +1,15 @@
-import { debugLog, debugError } from "@/lib/debug"
+import { debugError, debugLog } from "@/lib/debug"
 
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { datasets, datasetRows, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { datasets, profiles, users } from '@/lib/db/schema'
 import { consumeAnalystCredit } from '@/lib/usage/analyst-credits'
-import { parse } from 'papaparse'
-import { v4 as uuidv4 } from 'uuid'
+import { eq } from 'drizzle-orm'
 import { promises as fs } from 'fs'
+import { NextResponse } from 'next/server'
+import { parse } from 'papaparse'
 import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
 
 // ============================================================================
 // Database Retry Helper for Neon Cold Starts
@@ -32,17 +32,17 @@ async function executeWithRetry<T>(
       return result
     } catch (error: any) {
       debugError(`[DB] ${operationName} - Attempt ${attempt} failed:`, error.message)
-      
+
       if (attempt === maxRetries) {
         debugError(`[DB] ${operationName} - All ${maxRetries} attempts failed`)
         throw error
       }
-      
+
       debugLog(`[DB] ${operationName} - Retrying in ${delayMs}ms...`)
       await new Promise(resolve => setTimeout(resolve, delayMs))
     }
   }
-  
+
   throw new Error(`${operationName} failed after ${maxRetries} attempts`)
 }
 
@@ -88,32 +88,32 @@ const EXECUTION_TIMEOUT_MS = 30000 // 30 seconds
 function checkExecutionLoop(commandKey: string, args: string): { allowed: boolean; message?: string } {
   const now = Date.now()
   const existing = executionLog.get(commandKey)
-  
+
   if (existing) {
     // Check timeout - reset if last execution was too long ago
     if (now - existing.lastTime > EXECUTION_TIMEOUT_MS) {
       executionLog.set(commandKey, { count: 1, lastTime: now, lastArgs: args })
       return { allowed: true }
     }
-    
+
     // Check if same command with same args executed too many times
     if (existing.lastArgs === args && existing.count >= MAX_EXECUTION_COUNT) {
-      return { 
-        allowed: false, 
-        message: `Command blocked: '${commandKey}' executed ${MAX_EXECUTION_COUNT}+ times with same arguments. Aborting to prevent infinite loop.` 
+      return {
+        allowed: false,
+        message: `Command blocked: '${commandKey}' executed ${MAX_EXECUTION_COUNT}+ times with same arguments. Aborting to prevent infinite loop.`
       }
     }
-    
+
     // Increment count
-    executionLog.set(commandKey, { 
-      count: existing.count + 1, 
-      lastTime: now, 
-      lastArgs: args 
+    executionLog.set(commandKey, {
+      count: existing.count + 1,
+      lastTime: now,
+      lastArgs: args
     })
   } else {
     executionLog.set(commandKey, { count: 1, lastTime: now, lastArgs: args })
   }
-  
+
   return { allowed: true }
 }
 
@@ -137,18 +137,18 @@ function logExecution(action: string, details: Record<string, any>) {
  */
 function detectDelimiter(text: string): string {
   const firstLines = text.split('\n').slice(0, 5).join('\n')
-  
+
   const delimiters = [',', ';', '\t', '|']
   const counts = delimiters.map(d => ({
     delimiter: d,
     count: (firstLines.match(new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
   }))
-  
+
   const best = counts.reduce((a, b) => a.count > b.count ? a : b)
-  
+
   debugLog('[DELIMITER] Delimiter counts:', counts.map(c => `${c.delimiter}: ${c.count}`).join(', '))
   debugLog('[DELIMITER] Selected:', best.delimiter === '\t' ? 'tab' : best.delimiter)
-  
+
   return best.delimiter
 }
 
@@ -165,9 +165,9 @@ function cleanValue(value: any): string {
  */
 function parseNumericValue(value: string): number | null {
   if (!value || value.trim() === '') return null
-  
+
   let cleaned = value.trim()
-  
+
   // Remove currency symbols (prefix and suffix)
   for (const symbol of CURRENCY_SYMBOLS) {
     if (cleaned.startsWith(symbol)) {
@@ -179,24 +179,24 @@ function parseNumericValue(value: string): number | null {
       break
     }
   }
-  
+
   // Handle accounting format: (100) = -100
   if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
     cleaned = '-' + cleaned.slice(1, -1)
   }
-  
+
   // Remove thousand separators (comma, space)
   cleaned = cleaned.replace(/[, ]/g, '')
-  
+
   // Handle percentage
   const isPercent = cleaned.endsWith('%')
   if (isPercent) {
     cleaned = cleaned.slice(0, -1)
   }
-  
+
   const num = parseFloat(cleaned)
   if (isNaN(num)) return null
-  
+
   return isPercent ? num / 100 : num
 }
 
@@ -213,29 +213,29 @@ function isDateValue(value: string): boolean {
  */
 function parseDateValue(value: string): string | null {
   if (!value || !isDateValue(value)) return null
-  
+
   const trimmed = value.trim()
-  
+
   // ISO format
   if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
     const d = new Date(trimmed)
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
   }
-  
+
   // US: MM/DD/YYYY
   const usMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
   if (usMatch) {
     const d = new Date(parseInt(usMatch[3]), parseInt(usMatch[1]) - 1, parseInt(usMatch[2]))
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
   }
-  
+
   // EU: DD-MM-YYYY or DD.MM.YYYY
   const euMatch = trimmed.match(/^(\d{2})[-.](\d{2})[-.](\d{4})$/)
   if (euMatch) {
     const d = new Date(parseInt(euMatch[3]), parseInt(euMatch[2]) - 1, parseInt(euMatch[1]))
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
   }
-  
+
   return null
 }
 
@@ -252,14 +252,14 @@ function isPlainNumeric(value: string): boolean {
 function detectColumnType(values: string[]): 'numeric' | 'date' | 'currency' | 'text' {
   const samples = values.filter(v => v && v.trim() !== '').slice(0, 100)
   if (samples.length === 0) return 'text'
-  
+
   let currencyCount = 0
   let numericCount = 0
   let dateCount = 0
-  
+
   for (const val of samples) {
     const trimmed = val.trim()
-    
+
     // Check currency first (has symbol)
     if (CURRENCY_SYMBOLS.some(s => trimmed.startsWith(s) || trimmed.endsWith(s))) {
       if (parseNumericValue(trimmed) !== null) {
@@ -267,22 +267,22 @@ function detectColumnType(values: string[]): 'numeric' | 'date' | 'currency' | '
         continue
       }
     }
-    
+
     // Check plain number
     if (isPlainNumeric(trimmed)) {
       numericCount++
       continue
     }
-    
+
     // Check date
     if (isDateValue(trimmed)) {
       dateCount++
       continue
     }
   }
-  
+
   const threshold = samples.length * 0.5
-  
+
   if (currencyCount > threshold) return 'currency'
   if (numericCount > threshold) return 'numeric'
   if (dateCount > threshold) return 'date'
@@ -296,37 +296,37 @@ function processRows(rows: any[], headers: string[]): { processed: any[], column
   if (rows.length === 0 || headers.length === 0) {
     return { processed: [], columnTypes: {} }
   }
-  
+
   // Detect column types from first 100 rows
   const columnTypes: Record<string, string> = {}
-  
+
   for (const header of headers) {
     const values = rows.slice(0, 100).map(row => cleanValue(row[header]))
     columnTypes[header] = detectColumnType(values)
   }
-  
+
   debugLog('[TYPE] Detected column types:', JSON.stringify(columnTypes))
-  
+
   // Count numeric/date columns
   const numericCols = Object.values(columnTypes).filter(t => t === 'numeric' || t === 'currency').length
   const dateCols = Object.values(columnTypes).filter(t => t === 'date').length
   debugLog('[TYPE] Numeric columns:', numericCols)
   debugLog('[TYPE] Date columns:', dateCols)
-  
+
   // Process all rows
   const processed = rows.map(row => {
     const processedRow: any = {}
-    
+
     for (const header of headers) {
       const rawValue = row[header]
       const type = columnTypes[header]
       const cleaned = cleanValue(rawValue)
-      
+
       if (cleaned === '') {
         processedRow[header] = null
         continue
       }
-      
+
       switch (type) {
         case 'currency':
         case 'numeric':
@@ -341,10 +341,10 @@ function processRows(rows: any[], headers: string[]): { processed: any[], column
           processedRow[header] = cleaned
       }
     }
-    
+
     return processedRow
   })
-  
+
   return { processed, columnTypes }
 }
 
@@ -365,7 +365,7 @@ export async function POST(request: Request) {
     // Auth
     const session = await auth()
     const isDemoMode = process.env.DEMO_MODE === 'true' || !session?.user?.id
-    
+
     let userId: string
     if (isDemoMode) {
       debugLog('[UPLOAD] Demo mode - finding demo user')
@@ -385,10 +385,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Pre-flight Credit Check: Prevent upload if limit reached
+    const userProfile = await executeWithRetry(
+      () => database.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+      }),
+      'Check user credits'
+    )
+
+    if (userProfile && userProfile.subscriptionTier === 'free' && userProfile.freeUploadsUsed >= 2) {
+      return NextResponse.json({
+        error: 'Credit limit reached',
+        message: 'You have used your 2 free dataset credits. Please upgrade for more.'
+      }, { status: 403 })
+    }
+
     // Get file
     const formData = await request.formData()
     const file = formData.get('file') as File | null
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
@@ -402,14 +417,14 @@ export async function POST(request: Request) {
     // Read file
     const fileBuffer = await file.arrayBuffer()
     const fileText = Buffer.from(fileBuffer).toString('utf-8')
-    
+
     debugLog('[UPLOAD] File size:', file.size, 'bytes')
     debugLog('[UPLOAD] File text length:', fileText.length, 'chars')
     debugLog('[UPLOAD] First 200 chars:', fileText.slice(0, 200))
 
     // Detect delimiter
     const delimiter = detectDelimiter(fileText)
-    
+
     // Parse CSV with robust options for handling messy files
     const parseResult = parse<any>(fileText, {
       header: true,
@@ -429,21 +444,21 @@ export async function POST(request: Request) {
     if (rawRows.length === 0) {
       return NextResponse.json({ error: 'CSV has no data rows' }, { status: 400 })
     }
-    
+
     if (headers.length === 0) {
       return NextResponse.json({ error: 'CSV has no headers detected' }, { status: 400 })
     }
 
     // Process rows with type detection
     const { processed, columnTypes } = processRows(rawRows, headers)
-    
+
     debugLog('[PROCESSED] First processed row:', JSON.stringify(processed[0]))
-    
+
     // Count columns
     const numericCount = Object.values(columnTypes).filter(t => t === 'numeric' || t === 'currency').length
     const dateCount = Object.values(columnTypes).filter(t => t === 'date').length
     const categoricalCount = Object.values(columnTypes).filter(t => t === 'text').length
-    
+
     debugLog('[SUMMARY] Total rows:', processed.length)
     debugLog('[SUMMARY] Total columns:', headers.length)
     debugLog('[SUMMARY] Numeric columns:', numericCount)
@@ -453,7 +468,7 @@ export async function POST(request: Request) {
     // Generate IDs
     const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`
     const datasetName = file.name.replace(/\.csv$/i, '')
-    
+
     debugLog('[UPLOAD] Creating dataset:', datasetId)
 
     // Verify user exists before insert (foreign key check)
@@ -468,14 +483,14 @@ export async function POST(request: Request) {
       )
       if (!userExists) {
         debugError('[UPLOAD] User does not exist:', userId)
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: 'User not found. Please sign in again.'
         }, { status: 400 })
       }
       debugLog('[UPLOAD] User verified:', userExists.id)
     } catch (userCheckError) {
       debugError('[UPLOAD] Error checking user:', userCheckError)
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: "Database temporarily unavailable. Retrying..."
       }, { status: 503 })
     }
@@ -484,7 +499,7 @@ export async function POST(request: Request) {
 
     // Insert dataset - metadata only (no data column, no datasetRows)
     const now = new Date()
-    
+
     // Build dataset values - includes full data
     const datasetValues: Record<string, any> = {
       id: datasetId,
@@ -525,7 +540,7 @@ export async function POST(request: Request) {
         createdAt: datasetValues.createdAt,
         updatedAt: datasetValues.updatedAt,
       }))
-      
+
       await executeWithRetry(
         () => (db as any).insert(datasets).values(datasetValues),
         'Insert dataset'
@@ -535,7 +550,7 @@ export async function POST(request: Request) {
       debugError('[UPLOAD] DATABASE ERROR - Failed to save file metadata')
       debugError('[UPLOAD] Insert error:', insertError)
       debugError('[UPLOAD] Error message:', insertError instanceof Error ? insertError.message : String(insertError))
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: "Database temporarily unavailable. Retrying..."
       }, { status: 503 })
     }
@@ -562,7 +577,7 @@ export async function POST(request: Request) {
     // Data is processed with DuckDB for analysis
     // User must explicitly request analysis via /api/datasets/[id]/analyze
     // ============================================================================
-    
+
     logExecution('UPLOAD_SUCCESS', {
       datasetId,
       datasetName,
@@ -591,7 +606,7 @@ export async function POST(request: Request) {
 
     // IMPORTANT: Ensure consumeAnalystCredit correctly decrements the user's
     // available credits or increments freeUploadsUsed in the 'profiles' table.
-    // This function's implementation should handle the business logic for credit deduction.
+    // This function reduces exactly 1 credit for the new dataset. It should be implemented to handle subscription tiers.
     // The 'usage' object returned should reflect the updated credit status.
     const usage = await consumeAnalystCredit(userId)
 

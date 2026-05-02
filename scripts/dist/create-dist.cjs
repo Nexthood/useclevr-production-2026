@@ -93,7 +93,7 @@ const rootDistPackage = {
   private: true,
   type: "commonjs",
   scripts: {
-    start: "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js", // Explicitly set host/port for consistency
+    start: "AUTH_URL=${AUTH_URL} HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js", // Explicitly set host/port for consistency
     prod: "pnpm start",
     "prod:start": "pnpm start",
   },
@@ -108,7 +108,7 @@ const rootDistRailwayConfig = {
     buildCommand: "echo 'Using pre-built artifacts from dist/'",
   },
   deploy: {
-    startCommand: "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js", // Consistent with package.json
+    startCommand: "AUTH_URL=${AUTH_URL} HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js", // Consistent with package.json
     preDeployCommand: "npx drizzle-kit push",
     healthcheckPath: "/api/health",
     healthcheckTimeout: 300,

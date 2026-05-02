@@ -71,7 +71,7 @@
     --secondary: 270 50% 65%;
     --secondary-foreground: 0 0% 100%;
     --muted: 214 20% 94%;
-    --muted-foreground: 215 30% 25%; /* Darkened for better contrast in light mode */
+    --muted-foreground: 215 30% 20%; /* Further darkened for light mode readability */
     --accent: 187 79% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
@@ -132,7 +132,7 @@
     --secondary: 263 70% 76%;
     --secondary-foreground: 222 47% 4%;
     --muted: 215 28% 14%;         /* Deeper for contrast */
-    --muted-foreground: 215 24% 90%; /* Near-white metadata */
+    --muted-foreground: 215 24% 85%; /* Balanced for dark mode secondary text */
     --accent: 189 86% 53%;
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
@@ -270,10 +270,11 @@
     margin-top: 0;
     padding: 12px;
     border-radius: 10px;
-    background: hsl(var(--sidebar-accent));
-    border: 1px solid hsl(var(--sidebar-border));
-    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+    background: hsl(var(--sidebar-accent)); /* Use semantic variable */
+    border: 1px solid hsl(var(--sidebar-border)); /* Use semantic variable */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Softer shadow */
     @apply transition-smooth;
+    color: hsl(var(--sidebar-accent-foreground)); /* Ensure text color is readable */
   }
 
   .progress-bar {
@@ -307,21 +308,37 @@
      color: #000000;  /* Black text for better contrast in light mode */
    }
 
+  /* New Topbar for global info and actions */
+  .app-topbar {
+    @apply fixed top-0 left-0 right-0 z-[60] w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    height: 48px; /* Example height */
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    /* Add styles for account name, links, buttons */
+  }
+
   /* Unified Header & Sidebar Styles */
   .app-header {
-    @apply sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    /* Adjusted top to be below the new topbar */
+    @apply sticky top-[48px] z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
     height: 64px;
     display: flex;
     align-items: center;
     padding: 0 1.5rem;
+    /* Add subtle gradient or shadow for depth */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .app-subheader {
-    @apply w-full border-b bg-muted/20 backdrop-blur-sm;
-    min-height: 52px;
+    /* Adjusted top to be below the app-header */
+    @apply sticky top-[112px] z-40 w-full border-b bg-muted/20 backdrop-blur-sm;
+    min-height: 48px; /* Slightly smaller than main header */
     display: flex;
     align-items: center;
     padding: 0.5rem 1.5rem;
+    /* Add subtle gradient or shadow for depth */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
 
   .sidebar-logo-container {
@@ -331,7 +348,7 @@
 
   .sidebar-logo {
     @apply w-full h-auto object-contain;
-    min-width: 250px !important;
-    max-width: 290px;
+    min-width: 250px; /* Enforce minimum width */
+    max-width: 290px; /* Allow some flexibility up to 290px */
   }
 }

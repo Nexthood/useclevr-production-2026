@@ -31,6 +31,9 @@ Required env vars:
 DATABASE_URL=
 DIRECT_URL=
 AUTH_SECRET=
+AUTH_URL= # Production: https://useclevr-main.up.railway.app (or your custom domain)
+          # Local Dev (pnpm dev): http://localhost:3000
+          # Local Prod (pnpm prod:start): http://localhost:8080
 GEMINI_API_KEY=
 ```
 
