@@ -1,24 +1,10 @@
 {
   "model": "openai/codex",
   "default_agent": "codex",
-  "project_instructions": [
+  "instructions": [
     "AGENTS.md",
     "ai-chat-behavior.config.ts"
   ],
-  "behavior_preset": {
-    "name": "useclevr-default",
-    "description": "UseClevr coding and AI chat behavior shared across Codex, Kilo, and other project agents.",
-    "read_before_work": [
-      "AGENTS.md",
-      "ai-chat-behavior.config.ts"
-    ],
-    "rules": [
-      "Follow AGENTS.md for coding work.",
-      "Follow ai-chat-behavior.config.ts for general agent communication, UI, CSS, JavaScript, and AI chat behavior.",
-      "Treat deterministic app logic as the source of truth for business metrics.",
-      "Do not edit generated .next or dist/.next artifacts unless explicitly requested."
-    ]
-  },
   "provider": {
     "openai": {
       "options": {

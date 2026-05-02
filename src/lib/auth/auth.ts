@@ -3,7 +3,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { getDb } from "@/lib/db"
-import { users } from "@/lib/db/schema"
+import { profiles, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
@@ -29,6 +29,8 @@ const DEMO_USER = {
   name: "Demo User",
   image: null,
 }
+
+const DEMO_PASSWORD = "demo"
 
 
 /**
@@ -75,6 +77,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         try {
+          const rawEmail = typeof credentials?.email === "string" ? credentials.email : ""
+          const rawPassword = typeof credentials?.password === "string" ? credentials.password : ""
+
+          if (rawEmail.toLowerCase() === DEMO_USER.email && rawPassword === DEMO_PASSWORD) {
+            debugLog('[Demo] Demo credentials authenticated')
+            return DEMO_USER
+          }
+
           // Validate input first
           const validatedFields = loginSchema.safeParse(credentials)
           
@@ -156,7 +166,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       // Add user ID to session if available
       if (token.id && session.user) {
-        session.user.id = token.id as string
+        const userId = token.id as string
+        session.user.id = userId
+
+        if (userId !== "demo-user-id") {
+          const dbClient = getDbClient()
+
+          if (dbClient) {
+            try {
+              const user = await dbClient.query.users.findFirst({
+                where: eq(users.id, userId),
+              })
+              const profile = await dbClient.query.profiles.findFirst({
+                where: eq(profiles.userId, userId),
+              })
+
+              if (user) {
+                session.user.name = profile?.fullName || user.name
+                session.user.email = profile?.email || user.email
+                session.user.image = profile?.avatarUrl || user.image
+              }
+            } catch (error) {
+              debugWarn("[Auth] Session refresh from database failed:", error)
+            }
+          }
+        }
       }
       // Always return session - even if no changes
       return session

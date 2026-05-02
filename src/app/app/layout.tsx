@@ -1,5 +1,5 @@
 import type React from "react"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "@/components/layout/app-sidebar"
 import { FormattingProvider } from "@/lib/formatting-context"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
@@ -18,7 +18,7 @@ export default async function AppLayout({
   return (
     <FormattingProvider>
       <div className="min-h-screen bg-background">
-        <AppSidebar />
+        <AppSidebar user={session.user} />
         <main className="ml-[240px] min-h-screen">
           {children}
         </main>

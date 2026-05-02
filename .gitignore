@@ -2,7 +2,7 @@
 node_modules/
 package-lock.json
 
-# Next.js
+# Next.js local dev/build cache. Created by `pnpm dev` and `pnpm build`.
 .next/
 next-env.d.ts
 out/
@@ -25,11 +25,11 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Build artifacts
+# Build artifacts and local caches
 .turbo/
 tsconfig.tsbuildinfo
 
-# Railway standalone deploy bundle
+# Railway standalone deploy bundle. Created by `pnpm prod:build`.
 !dist/.next/
 !dist/.next/**
 !dist/node_modules/

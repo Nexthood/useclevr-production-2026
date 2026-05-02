@@ -1,5 +1,0 @@
-'use client'
-
-export function AppSidebar() {
-  return <div>App sidebar placeholder</div>
-}

@@ -401,7 +401,7 @@ export function CsvUpload() {
                   Install UseClevr AI MEGA to analyze datasets offline
                 </p>
                 <Button 
-                  onClick={() => window.open('/app/settings', '_blank')} 
+                  onClick={() => window.open('/app/settings/preferences', '_blank')} 
                   variant="outline" 
                   className="mt-2"
                 >

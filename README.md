@@ -35,8 +35,26 @@ Setup guide: [docs/Developer_Guides/Setup/SETUP.md](docs/Developer_Guides/Setup/
 | `pnpm build` | Build |
 | `pnpm start` | Start built app |
 | `pnpm prod` | Production bundle |
+| `pnpm clean:dev` | Remove local `.next` cache and `tsconfig.tsbuildinfo` |
+| `pnpm clean:prod` | Remove `dist` production bundle plus dev cache |
+| `pnpm clean:generated` | Remove generated public assets |
 | `pnpm db:push` | Push DB schema |
 | `pnpm db:studio` | Open Drizzle Studio |
+
+## Workspace Outputs
+
+Keep root clutter predictable:
+
+| Path | Purpose | Git policy |
+| --- | --- | --- |
+| `.next/` | Local Next.js dev/build cache created by `pnpm dev` and `pnpm build` | Ignored |
+| `dist/` | Standalone production bundle created by `pnpm prod:build` | Production artifact |
+| `public/` | Files that must be served directly from the site root | Tracked, except generated assets |
+| `src/assets/` | App images, downloads, styles, and static assets served through `/assets/...` | Tracked |
+| `.kilo/agent/*.md` | Durable Kilo agent presets | Tracked |
+| `.kilo/*` local state | Kilo sessions, worktrees, node_modules | Ignored |
+
+Best practice during development: use `pnpm dev` and leave `.next/` ignored. If the dev cache gets stale or noisy, run `pnpm clean:dev`. Use `pnpm prod:build` only when you need to regenerate the production `dist/` bundle.
 
 ## Deploy
 
@@ -56,6 +74,8 @@ Guide: [docs/Developer_Guides/Ops/deploy.md](docs/Developer_Guides/Ops/deploy.md
 - [Local agent contract](app/api/local-agent/contract.md)
 
 ## Assets
+
+Use `public/` only when a file must be reachable at a root URL such as `/robots.txt`, `/manifest.webmanifest`, or `/assets/generated/...`.
 
 Static files live in `src/assets/` and are served through `/assets/...`.
 The folder `src/app/assets/` is only the route handler that exposes those files.

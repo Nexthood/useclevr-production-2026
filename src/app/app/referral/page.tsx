@@ -5,7 +5,6 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
 
 
 import { useState } from "react"
-import { AppSidebar } from "@/components/app-sidebar"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Copy, Share2, QrCode, Users, MousePointer, CreditCard, Gift, Check, Sparkles } from "lucide-react"
@@ -47,10 +46,8 @@ export default function ReferralCenter() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <AppSidebar />
-      
-      <main className="flex-1 ml-[240px] p-8">
+    <div className="min-h-screen p-8">
+      <main>
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div>

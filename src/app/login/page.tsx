@@ -1,9 +1,5 @@
 "use client"
 
-import { debugLog, debugError } from "@/lib/debug"
-
-
-
 import type React from "react"
 
 import Link from "next/link"
@@ -18,6 +14,9 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useNotice } from "@/components/ui/notice-bar"
 import { Loader2, ArrowRight, Sparkles, Mail, Lock, Rocket, Eye, EyeOff } from "lucide-react"
+
+const DEMO_EMAIL = "demo@useclever.app"
+const DEMO_PASSWORD = "demo"
 
 function LoginForm() {
   const router = useRouter()
@@ -54,6 +53,12 @@ function LoginForm() {
   const goToDashboard = () => {
     router.replace("/app")
     router.refresh()
+  }
+
+  const fillDemoCredentials = () => {
+    setEmail(DEMO_EMAIL)
+    setPassword(DEMO_PASSWORD)
+    setShowPassword(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,39 +101,12 @@ function LoginForm() {
     }
   }
 
-  const handleDemoLogin = async () => {
-    setIsLoading(true)
-    clearNotice()
-
-    try {
-      debugLog("[LOGIN] Attempting demo login...")
-      const result = await signIn("demo", {
-        redirect: false,
-        redirectTo: "/app",
-      })
-      debugLog("[LOGIN] Demo login result:", result)
-
-      if (result?.error) {
-        debugError("[LOGIN] Demo login error:", result.error)
-        showLoginError(getLoginErrorMessage(result.error), "Please try again in a moment.")
-      } else {
-        debugLog("[LOGIN] Demo login successful, redirecting to /app")
-        goToDashboard()
-      }
-    } catch (error) {
-      debugError("[LOGIN] Demo login exception:", error)
-      showLoginError("Demo access is temporarily unavailable.", "Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/70 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center">
-            <Logo />
+          <Link href="/" className="flex h-10 items-center">
+            <Logo className="h-10 w-auto" />
           </Link>
           <ThemeToggle />
         </div>
@@ -148,22 +126,26 @@ function LoginForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-5 rounded-md border border-primary/30 bg-primary/10 p-4 text-sm">
+            <button
+              type="button"
+              onClick={fillDemoCredentials}
+              className="mb-5 w-full rounded-md border border-primary/30 bg-primary/10 p-4 text-left text-sm transition hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <div className="flex items-start gap-3">
                 <Rocket className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                 <div className="min-w-0 space-y-1">
                   <p className="font-semibold text-foreground">Demo account</p>
                   <div className="grid gap-1 text-sm">
                     <p className="break-all text-muted-foreground">
-                      Email: <span className="font-medium text-foreground">demo@useclever.app</span>
+                      Email: <span className="font-medium text-foreground">{DEMO_EMAIL}</span>
                     </p>
                     <p className="text-muted-foreground">
-                      Password: <span className="font-medium text-foreground">demo</span>
+                      Password: <span className="font-medium text-foreground">{DEMO_PASSWORD}</span>
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -229,24 +211,6 @@ function LoginForm() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
-              </Button>
-
-              <Button 
-                type="button" 
-                variant="secondary" 
-                className="w-full relative border border-secondary/30 shadow-sm" 
-                disabled={isLoading}
-                onClick={handleDemoLogin}
-              >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Rocket className="mr-2 h-4 w-4" />
-                )}
-                Try Demo Account
-                <span className="ml-2 rounded-full bg-amber-400/20 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
-                  Demo
-                </span>
               </Button>
             </form>
 

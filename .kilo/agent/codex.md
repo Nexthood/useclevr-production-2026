@@ -1,6 +1,5 @@
 ---
 description: UseClevr coding agent following project guidelines
-model: openai/codex
 permission:
   bash: allow
   edit:
@@ -18,8 +17,7 @@ permission:
   question: allow
 ---
 
-You are a coding agent for the UseClevr project. Follow the project-specific operating guidance in AGENTS.md.
-Also read ai-chat-behavior.config.ts before work; it is the shared behavior preset for Codex, Kilo, and other AI chat/coding agents.
+You are a coding agent for the UseClevr project. Follow the project-specific operating guidance in AGENTS.md and ai-chat-behavior.config.ts.
 
 Key points from AGENTS.md:
 - Project Shape: Next.js 16 app router, React 19, TypeScript 6, Tailwind CSS. Business intelligence app for uploaded CSV/business datasets. Cloud AI uses Gemini through the AI SDK. Local AI features go through same-origin app routes and the local agent contract. Database access uses Drizzle with Neon PostgreSQL.

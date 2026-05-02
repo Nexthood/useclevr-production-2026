@@ -16,8 +16,8 @@ export function PublicHeader() {
     <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
         {/* Left - Logo */}
-        <Link href="/" className="flex items-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md">
-          <Logo />
+        <Link href="/" className="flex h-12 items-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md">
+          <Logo className="h-12 w-auto" />
         </Link>
         
         {/* Center - Navigation */}

@@ -2,23 +2,38 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Database, FileText, Settings, LogOut, Home, Sparkles, User, HelpCircle, CreditCard, Download, Gift, FileText as DocIcon } from "lucide-react"
+import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { UsageMonitor } from "@/components/usage-monitor"
 import { useUsage } from "@/components/usage-monitor"
 import { useState } from "react"
+import type { Session } from "next-auth"
 
 const navigation = [
-  { name: "Home", href: "/app", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/app", icon: LayoutDashboard },
   { name: "Datasets", href: "/app/datasets", icon: Database },
   // Analysis is now integrated into the dataset analysis page
   // The "Ask AI" button is available on each dataset's analysis page
-  { name: "Reports", href: "/app/downloads", icon: FileText },
-  { name: "Downloads", href: "/app/downloads", icon: Download },
+  { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Referral", href: "/app/referral", icon: Gift },
 ]
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  user: Session["user"]
+}
+
+function getInitials(name?: string | null, email?: string | null) {
+  const source = name?.trim() || email?.split("@")[0] || "User"
+  const parts = source.split(/\s+/).filter(Boolean)
+
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+
+  return source.slice(0, 2).toUpperCase()
+}
+
+export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname()
   const { usage, isPro, isLoading } = useUsage()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -27,9 +42,8 @@ export function AppSidebar() {
     await signOut({ redirectTo: "/login" })
   }
 
-  // Get user initials from session - would need to pass user data
-  const userInitials = "JD" // Placeholder - would come from session
-  const userName = "Demo User" // Placeholder - would come from session
+  const userName = user.name || user.email?.split("@")[0] || "User"
+  const userInitials = getInitials(user.name, user.email)
   const planStatus = "Free" // Placeholder - would come from subscription
 
   return (
@@ -89,15 +103,15 @@ export function AppSidebar() {
             <div className="absolute bottom-full left-0 right-0 mb-2 p-2 rounded-lg bg-card border border-border shadow-lg">
               <div className="space-y-1">
                 <Link
-                  href="/app/settings"
+                  href="/app/settings/profile"
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
                   onClick={() => setShowUserMenu(false)}
                 >
                   <User className="h-4 w-4" />
-                  Personalization
+                  Profile
                 </Link>
                 <Link
-                  href="/app/settings"
+                  href="/app/settings/preferences"
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
                   onClick={() => setShowUserMenu(false)}
                 >
@@ -105,20 +119,12 @@ export function AppSidebar() {
                   Settings
                 </Link>
                 <Link
-                  href="/pricing"
+                  href="/app/settings/subscription"
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
                   onClick={() => setShowUserMenu(false)}
                 >
                   <CreditCard className="h-4 w-4" />
-                  Upgrade Plan
-                </Link>
-                <Link
-                  href="/contact"
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
-                  onClick={() => setShowUserMenu(false)}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  Help
+                  Subscription
                 </Link>
                 <hr className="my-2 border-border" />
                 <button

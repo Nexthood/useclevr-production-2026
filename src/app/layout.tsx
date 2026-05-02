@@ -12,8 +12,12 @@ export const metadata: Metadata = {
   description: "AI-powered business intelligence without the complexity. Analyze data, get insights in natural language. Free for 14 days.",
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
   icons: {
-    icon: "/assets/images/favicon.svg",
-    apple: "/assets/images/icon.svg",
+    icon: [
+      { url: "/assets/images/logos/publiclogosuseclevr-dark.png", type: "image/png", sizes: "500x500" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    ],
+    shortcut: "/assets/images/logos/publiclogosuseclevr-dark.png",
+    apple: "/assets/images/logos/publiclogosuseclevr-dark.png",
   },
   metadataBase: new URL("https://useclevr.com"),
   openGraph: {

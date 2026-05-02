@@ -490,6 +490,24 @@
       "namedRegex": "^/app/settings(?:/)?$"
     },
     {
+      "page": "/app/settings/preferences",
+      "regex": "^/app/settings/preferences(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/preferences(?:/)?$"
+    },
+    {
+      "page": "/app/settings/profile",
+      "regex": "^/app/settings/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/profile(?:/)?$"
+    },
+    {
+      "page": "/app/settings/subscription",
+      "regex": "^/app/settings/subscription(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/subscription(?:/)?$"
+    },
+    {
       "page": "/app/upload",
       "regex": "^/app/upload(?:/)?$",
       "routeKeys": {},
