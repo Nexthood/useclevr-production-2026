@@ -41,6 +41,21 @@ copyDir(standaloneDir, distDir)
 copyDir(nextStaticDir, distNextStaticDir)
 copyDir(srcAssetsDir, distAssetsDir)
 
+// Flatten standalone's nested dist/ if it exists (Next.js artifact)
+const nestedDistDir = path.join(distDir, "dist")
+if (fs.existsSync(nestedDistDir)) {
+  const nestedItems = fs.readdirSync(nestedDistDir)
+  for (const item of nestedItems) {
+    const src = path.join(nestedDistDir, item)
+    const dst = path.join(distDir, item)
+    // Don't overwrite - move only if destination doesn't exist
+    if (!fs.existsSync(dst)) {
+      fs.cpSync(src, dst, { recursive: true })
+    }
+  }
+  fs.rmSync(nestedDistDir, { recursive: true, force: true })
+}
+
 const result = spawnSync(process.execPath, [writeDistPackageScript], {
   cwd: rootDir,
   stdio: "inherit",

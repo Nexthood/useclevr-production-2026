@@ -21,7 +21,7 @@ const distRailwayConfig = {
   $schema: "https://railway.com/railway.schema.json",
   build: {
     builder: "RAILPACK",
-    buildCommand: "echo \"Using prebuilt Next.js standalone bundle\"",
+    buildCommand: null,
   },
   deploy: {
     startCommand: "node server.js",
