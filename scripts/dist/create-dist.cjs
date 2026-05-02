@@ -137,7 +137,8 @@ const rootDistPackage = {
 const rootDistRailwayConfig = {
   $schema: "https://railway.com/railway.schema.json",
   build: {
-    builder: "NIXPACKS",
+    builder: "RAILPACK",
+    buildCommand: "echo 'Using pre-built artifacts from dist/'",
   },
   deploy: {
     startCommand: "node node/server.js",
@@ -172,7 +173,8 @@ for (const targetDir of [nodeDistDir]) {
     }
   }
 
-  for (const folder of ["src", "dist"]) {
+  // Do NOT remove 'src' if you need the DB schema for migrations/push
+  for (const folder of ["dist"]) {
     const generatedDir = path.join(targetDir, folder)
     if (fs.existsSync(generatedDir)) {
       fs.rmSync(generatedDir, { recursive: true, force: true })

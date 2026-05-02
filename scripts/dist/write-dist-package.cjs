@@ -24,11 +24,12 @@ const distRailwayConfig = {
   $schema: "https://railway.com/railway.schema.json",
   build: {
     builder: "RAILPACK",
+    buildCommand: "echo 'Using pre-built artifacts from dist/node/'",
   },
   deploy: {
     startCommand: "node server.js",
     healthcheckPath: "/api/health",
-    healthcheckTimeout: 100,
+    healthcheckTimeout: 300,
     restartPolicyType: "ON_FAILURE",
     restartPolicyMaxRetries: 10,
   },

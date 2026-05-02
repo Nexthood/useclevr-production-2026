@@ -1,8 +1,14 @@
 # UseClevr 2026
+# Static Distribution
 
 AI business intelligence for uploaded CSV/business datasets.
+This application is designed as a **Hybrid AI Application** and requires a Node.js runtime to function correctly.
 
 UseClevr turns data into dashboards, KPIs, forecasts, verified AI answers, and downloadable reports.
+### Why a pure static export is not supported:
+- **Security:** AI API keys and Database credentials must remain server-side.
+- **Dynamic Features:** Chat, File Uploads, and Database queries require the Next.js server environment.
+- **Middleware:** Authentication and route protection rely on server-side logic.
 
 ## Stack
 
@@ -89,3 +95,6 @@ The folder `src/app/assets/` is only the route handler that exposes those files.
 - `src/assets/scripts/` for build/runtime helper scripts and SQL helpers
 - `src/assets/styles/` for global CSS
 - `src/assets/downloads/` for downloadable assets and README metadata
+### Deployment Recommendation:
+- Use `dist/node` for Node-compatible hosting (e.g., Railway, Vercel, or a VPS).
+- Ensure the server has access to the environment variables defined in the project configuration.
