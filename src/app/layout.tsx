@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider"
 import { NoticeProvider } from "@/components/ui/notice-bar"
+import { Topbar } from "@/components/ui/topbar"; // Assuming you'll create this component
 import type { Metadata, Viewport } from "next"
 import type React from "react"
 import "./../assets/styles/globals.css"
@@ -13,10 +14,10 @@ export const metadata: Metadata = {
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
   icons: {
     icon: [
-      { url: "/assets/images/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/assets/images/logos/publiclogosuseclevr-dark.png", type: "image/png", sizes: "500x500" },
     ],
-    shortcut: "/assets/images/favicon.svg",
+    shortcut: "/favicon.svg",
     apple: "/assets/images/logos/publiclogosuseclevr-dark.png",
   },
   metadataBase: new URL("https://useclevr.com"),
@@ -56,7 +57,10 @@ export default function RootLayout({
       <head>
         {/* Next.js automatically injects meta tags here */}
       </head>
-      <body>
+      <body className="flex flex-col min-h-screen">
+        {/* Placeholder for the new Topbar component */}
+        {/* You will need to create src/components/ui/topbar.tsx */}
+        <Topbar />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

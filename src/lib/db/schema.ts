@@ -1,14 +1,14 @@
 import {
-  pgTable,
-  text,
-  varchar,
-  integer,
   boolean,
-  timestamp,
-  jsonb,
-  uniqueIndex,
   foreignKey,
+  integer,
+  jsonb,
+  pgTable,
   primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
 } from 'drizzle-orm/pg-core'
 
 // User table - NextAuth compatible
@@ -116,6 +116,9 @@ export const profiles = pgTable(
       name: 'Profile_userId_fkey',
     }).onDelete('cascade'),
     userIdIdx: uniqueIndex('Profile_userId_key').on(table.userId),
+    // Ensure that updates to profile fields (e.g., fullName, preferredCurrency)
+    // are handled by corresponding API routes and persist correctly in the database.
+    // The 'updatedAt' timestamp should be automatically managed by Drizzle's defaultNow().
   })
 )
 
@@ -136,34 +139,34 @@ export const datasets = pgTable(
     columns: jsonb('columns').$type<string[]>().default([]).notNull(),
     data: jsonb('data').$type<Record<string, any>[]>().default([]).notNull(),
     columnTypes: jsonb('columnTypes').$type<Record<string, string>>(),
-    
+
     // Pipeline-specific fields
     previewRowCount: integer('previewRowCount').default(1000),
     previewGenerated: boolean('previewGenerated').default(false),
     fullAnalysisCompleted: boolean('fullAnalysisCompleted').default(false),
-    
+
     // Status tracking
     analysisStatus: varchar('analysisStatus', { length: 50 }).default('uploading'),
     analysisProgress: integer('analysisProgress').default(0),
     analysisMessage: text('analysisMessage'),
     analysisError: text('analysisError'),
-    
+
     // Data quality
     invalidRowCount: integer('invalidRowCount').default(0),
     missingValueCounts: jsonb('missingValueCounts').$type<Record<string, number>>(),
-    
+
     // Precomputed metrics (single source of truth)
     precomputedMetrics: jsonb('precomputedMetrics'),
     columnMapping: jsonb('columnMapping'),
     detectedColumns: jsonb('detectedColumns'),
-    
+
     // AI Insights
     aiInsights: jsonb('aiInsights'),
-    
+
     // Legacy field - deprecated
     status: varchar('status', { length: 255 }).default('processing').notNull(),
     analysis: jsonb('analysis').default({}).notNull(),
-    
+
     createdAt: timestamp('createdAt').defaultNow().notNull(),
     updatedAt: timestamp('updatedAt').defaultNow().notNull(),
   },

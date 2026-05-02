@@ -5,7 +5,7 @@
     "buildCommand": "echo 'Using pre-built artifacts from dist/'"
   },
   "deploy": {
-    "startCommand": "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs server.js",
+    "startCommand": "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
     "preDeployCommand": "npx drizzle-kit push",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,

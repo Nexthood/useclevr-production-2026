@@ -16,8 +16,8 @@
     --brand-purple: 271 91% 65%;     /* #a855f7 */
 
     /* Dark theme for AI workspace */
-    --background: 222 47% 4%;     /* #0B0F14 */
-    --foreground: 210 40% 98%;
+    --background: 222 47% 3%;     /* Deepest black */
+    --foreground: 210 40% 98%;    /* Clean white */
     --card: 222 47% 8%;          /* #141A23 */
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 8%;        /* #141A23 */
@@ -29,8 +29,8 @@
     --secondary: 263 55% 78%;      /* #A78BFA - Slightly less saturated, brighter purple */
     --secondary-foreground: 222 47% 4%;
 
-    --muted: 215 20% 25%;         /* #333C4A - Adjusted for better contrast */
-    --muted-foreground: 215 20% 85%; /* Brighter for dark mode readability */
+    --muted: 215 25% 14%;         /* Distinct container background */
+    --muted-foreground: 215 20% 85%; /* High-contrast labels */
     --accent: 189 70% 60%;         /* Cyan */
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
@@ -70,8 +70,8 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 270 50% 65%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 214 20% 90%;
-    --muted-foreground: 215 25% 25%; /* Darker for light mode readability */
+    --muted: 214 20% 94%;
+    --muted-foreground: 215 30% 25%; /* Darkened for better contrast in light mode */
     --accent: 187 79% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
@@ -131,8 +131,8 @@
     --primary-foreground: 222 47% 4%;
     --secondary: 263 70% 76%;
     --secondary-foreground: 222 47% 4%;
-    --muted: 215 28% 17%;
-    --muted-foreground: 215 24% 88%; /* Improved contrast */
+    --muted: 215 28% 14%;         /* Deeper for contrast */
+    --muted-foreground: 215 24% 90%; /* Near-white metadata */
     --accent: 189 86% 53%;
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
@@ -270,13 +270,15 @@
     margin-top: 0;
     padding: 12px;
     border-radius: 10px;
-    background: #141A23;
-    border: 1px solid #2A3442;
+    background: hsl(var(--sidebar-accent));
+    border: 1px solid hsl(var(--sidebar-border));
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+    @apply transition-smooth;
   }
 
   .progress-bar {
     height: 6px;
-    background: #2A3442;
+    background: hsl(var(--muted));
     border-radius: 6px;
     margin-top: 6px;
     overflow: hidden;
@@ -307,7 +309,7 @@
 
   /* Unified Header & Sidebar Styles */
   .app-header {
-    @apply sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+    @apply sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
     height: 64px;
     display: flex;
     align-items: center;
@@ -315,8 +317,8 @@
   }
 
   .app-subheader {
-    @apply w-full border-b bg-muted/30;
-    min-height: 48px;
+    @apply w-full border-b bg-muted/20 backdrop-blur-sm;
+    min-height: 52px;
     display: flex;
     align-items: center;
     padding: 0.5rem 1.5rem;
@@ -329,6 +331,7 @@
 
   .sidebar-logo {
     @apply w-full h-auto object-contain;
-    max-width: 300px;
+    min-width: 250px !important;
+    max-width: 290px;
   }
 }

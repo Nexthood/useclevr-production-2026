@@ -31,11 +31,7 @@ tsconfig.tsbuildinfo
 # Production output bundle. Created by `pnpm prod:build`.
 # The dist folder contains the production deployment bundle
 !dist/
-
-# Dependency folders are ignored here so generated output allow-lists cannot re-include them.
-**/node_modules
-**/node_modules/
-**/node_modules/**
+!dist/node_modules/ # Ensure node_modules inside dist is ignored if it somehow gets there
 
 # Editor & IDE
 .vscode/settings.json

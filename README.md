@@ -74,8 +74,8 @@ Best practice during development: use `pnpm dev` and leave `.next/` ignored. If 
 
 Railway:
 
-- Root directory `/`: build `pnpm prod:build`, start `node -r ./scripts/runtime/load-env.cjs dist/server.js`.
-- Root directory `dist`: build `echo 'Using pre-built artifacts from dist/'`, start `node server.js`.
+- Root directory `/`: build `pnpm prod:build`, start `HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js`.
+- Root directory `dist`: build `echo 'Using pre-built artifacts from dist/'`, start `HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`.
 - Health: `/api/health`
 - Railway reads `railway.json` from the selected root directory unless dashboard-level build/start settings override it.
 

@@ -589,6 +589,10 @@ export async function POST(request: Request) {
     debugLog('[UPLOAD] Use /api/datasets/[id]/analyze to analyze.')
     debugLog('[UPLOAD] =============================================')
 
+    // IMPORTANT: Ensure consumeAnalystCredit correctly decrements the user's
+    // available credits or increments freeUploadsUsed in the 'profiles' table.
+    // This function's implementation should handle the business logic for credit deduction.
+    // The 'usage' object returned should reflect the updated credit status.
     const usage = await consumeAnalystCredit(userId)
 
     // Return success

@@ -5,8 +5,8 @@
     "buildCommand": "pnpm prod:build"
   },
   "deploy": {
-    "preDeployCommand": "cd dist && npx drizzle-kit push",
-    "startCommand": "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js",
+    "preDeployCommand": "cd dist && npx drizzle-kit push", // Assumes 'dist' is the root, so 'drizzle.config.ts' is at 'dist/drizzle.config.ts'
+    "startCommand": "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js", // For when repo root is deployment root
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
