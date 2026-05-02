@@ -46,6 +46,9 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
 
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, email),
+    columns: {
+      id: true,
+    },
   })
 
   if (existingUser && existingUser.id !== userId) {
@@ -61,6 +64,9 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
 
   const existingProfile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
+    columns: {
+      userId: true,
+    },
   })
 
   if (existingProfile) {
@@ -86,4 +92,3 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
 
   return { success: true, message: "Profile saved." }
 }
-

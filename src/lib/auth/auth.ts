@@ -176,14 +176,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             try {
               const user = await dbClient.query.users.findFirst({
                 where: eq(users.id, userId),
+                columns: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                },
               })
               const profile = await dbClient.query.profiles.findFirst({
                 where: eq(profiles.userId, userId),
+                columns: {
+                  fullName: true,
+                  email: true,
+                  avatarUrl: true,
+                },
               })
 
               if (user) {
                 session.user.name = profile?.fullName || user.name
-                session.user.email = profile?.email || user.email
+                session.user.email = profile?.email || user.email || session.user.email
                 session.user.image = profile?.avatarUrl || user.image
               }
             } catch (error) {

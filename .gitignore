@@ -29,11 +29,14 @@ lerna-debug.log*
 .turbo/
 tsconfig.tsbuildinfo
 
-# Railway standalone deploy bundle. Created by `pnpm prod:build`.
-!dist/.next/
-!dist/.next/**
-!dist/node_modules/
-!dist/node_modules/**
+# Production output bundle. Created by `pnpm prod:build`.
+# The dist folder contains the production deployment bundle
+!dist/
+!dist/README.md
+!dist/node/
+!dist/node/**
+!dist/shared/
+!dist/shared/**
 
 # Editor & IDE
 .vscode/settings.json

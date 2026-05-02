@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift } from "lucide-react"
 import { signOut } from "next-auth/react"
+import { Logo } from "@/components/logo"
 import { UsageMonitor } from "@/components/usage-monitor"
 import { useUsage } from "@/components/usage-monitor"
 import { useState } from "react"
@@ -39,7 +40,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleSignOut = async () => {
-    await signOut({ redirectTo: "/login" })
+    await signOut({ redirect: false })
+    window.location.assign("/login")
   }
 
   const userName = user.name || user.email?.split("@")[0] || "User"
@@ -47,29 +49,29 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const planStatus = "Free" // Placeholder - would come from subscription
 
   return (
-      <aside className="fixed left-0 top-0 h-screen w-[240px] bg-sidebar border-r border-sidebar-border flex flex-col z-50">
+      <aside className="fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-col border-r border-sidebar-border bg-sidebar">
         {/* Logo */}
-        <div className="p-5 border-b border-sidebar-border">
-          <Link href="/app" className="flex items-center">
-            <span className="text-xl font-semibold text-sidebar-foreground leading-none">UseClevr</span>
+        <div className="border-b border-sidebar-border px-4 py-3">
+          <Link href="/app" className="flex h-10 items-center">
+            <Logo className="h-9 w-auto" />
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 space-y-1 p-3">
           {navigation.map((item) => {
             const isActive = pathname === item.href
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border"
                     : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                 }`}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0 text-sidebar-foreground" />
+                <item.icon className="h-4 w-4 flex-shrink-0 text-sidebar-foreground" />
                 <span>{item.name}</span>
               </Link>
             )

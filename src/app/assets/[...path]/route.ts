@@ -6,9 +6,25 @@ import { createReadStream, existsSync, statSync } from "node:fs"
 import { extname, relative, resolve } from "node:path"
 import { Readable } from "node:stream"
 
-const distAssetsDir = resolve(process.cwd(), "dist", "assets")
+const distNodeAssetsDir = resolve(process.cwd(), "dist", "node", "assets")
+const distSharedAssetsDir = resolve(process.cwd(), "dist", "shared", "assets")
 const srcAssetsDir = resolve(process.cwd(), "src", "assets")
-const ASSETS_DIR = existsSync(distAssetsDir) ? distAssetsDir : srcAssetsDir
+
+function getAssetsDir() {
+  if (process.env.NODE_ENV !== "production") {
+    return srcAssetsDir
+  }
+
+  if (existsSync(distNodeAssetsDir)) {
+    return distNodeAssetsDir
+  }
+
+  if (existsSync(distSharedAssetsDir)) {
+    return distSharedAssetsDir
+  }
+
+  return srcAssetsDir
+}
 
 const CONTENT_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -33,8 +49,9 @@ type Params = {
 
 export async function GET(_request: Request, { params }: Params) {
   const { path = [] } = await params
-  const filePath = resolve(ASSETS_DIR, ...path)
-  const relativePath = relative(ASSETS_DIR, filePath)
+  const assetsDir = getAssetsDir()
+  const filePath = resolve(assetsDir, ...path)
+  const relativePath = relative(assetsDir, filePath)
 
   if (relativePath.startsWith("..") || relativePath === "" || !existsSync(filePath)) {
     return NextResponse.json({ error: "Asset not found" }, { status: 404 })

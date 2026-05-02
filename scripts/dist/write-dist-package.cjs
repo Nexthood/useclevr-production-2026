@@ -2,6 +2,9 @@ const fs = require("node:fs")
 const path = require("node:path")
 
 const rootPackage = require("../../package.json")
+const outputDir = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.join(process.cwd(), "dist", "node")
 
 const distPackage = {
   name: rootPackage.name,
@@ -32,11 +35,11 @@ const distRailwayConfig = {
 }
 
 fs.writeFileSync(
-  path.join(process.cwd(), "dist", "package.json"),
+  path.join(outputDir, "package.json"),
   `${JSON.stringify(distPackage, null, 2)}\n`,
 )
 
 fs.writeFileSync(
-  path.join(process.cwd(), "dist", "railway.json"),
+  path.join(outputDir, "railway.json"),
   `${JSON.stringify(distRailwayConfig, null, 2)}\n`,
 )

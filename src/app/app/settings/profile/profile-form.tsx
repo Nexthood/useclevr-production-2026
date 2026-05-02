@@ -12,12 +12,25 @@ type ProfileFormProps = {
   fullName: string
   email: string
   isDemo: boolean
+  loadError?: string | null
 }
 
-export function ProfileForm({ fullName, email, isDemo }: ProfileFormProps) {
+export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormProps) {
   const router = useRouter()
   const { showNotice } = useNotice()
   const [isSaving, setIsSaving] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!loadError) {
+      return
+    }
+
+    showNotice({
+      type: "error",
+      title: "Profile loaded partially.",
+      message: loadError,
+    })
+  }, [loadError, showNotice])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -44,6 +57,12 @@ export function ProfileForm({ fullName, email, isDemo }: ProfileFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {loadError && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
+          {loadError}
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="fullName" className="text-foreground">Name</Label>
         <Input
@@ -75,4 +94,3 @@ export function ProfileForm({ fullName, email, isDemo }: ProfileFormProps) {
     </form>
   )
 }
-

@@ -7,7 +7,7 @@ import { SettingsNav } from "./settings-nav"
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background pl-10">
+    <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card h-16">
         <div className="flex h-16 items-center justify-between px-6 gap-4">
           <div className="flex items-center gap-4">
@@ -22,8 +22,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         </div>
       </header>
 
-      <main className="p-6">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 pt-8 md:flex-row">
+      <main className="px-5 py-5">
+        <div className="flex w-full flex-col gap-5 md:flex-row">
           <SettingsNav />
           <section className="min-w-0 flex-1">{children}</section>
         </div>
@@ -31,4 +31,3 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     </div>
   )
 }
-

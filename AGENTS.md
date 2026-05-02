@@ -51,6 +51,8 @@ pnpm db:studio
 - Keep provider secrets server-side only.
 - Browser code should call same-origin API routes for AI work.
 - Log AI/provider failures enough to debug without leaking sensitive prompts or uploaded data.
+- **DO NOT read `dist/`, `.git/`, or `.next/` folders to save input tokens.**
+- Agents must respect rules defined in `.gitignore` and `.aiignore` to prevent unnecessary token consumption.
 
 ## Key Files
 

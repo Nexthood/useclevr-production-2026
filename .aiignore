@@ -1,0 +1,13 @@
+# Folders and files to be ignored by AI agents to optimize token usage
+.next/
+dist/
+.git/
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+*.log
+.env*
+coverage/
+.cache/
+tmp/
+out/

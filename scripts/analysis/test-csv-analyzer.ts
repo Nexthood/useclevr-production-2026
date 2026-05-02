@@ -1,7 +1,7 @@
-import { debugLog, debugError, debugWarn } from "./lib/debug"
+import { debugLog, debugError } from "../../src/lib/debug"
 
 // Test script for CSV analyzer
-import { analyzeCSV, DatasetRecord } from './lib/csv-analyzer'
+import { analyzeCSV, DatasetRecord } from '../../src/lib/csv-analyzer'
 
 // Sample test data
 const testData: DatasetRecord[] = [

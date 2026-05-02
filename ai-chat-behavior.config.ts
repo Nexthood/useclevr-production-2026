@@ -50,6 +50,8 @@ export const aiChatBehaviorConfig = {
       "Do not edit generated .next or dist/.next artifacts unless explicitly asked.",
       "Do not expose provider secrets to browser code.",
       "Use clear names that match the business domain.",
+      "Read and respect `.aiignore` before loading repository context into chat.",
+      "Avoid reading `dist/`, `.git/`, `node_modules/`, or `.next/` folders to save input tokens.",
     ],
   },
 
@@ -62,6 +64,10 @@ export const aiChatBehaviorConfig = {
     globalStyles: "src/assets/styles/globals.css",
     rootAgentGuide: "AGENTS.md",
     rootAiBehaviorConfig: "ai-chat-behavior.config.ts",
+    aiIgnoreFile: ".aiignore",
+    codexIgnoreFile: ".codexignore",
+    publicFolder:
+      "Use only for directly served root files and runtime generated report assets. App assets belong in src/assets.",
   },
 
   javascriptRules: {

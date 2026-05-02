@@ -83,7 +83,7 @@ pnpm db:studio  # Open Drizzle Studio
 ### Production Build
 
 ```bash
-pnpm prod:build  # Output: dist/server.js, dist/.next/, dist/assets/
+pnpm prod:build  # Output: dist/node/server.js, dist/node/.next/, dist/shared/
 pnpm prod:start
 ```
 

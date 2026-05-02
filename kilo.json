@@ -1,15 +1,8 @@
 {
-  "model": "openai/codex",
-  "default_agent": "codex",
+  "$schema": "https://app.kilo.ai/config.json",
   "instructions": [
     "AGENTS.md",
-    "ai-chat-behavior.config.ts"
-  ],
-  "provider": {
-    "openai": {
-      "options": {
-        "apiKey": "${OPENAI_API_KEY}"
-      }
-    }
-  }
+    "ai-chat-behavior.config.ts",
+    ".aiignore"
+  ]
 }

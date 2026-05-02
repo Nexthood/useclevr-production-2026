@@ -9,12 +9,18 @@
     "start:min": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
     "prod:install": "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile",
     "prod:build": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
-    "prod:start": "NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js",
+    "prod:start": "NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/node/server.js",
     "prod": "pnpm prod:install && pnpm prod:build && pnpm prod:start",
+
+    "analyze:business": "tsx scripts/analysis/analyze-business.ts",
+    "test:csv-analyzer": "tsx scripts/analysis/test-csv-analyzer.ts",
+    "test:neon": "bash scripts/health/test-neon-connection.sh",
+
     "clean:dev": "node ./scripts/build/clean-generated.cjs",
     "clean:prod": "node ./scripts/build/clean-generated.cjs --prod",
     "clean:generated": "node ./scripts/build/clean-generated.cjs --generated",
     "clean:all": "node ./scripts/build/clean-generated.cjs --all",
+
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",

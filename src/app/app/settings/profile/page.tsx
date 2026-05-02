@@ -10,11 +10,23 @@ export default async function ProfileSettingsPage() {
   const session = await auth()
   const user = session?.user
   const db = getDb()
-  const profile = user?.id && user.id !== "demo-user-id" && db
-    ? await db.query.profiles.findFirst({
+  let loadError: string | null = null
+  let profile: { fullName: string | null; email: string | null } | null = null
+
+  if (user?.id && user.id !== "demo-user-id" && db) {
+    try {
+      profile = await db.query.profiles.findFirst({
         where: eq(profiles.userId, user.id),
-      })
-    : null
+        columns: {
+          fullName: true,
+          email: true,
+        },
+      }) ?? null
+    } catch (error) {
+      console.error("[Settings] Profile load failed:", error)
+      loadError = "Some profile details could not be loaded. You can still view and update the account fields below."
+    }
+  }
 
   const fullName = profile?.fullName || user?.name || ""
   const email = profile?.email || user?.email || ""
@@ -37,9 +49,9 @@ export default async function ProfileSettingsPage() {
           fullName={fullName}
           email={email}
           isDemo={user?.id === "demo-user-id"}
+          loadError={loadError}
         />
       </CardContent>
     </Card>
   )
 }
-

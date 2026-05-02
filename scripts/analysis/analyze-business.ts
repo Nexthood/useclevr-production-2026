@@ -1,11 +1,15 @@
-import { debugLog, debugError, debugWarn } from "./lib/debug"
+import { debugLog, debugError } from "../../src/lib/debug"
 
 // Full business analysis - using query builder
-import { db } from './lib/db';
-import { datasets } from './lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { db } from '../../src/lib/db/index'
+import { datasets } from '../../src/lib/db/schema'
+import { desc } from 'drizzle-orm'
 
 async function main() {
+  if (!db) {
+    debugError('Database not available. Check DATABASE_URL env var.')
+    process.exit(1)
+  }
   // Use query builder like the debug script
   const result = await db.query.datasets.findMany({
     orderBy: [desc(datasets.createdAt)],

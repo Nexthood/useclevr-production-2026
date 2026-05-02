@@ -19,7 +19,7 @@ export default async function AppLayout({
     <FormattingProvider>
       <div className="min-h-screen bg-background">
         <AppSidebar user={session.user} />
-        <main className="ml-[240px] min-h-screen">
+        <main className="ml-[220px] min-h-screen">
           {children}
         </main>
       </div>

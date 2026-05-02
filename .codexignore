@@ -1,0 +1,22 @@
+# Codex context ignore.
+# Keep this aligned with .aiignore until Codex has a project-specific ignore standard.
+
+.git/
+.next/
+dist/
+node_modules/
+.kilo/node_modules/
+.kilo/worktrees/
+.kilo/package-lock.json
+.kilo/agent-manager.json
+coverage/
+public/assets/generated/
+*.tsbuildinfo
+*.log
+*.tmp
+*.backup*
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
