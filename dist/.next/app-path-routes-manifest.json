@@ -47,12 +47,12 @@
   "/icon.png/route": "/icon.png",
   "/robots.txt/route": "/robots.txt",
   "/sitemap.xml/route": "/sitemap.xml",
-  "/api/agent/install-runtime/route": "/api/agent/install-runtime",
   "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
-  "/api/analyze/route": "/api/analyze",
+  "/api/agent/install-runtime/route": "/api/agent/install-runtime",
   "/api/debug/request-headers/route": "/api/debug/request-headers",
-  "/api/local-ai-install/route": "/api/local-ai-install",
+  "/api/analyze/route": "/api/analyze",
   "/api/local-ai-status/route": "/api/local-ai-status",
+  "/api/local-ai-install/route": "/api/local-ai-install",
   "/api/ollama/pull/route": "/api/ollama/pull",
   "/api/chat/route": "/api/chat",
   "/api/usage/route": "/api/usage",
@@ -80,7 +80,7 @@
   "/checkout/success/page": "/checkout/success",
   "/contact/page": "/contact",
   "/security/page": "/security",
-  "/report/[id]/page": "/report/[id]",
   "/pricing/page": "/pricing",
-  "/terms/page": "/terms"
+  "/terms/page": "/terms",
+  "/report/[id]/page": "/report/[id]"
 }

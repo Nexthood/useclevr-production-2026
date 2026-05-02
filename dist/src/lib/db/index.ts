@@ -1,4 +1,4 @@
-import { debugError, debugLog, debugWarn } from "@/lib/debug"
+import { debugError, debugLog } from "@/lib/debug"
 
 import { neon } from '@neondatabase/serverless'
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http'
@@ -23,8 +23,7 @@ function createDbClient() {
   const connectionUrl = (process.env.DATABASE_URL || process.env.DIRECT_URL || '').trim()
 
   if (!connectionUrl) {
-    debugWarn('[DB] DATABASE_URL not set - database features will be unavailable')
-    return null
+    throw new Error('[DB] DATABASE_URL not set - database features will be unavailable')
   }
 
   const useServerless = shouldUseServerless() || isServerlessUrl(connectionUrl)
@@ -72,7 +71,7 @@ function createDbClient() {
   return db
 }
 
-export const db: ReturnType<typeof createDbClient> = globalForDb.db ?? createDbClient()
+export const db = globalForDb.db ?? createDbClient()
 
 // Null-safe getter for use in other modules
 export function getDb() {
