@@ -1,14 +1,14 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/debug"
 
 
 
 import type React from "react"
 
 import Link from "next/link"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -16,22 +16,70 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useNotice } from "@/components/ui/notice-bar"
 import { Loader2, ArrowRight, Sparkles, Mail, Lock, Rocket } from "lucide-react"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { clearNotice, showNotice } = useNotice()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+
+  const getLoginErrorMessage = (code?: string | null) => {
+    if (!code) {
+      return "We could not sign you in. Please try again."
+    }
+
+    if (code === "CredentialsSignin") {
+      return "The email or password does not match our records."
+    }
+
+    if (code === "Configuration") {
+      return "Login is temporarily unavailable. Please contact support."
+    }
+
+    return "We could not sign you in. Please try again."
+  }
+
+  const showLoginError = (title: string, message?: string) => {
+    showNotice({
+      type: "error",
+      title,
+      message,
+    })
+  }
+
+  const getSafeCallbackUrl = () => {
+    const callbackUrl = searchParams.get("callbackUrl")
+    if (!callbackUrl) return "/app"
+
+    const nextUrl = new URL(callbackUrl, window.location.origin)
+    if (nextUrl.origin !== window.location.origin) {
+      return "/app"
+    }
+
+    if (!nextUrl.pathname.startsWith("/app")) {
+      return "/app"
+    }
+
+    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+  }
+
+  const signupHref = () => {
+    const callbackUrl = getSafeCallbackUrl()
+    if (callbackUrl === "/app") return "/signup"
+    return `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`
+  }
 
   const goToSignedInApp = (url?: string | null) => {
-    const fallbackUrl = "/app"
+    const fallbackUrl = getSafeCallbackUrl()
     const nextUrl = url
       ? new URL(url, window.location.origin)
       : new URL(fallbackUrl, window.location.origin)
 
-    if (nextUrl.origin === window.location.origin) {
+    if (nextUrl.origin === window.location.origin && nextUrl.pathname.startsWith("/app")) {
       router.replace(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`)
       router.refresh()
       return
@@ -43,23 +91,38 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError("")
+    clearNotice()
 
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-        redirectTo: "/app",
+        redirectTo: getSafeCallbackUrl(),
       })
 
       if (result?.error) {
-        setError("Invalid email or password")
+        showLoginError(
+          getLoginErrorMessage(result.error),
+          result.error === "CredentialsSignin"
+            ? "Check for typos, then try again. Password resets are not self-service yet."
+            : "Your data is safe. This usually means the auth service needs attention.",
+        )
       } else {
         goToSignedInApp(result?.url)
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ""
+      if (message.toLowerCase().includes("configuration")) {
+        showLoginError(
+          "Login service is not configured properly.",
+          "Please contact support if this keeps happening.",
+        )
+      } else if (message.toLowerCase().includes("network")) {
+        showLoginError("Network error.", "Please check your connection and try again.")
+      } else {
+        showLoginError("We could not sign you in.", "Please try again in a moment.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -67,26 +130,26 @@ export default function LoginPage() {
 
   const handleDemoLogin = async () => {
     setIsLoading(true)
-    setError("")
+    clearNotice()
 
     try {
       debugLog("[LOGIN] Attempting demo login...")
       const result = await signIn("demo", {
         redirect: false,
-        redirectTo: "/app",
+        redirectTo: getSafeCallbackUrl(),
       })
       debugLog("[LOGIN] Demo login result:", result)
 
       if (result?.error) {
         debugError("[LOGIN] Demo login error:", result.error)
-        setError("Demo login failed. Please try again.")
+        showLoginError(getLoginErrorMessage(result.error), "Please try again in a moment.")
       } else {
         debugLog("[LOGIN] Demo login successful, redirecting to /app")
         goToSignedInApp(result?.url)
       }
     } catch (error) {
       debugError("[LOGIN] Demo login exception:", error)
-      setError("An unexpected error occurred. Please try again.")
+      showLoginError("Demo access is temporarily unavailable.", "Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -94,7 +157,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border/40 bg-background/80 backdrop-blur-sm">
+      <header className="border-b border-border/70 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center">
             <Logo />
@@ -104,7 +167,7 @@ export default function LoginPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-0 shadow-xl bg-card/50 backdrop-blur-sm">
+        <Card className="w-full max-w-md border border-border/80 bg-card/95 shadow-2xl backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
             <div className="flex items-center justify-center mb-2">
               <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center">
@@ -116,33 +179,27 @@ export default function LoginPage() {
               Sign in to continue to UseClevr
             </CardDescription>
             <div className="flex justify-center mt-2">
-              <span className="px-3 py-1 text-xs bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 rounded-full border border-yellow-500/20">
-                🎮 Demo Mode Available
+              <span className="rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-200">
+                Demo mode available
               </span>
             </div>
           </CardHeader>
           <CardContent>
-            {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg mb-4">
-                {error}
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                     <Input
-                     id="email"
-                     type="email"
-                     placeholder="you@example.com"
-                     value={email}
-                     onChange={(e) => setEmail(e.target.value)}
-                     className="pl-10"
-                     required
-                     autoComplete="email"
-                   />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoComplete="email"
+                  />
                 </div>
               </div>
 
@@ -155,16 +212,16 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input
-                     id="password"
-                     type="password"
-                     placeholder="Enter your password"
-                     value={password}
-                     onChange={(e) => setPassword(e.target.value)}
-                     className="pl-10"
-                     required
-                     autoComplete="current-password"
-                   />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoComplete="current-password"
+                  />
                 </div>
               </div>
 
@@ -185,7 +242,7 @@ export default function LoginPage() {
               <Button 
                 type="button" 
                 variant="secondary" 
-                className="w-full relative" 
+                className="w-full relative border border-secondary/30 shadow-sm" 
                 disabled={isLoading}
                 onClick={handleDemoLogin}
               >
@@ -195,7 +252,7 @@ export default function LoginPage() {
                   <Rocket className="mr-2 h-4 w-4" />
                 )}
                 Try Demo Account
-                <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded-full">
+                <span className="ml-2 rounded-full bg-amber-400/20 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
                   Demo
                 </span>
               </Button>
@@ -210,7 +267,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full" disabled>
+            <Button variant="outline" className="w-full opacity-60" disabled>
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -234,7 +291,7 @@ export default function LoginPage() {
 
             <div className="text-center text-sm mt-6">
               <span className="text-muted-foreground">Don't have an account? </span>
-              <Link href="/signup" className="text-primary hover:underline font-medium">
+              <Link href={signupHref()} className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
             </div>
@@ -250,5 +307,13 @@ export default function LoginPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

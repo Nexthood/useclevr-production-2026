@@ -21,12 +21,13 @@ const distRailwayConfig = {
   $schema: "https://railway.com/railway.schema.json",
   build: {
     builder: "RAILPACK",
-    buildCommand: null,
   },
   deploy: {
     startCommand: "node server.js",
-    healthcheckPath: "/",
+    healthcheckPath: "/api/health",
     healthcheckTimeout: 100,
+    restartPolicyType: "ON_FAILURE",
+    restartPolicyMaxRetries: 10,
   },
 }
 

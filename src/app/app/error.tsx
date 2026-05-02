@@ -1,11 +1,12 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError } from "@/lib/debug"
 
 
 
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { useNotice } from "@/components/ui/notice-bar"
 
 export default function AppError({
   error,
@@ -14,9 +15,16 @@ export default function AppError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { showNotice } = useNotice()
+
   useEffect(() => {
     debugError("App error:", error)
-  }, [error])
+    showNotice({
+      type: "error",
+      title: "Dashboard could not load.",
+      message: "Try again, or refresh the page if the problem continues.",
+    })
+  }, [error, showNotice])
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 ml-64">

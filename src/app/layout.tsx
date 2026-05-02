@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider"
+import { NoticeProvider } from "@/components/ui/notice-bar"
 import type { Metadata, Viewport } from "next"
 import type React from "react"
 import "./../assets/styles/globals.css"
@@ -58,7 +59,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <NoticeProvider>{children}</NoticeProvider>
         </ThemeProvider>
       </body>
     </html>

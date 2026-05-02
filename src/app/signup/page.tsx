@@ -3,8 +3,8 @@
 import type React from "react"
 
 import Link from "next/link"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -12,24 +12,55 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useNotice } from "@/components/ui/notice-bar"
 import { signup } from "@/app/actions/auth"
 import { Loader2, ArrowRight, Sparkles, Mail, Lock, User, CheckCircle2, Rocket } from "lucide-react"
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { clearNotice, showNotice } = useNotice()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+
+  const showSignupError = (title: string, message?: string) => {
+    showNotice({
+      type: "error",
+      title,
+      message,
+    })
+  }
+
+  const getSafeCallbackUrl = () => {
+    const callbackUrl = searchParams.get("callbackUrl")
+    if (!callbackUrl) return "/app"
+
+    const nextUrl = new URL(callbackUrl, window.location.origin)
+    if (nextUrl.origin !== window.location.origin) {
+      return "/app"
+    }
+
+    if (!nextUrl.pathname.startsWith("/app")) {
+      return "/app"
+    }
+
+    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+  }
+
+  const goToSignedInApp = () => {
+    router.replace(getSafeCallbackUrl())
+    router.refresh()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError("")
+    clearNotice()
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters")
+      showSignupError("Password is too short.", "Use at least 8 characters.")
       setIsLoading(false)
       return
     }
@@ -42,7 +73,7 @@ export default function SignupPage() {
     const result = await signup(formData)
 
     if (result.error) {
-      setError(result.error)
+      showSignupError(result.error)
       setIsLoading(false)
       return
     }
@@ -52,13 +83,17 @@ export default function SignupPage() {
       email,
       password,
       redirect: false,
+      redirectTo: getSafeCallbackUrl(),
     })
 
     if (signInResult?.error) {
-      setError("Account created! Please sign in to continue.")
+      showNotice({
+        type: "info",
+        title: "Account created.",
+        message: "Please sign in to continue.",
+      })
     } else {
-      router.push("/app")
-      router.refresh()
+      goToSignedInApp()
     }
 
     setIsLoading(false)
@@ -66,7 +101,7 @@ export default function SignupPage() {
 
   const handleDemoSignup = async () => {
     setIsLoading(true)
-    setError("")
+    clearNotice()
 
     const formData = new FormData()
     formData.append("demo", "true")
@@ -74,18 +109,18 @@ export default function SignupPage() {
     const result = await signup(formData)
 
     if (result.error) {
-      setError(result.error)
+      showSignupError(result.error)
     } else {
       // Sign in with demo credentials
       const signInResult = await signIn("demo", {
         redirect: false,
+        redirectTo: getSafeCallbackUrl(),
       })
 
       if (signInResult?.error) {
-        setError("Demo login failed. Please try again.")
+        showSignupError("Demo login failed.", "Please try again.")
       } else {
-        router.push("/app")
-        router.refresh()
+        goToSignedInApp()
       }
     }
 
@@ -126,12 +161,6 @@ export default function SignupPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {error && (
-                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg mb-4">
-                  {error}
-                </div>
-              )}
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-brand-purple">Full name</Label>
@@ -285,5 +314,13 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
   )
 }

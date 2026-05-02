@@ -2,14 +2,14 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "pnpm prod:build",
-    "outputDirectory": "dist"
+    "buildCommand": "pnpm prod:build"
   },
   "deploy": {
     "preDeployCommand": "pnpm db:migrate",
     "startCommand": "pnpm prod:start",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
-    "restartPolicyType": "never"
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }

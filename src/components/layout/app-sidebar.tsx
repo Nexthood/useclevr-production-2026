@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, Database, FileText, Settings, LogOut, Home, Sparkles, User, HelpCircle, CreditCard, Download, Gift, FileText as DocIcon } from "lucide-react"
 import { signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { UsageMonitor } from "@/components/usage-monitor"
 import { useUsage } from "@/components/usage-monitor"
 import { useState } from "react"
@@ -21,14 +20,11 @@ const navigation = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { usage, isPro, isLoading } = useUsage()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push("/login")
-    router.refresh()
+    await signOut({ redirectTo: "/login" })
   }
 
   // Get user initials from session - would need to pass user data
