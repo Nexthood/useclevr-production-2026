@@ -267,6 +267,25 @@
     animation: thinking 1.4s ease-in-out infinite;
   }
 
+  /* Dismissable Notice Bar */
+  .notice-bar {
+    @apply relative flex items-center justify-between px-6 py-2 text-[12px] font-medium transition-all duration-300 w-full border-b;
+  }
+
+  .notice-bar-close {
+    @apply ml-4 p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer;
+  }
+
+  /* Fix Contrast for Gradients in Light Mode */
+  .light .bg-gradient-primary,
+  .light .download-btn,
+  .light [for="hybrid-modal-toggle"],
+  .light .progress-fill,
+  .light .notice-bar.bg-gradient-primary {
+    @apply text-slate-950 font-bold !important;
+    text-shadow: none;
+  }
+
   /* Usage Monitor Styles */
   .usage-box {
     margin-top: 0;
@@ -314,7 +333,7 @@
   .app-topbar {
     @apply fixed top-0 right-0 z-[110] border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
     height: 36px;
-    left: 220px; /* Aligned with sidebar width */
+    left: 240px;
     display: flex;
     align-items: center;
     padding: 0 1rem;
@@ -324,7 +343,8 @@
   /* Unified Header & Sidebar Styles */
   .app-header {
     /* Adjusted top to be below the new topbar */
-    @apply sticky top-[36px] z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    @apply fixed top-[36px] right-0 z-50 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    left: 240px;
     height: 48px;
     display: flex;
     align-items: center;
@@ -335,7 +355,8 @@
 
   .app-subheader {
     /* Adjusted top to be below the app-header */
-    @apply sticky top-[84px] z-40 w-full border-b bg-muted/20 backdrop-blur-sm;
+    @apply sticky top-[84px] z-40 border-b bg-muted/20 backdrop-blur-sm;
+    margin-left: 240px;
     min-height: 36px; /* Slightly smaller than main header */
     display: flex;
     align-items: center;

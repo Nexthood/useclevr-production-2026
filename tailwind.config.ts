@@ -77,6 +77,9 @@ const config: Config = {
         md: "6px",
         sm: "4px",
       },
+      letterSpacing: {
+        tighter: "-0.05em",
+      },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
       },
