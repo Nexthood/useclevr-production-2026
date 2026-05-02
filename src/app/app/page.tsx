@@ -72,7 +72,7 @@ export default async function AppDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-background pl-10">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card h-16">
         <div className="flex h-16 items-center justify-between px-8">

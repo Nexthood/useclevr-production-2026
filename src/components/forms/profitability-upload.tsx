@@ -1,6 +1,6 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/debug"
 
 
 
@@ -672,7 +672,7 @@ export function ProfitabilityUpload() {
                     e.stopPropagation()
                     if (isRevenue) { setRevenueFile(null) } else { setExpenseFile(null) }
                   }}
-                  className="ml-1 text-neutral-400 hover:text-purple-400 shrink-0"
+                  className="ml-1 text-muted-foreground hover:text-purple-400 shrink-0"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -979,7 +979,7 @@ export function ProfitabilityUpload() {
     return (
       <div className="flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-800">
+        <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
           <div>
             <h2 className="text-2xl font-bold">Profitability Analysis</h2>
             <p className="text-sm text-muted-foreground">
@@ -1038,14 +1038,14 @@ export function ProfitabilityUpload() {
               {/* Total Revenue - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'revenue' ? null : 'revenue')}
-                className={`bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-lg p-4 flex flex-col justify-between min-h-[100px] border transition-all duration-200 text-left group ${
+                className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
                   activeSection === 'revenue'
-                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-900/30 to-neutral-800'
-                    : 'border-neutral-800 hover:border-cyan-500/50 hover:bg-gradient-to-br hover:from-cyan-900/20'
+                    ? 'border-cyan-500 bg-cyan-50 dark:bg-gradient-to-br dark:from-cyan-900/30 dark:to-neutral-800'
+                    : 'border-border hover:border-cyan-500/50 hover:bg-cyan-50 dark:hover:bg-gradient-to-br dark:hover:from-cyan-900/20'
                 }`}
               >
-                <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-cyan-400 transition-colors">Total Revenue</span>
-                <div className="text-xl font-bold text-white text-center leading-tight group-hover:text-cyan-400 transition-colors">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-cyan-400 transition-colors">Total Revenue</span>
+                <div className="text-xl font-bold text-foreground text-center leading-tight group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                   {formatCurrencyForKPI(kpis.totalRevenue)}
                 </div>
               </button>
@@ -1053,13 +1053,13 @@ export function ProfitabilityUpload() {
               {/* Total Expenses - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'expenses' ? null : 'expenses')}
-                className={`bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-lg p-4 flex flex-col justify-between min-h-[100px] border transition-all duration-200 text-left group ${
+                className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
                   activeSection === 'expenses'
-                    ? 'border-purple-500 bg-gradient-to-br from-purple-900/30 to-neutral-800'
-                    : 'border-neutral-800 hover:border-purple-500/50 hover:bg-gradient-to-br hover:from-purple-900/20'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-gradient-to-br dark:from-purple-900/30 dark:to-neutral-800'
+                    : 'border-border hover:border-purple-500/50 hover:bg-purple-50 dark:hover:bg-gradient-to-br dark:hover:from-purple-900/20'
                 }`}
               >
-                <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-purple-400 transition-colors">Total Expenses</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-purple-400 transition-colors">Total Expenses</span>
                 <div className="text-xl font-bold text-purple-400 text-center leading-tight group-hover:text-purple-300 transition-colors">
                   {formatCurrencyForKPI(kpis.totalExpenses)}
                 </div>
@@ -1068,13 +1068,13 @@ export function ProfitabilityUpload() {
               {/* Net Profit - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'profit' ? null : 'profit')}
-                className={`bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-lg p-4 flex flex-col justify-between min-h-[100px] border transition-all duration-200 text-left group ${
+                className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
                   activeSection === 'profit'
-                    ? 'border-emerald-500 bg-gradient-to-br from-emerald-900/30 to-neutral-800'
-                    : 'border-neutral-800 hover:border-emerald-500/50 hover:bg-gradient-to-br hover:from-emerald-900/20'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-gradient-to-br dark:from-emerald-900/30 dark:to-neutral-800'
+                    : 'border-border hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-gradient-to-br dark:hover:from-emerald-900/20'
                 }`}
               >
-                <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-emerald-400 transition-colors">Net Profit</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-emerald-400 transition-colors">Net Profit</span>
                 <div className={`text-xl font-bold text-center leading-tight ${kpis.profit >= 0 ? 'text-emerald-400' : 'text-purple-400'} group-hover:text-emerald-300 transition-colors`}>
                   {formatCurrencyForKPI(kpis.profit)}
                 </div>
@@ -1083,13 +1083,13 @@ export function ProfitabilityUpload() {
               {/* Profit Margin - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'margin' ? null : 'margin')}
-                className={`bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-lg p-4 flex flex-col justify-between min-h-[100px] border transition-all duration-200 text-left group ${
+                className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
                   activeSection === 'margin'
-                    ? 'border-blue-500 bg-gradient-to-br from-blue-900/30 to-neutral-800'
-                    : 'border-neutral-800 hover:border-blue-500/50 hover:bg-gradient-to-br hover:from-blue-900/20'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-900/30 dark:to-neutral-800'
+                    : 'border-border hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-gradient-to-br dark:hover:from-blue-900/20'
                 }`}
               >
-                <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Margin</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Margin</span>
                 <div className={`text-xl font-bold text-center leading-tight ${kpis.margin >= 0 ? 'text-blue-400' : 'text-purple-400'} group-hover:text-blue-300 transition-colors`}>
                   {formatPercentSimple(kpis.margin)}
                 </div>
@@ -1101,13 +1101,13 @@ export function ProfitabilityUpload() {
                   onClick={() => setActiveSection(activeSection === 'topcost' ? null : 'topcost')}
                   className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border transition-all duration-200 text-left group ${
                     activeSection === 'topcost'
-                      ? 'border-orange-500 bg-gradient-to-br from-orange-900/40 to-neutral-800'
+                      ? 'border-orange-500 bg-orange-50 dark:bg-gradient-to-br dark:from-orange-900/40 dark:to-neutral-800'
                       : profitabilityResult.expenseCategories[0]?.[0]?.toLowerCase().includes('salar')
-                        ? 'bg-gradient-to-br from-orange-900/40 to-neutral-800 border-orange-500/50 hover:border-orange-500'
-                        : 'bg-gradient-to-br from-neutral-900 to-neutral-800 border-neutral-800 hover:border-orange-500/50'
+                        ? 'border-orange-500/50 bg-orange-50 hover:border-orange-500 dark:bg-gradient-to-br dark:from-orange-900/40 dark:to-neutral-800'
+                        : 'border-border bg-card hover:border-orange-500/50 dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800'
                   }`}
                 >
-                  <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-orange-400 transition-colors">Top Cost Driver</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-orange-400 transition-colors">Top Cost Driver</span>
                   <div className={`text-sm font-bold text-center leading-tight truncate ${
                     profitabilityResult.expenseCategories[0]?.[0]?.toLowerCase().includes('salar')
                       ? 'text-orange-400' : 'text-orange-400'
@@ -1127,9 +1127,9 @@ export function ProfitabilityUpload() {
                   const topCost = profitabilityResult.expenseCategories[0]
                   const concentration = topCost ? ((topCost[1] as number) / totalExpenses * 100) : 0
                   return (
-                    <div className="bg-neutral-900/60 rounded-lg p-3 border border-neutral-800">
-                      <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-medium">Cost Concentration</span>
-                      <div className={`text-lg font-bold mt-1 ${concentration > 40 ? 'text-orange-400' : 'text-neutral-300'}`}>
+                    <div className="bg-card rounded-lg p-3 border border-border">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Cost Concentration</span>
+                      <div className={`text-lg font-bold mt-1 ${concentration > 40 ? 'text-orange-400' : 'text-foreground'}`}>
                         {concentration.toFixed(1)}%
                       </div>
                     </div>
@@ -1138,18 +1138,18 @@ export function ProfitabilityUpload() {
 
                 {/* Revenue-to-Expense Ratio */}
                 {kpis.totalExpenses > 0 && (
-                  <div className="bg-neutral-900/60 rounded-lg p-3 border border-neutral-800">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-medium">Revenue/Expense</span>
-                    <div className="text-lg font-bold text-neutral-300 mt-1">
+                  <div className="bg-card rounded-lg p-3 border border-border">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Revenue/Expense</span>
+                    <div className="text-lg font-bold text-foreground mt-1">
                       {(kpis.totalRevenue / kpis.totalExpenses).toFixed(2)}x
                     </div>
                   </div>
                 )}
 
                 {/* Expense Count */}
-                <div className="bg-neutral-900/60 rounded-lg p-3 border border-neutral-800">
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-medium">Cost Categories</span>
-                  <div className="text-lg font-bold text-neutral-300 mt-1">
+                <div className="bg-card rounded-lg p-3 border border-border">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Cost Categories</span>
+                  <div className="text-lg font-bold text-foreground mt-1">
                     {profitabilityResult.expenseCategories.length}
                   </div>
                 </div>
@@ -1160,9 +1160,9 @@ export function ProfitabilityUpload() {
                   const top3Total = profitabilityResult.expenseCategories.slice(0, 3).reduce((sum: number, [_, val]: [string, number]) => sum + (val as number), 0)
                   const top3Share = top3Total / totalExpenses * 100
                   return (
-                    <div className="bg-neutral-900/60 rounded-lg p-3 border border-neutral-800">
-                      <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-medium">Top 3 Cost Share</span>
-                      <div className="text-lg font-bold text-neutral-300 mt-1">
+                    <div className="bg-card rounded-lg p-3 border border-border">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Top 3 Cost Share</span>
+                      <div className="text-lg font-bold text-foreground mt-1">
                         {top3Share.toFixed(1)}%
                       </div>
                     </div>
@@ -1172,18 +1172,18 @@ export function ProfitabilityUpload() {
             )}
 
             {/* Section Divider */}
-            <div className="border-t border-neutral-800" />
+            <div className="border-t border-border" />
 
             {/* Executive Summary */}
-            <Card className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 border border-neutral-700">
+            <Card className="border border-border bg-card dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-white text-sm">
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm">
                   <Sparkles className="h-4 w-4 text-purple-400" />
                   Executive Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-neutral-300 leading-relaxed">
+                <p className="text-sm text-foreground leading-relaxed">
                   {kpis.profit >= 0
                     ? `Your business generated ${formatCurrencyForKPI(kpis.totalRevenue)} in revenue with ${formatCurrencyForKPI(kpis.totalExpenses)} in expenses, resulting in a net ${formatCurrencyForKPI(kpis.profit)} (${formatPercentSimple(kpis.margin)} margin). ${profitabilityResult.expenseCategories?.[0] ? `The largest expense category is ${profitabilityResult.expenseCategories[0][0]} at ${formatCurrencyForKPI(profitabilityResult.expenseCategories[0][1] as number)}.` : ''}`
                     : `Your business generated ${formatCurrencyForKPI(kpis.totalRevenue)} in revenue but incurred ${formatCurrencyForKPI(kpis.totalExpenses)} in expenses, resulting in a net loss of ${formatCurrencyForKPI(Math.abs(kpis.profit))}. Immediate cost reduction strategies are recommended.`
@@ -1193,17 +1193,17 @@ export function ProfitabilityUpload() {
             </Card>
 
             {/* Section Divider */}
-            <div className="border-t border-neutral-800" />
+            <div className="border-t border-border" />
 
             {/* Key Drivers - Only render if we have data */}
             {(profitabilityResult.expenseCategories?.length > 0 || profitabilityResult.revenueByProduct?.length > 0 || profitabilityResult.revenueByRegion?.length > 0) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Top Cost Categories - Only if we have expense data */}
                 {profitabilityResult.expenseCategories && profitabilityResult.expenseCategories.length > 0 && (
-                  <Card className={`bg-neutral-900 border transition-all duration-300 ${
+                  <Card className={`bg-card border transition-all duration-300 ${
                     activeSection === 'expenses' || activeSection === 'topcost'
                       ? 'border-purple-500 shadow-lg shadow-purple-500/10'
-                      : 'border-neutral-800'
+                      : 'border-border'
                   }`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -1233,24 +1233,24 @@ export function ProfitabilityUpload() {
                               key={idx}
                               className={`flex items-center justify-between p-2 rounded-md transition-all duration-200 ${
                                 idx === 0
-                                  ? (isSalaries ? 'bg-orange-900/20 border border-orange-500/30' : 'bg-neutral-800')
-                                  : 'hover:bg-neutral-800/50'
+                                  ? (isSalaries ? 'bg-orange-900/20 border border-orange-500/30' : 'bg-muted')
+                                  : 'hover:bg-muted/50'
                               }`}
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className={`text-xs font-medium ${idx === 0 ? (isSalaries ? 'text-orange-400' : 'text-purple-400') : 'text-neutral-500'} shrink-0`}>
+                                <span className={`text-xs font-medium ${idx === 0 ? (isSalaries ? 'text-orange-400' : 'text-purple-400') : 'text-muted-foreground'} shrink-0`}>
                                   {idx + 1}.
                                 </span>
-                                <span className={`text-sm truncate ${idx === 0 ? 'text-white' : 'text-neutral-300'} ${isSalaries ? 'font-medium' : ''}`} title={name}>
+                                <span className={`text-sm truncate ${idx === 0 ? 'text-white' : 'text-foreground'} ${isSalaries ? 'font-medium' : ''}`} title={name}>
                                   {name}
                                   {isSalaries && <span className="text-orange-400 ml-1 text-xs">(Personnel)</span>}
                                 </span>
                               </div>
                               <div className="text-right shrink-0">
-                                <div className={`text-sm font-medium ${idx === 0 ? (isSalaries ? 'text-orange-400' : 'text-purple-400') : 'text-neutral-400'}`}>
+                                <div className={`text-sm font-medium ${idx === 0 ? (isSalaries ? 'text-orange-400' : 'text-purple-400') : 'text-muted-foreground'}`}>
                                   {formatCurrencyForKPI(value)}
                                 </div>
-                                <div className="text-[10px] text-neutral-500">
+                                <div className="text-[10px] text-muted-foreground">
                                   {percentage}%
                                 </div>
                               </div>
@@ -1264,10 +1264,10 @@ export function ProfitabilityUpload() {
 
                 {/* Revenue by Product or Region - Only if we have real revenue data */}
                 {(profitabilityResult.revenueByProduct?.length > 0 || profitabilityResult.revenueByRegion?.length > 0) && (
-                  <Card className={`bg-neutral-900 border transition-all duration-300 ${
+                  <Card className={`bg-card border transition-all duration-300 ${
                     activeSection === 'revenue'
                       ? 'border-cyan-500 shadow-lg shadow-cyan-500/10'
-                      : 'border-neutral-800'
+                      : 'border-border'
                   }`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -1288,21 +1288,21 @@ export function ProfitabilityUpload() {
                           return (
                             <div
                               key={idx}
-                              className={`flex items-center justify-between p-2 rounded-md ${idx === 0 ? 'bg-neutral-800' : ''}`}
+                              className={`flex items-center justify-between p-2 rounded-md ${idx === 0 ? 'bg-muted' : ''}`}
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className={`text-xs font-medium ${idx === 0 ? 'text-cyan-400' : 'text-neutral-500'} shrink-0`}>
+                                <span className={`text-xs font-medium ${idx === 0 ? 'text-cyan-400' : 'text-muted-foreground'} shrink-0`}>
                                   {idx + 1}.
                                 </span>
-                                <span className={`text-sm truncate ${idx === 0 ? 'text-white' : 'text-neutral-300'}`} title={name}>
+                                <span className={`text-sm truncate ${idx === 0 ? 'text-white' : 'text-foreground'}`} title={name}>
                                   {name}
                                 </span>
                               </div>
                               <div className="text-right shrink-0">
-                                <div className={`text-sm font-medium ${idx === 0 ? 'text-cyan-400' : 'text-neutral-400'}`}>
+                                <div className={`text-sm font-medium ${idx === 0 ? 'text-cyan-400' : 'text-muted-foreground'}`}>
                                   {formatCurrencyForKPI(value)}
                                 </div>
-                                <div className="text-[10px] text-neutral-500">
+                                <div className="text-[10px] text-muted-foreground">
                                   {percentage}%
                                 </div>
                               </div>
@@ -1318,12 +1318,12 @@ export function ProfitabilityUpload() {
 
             {/* Section Divider - Only show if we have content above */}
             {(profitabilityResult.expenseCategories?.length > 0 || profitabilityResult.revenueByProduct?.length > 0) && insights.length > 0 && (
-              <div className="border-t border-neutral-800" />
+              <div className="border-t border-border" />
             )}
 
             {/* Business Insights - Only if we have insights */}
             {insights.length > 0 && (
-              <Card className="bg-neutral-900 border-neutral-800">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-white flex items-center gap-2 text-sm">
                     <Lightbulb className="h-4 w-4 text-amber-400" />
@@ -1335,7 +1335,7 @@ export function ProfitabilityUpload() {
                     {insights.map((insight, idx) => (
                       <li
                         key={idx}
-                        className="flex items-start gap-2 text-sm text-neutral-300"
+                        className="flex items-start gap-2 text-sm text-foreground"
                       >
                         <span className="text-amber-400 mt-0.5 shrink-0">•</span>
                         <div className="flex-1">
@@ -1350,7 +1350,7 @@ export function ProfitabilityUpload() {
 
             {/* Recommended Actions - Only if we have recommendations */}
             {recommendations.length > 0 && (
-              <Card className="bg-neutral-900 border-neutral-800">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-white flex items-center gap-2 text-sm">
                     <TrendingUp className="h-4 w-4 text-emerald-400" />
@@ -1365,7 +1365,7 @@ export function ProfitabilityUpload() {
                         className="border-l-2 border-emerald-500 pl-3 py-2"
                       >
                         <div className="font-medium text-sm text-white">{rec.action}</div>
-                        <div className="text-xs text-neutral-400 mt-0.5">{rec.reason}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{rec.reason}</div>
                       </div>
                     ))}
                   </div>
@@ -1378,7 +1378,7 @@ export function ProfitabilityUpload() {
           <TabsContent value="visualizations" className="space-y-6 mt-6">
             {/* Expense Distribution Chart */}
             {expenseChartData.length > 0 && (
-              <Card className="bg-neutral-900 border-neutral-800">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-white text-base">Expense Distribution</CardTitle>
                 </CardHeader>
@@ -1403,7 +1403,7 @@ export function ProfitabilityUpload() {
 
             {/* Revenue Distribution Chart */}
             {revenueChartData.length > 0 && (
-              <Card className="bg-neutral-900 border-neutral-800">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-white text-base">Revenue Distribution</CardTitle>
                 </CardHeader>
@@ -1455,7 +1455,7 @@ export function ProfitabilityUpload() {
 
       {/* Live Preview */}
       {(revenueFile || expenseFile) && (
-        <Card className="p-5 bg-neutral-900 border-neutral-800">
+        <Card className="p-5 bg-card border-border">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-5 w-5 text-primary" />
             <h3 className="text-base font-semibold text-white">What You'll Get</h3>
@@ -1463,30 +1463,30 @@ export function ProfitabilityUpload() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div className="bg-neutral-800 rounded-lg p-3">
-              <p className="text-xs text-neutral-400 uppercase">Total Revenue</p>
-              <p className={`text-lg font-bold ${stats.hasRevenue ? 'text-cyan-400' : 'text-neutral-500'}`}>
+            <div className="bg-muted rounded-lg p-3">
+              <p className="text-xs text-muted-foreground uppercase">Total Revenue</p>
+              <p className={`text-lg font-bold ${stats.hasRevenue ? 'text-cyan-400' : 'text-muted-foreground'}`}>
                 {stats.hasRevenue ? formatCurrency(stats.totalRevenue) : "—"}
               </p>
             </div>
-            <div className="bg-neutral-800 rounded-lg p-3">
-              <p className="text-xs text-neutral-400 uppercase">Total Expenses</p>
-              <p className={`text-lg font-bold ${stats.hasExpenses ? 'text-purple-400' : 'text-neutral-500'}`}>
+            <div className="bg-muted rounded-lg p-3">
+              <p className="text-xs text-muted-foreground uppercase">Total Expenses</p>
+              <p className={`text-lg font-bold ${stats.hasExpenses ? 'text-purple-400' : 'text-muted-foreground'}`}>
                 {stats.hasExpenses ? formatCurrency(stats.totalExpenses) : "—"}
               </p>
             </div>
-            <div className="bg-neutral-800 rounded-lg p-3">
-              <p className="text-xs text-neutral-400 uppercase">Estimated Profit</p>
+            <div className="bg-muted rounded-lg p-3">
+              <p className="text-xs text-muted-foreground uppercase">Estimated Profit</p>
               <p className={`text-lg font-bold ${
-                !stats.hasRevenue || !stats.hasExpenses ? 'text-neutral-500' : stats.profit >= 0 ? 'text-cyan-400' : 'text-purple-400'
+                !stats.hasRevenue || !stats.hasExpenses ? 'text-muted-foreground' : stats.profit >= 0 ? 'text-cyan-400' : 'text-purple-400'
               }`}>
                 {stats.hasRevenue && stats.hasExpenses ? formatCurrency(stats.profit) : "—"}
               </p>
             </div>
-            <div className="bg-neutral-800 rounded-lg p-3">
-              <p className="text-xs text-neutral-400 uppercase">Profit Margin</p>
+            <div className="bg-muted rounded-lg p-3">
+              <p className="text-xs text-muted-foreground uppercase">Profit Margin</p>
               <p className={`text-lg font-bold ${
-                !stats.hasRevenue || !stats.hasExpenses ? 'text-neutral-500' : stats.margin >= 0 ? 'text-cyan-400' : 'text-purple-400'
+                !stats.hasRevenue || !stats.hasExpenses ? 'text-muted-foreground' : stats.margin >= 0 ? 'text-cyan-400' : 'text-purple-400'
               }`}>
                 {stats.hasRevenue && stats.hasExpenses ? `${stats.margin.toFixed(1)}%` : "—"}
               </p>
@@ -1494,7 +1494,7 @@ export function ProfitabilityUpload() {
           </div>
 
           {/* Status Note */}
-          <div className="text-xs text-neutral-500 bg-neutral-800/50 rounded-lg p-2.5 mb-4">
+          <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5 mb-4">
             {!stats.hasRevenue && !stats.hasExpenses && "Upload files above to see your profitability analysis."}
             {stats.hasRevenue && !stats.hasExpenses && "⚠️ Add expense data for full profit analysis."}
             {!stats.hasRevenue && stats.hasExpenses && "⚠️ Add revenue data for full profit analysis."}
@@ -1507,11 +1507,11 @@ export function ProfitabilityUpload() {
           {/* Top Expense Categories */}
           {stats.expenseCategories.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs text-neutral-400 uppercase mb-2">Top Cost Categories</p>
+              <p className="text-xs text-muted-foreground uppercase mb-2">Top Cost Categories</p>
               <div className="flex flex-wrap gap-2">
                 {stats.expenseCategories.map(([cat, amount]) => (
-                  <div key={cat} className="px-3 py-1.5 rounded-full bg-neutral-800 border border-neutral-700 text-xs">
-                    <span className="text-neutral-300">{cat}</span>
+                  <div key={cat} className="px-3 py-1.5 rounded-full bg-muted border border-border text-xs">
+                    <span className="text-foreground">{cat}</span>
                     <span className="text-purple-400 ml-2">{formatCurrency(amount)}</span>
                   </div>
                 ))}
@@ -1522,11 +1522,11 @@ export function ProfitabilityUpload() {
           {/* Top Revenue Products */}
           {stats.revenueByProduct.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs text-neutral-400 uppercase mb-2">Top Revenue Sources</p>
+              <p className="text-xs text-muted-foreground uppercase mb-2">Top Revenue Sources</p>
               <div className="flex flex-wrap gap-2">
                 {stats.revenueByProduct.slice(0, 5).map(([item, amount]) => (
-                  <div key={item} className="px-3 py-1.5 rounded-full bg-neutral-800 border border-neutral-700 text-xs">
-                    <span className="text-neutral-300">{item}</span>
+                  <div key={item} className="px-3 py-1.5 rounded-full bg-muted border border-border text-xs">
+                    <span className="text-foreground">{item}</span>
                     <span className="text-cyan-400 ml-2">{formatCurrency(amount)}</span>
                   </div>
                 ))}

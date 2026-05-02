@@ -4,9 +4,10 @@ import { datasets } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, BarChart3, Sparkles } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 
 export default async function DatasetDetailPage({
   params,
@@ -53,33 +54,25 @@ export default async function DatasetDetailPage({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="border-b border-border/40 bg-background pl-10">
-        <div className="flex h-16 items-center justify-between px-6">
-          <div className="flex items-center gap-4">
-            <Link href="/app/datasets">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">{(dataset as { name: string }).name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {rowCount.toLocaleString()} rows • {columns.length} columns
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href={`/app/datasets/${id}/analyze`}>
-              <Button size="sm" variant="outline">
-                <Sparkles className="h-4 w-4 mr-2" />
-                View Analysis
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppPageHeader
+        title={(dataset as { name: string }).name}
+        description={`${rowCount.toLocaleString()} rows - ${columns.length} columns`}
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Datasets", href: "/app/datasets" },
+          { label: (dataset as { name: string }).name },
+        ]}
+        actions={(
+          <Link href={`/app/datasets/${id}/analyze`}>
+            <Button size="sm" variant="outline">
+              <Sparkles className="mr-2 h-4 w-4" />
+              View Analysis
+            </Button>
+          </Link>
+        )}
+      />
 
-      <main className="flex-1 p-6 pl-10">
+      <main className="flex-1 p-6">
         <div className="max-w-full mx-auto">
           <Card className="overflow-hidden">
             {data.length > 0 ? (

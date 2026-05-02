@@ -1,10 +1,8 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
-
-
-
 import * as React from "react"
+import { useNotice } from "@/components/ui/notice-bar"
+import { debugError } from "@/lib/debug"
 
 interface UsageMonitorProps {
   used: number
@@ -13,17 +11,16 @@ interface UsageMonitorProps {
 }
 
 export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorProps) {
-  const remaining = Math.max(0, total - used);
-  const percent = Math.min((used / total) * 100, 100);
+  const percent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
 
   // For pro users, show unlimited
   if (isPro) {
     return (
-      <div className="usage-box p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-purple-950/30 shadow-sm dark:shadow-none">
-        <h4 className="text-xs font-semibold text-purple-300 dark:text-purple-300 uppercase tracking-wider mb-2">
+      <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
           Analyst Credits
         </h4>
-        <p className="text-sm text-white font-medium">
+        <p className="text-sm font-medium text-foreground">
           Unlimited
         </p>
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
@@ -39,14 +36,14 @@ export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorPro
   // Limit reached - show premium upgrade state
   if (used >= total) {
     return (
-      <div className="usage-box p-3 rounded-lg border border-amber-500/50 dark:border-amber-500/50 bg-amber-950/20 dark:bg-amber-950/10 shadow-sm">
-        <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">
+      <div className="usage-box rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-sm dark:bg-amber-950/10">
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
           Analyst Credits
         </h4>
-        <p className="text-sm text-amber-400 font-medium">
-          0 remaining
+        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+          {used} / {total} used
         </p>
-        <p className="text-xs text-white/60 mt-2">
+        <p className="mt-2 text-xs text-muted-foreground">
           Subscribe to Pro or top up
         </p>
       </div>
@@ -54,11 +51,11 @@ export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorPro
   }
 
   return (
-    <div className="usage-box p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-purple-950/30 shadow-sm dark:shadow-none">
-      <h4 className="text-xs font-semibold text-purple-300 dark:text-purple-300 uppercase tracking-wider mb-1.5">
+    <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
+      <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
         Analyst Credits
       </h4>
-      <p className="text-sm text-white font-medium">
+      <p className="text-sm font-medium text-foreground">
         {used} / {total} used
       </p>
       <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
@@ -68,7 +65,7 @@ export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorPro
         />
       </div>
       {percent >= 80 && (
-        <p className="text-xs text-white/50 mt-1.5">Upgrade to Pro for more</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">Upgrade to Pro for more</p>
       )}
     </div>
   );
@@ -77,8 +74,25 @@ export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorPro
 // Hook to manage usage state
 export function useUsage() {
   const [usage, setUsage] = React.useState(0)
+  const [total, setTotal] = React.useState(2)
   const [isPro, setIsPro] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [limitReached, setLimitReached] = React.useState(false)
+  const { showNotice } = useNotice()
+  const limitNoticeShownRef = React.useRef(false)
+
+  const maybeShowLimitNotice = React.useCallback((isLimitReached: boolean) => {
+    if (!isLimitReached || limitNoticeShownRef.current) {
+      return
+    }
+
+    limitNoticeShownRef.current = true
+    showNotice({
+      type: "info",
+      title: "Analyst credits used.",
+      message: "You have used all free analyst credits. Subscribe to Pro or top up to continue.",
+    })
+  }, [showNotice])
 
   React.useEffect(() => {
     // Fetch user usage from API
@@ -88,7 +102,10 @@ export function useUsage() {
         if (res.ok) {
           const data = await res.json()
           setUsage(data.analysisCount || 0)
+          setTotal(data.total || 2)
           setIsPro(data.subscriptionTier === "pro")
+          setLimitReached(Boolean(data.limitReached))
+          maybeShowLimitNotice(Boolean(data.limitReached))
         }
       } catch (error) {
         debugError("Failed to fetch usage:", error)
@@ -97,7 +114,7 @@ export function useUsage() {
       }
     }
     fetchUsage()
-  }, [])
+  }, [maybeShowLimitNotice])
 
   const refreshUsage = async () => {
     try {
@@ -105,14 +122,17 @@ export function useUsage() {
       if (res.ok) {
         const data = await res.json()
         setUsage(data.analysisCount || 0)
+        setTotal(data.total || 2)
         setIsPro(data.subscriptionTier === "pro")
+        setLimitReached(Boolean(data.limitReached))
+        maybeShowLimitNotice(Boolean(data.limitReached))
       }
     } catch (error) {
       debugError("Failed to refresh usage:", error)
     }
   }
 
-  const canAnalyze = isPro || usage < 5
+  const canAnalyze = isPro || usage < total
 
-  return { usage, isPro, isLoading, canAnalyze, refreshUsage }
+  return { usage, total, isPro, isLoading, canAnalyze, limitReached, refreshUsage }
 }

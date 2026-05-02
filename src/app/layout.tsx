@@ -13,10 +13,10 @@ export const metadata: Metadata = {
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
   icons: {
     icon: [
+      { url: "/assets/images/favicon.svg", type: "image/svg+xml" },
       { url: "/assets/images/logos/publiclogosuseclevr-dark.png", type: "image/png", sizes: "500x500" },
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
     ],
-    shortcut: "/assets/images/logos/publiclogosuseclevr-dark.png",
+    shortcut: "/assets/images/favicon.svg",
     apple: "/assets/images/logos/publiclogosuseclevr-dark.png",
   },
   metadataBase: new URL("https://useclevr.com"),

@@ -1,10 +1,11 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/debug"
 
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { datasets, datasetRows, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
+import { consumeAnalystCredit } from '@/lib/usage/analyst-credits'
 import { parse } from 'papaparse'
 import { v4 as uuidv4 } from 'uuid'
 import { promises as fs } from 'fs'
@@ -355,6 +356,12 @@ export async function POST(request: Request) {
   try {
     debugLog('[UPLOAD] Upload received')
 
+    if (!db) {
+      return NextResponse.json({ error: 'Database is not configured' }, { status: 503 })
+    }
+
+    const database = db
+
     // Auth
     const session = await auth()
     const isDemoMode = process.env.DEMO_MODE === 'true' || !session?.user?.id
@@ -363,7 +370,7 @@ export async function POST(request: Request) {
     if (isDemoMode) {
       debugLog('[UPLOAD] Demo mode - finding demo user')
       const demoUser = await executeWithRetry(
-        () => db.query.users.findFirst({
+        () => database.query.users.findFirst({
           where: eq((users as any).email, 'demo@useclever.app'),
         }),
         'Find demo user'
@@ -454,7 +461,7 @@ export async function POST(request: Request) {
     debugLog('[UPLOAD] Verifying user exists:', userId)
     try {
       const userExists = await executeWithRetry(
-        () => db.query.users.findFirst({
+        () => database.query.users.findFirst({
           where: eq(users.id, userId),
         }),
         'Verify user exists'
@@ -582,6 +589,8 @@ export async function POST(request: Request) {
     debugLog('[UPLOAD] Use /api/datasets/[id]/analyze to analyze.')
     debugLog('[UPLOAD] =============================================')
 
+    const usage = await consumeAnalystCredit(userId)
+
     // Return success
     return NextResponse.json({
       success: true,
@@ -596,6 +605,7 @@ export async function POST(request: Request) {
         dateColumns: dateCount,
         categoricalColumns: categoricalCount
       },
+      usage,
       message: 'Upload successful - Dataset stored in database. Use /api/datasets/[id]/analyze to analyze.',
     })
 

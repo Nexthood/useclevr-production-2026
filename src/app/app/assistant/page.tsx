@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function AssistantPage() {
   return (
-    <div className="min-h-screen bg-background pl-10">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card h-16">
         <div className="flex h-16 items-center justify-between px-6 gap-4">

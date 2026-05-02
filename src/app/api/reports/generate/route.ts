@@ -16,13 +16,15 @@ import path from 'path';
 // 1. User authentication and Pro plan validation
 // 2. Credit deduction (server-side)
 // 3. File generation in multiple formats (pdf, ppt, docx, xlsx)
-// 4. Temporary file storage in public/assets/generated (served at /assets/generated/)
+// 4. Temporary file storage in the app assets directory (served at /assets/generated/)
 // ============================================================================
 
 function getGeneratedAssetsDir() {
-  // Use public/assets/generated for static file serving via Next.js
-  // Files here are accessible at /assets/generated/ via the public/ directory
-  return path.join(process.cwd(), 'public', 'assets', 'generated')
+  if (process.env.NODE_ENV === 'production') {
+    return path.join(process.cwd(), 'assets', 'generated')
+  }
+
+  return path.join(process.cwd(), 'src', 'assets', 'generated')
 }
 
 /**

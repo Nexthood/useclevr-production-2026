@@ -1,13 +1,18 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError } from "@/lib/debug"
 
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets, datasetRows } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
+import { consumeAnalystCredit } from "@/lib/usage/analyst-credits"
 
 export async function GET() {
   try {
+    if (!db) {
+      return NextResponse.json({ error: "Database is not configured" }, { status: 503 })
+    }
+
     const session = await auth()
     
     if (!session?.user?.id) {
@@ -32,6 +37,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!db) {
+      return NextResponse.json({ error: "Database is not configured" }, { status: 503 })
+    }
+
     const session = await auth()
     
     if (!session?.user?.id) {
@@ -67,12 +76,15 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ 
+    const usage = await consumeAnalystCredit(session.user.id)
+
+    return NextResponse.json({
       dataset: {
         id: datasetId,
         name: name || fileName,
         createdAt: new Date(),
-      }
+      },
+      usage,
     })
   } catch (error) {
     debugError("Error creating dataset:", error)

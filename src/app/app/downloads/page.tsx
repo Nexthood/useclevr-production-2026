@@ -222,7 +222,7 @@ export default function DownloadsPage() {
   ).filter((d) => (filterStatus === 'all' ? true : d.status === filterStatus))
 
   return (
-    <div className="min-h-screen bg-background pl-10">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card h-16">
         <div className="flex h-16 items-center justify-between px-8">

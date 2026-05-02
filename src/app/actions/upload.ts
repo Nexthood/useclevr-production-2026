@@ -1,6 +1,6 @@
 "use server"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/debug"
 
 
 
@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
+import { consumeAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
 
 interface CsvRow {
   [key: string]: string | number | boolean | null
@@ -21,6 +22,11 @@ const RETRY_DELAYS = [5000, 8000, 12000, 20000, 30000] // longer delays for Neon
 
 // Minimal DB availability probe to avoid broken downstream logic
 async function isDbAvailable(): Promise<boolean> {
+  if (!db) {
+    debugError("[UPLOAD] DB health check failed: database client is not configured")
+    return false
+  }
+
   try {
     // Perform a trivial query; any driver-level failure (e.g., Neon cold start/fetch failed)
     // will throw here and we can fail early before demo-user/database operations.
@@ -44,8 +50,16 @@ export async function uploadCSV(formData: FormData): Promise<{
   fileName?: string
   preview?: { headers: string[]; rows: CsvRow[] }
   profitabilityResult?: any
+  usage?: AnalystCreditUsage
 }> {
   try {
+    if (!db) {
+      return {
+        success: false,
+        error: "Database is not configured. Please set DATABASE_URL and try again.",
+      }
+    }
+
     // Check authentication
     const session = await auth()
     
@@ -449,6 +463,8 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Revalidate datasets page
     revalidatePath("/app/datasets")
 
+    const usage = await consumeAnalystCredit(effectiveUserId)
+
     debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 
     return {
@@ -460,6 +476,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         headers,
         rows: allRows.slice(0, 5),
       },
+      usage,
     }
   } catch (error) {
     debugError("Upload error:", error)

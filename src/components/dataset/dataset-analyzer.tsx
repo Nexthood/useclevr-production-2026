@@ -53,6 +53,7 @@ interface CSVAnalysisResult {
     kpis: {
       totalRevenue: number | null
       avgRevenue: number | null
+      totalCost?: number | null
       totalProfit: number | null
       profitMargin: number | null
       profitReliability: 'verified' | 'derived' | 'unavailable'
@@ -810,7 +811,7 @@ export function DatasetAnalyzer({
               {/* Total Revenue - Dominant Card */}
               {capabilities.revenueAvailable && analysis?.business_analysis?.kpis && (
                 <div 
-                  className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-neutral-800 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-200 cursor-pointer group"
+                  className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between min-h-[140px] shadow-sm transition-all duration-200 cursor-pointer group hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800"
                   onClick={() => {
                     const kpis = analysis!.business_analysis!.kpis;
                     setDrilldownItem({
@@ -828,11 +829,11 @@ export function DatasetAnalyzer({
                     })
                   }}
                 >
-                  <span className="text-xs text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-neutral-300 transition-colors">Total Revenue</span>
-                  <div className="text-2xl font-bold text-white text-center leading-tight">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Total Revenue</span>
+                  <div className="text-2xl font-bold text-foreground text-center leading-tight">
                     {analysis.business_analysis.kpis.totalRevenue 
                       ? formatCurrencyForKPI(analysis.business_analysis.kpis.totalRevenue)
-                      : <span className="text-neutral-500">No data</span>}
+                      : <span className="text-muted-foreground">No data</span>}
                   </div>
                 </div>
               )}
@@ -840,7 +841,7 @@ export function DatasetAnalyzer({
                {/* Total Profit */}
                {capabilities.profitAvailable && (
                <div 
-                   className="bg-neutral-900 rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-neutral-800 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 cursor-pointer group"
+                   className="bg-card rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-border hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 cursor-pointer group"
                    onClick={() => {
                      const kpis = analysis!.business_analysis!.kpis;
                      const reliability = kpis.profitReliability || 'unavailable';
@@ -867,7 +868,7 @@ export function DatasetAnalyzer({
                   }}
                 >
                   <div className="flex flex-col items-center">
-                    <span className="text-xs text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-neutral-300 transition-colors">Total Profit</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Total Profit</span>
                     {analysis.business_analysis.kpis.profitReliability !== 'unavailable' && analysis.business_analysis.kpis.totalProfit !== null ? (
                       <>
                         <div className="text-2xl font-bold text-emerald-400 text-center mt-1">
@@ -881,7 +882,7 @@ export function DatasetAnalyzer({
                       </>
                     ) : (
                       <div className="text-center mt-1">
-                        <div className="text-lg font-medium text-neutral-500">No Data</div>
+                        <div className="text-lg font-medium text-muted-foreground">No Data</div>
                         <div className="text-caption text-neutral-600 mt-0.5">Cannot calculate profit</div>
                       </div>
                     )}
@@ -889,7 +890,7 @@ export function DatasetAnalyzer({
                 </div>
                )}
                <div 
-                  className="bg-neutral-900 rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-neutral-800 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-200 cursor-pointer group"
+                  className="bg-card rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-border hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                      if (analysis?.business_analysis?.kpis) {
                        const kpis = analysis.business_analysis.kpis;
@@ -908,18 +909,18 @@ export function DatasetAnalyzer({
                    }
                  }}
                >
-                 <span className="text-xs text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-neutral-300 transition-colors">Margin</span>
+                 <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Margin</span>
                  <div className="text-2xl font-bold text-blue-400 text-center leading-tight">
                    {capabilities.profitAvailable && analysis.business_analysis.kpis.profitMargin !== null
                      ? formatPercentSimple(analysis.business_analysis.kpis.profitMargin)
-                     : <span className="text-neutral-500">No data</span>}
+                     : <span className="text-muted-foreground">No data</span>}
                  </div>
                </div>
                
                {/* Top Region */}
                {capabilities.regionRankingAvailable && (
                <div 
-                  className="bg-neutral-900 rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-neutral-800 hover:border-orange-500/40 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-200 cursor-pointer group"
+                  className="bg-card rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-border hover:border-orange-500/40 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                     if (analysis?.business_analysis?.kpis) {
                       const kpis = analysis.business_analysis.kpis;
@@ -941,13 +942,13 @@ export function DatasetAnalyzer({
                    }
                  }}
                >
-                 <span className="text-xs text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-neutral-300 transition-colors">Top Region</span>
+                 <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Top Region</span>
                  <div className="text-lg font-semibold text-orange-400 text-center break-words leading-tight">
                    {analysis.business_analysis.kpis.topRegions[0]?.name 
                      ? analysis.business_analysis.kpis.topRegions[0].percentage
                        ? `${analysis.business_analysis.kpis.topRegions[0].name} (${formatPercentSimple(analysis.business_analysis.kpis.topRegions[0].percentage)})`
                        : analysis.business_analysis.kpis.topRegions[0].name
-                     : <span className="text-neutral-500">No data</span>}
+                     : <span className="text-muted-foreground">No data</span>}
                  </div>
                 </div>
                )}
@@ -955,7 +956,7 @@ export function DatasetAnalyzer({
                {/* Top Product */}
                {capabilities.productRankingAvailable && (
                <div 
-                  className="bg-neutral-900 rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-neutral-800 hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-200 cursor-pointer group"
+                  className="bg-card rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-border hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-200 cursor-pointer group"
                   onClick={() => {
                     if (analysis?.business_analysis?.kpis) {
                       const kpis = analysis.business_analysis.kpis;
@@ -977,13 +978,13 @@ export function DatasetAnalyzer({
                    }
                  }}
                >
-                 <span className="text-xs text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-neutral-300 transition-colors">Top Product</span>
+                 <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Top Product</span>
                  <div className="text-lg font-semibold text-violet-400 text-center break-words leading-tight">
                    {analysis.business_analysis.kpis.topProducts[0]?.name 
                      ? analysis.business_analysis.kpis.topProducts[0].percentage
                        ? `${analysis.business_analysis.kpis.topProducts[0].name} (${formatPercentSimple(analysis.business_analysis.kpis.topProducts[0].percentage)})`
                        : analysis.business_analysis.kpis.topProducts[0].name
-                     : <span className="text-neutral-500">No data</span>}
+                     : <span className="text-muted-foreground">No data</span>}
                  </div>
                 </div>
                )}
@@ -991,7 +992,7 @@ export function DatasetAnalyzer({
                {/* Growth */}
                {capabilities.trendAvailable && analysis.business_analysis.kpis.growthValid && (
                    <div 
-                     className="bg-neutral-900 rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-neutral-800 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-200 cursor-pointer group"
+                     className="bg-card rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-border hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-200 cursor-pointer group"
                      onClick={() => {
                        if (analysis?.business_analysis?.kpis) {
                          const kpis = analysis.business_analysis.kpis;
@@ -1012,11 +1013,11 @@ export function DatasetAnalyzer({
                      }
                    }}
                  >
-                   <span className="text-xs text-neutral-400 uppercase tracking-wider font-medium text-center group-hover:text-neutral-300 transition-colors">Growth</span>
+                   <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Growth</span>
                    <div className={`text-2xl font-bold text-center leading-tight ${analysis.business_analysis.kpis.growthPercentage !== null && analysis.business_analysis.kpis.growthPercentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                      {analysis.business_analysis.kpis.growthPercentage !== null
                        ? formatPercentage(analysis.business_analysis.kpis.growthPercentage)
-                       : <span className="text-neutral-500">No data</span>}
+                       : <span className="text-muted-foreground">No data</span>}
                    </div>
                  </div>
                )}
@@ -1030,11 +1031,11 @@ export function DatasetAnalyzer({
             const hasAny = (capabilities.revenueAvailable || capabilities.profitAvailable || capabilities.costAvailable || (capabilities.trendAvailable && k.growthValid))
             return hasAny
           })() && (
-            <Card className="bg-neutral-900 border-neutral-800">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-white text-base">Executive Financial Summary</CardTitle>
+                <CardTitle className="text-foreground text-base">Executive Financial Summary</CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 text-sm text-neutral-300 space-y-2">
+              <CardContent className="pt-0 text-sm text-foreground space-y-2">
                 {capabilities.revenueAvailable && typeof analysis!.business_analysis!.kpis!.totalRevenue === 'number' && (
                   <p>Revenue Overview: Total revenue {formatCurrencyForKPI(analysis!.business_analysis!.kpis!.totalRevenue)}{analysis!.business_analysis!.kpis!.avgRevenue ? `; average transaction ${formatCurrencyForKPI(analysis!.business_analysis!.kpis!.avgRevenue)}` : ''}.</p>
                 )}
@@ -1056,7 +1057,7 @@ export function DatasetAnalyzer({
 
           {/* Section Divider */}
           {analysis?.business_analysis?.kpis && (
-            <div className="border-t border-neutral-800 my-6" />
+            <div className="border-t border-border my-6" />
           )}
 
           {/* AI Executive Summary (gated by capabilities and available metrics) */}
@@ -1066,17 +1067,18 @@ export function DatasetAnalyzer({
             const anyMetric = capabilities.revenueAvailable || capabilities.profitAvailable || (capabilities.trendAvailable && !!k?.growthPercentage && !!k?.growthValid) || (capabilities.productRankingAvailable && (k?.topProducts?.length || 0) > 0) || (capabilities.regionRankingAvailable && (k?.topRegions?.length || 0) > 0)
             return anyMetric
           })() && (
-            <Card className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 border border-neutral-700 shadow-xl">
+            <Card className="border border-border bg-card shadow-xl dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-white">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   <Sparkles className="h-5 w-5 text-purple-400" />
                   Executive Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-base text-neutral-200 leading-relaxed">
+                <p className="text-base text-foreground leading-relaxed">
                   {(() => {
-                    const sentences = analysis.ai_summary.split('.').slice(0, 2).join('.');
+                    const aiSummary = analysis?.ai_summary || ""
+                    const sentences = aiSummary.split('.').slice(0, 2).join('.');
                     return sentences.endsWith('.') ? sentences : sentences + '.';
                   })()}
                 </p>
@@ -1086,14 +1088,14 @@ export function DatasetAnalyzer({
 
           {/* Section Divider */}
           {analysis?.ai_summary && (
-            <div className="border-t border-neutral-800 my-6" />
+            <div className="border-t border-border my-6" />
           )}
 
           {/* Key Drivers */}
           {analysis?.business_analysis?.kpis && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {capabilities.productRankingAvailable && analysis.business_analysis.kpis.topProducts.length > 0 && (
-                <Card className="bg-neutral-900 border-neutral-800">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-white text-base">Top Products</CardTitle>
                   </CardHeader>
@@ -1102,21 +1104,21 @@ export function DatasetAnalyzer({
                       {analysis.business_analysis.kpis.topProducts.slice(0, 10).map((item, idx) => (
                         <div 
                           key={idx} 
-                          className={`flex items-center justify-between p-3 rounded-lg ${idx === 0 ? 'bg-neutral-800 border border-violet-500/30' : ''}`}
+                          className={`flex items-center justify-between p-3 rounded-lg ${idx === 0 ? 'bg-muted border border-violet-500/30' : ''}`}
                         >
                           <div className="flex items-center gap-3">
-                            <span className={`text-sm font-medium ${idx === 0 ? 'text-violet-400' : 'text-neutral-400'}`}>
+                            <span className={`text-sm font-medium ${idx === 0 ? 'text-violet-400' : 'text-muted-foreground'}`}>
                               {idx + 1}.
                             </span>
-                            <span className={`font-medium truncate ${idx === 0 ? 'text-white' : 'text-neutral-300'}`}>
+                            <span className={`font-medium truncate ${idx === 0 ? 'text-white' : 'text-foreground'}`}>
                               {item.name}
                             </span>
                           </div>
                           <div className="text-right">
-                            <div className={`font-semibold ${idx === 0 ? 'text-violet-400' : 'text-neutral-400'}`}>
+                            <div className={`font-semibold ${idx === 0 ? 'text-violet-400' : 'text-muted-foreground'}`}>
                               ${item.revenue.toLocaleString()}
                             </div>
-                            <div className="text-xs text-neutral-500">
+                            <div className="text-xs text-muted-foreground">
                               {item.percentage}%
                             </div>
                           </div>
@@ -1128,7 +1130,7 @@ export function DatasetAnalyzer({
               )}
               
               {capabilities.regionRankingAvailable && analysis.business_analysis.kpis.topRegions.length > 0 && (
-                <Card className="bg-neutral-900 border-neutral-800">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-white text-base">Revenue by Region/Country</CardTitle>
                   </CardHeader>
@@ -1154,12 +1156,12 @@ export function DatasetAnalyzer({
 
           {/* Section Divider */}
           {analysis?.business_analysis?.kpis && (analysis.business_analysis.kpis.topProducts.length > 0 || analysis.business_analysis.kpis.topRegions.length > 0) && (
-            <div className="border-t border-neutral-800 my-6" />
+            <div className="border-t border-border my-6" />
           )}
 
            {/* Insights - Using Validated Metrics Layer */}
            {validatedInsights.length > 0 && (
-             <Card className="bg-neutral-900 border-neutral-800">
+             <Card className="bg-card border-border">
                <CardHeader className="pb-3">
                  <CardTitle className="text-white flex items-center gap-2 text-base">
                    <Lightbulb className="h-4 w-4 text-amber-400" />
@@ -1171,7 +1173,7 @@ export function DatasetAnalyzer({
                    {validatedInsights.map((insight, idx) => (
                      <li 
                        key={idx} 
-                       className="flex items-start gap-3 text-neutral-300 cursor-pointer hover:bg-neutral-800/50 rounded-lg p-2 transition-colors"
+                       className="flex items-start gap-3 text-foreground cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
                        onClick={() => setDrilldownItem({
                          type: 'insight',
                          title: `Insight ${idx + 1}`,
@@ -1193,7 +1195,7 @@ export function DatasetAnalyzer({
                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                              insight.reliability === 'verified' ? 'bg-emerald-900/30 text-emerald-400' :
                              insight.reliability === 'estimated' ? 'bg-amber-900/30 text-amber-400' :
-                             'bg-neutral-700 text-neutral-400'
+                             'bg-neutral-700 text-muted-foreground'
                            }`}>
                              {insight.reliability === 'verified' ? '✓ Verified' : 
                               insight.reliability === 'estimated' ? '~ Estimated' : 
@@ -1210,7 +1212,7 @@ export function DatasetAnalyzer({
 
           {/* Recommendations - Using Validated Metrics Layer */}
           {validatedRecommendations.length > 0 && (
-            <Card className="bg-neutral-900 border-neutral-800">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white flex items-center gap-2 text-base">
                   <TrendingUp className="h-4 w-4 text-emerald-400" />
@@ -1222,7 +1224,7 @@ export function DatasetAnalyzer({
                    {validatedRecommendations.slice(0, 4).map((rec, idx) => (
                      <div 
                        key={idx} 
-                       className="border-l-2 border-emerald-500 pl-4 py-3 hover:bg-neutral-800/50 rounded-r-lg transition-colors cursor-pointer group"
+                       className="border-l-2 border-emerald-500 pl-4 py-3 hover:bg-muted/50 rounded-r-lg transition-colors cursor-pointer group"
                        onClick={() => {
                          // Generate specific next actions based on recommendation type
                          const getNextActions = (action: string): string[] => {
@@ -1290,12 +1292,12 @@ export function DatasetAnalyzer({
                        }}
                      >
                        <div className="font-semibold text-white group-hover:text-emerald-400 transition-colors">{rec.action}</div>
-                       <div className="text-sm text-neutral-400 mt-1">{rec.reason}</div>
+                       <div className="text-sm text-muted-foreground mt-1">{rec.reason}</div>
                        <div className="text-xs mt-2">
                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                            rec.reliability === 'verified' ? 'bg-emerald-900/30 text-emerald-400' :
                            rec.reliability === 'estimated' ? 'bg-amber-900/30 text-amber-400' :
-                           'bg-neutral-700 text-neutral-400'
+                           'bg-neutral-700 text-muted-foreground'
                          }`}>
                            {rec.reliability === 'verified' ? '✓ Verified' : 
                             rec.reliability === 'estimated' ? '~ Estimated' : 
@@ -1307,7 +1309,7 @@ export function DatasetAnalyzer({
                  </div>
                 {/* Show negative profit products if available */}
                 {analysis?.business_analysis?.kpis?.worstProducts && analysis.business_analysis.kpis.worstProducts.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-neutral-800">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <div className="flex items-center gap-2 mb-3">
                       <TrendingDown className="h-4 w-4 text-red-400" />
                       <span className="text-sm font-medium text-red-400">Products with Negative Profit</span>
@@ -1360,7 +1362,7 @@ export function DatasetAnalyzer({
           {(!analysis?.business_analysis?.breakdowns || 
             (typeof analysis.business_analysis.breakdowns === 'object' && 
              Object.keys(analysis.business_analysis.breakdowns).length === 0)) && (
-            <div className="text-center py-16 bg-neutral-50 dark:bg-neutral-900 rounded-xl">
+            <div className="text-center py-16 bg-neutral-50 dark:bg-card rounded-xl">
               <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No visualization data available</p>
               <p className="text-sm text-muted-foreground mt-2">Re-analyze your dataset to generate business insights.</p>
@@ -1621,10 +1623,10 @@ export function DatasetAnalyzer({
                                   style={{ width: `${maxBarWidth}px`, flexShrink: 0 }}
                                 >
                                   {/* Tooltip */}
-                                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-neutral-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap z-10 pointer-events-none">
+                                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-card text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap z-10 pointer-events-none">
                                     <div className="font-semibold">{item.label}</div>
                                     <div className="text-purple-300">${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                                    <div className="text-neutral-400">{sharePct}% of total</div>
+                                    <div className="text-muted-foreground">{sharePct}% of total</div>
                                   </div>
                                   
                                    {/* Value label above bar */}
@@ -1702,11 +1704,11 @@ export function DatasetAnalyzer({
                                   title={`${item.label}: ${item.value.toLocaleString()} (${sharePct}% of total)`}
                                 >
                                   <div className="w-40 flex-shrink-0">
-                                    <span className="text-sm font-medium text-foreground dark:text-neutral-200 block" style={{ wordBreak: 'break-word' }}>
+                                    <span className="text-sm font-medium text-foreground dark:text-foreground block" style={{ wordBreak: 'break-word' }}>
                                       {item.label}
                                     </span>
                                   </div>
-                                  <div className="flex-1 h-8 bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden relative">
+                                  <div className="flex-1 h-8 bg-neutral-100 dark:bg-muted rounded-md overflow-hidden relative">
                                     <div 
                                       className={`h-full bg-gradient-to-r ${colors[idx % colors.length]} to-violet-400 rounded-md transition-all duration-200 group-hover:opacity-80`}
                                       style={{ width: `${minWidthPct}%`, minWidth: '10%' }}
@@ -1879,10 +1881,10 @@ export function DatasetAnalyzer({
                               style={{ width: `${maxBarWidth}px`, flexShrink: 0 }}
                             >
                               {/* Tooltip */}
-                              <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-neutral-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap z-10 pointer-events-none">
+                              <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-card text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap z-10 pointer-events-none">
                                 <div className="font-semibold">{item.label}</div>
                                 <div className="text-purple-300">${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                                <div className="text-neutral-400">{sharePct}% of total</div>
+                                <div className="text-muted-foreground">{sharePct}% of total</div>
                               </div>
                               
                               <span className="text-xs font-semibold text-violet-600 mb-1.5 whitespace-nowrap">
@@ -1921,32 +1923,32 @@ export function DatasetAnalyzer({
 
       {/* Drilldown Panel */}
       {drilldownItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-neutral-900/90 backdrop-blur-lg border border-neutral-800 rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden">
-            <div className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+          <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden">
+            <div className="border-b border-border px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">{drilldownItem.title}</h2>
               <button 
                 onClick={() => setDrilldownItem(null)}
-                className="text-neutral-400 hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-white transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(80vh-80px)]">
               <div className="space-y-2">
-                <p className="text-neutral-300">{drilldownItem.value}</p>
+                <p className="text-foreground">{drilldownItem.value}</p>
                 {drilldownItem.type !== 'recommendation' && (
-                  <p className="text-neutral-400 text-sm">{drilldownItem.explanation}</p>
+                  <p className="text-muted-foreground text-sm">{drilldownItem.explanation}</p>
                 )}
               </div>
               
               {/* Supporting Data */}
               {drilldownItem.supportingData && drilldownItem.supportingData.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-neutral-300">Details</h4>
+                  <h4 className="text-sm font-semibold text-foreground">Details</h4>
                   <div className="space-y-1">
                     {drilldownItem.supportingData.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-neutral-200 text-sm">
+                      <div key={idx} className="flex justify-between text-foreground text-sm">
                         <span>{item.label}</span>
                         <span>{item.value}</span>
                       </div>
@@ -1958,12 +1960,12 @@ export function DatasetAnalyzer({
               {/* Next Actions */}
               {drilldownItem.nextActions && drilldownItem.nextActions.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-neutral-300">Suggested Actions</h4>
+                  <h4 className="text-sm font-semibold text-foreground">Suggested Actions</h4>
                   <div className="space-y-1">
                     {drilldownItem.nextActions.map((action, idx) => (
                       <div key={idx} className="flex items-start gap-2">
                         <span className="text-amber-400">•</span>
-                        <span className="text-neutral-200 text-sm">{action}</span>
+                        <span className="text-foreground text-sm">{action}</span>
                       </div>
                     ))}
                   </div>
@@ -2100,7 +2102,7 @@ function RegionBarChart({
   const COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', '#fff7ed', '#fbbf24', '#f59e0b', '#ea580c', '#c2410c'];
   
   if (chartData.length === 0) {
-    return <div className="text-neutral-500">No region data available</div>;
+    return <div className="text-muted-foreground">No region data available</div>;
   }
   
   return (

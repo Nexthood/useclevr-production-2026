@@ -16,7 +16,7 @@ export default function OnePagerPage(_props: PageProps) {
   // BusinessOnePager already encapsulates form inputs, capabilities gating, preview and PDF export.
   // We render it full-width with a generous canvas wrapper for a page experience instead of a modal.
   return (
-    <div className="min-h-screen pl-10">
+    <div className="min-h-screen">
       <main className="p-6">
         <div className="max-w-[1400px] mx-auto">
           <div className="mb-6">

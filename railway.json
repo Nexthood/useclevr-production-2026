@@ -5,8 +5,8 @@
     "buildCommand": "pnpm prod:build"
   },
   "deploy": {
-    "preDeployCommand": "pnpm db:migrate",
-    "startCommand": "node -r ./scripts/runtime/load-env.cjs dist/node/server.js",
+    "preDeployCommand": "cd dist && npx drizzle-kit push",
+    "startCommand": "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",

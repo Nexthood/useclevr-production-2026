@@ -1,9 +1,5 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
-
-
-
 import * as React from "react"
 import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Cloud, Wifi, WifiOff, Cpu } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +7,9 @@ import { Card } from "@/components/ui/card"
 import { uploadCSV } from "@/app/actions/upload"
 import { DataProcessingFlow } from "@/components/data-processing-flow"
 import { useToast } from "@/hooks/use-toast"
+import { useNotice } from "@/components/ui/notice-bar"
 import { useConnectionStatus, getConnectionMessage, getConnectionDescription, ConnectionMode } from "@/hooks/use-connection-status"
+import { debugLog, debugError } from "@/lib/debug"
 
 interface CsvRow {
   [key: string]: string | number | boolean | null | undefined
@@ -26,6 +24,7 @@ export function CsvUpload() {
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
   const { toast } = useToast()
+  const { showNotice } = useNotice()
   
   // Cloud-first connection detection
   const connectionStatus = useConnectionStatus()
@@ -218,6 +217,19 @@ export function CsvUpload() {
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
+        if (result.usage?.limitReached) {
+          showNotice({
+            type: "info",
+            title: "Analyst credits used.",
+            message: "You have used all free analyst credits. Subscribe to Pro or top up to continue.",
+          })
+        } else if (result.usage) {
+          showNotice({
+            type: "success",
+            title: "Dataset uploaded.",
+            message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total} used.`,
+          })
+        }
         setTimeout(() => {
           const redirectPath = result.redirectTo || `/app/datasets/${result.datasetId}/analyze`
           debugLog('[CSV-UPLOAD] Navigating to:', redirectPath)

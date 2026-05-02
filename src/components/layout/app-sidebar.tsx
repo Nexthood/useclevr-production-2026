@@ -36,7 +36,7 @@ function getInitials(name?: string | null, email?: string | null) {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname()
-  const { usage, isPro, isLoading } = useUsage()
+  const { usage, total, isPro, isLoading } = useUsage()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleSignOut = async () => {
@@ -51,9 +51,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
   return (
       <aside className="fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-col border-r border-sidebar-border bg-sidebar">
         {/* Logo */}
-        <div className="border-b border-sidebar-border px-4 py-3.5">
-          <Link href="/" className="flex h-12 items-center">
-            <Logo className="h-11 w-auto" />
+        <div className="border-b border-sidebar-border px-4 py-4">
+          <Link href="/" className="flex h-16 items-center">
+            <Logo className="h-16 w-auto" />
           </Link>
         </div>
 
@@ -82,7 +82,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <div className="p-4 border-t border-sidebar-border space-y-3">
         {/* AI Analysis Usage Box */}
         {!isLoading && (
-          <UsageMonitor used={usage} isPro={isPro} />
+          <UsageMonitor used={usage} total={total} isPro={isPro} />
         )}
 
         {/* User Account Card */}

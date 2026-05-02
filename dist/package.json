@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "start": "HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node node/server.js",
+    "start": "node server.js",
     "prod": "pnpm start",
     "prod:start": "pnpm start"
   },

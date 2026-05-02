@@ -4,12 +4,12 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Sparkles, MessageSquare } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { DatasetAnalyzer } from "@/components/dataset-analyzer"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 
 // Type for analysis result (simplified for props)
 type AnalysisResult = Record<string, unknown>
@@ -65,23 +65,26 @@ export default async function AnalyzePage({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="border-b border-border/40 bg-background shrink-0">
-        <div className="flex h-16 items-center px-6 gap-4 pl-10">
+      <AppPageHeader
+        title={`Analyze: ${(dataset as { name: string }).name}`}
+        description={hasAnalysis ? "View insights and ask questions" : "Analyze your dataset with AI"}
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Datasets", href: "/app/datasets" },
+          { label: (dataset as { name: string }).name, href: `/app/datasets/${id}` },
+          { label: "Analyze" },
+        ]}
+        actions={(
           <Link href={`/app/datasets/${id}`}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
+            <Button size="sm" variant="outline">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Dataset
             </Button>
           </Link>
-          <div>
-            <h1 className="text-xl font-bold">Analyze: {(dataset as { name: string }).name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {hasAnalysis ? 'View insights and ask questions' : 'Analyze your dataset with AI'}
-            </p>
-          </div>
-        </div>
-      </header>
+        )}
+      />
 
-      <main className="flex-1 p-6 pl-10 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-6">
         <DatasetAnalyzer
           datasetId={id}
           datasetName={(dataset as { name: string }).name}

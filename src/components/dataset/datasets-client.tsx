@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Database, FileSpreadsheet, BarChart3, Calendar, Upload, ArrowLeft } from "lucide-react"
+import { Database, FileSpreadsheet, BarChart3, Calendar, Upload } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DatasetModal } from "@/components/dataset-modal"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 
 interface Dataset {
   id: string
@@ -58,18 +59,23 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background pl-10">
-      {/* Header */}
-      <header className="border-b border-border bg-card h-16">
-        <div className="flex h-16 items-center px-6 gap-4">
-          <Link href="/app">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-              <ArrowLeft className="h-4 w-4" />
+    <div className="min-h-screen bg-background">
+      <AppPageHeader
+        title="Datasets"
+        description="Manage uploaded files and analysis-ready data."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Datasets" },
+        ]}
+        actions={(
+          <Link href="/app/upload">
+            <Button size="sm">
+              <Upload className="mr-2 h-4 w-4" />
+              Upload
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">Datasets</h1>
-        </div>
-      </header>
+        )}
+      />
 
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto space-y-6 pt-6">

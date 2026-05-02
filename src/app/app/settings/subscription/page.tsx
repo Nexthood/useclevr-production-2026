@@ -1,9 +1,16 @@
 import Link from "next/link"
-import { CreditCard } from "lucide-react"
+import { CreditCard, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { auth } from "@/lib/auth"
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 
-export default function SubscriptionSettingsPage() {
+export default async function SubscriptionSettingsPage() {
+  const session = await auth()
+  const usage = await getAnalystCreditUsage(session?.user?.id)
+  const remaining = Math.max(0, usage.total - usage.analysisCount)
+  const isPro = usage.subscriptionTier === "pro"
+
   return (
     <Card className="bg-card border-border">
       <CardHeader>
@@ -21,20 +28,35 @@ export default function SubscriptionSettingsPage() {
         <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
           <div>
             <p className="font-medium text-foreground">Current plan</p>
-            <p className="text-sm text-muted-foreground">Free tier</p>
+            <p className="text-sm text-muted-foreground">{isPro ? "Pro tier" : "Free tier"}</p>
           </div>
-          <Link href="/pricing">
-            <Button variant="outline" size="sm">Upgrade</Button>
-          </Link>
+          {!isPro && (
+            <Link href="/pricing">
+              <Button variant="outline" size="sm">Upgrade</Button>
+            </Link>
+          )}
         </div>
         <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
-          <div>
-            <p className="font-medium text-foreground">Credits used</p>
-            <p className="text-sm text-muted-foreground">Usage appears here after analysis.</p>
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-md bg-primary/15 p-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Analyst credits</p>
+              <p className="text-sm text-muted-foreground">
+                {isPro ? "Unlimited analyst usage" : `${usage.analysisCount} / ${usage.total} free credits used`}
+              </p>
+              {!isPro && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {usage.limitReached
+                    ? "Free credits are used. Subscribe to Pro or top up to continue analysis."
+                    : `${remaining} free ${remaining === 1 ? "credit" : "credits"} remaining.`}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
   )
 }
-

@@ -17,7 +17,7 @@ export default function UploadPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background pl-10">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card h-16">
         <div className="flex h-16 items-center px-8 gap-4">
@@ -33,7 +33,7 @@ export default function UploadPage() {
       <main className="flex-1">
         {/* Use wide container for profitability result, narrow for upload */}
         {uploadMode === "profitability" ? (
-          <div className="flex-1 p-6 pl-10 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto p-6">
             <ProfitabilityUpload />
           </div>
         ) : (
