@@ -51,4 +51,6 @@ Thumbs.db
 public/assets/generated/
 
 # AI local
-.kilo/
+.kilo/*
+!.kilo/agent/
+!.kilo/agent/*.md

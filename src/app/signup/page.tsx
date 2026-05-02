@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { Suspense, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -14,15 +14,15 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useNotice } from "@/components/ui/notice-bar"
 import { signup } from "@/app/actions/auth"
-import { Loader2, ArrowRight, Sparkles, Mail, Lock, User, CheckCircle2, Rocket } from "lucide-react"
+import { Loader2, ArrowRight, Sparkles, Mail, Lock, User, CheckCircle2, Rocket, Eye, EyeOff } from "lucide-react"
 
 function SignupForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { clearNotice, showNotice } = useNotice()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const showSignupError = (title: string, message?: string) => {
@@ -33,24 +33,8 @@ function SignupForm() {
     })
   }
 
-  const getSafeCallbackUrl = () => {
-    const callbackUrl = searchParams.get("callbackUrl")
-    if (!callbackUrl) return "/app"
-
-    const nextUrl = new URL(callbackUrl, window.location.origin)
-    if (nextUrl.origin !== window.location.origin) {
-      return "/app"
-    }
-
-    if (!nextUrl.pathname.startsWith("/app")) {
-      return "/app"
-    }
-
-    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
-  }
-
   const goToSignedInApp = () => {
-    router.replace(getSafeCallbackUrl())
+    router.replace("/app")
     router.refresh()
   }
 
@@ -83,7 +67,7 @@ function SignupForm() {
       email,
       password,
       redirect: false,
-      redirectTo: getSafeCallbackUrl(),
+      redirectTo: "/app",
     })
 
     if (signInResult?.error) {
@@ -114,7 +98,7 @@ function SignupForm() {
       // Sign in with demo credentials
       const signInResult = await signIn("demo", {
         redirect: false,
-        redirectTo: getSafeCallbackUrl(),
+        redirectTo: "/app",
       })
 
       if (signInResult?.error) {
@@ -202,14 +186,27 @@ function SignupForm() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
                      <Input
                        id="password"
-                       type="password"
+                       type={showPassword ? "text" : "password"}
                        placeholder="At least 8 characters"
                        value={password}
                        onChange={(e) => setPassword(e.target.value)}
-                       className="pl-10"
+                       className="pl-10 pr-11"
                        required
                        autoComplete="new-password"
                      />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 

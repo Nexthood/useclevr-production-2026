@@ -46,15 +46,14 @@
   "/assets/[...path]/route": "app/assets/[...path]/route.js",
   "/icon.png/route": "app/icon.png/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/agent/install-runtime/route": "app/api/agent/install-runtime/route.js",
   "/api/debug/request-headers/route": "app/api/debug/request-headers/route.js",
-  "/api/local-ai-install/route": "app/api/local-ai-install/route.js",
+  "/api/agent/install-runtime/route": "app/api/agent/install-runtime/route.js",
   "/api/local-ai-status/route": "app/api/local-ai-status/route.js",
   "/api/ollama/pull/route": "app/api/ollama/pull/route.js",
-  "/api/analyze/route": "app/api/analyze/route.js",
+  "/api/local-ai-install/route": "app/api/local-ai-install/route.js",
   "/api/usage/route": "app/api/usage/route.js",
+  "/api/analyze/route": "app/api/analyze/route.js",
   "/api/chat/route": "app/api/chat/route.js",
-  "/api/query/route": "app/api/query/route.js",
   "/affiliate/page": "app/affiliate/page.js",
   "/demo/data-processing-flow/page": "app/demo/data-processing-flow/page.js",
   "/login/page": "app/login/page.js",
@@ -76,5 +75,6 @@
   "/pricing/page": "app/pricing/page.js",
   "/security/page": "app/security/page.js",
   "/terms/page": "app/terms/page.js",
-  "/report/[id]/page": "app/report/[id]/page.js"
+  "/report/[id]/page": "app/report/[id]/page.js",
+  "/api/query/route": "app/api/query/route.js"
 }

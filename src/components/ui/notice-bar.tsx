@@ -31,9 +31,25 @@ const icons = {
 }
 
 const styles = {
-  error: "border-red-500/30 bg-red-500/95 text-white shadow-red-950/20",
-  success: "border-emerald-500/30 bg-emerald-500/95 text-white shadow-emerald-950/20",
-  info: "border-cyan-500/30 bg-cyan-500/95 text-slate-950 shadow-cyan-950/20",
+  error: "border-red-400/60 bg-red-600 text-white shadow-red-950/30",
+  success: "border-emerald-400/60 bg-emerald-600 text-white shadow-emerald-950/30",
+  info: "border-cyan-300/70 bg-cyan-500 text-slate-950 shadow-cyan-950/30",
+}
+
+const getFailedInteractionMessage = (status: number) => {
+  if (status === 401 || status === 403) {
+    return "Your session may have expired. Sign in again and retry."
+  }
+
+  if (status === 429) {
+    return "The service is busy or rate limited. Wait a moment, then retry."
+  }
+
+  if (status >= 500) {
+    return "The server did not complete the request. Please try again in a moment."
+  }
+
+  return "The app could not complete that action. Check the form and try again."
 }
 
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
@@ -99,6 +115,37 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       if (timerRef.current) {
         clearTimeout(timerRef.current)
       }
+    }
+  }, [showNotice])
+
+  React.useEffect(() => {
+    const originalFetch = window.fetch
+
+    window.fetch = async (...args) => {
+      try {
+        const response = await originalFetch(...args)
+
+        if (!response.ok) {
+          showNotice({
+            type: "error",
+            title: "Action failed.",
+            message: getFailedInteractionMessage(response.status),
+          })
+        }
+
+        return response
+      } catch (error) {
+        showNotice({
+          type: "error",
+          title: "Connection failed.",
+          message: "Check your connection and try again.",
+        })
+        throw error
+      }
+    }
+
+    return () => {
+      window.fetch = originalFetch
     }
   }, [showNotice])
 

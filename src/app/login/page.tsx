@@ -8,7 +8,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { Suspense, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -17,14 +17,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useNotice } from "@/components/ui/notice-bar"
-import { Loader2, ArrowRight, Sparkles, Mail, Lock, Rocket } from "lucide-react"
+import { Loader2, ArrowRight, Sparkles, Mail, Lock, Rocket, Eye, EyeOff } from "lucide-react"
 
 function LoginForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { clearNotice, showNotice } = useNotice()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const getLoginErrorMessage = (code?: string | null) => {
@@ -51,41 +51,9 @@ function LoginForm() {
     })
   }
 
-  const getSafeCallbackUrl = () => {
-    const callbackUrl = searchParams.get("callbackUrl")
-    if (!callbackUrl) return "/app"
-
-    const nextUrl = new URL(callbackUrl, window.location.origin)
-    if (nextUrl.origin !== window.location.origin) {
-      return "/app"
-    }
-
-    if (!nextUrl.pathname.startsWith("/app")) {
-      return "/app"
-    }
-
-    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
-  }
-
-  const signupHref = () => {
-    const callbackUrl = getSafeCallbackUrl()
-    if (callbackUrl === "/app") return "/signup"
-    return `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`
-  }
-
-  const goToSignedInApp = (url?: string | null) => {
-    const fallbackUrl = getSafeCallbackUrl()
-    const nextUrl = url
-      ? new URL(url, window.location.origin)
-      : new URL(fallbackUrl, window.location.origin)
-
-    if (nextUrl.origin === window.location.origin && nextUrl.pathname.startsWith("/app")) {
-      router.replace(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`)
-      router.refresh()
-      return
-    }
-
-    window.location.assign(fallbackUrl)
+  const goToDashboard = () => {
+    router.replace("/app")
+    router.refresh()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,7 +66,7 @@ function LoginForm() {
         email,
         password,
         redirect: false,
-        redirectTo: getSafeCallbackUrl(),
+        redirectTo: "/app",
       })
 
       if (result?.error) {
@@ -109,7 +77,7 @@ function LoginForm() {
             : "Your data is safe. This usually means the auth service needs attention.",
         )
       } else {
-        goToSignedInApp(result?.url)
+        goToDashboard()
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
@@ -136,7 +104,7 @@ function LoginForm() {
       debugLog("[LOGIN] Attempting demo login...")
       const result = await signIn("demo", {
         redirect: false,
-        redirectTo: getSafeCallbackUrl(),
+        redirectTo: "/app",
       })
       debugLog("[LOGIN] Demo login result:", result)
 
@@ -145,7 +113,7 @@ function LoginForm() {
         showLoginError(getLoginErrorMessage(result.error), "Please try again in a moment.")
       } else {
         debugLog("[LOGIN] Demo login successful, redirecting to /app")
-        goToSignedInApp(result?.url)
+        goToDashboard()
       }
     } catch (error) {
       debugError("[LOGIN] Demo login exception:", error)
@@ -178,13 +146,24 @@ function LoginForm() {
             <CardDescription className="text-center">
               Sign in to continue to UseClevr
             </CardDescription>
-            <div className="flex justify-center mt-2">
-              <span className="rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-200">
-                Demo mode available
-              </span>
-            </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-5 rounded-md border border-primary/30 bg-primary/10 p-4 text-sm">
+              <div className="flex items-start gap-3">
+                <Rocket className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                <div className="min-w-0 space-y-1">
+                  <p className="font-semibold text-foreground">Demo account</p>
+                  <div className="grid gap-1 text-sm">
+                    <p className="break-all text-muted-foreground">
+                      Email: <span className="font-medium text-foreground">demo@useclever.app</span>
+                    </p>
+                    <p className="text-muted-foreground">
+                      Password: <span className="font-medium text-foreground">demo</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -214,14 +193,27 @@ function LoginForm() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 pr-11"
                     required
                     autoComplete="current-password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -291,7 +283,7 @@ function LoginForm() {
 
             <div className="text-center text-sm mt-6">
               <span className="text-muted-foreground">Don't have an account? </span>
-              <Link href={signupHref()} className="text-primary hover:underline font-medium">
+              <Link href="/signup" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
             </div>

@@ -5,9 +5,7 @@ export default auth((req) => {
   const isAppRoute = nextUrl.pathname === "/app" || nextUrl.pathname.startsWith("/app/")
 
   if (isAppRoute && !req.auth) {
-    const loginUrl = new URL("/login", nextUrl)
-    loginUrl.searchParams.set("callbackUrl", `${nextUrl.pathname}${nextUrl.search}`)
-    return Response.redirect(loginUrl)
+    return Response.redirect(new URL("/login", nextUrl))
   }
 })
 

@@ -23,6 +23,7 @@ export default auth((request) => {
   if (isOnApp && !isLoggedIn) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
+    url.search = ""
     return NextResponse.redirect(url)
   }
 
@@ -30,6 +31,7 @@ export default auth((request) => {
   if ((isOnLogin || isOnSignup) && isLoggedIn) {
     const url = request.nextUrl.clone()
     url.pathname = "/app"
+    url.search = ""
     return NextResponse.redirect(url)
   }
 

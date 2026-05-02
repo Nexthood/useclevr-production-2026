@@ -30,7 +30,7 @@
     --secondary-foreground: 222 47% 4%;
     
     --muted: 215 28% 17%;         /* #252C38 */
-    --muted-foreground: 215 20% 60%;  /* #8B97A8 */
+    --muted-foreground: 215 24% 68%;
     --accent: 189 86% 53%;         /* Cyan */
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
@@ -71,13 +71,13 @@
     --secondary: 270 50% 65%;
     --secondary-foreground: 0 0% 100%;
     --muted: 214 20% 90%;
-    --muted-foreground: 215 16% 40%;
+    --muted-foreground: 215 18% 32%;
     --accent: 187 79% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 20% 85%;
-    --input: 214 20% 85%;
+    --border: 214 22% 78%;
+    --input: 214 22% 74%;
     --ring: 187 79% 53%;
     --sidebar: 0 0% 100%;
     --sidebar-foreground: 0 0% 0%;  /* Pure black for nav text */
@@ -132,7 +132,7 @@
     --secondary: 263 70% 76%;
     --secondary-foreground: 222 47% 4%;
     --muted: 215 28% 17%;
-    --muted-foreground: 215 20% 60%;  /* #8B97A8 */
+    --muted-foreground: 215 24% 68%;
     --accent: 189 86% 53%;
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;

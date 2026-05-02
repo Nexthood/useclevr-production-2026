@@ -12,7 +12,7 @@ export default async function AppLayout({
   const session = await auth()
 
   if (!session?.user) {
-    redirect("/login?callbackUrl=/app")
+    redirect("/login")
   }
 
   return (
