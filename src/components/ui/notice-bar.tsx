@@ -171,15 +171,15 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       {notice && (
         <div
           className={[
-            "fixed z-[100] flex justify-center pointer-events-none",
-            isAppPath ? "left-[240px] right-0 top-[84px]" : "left-4 right-4 top-4",
+            "fixed right-0 z-[100] flex justify-center pointer-events-none",
+            isAppPath ? "left-[240px] top-[84px]" : "left-0 top-0",
           ].join(" ")}
         >
           <div
             role={notice.type === "error" ? "alert" : "status"}
             className={[
-              "pointer-events-auto flex w-full max-w-2xl items-center gap-3 border px-4 py-3 shadow-sm rounded-md",
-              styles[notice.type],
+              "pointer-events-auto flex w-full items-center gap-3 border-b px-6 py-2 shadow-sm animate-in slide-in-from-top duration-300",
+              styles[notice.type], "notice-bar"
             ].join(" ")}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />

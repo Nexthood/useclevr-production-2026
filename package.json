@@ -10,7 +10,7 @@
     "prod:install": "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile",
     "prod:build": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
     "build:prod": "node ./scripts/dist/create-dist.cjs",
-    "prod:start": "NEXT_TELEMETRY_DISABLED=1 AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=${HOSTNAME:-0.0.0.0} PORT=${PORT:-8080} node -r ../scripts/runtime/load-env.cjs server.js",
+    "prod:start": "pnpm start:dist",
     "prod:local": "NEXT_TELEMETRY_DISABLED=1 AUTH_URL=http://localhost:8080 AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=8080 node -r ./scripts/runtime/load-env.cjs dist/server.js",
     "prod": "pnpm prod:build && echo '✅ Dist is ready! Run \"pnpm start:dist\" to start the server.'",
     "start:dist": "NEXT_TELEMETRY_DISABLED=1 AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=${HOSTNAME:-0.0.0.0} PORT=${PORT:-8080} node -r ./scripts/runtime/load-env.cjs dist/server.js",

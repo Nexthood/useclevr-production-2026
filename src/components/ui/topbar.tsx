@@ -19,7 +19,7 @@ export default async function Topbar() {
 
         <div className="flex items-center gap-2">
           {/* CSS-only Full-page Modal Trigger */}
-          <label htmlFor="hybrid-modal-toggle" className="h-6 px-3 flex items-center text-[10px] uppercase font-bold tracking-tighter bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white rounded-full cursor-pointer hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-purple-500/25 animate-pulse">
+          <label htmlFor="hybrid-modal-toggle" className="h-6 px-3 flex items-center text-[10px] uppercase font-bold tracking-tighter bg-gradient-primary text-white rounded-full cursor-pointer hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 animate-pulse">
             <Brain className="h-3 w-3 mr-1" />
             Hybrid AI
           </label>
