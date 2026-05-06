@@ -1,0 +1,23 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* UseClevr favicon: rounded square with UC monogram in brand purple */
+    :root { --brand-purple: #a855f7; }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #ffffff; }
+      .fg { fill: var(--brand-purple); }
+      .fg-stroke { stroke: var(--brand-purple); }
+    }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0b0b0b; }
+      .fg { fill: var(--brand-purple); }
+      .fg-stroke { stroke: var(--brand-purple); }
+    }
+  </style>
+  <rect class="bg" x="0" y="0" width="180" height="180" rx="36"/>
+  <g transform="translate(30,34)">
+    <!-- Stylized U -->
+    <path class="fg" d="M16 0h16v64c0 14.36 11.64 26 26 26s26-11.64 26-26V0h16v64c0 23.196-18.804 42-42 42S16 87.196 16 64V0z"/>
+    <!-- Stylized C (cutout shape overlay) -->
+    <path class="fg" d="M118 18c-23.196 0-42 18.804-42 42s18.804 42 42 42c10.2 0 19.56-3.68 26.76-9.8l-11.2-12.8c-4.4 3.72-10.08 5.96-16.36 5.96-14.36 0-26-11.64-26-26s11.64-26 26-26c6.28 0 11.96 2.24 16.36 5.96l11.2-12.8C137.56 21.68 128.2 18 118 18z"/>
+  </g>
+</svg>

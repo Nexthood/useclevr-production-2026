@@ -1,0 +1,8 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    "ai-chat-behavior.config.ts",
+    ".aiignore"
+  ]
+}

@@ -9,13 +9,14 @@ export default auth((request) => {
   const isOnApp = pathname.startsWith("/app")
   const isOnLogin = pathname === "/login"
   const isOnSignup = pathname === "/signup"
+  const isOnAuthApi = pathname.startsWith("/api/auth")
   const isOnApi = pathname.startsWith("/api")
   const isOnStatic = pathname.startsWith("/_next") || 
                       pathname.startsWith("/static") ||
                       pathname.includes(".")
 
-  // Skip proxy for static files and most API routes
-  if (isOnStatic || (isOnApi && pathname !== "/api/auth")) {
+  // Skip proxy for static files and non-auth API routes.
+  if (isOnStatic || (isOnApi && !isOnAuthApi)) {
     return NextResponse.next()
   }
 
@@ -23,6 +24,7 @@ export default auth((request) => {
   if (isOnApp && !isLoggedIn) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
+    url.search = ""
     return NextResponse.redirect(url)
   }
 
@@ -30,6 +32,7 @@ export default auth((request) => {
   if ((isOnLogin || isOnSignup) && isLoggedIn) {
     const url = request.nextUrl.clone()
     url.pathname = "/app"
+    url.search = ""
     return NextResponse.redirect(url)
   }
 

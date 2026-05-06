@@ -2,7 +2,7 @@
 node_modules/
 package-lock.json
 
-# Next.js
+# Next.js local dev/build cache. Created by `pnpm dev` and `pnpm build`.
 .next/
 next-env.d.ts
 out/
@@ -25,12 +25,17 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Build artifacts
-dist/
+# Build artifacts and local caches
 .turbo/
 tsconfig.tsbuildinfo
-public/generated/
-datasets/
+
+# Production output bundle. Created by `pnpm prod:build`.
+# The dist folder contains the production deployment bundle
+!dist/
+!dist/**
+
+dist/node_modules/
+dist/**/node_modules/
 
 # Editor & IDE
 .vscode/settings.json
@@ -45,13 +50,10 @@ Thumbs.db
 
 # Reports & Data
 .reports-data/
-*.pdf
-*.csv
+**/assets/generated/*
+!**/assets/generated/README.md
 
-# Railway (local deployment files)
-.railway/
-
-# DO NOT IGNORE (needed for CI/CD):
-# .github/ - GitHub Actions workflows
-# .vscode/extensions.json - VSCode recommended extensions
-# .vscode/settings.json - VSCode settings (team config)
+# AI local
+.kilo/*
+!.kilo/agent/
+!.kilo/agent/*.md

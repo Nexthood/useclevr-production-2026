@@ -1,108 +1,108 @@
 # UseClevr 2026
+# Static Distribution
 
-AI-powered business intelligence platform for turning uploaded business datasets into KPI dashboards, natural-language insights, and downloadable reports.
+AI business intelligence for uploaded CSV/business datasets.
+This application is designed as a **Hybrid AI Application** and requires a Node.js runtime to function correctly.
 
-## Frontend Features
+UseClevr turns data into dashboards, KPIs, forecasts, verified AI answers, and downloadable reports.
+### Why a pure static export is not supported:
+- **Security:** AI API keys and Database credentials must remain server-side.
+- **Dynamic Features:** Chat, File Uploads, and Database queries require the Next.js server environment.
+- **Middleware:** Authentication and route protection rely on server-side logic.
 
-- Dataset upload and analysis dashboard
-- KPI cards, charts, regional/product breakdowns, and report views
-- AI chat for dataset questions and verified computations
-- Local AI installer/status UI with dynamic same-origin API calls
-- Authenticated app shell, settings, downloads, referral, and assistant pages
-- Responsive public pages for landing, pricing, auth, legal, and contact
+### Hosting without Node.js (e.g., PHP servers):
+This project is **not compatible** with PHP-only hosting. While a static export can be served by any web server, the core AI and database features require a Node.js runtime (v22+). If you must use a PHP environment, you would need to rewrite the backend logic in PHP and use the React components as a headless frontend.
 
-## Tech Stack
+## Stack
 
-- Next.js 16 App Router with React 19
-- TypeScript 6
-- Tailwind CSS with Radix UI primitives and lucide icons
-- Drizzle ORM with Neon PostgreSQL
-- Auth.js / NextAuth v5 credentials auth
-- Gemini via AI SDK for cloud AI
-- Local AI bridge routes for Ollama/local runtime support
-- pnpm 10 package management
+Next.js 16, React 19, TypeScript 6, Tailwind CSS, Drizzle, Neon PostgreSQL, Auth.js, Gemini AI, pnpm, Railway.
 
-## Development
-
-Requirements:
-- Node.js 22+
-- pnpm 10+
-
-Install and run:
+## Start
 
 ```bash
 pnpm install
+cp .env.local.example .env.local
+# Set AUTH_URL and AUTH_TRUST_HOST in .env.local
 pnpm dev
 ```
 
-Use a custom local port:
+Required env vars:
 
-```bash
-PORT=4000 pnpm dev
+```env
+DATABASE_URL=
+DIRECT_URL=
+AUTH_SECRET= # Also supports NEXTAUTH_SECRET
+AUTH_URL= # Production: https://useclevr-main.up.railway.app
+          # Local Dev (pnpm dev): http://localhost:3000 (or comment out for auto-detection)
+          # Local Prod (pnpm prod:local): http://localhost:8080
+          # Also supports NEXTAUTH_URL
+AUTH_TRUST_HOST=true # Required for production, local prod testing, and network dev
+GEMINI_API_KEY=
 ```
 
-Build and start:
+Setup guide: [docs/Developer_Guides/Setup/SETUP.md](docs/Developer_Guides/Setup/SETUP.md)
 
-```bash
-pnpm build
-pnpm start
-```
+## Commands
 
-## Environment Variables
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Local dev |
+| `pnpm build` | Build |
+| `pnpm start` | Start built app |
+| `pnpm prod` | Production bundle |
+| `pnpm analyze:business` | Inspect latest dataset business metrics from the database |
+| `pnpm test:csv-analyzer` | Run the CSV analyzer smoke script |
+| `pnpm test:neon` | Test database connectivity with `NEON_DATABASE_URL`, `DIRECT_URL`, or `DATABASE_URL` |
+| `pnpm clean:dev` | Remove local `.next` cache and `tsconfig.tsbuildinfo` |
+| `pnpm clean:prod` | Remove `dist` production bundle plus dev cache |
+| `pnpm clean:generated` | Remove generated public assets |
+| `pnpm db:push` | Push DB schema |
+| `pnpm db:studio` | Open Drizzle Studio |
 
-Minimum required:
-- `DATABASE_URL`
-- `DIRECT_URL`
-- `AUTH_SECRET`
-- `GEMINI_API_KEY`
+## Workspace Outputs
 
-Reference template:
-- `.env.local.example`
-- `.env.railway.example`
+Keep root clutter predictable:
 
-## Railway Deployment (pnpm)
+| Path | Purpose | Git policy |
+| --- | --- | --- |
+| `.next/` | Local Next.js dev/build cache created by `pnpm dev` and `pnpm build` | Ignored |
+| `dist/` | Flat standalone production bundle for Railway deployment | Production artifact |
+| `src/assets/` | App images, downloads, styles, and static assets served through `/assets/...` | Tracked |
+| `src/assets/generated/` | Runtime-generated report files served through `/assets/generated/...` | Ignored except README |
+| `.kilo/agent/*.md` | Durable Kilo agent presets | Tracked |
+| `.kilo/*` local state | Kilo sessions, worktrees, node_modules | Ignored |
 
-This project is configured for pnpm-based Railway deployments.
+Best practice during development: use `pnpm dev` and leave `.next/` ignored. If the dev cache gets stale or noisy, run `pnpm clean:dev`. Use `pnpm prod:build` only when you need to regenerate production output.
 
-### 1) Railway service setup
-- Connect repository in Railway
-- Set Runtime/Builder to Nixpacks (Node)
-- Ensure Node 22+ is used
+## Deploy
 
-### 2) Railway build/start commands
-Use these in Railway service settings:
+Railway:
 
-- Build command:
-  - `pnpm railway:ci:min`
-- Start command:
-  - leave empty when using `pnpm railway:ci:min` as the build command
+- Use Railway root directory `dist`.
+- Build command: `echo 'Using pre-built artifacts from dist/'`
+- Start command: `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
+- Health: `/api/health`
+- Railway reads `dist/railway.json` when the selected root directory is `dist`. Dashboard-level build/start settings override the file if they are set.
 
-Alternative split commands:
-- Install command: `pnpm install --frozen-lockfile`
-- Build command: `pnpm build`
-- Start command: `pnpm start`
+Guide: [docs/Developer_Guides/Ops/deploy.md](docs/Developer_Guides/Ops/deploy.md)
 
-`pnpm railway:ci:min` runs install, build, and the minimal production start from `package.json`. The underlying start command is:
+## Docs
 
-```bash
-next start --hostname 0.0.0.0 --port ${PORT:-8080}
-```
+- [Developer guides](docs/Developer_Guides/README.md)
+- [User guides](docs/User_Guides/README.md)
+- [TODO](.TODO/TODO.md)
+- [Local agent contract](app/api/local-agent/contract.md)
 
-Railway provides `PORT` automatically. The fallback `8080` is only for local production-style starts.
+## Assets
 
-For non-silent deploy logs, use `pnpm railway:ci`.
+Static files live in `src/assets/` and are served through `/assets/...`.
+The folder `src/app/assets/` is only the route handler that exposes those files.
 
-### 3) Environment variables in Railway
-Set all required variables from `.env.railway.example`.
-Do not set fixed frontend URLs unless you need a custom `AUTH_URL`; the app trusts Railway proxy host headers.
-
-### 4) Health check
-- Path: `/api/health`
-- Port: Railway `$PORT`
-
-## Notes
-
-- Proxy/auth edge logic uses `proxy.ts` (Next 16 convention)
-- Metadata viewport is exported via `viewport` in `app/layout.tsx`
-- Neon fetch connection cache deprecation handled in `lib/db/index.ts`
-- Runtime-generated files are ignored (`.next/`, `public/generated/`, `datasets/`, report temp data)
+- `src/assets/images/` for images and branding assets
+- `src/assets/scripts/` for build/runtime helper scripts and SQL helpers
+- `src/assets/styles/` for global CSS
+- `src/assets/downloads/` for downloadable assets and README metadata
+- `src/assets/generated/` for runtime-generated report files
+### Deployment Recommendation:
+- Use `dist/` for Node-compatible hosting (e.g., Railway, Vercel, or a VPS).
+- Ensure the server has access to the environment variables defined in the project configuration.

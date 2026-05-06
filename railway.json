@@ -1,14 +1,15 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
+  "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "pnpm railway:install && pnpm railway:build"
+    "builder": "RAILPACK",
+    "buildCommand": "pnpm prod:build"
   },
   "deploy": {
-    "startCommand": "pnpm railway:start",
+    "preDeployCommand": "cd dist && npx drizzle-kit push",
+    "startCommand": "pnpm start:dist",
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 300,
+    "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 5
+    "restartPolicyMaxRetries": 10
   }
 }
