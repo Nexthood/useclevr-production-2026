@@ -1,5 +1,5 @@
 import { ThemeToggle } from "@/components/theme-toggle"
-import { HybridAiButton } from "@/components/ui/hybrid-ai-button"
+import HybridAiButton from "@/components/ui/hybrid-ai-button"
 
 export default async function Topbar() {
   return (

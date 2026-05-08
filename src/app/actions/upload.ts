@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 
 interface CsvRow {
   [key: string]: string | number | boolean | null
@@ -51,6 +52,7 @@ export async function uploadCSV(formData: FormData): Promise<{
   preview?: { headers: string[]; rows: CsvRow[] }
   profitabilityResult?: any
   usage?: AnalystCreditUsage
+  step?: string
 }> {
   try {
     if (!db) {
@@ -88,26 +90,46 @@ export async function uploadCSV(formData: FormData): Promise<{
     const isProfitabilityUpload = fileType?.startsWith('profitability_') || fileType?.includes('profitability')
     debugLog("[UPLOAD] fileType:", fileType)
     debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)
+    debugLog("[UPLOAD] file received:", formData.get("file") instanceof File)
     
     // Demo mode should ONLY apply to profitability uploads - NOT standard uploads
     // For standard uploads, we should always try to insert into the database
-    const shouldUseDemoMode = isDemoMode && isProfitabilityUpload
+    const shouldUseDemoMode = (isDemoMode || isBuiltinUserId(sessionUserId)) && isProfitabilityUpload
     
     // Demo mode: skip normal Dataset insert, return success with demo result
     // Only for profitability analysis - NOT for standard CSV uploads
     if (shouldUseDemoMode) {
       debugLog("[UPLOAD] === DEMO MODE - Using non-persistent profitability flow ===")
+      const file = formData.get("file") as File | null
+      if (file) {
+        debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
+        const text = await file.text()
+        const lines = text.trim().split("\n")
+        const headers = lines[0]?.split(",").map(h => h.trim().replace(/^"|"$/g, '')) || []
+        debugLog("[UPLOAD] CSV parsed")
+        debugLog("[UPLOAD] columns detected:", headers)
+        debugLog("[UPLOAD] row count detected:", Math.max(lines.length - 1, 0))
+      }
+      debugLog("[UPLOAD] profitability analysis started")
       
       const profitabilityDataStr = formData.get('profitabilityData') as string
       let profitabilityData = null
       if (profitabilityDataStr) {
         try {
           profitabilityData = JSON.parse(profitabilityDataStr)
+          debugLog("[UPLOAD] profitability metrics calculated:", {
+            hasRevenue: profitabilityData?.hasRevenue,
+            hasExpenses: profitabilityData?.hasExpenses,
+            totalRevenue: profitabilityData?.totalRevenue,
+            totalExpenses: profitabilityData?.totalExpenses,
+          })
         } catch (e) {
           debugLog("[UPLOAD] Could not parse profitabilityData:", e)
         }
       }
       
+      debugLog("[UPLOAD] AI/explanation layer called: false")
+      debugLog("[UPLOAD] result saved: non-persistent built-in profitability result")
       debugLog("[UPLOAD] Demo mode - returning demo result (no DB insert)")
       return {
         success: true,
@@ -310,6 +332,7 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Read file content
     const text = await file.text()
+    debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
     
     // Simple CSV parsing - just get headers and first few rows
     const lines = text.trim().split("\n")
@@ -319,9 +342,12 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Parse headers from first line
     const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''))
+    debugLog("[UPLOAD] CSV parsed")
+    debugLog("[UPLOAD] columns detected:", headers)
     
     // Count total rows first (just count newlines)
     const totalRowCount = lines.length - 1 // Exclude header
+    debugLog("[UPLOAD] row count detected:", totalRowCount)
     
     // Parse ALL rows for full dataset analysis
     const allRows: CsvRow[] = []
@@ -369,6 +395,16 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Check if this is a profitability analysis (has profitability data)
     const isProfitabilityAnalysis = !!profitabilityData
+    if (isProfitabilityAnalysis) {
+      debugLog("[UPLOAD] profitability analysis started")
+      debugLog("[UPLOAD] profitability metrics calculated:", {
+        hasRevenue: profitabilityData?.hasRevenue,
+        hasExpenses: profitabilityData?.hasExpenses,
+        totalRevenue: profitabilityData?.totalRevenue,
+        totalExpenses: profitabilityData?.totalExpenses,
+      })
+      debugLog("[UPLOAD] AI/explanation layer called: false")
+    }
     
     // For profitability analysis, store minimal data - don't store full raw rows
     const shouldStoreFullData = !isProfitabilityAnalysis
@@ -451,13 +487,20 @@ export async function uploadCSV(formData: FormData): Promise<{
       try {
         await (db as any).insert(datasets).values(insertData)
         debugLog("[UPLOAD] Dataset created with", totalRowCount, "rows")
+        debugLog("[UPLOAD] dataset saved:", datasetId)
+        if (isProfitabilityAnalysis) {
+          debugLog("[UPLOAD] result saved:", datasetId)
+        }
       } catch (insertErr) {
         debugError("[UPLOAD] INSERT FAILED:", insertErr)
         debugError("[UPLOAD] INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
         // Return actual error instead of masking as success
         return { 
           success: false, 
-          error: "Could not generate profitability analysis. Please try again." 
+          step: "profitability_analysis",
+          error: isProfitabilityAnalysis
+            ? "Could not save profitability analysis. Please try again."
+            : "Could not save dataset. Please try again.",
         }
       }
     } catch (err) {
@@ -485,6 +528,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         headers,
         rows: allRows.slice(0, 5),
       },
+      profitabilityResult: profitabilityData || undefined,
       usage,
     }
   } catch (error) {

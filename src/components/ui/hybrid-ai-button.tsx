@@ -4,7 +4,7 @@ import { Brain, X } from "lucide-react"
 import * as React from "react"
 import { createPortal } from "react-dom"
 
-export function HybridAiButton() {
+export default function HybridAiButton() {
   const [open, setOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
 
