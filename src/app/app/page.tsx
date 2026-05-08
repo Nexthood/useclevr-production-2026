@@ -82,7 +82,7 @@ export default async function AppDashboard() {
         breadcrumbs={[{ label: "Dashboard" }]}
       />
 
-      <main className="p-6">
+      <main className="p-4 sm:p-6">
         <div className="max-w-6xl mx-auto space-y-8 pt-6">
           {!isDatabaseAvailable && (
             <Card className="p-3 bg-amber-500/10 border-amber-500/20">
@@ -93,7 +93,7 @@ export default async function AppDashboard() {
           )}
 
           {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {statsCards.map((stat, index) => (
               <Card key={index} className="p-4 bg-card border-border">
                 <div className="flex items-center gap-3">
@@ -111,7 +111,7 @@ export default async function AppDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {quickActions.map((action, index) => (
               <Card key={index} className="p-4 hover:border-primary/30 transition-all duration-300 group bg-card border-border">
                 <div className="flex items-start justify-between mb-3">
@@ -136,7 +136,7 @@ export default async function AppDashboard() {
           {/* Empty State - Main Upload CTA */}
           {displayStats.datasetCount === 0 ? (
             <Card className="p-6 bg-card border-border">
-              <div className="flex items-center gap-5">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                 <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center flex-shrink-0">
                   <Database className="h-6 w-6 text-white" />
                 </div>
@@ -146,7 +146,7 @@ export default async function AppDashboard() {
                     Get instant insights from CSV files in seconds.
                   </p>
                 </div>
-                <Link href="/app/upload">
+                <Link href="/app/upload" className="w-full sm:w-auto">
                   <Button className="bg-gradient-primary hover:opacity-90 flex-shrink-0">
                     <Upload className="mr-2 h-4 w-4" />
                     Upload CSV
@@ -169,7 +169,7 @@ export default async function AppDashboard() {
           )}
 
           {/* Features hint */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="flex items-start gap-3 p-3.5 rounded-lg bg-card border border-border">
               <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
                 <Zap className="h-4 w-4 text-purple-400" />

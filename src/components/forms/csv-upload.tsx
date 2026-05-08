@@ -309,7 +309,7 @@ export function CsvUpload() {
         id="file-upload"
         disabled={uploading}
       />
-      <label htmlFor="file-upload" className={`cursor-pointer block p-5 ${uploading ? "cursor-not-allowed" : ""}`}>
+      <label htmlFor="file-upload" className={`cursor-pointer block p-5 sm:p-7 ${uploading ? "cursor-not-allowed" : ""}`}>
         <div className="flex flex-col items-center gap-3">
           {/* Processing Flow Animation */}
           {uploading && processingStep > 0 && (
@@ -321,7 +321,7 @@ export function CsvUpload() {
           {/* Connection status indicator */}
           {uploadStatus === "idle" && !uploading && (
             <div className="flex flex-col items-center gap-0.5">
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${getConnectionStatusColor(connectionMode)} shadow-sm`}>
+              <div className={`flex max-w-full items-center gap-2 rounded-lg border px-3 py-2 shadow-sm sm:px-4 ${getConnectionStatusColor(connectionMode)}`}>
                 {isCheckingConnection ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                 ) : (
@@ -332,7 +332,7 @@ export function CsvUpload() {
                 </span>
               </div>
               {!isCheckingConnection && getConnectionDescription(connectionMode) && (
-                <p className="text-xs text-muted-foreground/60">
+                  <p className="px-2 text-center text-xs text-muted-foreground/70">
                   {getConnectionDescription(connectionMode)}
                 </p>
               )}
@@ -441,9 +441,9 @@ export function CsvUpload() {
                   </p>
                 )}
                 {/* File limit - refined */}
-                <div className="mt-3 pt-3 border-t border-border/40">
+                <div className="mt-3 border-t border-border/40 pt-3">
                   <p className="text-xs text-muted-foreground/80">
-                    <span className="font-medium text-foreground">CSV</span> files up to 50MB • Larger datasets coming soon
+                    <span className="font-medium text-foreground">CSV</span> files up to 100MB
                   </p>
                 </div>
               </>

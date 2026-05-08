@@ -49,7 +49,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const planStatus = user.role === "superadmin" ? "Super admin" : isPro ? "Pro" : "Free"
 
   return (
-      <aside className="fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-col border-r border-sidebar-border bg-sidebar">
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[220px] flex-col border-r border-sidebar-border bg-sidebar md:flex">
         {/* Logo */}
         <div className="border-b border-sidebar-border px-4 py-3">
           <Link href="/" className="flex h-14 items-center">
@@ -65,14 +65,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border"
-                    : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                    ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                    : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 }`}
               >
-                <item.icon className="h-4 w-4 flex-shrink-0 text-sidebar-foreground" />
-                <span>{item.name}</span>
+                <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`} />
+                <span className="truncate">{item.name}</span>
               </Link>
             )
           })}

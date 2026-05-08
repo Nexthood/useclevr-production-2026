@@ -2,6 +2,7 @@
 
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react"
 import * as React from "react"
+import { createPortal } from "react-dom"
 
 type NoticeType = "error" | "success" | "info"
 
@@ -61,9 +62,11 @@ const getFetchUrl = (input: Parameters<typeof window.fetch>[0]) => {
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
   const [notice, setNotice] = React.useState<Notice | null>(null)
   const [isAppPath, setIsAppPath] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   React.useEffect(() => {
+    setMounted(true)
     setIsAppPath(window.location.pathname.startsWith("/app"))
   }, [])
 
@@ -164,42 +167,43 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
   }, [showNotice])
 
   const Icon = notice ? icons[notice.type] : Info
+  const noticeBar = notice ? (
+    <div
+      className={[
+        "fixed right-0 z-[120] flex justify-center pointer-events-none",
+        isAppPath ? "left-[220px] top-9" : "left-0 top-0",
+      ].join(" ")}
+    >
+      <div
+        role={notice.type === "error" ? "alert" : "status"}
+        className={[
+          "pointer-events-auto flex w-full items-center gap-3 border-b px-6 py-2 shadow-sm animate-in slide-in-from-top duration-300",
+          styles[notice.type], "notice-bar"
+        ].join(" ")}
+      >
+        <Icon className="h-4 w-4 flex-shrink-0" />
+        <div className="flex flex-1 items-center gap-2 min-w-0">
+          <p className="text-sm font-semibold">{notice.title}</p>
+          {notice.message && (
+            <p className="text-sm opacity-90">{notice.message}</p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={clearNotice}
+          className="rounded-md p-1 opacity-60 transition hover:opacity-100 focus-visible:outline-none hover:bg-black/10 dark:hover:bg-white/10"
+          aria-label="Dismiss notice"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  ) : null
 
   return (
     <NoticeContext.Provider value={{ notice, showNotice, clearNotice }}>
       {children}
-      {notice && (
-        <div
-          className={[
-            "fixed right-0 z-[100] flex justify-center pointer-events-none",
-            isAppPath ? "left-[240px] top-[84px]" : "left-0 top-0",
-          ].join(" ")}
-        >
-          <div
-            role={notice.type === "error" ? "alert" : "status"}
-            className={[
-              "pointer-events-auto flex w-full items-center gap-3 border-b px-6 py-2 shadow-sm animate-in slide-in-from-top duration-300",
-              styles[notice.type], "notice-bar"
-            ].join(" ")}
-          >
-            <Icon className="h-4 w-4 flex-shrink-0" />
-            <div className="flex flex-1 items-center gap-2 min-w-0">
-              <p className="text-sm font-semibold">{notice.title}</p>
-              {notice.message && (
-                <p className="text-sm opacity-90">{notice.message}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={clearNotice}
-              className="rounded-md p-1 opacity-60 transition hover:opacity-100 focus-visible:outline-none hover:bg-black/10 dark:hover:bg-white/10"
-              aria-label="Dismiss notice"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      {mounted && noticeBar ? createPortal(noticeBar, document.body) : null}
     </NoticeContext.Provider>
   )
 }

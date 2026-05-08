@@ -114,10 +114,11 @@ export function DatasetAnalyzer({
   columns,
   data,
   rowCount,
+  isAnalyzed: initialAnalyzedProp = false,
   initialIsAnalyzed = false,
   initialAnalysis
 }: DatasetAnalyzerProps) {
-  const [isAnalyzed, setIsAnalyzed] = React.useState(initialIsAnalyzed)
+  const [isAnalyzed, setIsAnalyzed] = React.useState(initialAnalyzedProp || initialIsAnalyzed)
   const [analysis, setAnalysis] = React.useState<CSVAnalysisResult | null>(initialAnalysis || null)
   const [isAnalyzing, setIsAnalyzing] = React.useState(false)
   const [showChat, setShowChat] = React.useState(false)
@@ -634,10 +635,10 @@ export function DatasetAnalyzer({
   // (autoProcessing is true by default for new uploads, showing processing animation)
   if (!isAnalyzed && data.length > 0 && autoProcessing) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[600px]">
+      <div className="flex min-h-[520px] flex-col items-center justify-center px-2 sm:min-h-[600px]">
         <div className="w-full max-w-lg">
           {/* Processing state - no button, just auto-processing */}
-          <div className="text-center py-12 px-8 bg-gradient-to-br from-violet-50/50 to-purple-50/50 dark:from-violet-950/20 dark:to-purple-950/20 rounded-2xl border border-violet-100 dark:border-violet-900">
+          <div className="rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50/60 to-purple-50/60 px-5 py-10 text-center dark:border-violet-900 dark:from-violet-950/20 dark:to-purple-950/20 sm:px-8 sm:py-12">
             <div className="relative inline-block mb-6">
               <div className="h-16 w-16 rounded-full bg-violet-100 dark:bg-violet-900 flex items-center justify-center">
                 <Loader2 className="h-8 w-8 text-violet-600 dark:text-violet-400 animate-spin" />
@@ -645,7 +646,7 @@ export function DatasetAnalyzer({
               <div className="absolute inset-0 h-16 w-16 rounded-full bg-violet-200 dark:bg-violet-800 animate-ping opacity-20" />
             </div>
             
-            <h2 className="text-2xl font-semibold mb-3 text-foreground">
+            <h2 className="text-xl font-semibold mb-3 text-foreground sm:text-2xl">
               Preparing dataset insights...
             </h2>
             <p className="text-muted-foreground mb-8">
@@ -676,11 +677,11 @@ export function DatasetAnalyzer({
   // STATE 2: Not yet initiated - show the ready state (for returning users who haven't analyzed)
   if (!isAnalyzed) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[600px]">
+      <div className="flex min-h-[520px] flex-col items-center justify-center px-2 sm:min-h-[600px]">
         <div className="w-full max-w-lg">
           {/* Clean centered card */}
-          <div className="text-center py-12 px-8 bg-gradient-to-br from-violet-50/50 to-purple-50/50 dark:from-violet-950/20 dark:to-purple-950/20 rounded-2xl border border-violet-100 dark:border-violet-900">
-            <h2 className="text-2xl font-semibold mb-3 text-foreground">
+          <div className="rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50/60 to-purple-50/60 px-5 py-10 text-center dark:border-violet-900 dark:from-violet-950/20 dark:to-purple-950/20 sm:px-8 sm:py-12">
+            <h2 className="text-xl font-semibold mb-3 text-foreground sm:text-2xl">
               Dataset ready for analysis
             </h2>
             <p className="text-muted-foreground mb-8">
@@ -724,22 +725,22 @@ export function DatasetAnalyzer({
   return (
     <div className="flex flex-col min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">{datasetName}</h2>
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <h2 className="break-words text-2xl font-bold">{datasetName}</h2>
           <p className="text-muted-foreground">
             {rowCount.toLocaleString()} rows • {columns.length} columns
           </p>
         </div>
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {/* Generate Report Button */}
           {analysis?.business_analysis?.kpis && (
             <Button 
               onClick={handleGenerateReport}
               disabled={isGeneratingReport}
               variant="outline"
-              className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+              className="border-violet-500/40 text-violet-700 hover:bg-violet-500/10 dark:text-violet-300"
             >
               {isGeneratingReport ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -764,7 +765,7 @@ export function DatasetAnalyzer({
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="mb-4 shrink-0">
+        <TabsList className="mb-4 w-full shrink-0 overflow-x-auto sm:w-auto">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Table2 className="h-4 w-4" />
             Overview
@@ -807,7 +808,7 @@ export function DatasetAnalyzer({
 
           {/* KPI Cards - Premium Executive Grid (gated by capabilities) */}
           {analysis?.business_analysis?.kpis && (
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
               {/* Total Revenue - Dominant Card */}
               {capabilities.revenueAvailable && analysis?.business_analysis?.kpis && (
                 <div 
@@ -1190,7 +1191,7 @@ export function DatasetAnalyzer({
                      >
                        <span className="text-amber-400 mt-0.5">•</span>
                        <div className="flex-1">
-                         <div>{insight.message}</div>
+	                        <div className="leading-relaxed">{insight.message}</div>
                          <div className="text-xs mt-1">
                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                              insight.reliability === 'verified' ? 'bg-emerald-900/30 text-emerald-400' :
@@ -1316,7 +1317,7 @@ export function DatasetAnalyzer({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {analysis?.business_analysis?.kpis?.worstProducts?.slice(0, 5).map((product, idx) => (
-                        <div key={idx} className="px-3 py-1.5 rounded-full bg-red-950/30 border border-red-900 text-xs text-red-300">
+	                        <div key={idx} className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-red-700 dark:text-red-300">
                           {product.name}: ${Math.abs(product.profit).toLocaleString()} loss
                         </div>
                       ))}
@@ -1362,7 +1363,7 @@ export function DatasetAnalyzer({
           {(!analysis?.business_analysis?.breakdowns || 
             (typeof analysis.business_analysis.breakdowns === 'object' && 
              Object.keys(analysis.business_analysis.breakdowns).length === 0)) && (
-            <div className="text-center py-16 bg-neutral-50 dark:bg-card rounded-xl">
+	            <div className="rounded-lg border border-border bg-card px-6 py-16 text-center">
               <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No visualization data available</p>
               <p className="text-sm text-muted-foreground mt-2">Re-analyze your dataset to generate business insights.</p>
@@ -1534,9 +1535,9 @@ export function DatasetAnalyzer({
                     const maxBarWidth = Math.min(90, Math.max(60, 600 / barCount));
                     
                     return (
-                      <Card className={countryDisplayMode === 'all' && entries.length > 8 ? "overflow-x-auto" : "overflow-hidden max-w-[900px] mx-auto w-full"}>
+	                      <Card className={countryDisplayMode === 'all' && entries.length > 8 ? "overflow-x-auto" : "overflow-hidden max-w-[900px] mx-auto w-full"}>
                         <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between flex-wrap gap-3">
+	                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <CardTitle className="text-xl">
                                 {revenueViewMode === 'region' ? 'Revenue by Region' : 'Revenue by Country'}
@@ -1550,9 +1551,9 @@ export function DatasetAnalyzer({
                               </p>
                             </div>
                             
-                            <div className="flex items-center gap-2">
+	                            <div className="flex flex-wrap items-center gap-2">
                               {/* Region/Country Toggle */}
-                              <div className="flex bg-muted rounded-lg p-1">
+	                              <div className="flex rounded-lg bg-muted p-1">
                                 <button
                                   onClick={() => setRevenueViewMode('region')}
                                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -1606,9 +1607,9 @@ export function DatasetAnalyzer({
                         <CardContent className="pt-2">
                           <div 
                             className={countryDisplayMode === 'all' && entries.length > 8 
-                              ? "h-[320px] overflow-x-auto flex items-end scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent"
-                              : "h-[320px] flex items-end justify-center"
-                            }
+	                              ? "h-[320px] overflow-x-auto flex items-end scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent"
+	                              : "h-[320px] min-w-[520px] flex items-end justify-center"
+	                            }
                             style={{ gap: `${gap}px`, padding: '0 24px 16px' }}
                           >
                             {entries.map((item, idx) => {
@@ -1623,9 +1624,9 @@ export function DatasetAnalyzer({
                                   style={{ width: `${maxBarWidth}px`, flexShrink: 0 }}
                                 >
                                   {/* Tooltip */}
-                                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-card text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap z-10 pointer-events-none">
+	                                  <div className="absolute bottom-full z-10 mb-2 whitespace-nowrap rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-xl transition-opacity pointer-events-none group-hover:opacity-100">
                                     <div className="font-semibold">{item.label}</div>
-                                    <div className="text-purple-300">${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+	                                    <div className="text-primary">${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                                     <div className="text-muted-foreground">{sharePct}% of total</div>
                                   </div>
                                   
@@ -1691,7 +1692,7 @@ export function DatasetAnalyzer({
                           <p className="text-sm text-muted-foreground">{entries.length} products</p>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+	                          <div className="max-h-[400px] space-y-3 overflow-y-auto pr-2">
                             {entries.map((item, idx) => {
                               const widthPct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
                               const minWidthPct = Math.max(widthPct, 10); // Minimum 10% width for visibility
@@ -1700,10 +1701,10 @@ export function DatasetAnalyzer({
                               return (
                                 <div 
                                   key={idx} 
-                                  className="flex items-center gap-4 group"
+	                                  className="group flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
                                   title={`${item.label}: ${item.value.toLocaleString()} (${sharePct}% of total)`}
                                 >
-                                  <div className="w-40 flex-shrink-0">
+	                                  <div className="w-full flex-shrink-0 sm:w-40">
                                     <span className="text-sm font-medium text-foreground dark:text-foreground block" style={{ wordBreak: 'break-word' }}>
                                       {item.label}
                                     </span>
@@ -1720,7 +1721,7 @@ export function DatasetAnalyzer({
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="w-28 flex-shrink-0 text-right">
+	                                  <div className="w-full flex-shrink-0 text-left sm:w-28 sm:text-right">
                                     <span className="text-sm font-bold text-violet-600">
                                       ${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                     </span>
@@ -1867,8 +1868,8 @@ export function DatasetAnalyzer({
                     const gap = barCount <= 4 ? 36 : barCount <= 6 ? 32 : 28;
                     const maxBarWidth = Math.min(90, Math.max(60, 600 / barCount));
                     
-                    return (
-                      <div className="h-[300px] flex items-end justify-center" style={{ gap: `${gap}px`, padding: '0 24px 16px' }}>
+	                      return (
+	                      <div className="h-[300px] min-w-[520px] overflow-x-auto flex items-end justify-center" style={{ gap: `${gap}px`, padding: '0 24px 16px' }}>
                         {entries.map((item, idx) => {
                           const heightPct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
                           const minHeight = Math.max(heightPct, 5);
@@ -1881,9 +1882,9 @@ export function DatasetAnalyzer({
                               style={{ width: `${maxBarWidth}px`, flexShrink: 0 }}
                             >
                               {/* Tooltip */}
-                              <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-card text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap z-10 pointer-events-none">
+	                              <div className="absolute bottom-full z-10 mb-2 whitespace-nowrap rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-xl transition-opacity pointer-events-none group-hover:opacity-100">
                                 <div className="font-semibold">{item.label}</div>
-                                <div className="text-purple-300">${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+	                                <div className="text-primary">${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                                 <div className="text-muted-foreground">{sharePct}% of total</div>
                               </div>
                               
@@ -1923,10 +1924,10 @@ export function DatasetAnalyzer({
 
       {/* Drilldown Panel */}
       {drilldownItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-          <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden">
-            <div className="border-b border-border px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground">{drilldownItem.title}</h2>
+	        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+	          <div className="max-h-[85vh] w-full max-w-[520px] overflow-hidden rounded-lg border border-border bg-card/95 shadow-2xl backdrop-blur-lg">
+	            <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6">
+	              <h2 className="break-words text-lg font-bold text-foreground sm:text-xl">{drilldownItem.title}</h2>
               <button 
                 onClick={() => setDrilldownItem(null)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
@@ -1934,7 +1935,7 @@ export function DatasetAnalyzer({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+	            <div className="max-h-[calc(85vh-80px)] space-y-4 overflow-y-auto p-4 sm:p-6">
               <div className="space-y-2">
                 <p className="text-foreground">{drilldownItem.value}</p>
                 {drilldownItem.type !== 'recommendation' && (
@@ -1948,9 +1949,9 @@ export function DatasetAnalyzer({
                   <h4 className="text-sm font-semibold text-foreground">Details</h4>
                   <div className="space-y-1">
                     {drilldownItem.supportingData.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-foreground text-sm">
-                        <span>{item.label}</span>
-                        <span>{item.value}</span>
+	                      <div key={idx} className="flex flex-col gap-1 rounded-md bg-muted/40 px-3 py-2 text-sm text-foreground sm:flex-row sm:justify-between">
+	                        <span className="text-muted-foreground">{item.label}</span>
+	                        <span className="break-words font-medium sm:text-right">{item.value}</span>
                       </div>
                     ))}
                   </div>
@@ -2099,45 +2100,45 @@ function RegionBarChart({
   debugLog('[RegionBarChart] Final chartData:', chartData);
   
   // Colors for bars
-  const COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', '#fff7ed', '#fbbf24', '#f59e0b', '#ea580c', '#c2410c'];
+	  const COLORS = ['#06b6d4', '#8b5cf6', '#0ea5e9', '#a855f7', '#14b8a6', '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#64748b'];
   
   if (chartData.length === 0) {
     return <div className="text-muted-foreground">No region data available</div>;
   }
   
   return (
-    <div className="w-full h-[300px]">
-       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+	    <div className="h-[320px] w-full overflow-x-auto">
+	       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart 
           data={chartData} 
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={true} vertical={false} />
-          <XAxis 
-            type="number" 
-            stroke="#9ca3af" 
-            fontSize={12}
+	          margin={{ top: 5, right: 24, left: 72, bottom: 5 }}
+	        >
+	          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={true} vertical={false} />
+	          <XAxis 
+	            type="number" 
+	            stroke="hsl(var(--muted-foreground))" 
+	            fontSize={12}
             tickFormatter={(value) => `${value >= 1000 ? `${(value/1000).toFixed(2)}K` : value}`}
           />
           <YAxis 
             type="category" 
             dataKey="name" 
-            stroke="#9ca3af" 
-            fontSize={12}
-            width={75}
-            tick={{ fill: '#d1d5db' }}
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: '#1f2937', 
-              border: '1px solid #374151', 
-              borderRadius: '8px',
-              color: '#fff'
-            }}
-            formatter={(value) => [`${(value as number)?.toLocaleString() || 0}`, 'Revenue']}
-            labelStyle={{ color: '#fff', fontWeight: 600 }}
-          />
+	            stroke="hsl(var(--muted-foreground))" 
+	            fontSize={12}
+	            width={75}
+	            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+	          />
+	          <Tooltip 
+	            contentStyle={{ 
+	              backgroundColor: 'hsl(var(--popover))', 
+	              border: '1px solid hsl(var(--border))', 
+	              borderRadius: '8px',
+	              color: 'hsl(var(--popover-foreground))'
+	            }}
+	            formatter={(value) => [`${(value as number)?.toLocaleString() || 0}`, 'Revenue']}
+	            labelStyle={{ color: 'hsl(var(--popover-foreground))', fontWeight: 600 }}
+	          />
           <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

@@ -36,14 +36,14 @@ export default function PricingPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 md:px-6 py-8">
+        <section className="container mx-auto px-4 py-8 md:px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-8">
               <h1 className="text-3xl md:text-4xl font-bold mb-3">Choose your plan</h1>
               <p className="text-base text-muted-foreground mb-4">
                 Start free and scale as you grow. No hidden fees, cancel anytime.
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
                 <div className="flex items-center gap-2 text-[#06B6D4]">
                   <Check className="h-4 w-4" />
                   <span>14-day free trial</span>
@@ -55,9 +55,9 @@ export default function PricingPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 relative">
+            <div className="relative grid gap-6 md:grid-cols-3">
               {/* Free Tier */}
-              <Card className="p-6 space-y-4 bg-card border-border/50">
+              <Card className="space-y-4 border-border/50 bg-card p-6">
                 <div className="space-y-3">
                   <div className="h-12 w-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
                     <Sparkles className="h-6 w-6 text-[#7C3AED]" />
@@ -121,7 +121,7 @@ export default function PricingPage() {
               </Card>
 
               {/* Pro Tier - with Stripe checkout */}
-              <Card className="p-6 space-y-4 border-2 border-[#7C3AED]/50 bg-card relative">
+              <Card className="relative space-y-4 border-2 border-[#7C3AED]/50 bg-card p-6">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <div className="bg-[#7C3AED] text-white text-xs font-medium px-3 py-1 rounded-full">Most popular</div>
                 </div>
@@ -232,7 +232,7 @@ export default function PricingPage() {
               </Card>
 
               {/* Business / Custom Tier */}
-              <Card className="p-6 space-y-4 bg-card border-border/50">
+              <Card className="space-y-4 border-border/50 bg-card p-6">
                 <div className="space-y-3">
                   <div className="h-12 w-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
                     <Building2 className="h-6 w-6 text-[#7C3AED]" />
@@ -241,7 +241,7 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold mb-1">Business / Custom</h3>
                     <p className="text-sm text-muted-foreground">For large organizations</p>
                   </div>
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex flex-wrap items-baseline gap-1">
                     <span className="text-4xl font-bold tracking-tight">Custom</span>
                   </div>
                   <p className="text-sm text-muted-foreground">Volume-based pricing</p>

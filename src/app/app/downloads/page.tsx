@@ -242,12 +242,12 @@ export default function DownloadsPage() {
         )}
       />
 
-      <main className="p-6">
+      <main className="p-4 sm:p-6">
         <div className="max-w-6xl mx-auto space-y-6 pt-6">
           {/* Usage Card - Unified with sidebar */}
           <Card className="p-4 bg-card border-border">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-foreground">Analysis Credits</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isPro 
@@ -303,16 +303,16 @@ export default function DownloadsPage() {
 
           {/* Downloads List */}
           <Card className="p-6 bg-card border-border">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold text-foreground">Your Downloads</h2>
               <div className="flex items-center gap-2">
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 w-56"
+                    className="h-9 w-full pl-9 sm:w-56"
                   />
                 </div>
               </div>
@@ -343,14 +343,14 @@ export default function DownloadsPage() {
                   return (
                     <div 
                       key={file.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                      className="flex flex-col gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent/50 lg:flex-row lg:items-center lg:justify-between"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                      <div className="flex min-w-0 items-start gap-4">
+                        <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-purple-500/10 flex items-center justify-center">
                           <Icon className="h-5 w-5 text-purple-400" />
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">{file.name}</p>
+                        <div className="min-w-0">
+                          <p className="break-words font-medium text-foreground">{file.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {file.type.toUpperCase()} • {file.source}
                           </p>
@@ -368,7 +368,7 @@ export default function DownloadsPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                         <span className={`text-xs px-2 py-1 rounded-full ${statusDisplay.className}`}>
                           {statusDisplay.label === "Ready" && <CheckCircle className="h-3 w-3 inline mr-1" />}
                           {statusDisplay.label === "Generating" && <Loader2 className="h-3 w-3 inline mr-1 animate-spin" />}
@@ -409,9 +409,9 @@ export default function DownloadsPage() {
 
           {/* Upgrade CTA for free users */}
           {!isPro && (
-            <Card className="p-6 bg-gradient-to-br from-purple-950/30 to-cyan-950/30 border border-purple-500/20">
-              <div className="flex items-center justify-between">
-                <div>
+            <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <h3 className="text-lg font-semibold text-foreground">Unlock Unlimited Downloads</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     Get unlimited PDF, CSV, and data exports with Pro
