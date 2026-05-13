@@ -4,7 +4,7 @@ export const PRODUCTS = {
     name: "UseClevr Pro",
     description:
       "For professionals & teams. Unlimited datasets, advanced AI assistant, priority processing, email support, and API access.",
-    priceInCents: 2900,
+    priceInCents: 4000,
     currency: "eur",
     interval: "month" as const,
   },
@@ -13,7 +13,7 @@ export const PRODUCTS = {
     name: "UseClevr Pro (Yearly)",
     description:
       "For professionals & teams. Unlimited datasets, advanced AI assistant, priority processing, email support, and API access.",
-    priceInCents: 29000,
+    priceInCents: 40000,
     currency: "eur",
     interval: "year" as const,
   },

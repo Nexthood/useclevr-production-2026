@@ -135,12 +135,12 @@ export default function PricingPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] bg-clip-text text-transparent">
-                      €29
+                      €40
                     </span>
                     <span className="text-muted-foreground text-sm">/month</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Billed monthly or €290/year <span className="text-[#06B6D4]">(save 17%)</span>
+                    Billed monthly or €400/year <span className="text-[#06B6D4]">(save 17%)</span>
                   </p>
                 </div>
 
@@ -242,9 +242,10 @@ export default function PricingPage() {
                     <p className="text-sm text-muted-foreground">For large organizations</p>
                   </div>
                   <div className="flex flex-wrap items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight">Custom</span>
+                    <span className="text-4xl font-bold tracking-tight">€420</span>
+                    <span className="text-muted-foreground text-sm">/month</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Volume-based pricing</p>
+                  <p className="text-sm text-muted-foreground">Custom enterprise terms available</p>
                 </div>
 
                 <ul className="space-y-2">
