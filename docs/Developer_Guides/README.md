@@ -8,4 +8,4 @@
 
 ## Recommendation
 
-Use **DEVELOPER_GUIDE.md** for setup, deployment, and core repo conventions.
+Use **DEVELOPER_GUIDE.md** for setup, deployment, and core repo conventions
