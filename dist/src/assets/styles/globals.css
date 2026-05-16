@@ -333,11 +333,18 @@
   .app-topbar {
     @apply fixed top-0 right-0 z-[110] border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
     height: 36px;
-    left: 240px;
+    left: 220px;
     display: flex;
     align-items: center;
     padding: 0 1rem;
     /* Add styles for account name, links, buttons */
+  }
+
+  @media (max-width: 767px) {
+    .app-topbar {
+      left: 0;
+      padding: 0 0.75rem;
+    }
   }
 
   /* Unified Header & Sidebar Styles */

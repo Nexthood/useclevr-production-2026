@@ -1,4 +1,5 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError } from "@/lib/debug"
+import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
 
 /**
  * LLM Adapter
@@ -29,24 +30,11 @@ export async function runLLM(
   model: string = 'deepseek-coder'
 ): Promise<string> {
   try {
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        prompt,
-        stream: false,
-      } as LLMRequest),
+    return await generateOllamaCompletion({
+      model,
+      prompt,
+      stream: false,
     });
-
-    if (!response.ok) {
-      throw new Error(`LLM request failed: ${response.status}`);
-    }
-
-    const data: LLMResponse = await response.json();
-    return data.response;
   } catch (error) {
     debugError('[LLMAdapter] Error running LLM:', error);
     throw error;
@@ -139,8 +127,8 @@ If no data is returned or the result is empty, respond with:
  */
 export async function checkOllamaStatus(): Promise<boolean> {
   try {
-    const response = await fetch('http://localhost:11434/api/tags');
-    return response.ok;
+    await fetchOllamaModels();
+    return true;
   } catch {
     return false;
   }
@@ -151,11 +139,8 @@ export async function checkOllamaStatus(): Promise<boolean> {
  */
 export async function getAvailableModels(): Promise<string[]> {
   try {
-    const response = await fetch('http://localhost:11434/api/tags');
-    if (!response.ok) return [];
-    
-    const data = await response.json();
-    return data.models?.map((m: any) => m.name) || [];
+    const models = await fetchOllamaModels();
+    return models.map((model) => model.name);
   } catch {
     return [];
   }

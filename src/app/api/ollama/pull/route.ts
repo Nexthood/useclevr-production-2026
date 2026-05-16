@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
+import { getOllamaBaseUrl } from "@/lib/ai/ollama-client"
 
-const DEFAULT_OLLAMA_BASE = "http://localhost:11434"
 const PULL_PATH = "/api/pull"
 const TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes
 
@@ -11,15 +11,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'invalid_model' }, { status: 400 })
     }
 
-    const baseUrl = process.env.OLLAMA_BASE_URL?.trim() || DEFAULT_OLLAMA_BASE
-    const url = `${baseUrl.replace(/\/$/, '')}${PULL_PATH}`
+    const baseUrl = getOllamaBaseUrl()
+    const url = `${baseUrl}${PULL_PATH}`
 
     // Minimal runtime availability check to avoid opaque 502s
     const runtimeOk = await (async () => {
       const controller = new AbortController()
       const t = setTimeout(() => controller.abort(), 2000)
       try {
-        const probe = await fetch(`${baseUrl.replace(/\/$/, '')}/api/version`, { method: 'GET', signal: controller.signal })
+        const probe = await fetch(`${baseUrl}/api/version`, { method: 'GET', signal: controller.signal })
         clearTimeout(t)
         return probe.ok
       } catch {

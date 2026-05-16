@@ -165,7 +165,7 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
 
-      {/* Full Screen Modal - Grok Style */}
+      {/* Full Screen Modal */}
       <div className="fixed inset-0 z-50 flex">
         {/* Left Side - Data Overview */}
         <div className="w-96 bg-card border-r border-border flex flex-col">

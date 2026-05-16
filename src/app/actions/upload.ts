@@ -11,7 +11,7 @@ import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 
 interface CsvRow {
   [key: string]: string | number | boolean | null
@@ -165,6 +165,18 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Authenticated user path - use demo user as fallback for standard uploads
     let effectiveUserId = session?.user?.id
     debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
+
+    if (effectiveUserId && isBuiltinUserId(effectiveUserId) && effectiveUserId !== 'demo-user-id') {
+      const builtinUser = BUILTIN_USERS.find((user) => user.id === effectiveUserId)
+
+      if (builtinUser) {
+        await db.insert(users).values({
+          id: builtinUser.id,
+          email: builtinUser.email,
+          name: builtinUser.name,
+        }).onConflictDoNothing()
+      }
+    }
     
     // HARD GUARD: If session user is "demo-user-id", this is NOT a real user
     // We must NOT insert with this fake ID - either find real demo user or use non-persistent mode

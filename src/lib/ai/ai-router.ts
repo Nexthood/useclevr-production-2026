@@ -1,4 +1,5 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/debug"
+import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
 
 /**
  * Hybrid AI Router
@@ -18,10 +19,6 @@ import type { LanguageModel } from "ai"
 
 // Configuration
 const CLOUD_TIMEOUT_MS = 15000 // 15 seconds timeout for cloud AI
-// Ollama endpoints
-const DEFAULT_OLLAMA_BASE = "http://localhost:11434"
-const OLLAMA_TAGS_PATH = "/api/tags"
-const OLLAMA_GENERATE_PATH = "/api/generate"
 const LOCAL_HEALTH_TIMEOUT_MS = 5000 // 5 seconds timeout for health check
 const RETRY_INTERVAL_MS = 60000 // Retry cloud every 60 seconds
 
@@ -37,28 +34,20 @@ let localAIAvailable: boolean | null = null // null = not checked yet
 
 // Check if local AI is available via health endpoint
 export async function checkLocalAIAvailability(): Promise<boolean> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), LOCAL_HEALTH_TIMEOUT_MS)
+
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), LOCAL_HEALTH_TIMEOUT_MS)
-    
-    const baseUrl = process.env.OLLAMA_BASE_URL?.trim() || DEFAULT_OLLAMA_BASE
-    const response = await fetch(`${baseUrl.replace(/\/$/, '')}${OLLAMA_TAGS_PATH}`, { method: 'GET', signal: controller.signal })
-    
-    clearTimeout(timeoutId)
-    
-    if (response.ok) {
-      localAIAvailable = true
-      debugLog("[AI-ROUTER] Local: AVAILABLE ✓")
-      return true
-    } else {
-      localAIAvailable = false
-      debugLog("[AI-ROUTER] Local: NOT AVAILABLE (status:", response.status, ")")
-      return false
-    }
+    await fetchOllamaModels({ signal: controller.signal })
+    localAIAvailable = true
+    debugLog("[AI-ROUTER] Local: AVAILABLE ✓")
+    return true
   } catch (error) {
     localAIAvailable = false
     debugLog("[AI-ROUTER] Local: NOT AVAILABLE (network error)")
     return false
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
@@ -83,11 +72,8 @@ export interface LocalAIResponse {
 }
 
 // Select verified/installed local model (Standard preferred, then Lite)
-async function selectLocalModel(baseUrl: string): Promise<string> {
-  const tagsRes = await fetch(`${baseUrl}${OLLAMA_TAGS_PATH}`, { method: 'GET' })
-  if (!tagsRes.ok) throw new Error(`Ollama tags failed: ${tagsRes.status}`)
-  const tagsJson: { models?: Array<{ name: string }> } = await tagsRes.json()
-  const models = tagsJson.models || []
+async function selectLocalModel(): Promise<string> {
+  const models = await fetchOllamaModels()
   const preferred = ['llama3:8b-instruct', 'llama3.2:3b-instruct']
   const found = preferred.find(m => models.some(x => x.name === m))
   if (!found) throw new Error('No supported local model installed')
@@ -98,18 +84,13 @@ export async function askLocalAI(request: LocalAIRequest): Promise<LocalAIRespon
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000)
   try {
-    const baseUrl = (process.env.OLLAMA_BASE_URL?.trim() || DEFAULT_OLLAMA_BASE).replace(/\/$/, '')
-    const model = await selectLocalModel(baseUrl)
-    const res = await fetch(`${baseUrl}${OLLAMA_GENERATE_PATH}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt: request.prompt, stream: false }),
-      signal: controller.signal,
-    })
+    const model = await selectLocalModel()
+    const response = await generateOllamaCompletion(
+      { model, prompt: request.prompt, stream: false },
+      { signal: controller.signal }
+    )
     clearTimeout(timeoutId)
-    if (!res.ok) throw new Error(`Local AI request failed: ${res.status}`)
-    const data: { response?: string } = await res.json()
-    return { response: data.response || '' }
+    return { response }
   } catch (error) {
     clearTimeout(timeoutId)
     throw error

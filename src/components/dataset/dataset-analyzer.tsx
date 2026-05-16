@@ -13,7 +13,6 @@ import {
   Lightbulb, 
   Table2,
   Loader2,
-  MessageSquare,
   X,
   ChevronRight,
   Info,
@@ -22,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { GrokChatPanel } from "@/components/grok-chat-panel"
 import { formatCurrencyForKPI, formatCurrencyCompact, formatPercentage, detectCurrencyFromColumn, formatCurrencyWithDecimals, formatCurrencySimple, formatPercentSimple } from "@/lib/formatting"
 import { 
   BarChart, 
@@ -121,7 +119,6 @@ export function DatasetAnalyzer({
   const [isAnalyzed, setIsAnalyzed] = React.useState(initialAnalyzedProp || initialIsAnalyzed)
   const [analysis, setAnalysis] = React.useState<CSVAnalysisResult | null>(initialAnalysis || null)
   const [isAnalyzing, setIsAnalyzing] = React.useState(false)
-  const [showChat, setShowChat] = React.useState(false)
   const [revenueViewMode, setRevenueViewMode] = React.useState<'region' | 'country'>('region')
   const [countryDisplayMode, setCountryDisplayMode] = React.useState<'top' | 'all'>('top')
   const [autoProcessing, setAutoProcessing] = React.useState(!initialIsAnalyzed && data.length > 0)
@@ -752,13 +749,9 @@ export function DatasetAnalyzer({
               {isGeneratingReport ? 'Generating...' : reportGenerated ? 'Generated!' : 'Generate Report'}
             </Button>
           )}
-          {/* Primary AI Chat Button */}
-          <Button 
-            onClick={() => setShowChat(true)}
-            className="bg-gradient-primary hover:opacity-90"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Ask AI about this dataset
+          <Button variant="outline" disabled className="cursor-not-allowed opacity-70">
+            <TrendingUp className="mr-2 h-4 w-4" />
+            Forecasts coming soon
           </Button>
         </div>
       </div>
@@ -1908,19 +1901,6 @@ export function DatasetAnalyzer({
           )}
         </TabsContent>
       </Tabs>
-
-      <GrokChatPanel
-        isOpen={showChat}
-        onClose={() => setShowChat(false)}
-        datasetId={datasetId}
-        datasetName={datasetName}
-        rowCount={rowCount}
-        columnCount={columns.length}
-        data={data}
-        columns={columns}
-        // UNIFIED: Pass pre-computed analysis to AI chat
-        analysis={analysis?.business_analysis}
-      />
 
       {/* Drilldown Panel */}
       {drilldownItem && (

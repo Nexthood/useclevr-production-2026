@@ -94,10 +94,15 @@ export default function ReferralCenter() {
 
             {/* QR Code Section */}
             <div className="mt-6 pt-6 border-t border-border/50">
-              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <QrCode className="h-4 w-4 text-cyan-400" />
-                Scan to share
-              </h3>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <QrCode className="h-4 w-4 text-cyan-400" />
+                  Scan to share
+                </h3>
+                <span className="rounded-full border border-cyan-500/30 px-2 py-0.5 text-xs text-cyan-400">
+                  Coming soon
+                </span>
+              </div>
               <div className="flex items-center gap-6">
                 {/* Simple QR code placeholder - in production use a QR library */}
                 <div className="w-24 h-24 bg-white rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
@@ -177,6 +182,20 @@ export default function ReferralCenter() {
               </div>
             </Card>
           </div>
+
+          <Card className="p-4 bg-card border-dashed border-border">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-medium text-foreground">Automated referral tracking</h2>
+                <p className="text-sm text-muted-foreground">
+                  Clicks, signups, paid conversions, and QR code generation will connect to the referral API soon.
+                </p>
+              </div>
+              <span className="w-fit rounded-full border border-purple-500/30 px-2 py-0.5 text-xs text-purple-400">
+                Coming soon
+              </span>
+            </div>
+          </Card>
 
           {/* How It Works */}
           <Card className="p-6 bg-card border-border">

@@ -1,6 +1,5 @@
 const fs = require("node:fs")
 const path = require("node:path")
-const { spawnSync } = require("node:child_process")
 
 const rootDir = process.cwd()
 const distDir = path.join(rootDir, "dist")
@@ -114,7 +113,7 @@ const rootDistRailwayConfig = {
   },
   deploy: {
     startCommand: "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
-    preDeployCommand: "npx drizzle-kit push",
+    preDeployCommand: "pnpm exec drizzle-kit push",
     healthcheckPath: "/api/health",
     healthcheckTimeout: 300,
     restartPolicyType: "ON_FAILURE",

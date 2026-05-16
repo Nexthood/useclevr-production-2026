@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError } from "@/lib/debug"
 
 /**
  * AI Query Generator
