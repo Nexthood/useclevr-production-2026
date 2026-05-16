@@ -12,7 +12,7 @@ export {
   detectDatasetType,
   getDatasetTypeDisplayName,
   getAllDatasetTypes,
-} from '../dataset-type-detector';
+} from '../../data/dataset-type-detector';
 
 // Upload & Storage
 export {
@@ -22,10 +22,10 @@ export {
   deleteFile,
   processUploadedFile,
   detectMimeType,
-} from '../upload-handler';
+} from '../../data/upload-handler';
 
 // Preview Generation
-export { generatePreview, requiresBackgroundProcessing, getProcessingStrategy } from '../preview-generator';
+export { generatePreview, requiresBackgroundProcessing, getProcessingStrategy } from '../../utils/preview-generator';
 
 // Semantic Column Mapping
 export { 
@@ -34,13 +34,13 @@ export {
   applyMappingOverride,
   validateColumnMapping,
   applyDatasetTypeOverride,
-} from '../column-mapper';
+} from '../../business/column-mapper';
 
 // Data Cleaning & Normalization
-export { cleanAndNormalizeDataset, generateDataQualityReport } from '../data-cleaner';
+export { cleanAndNormalizeDataset, generateDataQualityReport } from '../../data/data-cleaner';
 
 // Full Dataset Analysis
-export { runFullDatasetAnalysis, validatePrecomputedMetrics } from '../full-analysis-engine';
+export { runFullDatasetAnalysis, validatePrecomputedMetrics } from '../../utils/full-analysis-engine';
 
 // AI Insight Layer
 export { 
@@ -48,10 +48,10 @@ export {
   generateRuleBasedInsights, 
   generateAIInsightPrompt,
   parseLLMResponse 
-} from '../ai-insight-layer';
+} from '../../ai/ai-insight-layer';
 
 // Pipeline Orchestrator
-export { PipelineOrchestrator, runAnalysisPipeline, getDatasetProcessingInfo } from '../pipeline-orchestrator';
+export { PipelineOrchestrator, runAnalysisPipeline, getDatasetProcessingInfo } from '../../utils/pipeline-orchestrator';
 
 // Background Jobs
 export { 

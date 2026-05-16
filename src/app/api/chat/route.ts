@@ -1,28 +1,21 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError, debugLog } from "@/lib/debug";
 
 // app/api/chat/route.ts
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { isBuiltinUserId } from '@/lib/auth/builtin-users';
+import { DatasetRecord } from '@/lib/csv-analyzer';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { analyzeCSV, DatasetRecord } from '@/lib/csv-analyzer';
+import {
+    requiresComputation
+} from '@/lib/query/engine';
+import {
+    EXPLANATION_SYSTEM_PROMPT,
+    generateExplanationPrompt
+} from '@/lib/query/intent-prompt';
 import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
-import { isBuiltinUserId } from '@/lib/auth/builtin-users';
-import {
-  executeQueryPipeline,
-  getDatasetSchema,
-  requiresComputation,
-  type QueryIntent,
-} from '@/lib/queryEngine';
-import {
-  QUERY_INTENT_SYSTEM_PROMPT,
-  generateQueryIntentPrompt,
-  parseQueryIntentResponse,
-  extractIntentFromPatterns,
-  EXPLANATION_SYSTEM_PROMPT,
-  generateExplanationPrompt,
-} from '@/lib/queryIntentPrompt';
+import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 // ============================================================================
 // BACKEND RESPONSE FORMATTER - Guarantees correct formatting regardless of LLM
@@ -34,18 +27,18 @@ import {
  */
 function formatAIResponse(text: string): string {
   if (!text) return text;
-  
+
   // Limit percentage decimals to max 2 places
   // Matches: 24.68178696894002% -> 24.68%
   text = text.replace(/(\d+\.\d{3,})%/g, (match) => {
     return parseFloat(match).toFixed(2) + '%';
   });
-  
+
   // Also handle percentages without % sign that should have decimals
   text = text.replace(/(\d+\.\d{3,})(\s*%)/g, (match, num, pct) => {
     return parseFloat(num).toFixed(2) + pct;
   });
-  
+
   // Add thousand separators to large numbers (4+ digits)
   // But exclude years, IDs, and already formatted numbers
   text = text.replace(/\b(\d{4,})\b/g, (num) => {
@@ -55,7 +48,7 @@ function formatAIResponse(text: string): string {
     if (num.includes(',')) return num;
     return Number(num).toLocaleString('en-US');
   });
-  
+
   // Replace technical terms with business language
   const technicalTerms = [
     { from: 'group_by', to: 'grouped by' },
@@ -65,11 +58,11 @@ function formatAIResponse(text: string): string {
     { from: 'SQL', to: '' },
     { from: 'select', to: '' },
   ];
-  
+
   for (const term of technicalTerms) {
     text = text.replace(new RegExp(term.from, 'gi'), term.to);
   }
-  
+
   return text;
 }
 
@@ -103,34 +96,34 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
   error?: string;
 }> {
   debugLog('[STRICT_SQL] Generating SQL for question:', question);
-  
+
   // Get dataset
   const dataset = await db!.query.datasets.findFirst({
     where: eq(datasets.id, datasetId),
   });
-  
+
   if (!dataset) {
     return { success: false, error: 'Dataset not found' };
   }
-  
+
   // Get data from datasets.data column (not datasetRows)
   const data = (dataset.data as Record<string, any>[]) || [];
   const columns = (dataset.columns as string[]) || [];
-  
+
   if (data.length === 0) {
     return { success: false, error: 'Dataset has no data' };
   }
-  
+
   debugLog('[STRICT_SQL] Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
-  
+
   const q = question.toLowerCase();
   let sql = '';
   let result: any = null;
-  
+
   // Helper to find column
-  const findColumn = (keywords: string[]) => 
+  const findColumn = (keywords: string[]) =>
     columns.find(c => keywords.some(kw => c.toLowerCase().includes(kw)));
-  
+
   try {
     // COUNT ROWS
     if (q.includes('how many row') || q.includes('count row') || q.includes('number of row')) {
@@ -158,17 +151,17 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     }
     // GROUP BY - Region/Country/Product with highest/lowest/most/least
     // IMPORTANT: This MUST handle questions about "which X brings the most Y" format
-    else if (q.includes('region') || q.includes('country') || q.includes('product') || 
+    else if (q.includes('region') || q.includes('country') || q.includes('product') ||
              q.includes('channel') || q.includes('segment') || q.includes('category') ||
-             q.includes('highest') || q.includes('lowest') || q.includes('most') || q.includes('top') || 
+             q.includes('highest') || q.includes('lowest') || q.includes('most') || q.includes('top') ||
              q.includes('best') || q.includes('worst') || q.includes('least') ||
              q.includes('brings') || q.includes('generates') || q.includes('produces')) {
       // Find grouping column - check multiple patterns to handle variations
       let groupCol = findColumn(['region', 'country', 'product', 'category', 'segment', 'channel', 'source', 'medium', 'campaign', 'customer', 'industry', 'area', 'zone']);
       const valueCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'total', 'value', 'income']);
-      
+
       debugLog('[STRICT_SQL] GROUP BY - groupCol:', groupCol, 'valueCol:', valueCol);
-      
+
       if (groupCol && valueCol) {
         const agg: Record<string, number> = {};
         let totalVal = 0;
@@ -182,12 +175,12 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
           .map(([name, value]) => ({ name, value, pct: totalVal > 0 ? (value/totalVal)*100 : 0 }))
           .sort((a, b) => b.value - a.value);
         sql = `SELECT ${groupCol}, SUM(${valueCol}) as total FROM dataset GROUP BY ${groupCol}`;
-        result = { 
-          type: 'group_by', 
-          groupBy: groupCol, 
-          value: valueCol, 
+        result = {
+          type: 'group_by',
+          groupBy: groupCol,
+          value: valueCol,
           data: grouped,
-          operation: 'group_by' 
+          operation: 'group_by'
         };
       }
     }
@@ -200,10 +193,10 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
         const max = Math.max(...values);
         const isMin = q.includes('minimum') || q.includes('lowest');
         sql = `SELECT ${isMin ? 'MIN' : 'MAX'}(${valueCol}) as result FROM dataset`;
-        result = { 
-          [isMin ? 'minimum' : 'maximum']: isMin ? min : max, 
-          column: valueCol, 
-          operation: isMin ? 'min' : 'max' 
+        result = {
+          [isMin ? 'minimum' : 'maximum']: isMin ? min : max,
+          column: valueCol,
+          operation: isMin ? 'min' : 'max'
         };
       }
     }
@@ -223,16 +216,16 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
         result = { profitMargin: margin, revenue: totalRevenue, cost: totalCost, operation: 'margin' };
       }
     }
-    
+
     debugLog('[STRICT_SQL] Generated SQL:', sql);
     debugLog('[STRICT_SQL] Result:', JSON.stringify(result)?.slice(0, 200));
-    
+
     if (!sql || !result) {
       return { success: false, error: 'Could not generate SQL for this question type' };
     }
-    
+
     return { success: true, sql, result };
-    
+
   } catch (err: any) {
     debugError('[STRICT_SQL] Error:', err.message);
     return { success: false, error: err.message };
@@ -250,15 +243,15 @@ async function validateDatasetId(datasetId: string | undefined): Promise<{
   if (!datasetId) {
     return { valid: false, error: 'No datasetId provided' };
   }
-  
+
   const dataset = await db!.query.datasets.findFirst({
     where: eq(datasets.id, datasetId),
   });
-  
+
   if (!dataset) {
     return { valid: false, error: 'Dataset not found' };
   }
-  
+
   return { valid: true, dataset };
 }
 
@@ -294,32 +287,32 @@ const CHAT_TIMEOUT_MS = 60000 // 60 seconds
 function checkChatLoop(sessionKey: string, message: string): { allowed: boolean; message?: string } {
   const now = Date.now()
   const existing = chatSessionLog.get(sessionKey)
-  
+
   if (existing) {
     // Check timeout - reset if last message was too long ago
     if (now - existing.lastTime > CHAT_TIMEOUT_MS) {
       chatSessionLog.set(sessionKey, { count: 1, lastTime: now, lastMessage: message })
       return { allowed: true }
     }
-    
+
     // Check if same message repeated too many times
     if (existing.lastMessage === message && existing.count >= MAX_CHAT_COUNT) {
-      return { 
-        allowed: false, 
-        message: `Chat blocked: Same message repeated ${MAX_CHAT_COUNT}+ times. Please rephrase your question.` 
+      return {
+        allowed: false,
+        message: `Chat blocked: Same message repeated ${MAX_CHAT_COUNT}+ times. Please rephrase your question.`
       }
     }
-    
+
     // Increment count
-    chatSessionLog.set(sessionKey, { 
-      count: existing.count + 1, 
-      lastTime: now, 
-      lastMessage: message 
+    chatSessionLog.set(sessionKey, {
+      count: existing.count + 1,
+      lastTime: now,
+      lastMessage: message
     })
   } else {
     chatSessionLog.set(sessionKey, { count: 1, lastTime: now, lastMessage: message })
   }
-  
+
   return { allowed: true }
 }
 
@@ -327,7 +320,7 @@ function checkChatLoop(sessionKey: string, message: string): { allowed: boolean;
  * Log chat execution - comprehensive logging for analytical queries
  */
 function logChatExecution(
-  action: string, 
+  action: string,
   details: Record<string, any>,
   options: { datasetId?: string; userId?: string; question?: string; sql?: string; executionTime?: number; success?: boolean } = {}
 ) {
@@ -337,7 +330,7 @@ function logChatExecution(
     action,
     timestamp: new Date().toISOString(),
     // Structured logging for analytical queries
-    ...(options.question && { 
+    ...(options.question && {
       question: options.question.slice(0, 200),
       isAnalytical: /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(options.question)
     }),
@@ -345,7 +338,7 @@ function logChatExecution(
     ...(options.executionTime !== undefined && { executionTimeMs: options.executionTime }),
     ...(options.success !== undefined && { success: options.success }),
   };
-  
+
   debugLog(`[CHAT] ${action}:`, JSON.stringify(logEntry));
 }
 
@@ -370,7 +363,7 @@ function detectColumn(columns: string[], type: 'country' | 'region' | 'product' 
     revenue: [/revenue/i, /sales/i, /amount/i, /total/i, /income/i, /value/i],
     quantity: [/quantity/i, /qty/i, /units/i, /count/i, /orders/i],
   };
-  
+
   for (const pattern of patterns[type]) {
     const found = columns.find(col => pattern.test(col));
     if (found) return found;
@@ -381,14 +374,14 @@ function detectColumn(columns: string[], type: 'country' | 'region' | 'product' 
 function aggregateData(data: any[], groupByColumn: string, valueColumn: string): { name: string; value: number }[] {
   const aggregation: Record<string, number> = {};
   let totalValue = 0;
-  
+
   for (const row of data) {
     const key = row[groupByColumn] || 'Unknown';
     const value = normalizeCurrencyValue(row[valueColumn]);
     aggregation[key] = (aggregation[key] || 0) + value;
     totalValue += value;
   }
-  
+
   return Object.entries(aggregation)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
@@ -407,7 +400,7 @@ function formatPercentValue(value: number): string {
 
 function generateAggregatedContext(data: any[], columns: string[]): string {
   const context: string[] = [];
-  
+
   // Detect key columns
   const countryCol = detectColumn(columns, 'country');
   const regionCol = detectColumn(columns, 'region');
@@ -415,9 +408,9 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
   const channelCol = detectColumn(columns, 'channel');
   const categoryCol = detectColumn(columns, 'category');
   const revenueCol = detectColumn(columns, 'revenue');
-  
+
   if (!revenueCol) return '';
-  
+
   // Generate Top by Country
   if (countryCol) {
     const byCountry = aggregateData(data, countryCol, revenueCol);
@@ -428,7 +421,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
       context.push(`Country rankings: ${byCountry.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
-  
+
   // Generate Top by Region
   if (regionCol) {
     const byRegion = aggregateData(data, regionCol, revenueCol);
@@ -439,7 +432,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
       context.push(`Region rankings: ${byRegion.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
-  
+
   // Generate Top Products
   if (productCol) {
     const byProduct = aggregateData(data, productCol, revenueCol);
@@ -450,7 +443,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
       context.push(`Product rankings: ${byProduct.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
-  
+
   // Generate Top Channel
   if (channelCol) {
     const byChannel = aggregateData(data, channelCol, revenueCol);
@@ -460,7 +453,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
       context.push(`TOP CHANNEL: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.value / total * 100)} of total)`);
     }
   }
-  
+
   return context.join('\n');
 }
 
@@ -472,21 +465,21 @@ function normalizeCurrencyValue(value: string | number | null | undefined): numb
   if (value === null || value === undefined || value === '') {
     return 0;
   }
-  
+
   if (typeof value === 'number') {
     return value;
   }
-  
+
   // Remove currency symbols and thousand separators
   let cleaned = String(value)
     .replace(/[€$¥£C$A₹CHF₽]/g, '')
     .replace(/\s/g, '');
-  
+
   // Handle European format: 1.234,56 -> 1234.56
   // Handle US format: 1,234.56 -> 1234.56
   const lastDot = cleaned.lastIndexOf('.');
   const lastComma = cleaned.lastIndexOf(',');
-  
+
   if (lastComma > lastDot) {
     // European format: 1.234,56 or 1,234
     cleaned = cleaned.replace(/\./g, '').replace(',', '.');
@@ -500,27 +493,27 @@ function normalizeCurrencyValue(value: string | number | null | undefined): numb
     // US format: 1,234.56
     cleaned = cleaned.replace(/,/g, '');
   }
-  
+
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
 }
 
 function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
   if (!data || data.length === 0) return data;
-  
+
   // Detect monetary columns
   const sampleRow = data[0];
   const columns = Object.keys(sampleRow);
   const monetaryPatterns = /price|amount|revenue|cost|total|profit|sales|value|qty|quantity/i;
-  
+
   const monetaryColumns = columns.filter(col => monetaryPatterns.test(col));
-  
+
   debugLog('[NORMALIZE] Detected monetary columns:', monetaryColumns);
-  
+
   // Normalize each row
   return data.map(row => {
     const normalized: DatasetRecord = { ...row };
-    
+
     for (const col of monetaryColumns) {
       const value = row[col];
       if (typeof value === 'string' && /[€$¥£C$A₹CHF₽]/.test(value)) {
@@ -528,14 +521,14 @@ function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
         debugLog(`[NORMALIZE] ${col}: "${value}" -> ${normalized[col]}`);
       }
     }
-    
+
     return normalized;
   });
 }
 
 export async function POST(request: Request) {
   let responseData: any = null;
-  
+
   try {
     const body = await request.json();
     const { messages, datasetId, processedData } = body;
@@ -552,13 +545,13 @@ export async function POST(request: Request) {
     // ============================================================================
     const lastMessage = messages[messages.length - 1]?.content || '';
     const isAnalyticalQuery = /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
-    
+
     // STRICT: Require datasetId for analytical queries
     if (isAnalyticalQuery && !datasetId) {
       debugLog('[CHAT] REJECTED: Analytical query without datasetId');
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'No active dataset selected or invalid dataset ID',
           reason: 'Please select an active dataset before asking analytical questions'
         },
@@ -571,7 +564,7 @@ export async function POST(request: Request) {
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
-    
+
     // Only check limits for persisted customer users
     if (userId && !isBuiltinUserId(userId)) {
       const usage = await getAnalystCreditUsage(userId);
@@ -597,26 +590,26 @@ export async function POST(request: Request) {
       const dataset = await db!.query.datasets.findFirst({
         where: eq(datasets.id, datasetId),
       });
-      
+
       if (!dataset) {
         debugLog('[CHAT] REJECTED: Dataset not found:', datasetId);
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: 'No active dataset selected or invalid dataset ID',
             reason: 'Dataset not found'
           },
           { status: 400 }
         );
       }
-      
+
       debugLog('[CHAT] Dataset validated:', dataset.name, '- rows:', dataset.rowCount);
     } else {
       debugLog('[CHAT] No datasetId - non-analytical query allowed');
     }
 
     const sessionKey = datasetId || 'no-dataset';
-    
+
     debugLog('[CHAT] Incoming message:', lastMessage);
     debugLog('[CHAT] Dataset ID:', datasetId);
 
@@ -625,9 +618,9 @@ export async function POST(request: Request) {
     // ============================================================================
     const loopCheck = checkChatLoop(sessionKey + ':' + lastMessage.slice(0, 50), lastMessage);
     if (!loopCheck.allowed) {
-      logChatExecution('LOOP_DETECTED', { 
-        sessionKey, 
-        message: lastMessage.slice(0, 50) 
+      logChatExecution('LOOP_DETECTED', {
+        sessionKey,
+        message: lastMessage.slice(0, 50)
       });
       return NextResponse.json(
         { success: false, error: loopCheck.message },
@@ -651,13 +644,13 @@ export async function POST(request: Request) {
     // 2. Execute verified query through Query Engine
     // 3. Pass verified result to LLM for explanation only
     // ============================================================================
-    
+
     // STRICT: For ANY analytical question, require strict SQL execution
     const isAnalyticalQuestion = isAnalyticalQuery || requiresComputation(lastMessage);
-    
+
     if (datasetId && isAnalyticalQuestion) {
       debugLog('[CHAT] Question requires verified computation (analytical detected:', isAnalyticalQuery, ', computation:', requiresComputation(lastMessage), ')');
-      
+
       // STRICT: First validate datasetId
       const validation = await validateDatasetId(datasetId);
       if (!validation.valid) {
@@ -666,21 +659,21 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      
+
       // STRICT: Execute SQL directly first (never let LLM compute numbers)
       debugLog('[STRICT_SQL] Executing strict SQL for:', lastMessage);
       const sqlResult = await executeStrictSQL(datasetId, lastMessage);
-      
+
       if (!sqlResult.success) {
         // SQL execution failed - return error with available columns, don't fallback to LLM
         debugLog('[STRICT_SQL] Failed:', sqlResult.error);
-        
+
         // If analytical query but SQL failed, return specific error with available columns
         const dataset = await db!.query.datasets.findFirst({
           where: eq(datasets.id, datasetId),
         });
         const availableCols = (dataset?.columns as string[]) || [];
-        
+
         return NextResponse.json({
           error: 'Unable to compute this question from the dataset',
           reason: sqlResult.error || 'No matching computation pattern found',
@@ -688,20 +681,20 @@ export async function POST(request: Request) {
           suggestion: 'Try asking about: total revenue, average sales, count of rows, top products by revenue, or rephrase your question to match available columns: ' + availableCols.slice(0, 10).join(', ')
         }, { status: 400 });
       }
-      
+
       // SQL succeeded - use the result
       debugLog('[STRICT_SQL] Success! Result:', JSON.stringify(sqlResult.result).slice(0, 200));
-      
+
       // Generate explanation using verified result (LLM can only format, not compute)
       const explanationPrompt = generateExplanationPrompt({
         success: true,
-        computed_value: sqlResult.result.count || sqlResult.result.total || sqlResult.result.average || 
+        computed_value: sqlResult.result.count || sqlResult.result.total || sqlResult.result.average ||
                         sqlResult.result.data || sqlResult.result.minimum || sqlResult.result.maximum ||
                         sqlResult.result.profitMargin || 0,
         operation: sqlResult.result.operation,
         row_count: validation.dataset?.rowCount
       }, lastMessage);
-      
+
       const explanationResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
         method: 'POST',
         headers: {
@@ -718,13 +711,13 @@ export async function POST(request: Request) {
           max_tokens: 500,
         }),
       });
-      
+
       if (explanationResponse.ok) {
         const explanationData = await explanationResponse.json();
         const rawExplanation = explanationData.choices?.[0]?.message?.content || '';
         // Apply formatter to guarantee correct number formatting
         const explanation = formatAIResponse(rawExplanation);
-        
+
         return NextResponse.json({
           success: true,
           content: explanation,
@@ -738,9 +731,9 @@ export async function POST(request: Request) {
         });
       }
     }
-    
+
     // If not an analytical question or SQL failed, continue with regular chat flow
-    
+
     // Fetch dataset info from database (Single Source of Truth)
     let datasetInfo = null;
     let datasetRowsData: any[] = [];
@@ -779,11 +772,11 @@ export async function POST(request: Request) {
     // ============================================================================
     // BUILD SYSTEM PROMPT - Text-only, no tool execution
     // ============================================================================
-    
+
     // Check if user is requesting a report
     const reportKeywords = ['generate report', 'create report', 'export report', 'download report', 'make pdf', 'create presentation', 'create powerpoint', 'create word document', 'export excel', 'investor report', 'management report', 'board report', 'executive summary document', 'export document', 'investor deck', 'branded report', 'executive presentation', 'detailed board report'];
     const isReportRequest = reportKeywords.some(keyword => lastMessage.toLowerCase().includes(keyword));
-    
+
     let systemContent = `You are Clevr, elite AI analyst for startup founders and investors.
 
 Your ONLY rule for analytical/numeric questions: ALWAYS compute using available data – no excuses, no "need more data", no "not supported".
@@ -916,7 +909,7 @@ Always offer next steps and alternative insights.`;
       // Generate aggregated context for direct answers
       const columns = datasetInfo?.columns || Object.keys(datasetRowsData[0] || {});
       const aggregatedData = generateAggregatedContext(datasetRowsData, columns);
-      
+
       if (datasetInfo) {
         systemContent += `
 
@@ -948,7 +941,7 @@ No dataset is currently loaded. Ask the user to upload a CSV file first.`;
 Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
 
     debugLog('[GEMINI] API Key present:', !!process.env.GEMINI_API_KEY);
-    
+
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
         success: false,
@@ -993,9 +986,9 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
 
     const data = await deepSeekResponse.json();
     const content = data.choices?.[0]?.message?.content || '';
-    
+
     debugLog('[GEMINI] Response received:', content.slice(0, 100));
-    
+
     // ============================================================================
     // AI CALL COMPLETE - Log execution
     // ============================================================================
@@ -1004,8 +997,8 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
       responseLength: content.length
     });
 
-    responseData = { 
-      success: true, 
+    responseData = {
+      success: true,
       content: formatAIResponse(content),
       role: 'assistant'
     };

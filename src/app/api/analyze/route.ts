@@ -1,8 +1,8 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/debug";
 
 /**
  * Analysis API Route
- * 
+ *
  * Main endpoint for AI data analysis.
  * Pipeline:
  * 1. Receive user question
@@ -11,7 +11,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
  * 4. Return query result
  * 5. Pass result to LLM
  * 6. Generate explanation
- * 
+ *
  * Error handling:
  * - SQL failures return error message
  * - Empty results return "No matching data found"
@@ -19,15 +19,15 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
  * - Never crashes the UI
  */
 
-import { runQueryJS, loadDataJS, getDatasetInfo } from "@/lib/datasetEngine";
-import { generateQuery, detectChartType, detectMetricColumn } from "@/lib/queryEngine";
-import { runLLM, generateAnalysisPrompt, checkOllamaStatus } from "@/lib/llmAdapter";
 import { auth } from "@/lib/auth";
-import { generateText } from "ai";
-import { initializeMCPContext, buildMCPToolsPrompt, analyzeWithMCP } from "@/lib/mcp/integration";
-import { PrecomputedMetrics } from "@/lib/pipeline-types";
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
+import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/datasetEngine";
+import { generateAnalysisPrompt } from "@/lib/llmAdapter";
+import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
+import { PrecomputedMetrics } from "@/lib/pipeline-types";
+import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { generateText } from "ai";
 
 // Generate business insights from query results without LLM
 function generateBusinessInsights(result: any[], question: string): { insight: string; explanation: string; recommendation: string } {
@@ -101,7 +101,7 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
 // Clean AI output to remove SQL queries and technical text
 function cleanInsight(text: string): string {
   if (!text) return '';
-  
+
   // Normalize dates in various formats to "Month DD, YYYY"
   // Handle YYYY-MM-DD format
   text = text.replace(/(\d{4})-(\d{2})-(\d{2})/g, (_, y, m, d) => {
@@ -112,7 +112,7 @@ function cleanInsight(text: string): string {
       return `${y}-${m}-${d}`;
     }
   });
-  
+
   // Handle YYYYMMDD or YYYY MM DD or YYYY\nMM\nDD (split dates)
   text = text.replace(/(\d{4})\s*(\d{2})\s*(\d{2})/g, (_, y, m, d) => {
     try {
@@ -122,7 +122,7 @@ function cleanInsight(text: string): string {
       return `${y}-${m}-${d}`;
     }
   });
-  
+
   return text
     .replace(/SELECT[\s\S]*?FROM\s+\w+/gi, '')
     .replace(/Found\s+\d+\s+records.*?\n?/gi, '')
@@ -147,7 +147,7 @@ let datasetLoaded = false;
 
 export async function POST(request: Request) {
   debugLog('\n========== ANALYZE REQUEST ==========');
-  
+
   try {
     // Parse request
     let body;
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
     }
 
     const { question, datasetId, data, columns, analysis: precomputedAnalysis } = body;
-    
+
     debugLog('[ANALYZE] Question:', question);
     debugLog('[ANALYZE] Dataset ID:', datasetId);
     debugLog('[ANALYZE] Data rows:', data?.length || 0);
@@ -190,7 +190,7 @@ export async function POST(request: Request) {
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
-    
+
     // Only check limits for persisted customer users
     if (userId && !isBuiltinUserId(userId)) {
       try {
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
         // Continue without blocking - usage tracking is secondary
       }
     }
-    
+
     // Check if data was provided directly
     if (data && Array.isArray(data) && data.length > 0) {
       debugLog('[ANALYZE] Loading dataset into memory...');
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
     // Step 2: Execute SQL query
     let result: any[] = [];
     let queryError: string | null = null;
-    
+
     try {
       debugLog('[ANALYZE] Executing query...');
       result = runQueryJS(sqlQuery);
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
     } catch (execError: any) {
       queryError = execError?.message || 'Unknown query error';
       debugError('[ANALYZE] Query execution failed:', queryError);
-      
+
       // Try simpler fallback query
       try {
         debugLog('[ANALYZE] Trying fallback query...');
@@ -345,10 +345,10 @@ export async function POST(request: Request) {
 
     try {
       debugLog('[ANALYZE] Checking AI availability...');
-      
+
       // Import the new AI router that supports hybrid cloud + local
       const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, isLocalAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai-router');
-      
+
       // Check both cloud and local availability
       // Gate local only if user opted into Hybrid and verified model
       const hybridCookie = (request.headers.get('cookie') || '').includes('useclevr_hybrid=verified')
@@ -356,23 +356,23 @@ export async function POST(request: Request) {
       // Ensure router state reflects per-request hybrid gate
       overrideLocalAvailability(localAvailable)
       const cloudAvailable = isCloudAIAvailable();
-      
+
       debugLog('[ANALYZE] AI Status - Cloud:', cloudAvailable, '| Local:', localAvailable);
-      
+
       // Get the appropriate provider
       const { provider, type: providerType, providerName, modelName } = getAIProvider();
-      
+
       debugLog('[ANALYZE] Using AI Provider:', providerName, '(', providerType, ') | Model:', modelName || 'N/A');
-      
+
       // Build MCP tools prompt if dataset is available
       let mcpToolsPrompt = '';
       if (datasetId && precomputedAnalysis) {
         mcpToolsPrompt = buildMCPToolsPrompt(datasetId);
       }
-      
+
       // Generate prompt with precomputed analysis context and MCP tools
       const prompt = generateAnalysisPrompt(question, result, availableColumns, precomputedAnalysis) + mcpToolsPrompt;
-      
+
       try {
         // Minimal hybrid gate: if router selected 'local', execute via askLocalAI
         if (hybridCookie && providerType === 'local') {
@@ -402,7 +402,7 @@ export async function POST(request: Request) {
           answer = text;
           debugLog('[ANALYZE] LLM response received from:', providerName);
         }
-        
+
         // Parse structured response
         const parts = answer.split('\n\n');
         for (const part of parts) {
@@ -414,12 +414,12 @@ export async function POST(request: Request) {
             recommendation = part.replace('RECOMMENDATION', '').trim();
           }
         }
-        
+
         // Clean the output
         insight = cleanInsight(insight);
         explanation = cleanInsight(explanation);
         recommendation = cleanInsight(recommendation);
-        
+
         // If parsing failed, use default
         if (!insight) insight = formatDataAnswer();
         if (!explanation) explanation = 'Based on the query results.';
@@ -441,7 +441,7 @@ export async function POST(request: Request) {
     // Use precomputed analysis if available for unified context
     if (!answer || llmError) {
       debugLog('[ANALYZE] Using fallback response (LLM unavailable or failed)');
-      
+
       // Try MCP-based analysis first if dataset is available
       if (datasetId && precomputedAnalysis) {
         try {
@@ -451,14 +451,14 @@ export async function POST(request: Request) {
             result,
             availableColumns
           );
-          
+
           if (mcpResult.usedMCPTools && mcpResult.answer) {
             debugLog('[ANALYZE] Using MCP-based analysis');
             answer = mcpResult.answer;
             insight = mcpResult.insight;
             explanation = mcpResult.explanation;
             recommendation = mcpResult.recommendation;
-            
+
             insight = cleanInsight(insight);
             explanation = cleanInsight(explanation);
             recommendation = cleanInsight(recommendation);
@@ -467,22 +467,22 @@ export async function POST(request: Request) {
           debugLog('[ANALYZE] MCP analysis failed, using precomputed KPIs:', mcpError);
         }
       }
-      
+
       // If still no answer, use precomputed KPIs
       if (!answer && precomputedAnalysis && precomputedAnalysis.kpis) {
         const kpis = precomputedAnalysis.kpis;
         const breakdowns = precomputedAnalysis.breakdowns || {};
-        
+
         // Generate insights based on unified KPIs
         const totalRevenue = kpis.totalRevenue ?? 0;
         const topProduct = kpis.topProducts?.[0];
         const topRegion = kpis.topRegions?.[0];
-        
-        insight = topRegion 
+
+        insight = topRegion
           ? `${topRegion.name} leads with ${topRegion.percentage?.toFixed(1)}% of revenue`
           : 'Revenue analysis complete';
         explanation = `Total revenue is ${totalRevenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}. ${topProduct ? `Top product: ${topProduct.name} (${topProduct.percentage?.toFixed(1)}% of revenue)` : ''}`;
-        recommendation = topRegion 
+        recommendation = topRegion
           ? `Focus on ${topRegion.name} while developing strategies for other regions.`
           : 'Review all segments for growth opportunities.';
         answer = `INSIGHT\n${insight}\n\nKEY TAKEAWAYS\n${explanation}\n\nRECOMMENDATION\n${recommendation}`;
@@ -494,7 +494,7 @@ export async function POST(request: Request) {
         recommendation = insights.recommendation;
         answer = `INSIGHT\n${insight}\n\nKEY TAKEAWAYS\n${explanation}\n\nRECOMMENDATION\n${recommendation}`;
       }
-      
+
       // Clean the output
       insight = cleanInsight(insight);
       explanation = cleanInsight(explanation);
@@ -504,7 +504,7 @@ export async function POST(request: Request) {
     // Step 6: Return response (ALWAYS includes data)
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');
     debugLog('========== ANALYZE COMPLETE ==========\n');
-    
+
     return Response.json({
       success: true,
       answer,
@@ -520,7 +520,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     debugError('[ANALYZE] FATAL ERROR:', error);
     debugError('[ANALYZE] Stack:', error?.stack);
-    
+
     // NEVER crash the UI - always return valid response
     return Response.json({
       success: false,

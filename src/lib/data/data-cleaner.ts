@@ -17,7 +17,7 @@ import {
   CleaningStats,
   DataQualityReport,
   ColumnType,
-} from './pipeline-types';
+} from '../utils/pipeline-types';
 
 // ============================================================================
 // CONSTANTS

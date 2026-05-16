@@ -24,7 +24,7 @@ import {
   AIInsightInput,
   AIInsightOutput,
   DriverDetectionResult,
-} from './pipeline-types';
+} from '../utils/pipeline-types';
 import { detectDrivers } from '../data/driver-detection-engine';
 
 // ============================================================================

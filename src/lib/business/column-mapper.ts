@@ -20,7 +20,7 @@ import {
   CostComponents,
   ColumnSchema,
   PreviewData,
-} from './pipeline-types';
+} from '../utils/pipeline-types';
 
 import { DatasetType } from '../data/dataset-type-detector';
 

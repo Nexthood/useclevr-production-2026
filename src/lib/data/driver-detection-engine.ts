@@ -18,7 +18,7 @@ import type {
   DriverDetectionConfig,
   RegionalMetric,
   ProductMetric,
-} from './pipeline-types';
+} from '../utils/pipeline-types';
 import { DEFAULT_DRIVER_CONFIG } from '../utils/pipeline-types';
 
 /**

@@ -15,6 +15,35 @@ pnpm dev
 - Neon PostgreSQL
 - Gemini API key
 
+## Lib Structure
+
+```
+src/lib/
+├── ai/                    # AI/LLM features
+│   ├── chat.ts
+│   ├── query-generator.ts
+│   └── adapters/
+├── data/                  # Data pipeline & analysis
+│   ├── csv-analyzer.ts
+│   ├── dataset-analyzer.ts
+│   ├── normalizer.ts
+│   └── detectors/
+├── query/                 # Query engine & validation
+│   ├── engine.ts
+│   ├── intent-prompt.ts
+│   └── validators.ts
+├── business/              # Business logic
+│   ├── columns.ts
+│   ├── insight-engine.ts
+│   └── forecasting.ts
+├── db/                    # Database schema & migrations
+├── billing/               # Billing logic
+├── types/                 # Shared types & exports
+├── schemas/               # Zod validation schemas
+├── utils/                 # Generic utilities
+└── hooks/                 # Custom React hooks
+```
+
 ## Env
 
 Required:
