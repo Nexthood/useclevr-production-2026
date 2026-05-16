@@ -82,8 +82,9 @@ Railway:
 - Build command: `echo 'Using pre-built artifacts from dist/'`
 - Start command: `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
 - Health: `/api/health`
+- Do not keep a live `railway.json` in the repository root. CI/hosting vendors can change; the source deploy templates live in `ci-settings/`.
 - Railway reads `dist/railway.json` because the selected root directory is `dist`. Dashboard-level build/start settings override the file if they are set.
-- Regenerate `dist/railway.json` from the source template with `pnpm prod:build` before deploying.
+- Regenerate `dist/railway.json` from `ci-settings/railway.dist.json` with `pnpm prod:build` before deploying.
 
 ## Docs
 

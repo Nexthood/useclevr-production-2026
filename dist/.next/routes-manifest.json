@@ -460,6 +460,12 @@
       "namedRegex": "^/app/assistant(?:/)?$"
     },
     {
+      "page": "/app/checkout",
+      "regex": "^/app/checkout(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/checkout(?:/)?$"
+    },
+    {
       "page": "/app/datasets",
       "regex": "^/app/datasets(?:/)?$",
       "routeKeys": {},
@@ -488,6 +494,12 @@
       "regex": "^/app/settings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/app/settings(?:/)?$"
+    },
+    {
+      "page": "/app/settings/billing",
+      "regex": "^/app/settings/billing(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/billing(?:/)?$"
     },
     {
       "page": "/app/settings/credits",

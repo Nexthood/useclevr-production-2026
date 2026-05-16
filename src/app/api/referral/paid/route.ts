@@ -1,10 +1,14 @@
-import { comingSoonResponse } from "../../_coming-soon"
+import { NextRequest, NextResponse } from "next/server"
+import { normalizeReferralCode, recordReferralEvent, referralCookieName } from "@/lib/referrals/referral-store"
 
-// Intentional placeholder for future paid referral conversion tracking.
-export async function GET() {
-  return comingSoonResponse("Paid referral tracking API")
-}
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}))
+  const code = normalizeReferralCode(body.code) || normalizeReferralCode(request.cookies.get(referralCookieName)?.value)
 
-export async function POST() {
-  return comingSoonResponse("Paid referral tracking API")
+  if (!code) {
+    return NextResponse.json({ error: "Referral code is required." }, { status: 400 })
+  }
+
+  const stats = await recordReferralEvent(code, "paid")
+  return NextResponse.json({ success: true, stats })
 }

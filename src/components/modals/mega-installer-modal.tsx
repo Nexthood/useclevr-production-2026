@@ -482,8 +482,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
     }
   }
 
-  // Runtime download entry point (placeholder, OS-agnostic)
-  // Minimal action to guide users to install the required local runtime before model download
+  // Runtime download entry point. Guides users to install the required local runtime before model download.
   const handleDownloadRuntime = useCallback(async () => {
     // Smallest-change OS detection and direct-download trigger
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
@@ -732,6 +731,10 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                 )}
                 {selectedTier === 'lite' && hybridLiteEnabled && tierStatus[selectedTier] === 'unavailable' && (
                   <div className="flex items-center gap-2">
+                    <Button onClick={handleDownloadRuntime} size="sm" className="bg-violet-600 hover:bg-violet-700">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Local AI
+                    </Button>
                     <code className="text-xs px-2 py-1 rounded bg-muted text-foreground/90">
                       {getSetupCommand(selectedTier)}
                     </code>

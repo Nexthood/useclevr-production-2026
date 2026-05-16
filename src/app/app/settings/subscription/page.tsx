@@ -1,7 +1,9 @@
 import Link from "next/link"
-import { CreditCard, Sparkles } from "lucide-react"
+import { Check, CreditCard, Sparkles } from "lucide-react"
+import { CheckoutButton } from "@/components/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { billingPlans, formatPlanPrice } from "@/lib/billing/plans"
 import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 
@@ -33,7 +35,7 @@ export default async function SubscriptionSettingsPage() {
             </p>
           </div>
           {!isUnlimited && (
-            <Link href="/pricing">
+            <Link href="/app/checkout?plan=pro_monthly&discount=auto">
               <Button variant="outline" size="sm">Upgrade</Button>
             </Link>
           )}
@@ -57,6 +59,55 @@ export default async function SubscriptionSettingsPage() {
               )}
             </div>
           </div>
+        </div>
+        <div className="grid gap-3 pt-2 lg:grid-cols-3">
+          {billingPlans.filter((plan) => plan.id !== "pro_annual").map((plan) => {
+            const isCurrent =
+              (plan.tier === "free" && !isUnlimited) ||
+              (plan.tier === "pro" && usage.subscriptionTier === "pro") ||
+              (plan.tier === "business" && usage.subscriptionTier === "business")
+
+            return (
+              <div key={plan.id} className="rounded-lg border border-border bg-background p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-foreground">{plan.name}</p>
+                    <p className="text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
+                  </div>
+                  {isCurrent && (
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
+                      Current
+                    </span>
+                  )}
+                </div>
+                <ul className="mt-3 space-y-1.5">
+                  {plan.features.slice(0, 3).map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                {isCurrent ? (
+                  <Button disabled size="sm" variant="outline" className="mt-4 w-full bg-transparent">
+                    Active plan
+                  </Button>
+                ) : (
+                  <CheckoutButton
+                    productId={plan.id}
+                    size="sm"
+                    variant={plan.tier === "free" ? "outline" : "default"}
+                    className={plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"}
+                  >
+                    {plan.tier === "free" ? "Downgrade" : "Review change"}
+                  </CheckoutButton>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Annual Pro discounts are applied automatically in checkout. Payment collection is not active yet, so the checkout stops at the payment step.
         </div>
       </CardContent>
     </Card>

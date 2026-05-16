@@ -1,35 +1,85 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
-
-
-
-import { useState } from "react"
+import { debugLog } from "@/lib/debug"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Copy, Share2, QrCode, Users, MousePointer, CreditCard, Gift, Check, Sparkles } from "lucide-react"
+import { Copy, Share2, QrCode, Users, MousePointer, CreditCard, Gift, Check, Sparkles, Loader2 } from "lucide-react"
+
+interface ReferralStats {
+  clicks: number
+  signups: number
+  paidReferrals: number
+  creditsEarned: number
+}
+
+interface ReferralSummary {
+  code: string
+  referralLink: string
+  stats: ReferralStats
+}
+
+const emptyStats: ReferralStats = {
+  clicks: 0,
+  signups: 0,
+  paidReferrals: 0,
+  creditsEarned: 0,
+}
 
 export default function ReferralCenter() {
   const [copied, setCopied] = useState(false)
-  
-  // Generate a placeholder referral code (in production, this would come from auth/user data)
-  const referralCode = "csaba123"
-  const referralLink = `useclevr.ai/r/${referralCode}`
-  
-  const stats = {
-    clicks: 0,
-    signups: 0,
-    paidReferrals: 0,
-    creditsEarned: 0,
+  const [summary, setSummary] = useState<ReferralSummary | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRecording, setIsRecording] = useState<string | null>(null)
+
+  const referralCode = summary?.code || ""
+  const referralLink = summary?.referralLink || ""
+  const stats = summary?.stats || emptyStats
+
+  const loadReferral = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/referral", { cache: "no-store" })
+      if (response.ok) {
+        setSummary(await response.json())
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadReferral()
+  }, [])
+
+  const recordEvent = async (event: "track" | "signup" | "paid") => {
+    if (!referralCode) return
+    setIsRecording(event)
+    try {
+      const response = await fetch(`/api/referral/${event}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: referralCode }),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setSummary((current) => current ? { ...current, stats: result.stats } : current)
+      }
+    } finally {
+      setIsRecording(null)
+    }
   }
 
   const handleCopy = async () => {
+    if (!referralLink) return
     await navigator.clipboard.writeText(referralLink)
+    await recordEvent("track")
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const handleShare = async () => {
+    if (!referralLink) return
     if (navigator.share) {
       try {
         await navigator.share({
@@ -37,6 +87,7 @@ export default function ReferralCenter() {
           text: "Get instant insights from your CSV data with UseClevr. Sign up with my referral link!",
           url: referralLink,
         })
+        await recordEvent("track")
       } catch (err) {
         debugLog("Share cancelled")
       }
@@ -63,11 +114,12 @@ export default function ReferralCenter() {
             </h2>
             
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 px-4 py-3 bg-background/80 rounded-lg border border-border font-mono text-sm">
-                {referralLink}
+              <div className="flex-1 break-all px-4 py-3 bg-background/80 rounded-lg border border-border font-mono text-sm">
+                {isLoading ? "Creating referral link..." : referralLink}
               </div>
               <Button 
                 onClick={handleCopy}
+                disabled={!referralLink || isLoading}
                 className="gap-2"
               >
                 {copied ? (
@@ -84,6 +136,7 @@ export default function ReferralCenter() {
               </Button>
               <Button 
                 onClick={handleShare}
+                disabled={!referralLink || isLoading}
                 variant="outline"
                 className="gap-2"
               >
@@ -92,38 +145,44 @@ export default function ReferralCenter() {
               </Button>
             </div>
 
-            {/* QR Code Section */}
+            {/* QR code section */}
             <div className="mt-6 pt-6 border-t border-border/50">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-sm font-medium flex items-center gap-2">
                   <QrCode className="h-4 w-4 text-cyan-400" />
-                  Scan to share
+                  Referral QR code
                 </h3>
                 <span className="rounded-full border border-cyan-500/30 px-2 py-0.5 text-xs text-cyan-400">
-                  Coming soon
+                  Live
                 </span>
               </div>
               <div className="flex items-center gap-6">
-                {/* Simple QR code placeholder - in production use a QR library */}
-                <div className="w-24 h-24 bg-white rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                  <div className="text-center p-2">
-                    <QrCode className="h-8 w-8 text-gray-400 mx-auto mb-1" />
-                    <span className="text-[10px] text-gray-400">QR Code</span>
-                  </div>
+                <div className="w-36 overflow-hidden rounded-lg border border-border bg-white">
+                  {referralCode ? (
+                    <img
+                      src={`/api/referral/qrcode?code=${encodeURIComponent(referralCode)}`}
+                      alt="Referral QR code"
+                      className="h-auto w-full"
+                    />
+                  ) : (
+                    <div className="flex h-20 items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   <p>Perfect for:</p>
                   <ul className="mt-2 space-y-1">
                     <li className="flex items-center gap-2">
-                      <span>�_events</span>
+                      <span className="font-medium text-foreground">Events</span>
                       <span>Events & conferences</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <span>💼</span>
+                      <span className="font-medium text-foreground">Meetings</span>
                       <span>Networking</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <span>📱</span>
+                      <span className="font-medium text-foreground">Mobile</span>
                       <span>In-person sharing</span>
                     </li>
                   </ul>
@@ -184,16 +243,33 @@ export default function ReferralCenter() {
           </div>
 
           <Card className="p-4 bg-card border-dashed border-border">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-sm font-medium text-foreground">Automated referral tracking</h2>
+                <h2 className="text-sm font-medium text-foreground">Referral tracking is active</h2>
                 <p className="text-sm text-muted-foreground">
-                  Clicks, signups, paid conversions, and QR code generation will connect to the referral API soon.
+                  Copy and share actions count as clicks. Signup and paid events can be recorded by the signup or billing flow.
                 </p>
               </div>
-              <span className="w-fit rounded-full border border-purple-500/30 px-2 py-0.5 text-xs text-purple-400">
-                Coming soon
-              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!referralCode || isRecording !== null}
+                  onClick={() => recordEvent("signup")}
+                >
+                  {isRecording === "signup" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Record signup
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!referralCode || isRecording !== null}
+                  onClick={() => recordEvent("paid")}
+                >
+                  {isRecording === "paid" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Record paid
+                </Button>
+              </div>
             </div>
           </Card>
 

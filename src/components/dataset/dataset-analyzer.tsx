@@ -124,6 +124,8 @@ export function DatasetAnalyzer({
   const [autoProcessing, setAutoProcessing] = React.useState(!initialIsAnalyzed && data.length > 0)
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
   const [reportGenerated, setReportGenerated] = React.useState(false)
+  const [isForecasting, setIsForecasting] = React.useState(false)
+  const [forecastStatus, setForecastStatus] = React.useState<string | null>(null)
   
   // Drilldown panel state
   const [drilldownItem, setDrilldownItem] = React.useState<{
@@ -550,6 +552,53 @@ export function DatasetAnalyzer({
     }
   }
 
+  const handleForecast = async () => {
+    setIsForecasting(true)
+    setForecastStatus(null)
+    try {
+      const response = await fetch(`/api/datasets/${datasetId}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const predictionCount = Array.isArray(result.predictions) ? result.predictions.length : 0
+        const insightCount = Array.isArray(result.insights) ? result.insights.length : 0
+        setForecastStatus(`Generated ${predictionCount} forecasts and ${insightCount} forward-looking insights.`)
+      } else {
+        const fallbackValues = analysis?.business_analysis?.kpis
+          ? [
+              analysis.business_analysis.kpis.avgRevenue,
+              analysis.business_analysis.kpis.totalRevenue,
+              analysis.business_analysis.kpis.totalProfit,
+            ].filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+          : []
+
+        if (fallbackValues.length > 0) {
+          const fallbackResponse = await fetch('/api/forecast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: fallbackValues, periods: 3 })
+          })
+          const fallbackResult = await fallbackResponse.json()
+          if (fallbackResponse.ok && Array.isArray(fallbackResult.forecast)) {
+            setForecastStatus(`Generated ${fallbackResult.forecast.length} lightweight forecast periods from available KPIs.`)
+          } else {
+            setForecastStatus('Forecast could not run with the available dataset fields.')
+          }
+        } else {
+          setForecastStatus('Forecast needs numeric KPI data before it can run.')
+        }
+      }
+    } catch (error) {
+      debugError('Forecast failed:', error)
+      setForecastStatus('Forecast failed. Please try again.')
+    } finally {
+      setIsForecasting(false)
+    }
+  }
+
   // ============================================================================
   // Investigation Handler
   // ============================================================================
@@ -749,12 +798,22 @@ export function DatasetAnalyzer({
               {isGeneratingReport ? 'Generating...' : reportGenerated ? 'Generated!' : 'Generate Report'}
             </Button>
           )}
-          <Button variant="outline" disabled className="cursor-not-allowed opacity-70">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Forecasts coming soon
+          <Button variant="outline" disabled={isForecasting} onClick={handleForecast}>
+            {isForecasting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <TrendingUp className="mr-2 h-4 w-4" />
+            )}
+            {isForecasting ? 'Forecasting...' : 'Run Forecast'}
           </Button>
         </div>
       </div>
+
+      {forecastStatus && (
+        <div className="mb-4 rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm text-violet-900 dark:text-violet-100">
+          {forecastStatus}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">

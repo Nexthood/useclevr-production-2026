@@ -27,6 +27,7 @@
     "papaparse": "^5.5.3",
     "pg": "^8.13.0",
     "postcss-import": "^16.1.1",
+    "qrcode": "^1.5.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-icons": "^5.5.0",

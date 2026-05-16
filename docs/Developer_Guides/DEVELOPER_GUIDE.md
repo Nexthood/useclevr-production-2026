@@ -87,7 +87,7 @@ pnpm prod:build  # Output: dist/server.js, dist/.next/, dist/assets/
 pnpm prod:start
 ```
 
-Railway is configured to use `dist` as the project root. Regenerate `dist` with `pnpm prod:build` before deployment; Railway then uses `dist/railway.json`, runs its no-op build command, and starts `node server.js`.
+Railway is configured to use `dist` as the project root. Regenerate `dist` with `pnpm prod:build` before deployment; the dist script copies `ci-settings/railway.dist.json` to `dist/railway.json`, Railway runs its no-op build command, and starts `node server.js`. Keep CI/hosting templates in `ci-settings/`, not in the repository root.
 
 ### Troubleshooting
 
@@ -96,7 +96,7 @@ Railway is configured to use `dist` as the project root. Regenerate `dist` with 
 | AI fails | `GEMINI_API_KEY`, restart server |
 | Auth fails | `AUTH_SECRET`, optional `AUTH_URL` |
 | DB fails | `DATABASE_URL`, `DIRECT_URL`, Neon SSL |
-| Railway fails | env vars, `/api/health`, `railway.json` |
+| Railway fails | env vars, `/api/health`, `dist/railway.json`, `ci-settings/railway.dist.json` |
 
 ---
 
@@ -395,6 +395,10 @@ flowchart LR
 
 ### Railway
 
+The repository root intentionally does not contain a live `railway.json`.
+Railway should point at `dist/` after `pnpm prod:build`; `dist/railway.json`
+is generated from `ci-settings/railway.dist.json`.
+
 #### Environment
 
 **Required:**
@@ -419,6 +423,7 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
+- Deploy template is reviewed in `ci-settings/railway.dist.json`
 - No secrets in Docker image or logs
 - Uploads validate type and size
 - Security headers enabled in `next.config.mjs`
@@ -484,7 +489,7 @@ Keep app runtime secrets in Railway.
 | Install | pnpm version, lockfile, Node version |
 | Build | Next.js errors, missing env stubs, asset paths |
 | TypeScript | Existing issues vs new errors |
-| Railway deploy | Railway logs and `railway.json` |
+| Railway deploy | Railway logs, `dist/railway.json`, `ci-settings/railway.dist.json` |
 
 ---
 

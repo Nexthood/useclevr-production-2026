@@ -8,6 +8,7 @@ const nextStaticDir = path.join(rootDir, ".next", "static")
 const srcAssetsDir = path.join(rootDir, "src", "assets")
 const publicDir = path.join(rootDir, "public")
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db")
+const distRailwayTemplate = path.join(rootDir, "ci-settings", "railway.dist.json")
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -87,8 +88,8 @@ fs.writeFileSync(
   ].join("\n"),
 )
 
-// Write package.json and railway.json to dist root for hosts configured to
-// deploy `dist` as the project root.
+// Write package.json and copy CI deploy template to dist root for hosts
+// configured to deploy `dist` as the project root.
 const rootDistPackage = {
   name: "useclever-2026-dist",
   version: rootPkg.version,
@@ -105,31 +106,13 @@ const rootDistPackage = {
   packageManager: rootPkg.packageManager,
 }
 
-const rootDistRailwayConfig = {
-  $schema: "https://railway.com/railway.schema.json",
-  build: {
-    builder: "RAILPACK",
-    buildCommand: "echo 'Using pre-built artifacts from dist/'",
-  },
-  deploy: {
-    startCommand: "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
-    preDeployCommand: "pnpm exec drizzle-kit push",
-    healthcheckPath: "/api/health",
-    healthcheckTimeout: 300,
-    restartPolicyType: "ON_FAILURE",
-    restartPolicyMaxRetries: 10,
-  },
-}
-
 fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
 )
 
-fs.writeFileSync(
-  path.join(distDir, "railway.json"),
-  `${JSON.stringify(rootDistRailwayConfig, null, 2)}\n`,
-)
+assertExists(distRailwayTemplate, "Railway dist template")
+fs.cpSync(distRailwayTemplate, path.join(distDir, "railway.json"))
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {

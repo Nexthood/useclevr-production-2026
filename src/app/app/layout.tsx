@@ -22,7 +22,7 @@ export default async function AppLayout({
         <AppSidebar user={session.user} />
         <div className="min-h-screen md:ml-[220px]">
           <Topbar />
-          <main className="min-h-screen pt-10">
+          <main className="min-h-screen pt-12">
             {children}
           </main>
         </div>

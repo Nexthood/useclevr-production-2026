@@ -1,10 +1,37 @@
-import { comingSoonResponse } from "../_coming-soon"
+import { NextRequest, NextResponse } from "next/server"
+import {
+  buildReferralLink,
+  createReferralCode,
+  getReferralStats,
+  normalizeReferralCode,
+  referralCookieName,
+} from "@/lib/referrals/referral-store"
 
-// Intentional placeholder for the future referral summary API.
-export async function GET() {
-  return comingSoonResponse("Referral API")
+export async function GET(request: NextRequest) {
+  const cookieCode = normalizeReferralCode(request.cookies.get(referralCookieName)?.value)
+  const code = cookieCode || createReferralCode()
+  const stats = await getReferralStats(code)
+
+  const response = NextResponse.json({
+    code,
+    referralLink: buildReferralLink(request.nextUrl.origin, code),
+    stats,
+  })
+
+  if (!cookieCode) {
+    const forwardedProto = request.headers.get("x-forwarded-proto")
+    response.cookies.set(referralCookieName, code, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:" || forwardedProto === "https",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    })
+  }
+
+  return response
 }
 
-export async function POST() {
-  return comingSoonResponse("Referral API")
+export async function POST(request: NextRequest) {
+  return GET(request)
 }

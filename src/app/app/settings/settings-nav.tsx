@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CreditCard, Settings, ShieldCheck, SlidersHorizontal, User } from "lucide-react"
+import { CreditCard, ReceiptText, Settings, ShieldCheck, SlidersHorizontal, User } from "lucide-react"
 
 const items = [
   { href: "/app/settings/profile", label: "Profile", icon: User },
   { href: "/app/settings/preferences", label: "Settings", icon: SlidersHorizontal },
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/app/settings/billing", label: "Billing", icon: ReceiptText },
 ]
 
 const adminItems = [
