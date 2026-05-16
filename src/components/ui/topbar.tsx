@@ -1,4 +1,4 @@
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import HybridAiButton from "@/components/ui/hybrid-ai-button"
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
 import Link from "next/link"

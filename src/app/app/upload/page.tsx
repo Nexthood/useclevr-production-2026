@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp } from "lucide-react"
-import { CsvUpload } from "@/components/csv-upload"
-import { ProfitabilityUpload } from "@/components/profitability-upload"
+import { CsvUpload } from "@/components/forms/csv-upload"
+import { ProfitabilityUpload } from "@/components/forms/profitability-upload"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 export default function UploadPage() {

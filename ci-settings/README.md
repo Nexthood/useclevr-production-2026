@@ -1,14 +1,27 @@
-# CI and Hosting Settings
+# CI Settings
 
-This folder stores deploy templates that are copied into production artifacts.
+Railway service root: `dist`
 
-Railway should not use the repository root as its app root. Use `dist/` as the
-Railway root after running:
+Railway needs this file in the deployed commit:
+
+```text
+dist/railway.json
+```
+
+Sync it from the template:
+
+```bash
+pnpm ci:railway
+```
+
+Full production bundle:
 
 ```bash
 pnpm prod:build
 ```
 
-`ci-settings/railway.dist.json` is the source template for `dist/railway.json`.
-Keep host-specific templates here so developers can review the deployment
-contract without changing the repository root into a Railway project.
+Template source:
+
+```text
+ci-settings/railway.dist.json
+```

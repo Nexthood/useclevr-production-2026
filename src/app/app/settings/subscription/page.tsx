@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Check, CreditCard, Sparkles } from "lucide-react"
-import { CheckoutButton } from "@/components/checkout-form"
+import { CheckoutButton } from "@/components/forms/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatPlanPrice } from "@/lib/billing/plans"

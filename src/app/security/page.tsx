@@ -1,5 +1,5 @@
-import { PublicHeader } from "@/components/public-header"
-import { PublicFooter } from "@/components/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
 import { Card } from "@/components/ui/card"
 import { Shield, Lock, Database, Sparkles } from "lucide-react"
 

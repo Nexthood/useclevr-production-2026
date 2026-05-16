@@ -5,7 +5,7 @@ import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Cloud, Wif
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { uploadCSV } from "@/app/actions/upload"
-import { DataProcessingFlow } from "@/components/data-processing-flow"
+import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useToast } from "@/hooks/use-toast"
 import { useNotice } from "@/components/ui/notice-bar"
 import { useConnectionStatus, getConnectionMessage, getConnectionDescription, ConnectionMode } from "@/hooks/use-connection-status"

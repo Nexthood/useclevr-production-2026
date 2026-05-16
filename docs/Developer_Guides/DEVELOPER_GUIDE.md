@@ -1,48 +1,23 @@
 # Developer Guide
 
-Complete guide to developing, testing, and deploying the UseClevr application.
-
----
-
-1. [Setup & Requirements](#setup--requirements)
-2. [Application Architecture](#application-architecture)
-3. [Deployment](#deployment)
-
----
-
-## Table of Contents
-
-1. [Setup & Requirements](#setup--requirements)
-2. [Application Architecture](#application-architecture)
-3. [Deployment](#deployment)
-
----
-
-## Setup & Requirements
-
-### Quick Setup
+## Setup
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Configure environment
 cp .env.local.example .env.local
-
-# Start development server
 pnpm dev
 ```
 
-### Requirements
+## Requirements
 
 - Node.js 22+
 - pnpm 10+
 - Neon PostgreSQL
 - Gemini API key
 
-### Environment Variables
+## Env
 
-**Required:**
+Required:
 ```env
 DATABASE_URL=
 DIRECT_URL=
@@ -50,190 +25,95 @@ AUTH_SECRET=
 GEMINI_API_KEY=
 ```
 
-**Optional:**
-- `PORT` — Local dev port
-- `AUTH_URL` — Auth URL override
-- `LOCAL_UPLOAD_DIR` — Runtime upload path
-- `LOCAL_UPLOAD_URL` — Runtime upload URL prefix
-- `UPLOAD_PROVIDER` — Storage provider (`s3` or `r2`)
+Optional:
+- `PORT`
+- `AUTH_URL`
+- `LOCAL_UPLOAD_DIR`
+- `LOCAL_UPLOAD_URL`
+- `UPLOAD_PROVIDER`
 
-### Database
+## Database
 
-Neon PostgreSQL configuration:
+Neon config:
+- Project ID: `withered-star-79790747`
+- Branch ID: `br-crimson-sun-ai49oqj4`
+- Database: `neondb`
+- Role: `neondb_owner`
 
-| Field | Value |
-| --- | --- |
-| Project ID | `withered-star-79790747` |
-| Branch ID | `br-crimson-sun-ai49oqj4` |
-| Database | `neondb` |
-| Role | `neondb_owner` |
-
-**Commands:**
+Commands:
 ```bash
-pnpm db:push    # Sync schema
-pnpm db:migrate # Run migrations
-pnpm db:studio  # Open Drizzle Studio
+pnpm db:push
+pnpm db:migrate
+pnpm db:studio
 ```
 
-**Key Files:**
+Key files:
 - `lib/db/schema.ts`
 - `lib/db/index.ts`
 - `lib/db/migrations/`
 
-### Production Build
+## Production
 
 ```bash
-pnpm prod:build  # Output: dist/server.js, dist/.next/, dist/assets/
+pnpm ci:railway
+pnpm prod:build
 pnpm prod:start
 ```
 
-Railway is configured to use `dist` as the project root. Regenerate `dist` with `pnpm prod:build` before deployment; the dist script copies `ci-settings/railway.dist.json` to `dist/railway.json`, Railway runs its no-op build command, and starts `node server.js`. Keep CI/hosting templates in `ci-settings/`, not in the repository root.
+- Deploy root: `dist`
+- Commit `dist/railway.json`
+- Template: `ci-settings/railway.dist.json`
 
-### Troubleshooting
+## Troubleshooting
 
-| Issue | Check |
+| Issue | Fix |
 | --- | --- |
-| AI fails | `GEMINI_API_KEY`, restart server |
-| Auth fails | `AUTH_SECRET`, optional `AUTH_URL` |
-| DB fails | `DATABASE_URL`, `DIRECT_URL`, Neon SSL |
-| Railway fails | env vars, `/api/health`, `dist/railway.json`, `ci-settings/railway.dist.json` |
+| AI fail | `GEMINI_API_KEY`, restart |
+| Auth fail | `AUTH_SECRET`, `AUTH_URL` |
+| DB fail | `DATABASE_URL`, `DIRECT_URL`, SSL |
+| Railway fail | env vars, `/api/health`, `dist/railway.json` |
 
----
+## Verified computation
 
----
+Compute metrics in code, use AI only for explanation.
 
-## Verified Computation & Pipeline
+Key files:
+- `lib/queryEngine.ts`
+- `lib/queryIntentPrompt.ts`
+- `app/api/query/route.ts`
+- `app/api/chat/route.ts`
+- `lib/llmAdapter.ts`
 
-Prevents AI from inventing numbers by routing numeric questions through validated computation. The AI serves as an explanation layer, while deterministic logic produces the actual computed results.
-
-### Deterministic Pipeline Flow
-
-```text
-CSV upload
-  -> parse rows
-  -> normalize columns
-  -> detect business fields
-  -> compute KPIs/segments/forecasts
-  -> store or return verified data
-  -> AI explains verified data
-```
-
-### Rules
-
-| Rule | Reason |
-| --- | --- |
-| Compute numbers in TypeScript/query logic | Prevent numeric hallucinations |
-| Treat AI as explanation layer | AI is not source of truth for metrics |
-| Keep schema/column mapping explicit | Avoid wrong column assumptions |
-| Return provenance where possible | Make answers auditable |
-| Fail clearly when data is missing | Avoid fake confidence |
-
-### Key Files
-
-| Area | Files |
-| --- | --- |
-| CSV/data analysis | `lib/csv-analyzer.ts`, `lib/dataset-analyzer.ts`, `lib/full-analysis-engine.ts` |
-| Pipeline | `lib/pipeline-orchestrator.ts`, `lib/pipeline-types.ts`, `lib/pipeline/` |
-| Column mapping | `lib/column-mapper.ts`, `lib/business-columns.ts`, `lib/dataset-type-detector.ts` |
-| Forecasting | `lib/forecast/`, `lib/forecast.ts` |
-| Query/verified computation | `lib/queryEngine.ts`, `lib/queryIntentPrompt.ts`, `app/api/query/route.ts` |
-| AI explanation | `app/api/chat/route.ts`, `lib/llmAdapter.ts`, `lib/ai-*` |
-
-### Query Engine - Runtime Flow
-
-```text
-question
-  -> detect computation need
-  -> generate query intent
-  -> validate operation/columns
-  -> compute result
-  -> ask AI to explain computed result
-```
-
-### Operations
-
-| Operation | Validation |
-| --- | --- |
-| `count` | Dataset exists and user can access it |
-| `count_distinct` | Column exists |
-| `sum` | Column exists and is numeric |
-| `avg` | Column exists and is numeric |
-| `min` | Column exists and is numeric/date-compatible |
-| `max` | Column exists and is numeric/date-compatible |
-| `group_by` | Group and metric columns exist; metric is valid |
-| `top_n` | Column exists; limit is bounded |
-
-### Query API
-
-**Endpoint:** `POST /api/query`
-
-**Request:**
+Query endpoint: `POST /api/query`
+Request:
 ```json
-{
-  "datasetId": "string",
-  "question": "string"
-}
+{"datasetId":"string","question":"string"}
 ```
-
-**Response:**
+Response:
 ```json
-{
-  "success": true,
-  "result": {
-    "computed_value": 123,
-    "operation": "sum",
-    "column": "Revenue",
-    "row_count": 1000,
-    "execution_time_ms": 10
-  },
-  "explanation": "string"
-}
+{"success":true,"result":{"computed_value":123,"operation":"sum","column":"Revenue","row_count":1000,"execution_time_ms":10},"explanation":"string"}
 ```
 
-### Tests
+Validation rules:
+- `count`, `count_distinct`, `sum`, `avg`, `min`, `max`, `group_by`, `top_n`
+- Column exists and type matches operation
+- Dataset access is authorized
 
-- Count rows
-- Count distinct
-- Sum numeric column
-- Average numeric column
-- Group by category
-- Reject unknown column
-- Reject numeric operation on text
-- Reject unauthorized dataset access
-
-### Manual Checks
+## Quick checks
 
 ```bash
 pnpm dev
 ```
 
 ```bash
-curl -X POST http://localhost:3000/api/query \
-  -H "Content-Type: application/json" \
-  -d '{"datasetId":"your-dataset-id","question":"What is the total revenue?"}'
+curl -X POST http://localhost:3000/api/query -H "Content-Type: application/json" -d '{"datasetId":"your-dataset-id","question":"What is the total revenue?"}'
 ```
 
-**Expected:**
-- Operation is explicit
-- Column matches schema
-- Result is computed
-- Explanation matches result
+Expected:
+- explicit operation
+- computed result
+- explanation matches result
 
-### Logs
-
-```
-[QueryEngine]
-[CHAT] Question requires verified computation
-[CHAT] Executing verified query
-```
-
-### Rollback
-
-1. Set `DISABLE_VERIFIED_COMPUTATION=true` if supported
-2. Confirm chat falls back
-3. Revert chat/query route changes if needed
-
-### Common Issues
 
 | Issue | Check |
 | --- | --- |
@@ -395,9 +275,11 @@ flowchart LR
 
 ### Railway
 
-The repository root intentionally does not contain a live `railway.json`.
-Railway should point at `dist/` after `pnpm prod:build`; `dist/railway.json`
-is generated from `ci-settings/railway.dist.json`.
+Railway root is `dist`.
+
+Commit `dist/railway.json`. Railway reads it before build.
+
+Refresh it with `pnpm ci:railway`.
 
 #### Environment
 
@@ -423,7 +305,7 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- Deploy template is reviewed in `ci-settings/railway.dist.json`
+- `dist/railway.json` exists in git
 - No secrets in Docker image or logs
 - Uploads validate type and size
 - Security headers enabled in `next.config.mjs`

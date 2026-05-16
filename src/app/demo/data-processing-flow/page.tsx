@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { DataProcessingFlow } from "@/components/data-processing-flow"
+import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -75,7 +75,7 @@ export default function DataProcessingFlowDemo() {
         </CardHeader>
         <CardContent>
           <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
-{`import { DataProcessingFlow } from "@/components/data-processing-flow"
+{`import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 
 // Basic usage
 <DataProcessingFlow currentStep={1} />

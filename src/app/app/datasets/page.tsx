@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { users, datasets } from "@/lib/db/schema"
 import { eq, desc } from "drizzle-orm"
-import { DatasetsClient } from "@/components/datasets-client"
+import { DatasetsClient } from "@/components/dataset/datasets-client"
 
 export const metadata = {
   title: "Datasets - UseClevr",

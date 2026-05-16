@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Download, FileText, Image, File, Presentation, FileSpreadsheet, FileInput, Search, AlertCircle, CheckCircle, Loader2, RefreshCw, Trash2 } from "lucide-react"
-import { UpgradeModal } from "@/components/upgrade-modal"
+import { UpgradeModal } from "@/components/modals/upgrade-modal"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 interface DownloadItem {

@@ -5,7 +5,7 @@ import { Database, FileSpreadsheet, BarChart3, Calendar, Upload } from "lucide-r
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { DatasetModal } from "@/components/dataset-modal"
+import { DatasetModal } from "@/components/modals/dataset-modal"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 interface Dataset {

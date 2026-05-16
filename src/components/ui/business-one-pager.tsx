@@ -1,6 +1,6 @@
 "use client"
 
-import { InsightChart } from "@/components/insight-chart"
+import { InsightChart } from "@/components/ui/insight-chart"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import jsPDF from "jspdf"

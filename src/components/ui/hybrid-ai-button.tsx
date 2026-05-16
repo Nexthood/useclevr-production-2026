@@ -3,7 +3,7 @@
 import { Brain, Check, Download, X } from "lucide-react"
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { CheckoutButton } from "@/components/checkout-form"
+import { CheckoutButton } from "@/components/forms/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"

@@ -51,14 +51,14 @@
   "/sitemap.xml/route": "/sitemap.xml",
   "/api/agent/install-runtime/route": "/api/agent/install-runtime",
   "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
-  "/api/debug/request-headers/route": "/api/debug/request-headers",
   "/api/analyze/route": "/api/analyze",
+  "/api/debug/request-headers/route": "/api/debug/request-headers",
   "/api/local-ai-install/route": "/api/local-ai-install",
+  "/api/chat/route": "/api/chat",
   "/api/local-ai-status/route": "/api/local-ai-status",
   "/api/ollama/pull/route": "/api/ollama/pull",
-  "/api/chat/route": "/api/chat",
-  "/api/query/route": "/api/query",
   "/api/usage/route": "/api/usage",
+  "/api/query/route": "/api/query",
   "/affiliate/page": "/affiliate",
   "/demo/data-processing-flow/page": "/demo/data-processing-flow",
   "/login/page": "/login",
@@ -83,8 +83,8 @@
   "/app/datasets/page": "/app/datasets",
   "/checkout/success/page": "/checkout/success",
   "/contact/page": "/contact",
-  "/report/[id]/page": "/report/[id]",
   "/security/page": "/security",
   "/terms/page": "/terms",
-  "/pricing/page": "/pricing"
+  "/pricing/page": "/pricing",
+  "/report/[id]/page": "/report/[id]"
 }

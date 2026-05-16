@@ -1,6 +1,6 @@
 "use client"
 
-import { MegaInstallerModal } from "@/components/mega-installer-modal"
+import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import { Button } from "@/components/ui/button"
 import { Brain } from "lucide-react"
 import { useEffect, useState } from "react"

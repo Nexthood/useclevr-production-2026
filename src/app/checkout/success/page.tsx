@@ -1,8 +1,8 @@
 import { debugError } from "@/lib/debug"
 
 import { getCheckoutSession } from "@/app/actions/stripe"
-import { PublicFooter } from "@/components/public-footer"
-import { PublicHeader } from "@/components/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { CheckCircle } from "lucide-react"

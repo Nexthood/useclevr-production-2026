@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/ui/theme-provider"
 import { NoticeProvider } from "@/components/ui/notice-bar"
 import type { Metadata, Viewport } from "next"
 import type React from "react"

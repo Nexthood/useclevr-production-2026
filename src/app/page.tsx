@@ -1,11 +1,11 @@
 "use client"
 
-import { DataProcessingFlow } from "@/components/data-processing-flow"
-import { PublicFooter } from "@/components/public-footer"
-import { PublicHeader } from "@/components/public-header"
+import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
+import { PublicFooter } from "@/components/layout/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { WaitlistSignup } from "@/components/waitlist-signup"
+import { WaitlistSignup } from "@/components/ui/waitlist-signup"
 import { BarChart3, Database, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 

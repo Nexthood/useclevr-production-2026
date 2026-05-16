@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { DatasetAnalyzer } from "@/components/dataset-analyzer"
+import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 // Type for analysis result (simplified for props)
