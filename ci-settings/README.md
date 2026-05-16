@@ -10,5 +10,5 @@ pnpm prod:build
 ```
 
 `ci-settings/railway.dist.json` is the source template for `dist/railway.json`.
-Keep host-specific placeholders here so developers can review the deployment
+Keep host-specific templates here so developers can review the deployment
 contract without changing the repository root into a Railway project.

@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation"
-import { ShieldCheck, SlidersHorizontal } from "lucide-react"
+import { ShieldCheck, SlidersHorizontal, Wrench } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { FREE_ANALYST_CREDITS } from "@/lib/usage/analyst-credits"
+import { getBillingSettings } from "@/lib/billing/settings-store"
+import { BillingSettingsForm } from "@/components/billing/billing-settings-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +20,8 @@ export default async function CreditRulesSettingsPage() {
   if (session?.user?.role !== "superadmin") {
     redirect("/app/settings/subscription")
   }
+
+  const billingSettings = await getBillingSettings()
 
   return (
     <div className="space-y-5">
@@ -54,6 +58,25 @@ export default async function CreditRulesSettingsPage() {
               <Input id="featuresPerCredit" value="All dataset analysis features" readOnly />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <Wrench className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-foreground">Hybrid AI and Package Settings</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Set Hybrid AI download credit costs and edit plan titles, descriptions, prices, and list items.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <BillingSettingsForm initialSettings={billingSettings} />
         </CardContent>
       </Card>
 

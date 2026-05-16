@@ -53,14 +53,6 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
       badge: 'Better quality',
       enabled: true,
     },
-    {
-      id: 'mega',
-      name: 'Hybrid AI MEGA',
-      description: 'Coming Soon. Built for high-performance systems and advanced local AI workflows.',
-      size: '~15GB',
-      badge: 'Coming Soon',
-      enabled: false,
-    },
   ]
   const abortControllerRef = useRef<AbortController | null>(null)
   const downloadedBytesRef = useRef<number>(0)
@@ -69,7 +61,6 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
   const animationFrameRef = useRef<number | null>(null)
   const isPausedRef = useRef<boolean>(false)
   const [copiedTier, setCopiedTier] = useState<null | 'lite' | 'standard'>(null)
-  const [hybridLiteEnabled, setHybridLiteEnabled] = useState<boolean>(false)
 
   // Clean up on unmount
   useEffect(() => {
@@ -420,7 +411,6 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
     // Initialize activation from cookie for display
     try {
       setActivated((document.cookie || '').includes('useclevr_hybrid=verified'))
-      setHybridLiteEnabled(/(?:^|; )hybridAiLiteEnabled=1(?:;|$)/.test(document.cookie || ''))
     } catch {}
     if (selectedTier === 'lite' || selectedTier === 'standard') {
       checkModelStatus(selectedTier)
@@ -500,7 +490,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
 
     const os = detectOS()
 
-    // UseClevr-branded direct-download targets (placeholders, ready for real assets)
+    // UseClevr-branded direct-download targets.
     const targets: Record<Exclude<OS, 'unknown'>, string> = {
       windows: '/api/downloads/windows',
       mac: '/assets/downloads/UseClevr-Hybrid-Runtime.dmg',
@@ -655,7 +645,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
               Choose a local AI engine for offline analysis. Your data stays on your device.
             </p>
             <p className="text-xs text-amber-400/80 mb-6">
-              Not every device can run every local AI mode. Lite and Standard are available now. MEGA is coming soon for high-performance systems.
+              Not every device can run every local AI mode. Lite and Standard are available now; MEGA/private deployments are handled through Business support.
             </p>
 
             <div className="space-y-3">
@@ -702,9 +692,6 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                         )
                       })()
                     )}
-                    {!tier.enabled && (
-                      <span className="text-xs text-muted-foreground">Coming Soon</span>
-                    )}
                   </div>
                 </button>
               ))}
@@ -719,17 +706,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                     </div>
                   )
                 })()}
-                {/* Standard tier: keep locked/coming soon - no actions */}
-                {selectedTier === 'standard' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-500/20 text-neutral-400">Coming Soon</span>
-                )}
-                {/* Lite tier monetization gate */}
-                {selectedTier === 'lite' && !hybridLiteEnabled && (
-                  <Button onClick={() => { window.location.href = '/pricing' }} size="sm" className="bg-purple-600 hover:bg-purple-700">
-                    Unlock Hybrid AI Lite
-                  </Button>
-                )}
-                {selectedTier === 'lite' && hybridLiteEnabled && tierStatus[selectedTier] === 'unavailable' && (
+                {tierStatus[selectedTier] === 'unavailable' && (
                   <div className="flex items-center gap-2">
                     <Button onClick={handleDownloadRuntime} size="sm" className="bg-violet-600 hover:bg-violet-700">
                       <Download className="mr-2 h-4 w-4" />
@@ -743,31 +720,35 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                     </Button>
                   </div>
                 )}
-                {selectedTier !== 'standard' && tierStatus[selectedTier] === 'installing_runtime' && (
+                {tierStatus[selectedTier] === 'installing_runtime' && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Preparing Local AI</span>
                 )}
-                {selectedTier === 'lite' && hybridLiteEnabled && tierStatus[selectedTier] === 'missing_model' && (
+                {tierStatus[selectedTier] === 'missing_model' && (
                   <div className="flex items-center gap-2">
                     <code className="text-xs px-2 py-1 rounded bg-muted text-foreground/90">
                       {getSetupCommand(selectedTier)}
                     </code>
+                    <Button onClick={handlePull} size="sm" className="bg-violet-600 hover:bg-violet-700">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Model
+                    </Button>
                     <Button onClick={() => copySetupCommand(selectedTier)} size="sm" className="bg-purple-600 hover:bg-purple-700">
                       {copiedTier === selectedTier ? 'Copied' : 'Copy Setup Command'}
                     </Button>
                   </div>
                 )}
-                {selectedTier !== 'standard' && tierStatus[selectedTier] === 'downloading' && (
+                {tierStatus[selectedTier] === 'downloading' && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Downloading AI Model</span>
                 )}
-                {selectedTier !== 'standard' && tierStatus[selectedTier] === 'ready' && (
+                {tierStatus[selectedTier] === 'ready' && (
                   <Button onClick={handleVerify} size="sm" className="bg-green-600 hover:bg-green-700">
                     Verify Local AI
                   </Button>
                 )}
-                {selectedTier !== 'standard' && tierStatus[selectedTier] === 'verifying' && (
+                {tierStatus[selectedTier] === 'verifying' && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Verifying Local AI</span>
                 )}
-                {selectedTier !== 'standard' && tierStatus[selectedTier] === 'verified' && (
+                {tierStatus[selectedTier] === 'verified' && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Ready for Offline Use</span>
                     {!activated ? (

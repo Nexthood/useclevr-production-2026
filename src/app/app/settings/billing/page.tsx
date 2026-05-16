@@ -44,9 +44,9 @@ export default async function BillingSettingsPage() {
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Payment provider coming soon</p>
+                <p className="font-medium">Payment provider not connected</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Plan selection, checkout review, and automatic discount logic are available. Card collection and invoices will activate once the payment provider is configured.
+                  Plan selection, checkout review, and automatic discount logic are available. Card collection and invoices activate once the payment provider is configured.
                 </p>
               </div>
             </div>

@@ -9,7 +9,7 @@ export interface BillingPlan {
   description: string
   features: string[]
   discountLabel?: string
-  paymentComingSoon?: boolean
+  paymentProviderConnected?: boolean
 }
 
 export const billingPlans: BillingPlan[] = [
@@ -30,7 +30,7 @@ export const billingPlans: BillingPlan[] = [
     interval: "month",
     description: "Unlimited datasets, report downloads, and Hybrid AI Lite.",
     features: ["Unlimited datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
-    paymentComingSoon: true,
+    paymentProviderConnected: false,
   },
   {
     id: "pro_annual",
@@ -41,7 +41,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Pro access with the automatic annual discount applied.",
     features: ["Everything in Pro", "Automatic annual discount", "Hybrid AI Lite"],
     discountLabel: "Auto discount: save €80/year",
-    paymentComingSoon: true,
+    paymentProviderConnected: false,
   },
   {
     id: "business_monthly",
@@ -51,7 +51,7 @@ export const billingPlans: BillingPlan[] = [
     interval: "month",
     description: "Higher volume, advanced security, and dedicated support.",
     features: ["Custom limits", "Advanced security", "Private deployment options", "Dedicated support"],
-    paymentComingSoon: true,
+    paymentProviderConnected: false,
   },
 ]
 

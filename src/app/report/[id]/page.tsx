@@ -3,7 +3,7 @@
 
 import { getReport } from '@/lib/report-generator';
 import { answerReportQuestion, generateReportSuggestions } from '@/lib/report-ai-chat';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { MessageCircle, X, Send, Bot } from 'lucide-react';
 
 // Force dynamic rendering for each request
@@ -46,6 +46,8 @@ export default async function ReportPage({
   
   // Generate suggested questions
   const suggestions = generateReportSuggestions(report);
+  const reportQuestion = getStr("q");
+  const reportAnswer = reportQuestion ? await answerReportQuestion(report, reportQuestion).catch(() => null) : null;
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -314,6 +316,16 @@ export default async function ReportPage({
               ))}
             </div>
           </div>
+          {reportQuestion && (
+            <div className="border-t p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Question</p>
+              <p className="mt-1 text-sm text-foreground">{reportQuestion}</p>
+              <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">Answer</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+                {reportAnswer?.response || "The report assistant could not answer that question from this report snapshot."}
+              </p>
+            </div>
+          )}
           
           {/* Chat Input */}
           <form
@@ -321,9 +333,7 @@ export default async function ReportPage({
               'use server';
               const question = formData.get('question') as string;
               if (!question) return;
-              
-              // This would normally be handled by a client component
-              // For now, we'll show a placeholder
+              redirect(`/report/${id}?q=${encodeURIComponent(question)}`);
             }}
             className="p-4 border-t"
           >

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getBillingPlan } from "@/lib/billing/plans"
+import { getConfiguredBillingPlan } from "@/lib/billing/settings-store"
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
-  const plan = getBillingPlan(body.productId || body.plan)
+  const plan = await getConfiguredBillingPlan(body.productId || body.plan)
   const checkoutUrl = new URL("/app/checkout", request.nextUrl.origin)
   checkoutUrl.searchParams.set("plan", plan.id)
   checkoutUrl.searchParams.set("discount", "auto")
@@ -12,6 +12,6 @@ export async function POST(request: NextRequest) {
     url: checkoutUrl.toString(),
     plan,
     discount: plan.discountLabel || "Auto discount checked",
-    paymentStatus: plan.paymentComingSoon ? "payment_coming_soon" : "ready",
+    paymentStatus: plan.paymentProviderConnected ? "ready" : "payment_provider_not_connected",
   })
 }

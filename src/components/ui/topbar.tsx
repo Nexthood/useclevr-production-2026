@@ -4,17 +4,21 @@ import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
 import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { getBillingSettings } from "@/lib/billing/settings-store"
 
 export default async function Topbar() {
   const session = await auth()
-  const usage = await getAnalystCreditUsage(session?.user?.id)
+  const [usage, billingSettings] = await Promise.all([
+    getAnalystCreditUsage(session?.user?.id),
+    getBillingSettings(),
+  ])
   const planLabel = usage.subscriptionTier === "superadmin" ? "Super admin" : usage.subscriptionTier === "pro" ? "Pro" : "Free"
 
   return (
     <div className="app-topbar">
       <div className="flex w-full items-center justify-end">
         <div className="flex items-center gap-3">
-          <HybridAiButton subscriptionTier={usage.subscriptionTier} />
+          <HybridAiButton subscriptionTier={usage.subscriptionTier} hybridAiCreditCosts={billingSettings.hybridAiCreditCosts} />
           <Link
             href="/app/settings/subscription"
             className="hidden items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent sm:flex"

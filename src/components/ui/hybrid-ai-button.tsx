@@ -7,8 +7,15 @@ import { CheckoutButton } from "@/components/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
+import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 
-export default function HybridAiButton({ subscriptionTier = "free" }: { subscriptionTier?: string }) {
+export default function HybridAiButton({
+  subscriptionTier = "free",
+  hybridAiCreditCosts = { lite: 5, standard: 12, mega: 35 },
+}: {
+  subscriptionTier?: string
+  hybridAiCreditCosts?: HybridAiCreditCosts
+}) {
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
@@ -85,7 +92,7 @@ export default function HybridAiButton({ subscriptionTier = "free" }: { subscrip
                         <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
                         <HybridPoint title="Cloud explanation" description="Gemini explains results when cloud AI is enabled." />
                         <HybridPoint title="Local privacy mode" description="Run supported local models for private analysis." />
-                        <HybridPoint title="Offline-ready setup" description="Install and verify local AI from the app." />
+                        <HybridPoint title="Offline-ready setup" description={`Lite download uses ${hybridAiCreditCosts.lite} credits; Standard uses ${hybridAiCreditCosts.standard}.`} />
                       </div>
                     </div>
 

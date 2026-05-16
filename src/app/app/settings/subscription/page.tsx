@@ -3,13 +3,15 @@ import { Check, CreditCard, Sparkles } from "lucide-react"
 import { CheckoutButton } from "@/components/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { billingPlans, formatPlanPrice } from "@/lib/billing/plans"
+import { formatPlanPrice } from "@/lib/billing/plans"
+import { getBillingSettings } from "@/lib/billing/settings-store"
 import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 
 export default async function SubscriptionSettingsPage() {
   const session = await auth()
   const usage = await getAnalystCreditUsage(session?.user?.id)
+  const billingSettings = await getBillingSettings()
   const remaining = Math.max(0, usage.total - usage.analysisCount)
   const isUnlimited = usage.subscriptionTier === "pro" || usage.subscriptionTier === "superadmin"
 
@@ -61,7 +63,7 @@ export default async function SubscriptionSettingsPage() {
           </div>
         </div>
         <div className="grid gap-3 pt-2 lg:grid-cols-3">
-          {billingPlans.filter((plan) => plan.id !== "pro_annual").map((plan) => {
+          {billingSettings.plans.filter((plan) => plan.id !== "pro_annual").map((plan) => {
             const isCurrent =
               (plan.tier === "free" && !isUnlimited) ||
               (plan.tier === "pro" && usage.subscriptionTier === "pro") ||
@@ -107,7 +109,7 @@ export default async function SubscriptionSettingsPage() {
           })}
         </div>
         <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Annual Pro discounts are applied automatically in checkout. Payment collection is not active yet, so the checkout stops at the payment step.
+          Annual Pro discounts are applied automatically in checkout. If a payment provider is not connected, checkout saves a review instead of collecting a card.
         </div>
       </CardContent>
     </Card>

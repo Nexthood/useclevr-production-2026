@@ -220,6 +220,12 @@
       "namedRegex": "^/affiliate(?:/)?$"
     },
     {
+      "page": "/api/admin/billing-settings",
+      "regex": "^/api/admin/billing\\-settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/billing\\-settings(?:/)?$"
+    },
+    {
       "page": "/api/agent/install-runtime",
       "regex": "^/api/agent/install\\-runtime(?:/)?$",
       "routeKeys": {},
@@ -248,6 +254,12 @@
       "regex": "^/api/checkout(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/checkout(?:/)?$"
+    },
+    {
+      "page": "/api/checkout/confirm",
+      "regex": "^/api/checkout/confirm(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/checkout/confirm(?:/)?$"
     },
     {
       "page": "/api/compare",

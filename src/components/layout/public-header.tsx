@@ -76,7 +76,7 @@ export function PublicHeader() {
                     ✓ Lite and Standard are available now
                   </p>
                   <p className="text-sm text-muted-foreground/60">
-                    ✦ MEGA is coming soon for high-performance systems
+                    ✦ MEGA is available for enterprise hardware by request
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground/50 pt-3 border-t border-border/30">

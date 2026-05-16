@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
-export async function POST() {
-  return NextResponse.json(
-    { error: "Billing is disabled" },
-    { status: 410 }
-  )
+export async function POST(request: NextRequest) {
+  return NextResponse.json({
+    url: new URL("/app/settings/billing", request.nextUrl.origin).toString(),
+    status: "provider_not_connected",
+  })
 }

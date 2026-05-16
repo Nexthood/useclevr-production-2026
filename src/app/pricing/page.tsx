@@ -326,9 +326,9 @@ export default function PricingPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <Cpu className="h-5 w-5 text-gray-400" />
                     <h3 className="font-semibold text-foreground">MEGA</h3>
-                    <span className="text-xs bg-gray-500/20 text-gray-400 px-1.5 py-0.5 rounded">Soon</span>
+                    <span className="text-xs bg-gray-500/20 text-gray-400 px-1.5 py-0.5 rounded">Business</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">For high-performance systems</p>
+                  <p className="text-sm text-muted-foreground">For high-performance systems with Business support</p>
                   <p className="text-xs text-gray-400 mt-2">~15GB download</p>
                 </Card>
               </div>
