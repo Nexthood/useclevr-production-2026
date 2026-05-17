@@ -8,19 +8,20 @@ on:
       - '**.md'
       - 'docs/**'
       - 'CHANGELOG.md'
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      - 'dist/**'
 
 jobs:
   fast:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
+      - run: pnpm config set store-dir ~/.pnpm-store
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
       - run: pnpm validate:dist
@@ -31,11 +32,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: fast
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
+      - run: pnpm config set store-dir ~/.pnpm-store
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
@@ -43,10 +47,13 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
+      - run: pnpm config set store-dir ~/.pnpm-store
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
