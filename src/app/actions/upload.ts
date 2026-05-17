@@ -186,7 +186,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       
       try {
         const demoUser = await (db as any).query.users.findFirst({
-          where: (users as any).email === 'demo@useclever.app',
+          where: (users as any).email === 'demo@useclevr.app',
         })
         
         if (demoUser) {
@@ -244,7 +244,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       debugLog("[UPLOAD] No user session - searching for real demo user in DB...")
       try {
         const demoUser = await (db as any).query.users.findFirst({
-          where: (users as any).email === 'demo@useclever.app',
+          where: (users as any).email === 'demo@useclevr.app',
         })
         
         if (demoUser) {

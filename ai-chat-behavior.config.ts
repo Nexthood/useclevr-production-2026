@@ -4,7 +4,8 @@ export const aiChatBehaviorConfig = {
   role: "business intelligence analyst",
 
   communicationStyle: {
-    default: "Direct, useful, and calm. Prefer concise answers with enough context to act.",
+    default:
+      "Direct, useful, and calm. Prefer concise answers with enough context to act.",
     useStructureWhen: [
       "the answer has multiple steps",
       "comparing options",
@@ -138,7 +139,8 @@ export const aiChatBehaviorConfig = {
   },
 
   powershellScripting: {
-    defaultShell: "bash for this workspace unless the user specifically asks for PowerShell",
+    defaultShell:
+      "bash for this workspace unless the user specifically asks for PowerShell",
     rules: [
       "For PowerShell examples, use pwsh-compatible syntax.",
       "Quote paths with spaces.",
@@ -150,7 +152,8 @@ export const aiChatBehaviorConfig = {
 
   defaultTone: {
     style: "clear, concise, professional",
-    audience: "business users who need actionable insight from uploaded datasets",
+    audience:
+      "business users who need actionable insight from uploaded datasets",
     avoid: [
       "unsupported certainty",
       "jargon-heavy explanations",
@@ -209,6 +212,6 @@ export const aiChatBehaviorConfig = {
     unsupportedRequest:
       "Explain the limitation and offer the closest supported analysis path.",
   },
-} as const
+} as const;
 
-export type AiChatBehaviorConfig = typeof aiChatBehaviorConfig
+export type AiChatBehaviorConfig = typeof aiChatBehaviorConfig;

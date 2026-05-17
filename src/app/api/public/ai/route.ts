@@ -196,6 +196,6 @@ export async function GET() {
         }
       }
     },
-    authentication: { header: 'x-api-key', format: 'useclever_<key_id>_<key>' }
+    authentication: { header: 'x-api-key', format: 'useclevr_<key_id>_<key>' }
   });
 }

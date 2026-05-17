@@ -18,7 +18,7 @@ export default async function AffiliatePage() {
         {/* Hero Section */}
         <section className="container mx-auto px-4 md:px-6 py-20">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-sm text-cyan-400">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-700/30 bg-cyan-500/10 text-sm font-medium text-cyan-800 dark:border-cyan-300/30 dark:text-cyan-100">
               <Sparkles className="h-4 w-4" />
               Partner Program
             </div>
@@ -40,7 +40,7 @@ export default async function AffiliatePage() {
                 <Link href="/app/referral">
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:opacity-90 h-12 px-8 text-base rounded-full"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                   >
                     Go to Referral Center
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -50,7 +50,7 @@ export default async function AffiliatePage() {
                  <Link href="/signup" prefetch={false}>
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:opacity-90 h-12 px-8 text-base rounded-full"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                   >
                     Start Referring
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -69,7 +69,7 @@ export default async function AffiliatePage() {
             <div className="grid md:grid-cols-3 gap-8">
               <Card className="p-6 bg-card border-border/50 text-center">
                 <div className="h-12 w-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-cyan-400" />
+                  <Users className="h-6 w-6 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">1. Invite</h3>
                 <p className="text-muted-foreground">
@@ -79,7 +79,7 @@ export default async function AffiliatePage() {
 
               <Card className="p-6 bg-card border-border/50 text-center">
                 <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="h-6 w-6 text-purple-400" />
+                  <TrendingUp className="h-6 w-6 text-violet-800 dark:text-violet-100" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">2. They Convert</h3>
                 <p className="text-muted-foreground">
@@ -89,7 +89,7 @@ export default async function AffiliatePage() {
 
               <Card className="p-6 bg-card border-border/50 text-center">
                 <div className="h-12 w-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-4">
-                  <Gift className="h-6 w-6 text-cyan-400" />
+                  <Gift className="h-6 w-6 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">3. Earn Rewards</h3>
                 <p className="text-muted-foreground">
@@ -113,15 +113,15 @@ export default async function AffiliatePage() {
                 <h3 className="text-xl font-semibold mb-4">Referral Rewards</h3>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-cyan-400 mt-0.5" />
+                    <Check className="h-5 w-5 text-cyan-800 dark:text-cyan-100 mt-0.5" />
                     <span>5 AI query credits per successful referral</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-cyan-400 mt-0.5" />
+                    <Check className="h-5 w-5 text-cyan-800 dark:text-cyan-100 mt-0.5" />
                     <span>1 month of Pro features for you and your referral</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-cyan-400 mt-0.5" />
+                    <Check className="h-5 w-5 text-cyan-800 dark:text-cyan-100 mt-0.5" />
                     <span>Priority support access</span>
                   </li>
                 </ul>
@@ -131,15 +131,15 @@ export default async function AffiliatePage() {
                 <h3 className="text-xl font-semibold mb-4">Partner Benefits</h3>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-purple-400 mt-0.5" />
+                    <Check className="h-5 w-5 text-violet-800 dark:text-violet-100 mt-0.5" />
                     <span>10+ referrals: Custom dashboard analytics</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-purple-400 mt-0.5" />
+                    <Check className="h-5 w-5 text-violet-800 dark:text-violet-100 mt-0.5" />
                     <span>25+ referrals: Early access to new features</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-purple-400 mt-0.5" />
+                    <Check className="h-5 w-5 text-violet-800 dark:text-violet-100 mt-0.5" />
                     <span>50+ referrals: Dedicated account manager</span>
                   </li>
                 </ul>
@@ -159,7 +159,7 @@ export default async function AffiliatePage() {
               <Link href="/app/referral">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:opacity-90 h-12 px-8 text-base rounded-full"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
                   Go to Referral Center
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -169,7 +169,7 @@ export default async function AffiliatePage() {
                <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:opacity-90 h-12 px-8 text-base rounded-full"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
                   Get Your Referral Link
                   <ArrowRight className="ml-2 h-4 w-4" />

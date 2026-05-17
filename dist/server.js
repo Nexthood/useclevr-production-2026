@@ -1,4 +1,10 @@
-const path = require('path')
+performance.mark('next-start');
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import module from 'node:module'
+const require = module.createRequire(import.meta.url)
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+
 
 const dir = path.join(__dirname)
 

@@ -36,6 +36,7 @@ src/lib/
 ## Env
 
 Required:
+
 ```env
 DATABASE_URL=
 DIRECT_URL=
@@ -44,6 +45,7 @@ GEMINI_API_KEY=
 ```
 
 Optional:
+
 - `PORT`
 - `AUTH_URL`
 - `LOCAL_UPLOAD_DIR`
@@ -53,12 +55,14 @@ Optional:
 ## Database
 
 Neon config:
+
 - Project ID: `withered-star-79790747`
 - Branch ID: `br-crimson-sun-ai49oqj4`
 - Database: `neondb`
 - Role: `neondb_owner`
 
 Commands:
+
 ```bash
 pnpm db:push
 pnpm db:migrate
@@ -66,6 +70,7 @@ pnpm db:studio
 ```
 
 Key files:
+
 - `lib/db/schema.ts`
 - `lib/db/index.ts`
 - `lib/db/migrations/`
@@ -84,11 +89,11 @@ pnpm prod:start
 
 ## Troubleshooting
 
-| Issue | Fix |
-| --- | --- |
-| AI fail | `GEMINI_API_KEY`, restart |
-| Auth fail | `AUTH_SECRET`, `AUTH_URL` |
-| DB fail | `DATABASE_URL`, `DIRECT_URL`, SSL |
+| Issue        | Fix                                          |
+| ------------ | -------------------------------------------- |
+| AI fail      | `GEMINI_API_KEY`, restart                    |
+| Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
+| DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL            |
 | Railway fail | env vars, `/api/health`, `dist/railway.json` |
 
 ## Verified computation
@@ -96,6 +101,7 @@ pnpm prod:start
 Compute metrics in code, use AI only for explanation.
 
 Key files:
+
 - `lib/queryEngine.ts`
 - `lib/queryIntentPrompt.ts`
 - `app/api/query/route.ts`
@@ -104,15 +110,29 @@ Key files:
 
 Query endpoint: `POST /api/query`
 Request:
+
 ```json
-{"datasetId":"string","question":"string"}
+{ "datasetId": "string", "question": "string" }
 ```
+
 Response:
+
 ```json
-{"success":true,"result":{"computed_value":123,"operation":"sum","column":"Revenue","row_count":1000,"execution_time_ms":10},"explanation":"string"}
+{
+  "success": true,
+  "result": {
+    "computed_value": 123,
+    "operation": "sum",
+    "column": "Revenue",
+    "row_count": 1000,
+    "execution_time_ms": 10
+  },
+  "explanation": "string"
+}
 ```
 
 Validation rules:
+
 - `count`, `count_distinct`, `sum`, `avg`, `min`, `max`, `group_by`, `top_n`
 - Column exists and type matches operation
 - Dataset access is authorized
@@ -128,6 +148,7 @@ curl -X POST http://localhost:3000/api/query -H "Content-Type: application/json"
 ```
 
 Expected:
+
 - explicit operation
 - computed result
 - explanation matches result
@@ -179,14 +200,14 @@ flowchart LR
 
 ### Steps
 
-| Step | Role |
-| --- | --- |
-| GitHub | Code and deployment triggers |
-| Railway | Builds Docker image, runs container, health checks |
-| Docker | Container runtime |
-| Next.js server | Serves pages and APIs |
-| `/api/health` | Health check endpoint |
-| Neon | Production database |
+| Step           | Role                                               |
+| -------------- | -------------------------------------------------- |
+| GitHub         | Code and deployment triggers                       |
+| Railway        | Builds Docker image, runs container, health checks |
+| Docker         | Container runtime                                  |
+| Next.js server | Serves pages and APIs                              |
+| `/api/health`  | Health check endpoint                              |
+| Neon           | Production database                                |
 
 ### Railway
 
@@ -199,6 +220,7 @@ Refresh it with `pnpm ci:railway`.
 #### Environment
 
 **Required:**
+
 ```env
 DATABASE_URL=
 DIRECT_URL=
@@ -207,6 +229,7 @@ GEMINI_API_KEY=
 ```
 
 **Optional:**
+
 ```env
 AUTH_URL=
 TRUST_PROXY=true
@@ -281,11 +304,11 @@ Keep app runtime secrets in Railway.
 
 #### Triage
 
-| Failure | Check |
-| --- | --- |
-| Install | pnpm version, lockfile, Node version |
-| Build | Next.js errors, missing env stubs, asset paths |
-| TypeScript | Existing issues vs new errors |
+| Failure        | Check                                                              |
+| -------------- | ------------------------------------------------------------------ |
+| Install        | pnpm version, lockfile, Node version                               |
+| Build          | Next.js errors, missing env stubs, asset paths                     |
+| TypeScript     | Existing issues vs new errors                                      |
 | Railway deploy | Railway logs, `dist/railway.json`, `ci-settings/railway.dist.json` |
 
 ---

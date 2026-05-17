@@ -11,6 +11,9 @@ import { useNotice } from "@/components/ui/notice-bar"
 import { useConnectionStatus, getConnectionMessage, getConnectionDescription, ConnectionMode } from "@/hooks/use-connection-status"
 import { debugLog, debugError } from "@/lib/utils/debug"
 
+const UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
+const LEGACY_UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
+
 interface CsvRow {
   [key: string]: string | number | boolean | null | undefined
 }
@@ -70,7 +73,7 @@ export function CsvUpload() {
 
   // Process offline queue when back online
   async function processOfflineQueue() {
-    const queue = JSON.parse(localStorage.getItem('useclever_upload_queue') || '[]')
+    const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
     if (queue.length > 0) {
       toast({ title: 'Connection restored', description: `Processing ${queue.length} queued uploads...` })
       for (const item of queue) {
@@ -81,7 +84,7 @@ export function CsvUpload() {
           debugError('Failed to process queued upload:', e)
         }
       }
-      localStorage.setItem('useclever_upload_queue', '[]')
+      localStorage.setItem(UPLOAD_QUEUE_KEY, '[]'); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
     }
   }
 
@@ -110,9 +113,9 @@ export function CsvUpload() {
     if (isOffline) {
       // Store in local queue for offline mode
       setUploadStatus("offline")
-      const queue = JSON.parse(localStorage.getItem('useclever_upload_queue') || '[]')
+      const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
       queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
-      localStorage.setItem('useclever_upload_queue', JSON.stringify(queue))
+      localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue)); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
       toast({ 
         title: "Offline mode active", 
         description: "No internet detected – Install UseClevr AI MEGA",
@@ -240,9 +243,9 @@ export function CsvUpload() {
         // Only queue if truly offline (API unreachable and no local AI)
         if (isOffline) {
           setUploadStatus("offline")
-          const queue = JSON.parse(localStorage.getItem('useclever_upload_queue') || '[]')
+          const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
           queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
-          localStorage.setItem('useclever_upload_queue', JSON.stringify(queue))
+          localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue)); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
           toast({ 
             title: "Offline mode active", 
             description: "No internet detected – Install UseClevr AI MEGA",
@@ -268,9 +271,9 @@ export function CsvUpload() {
       // Only queue if truly offline (API unreachable and no local AI)
       if (isOffline) {
         setUploadStatus("offline")
-        const queue = JSON.parse(localStorage.getItem('useclever_upload_queue') || '[]')
+        const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
         queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
-        localStorage.setItem('useclever_upload_queue', JSON.stringify(queue))
+        localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue)); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
         toast({ 
           title: "Offline mode active", 
           description: "No internet detected – Install UseClevr AI MEGA",

@@ -29,7 +29,7 @@ export default function ContactPage() {
                 <Mail className="h-5 w-5 text-[#7C3AED] mt-0.5" />
                 <div>
                   <h3 className="font-medium mb-1">Email</h3>
-                  <a href="mailto:contact@useclevr.com" className="text-[#06B6D4] hover:underline">
+                  <a href="mailto:contact@useclevr.com" className="font-medium text-cyan-800 hover:underline dark:text-cyan-100">
                     contact@useclevr.com
                   </a>
                 </div>

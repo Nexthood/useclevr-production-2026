@@ -1,6 +1,6 @@
 export const BUILTIN_DEMO_USER = {
   id: "demo-user-id",
-  email: "demo@useclever.app",
+  email: "demo@useclevr.app",
   name: "Demo User",
   password: "demo",
   role: "demo",
@@ -8,7 +8,7 @@ export const BUILTIN_DEMO_USER = {
 
 export const BUILTIN_SUPER_ADMIN_USER = {
   id: "super-admin-user-id",
-  email: "superadmin@useclever.app",
+  email: "superadmin@useclevr.app",
   name: "Super Admin",
   password: "superadmin",
   role: "superadmin",

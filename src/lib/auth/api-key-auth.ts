@@ -29,7 +29,7 @@ export async function generateAPIKey(
   permissions: string[] = ['analyze', 'investigate', 'predict', 'compare']
 ): Promise<APIKey> {
   const keyId = uuidv4();
-  const key = `useclever_${keyId}_${uuidv4().replace(/-/g, '').substring(0, 32)}`;
+  const key = `useclevr_${keyId}_${uuidv4().replace(/-/g, '').substring(0, 32)}`;
 
   const apiKey: APIKey = {
     id: keyId,

@@ -1,10 +1,10 @@
 /** @type {import('postcss-load-config').Config} */
 const config = {
   plugins: {
-    'postcss-import': {},
+    "postcss-import": {},
     tailwindcss: {},
     autoprefixer: {},
   },
-}
+};
 
-export default config
+export default config;

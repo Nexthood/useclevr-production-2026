@@ -497,7 +497,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
   
   // Brand footer
   doc.text('UseClevr - Executive Business Intelligence', margin, y + 5);
-  doc.text('useclever.com', pageWidth - margin, y + 5, { align: 'right' });
+  doc.text('useclevr.com', pageWidth - margin, y + 5, { align: 'right' });
   
   // ===== SAVE PDF =====
   const filename = `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.pdf`;

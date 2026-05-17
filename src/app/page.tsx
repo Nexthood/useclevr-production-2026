@@ -45,7 +45,7 @@ export default function HomePage() {
                <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white hover:opacity-90 h-14 px-10 text-base rounded-full shadow-lg shadow-[#7C3AED]/25"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
                   Start free trial
                 </Button>
@@ -68,7 +68,7 @@ export default function HomePage() {
               </div>
               <span className="hidden md:inline">•</span>
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-[#06B6D4]" />
+                <Shield className="h-4 w-4 text-cyan-800 dark:text-cyan-100" />
                 <span>GDPR compliant</span>
               </div>
               <span className="hidden md:inline">•</span>
@@ -103,7 +103,7 @@ export default function HomePage() {
 
               <Card className="p-8 space-y-4 bg-card border-border/50">
                 <div className="h-16 w-16 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center">
-                  <MessageSquare className="h-8 w-8 text-[#06B6D4]" />
+                  <MessageSquare className="h-8 w-8 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <h3 className="text-2xl font-bold">Natural Language Questions</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -123,7 +123,7 @@ export default function HomePage() {
 
               <Card className="p-8 space-y-4 bg-card border-border/50">
                 <div className="h-16 w-16 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center">
-                  <Database className="h-8 w-8 text-[#06B6D4]" />
+                  <Database className="h-8 w-8 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <h3 className="text-2xl font-bold">Unlimited Datasets</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -143,7 +143,7 @@ export default function HomePage() {
 
               <Card className="p-8 space-y-4 bg-card border-border/50">
                 <div className="h-16 w-16 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center">
-                  <BarChart3 className="h-8 w-8 text-[#06B6D4]" />
+                  <BarChart3 className="h-8 w-8 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <h3 className="text-2xl font-bold">API Access</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -164,7 +164,7 @@ export default function HomePage() {
                <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
-                  className="bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 h-14 px-10 text-base rounded-full"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
                   Start your free trial
                 </Button>
@@ -179,7 +179,7 @@ export default function HomePage() {
                 </Button>
               </a>
             </div>
-            <p className="text-sm text-[#06B6D4]">No credit card required · 14-day free trial · Cancel anytime</p>
+            <p className="text-sm font-medium text-cyan-800 dark:text-cyan-100">No credit card required · 14-day free trial · Cancel anytime</p>
           </div>
         </section>
 

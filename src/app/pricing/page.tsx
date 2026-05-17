@@ -44,11 +44,11 @@ export default function PricingPage() {
                 Start free and scale as you grow. No hidden fees, cancel anytime.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
-                <div className="flex items-center gap-2 text-[#06B6D4]">
+                <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
                   <Check className="h-4 w-4" />
                   <span>14-day free trial</span>
                 </div>
-                <div className="flex items-center gap-2 text-[#06B6D4]">
+                <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
                   <Check className="h-4 w-4" />
                   <span>No credit card required</span>
                 </div>
@@ -127,7 +127,7 @@ export default function PricingPage() {
                 </div>
                 <div className="space-y-3">
                   <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#7C3AED]/20 to-[#06B6D4]/20 flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-[#06B6D4]" />
+                    <Zap className="h-6 w-6 text-cyan-800 dark:text-cyan-100" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-1">Pro</h3>
@@ -140,7 +140,7 @@ export default function PricingPage() {
                     <span className="text-muted-foreground text-sm">/month</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Billed monthly or €400/year <span className="text-[#06B6D4]">(save 17%)</span>
+                    Billed monthly or €400/year <span className="font-medium text-cyan-800 dark:text-cyan-100">(save 17%)</span>
                   </p>
                 </div>
 
@@ -215,8 +215,8 @@ export default function PricingPage() {
 
                 <div className="pt-2 border-t border-[#7C3AED]/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <Brain className="h-4 w-4 text-[#A78BFA]" />
-                    <span className="text-sm font-medium text-[#A78BFA]">Includes Hybrid AI Lite</span>
+                    <Brain className="h-4 w-4 text-primary dark:text-cyan-100" />
+                    <span className="text-sm font-medium text-primary dark:text-cyan-100">Includes Hybrid AI Lite</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Hybrid AI MEGA is included with Business.
@@ -225,7 +225,7 @@ export default function PricingPage() {
 
                 <CheckoutButton
                   productId="pro_monthly"
-                  className="w-full bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] hover:opacity-90 text-white font-medium text-sm"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
                   Start free trial →
                 </CheckoutButton>
@@ -283,8 +283,8 @@ export default function PricingPage() {
 
                 <div className="pt-2 border-t border-[#7C3AED]/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <Brain className="h-4 w-4 text-[#A78BFA]" />
-                    <span className="text-sm font-medium text-[#A78BFA]">Includes Hybrid AI MEGA</span>
+                    <Brain className="h-4 w-4 text-primary dark:text-cyan-100" />
+                    <span className="text-sm font-medium text-primary dark:text-cyan-100">Includes Hybrid AI MEGA</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Private deployment support is included.

@@ -2,8 +2,8 @@
 
 ## Primary Guide
 
-| Guide | Notes |
-| --- | --- |
+| Guide                                        | Notes                    |
+| -------------------------------------------- | ------------------------ |
 | **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** | Main developer reference |
 
 ## Recommendation

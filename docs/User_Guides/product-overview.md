@@ -12,11 +12,11 @@ UseClevr helps users upload business datasets, review dashboards, ask AI questio
 
 ## Key Areas
 
-| Area | Purpose |
-| --- | --- |
-| Dashboard | Shows KPIs, charts, and business summaries. |
-| Upload | Adds new datasets for analysis. |
-| Datasets | Lets users review uploaded data and analysis results. |
+| Area      | Purpose                                                  |
+| --------- | -------------------------------------------------------- |
+| Dashboard | Shows KPIs, charts, and business summaries.              |
+| Upload    | Adds new datasets for analysis.                          |
+| Datasets  | Lets users review uploaded data and analysis results.    |
 | Assistant | Answers dataset questions and explains verified results. |
-| Downloads | Stores generated reports and files. |
-| Settings | Holds account and product preferences. |
+| Downloads | Stores generated reports and files.                      |
+| Settings  | Holds account and product preferences.                   |

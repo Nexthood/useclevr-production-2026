@@ -37,7 +37,7 @@ export default async function SubscriptionSettingsPage() {
             </p>
           </div>
           {!isUnlimited && (
-            <Link href="/app/checkout?plan=pro_monthly&discount=auto">
+            <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
               <Button variant="outline" size="sm">Upgrade</Button>
             </Link>
           )}

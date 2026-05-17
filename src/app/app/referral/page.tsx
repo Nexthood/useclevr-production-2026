@@ -109,7 +109,7 @@ export default function ReferralCenter() {
           {/* Main Card - Referral Link */}
           <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border-purple-500/20">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Gift className="h-5 w-5 text-purple-400" />
+              <Gift className="h-5 w-5 text-primary dark:text-cyan-100" />
               Your Personal Referral Link
             </h2>
             
@@ -149,10 +149,10 @@ export default function ReferralCenter() {
             <div className="mt-6 pt-6 border-t border-border/50">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-sm font-medium flex items-center gap-2">
-                  <QrCode className="h-4 w-4 text-cyan-400" />
+                  <QrCode className="h-4 w-4 text-cyan-800 dark:text-cyan-100" />
                   Referral QR code
                 </h3>
-                <span className="rounded-full border border-cyan-500/30 px-2 py-0.5 text-xs text-cyan-400">
+                <span className="rounded-full border border-cyan-700/30 px-2 py-0.5 text-xs font-medium text-cyan-800 dark:border-cyan-300/30 dark:text-cyan-100">
                   Live
                 </span>
               </div>
@@ -196,7 +196,7 @@ export default function ReferralCenter() {
             <Card className="p-4 bg-card border-border">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-                  <MousePointer className="h-5 w-5 text-cyan-400" />
+                  <MousePointer className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.clicks}</p>
@@ -208,7 +208,7 @@ export default function ReferralCenter() {
             <Card className="p-4 bg-card border-border">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-purple-400" />
+                  <Users className="h-5 w-5 text-primary dark:text-cyan-100" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.signups}</p>
@@ -220,7 +220,7 @@ export default function ReferralCenter() {
             <Card className="p-4 bg-card border-border">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-green-400" />
+                  <CreditCard className="h-5 w-5 text-emerald-800 dark:text-emerald-100" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.paidReferrals}</p>
@@ -232,7 +232,7 @@ export default function ReferralCenter() {
             <Card className="p-4 bg-card border-border">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-amber-400" />
+                  <Sparkles className="h-5 w-5 text-amber-800 dark:text-amber-100" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.creditsEarned}</p>
@@ -279,7 +279,7 @@ export default function ReferralCenter() {
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl font-bold text-purple-400">1</span>
+                  <span className="text-xl font-bold text-primary dark:text-cyan-100">1</span>
                 </div>
                 <h3 className="font-medium mb-1">Share your link</h3>
                 <p className="text-sm text-muted-foreground">
@@ -289,7 +289,7 @@ export default function ReferralCenter() {
               
               <div className="text-center">
                 <div className="h-12 w-12 rounded-full bg-cyan-500/10 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl font-bold text-cyan-400">2</span>
+                  <span className="text-xl font-bold text-cyan-800 dark:text-cyan-100">2</span>
                 </div>
                 <h3 className="font-medium mb-1">They sign up</h3>
                 <p className="text-sm text-muted-foreground">
@@ -299,7 +299,7 @@ export default function ReferralCenter() {
               
               <div className="text-center">
                 <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl font-bold text-green-400">3</span>
+                  <span className="text-xl font-bold text-emerald-800 dark:text-emerald-100">3</span>
                 </div>
                 <h3 className="font-medium mb-1">Earn rewards</h3>
                 <p className="text-sm text-muted-foreground">
@@ -315,15 +315,15 @@ export default function ReferralCenter() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                 <span className="text-sm">Per referral signup</span>
-                <span className="font-medium text-purple-400">5 AI credits</span>
+                <span className="font-medium text-primary dark:text-cyan-100">5 AI credits</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                 <span className="text-sm">Per paid referral</span>
-                <span className="font-medium text-purple-400">1 month Pro + 25 credits</span>
+                <span className="font-medium text-primary dark:text-cyan-100">1 month Pro + 25 credits</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                 <span className="text-sm">Your referral bonus</span>
-                <span className="font-medium text-cyan-400">2 AI credits</span>
+                <span className="font-medium text-cyan-800 dark:text-cyan-100">2 AI credits</span>
               </div>
             </div>
             

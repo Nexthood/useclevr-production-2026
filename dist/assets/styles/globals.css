@@ -11,9 +11,9 @@
     --workspace-card: #FFFFFF;
     --workspace-border: #E2E8F0;
 
-    /* UseClevr Brand Colors - Cyan to Purple */
-    --brand-cyan: 185 91% 42%;      /* #06b6d4 */
-    --brand-purple: 271 91% 65%;     /* #a855f7 */
+    /* UseClevr brand colors: high-contrast cyan with restrained neon violet. */
+    --brand-cyan: 188 95% 39%;
+    --brand-purple: 263 72% 54%;
 
     --background: 210 33% 97%;
     --foreground: 0 0% 0%;
@@ -22,39 +22,38 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 10%;
 
-    /* Brand gradient for primary - Cyan #22D3EE to Purple #8B5CF6 */
-    --primary: 187 79% 53%;
+    --primary: 188 95% 35%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 270 50% 65%;
+    --secondary: 263 72% 48%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 214 28% 92%;
     --muted-foreground: 215 30% 20%;
-    --accent: 187 79% 53%;
+    --accent: 188 95% 35%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 24% 82%;
     --input: 214 24% 80%;
-    --ring: 187 79% 53%;
+    --ring: 188 95% 35%;
     --radius: 8px;
     --sidebar: 210 33% 98%;
     --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 187 79% 53%;
+    --sidebar-primary: 188 95% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 214 28% 92%;
     --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 214 24% 84%;
-    --sidebar-ring: 187 79% 53%;
-    --chart-1: 187 79% 53%;
-    --chart-2: 270 50% 65%;
-    --chart-3: 270 50% 55%;
+    --sidebar-ring: 188 95% 35%;
+    --chart-1: 188 95% 35%;
+    --chart-2: 263 72% 48%;
+    --chart-3: 263 70% 42%;
     --chart-4: 175 90% 55%;
     --chart-5: 185 80% 50%;
 
     /* Gradient accents - Cyan to Purple */
-    --gradient-start: 187 79% 53%;
-    --gradient-end: 270 50% 65%;
+    --gradient-start: 188 95% 35%;
+    --gradient-end: 263 72% 48%;
   }
 
   /* Light Mode */
@@ -65,34 +64,34 @@
     --card-foreground: 222 47% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 10%;
-    --primary: 187 79% 53%;
+    --primary: 188 95% 35%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 270 50% 65%;
+    --secondary: 263 72% 48%;
     --secondary-foreground: 0 0% 100%;
     --muted: 214 28% 92%;
     --muted-foreground: 215 30% 20%; /* Further darkened for light mode readability */
-    --accent: 187 79% 53%;
+    --accent: 188 95% 35%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 24% 82%;
     --input: 214 24% 80%;
-    --ring: 187 79% 53%;
+    --ring: 188 95% 35%;
     --sidebar: 210 33% 98%;
     --sidebar-foreground: 0 0% 0%;  /* Pure black for nav text */
-    --sidebar-primary: 187 79% 53%;
+    --sidebar-primary: 188 95% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 214 28% 92%;
     --sidebar-accent-foreground: 0 0% 0%;  /* Pure black for accent text */
     --sidebar-border: 214 24% 84%;
-    --sidebar-ring: 187 79% 53%;
-    --chart-1: 187 79% 53%;
-    --chart-2: 270 50% 65%;
-    --chart-3: 270 50% 55%;
+    --sidebar-ring: 188 95% 35%;
+    --chart-1: 188 95% 35%;
+    --chart-2: 263 72% 48%;
+    --chart-3: 263 70% 42%;
     --chart-4: 175 90% 55%;
     --chart-5: 185 80% 50%;
-    --gradient-start: 187 79% 53%;
-    --gradient-end: 270 50% 65%;
+    --gradient-start: 188 95% 35%;
+    --gradient-end: 263 72% 48%;
     --workspace-bg: #F1F5F9;
     --workspace-card: #FFFFFF;
     --workspace-border: #E2E8F0;
@@ -126,34 +125,34 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
-    --primary: 189 86% 53%;
+    --primary: 188 100% 58%;
     --primary-foreground: 222 47% 4%;
-    --secondary: 263 70% 76%;
+    --secondary: 263 88% 72%;
     --secondary-foreground: 222 47% 4%;
     --muted: 217 27% 15%;         /* Deeper for contrast */
     --muted-foreground: 215 24% 85%; /* Balanced for dark mode secondary text */
-    --accent: 189 86% 53%;
+    --accent: 188 100% 58%;
     --accent-foreground: 222 47% 4%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
     --border: 215 28% 17%;
     --input: 215 28% 17%;
-    --ring: 189 86% 53%;
+    --ring: 188 100% 58%;
     --sidebar: 222 47% 4%;
     --sidebar-foreground: 215 24% 78%;
-    --sidebar-primary: 189 86% 53%;
+    --sidebar-primary: 188 100% 58%;
     --sidebar-primary-foreground: 222 47% 4%;
     --sidebar-accent: 215 28% 17%;
     --sidebar-accent-foreground: 215 24% 82%;
     --sidebar-border: 215 28% 17%;
-    --sidebar-ring: 189 86% 53%;
-    --chart-1: 189 86% 53%;
-    --chart-2: 263 70% 76%;
-    --chart-3: 270 60% 60%;
+    --sidebar-ring: 188 100% 58%;
+    --chart-1: 188 100% 58%;
+    --chart-2: 263 88% 72%;
+    --chart-3: 270 78% 64%;
     --chart-4: 175 90% 55%;
     --chart-5: 185 80% 50%;
-    --gradient-start: 189 86% 53%;
-    --gradient-end: 263 70% 76%;
+    --gradient-start: 188 100% 58%;
+    --gradient-end: 263 88% 72%;
   }
 
 @layer base {
@@ -282,7 +281,7 @@
   .light [for="hybrid-modal-toggle"],
   .light .progress-fill,
   .light .notice-bar.bg-gradient-primary {
-    @apply text-slate-950 font-bold !important;
+    @apply text-white font-bold !important;
     text-shadow: none;
   }
 
@@ -326,13 +325,13 @@
    }
 
    .light .download-btn {
-     color: #000000;  /* Black text for better contrast in light mode */
+     color: #ffffff;
    }
 
   /* New Topbar for global info and actions */
   .app-topbar {
     @apply fixed top-0 right-0 z-[110] border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
-    height: 48px;
+    height: 64px;
     left: 220px;
     display: flex;
     align-items: center;
@@ -350,7 +349,7 @@
   /* Unified Header & Sidebar Styles */
   .app-header {
     /* Adjusted top to be below the new topbar */
-    @apply fixed top-[48px] right-0 z-50 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    @apply fixed top-[64px] right-0 z-50 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
     left: 240px;
     height: 48px;
     display: flex;
@@ -362,7 +361,7 @@
 
   .app-subheader {
     /* Adjusted top to be below the app-header */
-    @apply sticky top-[96px] z-40 border-b bg-muted/20 backdrop-blur-sm;
+    @apply sticky top-[112px] z-40 border-b bg-muted/20 backdrop-blur-sm;
     margin-left: 240px;
     min-height: 36px; /* Slightly smaller than main header */
     display: flex;

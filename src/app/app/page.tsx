@@ -51,10 +51,10 @@ export default async function AppDashboard() {
   const displayStats = stats || { datasetCount: 0, totalRows: 0 }
 
   const statsCards = [
-    { label: "Total Datasets", value: displayStats.datasetCount.toString(), hint: displayStats.datasetCount === 0 ? "Upload a dataset to begin" : "", icon: Database, color: "text-purple-400" },
-    { label: "Total Rows", value: displayStats.totalRows.toLocaleString(), hint: displayStats.totalRows === 0 ? "No data yet" : "", icon: FileSpreadsheet, color: "text-cyan-400" },
-    { label: "AI Queries", value: "0", hint: "Insights will appear after analysis", icon: Sparkles, color: "text-purple-400" },
-    { label: "Insights Found", value: "0", hint: "Insights will appear after analysis", icon: TrendingUp, color: "text-green-400" },
+    { label: "Total Datasets", value: displayStats.datasetCount.toString(), hint: displayStats.datasetCount === 0 ? "Upload a dataset to begin" : "", icon: Database, color: "text-primary dark:text-cyan-100" },
+    { label: "Total Rows", value: displayStats.totalRows.toLocaleString(), hint: displayStats.totalRows === 0 ? "No data yet" : "", icon: FileSpreadsheet, color: "text-cyan-800 dark:text-cyan-100" },
+    { label: "AI Queries", value: "0", hint: "Insights will appear after analysis", icon: Sparkles, color: "text-primary dark:text-cyan-100" },
+    { label: "Insights Found", value: "0", hint: "Insights will appear after analysis", icon: TrendingUp, color: "text-emerald-800 dark:text-emerald-100" },
   ]
 
   const quickActions = [
@@ -86,7 +86,7 @@ export default async function AppDashboard() {
         <div className="max-w-6xl mx-auto space-y-8 pt-6">
           {!isDatabaseAvailable && (
             <Card className="p-3 bg-amber-500/10 border-amber-500/20">
-              <p className="text-sm text-amber-400">
+              <p className="text-sm text-amber-800 dark:text-amber-100">
                 Connection issue detected. Some features may be temporarily unavailable.
               </p>
             </Card>
@@ -172,7 +172,7 @@ export default async function AppDashboard() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="flex items-start gap-3 p-3.5 rounded-lg bg-card border border-border">
               <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                <Zap className="h-4 w-4 text-purple-400" />
+                <Zap className="h-4 w-4 text-primary dark:text-cyan-100" />
               </div>
               <div>
                 <h4 className="font-medium text-foreground text-sm">Instant Analysis</h4>
@@ -181,7 +181,7 @@ export default async function AppDashboard() {
             </div>
             <div className="flex items-start gap-3 p-3.5 rounded-lg bg-card border border-border">
               <div className="h-8 w-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-4 w-4 text-cyan-400" />
+                <Sparkles className="h-4 w-4 text-cyan-800 dark:text-cyan-100" />
               </div>
               <div>
                 <h4 className="font-medium text-foreground text-sm">Natural Language</h4>
@@ -190,7 +190,7 @@ export default async function AppDashboard() {
             </div>
             <div className="flex items-start gap-3 p-3.5 rounded-lg bg-card border border-border">
               <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <Database className="h-4 w-4 text-green-400" />
+                <Database className="h-4 w-4 text-emerald-800 dark:text-emerald-100" />
               </div>
               <div>
                 <h4 className="font-medium text-foreground text-sm">Private & Secure</h4>

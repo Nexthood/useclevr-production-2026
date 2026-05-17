@@ -46,7 +46,7 @@ export default function SecurityPage() {
               <Card className="p-8 bg-card border-border/50">
                 <div className="flex items-start gap-4">
                   <div className="h-14 w-14 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center flex-shrink-0">
-                    <Shield className="h-7 w-7 text-[#06B6D4]" />
+                    <Shield className="h-7 w-7 text-cyan-800 dark:text-cyan-100" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-semibold mb-3">GDPR Compliant</h2>
@@ -78,7 +78,7 @@ export default function SecurityPage() {
               <Card className="p-8 bg-card border-border/50">
                 <div className="flex items-start gap-4">
                   <div className="h-14 w-14 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center flex-shrink-0">
-                    <Database className="h-7 w-7 text-[#06B6D4]" />
+                    <Database className="h-7 w-7 text-cyan-800 dark:text-cyan-100" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-semibold mb-3">Role-Based Access Control</h2>
@@ -108,7 +108,7 @@ export default function SecurityPage() {
               <Card className="p-8 bg-card border-border/50">
                 <div className="flex items-start gap-4">
                   <div className="h-14 w-14 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center flex-shrink-0">
-                    <Shield className="h-7 w-7 text-[#06B6D4]" />
+                    <Shield className="h-7 w-7 text-cyan-800 dark:text-cyan-100" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-semibold mb-3">Complete Data Control</h2>

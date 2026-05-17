@@ -4,7 +4,7 @@ import { getConfiguredBillingPlan } from "@/lib/billing/settings-store"
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const plan = await getConfiguredBillingPlan(body.productId || body.plan)
-  const checkoutUrl = new URL("/app/checkout", request.nextUrl.origin)
+  const checkoutUrl = new URL("/app/settings/checkout", request.nextUrl.origin)
   checkoutUrl.searchParams.set("plan", plan.id)
   checkoutUrl.searchParams.set("discount", "auto")
 

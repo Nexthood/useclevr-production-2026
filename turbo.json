@@ -3,7 +3,15 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "public/**", "next.config.js", "tsconfig.json", "tailwind.config.ts", "tailwind.config.js", "drizzle.config.ts"],
+      "inputs": [
+        "src/**",
+        "public/**",
+        "next.config.js",
+        "tsconfig.json",
+        "tailwind.config.ts",
+        "tailwind.config.js",
+        "drizzle.config.ts"
+      ],
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "build:prod": {

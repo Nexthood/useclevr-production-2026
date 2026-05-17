@@ -32,11 +32,13 @@ export function MegaButton() {
 
   // Prevent hydration mismatch - render placeholder until mounted
   if (!mounted || localAIAvailable === null) {
+    const buttonClassName = "hidden md:flex items-center gap-2.5 relative overflow-hidden rounded-full border-2 border-primary/45 bg-primary/10 text-primary hover:border-primary/70 hover:bg-primary/15 dark:text-cyan-100 transition-all duration-300 shadow-lg shadow-black/5 hover:shadow-xl dark:shadow-black/30 animate-pulse"
+
     return (
       <div className="flex items-center gap-3">
         <Button
           variant="outline"
-          className="hidden md:flex items-center gap-2.5 relative overflow-hidden rounded-full border-2 border-purple-400/60 text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200 hover:border-purple-400/90 dark:hover:border-purple-400 bg-gradient-to-r from-purple-50/90 via-pink-50/50 to-blue-50/90 dark:from-purple-950/30 dark:via-pink-950/20 dark:to-blue-950/30 hover:from-purple-100/90 hover:via-pink-100/60 hover:to-blue-100/90 dark:hover:from-purple-900/40 dark:hover:via-pink-900/30 dark:hover:to-blue-900/40 transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/30 animate-pulse"
+          className={buttonClassName}
         >
           <div className="relative z-10 flex items-center gap-2">
             <Brain className="h-4 w-4 animate-bounce" />
@@ -45,19 +47,21 @@ export function MegaButton() {
               NEW
             </span>
           </div>
-          <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-purple-300/20 dark:via-purple-400/15 to-transparent" />
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-blue-600/10 animate-pulse" />
+          <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+          <div className="absolute inset-0 rounded-full bg-primary/5 animate-pulse" />
         </Button>
       </div>
     )
   }
+
+  const buttonClassName = "hidden md:flex items-center gap-2.5 relative overflow-hidden rounded-full border-2 border-primary/45 bg-primary/10 text-primary hover:border-primary/70 hover:bg-primary/15 dark:text-cyan-100 transition-all duration-300 shadow-lg shadow-black/5 hover:shadow-xl dark:shadow-black/30 animate-pulse"
 
   return (
     <>
       <div className="flex items-center gap-3">
         <Button
           variant="outline"
-          className="hidden md:flex items-center gap-2.5 relative overflow-hidden rounded-full border-2 border-purple-400/60 text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200 hover:border-purple-400/90 dark:hover:border-purple-400 bg-gradient-to-r from-purple-50/90 via-pink-50/50 to-blue-50/90 dark:from-purple-950/30 dark:via-pink-950/20 dark:to-blue-950/30 hover:from-purple-100/90 hover:via-pink-100/60 hover:to-blue-100/90 dark:hover:from-purple-900/40 dark:hover:via-pink-900/30 dark:hover:to-blue-900/40 transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/30 animate-pulse"
+          className={buttonClassName}
           onClick={() => setShowInstaller(true)}
         >
           <div className="relative z-10 flex items-center gap-2">
@@ -67,8 +71,8 @@ export function MegaButton() {
               NEW
             </span>
           </div>
-          <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-purple-300/20 dark:via-purple-400/15 to-transparent" />
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-blue-600/10 animate-pulse" />
+          <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+          <div className="absolute inset-0 rounded-full bg-primary/5 animate-pulse" />
         </Button>
       </div>
 

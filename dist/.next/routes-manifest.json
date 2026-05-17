@@ -514,6 +514,12 @@
       "namedRegex": "^/app/settings/billing(?:/)?$"
     },
     {
+      "page": "/app/settings/checkout",
+      "regex": "^/app/settings/checkout(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/checkout(?:/)?$"
+    },
+    {
       "page": "/app/settings/credits",
       "regex": "^/app/settings/credits(?:/)?$",
       "routeKeys": {},

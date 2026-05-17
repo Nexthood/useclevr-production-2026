@@ -371,7 +371,7 @@ export async function POST(request: Request) {
       debugLog('[UPLOAD] Demo mode - finding demo user')
       const demoUser = await executeWithRetry(
         () => database.query.users.findFirst({
-          where: eq((users as any).email, 'demo@useclever.app'),
+          where: eq((users as any).email, 'demo@useclevr.app'),
         }),
         'Find demo user'
       )

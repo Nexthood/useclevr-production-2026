@@ -194,9 +194,9 @@ export default function DownloadsPage() {
   const getStatusDisplay = (status: DownloadItem["status"]) => {
     switch (status) {
       case "ready":
-        return { label: "Ready", className: "bg-green-500/10 text-green-400" }
+        return { label: "Ready", className: "bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100" }
       case "generating":
-        return { label: "Generating", className: "bg-yellow-500/10 text-yellow-400" }
+        return { label: "Generating", className: "bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100" }
       case "failed":
         return { label: "Failed", className: "bg-red-500/10 text-red-400" }
       case "unavailable":
@@ -269,7 +269,7 @@ export default function DownloadsPage() {
               <div className="mt-3">
                 <div className="h-2 rounded-full bg-border overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
+                    className="h-full bg-primary rounded-full"
                     style={{ width: `${creditPercent}%` }}
                   />
                 </div>
@@ -346,8 +346,8 @@ export default function DownloadsPage() {
                       className="flex flex-col gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent/50 lg:flex-row lg:items-center lg:justify-between"
                     >
                       <div className="flex min-w-0 items-start gap-4">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                          <Icon className="h-5 w-5 text-purple-400" />
+                        <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Icon className="h-5 w-5 text-primary dark:text-cyan-100" />
                         </div>
                         <div className="min-w-0">
                           <p className="break-words font-medium text-foreground">{file.name}</p>

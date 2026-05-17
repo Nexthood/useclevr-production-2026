@@ -47,32 +47,32 @@ export function PublicHeader() {
           {/* Hybrid AI - with popover */}
           <div className="relative">
             <button 
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/5 text-sm font-medium text-[#A78BFA] hover:border-[#7C3AED]/50 hover:bg-[#7C3AED]/10 transition-all relative overflow-hidden"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/10 text-sm font-medium text-primary hover:border-primary/60 hover:bg-primary/15 dark:text-cyan-100 transition-all relative overflow-hidden"
               onMouseEnter={() => setShowHybridAIPopover(true)}
               onMouseLeave={() => setShowHybridAIPopover(false)}
               onClick={() => setShowHybridAIPopover(!showHybridAIPopover)}
             >
               <Brain className="h-3.5 w-3.5" />
               <span>Hybrid AI</span>
-              <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-[#A78BFA]/15 to-transparent" />
+              <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
             </button>
 
             {/* Popover */}
             {showHybridAIPopover && (
               <div 
-                className="absolute top-full mt-2 left-0 w-80 p-5 rounded-xl bg-card/95 backdrop-blur border border-[#7C3AED]/20 shadow-2xl shadow-purple-500/10 z-50"
+                className="absolute top-full mt-2 left-0 w-80 p-5 rounded-xl bg-card/95 backdrop-blur border border-primary/25 shadow-2xl shadow-black/10 dark:shadow-black/40 z-50"
                 onMouseEnter={() => setShowHybridAIPopover(true)}
                 onMouseLeave={() => setShowHybridAIPopover(false)}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Brain className="h-5 w-5 text-[#A78BFA]" />
+                  <Brain className="h-5 w-5 text-primary dark:text-cyan-100" />
                   <h3 className="text-lg font-bold text-foreground">Hybrid AI</h3>
                 </div>
                 <p className="text-base text-foreground/80 mb-4 leading-relaxed">
                   Run UseClevr in cloud or local mode. Your data stays on your device when you need it.
                 </p>
                 <div className="space-y-2 mb-4">
-                  <p className="text-sm font-medium text-cyan-400">
+                  <p className="text-sm font-medium text-cyan-800 dark:text-cyan-100">
                     ✓ Lite and Standard are available now
                   </p>
                   <p className="text-sm text-muted-foreground/60">
@@ -87,7 +87,7 @@ export function PublicHeader() {
           </div>
 
           {/* Affiliate - premium animated */}
-          <Link href="/affiliate" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/5 text-sm font-medium text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all relative overflow-hidden">
+          <Link href="/affiliate" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-700/30 bg-cyan-500/10 text-sm font-medium text-cyan-800 hover:border-cyan-700/50 hover:bg-cyan-500/15 dark:border-cyan-300/30 dark:text-cyan-100 dark:hover:border-cyan-300/50 transition-all relative overflow-hidden">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Affiliate</span>
             <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-cyan-400/15 to-transparent" />
@@ -114,8 +114,8 @@ export function PublicHeader() {
               onMouseLeave={() => setShowModePopover(false)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all relative overflow-hidden ${
                 isOffline
-                  ? "border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:border-amber-500/50"
-                  : "border border-cyan-500/30 bg-cyan-500/5 text-cyan-400 hover:border-cyan-500/50"
+                  ? "border border-amber-700/30 bg-amber-500/10 text-amber-800 hover:border-amber-700/50 dark:border-amber-300/30 dark:text-amber-100 dark:hover:border-amber-300/50"
+                  : "border border-cyan-700/30 bg-cyan-500/10 text-cyan-800 hover:border-cyan-700/50 dark:border-cyan-300/30 dark:text-cyan-100 dark:hover:border-cyan-300/50"
               }`}
             >
               {isOffline ? (
@@ -134,24 +134,24 @@ export function PublicHeader() {
             {/* Mode Popover */}
             {showModePopover && (
               <div 
-                className="absolute top-full mt-2 right-0 w-72 p-4 rounded-xl bg-card/95 backdrop-blur border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 z-50"
+                className="absolute top-full mt-2 right-0 w-72 p-4 rounded-xl bg-card/95 backdrop-blur border border-cyan-700/20 shadow-2xl shadow-black/10 dark:border-cyan-300/20 dark:shadow-black/40 z-50"
                 onMouseEnter={() => setShowModePopover(true)}
                 onMouseLeave={() => setShowModePopover(false)}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Cloud className="h-5 w-5 text-cyan-400" />
+                  <Cloud className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
                   <h3 className="text-lg font-bold text-foreground">Cloud / Offline Modes</h3>
                 </div>
                 
                 <div className="space-y-3 mb-3">
                   <div>
-                    <p className="text-sm font-medium text-cyan-400">Cloud Mode</p>
+                    <p className="text-sm font-medium text-cyan-800 dark:text-cyan-100">Cloud Mode</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Use cloud AI for faster processing and no local installation.
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-amber-400">Offline Mode</p>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-100">Offline Mode</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Run available local AI modes on your device for private, offline analysis.
                     </p>

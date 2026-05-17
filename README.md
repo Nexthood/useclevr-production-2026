@@ -33,21 +33,21 @@ GEMINI_API_KEY=
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm dev` | Local dev |
-| `pnpm build` | Build |
-| `pnpm start` | Start built app |
-| `pnpm prod` | Production bundle |
-| `pnpm ci:railway` | Sync `dist/railway.json` only |
-| `pnpm analyze:business` | Inspect latest dataset business metrics from the database |
-| `pnpm test:csv-analyzer` | Run the CSV analyzer smoke script |
-| `pnpm test:neon` | Test database connectivity with `NEON_DATABASE_URL`, `DIRECT_URL`, or `DATABASE_URL` |
-| `pnpm clean:dev` | Remove local `.next` cache and `tsconfig.tsbuildinfo` |
-| `pnpm clean:prod` | Remove `dist` production bundle plus dev cache |
-| `pnpm clean:generated` | Remove generated public assets |
-| `pnpm db:push` | Push DB schema |
-| `pnpm db:studio` | Open Drizzle Studio |
+| Command                  | Purpose                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `pnpm dev`               | Local dev                                                                            |
+| `pnpm build`             | Build                                                                                |
+| `pnpm start`             | Start built app                                                                      |
+| `pnpm prod`              | Production bundle                                                                    |
+| `pnpm ci:railway`        | Sync `dist/railway.json` only                                                        |
+| `pnpm analyze:business`  | Inspect latest dataset business metrics from the database                            |
+| `pnpm test:csv-analyzer` | Run the CSV analyzer smoke script                                                    |
+| `pnpm test:neon`         | Test database connectivity with `NEON_DATABASE_URL`, `DIRECT_URL`, or `DATABASE_URL` |
+| `pnpm clean:dev`         | Remove local `.next` cache and `tsconfig.tsbuildinfo`                                |
+| `pnpm clean:prod`        | Remove `dist` production bundle plus dev cache                                       |
+| `pnpm clean:generated`   | Remove generated public assets                                                       |
+| `pnpm db:push`           | Push DB schema                                                                       |
+| `pnpm db:studio`         | Open Drizzle Studio                                                                  |
 
 ## Deploy
 

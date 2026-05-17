@@ -56,7 +56,7 @@ export default async function BillingSettingsPage() {
             <Link href="/app/settings/subscription">
               <Button>Manage plan</Button>
             </Link>
-            <Link href="/app/checkout?plan=pro_monthly&discount=auto">
+            <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
               <Button variant="outline" className="bg-transparent">
                 Preview checkout
               </Button>

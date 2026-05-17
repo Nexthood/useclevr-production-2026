@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CreditCard, ReceiptText, Settings, ShieldCheck, SlidersHorizontal, User } from "lucide-react"
+import { CreditCard, ReceiptText, ShieldCheck, ShoppingCart, SlidersHorizontal, User } from "lucide-react"
 
 const items = [
   { href: "/app/settings/profile", label: "Profile", icon: User },
   { href: "/app/settings/preferences", label: "Settings", icon: SlidersHorizontal },
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/app/settings/checkout", label: "Checkout", icon: ShoppingCart },
   { href: "/app/settings/billing", label: "Billing", icon: ReceiptText },
 ]
 
@@ -22,7 +23,7 @@ export function SettingsNav({ showAdmin = false }: { showAdmin?: boolean }) {
   return (
     <nav className="w-full shrink-0 space-y-1 md:w-56">
       {visibleItems.map((item) => {
-        const isActive = pathname === item.href
+        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
         const Icon = item.icon
 
         return (

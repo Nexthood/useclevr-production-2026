@@ -43,7 +43,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
     {
       id: 'lite',
       name: 'Hybrid AI Lite',
-      description: 'Best for normal laptops. Fast install and lightweight offline analysis.',
+      description: 'Fast setup for everyday private analysis.',
       size: '~2GB',
       badge: 'Recommended',
       enabled: true,
@@ -51,7 +51,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
     {
       id: 'mega',
       name: 'Hybrid AI MEGA',
-      description: 'Business-grade local analysis for stronger devices and private workflows.',
+      description: 'Higher-capacity setup for business workstations.',
       size: '~5GB',
       badge: 'Business',
       enabled: true,
@@ -64,7 +64,6 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
   const lastUpdateRef = useRef<number>(0)
   const animationFrameRef = useRef<number | null>(null)
   const isPausedRef = useRef<boolean>(false)
-  const [copiedTier, setCopiedTier] = useState<null | TierId>(null)
 
   // Clean up on unmount
   useEffect(() => {
@@ -259,7 +258,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
         }, 2000)
       } else {
         // Map internal installer details to branded message only
-        setError('Runtime required')
+        setError('Desktop helper needed')
         setState('error')
       }
 
@@ -319,11 +318,11 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
   }
 
   const percentage = progress.total > 0 ? Math.round((progress.downloaded / progress.total) * 100) : 0
-  const stepNames = ['AI Runtime (~100MB)', 'AI Model (~5GB)', 'Installing service']
+  const stepNames = ['Desktop helper', 'Hybrid AI download', 'Activation']
   const stepDescriptions = [
-    'Preparing Local AI',
-    'Downloading AI Model',
-    'Starting local AI service'
+    'Preparing Hybrid AI',
+    'Downloading Hybrid AI',
+    'Activating private analysis'
   ]
 
   // Note: keep hooks above; guard render right before JSX return
@@ -343,42 +342,29 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
     mega: 'llama3:8b-instruct',
   }
 
-  const getSetupCommand = (tierId: TierId): string => {
-    const model = tierToModel[tierId]
-    return `ollama pull ${model}`
-  }
-
-  const copySetupCommand = async (tierId: TierId) => {
-    try {
-      await navigator.clipboard.writeText(getSetupCommand(tierId))
-      setCopiedTier(tierId)
-      setTimeout(() => setCopiedTier(null), 1500)
-    } catch {}
-  }
-
   // UseClevr-branded status mapping for UI presentation
   const getBrandedStatus = (s: ModelStatus | null): { label: string; className: string } => {
     switch (s) {
       case null:
-        return { label: 'Not installed', className: 'bg-neutral-500/20 text-neutral-400' }
+        return { label: 'Not set up', className: 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100' }
       case 'unavailable':
-        return { label: 'Runtime required', className: 'bg-neutral-500/20 text-neutral-400' }
+        return { label: 'Desktop helper needed', className: 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100' }
       case 'missing_model':
-        return { label: 'Ready to download', className: 'bg-amber-500/20 text-amber-400' }
+        return { label: 'Ready to download', className: 'bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100' }
       case 'installing_runtime':
-        return { label: 'Preparing Local AI', className: 'bg-blue-500/20 text-blue-400' }
+        return { label: 'Preparing Hybrid AI', className: 'bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100' }
       case 'downloading':
-        return { label: 'Downloading AI Model', className: 'bg-blue-500/20 text-blue-400' }
+        return { label: 'Downloading Hybrid AI', className: 'bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100' }
       case 'verifying':
-        return { label: 'Verifying Local AI', className: 'bg-blue-500/20 text-blue-400' }
+        return { label: 'Checking setup', className: 'bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100' }
       case 'verified':
-        return { label: 'Ready for Offline Use', className: 'bg-green-500/20 text-green-400' }
+        return { label: 'Ready for private analysis', className: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100' }
       case 'ready':
-        return { label: 'Ready to verify', className: 'bg-emerald-500/20 text-emerald-400' }
+        return { label: 'Ready to check', className: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100' }
       case 'error':
-        return { label: 'Failed', className: 'bg-red-500/20 text-red-400' }
+        return { label: 'Needs attention', className: 'bg-red-100 text-red-950 dark:bg-red-950 dark:text-red-100' }
       default:
-        return { label: 'Not installed', className: 'bg-neutral-500/20 text-neutral-400' }
+        return { label: 'Not set up', className: 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100' }
     }
   }
 
@@ -527,27 +513,27 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
 
     if (os === 'unknown') {
       // Minimal chooser via native prompts to avoid UI refactor
-      if (window.confirm('Download UseClevr Hybrid AI Runtime for Windows?')) {
+      if (window.confirm('Download the UseClevr desktop helper for Windows?')) {
         if (await exists(targets.windows)) {
           trigger(targets.windows, 'UseClevr-Hybrid-Runtime-Setup.exe')
         } else {
-          setPullError('Runtime installer not available yet for this platform. Please contact support or try again later')
+          setPullError('Desktop helper is not available for this platform yet. Please contact support or try again later.')
         }
         return
       }
-      if (window.confirm('Download UseClevr Hybrid AI Runtime for macOS?')) {
+      if (window.confirm('Download the UseClevr desktop helper for macOS?')) {
         if (await exists(targets.mac)) {
           trigger(targets.mac, 'UseClevr-Hybrid-Runtime.dmg')
         } else {
-          setPullError('Runtime installer not available yet for this platform. Please contact support or try again later')
+          setPullError('Desktop helper is not available for this platform yet. Please contact support or try again later.')
         }
         return
       }
-      if (window.confirm('Download UseClevr Hybrid AI Runtime for Linux?')) {
+      if (window.confirm('Download the UseClevr desktop helper for Linux?')) {
         if (await exists(targets.linux)) {
           trigger(targets.linux, 'UseClevr-Hybrid-Runtime.AppImage')
         } else {
-          setPullError('Runtime installer not available yet for this platform. Please contact support or try again later')
+          setPullError('Desktop helper is not available for this platform yet. Please contact support or try again later.')
         }
         return
       }
@@ -562,7 +548,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
     if (await exists(targets[os])) {
       trigger(targets[os], mapName[os])
     } else {
-      setPullError('Runtime installer not available yet for this platform. Please contact support or try again later')
+      setPullError('Desktop helper is not available for this platform yet. Please contact support or try again later.')
     }
   }, [])
 
@@ -645,13 +631,13 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
           // Tier Selection Screen
           <>
             <h2 className="text-xl font-semibold mb-2">
-              Select Hybrid AI
+              Set up Hybrid AI
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
-              Choose a local AI engine for offline analysis. Your data stays on your device.
+              Choose the private analysis option included with your plan.
             </p>
-            <p className="text-xs text-amber-400/80 mb-6">
-              Not every device can run every local AI mode. Pro includes Lite. Business includes MEGA.
+            <p className="mb-6 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Your files stay on your device when Hybrid AI is active. Pro includes Lite. Business includes MEGA.
             </p>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -685,7 +671,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{tier.description}</p>
-                      <p className="text-xs text-muted-foreground/70 mt-2">Download size: {tier.size}</p>
+                      <p className="text-xs text-muted-foreground/70 mt-2">Approx. download: {tier.size}</p>
                     </div>
                     {selectedTier === tier.id && (tier.id === 'lite' || tier.id === 'mega') && (
                       (() => {
@@ -714,61 +700,49 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
                 })()}
                 {tierStatus[selectedTier] === 'unavailable' && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button onClick={handleDownloadRuntime} size="sm" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
+                    <Button onClick={handleDownloadRuntime} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                       <Download className="mr-2 h-4 w-4" />
-                      Download Local AI
-                    </Button>
-                    <code className="text-xs px-2 py-1 rounded bg-muted text-foreground/90">
-                      {getSetupCommand(selectedTier)}
-                    </code>
-                    <Button onClick={() => copySetupCommand(selectedTier)} size="sm" variant="outline">
-                      {copiedTier === selectedTier ? 'Copied' : 'Copy Setup Command'}
+                      Download desktop helper
                     </Button>
                   </div>
                 )}
                 {tierStatus[selectedTier] === 'installing_runtime' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Preparing Local AI</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100">Preparing Hybrid AI</span>
                 )}
                 {tierStatus[selectedTier] === 'missing_model' && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <code className="text-xs px-2 py-1 rounded bg-muted text-foreground/90">
-                      {getSetupCommand(selectedTier)}
-                    </code>
-                    <Button onClick={handlePull} size="sm" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
+                    <Button onClick={handlePull} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                       <Download className="mr-2 h-4 w-4" />
-                      Download Model
-                    </Button>
-                    <Button onClick={() => copySetupCommand(selectedTier)} size="sm" variant="outline">
-                      {copiedTier === selectedTier ? 'Copied' : 'Copy Setup Command'}
+                      Download Hybrid AI
                     </Button>
                   </div>
                 )}
                 {tierStatus[selectedTier] === 'downloading' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Downloading AI Model</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100">Downloading Hybrid AI</span>
                 )}
                 {tierStatus[selectedTier] === 'ready' && (
-                  <Button onClick={handleVerify} size="sm" className="bg-green-600 hover:bg-green-700">
-                    Verify Local AI
+                  <Button onClick={handleVerify} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    Check setup
                   </Button>
                 )}
                 {tierStatus[selectedTier] === 'verifying' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Verifying Local AI</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100">Checking setup</span>
                 )}
                 {tierStatus[selectedTier] === 'verified' && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Ready for Offline Use</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100">Ready for private analysis</span>
                     {!activated ? (
-                      <Button onClick={handleActivate} size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Button onClick={handleActivate} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                         Activate Hybrid AI
                       </Button>
                     ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">Hybrid AI Enabled</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100">Hybrid AI active</span>
                     )}
                   </div>
                 )}
                 {/* Guard UI claims: if runtime becomes unavailable while activated, show blocked state */}
                 {activated && tierStatus[selectedTier] === 'unavailable' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-500/20 text-neutral-400">Runtime required</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100">Desktop helper needed</span>
                 )}
                 {tierStatus[selectedTier] === 'error' && (
                   <Button
@@ -800,10 +774,10 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
             
             <p className="text-sm text-muted-foreground mb-6">
               {selectedTier === 'lite' 
-                ? "Fast install with a lightweight model. Best for basic CSV analysis and quick insights."
+                ? "Fast setup for everyday private analysis."
                 : selectedTier === 'mega'
-                  ? "Higher quality model for deeper analysis. Best for complex datasets and advanced questions."
-                  : "Download and install a local AI engine."
+                  ? "Higher-capacity setup for business workstations."
+                  : "Download and install Hybrid AI."
               }
               <br />
               {selectedTier === 'lite' && "~2GB download • Estimated 3-5 minutes"}
@@ -846,10 +820,10 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
                 {/* State Badge */}
                 <div className="flex items-center justify-center">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    state === 'downloading' ? 'bg-blue-500/20 text-blue-400' :
-                    state === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-                    state === 'resuming' ? 'bg-orange-500/20 text-orange-400' :
-                    'bg-gray-500/20 text-gray-400'
+                    state === 'downloading' ? 'bg-cyan-100 text-cyan-950 dark:bg-cyan-950 dark:text-cyan-100' :
+                    state === 'paused' ? 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100' :
+                    state === 'resuming' ? 'bg-violet-100 text-violet-950 dark:bg-violet-950 dark:text-violet-100' :
+                    'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-100'
                   }`}>
                     {state === 'downloading' && '⬇️ Downloading'}
                     {state === 'paused' && '⏸️ Paused'}
@@ -879,7 +853,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
                   </Button>
                   <Button 
                     onClick={handleStart}
-                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     {state === 'error' ? 'Retry Install' : 'Start Install'}
                   </Button>
@@ -896,14 +870,14 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
                   {state === 'downloading' ? (
                     <Button 
                       onClick={handlePause}
-                      className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                      className="flex-1 bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
                     >
                       ⏸️ Pause
                     </Button>
                   ) : state === 'paused' ? (
                     <Button 
                       onClick={handleResume}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      className="flex-1 bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
                     >
                       ▶️ Resume
                     </Button>
@@ -925,7 +899,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
                 {stepNames.map((name, idx) => (
                   <div key={idx} className="flex items-center gap-3">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                      idx <= step ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'
+                      idx <= step ? 'bg-primary/15 text-primary dark:text-cyan-100' : 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-100'
                     }`}>
                       {idx < step ? '✓' : idx + 1}
                     </div>

@@ -7,6 +7,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Added developer-friendly script aliases for validation, CI, preview, release, docs, audit, and health checks.
+- Added local release and documentation check helpers.
+- Added Prettier-backed format and format-check scripts.
+
+### Changed
+
+- Standardized visible product branding as UseClevr across UI, docs, metadata, and generated package naming.
+- Moved checkout into settings as `/app/settings/checkout` while keeping `/app/checkout` as a redirect.
+- Improved UI contrast across public pages, dashboard cards, Hybrid AI controls, and status badges.
+- Simplified Hybrid AI setup copy so the popup uses product language instead of model/runtime commands.
+
 ## [5.1.0] - 2026-05-17
 
 ### Added
