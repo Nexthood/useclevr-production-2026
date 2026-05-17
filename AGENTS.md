@@ -1,29 +1,52 @@
-# UseClevr Codex Guide
+# UseClevr Agent Guide
 
-This file gives OpenAI Codex and other coding agents project-specific operating guidance.
+This file gives AI agents (Codex, Kilo, OpenAI, Gemini, etc.) project-specific
+operating guidance. It is intentionally brief — expand each section only when a
+consistent rule is needed.
 
 ## Agent Startup
 
 Before making changes, agents should read:
 
-- `AGENTS.md`
+- `AGENTS.md` (this file)
 - `ai-chat-behavior.config.ts`
 - `gemini-behavior.config.ts`
 - `kilo.json` when running through Kilo
+- `ai-chat-behavior.config.ts` is the shared behavior preset for Codex, Kilo,
+  and other AI chat/coding agents. Keep durable project behavior there so it
+  survives moving to a new computer or reinstalling local agent tooling.
 
-`ai-chat-behavior.config.ts` is the shared behavior preset for Codex, Kilo, and other AI chat/coding agents. Keep durable project behavior there so it survives moving to a new computer or reinstalling local agent tooling.
+## Files to Add to `.aiignore`
+
+Add any file or directory that contains raw prompt text, provider keys,
+uploaded CSVs, or sensitive user data so it is never sent to an AI context.
+
+Current `.aiignore` entries (already present):
+
+```
+.next/
+dist/
+.git/
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+*.log
+.env*
+coverage/
+.cache/
+tmp/
+out/
+```
 
 ## Project Shape
 
 - Next.js 16 app router, React 19, TypeScript 6, Tailwind CSS.
 - Business intelligence app for uploaded CSV/business datasets.
-- Cloud AI currently uses Gemini through the AI SDK.
-- Local AI features go through same-origin app routes and the local agent contract.
+- Cloud AI uses Gemini through the AI SDK.
+- Local AI features use same-origin app routes and the local agent contract.
 - Database access uses Drizzle with Neon PostgreSQL.
 
 ## Commands
-
-Use `pnpm`.
 
 ```bash
 pnpm dev
@@ -31,29 +54,43 @@ pnpm build
 pnpm start
 pnpm db:push
 pnpm db:studio
+pnpm exec tsc --noEmit --pretty false   # type-check only
+pnpm validate                           # full pre-PR gate
+pnpm health                             # validate + tests + docs + audit
 ```
-
-`pnpm build` is the preferred smoke test. `pnpm exec tsc --noEmit` may expose broader repo type debt that is unrelated to a narrow change.
 
 ## Editing Rules
 
 - Keep changes focused on the requested behavior.
-- Do not edit generated output in `.next/` or `dist/.next/` unless the task explicitly asks for production bundle artifacts.
-- Do not revert unrelated worktree changes.
+- **Do not read `dist/`, `.git/`, `.next/`, or `node_modules/`** to save tokens.
+- Do not edit generated output in `.next/` or `dist/` unless the task
+  explicitly asks for production bundle artifacts.
+- Do not reverse worktree changes from another agent or commit.
 - Prefer existing components and patterns before adding new abstractions.
 - Keep UI contrast accessible in both light and dark themes.
-- Use `src/assets/` for static assets. `src/app/assets/` is only the route handler.
+- Use `src/assets/` for static assets. `src/app/assets/` is the route handler.
 
-## AI Behavior Rules
+Strip sensitive data from AI context helpers before sending responses to
+openai/cloud vendors.
 
-- Deterministic TypeScript/query logic is the source of truth for numbers, metrics, filters, forecasts, and dataset-derived claims.
-- AI should explain verified data. It must not invent metrics or silently assume columns.
-- If required data is missing, say what is missing and offer a next step.
-- Keep provider secrets server-side only.
-- Browser code should call same-origin API routes for AI work.
-- Log AI/provider failures enough to debug without leaking sensitive prompts or uploaded data.
-- **DO NOT read `dist/`, `.git/`, or `.next/` folders to save input tokens.**
-- Agents must respect rules defined in `.gitignore` and `.aiignore` to prevent unnecessary token consumption.
+## AI Kilo / Other AI Instructions
+
+### Kilo (this CLI)
+
+- Use the `kilo.json` config at the repository root for agent, command, and
+  permission settings.
+- New commands go in `.kilo/command/*.md`. New agents go in `.kilo/agent/*.md`.
+- Commands and agents are loaded automatically from those folders on startup.
+- Kilo ignores `.aiignore` entries (also reads `.codexignore` when present).
+- Kilo does **not** read `dist/`, `.git/`, `.next/`, or `node_modules/`.
+
+### OpenAI Codex / Other Coding Agents
+
+- Respect `ai-chat-behavior.config.ts` for the shared communication style and
+  product voice.
+- Respect `.aiignore` for sensitive/ignored paths.
+- Respect `.gitignore` before reading source.
+- Do not read `dist/`, `.git/`, `.next/`, or `node_modules/`.
 
 ## Key Files
 
@@ -67,3 +104,7 @@ pnpm db:studio
 - `src/lib/queryEngine.ts`
 - `src/lib/queryIntentPrompt.ts`
 - `ai-chat-behavior.config.ts`
+- `gemini-behavior.config.ts`
+- `AGENTS.md` (this file)
+- `.aiignore`
+- `CHANGELOG.md`

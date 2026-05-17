@@ -106,7 +106,7 @@ const rootDistPackage = {
   name: "useclevr-2026-dist",
   version: rootPkg.version,
   private: true,
-  type: "commonjs",
+  type: "module",
   scripts: {
     start:
       "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
