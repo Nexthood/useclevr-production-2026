@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/dashboard/route.ts
 // Auto Dashboard Builder - generates KPIs and charts from dataset
@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { buildDashboard } from '@/lib/dashboard-builder';
+import { buildDashboard } from '@/lib/data/dashboard-builder';
 
 export async function POST(
   request: Request,

@@ -9,7 +9,7 @@ import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useToast } from "@/hooks/use-toast"
 import { useNotice } from "@/components/ui/notice-bar"
 import { useConnectionStatus, getConnectionMessage, getConnectionDescription, ConnectionMode } from "@/hooks/use-connection-status"
-import { debugLog, debugError } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/utils/debug"
 
 interface CsvRow {
   [key: string]: string | number | boolean | null | undefined

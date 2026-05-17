@@ -1,4 +1,4 @@
-import { debugError } from "@/lib/debug"
+import { debugError } from "@/lib/utils/debug"
 
 /**
  * Setup Profile columns that might be missing from older DB schema

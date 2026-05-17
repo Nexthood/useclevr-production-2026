@@ -4,7 +4,7 @@ import * as React from "react"
 import { X, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { CREDIT_PACKAGES } from "@/lib/credits-context"
+import { CREDIT_PACKAGES } from "@/lib/utils/credits-context"
 
 interface UpgradeModalProps {
   open?: boolean

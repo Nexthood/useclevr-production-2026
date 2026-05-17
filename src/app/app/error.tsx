@@ -1,6 +1,6 @@
 "use client"
 
-import { debugError } from "@/lib/debug"
+import { debugError } from "@/lib/utils/debug"
 
 
 

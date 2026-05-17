@@ -1,8 +1,8 @@
 // app/report/[id]/page.tsx
 // Public report page with interactive AI assistant
 
-import { getReport } from '@/lib/report-generator';
-import { answerReportQuestion, generateReportSuggestions } from '@/lib/report-ai-chat';
+import { getReport } from '@/lib/reports/report-generator';
+import { answerReportQuestion, generateReportSuggestions } from '@/lib/reports/report-ai-chat';
 import { notFound, redirect } from 'next/navigation';
 import { MessageCircle, X, Send, Bot } from 'lucide-react';
 

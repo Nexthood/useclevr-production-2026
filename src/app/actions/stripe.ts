@@ -1,6 +1,6 @@
 "use server"
 
-import { PRODUCTS, type ProductId } from "@/lib/products"
+import { PRODUCTS, type ProductId } from "@/lib/business/products"
 
 export async function createCheckoutSession(productId: ProductId) {
   const product = PRODUCTS[productId]

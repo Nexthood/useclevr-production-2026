@@ -1,8 +1,8 @@
 "use client"
 
 import React from 'react'
-import { useFormatting } from '@/lib/formatting-context'
-import { formatCurrency as formatCurrencyUtil, formatNumber as formatNumberUtil } from '@/lib/formatting'
+import { useFormatting } from '@/lib/utils/formatting-context'
+import { formatCurrency as formatCurrencyUtil, formatNumber as formatNumberUtil } from '@/lib/utils/formatting'
 
 interface FormattedCurrencyProps {
   value: number

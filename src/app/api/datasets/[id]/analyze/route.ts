@@ -1,13 +1,13 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { datasets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { analyzeCSV, DatasetRecord, CSVAnalysisResult } from "@/lib/csv-analyzer";
-import { analyzeDataset, DatasetAnalysis, generateAIExecutiveSummary } from "@/lib/dataset-analyzer";
-import { detectBusinessColumns, analyzeBusinessData } from "@/lib/business-columns";
+import { analyzeCSV, DatasetRecord, CSVAnalysisResult } from "@/lib/data/csv-analyzer";
+import { analyzeDataset, DatasetAnalysis, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
+import { detectBusinessColumns, analyzeBusinessData } from "@/lib/business/business-columns";
 
 // ============================================================================
 // DATASET ANALYZER - Deterministic, Read-only from Database

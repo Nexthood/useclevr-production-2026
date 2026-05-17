@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // ============================================================================
 // PRECOMPUTED METRICS STORAGE - Single Source of Truth

@@ -1,6 +1,6 @@
 "use client"
 
-import { debugLog, debugError } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/utils/debug"
 
 
 
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/formatting"
+import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
 import * as React from "react"
 import {

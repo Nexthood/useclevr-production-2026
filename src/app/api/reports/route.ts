@@ -1,10 +1,10 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/reports/route.ts
 // Report generation and management API
 
 import { NextResponse } from 'next/server';
-import { generateReport, getReport, listReports, listAllReports, deleteReport } from '@/lib/report-generator';
+import { generateReport, getReport, listReports, listAllReports, deleteReport } from '@/lib/reports/report-generator';
 import * as fs from 'fs';
 
 export async function POST(request: Request) {

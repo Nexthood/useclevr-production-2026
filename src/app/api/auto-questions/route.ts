@@ -1,11 +1,11 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/auto-questions/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { generateAutoQuestions } from '@/lib/auto-question-engine';
+import { generateAutoQuestions } from '@/lib/utils/auto-question-engine';
 
 export async function POST(request: Request) {
   try {

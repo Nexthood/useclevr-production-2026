@@ -1,4 +1,4 @@
-import { debugError, debugLog } from "@/lib/debug";
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // CSV Data Analysis Library for SaaS Dataset Analysis

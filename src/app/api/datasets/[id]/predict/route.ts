@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/predict/route.ts
 // Predictive Insight Engine - detect trends and generate forward-looking insights
@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { generatePredictions } from '@/lib/predictive-engine';
+import { generatePredictions } from '@/lib/business/predictive-engine';
 
 export async function POST(
   request: Request,

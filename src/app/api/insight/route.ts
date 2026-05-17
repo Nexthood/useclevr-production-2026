@@ -1,8 +1,8 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/insight/route.ts
 import { NextResponse } from 'next/server';
-import { getBusinessInsight } from '@/lib/business-insight-engine';
+import { getBusinessInsight } from '@/lib/business/business-insight-engine';
 
 // Rate limiting storage (in-memory for demo)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();

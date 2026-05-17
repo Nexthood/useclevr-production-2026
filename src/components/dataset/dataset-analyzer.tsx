@@ -1,6 +1,6 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 
 
@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatCurrencyForKPI, formatCurrencyCompact, formatPercentage, detectCurrencyFromColumn, formatCurrencyWithDecimals, formatCurrencySimple, formatPercentSimple } from "@/lib/formatting"
+import { formatCurrencyForKPI, formatCurrencyCompact, formatPercentage, detectCurrencyFromColumn, formatCurrencyWithDecimals, formatCurrencySimple, formatPercentSimple } from "@/lib/utils/formatting"
 import { 
   BarChart, 
   Bar, 

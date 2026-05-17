@@ -1,9 +1,9 @@
-import { debugError, debugLog } from "@/lib/debug";
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/chat/route.ts
 import { auth } from '@/lib/auth';
 import { isBuiltinUserId } from '@/lib/auth/builtin-users';
-import { DatasetRecord } from '@/lib/csv-analyzer';
+import { DatasetRecord } from '@/lib/data/csv-analyzer';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import {

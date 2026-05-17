@@ -1,4 +1,4 @@
-import { debugLog, debugWarn } from "@/lib/debug";
+import { debugLog, debugWarn } from "@/lib/utils/debug";
 
 /**
  * UseClevr AI Analyst Mode

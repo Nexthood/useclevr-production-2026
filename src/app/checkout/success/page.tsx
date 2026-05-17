@@ -1,4 +1,4 @@
-import { debugError } from "@/lib/debug"
+import { debugError } from "@/lib/utils/debug"
 
 import { getCheckoutSession } from "@/app/actions/stripe"
 import { PublicFooter } from "@/components/layout/public-footer"

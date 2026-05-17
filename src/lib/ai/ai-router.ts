@@ -1,4 +1,4 @@
-import { debugLog, debugError } from "@/lib/debug"
+import { debugLog, debugError } from "@/lib/utils/debug"
 import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
 
 /**

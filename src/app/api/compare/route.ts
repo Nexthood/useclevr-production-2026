@@ -1,10 +1,10 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/compare/route.ts
 // Dataset Comparison API
 
 import { NextResponse } from 'next/server';
-import { compareDatasets } from '@/lib/dataset-comparator';
+import { compareDatasets } from '@/lib/data/dataset-comparator';
 
 export async function POST(request: Request) {
   try {

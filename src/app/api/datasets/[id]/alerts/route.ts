@@ -1,10 +1,10 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/alerts/route.ts
 // AI Alert System - detect significant changes and anomalies
 
 import { NextResponse } from 'next/server';
-import { generateAlerts } from '@/lib/alert-system';
+import { generateAlerts } from '@/lib/utils/alert-system';
 
 export async function POST(
   request: Request,

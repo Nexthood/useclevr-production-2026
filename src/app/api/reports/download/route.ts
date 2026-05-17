@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 /**
  * Download Report API Route
@@ -9,8 +9,8 @@ import { debugLog, debugError, debugWarn } from "@/lib/debug"
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getReport } from '@/lib/report-generator'
-import type { Report, ReportChart } from '@/lib/report-generator'
+import { getReport } from '@/lib/reports/report-generator'
+import type { Report, ReportChart } from '@/lib/reports/report-generator'
 import * as fs from 'fs'
 import * as path from 'path'
 

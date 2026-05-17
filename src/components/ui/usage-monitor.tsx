@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useNotice } from "@/components/ui/notice-bar"
-import { debugError } from "@/lib/debug"
+import { debugError } from "@/lib/utils/debug"
 
 interface UsageMonitorProps {
   used: number

@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"

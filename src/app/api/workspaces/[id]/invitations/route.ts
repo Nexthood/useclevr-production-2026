@@ -1,11 +1,11 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/workspaces/[id]/invitations/route.ts
 // Workspace invitations management
 
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { inviteToWorkspace, hasWorkspacePermission } from '@/lib/workspace-permissions';
+import { inviteToWorkspace, hasWorkspacePermission } from '@/lib/utils/workspace-permissions';
 
 export async function POST(
   request: Request,

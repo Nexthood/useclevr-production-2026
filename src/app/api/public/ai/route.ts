@@ -1,17 +1,17 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/public/ai/route.ts
 // UseClevr AI Data API - External application access
 // Endpoints: analyze, investigate, predict, compare
 
 import { NextResponse } from 'next/server';
-import { validateAPIKey, hasAPIPermission } from '@/lib/api-key-auth';
-import { investigateDataset } from '@/lib/investigation-autopilot';
-import { generatePredictions } from '@/lib/predictive-engine';
-import { compareDatasets } from '@/lib/dataset-comparator';
-import { buildDatasetIntelligence, DatasetRecord } from '@/lib/dataset-intelligence';
-import { generateSQLQuery } from '@/lib/ai-query-generator';
-import { executeDuckDBQuery } from '@/lib/investigation-autopilot';
+import { validateAPIKey, hasAPIPermission } from '@/lib/auth/api-key-auth';
+import { investigateDataset } from '@/lib/utils/investigation-autopilot';
+import { generatePredictions } from '@/lib/business/predictive-engine';
+import { compareDatasets } from '@/lib/data/dataset-comparator';
+import { buildDatasetIntelligence, DatasetRecord } from '@/lib/data/dataset-intelligence';
+import { generateSQLQuery } from '@/lib/ai/ai-query-generator';
+import { executeDuckDBQuery } from '@/lib/utils/investigation-autopilot';
 
 // ============================================================================
 // AUTHENTICATION

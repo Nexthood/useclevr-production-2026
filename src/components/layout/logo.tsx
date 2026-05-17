@@ -1,6 +1,6 @@
 "use client"
 
-import { debugWarn } from "@/lib/debug"
+import { debugWarn } from "@/lib/utils/debug"
 
 type Props = {
   // Optional extra classes; responsive height ensures readability

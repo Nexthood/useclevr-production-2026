@@ -1,6 +1,6 @@
 "use client"
 
-import { debugLog } from "@/lib/debug"
+import { debugLog } from "@/lib/utils/debug"
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

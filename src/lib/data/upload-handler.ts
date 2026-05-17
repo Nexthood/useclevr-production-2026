@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // ============================================================================
 // UPLOAD & STORAGE HANDLER - S3/Cloudflare R2 Integration

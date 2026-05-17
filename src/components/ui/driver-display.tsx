@@ -8,7 +8,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { DriverDetectionResult, MetricDriver, DriverContribution } from '@/lib/pipeline-types';
+import type { DriverDetectionResult, MetricDriver, DriverContribution } from '@/lib/utils/pipeline-types';
 
 interface DriverDisplayProps {
   drivers: DriverDetectionResult;

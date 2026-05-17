@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/live/route.ts
 // Live Data Mode - configure and manage scheduled data refresh

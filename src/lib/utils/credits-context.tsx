@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { FREE_UPLOADS_LIMIT } from "@/lib/products"
+import { FREE_UPLOADS_LIMIT } from "@/lib/business/products"
 
 // Credit packages for purchase
 export const CREDIT_PACKAGES = [

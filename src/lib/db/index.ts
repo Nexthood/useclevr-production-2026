@@ -1,4 +1,4 @@
-import { debugError, debugLog } from "@/lib/debug"
+import { debugError, debugLog } from "@/lib/utils/debug"
 
 import { neon } from '@neondatabase/serverless'
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http'

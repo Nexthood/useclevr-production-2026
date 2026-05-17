@@ -1,4 +1,4 @@
-import { debugError, debugLog } from "@/lib/debug";
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/reports/generate/route.ts
 import { auth } from '@/lib/auth';

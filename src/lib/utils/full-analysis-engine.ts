@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // ============================================================================
 // FULL DATASET ANALYSIS ENGINE - Deterministic KPI Computation

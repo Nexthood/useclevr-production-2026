@@ -1,4 +1,4 @@
-import { debugError, debugLog, debugWarn } from "@/lib/debug";
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 /**
  * Analysis API Route
@@ -21,10 +21,10 @@ import { debugError, debugLog, debugWarn } from "@/lib/debug";
 
 import { auth } from "@/lib/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
-import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/datasetEngine";
-import { generateAnalysisPrompt } from "@/lib/llmAdapter";
+import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
+import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
-import { PrecomputedMetrics } from "@/lib/pipeline-types";
+import { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { generateText } from "ai";
@@ -347,7 +347,7 @@ export async function POST(request: Request) {
       debugLog('[ANALYZE] Checking AI availability...');
 
       // Import the new AI router that supports hybrid cloud + local
-      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, isLocalAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai-router');
+      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, isLocalAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai/ai-router');
 
       // Check both cloud and local availability
       // Gate local only if user opted into Hybrid and verified model

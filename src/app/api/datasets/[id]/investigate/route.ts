@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/debug"
+import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/investigate/route.ts
 // AI Investigation Autopilot - automatically analyze dataset and generate findings
@@ -8,8 +8,8 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { investigateDataset } from '@/lib/investigation-autopilot';
-import { storeDatasetMemory, findSimilarDatasets } from '@/lib/dataset-memory';
+import { investigateDataset } from '@/lib/utils/investigation-autopilot';
+import { storeDatasetMemory, findSimilarDatasets } from '@/lib/data/dataset-memory';
 
 export async function POST(
   request: Request,

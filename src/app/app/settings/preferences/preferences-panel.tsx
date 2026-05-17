@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNotice } from "@/components/ui/notice-bar"
-import { useFormatting } from "@/lib/formatting-context"
-import { formatCurrency, formatNumber } from "@/lib/formatting"
+import { useFormatting } from "@/lib/utils/formatting-context"
+import { formatCurrency, formatNumber } from "@/lib/utils/formatting"
 
 export function PreferencesPanel() {
   const { preferences, setPreferences } = useFormatting()

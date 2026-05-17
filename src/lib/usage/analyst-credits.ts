@@ -1,4 +1,4 @@
-import { debugError } from "@/lib/debug"
+import { debugError } from "@/lib/utils/debug"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"

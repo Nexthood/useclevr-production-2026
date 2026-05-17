@@ -1,6 +1,6 @@
 import Topbar from "@/components/ui/topbar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { FormattingProvider } from "@/lib/formatting-context"
+import { FormattingProvider } from "@/lib/utils/formatting-context"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import type React from "react"
