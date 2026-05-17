@@ -10,6 +10,7 @@ export interface BillingPlan {
   features: string[]
   discountLabel?: string
   paymentProviderConnected?: boolean
+  tscAndConditionsUrl?: string
 }
 
 export const billingPlans: BillingPlan[] = [
@@ -31,6 +32,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Unlimited datasets, report downloads, and Hybrid AI Lite.",
     features: ["Unlimited datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
     paymentProviderConnected: false,
+    tscAndConditionsUrl: "https://useclevr.com/terms",
   },
   {
     id: "pro_annual",
@@ -42,6 +44,7 @@ export const billingPlans: BillingPlan[] = [
     features: ["Everything in Pro", "Automatic annual discount", "Hybrid AI Lite"],
     discountLabel: "Auto discount: save €80/year",
     paymentProviderConnected: false,
+    tscAndConditionsUrl: "https://useclevr.com/terms",
   },
   {
     id: "business_monthly",
@@ -52,6 +55,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Higher volume, advanced security, and dedicated support.",
     features: ["Custom limits", "Advanced security", "Private deployment options", "Dedicated support"],
     paymentProviderConnected: false,
+    tscAndConditionsUrl: "https://useclevr.com/terms",
   },
 ]
 

@@ -89,7 +89,7 @@ export default function HybridAiButton({
                   </button>
                 </div>
 
-                <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-5 sm:p-6">
+                <div className="h-full overflow-y-auto p-6 sm:p-8">
                   <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
                     <div className="space-y-4">
                       <h3 className="text-sm font-semibold uppercase text-muted-foreground">

@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Download, FileText, Image, File, Presentation, FileSpreadsheet, FileInput, Search, AlertCircle, CheckCircle, Loader2, RefreshCw, Trash2 } from "lucide-react"
-import { UpgradeModal } from "@/components/modals/upgrade-modal"
+import { Modal } from "@/components/ui/modal"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 interface DownloadItem {
@@ -429,12 +429,14 @@ export default function DownloadsPage() {
         </div>
       </main>
 
-      <UpgradeModal 
-        open={showUpgradeModal} 
+      <Modal
+        open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
         title="Upgrade to continue downloading"
-        message={`You've used ${creditsUsed} of your ${creditsLimit} free analyses. Upgrade to Pro for unlimited analyses and downloads.`}
-      />
+        description={`You've used ${creditsUsed} of your ${creditsLimit} free analyses. Upgrade to Pro for unlimited analyses and downloads.`}
+      >
+        <p className="text-sm text-muted-foreground">Your cart and discount are ready.</p>
+      </Modal>
     </div>
   )
 }

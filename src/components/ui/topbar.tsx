@@ -5,14 +5,38 @@ import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { getBillingSettings } from "@/lib/billing/settings-store"
+import { getDb } from "@/lib/db"
+import { profiles } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+
+type BusinessCompletion = {
+  percent: number
+  label: string
+}
 
 export default async function Topbar() {
   const session = await auth()
-  const [usage, billingSettings] = await Promise.all([
-    getAnalystCreditUsage(session?.user?.id),
+  const userId = session?.user?.id ?? null
+
+  const [usage, billingSettings, businessCompletion] = await Promise.all([
+    getAnalystCreditUsage(userId),
     getBillingSettings(),
+    loadBusinessCompletion(userId),
   ])
-  const planLabel = usage.subscriptionTier === "superadmin" ? "Super admin" : usage.subscriptionTier === "pro" ? "Pro" : "Free"
+
+  const tier = usage.subscriptionTier
+  const planLabel =
+    tier === "superadmin"
+      ? "Super admin"
+      : tier === "pro"
+      ? "Pro"
+      : "Free"
+
+  const matchedPlan =
+    tier !== "free" && tier !== "superadmin"
+      ? billingSettings.plans.find((p) => p.id === tier) || null
+      : null
+  const fullPlanLabel = matchedPlan ? `${matchedPlan.name} · ${planLabel}` : planLabel
 
   return (
     <div className="app-topbar min-h-16">
@@ -22,9 +46,10 @@ export default async function Topbar() {
           <Link
             href="/pricing"
             className="hidden items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-50 sm:flex dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
+            title={matchedPlan ? matchedPlan.name : undefined}
           >
             <span className="text-muted-foreground">Plan</span>
-            <span>{planLabel}</span>
+            <span>{fullPlanLabel}</span>
           </Link>
           <Link
             href="/pricing"
@@ -32,6 +57,15 @@ export default async function Topbar() {
           >
             Plans
           </Link>
+          {businessCompletion.percent > 0 && businessCompletion.percent < 100 && (
+            <Link
+              href="/app/settings/business"
+              className="hidden items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-50 sm:flex dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
+              title="Business profile completion"
+            >
+              <span className="text-primary">{businessCompletion.percent}%</span>
+            </Link>
+          )}
           <ThemeToggle />
           <TopbarSignOutButton />
         </div>
@@ -39,3 +73,42 @@ export default async function Topbar() {
     </div>
   )
 }
+
+async function loadBusinessCompletion(userId: string | null): Promise<BusinessCompletion> {
+  if (!userId) return { percent: 0, label: "0%" }
+
+  const db = getDb()
+  if (!db) return { percent: 0, label: "0%" }
+
+  try {
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: {
+        businessName: true,
+        businessEmail: true,
+        industry: true,
+        location: true,
+        website: true,
+        businessDescription: true,
+      },
+    })
+
+    if (!profile) return { percent: 0, label: "0%" }
+
+    const fields = [
+      profile.businessName,
+      profile.businessEmail,
+      profile.industry,
+      profile.location,
+      profile.website,
+      profile.businessDescription,
+    ] as const
+
+    const filled = fields.filter(Boolean).length
+    const percent = Math.round((filled / fields.length) * 100)
+    return { percent, label: `${percent}%` }
+  } catch {
+    return { percent: 0, label: "0%" }
+  }
+}
+

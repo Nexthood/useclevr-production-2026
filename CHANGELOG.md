@@ -12,6 +12,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added developer-friendly script aliases for validation, CI, preview, release, docs, audit, and health checks.
 - Added local release and documentation check helpers.
 - Added Prettier-backed format and format-check scripts.
+- Added Stripe SDK (`stripe@^14`) to the project dependencies.
+- Added Stripe billing columns (`stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`, `stripeStatus`, `stripeCurrentPeriodEnd`) to the `profiles` table schema.
+- Added business details columns (`businessName`, `businessEmail`, `industry`, `location`, `website`, `businessDescription`) to the `profiles` table schema.
+- Added `tscAndConditionsUrl` field to billing plans and set it to `https://useclevr.com/terms` on all paid plans.
+- Added `GET /api/checkout/options` — returns plan list with `tscAndConditionsUrl`, `status`, and `paymentProviderConnected`.
+- Added `GET /api/me/business` — returns the current user's business profile details.
+- Added 2-step checkout flow (Step 1 "Review plan" → Step 2 "Terms & conditions" with required checkbox acceptance).
+- Added Business settings page (`/app/settings/business`) with a six-field form, completion percentage, and save feedback.
+- Added Payment settings page (`/app/settings/payment`) showing STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET env-var status.
+- Added `updateBusinessDetails` server action to persist business profile fields to the database.
+- Added Stripe webhook handler (`POST /api/webhooks/stripe`) with raw-body signature verification.
 
 ### Changed
 
@@ -19,6 +30,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Moved checkout into settings as `/app/settings/checkout` while keeping `/app/checkout` as a redirect.
 - Improved UI contrast across public pages, dashboard cards, Hybrid AI controls, and status badges.
 - Simplified Hybrid AI setup copy so the popup uses product language instead of model/runtime commands.
+- Added Business entry (all users) and Payment entry (superadmin) to the settings navigation sidebar.
+- Updated `/app/api/checkout/confirm` to honour `?form=review-accepted` and return Stripe-ready status when the payment provider is connected.
+- Updated topbar to show the full plan name (e.g. `Pro · Pro`) and a business profile completion badge linking to `/app/settings/business`.
+- Updated checkout to redirect to step 2 immediately after plan review, and to disable the submit button until T&C are accepted.
 
 ## [5.1.0] - 2026-05-17
 

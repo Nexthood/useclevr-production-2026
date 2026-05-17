@@ -93,3 +93,52 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
 
   return { success: true, message: "Profile saved." }
 }
+
+// ---------------------------------------------------------------------------
+// Business details
+// ---------------------------------------------------------------------------
+
+type UpdateBusinessResult = {
+  success?: boolean
+  error?: string
+  message?: string
+}
+
+export async function updateBusinessDetails(formData: FormData): Promise<UpdateBusinessResult> {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) return { error: "Please sign in again." }
+
+  if (isBuiltinUserId(userId)) {
+    return { success: true, message: "Built-in account loaded. Changes are not saved for shared built-in accounts." }
+  }
+
+  const db = getDb()
+  if (!db) return { error: "Database connection is unavailable." }
+
+  const businessName        = String(formData.get("businessName") ?? "").trim()
+  const businessEmail       = String(formData.get("businessEmail") ?? "").trim().toLowerCase()
+  const industry            = String(formData.get("industry") ?? "").trim() || null
+  const location            = String(formData.get("location") ?? "").trim() || null
+  const website             = String(formData.get("website") ?? "").trim() || null
+  const businessDescription = String(formData.get("description") ?? "").trim() || null
+
+  await db.update(profiles)
+    .set({
+      businessName,
+      businessEmail,
+      industry,
+      location,
+      website,
+      businessDescription,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.userId, userId))
+
+  revalidatePath("/app")
+  revalidatePath("/app/settings")
+  revalidatePath("/app/settings/business")
+
+  return { success: true, message: "Business details saved." }
+}

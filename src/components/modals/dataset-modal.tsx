@@ -4,6 +4,7 @@ import * as React from "react"
 import { X, Download, Sparkles, Send, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Modal } from "@/components/ui/modal"
 
 interface DatasetModalProps {
   isOpen: boolean
@@ -161,41 +162,26 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
   if (!isOpen || !dataset) return null
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
-
-      {/* Full Screen Modal */}
-      <div className="fixed inset-0 z-50 flex">
-        {/* Left Side - Data Overview */}
-        <div className="w-96 bg-card border-r border-border flex flex-col">
-          {/* Header */}
+    <Modal
+      open={isOpen}
+      onOpenChange={onClose}
+      title={dataset.name}
+      description={`${dataset.rowCount.toLocaleString()} rows • ${dataset.columnCount} columns`}
+      showCloseButton={false}
+      className="max-w-full"
+    >
+      <div className="flex h-full flex-col overflow-hidden">
+        <div className="w-96 bg-card border-r border-border flex flex-col flex-shrink-0">
           <div className="p-4 border-b border-border">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-muted-foreground">
                 <X className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-foreground font-medium truncate">{dataset.name}</h2>
                 <p className="text-xs text-muted-foreground">
-                  {dataset.rowCount.toLocaleString()} rows • {dataset.columnCount} columns
+                  {dataset.fileName}
                 </p>
               </div>
-            </div>
-            
-            {/* Status */}
-            <div className="flex items-center gap-2">
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Analyzing...</span>
-                </>
-              ) : analysisResult ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-green-400">Analysis ready</span>
-                </>
-              ) : null}
             </div>
           </div>
 
@@ -238,9 +224,9 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
         </div>
 
         {/* Right Side - AI Chat */}
-        <div className="flex-1 flex flex-col bg-background">
+        <div className="flex-1 flex flex-col bg-background min-w-0">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
@@ -298,7 +284,7 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
           </div>
 
           {/* Quick Actions */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex-shrink-0">
             <div className="flex gap-2 overflow-x-auto pb-2">
               {quickActions.map((action) => (
                 <button
@@ -313,7 +299,7 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
           </div>
 
           {/* Input Area */}
-          <div className="p-4">
+          <div className="p-4 flex-shrink-0">
             <div className="relative">
               <Input
                 value={inputValue}
@@ -336,6 +322,6 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
           </div>
         </div>
       </div>
-    </>
+    </Modal>
   )
 }

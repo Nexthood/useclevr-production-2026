@@ -6,6 +6,22 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const plan = await getConfiguredBillingPlan(body.planId)
 
+  const searchParams = request.nextUrl.searchParams
+  const reviewAccepted = searchParams.get("form") === "review-accepted"
+
+  // Step 2 (T&C done): if payment provider is connected, create a real checkout session
+  if (reviewAccepted && plan.paymentProviderConnected) {
+    // Stripe integration stub — returns placeholder until STRIPE_SECRET_KEY is active
+    return NextResponse.json({
+      success: true,
+      checkoutId: `checkout_${randomUUID().replace(/-/g, "").slice(0, 12)}`,
+      plan,
+      status: "ready_for_payment",
+      message: "Checkout is ready for payment.",
+    })
+  }
+
+  // Fallback: save review without payment
   return NextResponse.json({
     success: true,
     checkoutId: `checkout_${randomUUID().replace(/-/g, "").slice(0, 12)}`,
