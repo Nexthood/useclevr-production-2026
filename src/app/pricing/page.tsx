@@ -219,7 +219,7 @@ export default function PricingPage() {
                     <span className="text-sm font-medium text-[#A78BFA]">Includes Hybrid AI Lite</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Hybrid AI Standard available as add-on
+                    Hybrid AI MEGA is included with Business.
                   </p>
                 </div>
 
@@ -284,10 +284,10 @@ export default function PricingPage() {
                 <div className="pt-2 border-t border-[#7C3AED]/20">
                   <div className="flex items-center gap-2 mb-2">
                     <Brain className="h-4 w-4 text-[#A78BFA]" />
-                    <span className="text-sm font-medium text-[#A78BFA]">Includes Hybrid AI Standard</span>
+                    <span className="text-sm font-medium text-[#A78BFA]">Includes Hybrid AI MEGA</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Hybrid AI MEGA / private deployment available on request
+                    Private deployment support is included.
                   </p>
                 </div>
 
@@ -305,31 +305,24 @@ export default function PricingPage() {
             {/* Hybrid AI Modes Section */}
             <div className="mt-16">
               <h2 className="text-2xl font-bold text-center mb-8">Hybrid AI Modes</h2>
-              <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                <Card className="p-4 bg-card border border-cyan-500/20">
+              <div className="grid gap-4 md:grid-cols-2 max-w-3xl mx-auto">
+                <Card className="p-4 bg-card border border-border">
                   <div className="flex items-center gap-2 mb-2">
-                    <Brain className="h-5 w-5 text-cyan-400" />
+                    <Brain className="h-5 w-5 text-slate-900 dark:text-slate-100" />
                     <h3 className="font-semibold text-foreground">Lite</h3>
+                    <span className="text-xs bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded dark:bg-slate-800 dark:text-slate-100">Pro</span>
                   </div>
                   <p className="text-sm text-muted-foreground">For normal laptops</p>
-                  <p className="text-xs text-cyan-400 mt-2">~2GB download</p>
+                  <p className="text-xs font-medium text-foreground mt-2">~2GB download</p>
                 </Card>
-                <Card className="p-4 bg-card border border-purple-500/20">
+                <Card className="p-4 bg-card border border-border">
                   <div className="flex items-center gap-2 mb-2">
-                    <Brain className="h-5 w-5 text-purple-400" />
-                    <h3 className="font-semibold text-foreground">Standard</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">For stronger devices</p>
-                  <p className="text-xs text-purple-400 mt-2">~5GB download</p>
-                </Card>
-                <Card className="p-4 bg-card border border-gray-500/20 opacity-70">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Cpu className="h-5 w-5 text-gray-400" />
+                    <Cpu className="h-5 w-5 text-slate-900 dark:text-slate-100" />
                     <h3 className="font-semibold text-foreground">MEGA</h3>
-                    <span className="text-xs bg-gray-500/20 text-gray-400 px-1.5 py-0.5 rounded">Business</span>
+                    <span className="text-xs bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded dark:bg-emerald-950 dark:text-emerald-100">Business</span>
                   </div>
                   <p className="text-sm text-muted-foreground">For high-performance systems with Business support</p>
-                  <p className="text-xs text-gray-400 mt-2">~15GB download</p>
+                  <p className="text-xs font-medium text-foreground mt-2">~5GB download</p>
                 </Card>
               </div>
             </div>

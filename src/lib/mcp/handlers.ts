@@ -1,13 +1,13 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
+import { PrecomputedMetrics } from '../utils/pipeline-types';
 import {
-  DatasetSchemaOutput,
-  PrecomputedKpisOutput,
-  TopRegionsOutput,
-  RevenueTrendsOutput,
-  ProfitabilitySummaryOutput,
+    DatasetSchemaOutput,
+    PrecomputedKpisOutput,
+    ProfitabilitySummaryOutput,
+    RevenueTrendsOutput,
+    TopRegionsOutput,
 } from './tools';
-import { PrecomputedMetrics } from '../pipeline-types';
 
 interface MCPCache {
   schema?: DatasetSchemaOutput;
@@ -31,16 +31,16 @@ export function getAnalysisCache(datasetId: string): PrecomputedMetrics | undefi
 
 export function getDatasetSchema(datasetId: string): DatasetSchemaOutput {
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
   }
 
   const detectedColumns = metrics.detectedColumns;
-  
+
   const inferredTypes: Record<string, 'string' | 'number' | 'date' | 'boolean'> = {};
   const columns: string[] = [];
-  
+
   if (metrics.detectedColumns) {
     if (detectedColumns.revenueColumn) {
       inferredTypes[detectedColumns.revenueColumn] = 'number';
@@ -86,7 +86,7 @@ export function getDatasetSchema(datasetId: string): DatasetSchemaOutput {
 
 export function getPrecomputedKpis(datasetId: string): PrecomputedKpisOutput {
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
   }
@@ -112,7 +112,7 @@ export function getTopRegions(
   limit: number = 10
 ): TopRegionsOutput {
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
   }
@@ -121,13 +121,13 @@ export function getTopRegions(
   let totals = { metric: 'revenue', value: 0 };
 
   if (metric === 'revenue' || metric === 'profit') {
-    const data = metric === 'revenue' 
-      ? metrics.chartData.revenueByRegion 
+    const data = metric === 'revenue'
+      ? metrics.chartData.revenueByRegion
       : metrics.chartData.profitByRegion;
-    
+
     const total = data.reduce((sum, item) => sum + item.value, 0);
     totals = { metric, value: total };
-    
+
     rankedRows = data.slice(0, limit).map((item, index) => ({
       rank: index + 1,
       name: item.category,
@@ -138,10 +138,10 @@ export function getTopRegions(
       .filter(p => p.quantity !== undefined)
       .map(p => ({ category: p.name, value: p.quantity || 0 }))
       .sort((a, b) => b.value - a.value);
-    
+
     const total = data.reduce((sum, item) => sum + item.value, 0);
     totals = { metric: 'quantity', value: total };
-    
+
     rankedRows = data.slice(0, limit).map((item, index) => ({
       rank: index + 1,
       name: item.category,
@@ -152,8 +152,8 @@ export function getTopRegions(
   const sharePercentages: Record<string, number> = {};
   const totalValue = totals.value;
   rankedRows.forEach(row => {
-    sharePercentages[row.name] = totalValue > 0 
-      ? Math.round((row.value / totalValue) * 1000) / 10 
+    sharePercentages[row.name] = totalValue > 0
+      ? Math.round((row.value / totalValue) * 1000) / 10
       : 0;
   });
 
@@ -175,13 +175,13 @@ export function getRevenueTrends(
   metric: 'revenue' | 'profit' | 'quantity' = 'revenue'
 ): RevenueTrendsOutput {
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
   }
 
   let trendRows: { period: string; value: number }[] = [];
-  
+
   if (metric === 'revenue') {
     trendRows = metrics.chartData.revenueByMonth.map(m => ({
       period: m.month,
@@ -200,7 +200,7 @@ export function getRevenueTrends(
   const lastPeriod = trendRows.length > 0 ? trendRows[trendRows.length - 1] : null;
 
   let growthDirection: 'up' | 'down' | 'stable' | 'insufficient_data' = 'insufficient_data';
-  
+
   if (firstPeriod && lastPeriod && firstPeriod.value > 0) {
     const change = ((lastPeriod.value - firstPeriod.value) / firstPeriod.value) * 100;
     if (change > 5) {
@@ -214,7 +214,7 @@ export function getRevenueTrends(
 
   let peakPeriod: { period: string; value: number } | null = null;
   let troughPeriod: { period: string; value: number } | null = null;
-  
+
   if (trendRows.length > 0) {
     const sorted = [...trendRows].sort((a, b) => b.value - a.value);
     peakPeriod = { period: sorted[0].period, value: sorted[0].value };
@@ -239,13 +239,13 @@ export function getRevenueTrends(
 
 export function getProfitabilitySummary(datasetId: string): ProfitabilitySummaryOutput {
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
   }
 
   const costBreakdown = metrics.costBreakdown;
-  
+
   const topCostCategories = [
     { category: 'COGS', amount: costBreakdown.cogs, percentage: 0 },
     { category: 'Marketing', amount: costBreakdown.marketingCost, percentage: 0 },

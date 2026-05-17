@@ -19,29 +19,18 @@ pnpm dev
 
 ```
 src/lib/
-├── ai/                    # AI/LLM features
-│   ├── chat.ts
-│   ├── query-generator.ts
-│   └── adapters/
-├── data/                  # Data pipeline & analysis
-│   ├── csv-analyzer.ts
-│   ├── dataset-analyzer.ts
-│   ├── normalizer.ts
-│   └── detectors/
-├── query/                 # Query engine & validation
-│   ├── engine.ts
-│   ├── intent-prompt.ts
-│   └── validators.ts
-├── business/              # Business logic
-│   ├── columns.ts
-│   ├── insight-engine.ts
-│   └── forecasting.ts
-├── db/                    # Database schema & migrations
-├── billing/               # Billing logic
-├── types/                 # Shared types & exports
-├── schemas/               # Zod validation schemas
-├── utils/                 # Generic utilities
-└── hooks/                 # Custom React hooks
+├── ai/          # AI and LLM helpers
+├── data/        # Dataset parsing, cleaning, and analysis
+├── query/       # Query intent, validation, and execution
+├── business/    # Business logic and metric mapping
+├── db/          # Database schema and runtime helpers
+├── auth/        # Authentication and permissions
+├── billing/     # Billing and subscriptions
+├── reports/     # Reporting logic and exports
+├── usage/       # Usage tracking and credit accounting
+├── referrals/   # Referral flow helpers
+├── mcp/         # MCP integration
+└── utils/       # Shared helpers and utilities
 ```
 
 ## Env

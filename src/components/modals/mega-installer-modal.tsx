@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card"
 import { Brain, Zap, Cpu, Clock, CheckCircle, XCircle, Pause, Play, Download, AlertCircle } from "lucide-react"
 
 type DownloadState = string
+type TierId = 'lite' | 'mega'
+const DEFAULT_ALLOWED_TIERS: TierId[] = ['lite', 'mega']
 
 interface DownloadProgress {
   downloaded: number
@@ -21,17 +23,18 @@ interface DownloadProgress {
 interface MegaInstallerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  preselectTier?: 'lite' | 'standard'
+  preselectTier?: TierId
+  allowedTiers?: TierId[]
 }
 
-export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaInstallerModalProps) {
+export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedTiers = DEFAULT_ALLOWED_TIERS }: MegaInstallerModalProps) {
   const [state, setState] = useState<DownloadState>('idle')
-  const [selectedTier, setSelectedTier] = useState<string | null>(null)
+  const [selectedTier, setSelectedTier] = useState<TierId | null>(null)
   const [progress, setProgress] = useState<DownloadProgress>({ downloaded: 0, total: 0, speed: 0, eta: 0 })
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<number>(0) // 0: runtime, 1: model, 2: service
   type ModelStatus = 'unavailable' | 'installing_runtime' | 'missing_model' | 'downloading' | 'ready' | 'verifying' | 'verified' | 'error'
-  const [tierStatus, setTierStatus] = useState<Record<'lite' | 'standard', ModelStatus | null>>({ lite: null, standard: null })
+  const [tierStatus, setTierStatus] = useState<Record<TierId, ModelStatus | null>>({ lite: null, mega: null })
   const [pullError, setPullError] = useState<string | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
   const [activated, setActivated] = useState<boolean>(false)
@@ -46,21 +49,22 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
       enabled: true,
     },
     {
-      id: 'standard',
-      name: 'Hybrid AI Standard',
-      description: 'Better quality for stronger devices. More capable local analysis.',
+      id: 'mega',
+      name: 'Hybrid AI MEGA',
+      description: 'Business-grade local analysis for stronger devices and private workflows.',
       size: '~5GB',
-      badge: 'Better quality',
+      badge: 'Business',
       enabled: true,
     },
-  ]
+  ] satisfies Array<{ id: TierId; name: string; description: string; size: string; badge: string; enabled: boolean }>
+  const visibleTierOptions = tierOptions.filter((tier) => allowedTiers.includes(tier.id))
   const abortControllerRef = useRef<AbortController | null>(null)
   const downloadedBytesRef = useRef<number>(0)
   const startTimeRef = useRef<number>(0)
   const lastUpdateRef = useRef<number>(0)
   const animationFrameRef = useRef<number | null>(null)
   const isPausedRef = useRef<boolean>(false)
-  const [copiedTier, setCopiedTier] = useState<null | 'lite' | 'standard'>(null)
+  const [copiedTier, setCopiedTier] = useState<null | TierId>(null)
 
   // Clean up on unmount
   useEffect(() => {
@@ -89,10 +93,12 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
   // Minimal guidance: when opened with preselectTier, highlight Lite without auto actions
   useEffect(() => {
     if (!open) return
-    if (preselectTier && (preselectTier === 'lite' || preselectTier === 'standard')) {
+    if (preselectTier && allowedTiers.includes(preselectTier)) {
       setSelectedTier(preselectTier)
+    } else {
+      setSelectedTier(allowedTiers[0] || null)
     }
-  }, [open, preselectTier])
+  }, [open, preselectTier, allowedTiers])
 
   // Update progress display
   const updateProgress = useCallback((downloaded: number, total: number) => {
@@ -322,7 +328,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
 
   // Note: keep hooks above; guard render right before JSX return
 
-  const handleSelectTier = (tierId: string) => {
+  const handleSelectTier = (tierId: TierId) => {
     // Minimal change: only store selection locally and keep modal on selection screen
     const tier = tierOptions.find(t => t.id === tierId)
     if (tier && tier.enabled) {
@@ -332,17 +338,17 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
   }
 
   // Map selectable tiers to Ollama model names
-  const tierToModel: Record<'lite' | 'standard', string> = {
+  const tierToModel: Record<TierId, string> = {
     lite: 'llama3.2:3b-instruct',
-    standard: 'llama3:8b-instruct',
+    mega: 'llama3:8b-instruct',
   }
 
-  const getSetupCommand = (tierId: 'lite' | 'standard'): string => {
+  const getSetupCommand = (tierId: TierId): string => {
     const model = tierToModel[tierId]
     return `ollama pull ${model}`
   }
 
-  const copySetupCommand = async (tierId: 'lite' | 'standard') => {
+  const copySetupCommand = async (tierId: TierId) => {
     try {
       await navigator.clipboard.writeText(getSetupCommand(tierId))
       setCopiedTier(tierId)
@@ -377,7 +383,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
   }
 
   // Check Ollama reachability and whether the mapped model exists locally
-  const checkModelStatus = useCallback(async (tierId: 'lite' | 'standard') => {
+  const checkModelStatus = useCallback(async (tierId: TierId) => {
     try {
       const res = await fetch('/api/local-ai-status')
       if (!res.ok) {
@@ -412,14 +418,14 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
     try {
       setActivated((document.cookie || '').includes('useclevr_hybrid=verified'))
     } catch {}
-    if (selectedTier === 'lite' || selectedTier === 'standard') {
+    if (selectedTier === 'lite' || selectedTier === 'mega') {
       checkModelStatus(selectedTier)
     }
   }, [selectedTier, open, checkModelStatus])
 
   // Trigger a real Ollama pull for missing models
   const handlePull = async () => {
-    if (selectedTier !== 'lite' && selectedTier !== 'standard') return
+    if (selectedTier !== 'lite' && selectedTier !== 'mega') return
     setPullError(null)
     // Guard: only attempt if currently missing_model
     if (tierStatus[selectedTier] !== 'missing_model') return
@@ -562,7 +568,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
 
   // Perform a minimal verification call to the local Ollama endpoint
   const handleVerify = async () => {
-    if (selectedTier !== 'lite' && selectedTier !== 'standard') return
+    if (selectedTier !== 'lite' && selectedTier !== 'mega') return
     setVerifyError(null)
     if (tierStatus[selectedTier] !== 'ready') return
 
@@ -605,7 +611,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
 
   // Explicit activation of Hybrid AI local mode (persisted via cookie gate)
   const handleActivate = () => {
-    if (selectedTier !== 'lite' && selectedTier !== 'standard') return
+    if (selectedTier !== 'lite' && selectedTier !== 'mega') return
     if (tierStatus[selectedTier] !== 'verified') return
     try {
       document.cookie = `useclevr_hybrid=verified; path=/; max-age=86400`
@@ -616,20 +622,20 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-4 text-foreground backdrop-blur-sm sm:p-8">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50" 
+        className="absolute inset-0" 
         onClick={() => !['downloading', 'paused'].includes(state) && onOpenChange(false)}
       />
       
       {/* Modal */}
-      <Card className="relative z-10 w-full max-w-lg p-6 bg-background shadow-xl">
+      <Card className="relative z-10 max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-y-auto border-border bg-background p-5 shadow-2xl sm:max-h-[calc(100vh-4rem)] sm:p-6">
         {state === 'completed' ? (
           <div className="text-center py-8">
             <div className="text-green-500 text-5xl mb-4">✓</div>
             <h2 className="text-xl font-semibold text-green-500 mb-2">
-              {selectedTier === 'lite' ? 'Hybrid AI Lite' : selectedTier === 'standard' ? 'Hybrid AI Standard' : 'Hybrid AI'} installed
+              {selectedTier === 'lite' ? 'Hybrid AI Lite' : selectedTier === 'mega' ? 'Hybrid AI MEGA' : 'Hybrid AI'} installed
             </h2>
             <p className="text-muted-foreground">
               Hybrid mode active
@@ -645,11 +651,11 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
               Choose a local AI engine for offline analysis. Your data stays on your device.
             </p>
             <p className="text-xs text-amber-400/80 mb-6">
-              Not every device can run every local AI mode. Lite and Standard are available now; MEGA/private deployments are handled through Business support.
+              Not every device can run every local AI mode. Pro includes Lite. Business includes MEGA.
             </p>
 
-            <div className="space-y-3">
-              {tierOptions.map((tier) => (
+            <div className="grid gap-3 md:grid-cols-2">
+              {visibleTierOptions.map((tier) => (
                 <button
                   key={tier.id}
                   onClick={() => handleSelectTier(tier.id)}
@@ -657,8 +663,8 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                   className={`w-full text-left p-4 rounded-lg border transition-all ${
                     tier.enabled
                       ? `${selectedTier === tier.id 
-                          ? 'border-purple-500/50 bg-purple-500/5' 
-                          : 'border-border hover:border-purple-500/50 hover:bg-purple-500/5'} cursor-pointer` 
+                          ? 'border-slate-950 bg-slate-100 dark:border-white dark:bg-slate-900' 
+                          : 'border-border hover:border-slate-400 hover:bg-muted'} cursor-pointer` 
                       : 'border-border/50 opacity-60 cursor-not-allowed'
                   }`}
                 >
@@ -669,10 +675,10 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                         {tier.badge && (
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
                             tier.id === 'lite' 
-                              ? 'bg-cyan-500/20 text-cyan-400' 
-                              : tier.id === 'standard'
-                                ? 'bg-purple-500/20 text-purple-400'
-                                : 'bg-gray-500/20 text-gray-400'
+                              ? 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100' 
+                              : tier.id === 'mega'
+                                ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100'
+                                : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
                           }`}>
                             {tier.badge}
                           </span>
@@ -681,9 +687,9 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                       <p className="text-sm text-muted-foreground mt-1">{tier.description}</p>
                       <p className="text-xs text-muted-foreground/70 mt-2">Download size: {tier.size}</p>
                     </div>
-                    {selectedTier === tier.id && (tier.id === 'lite' || tier.id === 'standard') && (
+                    {selectedTier === tier.id && (tier.id === 'lite' || tier.id === 'mega') && (
                       (() => {
-                        const s = tierStatus[tier.id as 'lite' | 'standard']
+                        const s = tierStatus[tier.id as 'lite' | 'mega']
                         const branded = getBrandedStatus(s)
                         return (
                           <span className={`ml-3 self-start text-xs px-2 py-0.5 rounded-full ${branded.className}`}>
@@ -696,8 +702,8 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                 </button>
               ))}
             </div>
-            {(selectedTier === 'lite' || selectedTier === 'standard') && (
-              <div className="mt-3 flex items-center justify-between">
+            {(selectedTier === 'lite' || selectedTier === 'mega') && (
+              <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3 md:flex-row md:items-center md:justify-between">
                 {(() => {
                   const branded = getBrandedStatus(tierStatus[selectedTier])
                   return (
@@ -707,15 +713,15 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                   )
                 })()}
                 {tierStatus[selectedTier] === 'unavailable' && (
-                  <div className="flex items-center gap-2">
-                    <Button onClick={handleDownloadRuntime} size="sm" className="bg-violet-600 hover:bg-violet-700">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button onClick={handleDownloadRuntime} size="sm" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
                       <Download className="mr-2 h-4 w-4" />
                       Download Local AI
                     </Button>
                     <code className="text-xs px-2 py-1 rounded bg-muted text-foreground/90">
                       {getSetupCommand(selectedTier)}
                     </code>
-                    <Button onClick={() => copySetupCommand(selectedTier)} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => copySetupCommand(selectedTier)} size="sm" variant="outline">
                       {copiedTier === selectedTier ? 'Copied' : 'Copy Setup Command'}
                     </Button>
                   </div>
@@ -724,15 +730,15 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Preparing Local AI</span>
                 )}
                 {tierStatus[selectedTier] === 'missing_model' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <code className="text-xs px-2 py-1 rounded bg-muted text-foreground/90">
                       {getSetupCommand(selectedTier)}
                     </code>
-                    <Button onClick={handlePull} size="sm" className="bg-violet-600 hover:bg-violet-700">
+                    <Button onClick={handlePull} size="sm" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
                       <Download className="mr-2 h-4 w-4" />
                       Download Model
                     </Button>
-                    <Button onClick={() => copySetupCommand(selectedTier)} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => copySetupCommand(selectedTier)} size="sm" variant="outline">
                       {copiedTier === selectedTier ? 'Copied' : 'Copy Setup Command'}
                     </Button>
                   </div>
@@ -767,7 +773,7 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
                 {tierStatus[selectedTier] === 'error' && (
                   <Button
                     onClick={() => {
-                      if (selectedTier === 'lite' || selectedTier === 'standard') {
+                      if (selectedTier === 'lite' || selectedTier === 'mega') {
                         checkModelStatus(selectedTier)
                       }
                     }}
@@ -789,19 +795,19 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier }: MegaIn
         ) : (
           <>
             <h2 className="text-xl font-semibold mb-2">
-              Install {selectedTier === 'lite' ? 'Hybrid AI Lite' : selectedTier === 'standard' ? 'Hybrid AI Standard' : 'Hybrid AI'}
+              Install {selectedTier === 'lite' ? 'Hybrid AI Lite' : selectedTier === 'mega' ? 'Hybrid AI MEGA' : 'Hybrid AI'}
             </h2>
             
             <p className="text-sm text-muted-foreground mb-6">
               {selectedTier === 'lite' 
                 ? "Fast install with a lightweight model. Best for basic CSV analysis and quick insights."
-                : selectedTier === 'standard'
+                : selectedTier === 'mega'
                   ? "Higher quality model for deeper analysis. Best for complex datasets and advanced questions."
                   : "Download and install a local AI engine."
               }
               <br />
               {selectedTier === 'lite' && "~2GB download • Estimated 3-5 minutes"}
-              {selectedTier === 'standard' && "~5GB download • Estimated 8-15 minutes"}
+              {selectedTier === 'mega' && "~5GB download • Estimated 8-15 minutes"}
             </p>
 
             {/* Progress Section */}

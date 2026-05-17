@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Check, CreditCard, Sparkles } from "lucide-react"
+import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react"
 import { CheckoutButton } from "@/components/forms/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,8 +19,8 @@ export default async function SubscriptionSettingsPage() {
     <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-            <CreditCard className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+            <CreditCard className="h-5 w-5" />
           </div>
           <div>
             <CardTitle className="text-foreground">Subscription</CardTitle>
@@ -62,7 +62,19 @@ export default async function SubscriptionSettingsPage() {
             </div>
           </div>
         </div>
-        <div className="grid gap-3 pt-2 lg:grid-cols-3">
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Plans</h2>
+            <p className="text-sm text-muted-foreground">Short plan overview. Full plan details live on the public plans page.</p>
+          </div>
+          <Link href="/pricing">
+            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+              Home plans
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-3">
           {billingSettings.plans.filter((plan) => plan.id !== "pro_annual").map((plan) => {
             const isCurrent =
               (plan.tier === "free" && !isUnlimited) ||
@@ -82,14 +94,7 @@ export default async function SubscriptionSettingsPage() {
                     </span>
                   )}
                 </div>
-                <ul className="mt-3 space-y-1.5">
-                  {plan.features.slice(0, 3).map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-3 min-h-10 text-sm text-muted-foreground">{plan.description}</p>
                 {isCurrent ? (
                   <Button disabled size="sm" variant="outline" className="mt-4 w-full bg-transparent">
                     Active plan

@@ -1,7 +1,7 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
+import { PrecomputedMetrics } from '../utils/pipeline-types';
 import { invokeTool, setAnalysisCache } from './server';
-import { PrecomputedMetrics } from '../pipeline-types';
 
 export interface MCPToolContext {
   datasetId: string;
@@ -19,16 +19,16 @@ AVAILABLE MCP TOOLS (Use these for accurate data):
 
 1. getDatasetSchema - Get dataset structure
    Input: { datasetId: "${datasetId}" }
-   
+
 2. getPrecomputedKpis - Get trusted KPI values
    Input: { datasetId: "${datasetId}" }
-   
+
 3. getTopRegions - Get ranked region data
    Input: { datasetId: "${datasetId}", metric: "revenue", limit: 10 }
-   
+
 4. getRevenueTrends - Get revenue-over-time data
    Input: { datasetId: "${datasetId}", dateGrain: "monthly", metric: "revenue" }
-   
+
 5. getProfitabilitySummary - Get profitability analysis
    Input: { datasetId: "${datasetId}" }
 
@@ -46,7 +46,7 @@ export async function callMCPToolSafely(
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const result = await invokeTool({ name: toolName, input });
-    
+
     if (result.success) {
       return { success: true, data: result.result };
     } else {
@@ -105,25 +105,25 @@ export async function analyzeWithMCP(
   availableColumns: string[]
 ): Promise<AnalysisWithMCPResult> {
   debugLog(`[MCP-INTEGRATION] Analyzing with MCP tools for dataset: ${datasetId}`);
-  
+
   const mcpToolResults: Record<string, any> = {};
   let usedMCPTools = false;
 
   const questionLower = question.toLowerCase();
-  const isKPIQuestion = questionLower.includes('total') || 
-    questionLower.includes('revenue') || 
+  const isKPIQuestion = questionLower.includes('total') ||
+    questionLower.includes('revenue') ||
     questionLower.includes('profit') ||
     questionLower.includes('margin');
-  
-  const isRegionQuestion = questionLower.includes('region') || 
+
+  const isRegionQuestion = questionLower.includes('region') ||
     questionLower.includes('country') ||
     questionLower.includes('top');
-  
-  const isTrendQuestion = questionLower.includes('trend') || 
+
+  const isTrendQuestion = questionLower.includes('trend') ||
     questionLower.includes('growth') ||
     questionLower.includes('over time') ||
     questionLower.includes('month');
-  
+
   const isProfitabilityQuestion = questionLower.includes('profitability') ||
     questionLower.includes('cost') ||
     questionLower.includes('expense');
@@ -159,7 +159,7 @@ export async function analyzeWithMCP(
 
   if (usedMCPTools && Object.keys(mcpToolResults).length > 0) {
     debugLog(`[MCP-INTEGRATION] Using MCP tool results for analysis`);
-    
+
     const kpis = mcpToolResults.kpis;
     const regions = mcpToolResults.topRegions;
     const trends = mcpToolResults.revenueTrends;
@@ -169,9 +169,9 @@ export async function analyzeWithMCP(
       const revenue = kpis.totalRevenue ?? 0;
       const profit = kpis.netProfit ?? 0;
       const margin = kpis.margin ?? 0;
-      
+
       insight = `Total revenue is ${formatCurrency(revenue)} with ${formatCurrency(profit)} net profit (${margin}% margin)`;
-      explanation = kpis.topRegion 
+      explanation = kpis.topRegion
         ? `${kpis.topRegion.name} is the top region. ${kpis.topProduct ? kpis.topProduct.name + ' is the top product.' : ''}`
         : 'Based on precomputed KPI analysis.';
       recommendation = 'Review regional performance to identify growth opportunities.';
@@ -188,7 +188,7 @@ export async function analyzeWithMCP(
       const direction = trends.growthDirection;
       const first = trends.firstPeriod;
       const last = trends.lastPeriod;
-      
+
       if (direction === 'up') {
         insight = `Revenue grew from ${formatCurrency(first?.value || 0)} to ${formatCurrency(last?.value || 0)}`;
         explanation = `${trends.trendRows?.length || 0} periods analyzed. Peak: ${trends.peakPeriod?.period} at ${formatCurrency(trends.peakPeriod?.value || 0)}`;
@@ -231,5 +231,5 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export { mcpTools, getToolByName } from './tools';
-export { listTools, listResources, getResource } from './server';
+export { getResource, listResources, listTools } from './server';
+export { getToolByName, mcpTools } from './tools';

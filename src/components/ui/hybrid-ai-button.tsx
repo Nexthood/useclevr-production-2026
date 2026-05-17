@@ -19,7 +19,14 @@ export default function HybridAiButton({
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
-  const hasLocalAiAccess = subscriptionTier === "pro" || subscriptionTier === "superadmin"
+  const hasLocalAiAccess = subscriptionTier === "pro" || subscriptionTier === "business" || subscriptionTier === "superadmin"
+  const hybridTiers =
+    subscriptionTier === "superadmin"
+      ? (["lite", "mega"] as const)
+      : subscriptionTier === "business"
+        ? (["mega"] as const)
+        : (["lite"] as const)
+  const defaultTier = subscriptionTier === "business" ? "mega" : "lite"
 
   React.useEffect(() => {
     setMounted(true)
@@ -48,7 +55,7 @@ export default function HybridAiButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/10 px-4 text-xs font-semibold text-violet-700 shadow-sm transition hover:bg-violet-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-violet-200"
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
       >
         <Brain className="h-3.5 w-3.5" />
         Hybrid AI
@@ -92,20 +99,24 @@ export default function HybridAiButton({
                         <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
                         <HybridPoint title="Cloud explanation" description="Gemini explains results when cloud AI is enabled." />
                         <HybridPoint title="Local privacy mode" description="Run supported local models for private analysis." />
-                        <HybridPoint title="Offline-ready setup" description={`Lite download uses ${hybridAiCreditCosts.lite} credits; Standard uses ${hybridAiCreditCosts.standard}.`} />
+                        <HybridPoint title="Offline-ready setup" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
                       </div>
                     </div>
 
                     {hasLocalAiAccess ? (
-                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-5">
-                        <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+                      <div className="rounded-lg border border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
+                        <p className="text-sm font-semibold text-slate-950 dark:text-white">
                           Local AI access is included in your plan.
                         </p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          Download or verify the local runtime, then activate Hybrid AI for offline use.
+                          {subscriptionTier === "business"
+                            ? "Download or verify Hybrid AI MEGA for private business analysis."
+                            : subscriptionTier === "superadmin"
+                              ? "Download or verify Hybrid AI Lite and MEGA for testing."
+                              : "Download or verify Hybrid AI Lite for offline use."}
                         </p>
                         <Button
-                          className="mt-5 w-full bg-violet-600 text-white hover:bg-violet-700"
+                          className="mt-5 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                           onClick={() => {
                             setOpen(false)
                             setInstallerOpen(true)
@@ -140,7 +151,7 @@ export default function HybridAiButton({
           )
         : null}
 
-      <MegaInstallerModal open={installerOpen} onOpenChange={setInstallerOpen} preselectTier="lite" />
+      <MegaInstallerModal open={installerOpen} onOpenChange={setInstallerOpen} preselectTier={defaultTier} allowedTiers={[...hybridTiers]} />
     </>
   )
 }
@@ -183,7 +194,7 @@ function PlanOption({
         productId={productId}
         size="sm"
         variant={secondary ? "outline" : "default"}
-        className={secondary ? "mt-4 w-full bg-transparent" : "mt-4 w-full bg-violet-600 text-white hover:bg-violet-700"}
+        className={secondary ? "mt-4 w-full bg-transparent" : "mt-4 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"}
       >
         Review plan
       </CheckoutButton>

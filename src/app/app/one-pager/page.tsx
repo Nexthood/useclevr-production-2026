@@ -3,11 +3,7 @@
 import { BusinessOnePager } from "@/components/business-one-pager"
 import { useSearchParams } from "next/navigation"
 
-interface PageProps {
-  searchParams?: Record<string, string | string[] | undefined>
-}
-
-export default function OnePagerPage(_props: PageProps) {
+export default function OnePagerPage() {
   // This page expects to be navigated to from the analyzer context; however, we keep it resilient
   // Minimal dataset context can be passed via query if needed; otherwise component guards apply.
   const params = useSearchParams()
@@ -24,7 +20,7 @@ export default function OnePagerPage(_props: PageProps) {
             <p className="text-sm text-muted-foreground">Compose a professional one-pager using validated metrics and your business context</p>
           </div>
           {/* Render One-Pager inline as a full page (no modal) */}
-          <BusinessOnePager 
+          <BusinessOnePager
             analysis={undefined as any}
             datasetName={datasetName}
             rowCount={0}

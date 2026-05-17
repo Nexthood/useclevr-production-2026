@@ -55,9 +55,8 @@ export function BillingSettingsForm({ initialSettings }: { initialSettings: Bill
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <CreditInput label="Hybrid AI Lite credits" value={settings.hybridAiCreditCosts.lite} onChange={(value) => updateCreditCost("lite", value)} />
-        <CreditInput label="Hybrid AI Standard credits" value={settings.hybridAiCreditCosts.standard} onChange={(value) => updateCreditCost("standard", value)} />
         <CreditInput label="Hybrid AI MEGA credits" value={settings.hybridAiCreditCosts.mega} onChange={(value) => updateCreditCost("mega", value)} />
       </div>
 
