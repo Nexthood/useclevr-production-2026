@@ -17,10 +17,7 @@ for (const file of files) {
     const target = match[1].split("#")[0];
     if (!target) continue;
 
-    const resolved = path.resolve(
-      path.dirname(file),
-      decodeURIComponent(target),
-    );
+    const resolved = path.resolve(path.dirname(file), decodeURIComponent(target));
     if (!existsSync(resolved)) {
       console.error(`${file}: broken local link -> ${match[1]}`);
       failed = true;

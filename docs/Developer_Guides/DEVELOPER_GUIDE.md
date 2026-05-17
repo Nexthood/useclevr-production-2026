@@ -82,8 +82,8 @@ LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 ```
 
-Persist secrets via your hosting platform environment variable UI
-(Railway, Vercel, etc.) — never commit `.env` files.
+Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
+commit `.env` files.
 
 ## Scripts
 
@@ -209,8 +209,8 @@ pnpm docs:check       # broken local links in *.md
 
 ### Env safety
 
-Secrets are loaded server-side only via `scripts/runtime/load-env.cjs` for
-the production dist process. Browser code must never read env vars directly.
+Secrets are loaded server-side only via `scripts/runtime/load-env.cjs` for the production dist
+process. Browser code must never read env vars directly.
 
 ### Auth
 
@@ -220,11 +220,10 @@ pnpm lint                     # must be clean
 pnpm test:all                 # must pass
 ```
 
-GitHub Actions CI runs these checks automatically (`fast` job). The `full`
-job runs after the fast job passes and executes `pnpm build`.
+GitHub Actions CI runs these checks automatically (`fast` job). The `full` job runs after the fast
+job passes and executes `pnpm build`.
 
-Markdown and docs-only changes skip CI (`paths-ignore`) unless a workflow
-also touches source files.
+Markdown and docs-only changes skip CI (`paths-ignore`) unless a workflow also touches source files.
 
 ## Quick Checks
 
@@ -267,9 +266,8 @@ Query endpoint: `POST /api/query`
 }
 ```
 
-Validation rules: `count`, `count_distinct`, `sum`, `avg`, `min`, `max`,
-`group_by`, `top_n` — column must exist, type must match operation,
-dataset access must be authorised.
+Validation rules: `count`, `count_distinct`, `sum`, `avg`, `min`, `max`, `group_by`, `top_n` —
+column must exist, type must match operation, dataset access must be authorised.
 
 ## Smoke Tests
 
@@ -296,8 +294,8 @@ On every push to `main` and every PR, three jobs run:
 | `full` | After fast | full `pnpm build`              |
 | `docs` | PR only    | `pnpm docs:check`              |
 
-Doc-only files (`.md`, `docs/`, `CHANGELOG.md`) are excluded from type
-and build CI runs but still trigger the `docs` job on PRs.
+Doc-only files (`.md`, `docs/`, `CHANGELOG.md`) are excluded from type and build CI runs but still
+trigger the `docs` job on PRs.
 
 ## Security
 
@@ -305,8 +303,8 @@ See [`../../SECURITY.md`](../../SECURITY.md) for the vulnerability disclosure po
 
 ## Contributing
 
-See [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) for local setup,
-commit conventions, and PR guidelines.
+See [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) for local setup, commit conventions, and PR
+guidelines.
 
 ## Troubleshooting
 

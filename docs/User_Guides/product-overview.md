@@ -1,6 +1,7 @@
 # Product Overview
 
-UseClevr helps users upload business datasets, review dashboards, ask AI questions, and download reports.
+UseClevr helps users upload business datasets, review dashboards, ask AI questions, and download
+reports.
 
 ## Main Workflow
 

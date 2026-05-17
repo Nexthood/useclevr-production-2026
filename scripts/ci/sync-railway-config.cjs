@@ -17,9 +17,7 @@ if (checkOnly) {
   }
 
   if (fs.readFileSync(from, "utf8") !== fs.readFileSync(to, "utf8")) {
-    throw new Error(
-      "dist/railway.json is out of sync with ci-settings/railway.dist.json",
-    );
+    throw new Error("dist/railway.json is out of sync with ci-settings/railway.dist.json");
   }
 
   console.log("dist/railway.json is in sync");

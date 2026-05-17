@@ -8,11 +8,7 @@ const nextStaticDir = path.join(rootDir, ".next", "static");
 const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
-const distRailwayTemplate = path.join(
-  rootDir,
-  "ci-settings",
-  "railway.dist.json",
-);
+const distRailwayTemplate = path.join(rootDir, "ci-settings", "railway.dist.json");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -40,10 +36,7 @@ function copyDir(from, to, options = {}) {
 // Verify build exists
 assertExists(standaloneDir, "Next standalone build");
 assertExists(path.join(standaloneDir, "server.js"), "Standalone server");
-assertExists(
-  path.join(standaloneDir, ".next", "BUILD_ID"),
-  "Standalone .next build",
-);
+assertExists(path.join(standaloneDir, ".next", "BUILD_ID"), "Standalone .next build");
 
 // Clean and create output directories
 fs.rmSync(distDir, { recursive: true, force: true });
@@ -63,10 +56,7 @@ if (fs.existsSync(dbSchemaDir)) {
   fs.mkdirSync(destDbDir, { recursive: true });
   fs.cpSync(dbSchemaDir, destDbDir, { recursive: true });
 }
-fs.cpSync(
-  path.join(rootDir, "drizzle.config.ts"),
-  path.join(distDir, "drizzle.config.ts"),
-);
+fs.cpSync(path.join(rootDir, "drizzle.config.ts"), path.join(distDir, "drizzle.config.ts"));
 
 // Copy assets to dist root
 copyDir(srcAssetsDir, path.join(distDir, "assets"));
@@ -83,9 +73,7 @@ if (fs.existsSync(publicDir)) {
 }
 
 // Load root package.json for syncing
-const rootPkg = JSON.parse(
-  fs.readFileSync(path.join(rootDir, "package.json"), "utf-8"),
-);
+const rootPkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf-8"));
 
 // Write main distribution README
 fs.writeFileSync(

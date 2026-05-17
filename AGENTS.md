@@ -1,8 +1,7 @@
 # UseClevr Agent Guide
 
-This file gives AI agents (Codex, Kilo, OpenAI, Gemini, etc.) project-specific
-operating guidance. It is intentionally brief — expand each section only when a
-consistent rule is needed.
+This file gives AI agents (Codex, Kilo, OpenAI, Gemini, etc.) project-specific operating guidance.
+It is intentionally brief — expand each section only when a consistent rule is needed.
 
 ## Agent Startup
 
@@ -12,14 +11,14 @@ Before making changes, agents should read:
 - `ai-chat-behavior.config.ts`
 - `gemini-behavior.config.ts`
 - `kilo.json` when running through Kilo
-- `ai-chat-behavior.config.ts` is the shared behavior preset for Codex, Kilo,
-  and other AI chat/coding agents. Keep durable project behavior there so it
-  survives moving to a new computer or reinstalling local agent tooling.
+- `ai-chat-behavior.config.ts` is the shared behavior preset for Codex, Kilo, and other AI
+  chat/coding agents. Keep durable project behavior there so it survives moving to a new computer or
+  reinstalling local agent tooling.
 
 ## Files to Add to `.aiignore`
 
-Add any file or directory that contains raw prompt text, provider keys,
-uploaded CSVs, or sensitive user data so it is never sent to an AI context.
+Add any file or directory that contains raw prompt text, provider keys, uploaded CSVs, or sensitive
+user data so it is never sent to an AI context.
 
 Current `.aiignore` entries (already present):
 
@@ -63,22 +62,20 @@ pnpm health                             # validate + tests + docs + audit
 
 - Keep changes focused on the requested behavior.
 - **Do not read `dist/`, `.git/`, `.next/`, or `node_modules/`** to save tokens.
-- Do not edit generated output in `.next/` or `dist/` unless the task
-  explicitly asks for production bundle artifacts.
+- Do not edit generated output in `.next/` or `dist/` unless the task explicitly asks for production
+  bundle artifacts.
 - Do not reverse worktree changes from another agent or commit.
 - Prefer existing components and patterns before adding new abstractions.
 - Keep UI contrast accessible in both light and dark themes.
 - Use `src/assets/` for static assets. `src/app/assets/` is the route handler.
 
-Strip sensitive data from AI context helpers before sending responses to
-openai/cloud vendors.
+Strip sensitive data from AI context helpers before sending responses to openai/cloud vendors.
 
 ## AI Kilo / Other AI Instructions
 
 ### Kilo (this CLI)
 
-- Use the `kilo.json` config at the repository root for agent, command, and
-  permission settings.
+- Use the `kilo.json` config at the repository root for agent, command, and permission settings.
 - New commands go in `.kilo/command/*.md`. New agents go in `.kilo/agent/*.md`.
 - Commands and agents are loaded automatically from those folders on startup.
 - Kilo ignores `.aiignore` entries (also reads `.codexignore` when present).
@@ -86,8 +83,7 @@ openai/cloud vendors.
 
 ### OpenAI Codex / Other Coding Agents
 
-- Respect `ai-chat-behavior.config.ts` for the shared communication style and
-  product voice.
+- Respect `ai-chat-behavior.config.ts` for the shared communication style and product voice.
 - Respect `.aiignore` for sensitive/ignored paths.
 - Respect `.gitignore` before reading source.
 - Do not read `dist/`, `.git/`, `.next/`, or `node_modules/`.

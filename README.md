@@ -6,7 +6,8 @@ Needs Node.js 22+. Static/PHP-only hosting is not supported.
 
 ## Stack
 
-Next.js 16, React 19, TypeScript 6, Tailwind CSS, Drizzle, Neon PostgreSQL, Auth.js, Gemini AI, pnpm, Railway.
+Next.js 16, React 19, TypeScript 6, Tailwind CSS, Drizzle, Neon PostgreSQL, Auth.js, Gemini AI,
+pnpm, Railway.
 
 ## Start
 
@@ -56,7 +57,8 @@ GEMINI_API_KEY=
 - To refresh only that file: `pnpm ci:railway`.
 - To refresh the full bundle: `pnpm prod:build`.
 - Build command: `echo 'Using pre-built artifacts from dist/'`
-- Start command: `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
+- Start command:
+  `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
 - Health: `/api/health`
 
 ## Docs

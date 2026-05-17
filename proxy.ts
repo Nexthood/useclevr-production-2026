@@ -12,9 +12,7 @@ export default auth((request) => {
   const isOnAuthApi = pathname.startsWith("/api/auth");
   const isOnApi = pathname.startsWith("/api");
   const isOnStatic =
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/static") ||
-    pathname.includes(".");
+    pathname.startsWith("/_next") || pathname.startsWith("/static") || pathname.includes(".");
 
   // Skip proxy for static files and non-auth API routes.
   if (isOnStatic || (isOnApi && !isOnAuthApi)) {

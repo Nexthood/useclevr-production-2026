@@ -47,17 +47,14 @@ async function main() {
   Object.entries(revenueByPlan)
     .sort((a: any, b: any) => b[1] - a[1])
     .forEach(([plan, revenue]: [string, number]) => {
-      debugLog(
-        `${plan}: $${revenue.toLocaleString()} (${customersByPlan[plan]} customers)`,
-      );
+      debugLog(`${plan}: $${revenue.toLocaleString()} (${customersByPlan[plan]} customers)`);
     });
 
   // Revenue by region
   const revenueByRegion: Record<string, number> = {};
   data.forEach((row: any) => {
     const region = row.region || "Unknown";
-    revenueByRegion[region] =
-      (revenueByRegion[region] || 0) + (row.revenue || 0);
+    revenueByRegion[region] = (revenueByRegion[region] || 0) + (row.revenue || 0);
   });
 
   debugLog("\n=== REVENUE BY REGION ===");
@@ -71,8 +68,7 @@ async function main() {
   const revenueByChannel: Record<string, number> = {};
   data.forEach((row: any) => {
     const channel = row.acquisition_channel || "Unknown";
-    revenueByChannel[channel] =
-      (revenueByChannel[channel] || 0) + (row.revenue || 0);
+    revenueByChannel[channel] = (revenueByChannel[channel] || 0) + (row.revenue || 0);
   });
 
   debugLog("\n=== REVENUE BY ACQUISITION CHANNEL ===");
@@ -86,8 +82,7 @@ async function main() {
   const revenueByCountry: Record<string, number> = {};
   data.forEach((row: any) => {
     const country = row.country || "Unknown";
-    revenueByCountry[country] =
-      (revenueByCountry[country] || 0) + (row.revenue || 0);
+    revenueByCountry[country] = (revenueByCountry[country] || 0) + (row.revenue || 0);
   });
 
   debugLog("\n=== TOP COUNTRIES BY REVENUE ===");
@@ -109,10 +104,7 @@ async function main() {
   });
 
   Object.entries(profitByPlan)
-    .sort(
-      (a: any, b: any) =>
-        b[1].profit / b[1].revenue - a[1].profit / a[1].revenue,
-    )
+    .sort((a: any, b: any) => b[1].profit / b[1].revenue - a[1].profit / a[1].revenue)
     .forEach(([plan, vals]: [string, { revenue: number; profit: number }]) => {
       const margin = ((vals.profit / vals.revenue) * 100).toFixed(1);
       debugLog(
@@ -133,40 +125,22 @@ async function main() {
   Object.entries(byStage)
     .sort((a: any, b: any) => b[1].revenue - a[1].revenue)
     .forEach(([stage, vals]: [string, { revenue: number; count: number }]) => {
-      debugLog(
-        `${stage}: $${vals.revenue.toLocaleString()} (${vals.count} orders)`,
-      );
+      debugLog(`${stage}: $${vals.revenue.toLocaleString()} (${vals.count} orders)`);
     });
 
   // Totals
-  const totalRevenue = data.reduce(
-    (sum: number, row: any) => sum + (row.revenue || 0),
-    0,
-  );
-  const totalCost = data.reduce(
-    (sum: number, row: any) => sum + (row.cost || 0),
-    0,
-  );
-  const totalProfit = data.reduce(
-    (sum: number, row: any) => sum + (row.profit || 0),
-    0,
-  );
-  const totalUsers = data.reduce(
-    (sum: number, row: any) => sum + (row.users || 0),
-    0,
-  );
+  const totalRevenue = data.reduce((sum: number, row: any) => sum + (row.revenue || 0), 0);
+  const totalCost = data.reduce((sum: number, row: any) => sum + (row.cost || 0), 0);
+  const totalProfit = data.reduce((sum: number, row: any) => sum + (row.profit || 0), 0);
+  const totalUsers = data.reduce((sum: number, row: any) => sum + (row.users || 0), 0);
 
   debugLog("\n=== TOTAL METRICS ===");
   debugLog(`Total Revenue: $${totalRevenue.toLocaleString()}`);
   debugLog(`Total Cost: $${totalCost.toLocaleString()}`);
   debugLog(`Total Profit: $${totalProfit.toLocaleString()}`);
   debugLog(`Total Users: ${totalUsers.toLocaleString()}`);
-  debugLog(
-    `Overall Margin: ${((totalProfit / totalRevenue) * 100).toFixed(1)}%`,
-  );
-  debugLog(
-    `Average Revenue Per Order: $${(totalRevenue / data.length).toFixed(2)}`,
-  );
+  debugLog(`Overall Margin: ${((totalProfit / totalRevenue) * 100).toFixed(1)}%`);
+  debugLog(`Average Revenue Per Order: $${(totalRevenue / data.length).toFixed(2)}`);
 }
 
 main().catch(debugError);

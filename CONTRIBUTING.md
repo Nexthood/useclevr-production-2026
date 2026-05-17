@@ -1,7 +1,7 @@
 # Contributing to UseClevr
 
-Thank you for considering a contribution to UseClevr. This guide
-covers the full developer workflow from setup to pull request.
+Thank you for considering a contribution to UseClevr. This guide covers the full developer workflow
+from setup to pull request.
 
 ## Prerequisites
 
@@ -46,8 +46,8 @@ docs/            Project documentation
 
 ## Commit Messages
 
-Use the imperative mood ("Add / Fix / Refactor / Remove") and describe
-the motivation in the body when the change is non-trivial.
+Use the imperative mood ("Add / Fix / Refactor / Remove") and describe the motivation in the body
+when the change is non-trivial.
 
 ```
 <type>(<scope>): <short summary>
@@ -67,5 +67,5 @@ Examples: `Add(Billing): Stripe webhook handler`, `Fix(Checkout): missing T&C st
 
 ## Code of Conduct
 
-Be kind. Constructive discussion and shared curiosity are always
-welcome — do not tolerate harassment in any form.
+Be kind. Constructive discussion and shared curiosity are always welcome — do not tolerate
+harassment in any form.
