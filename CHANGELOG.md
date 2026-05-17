@@ -1,116 +1,206 @@
 # Changelog
 
-All notable project changes are tracked here.
+All notable changes to this project are documented in this file.
 
-## Unreleased
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-- Added this changelog.
-- Kept the source cleanup that moves business logic out of root `src/lib` into logical folders:
-  - `src/lib/ai`
-  - `src/lib/auth`
-  - `src/lib/business`
-  - `src/lib/data`
-  - `src/lib/reports`
-  - `src/lib/utils`
-- Verified the staged root `src/lib/*` deletions are one-line compatibility exports, with active implementations still present in the new folders.
-- Updated MCP imports to the new folder layout.
-- Rebuilt `dist` and verified `dist/railway.json` is copied from `ci-settings/railway.dist.json`.
-- Improved Hybrid AI dashboard flow:
-  - Pro users get Hybrid AI Lite.
-  - Business users get Hybrid AI MEGA.
-  - Super admins can see both.
-  - Download opens the full installer popup.
-- Updated plan links in the dashboard topbar to point to `/pricing`.
-- Added visible "Log out" wording in the topbar.
-- Simplified the subscription settings plan overview and linked it to `/pricing`.
-- Increased contrast in touched billing, topbar, pricing, and Hybrid AI controls.
+## [Unreleased]
 
-## 2026-05-17
+## [5.1.0] - 2026-05-17
 
-- Added front-end billing/profile/settings improvements.
-- Added editable billing/package settings for super admins.
-- Added Hybrid AI popup and local download flow.
-- Added dashboard subscription and billing pages.
-- Updated checkout and payment-provider fallback behavior.
-- Refreshed production `dist` artifacts.
+### Added
 
-## 2026-05-16
+- Added profile, billing, and dashboard settings improvements.
+- Added Hybrid AI popup and local download entry points.
+- Added a project changelog.
 
-- Reworked source structure for Next.js app layout.
-- Added minimal working versions of previously placeholder features:
-  - Referral tracking and signup routes.
-  - Referral QR code route.
-  - Forecast API route.
-  - Data table component.
-- Added checkout, settings, QR, subscription, billing, and credit-management features.
-- Added CI settings folder for deploy provider files.
-- Moved Railway dist config generation into the dist build flow.
-- Updated docs for dist-based Railway deployment.
-- Rebuilt production distribution.
+### Changed
 
-## 2026-05-13
+- Improved dashboard settings and front-end subscription flows.
+- Updated billing and Hybrid AI UI behavior.
 
-- Updated pricing:
-  - Pro to 40 euro/month.
-  - Business custom to 420 euro/month.
+### Refactored
 
-## 2026-05-08
+- Continued developer/source-structure cleanup for dashboard settings and project organization.
 
-- Fixed dashboard React errors.
-- Fixed upload analysis flow.
-- Added a checkpoint before dashboard crash inspection.
+## [5.0.0] - 2026-05-16
 
-## 2026-05-06
+### Added
 
-- Synced beta changes through the Railway dist work.
+- Added minimal working versions of previously planned features, including subscriptions, billing, credits, checkout, settings, referral QR, and related app pages.
+- Added configurable CI/deploy settings with Railway as the current provider.
+- Added dist-oriented Railway deployment support.
 
-## 2026-05-03
+### Changed
 
-- Iterated Railway deployment and dist packaging.
-- Added/updated notice bar behavior.
-- Added credit, user admin role, demo login, and Railway auth updates.
-- Rebuilt fresh deploy artifacts.
+- Updated Railway deployment configuration so deploys can run from the generated `dist` output.
+- Updated documentation for the CI and dist deployment workflow.
+- Rebuilt production distribution artifacts.
 
-## 2026-05-02
+### Fixed
 
-- Updated Railway URL/configuration and Gemini configuration.
-- Improved dark/light theme behavior.
-- Added app bar, app header, credit display, and contrast updates.
+- Fixed Railway config issues and marked unfinished features more clearly before replacing them with minimal working flows.
+
+### Refactored
+
+- Reworked the Next.js project structure and source layout.
+
+## [4.3.2] - 2026-05-13
+
+### Changed
+
+- Updated plan pricing to the current Pro and Business amounts.
+
+## [4.3.1] - 2026-05-08
+
+### Fixed
+
+- Fixed a dashboard React error.
+- Fixed the upload analysis flow.
+
+## [4.3.0] - 2026-05-06
+
+### Changed
+
+- Synced beta changes into the main deployment line.
+
+## [4.2.0] - 2026-05-03
+
+### Added
+
+- Added credit handling, user admin role support, demo login behavior, and Railway authentication updates.
+- Added a notice bar for deployment/runtime messaging.
+
+### Changed
+
+- Refreshed Railway deployment artifacts and dist output.
+
+### Fixed
+
+- Fixed deployment notices and Railway dist deployment behavior.
+
+## [4.1.0] - 2026-05-02
+
+### Added
+
 - Added account-management work.
-- Added AI agent config files.
-- Cleaned root-level project files.
-- Fixed login and error-management flows.
-- Updated dist commands and deployment scripts.
+- Added AI agent configuration files.
+- Added app bar, app header, and credit UI updates.
+- Added Gemini configuration updates.
 
-## 2026-05-01
+### Changed
 
-- Moved project into `src`.
-- Updated source structure.
+- Updated Railway URL/configuration and pre-deploy settings.
+- Improved dark/light theme behavior and front-end contrast.
+- Updated dist commands and Node-based deployment setup.
+
+### Fixed
+
+- Fixed login behavior.
+- Fixed error-management flow.
+- Fixed logo navigation to home.
+
+### Refactored
+
+- Cleaned root-level project files and deployment configuration.
+
+## [4.0.0] - 2026-05-01
+
+### Added
+
 - Added production dist generation with `pnpm prod`.
-- Added production build output into `dist`.
-- Updated package scripts and Railway-related start/build commands.
-- Added public assets and docs updates.
-- Removed unused parts.
-- Added documentation flowchart/info updates.
+- Added production build output under `dist`.
+- Added public assets.
+- Added build scripts and package script updates.
+- Added documentation updates and a project flowchart.
 
-## 2026-04-29
+### Changed
+
+- Updated Railway JSON and start/build command flow.
+- Updated package metadata and dist upload flow.
+
+### Removed
+
+- Removed unused parts from the production project.
+
+### Refactored
+
+- Moved the application into the `src` structure.
+- Reworked the source structure and production artifact layout.
+
+## [3.0.0] - 2026-04-29
+
+### Added
+
+- Added skills configuration.
+- Added architecture audit notes.
+- Added Railway CI start command support.
+
+### Changed
 
 - Upgraded the project to pnpm.
-- Removed Docker/dependency paths no longer needed for Node-only deployment.
-- Fixed Railway ports and webpack build behavior.
+- Updated package versions and dependency layout for Railway.
+- Updated npm scripts for Railway start behavior.
+- Updated documentation and README content.
+
+### Fixed
+
+- Fixed Node dependency issues.
+- Fixed package versions for Railway deployment.
+- Fixed ports and Railway runtime behavior.
+- Fixed Next.js build with webpack.
+
+### Removed
+
+- Removed Docker-based deployment files.
+- Removed Stripe integration code that was not part of the active deployment path.
+- Removed unused dependencies and old debug output.
 - Removed unused DeepSeek/OpenAI packages.
-- Restored needed dev dependencies.
-- Added architecture notes, README updates, and cleanup.
-- Added Railway CI start command updates.
-- Cleaned console/debug output.
 
-## 2026-04-27
+### Refactored
 
-- Created the clean UseClevr production version.
-- Removed local-only, obsolete, backup, Prisma, Kilo, and temporary files from the production repo.
-- Added and iterated Railway deployment configuration.
-- Added debug routes for request headers and homepage HTML.
-- Added GitHub Actions CI/CD workflows and documentation.
-- Added reverse proxy security headers.
-- Hardened deployment/resource configuration.
-- Restored middleware after Railway testing.
+- Reworked deployment to a Node-only Railway setup.
+
+## [2.0.0] - 2026-04-27
+
+### Added
+
+- Added Railway deployment configuration with health checks.
+- Added Railway reverse proxy security headers.
+- Added GitHub Actions CI/CD workflows for pre-deployment validation.
+- Added debug routes for request headers and homepage HTML diagnostics.
+- Added VS Code and metadata settings.
+
+### Changed
+
+- Switched Railway deployment experiments across Node, Nixpacks, Docker, and clean Docker paths.
+- Updated Railway build/start command behavior and `$PORT` handling.
+- Hardened deployment configuration, resource limits, and package pinning.
+- Updated GitHub Actions documentation.
+- Improved `.gitignore` organization and documented critical files.
+
+### Fixed
+
+- Fixed Railway build command behavior.
+- Fixed request header handling in the debug route.
+- Fixed HTML header/head handling.
+- Restored middleware after Railway deployment testing.
+
+### Removed
+
+- Removed local Kilo files.
+- Removed local-only, obsolete, Prisma, temporary, and backup files from the production repository.
+- Removed Docker files from the Railway Next.js build path.
+- Removed standalone output from the Railway deployment path.
+
+### Refactored
+
+- Moved old layout backups out of the app router.
+- Reworked deployment configuration around Railway hosting.
+
+## [1.0.0] - 2026-04-27
+
+### Added
+
+- Added the initial clean UseClevr production version.
