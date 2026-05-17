@@ -4,101 +4,240 @@
 
 ```bash
 pnpm install
-cp .env.local.example .env.local
+cp .env.local.example .env.local   # copy and fill in your values
 pnpm dev
 ```
 
 ## Requirements
 
-- Node.js 22+
-- pnpm 10+
-- Neon PostgreSQL
-- Gemini API key
+| Requirement | Version         |
+| ----------- | --------------- |
+| Node.js     | ≥ 22            |
+| pnpm        | 10.x            |
+| Database    | Neon PostgreSQL |
+| AI provider | Gemini API key  |
 
-## Lib Structure
+## Project Structure
 
 ```
-src/lib/
-├── ai/          # AI and LLM helpers
-├── data/        # Dataset parsing, cleaning, and analysis
-├── query/       # Query intent, validation, and execution
-├── business/    # Business logic and metric mapping
-├── db/          # Database schema and runtime helpers
-├── auth/        # Authentication and permissions
-├── billing/     # Billing and subscriptions
-├── reports/     # Reporting logic and exports
-├── usage/       # Usage tracking and credit accounting
-├── referrals/   # Referral flow helpers
-├── mcp/         # MCP integration
-└── utils/       # Shared helpers and utilities
+src/
+  app/           Next.js App Router (pages, layouts, API routes)
+  components/    React components and UI library
+  lib/           Shared libraries
+    ai/          AI and LLM helpers
+    data/        Dataset parsing, cleaning, and analysis
+    query/       Query intent, validation, and execution
+    business/    Business logic and metric mapping
+    db/          Database schema and runtime helpers
+    auth/        Authentication and permissions
+    billing/     Billing and subscriptions
+    reports/     Reporting logic and exports
+    usage/       Usage tracking and credit accounting
+    referrals/   Referral flow helpers
+    llm/         LLM provider abstractions
+    mcp/         MCP integration
+    utils/       Shared helpers and utilities
+  assets/        Static files and generated report assets
+
+scripts/         Node/CJS helper scripts
+  ci/            CI config sync (Railway)
+  docs/          Docs lint and link-check scripts
+  build/         Clean, dist, and build helpers
+  release/       Tag and release-check scripts
+  runtime/       Runtime env loader
+  health/        Health-check scripts
+
+docs/            Project documentation
+  Developer_Guides/
+  User_Guides/
+
+.github/workflows/ci.yml   CI pipeline (fast, full, docs-only)
 ```
 
-## Env
+## Environment Variables
 
-Required:
+### Required
 
 ```env
-DATABASE_URL=
-DIRECT_URL=
-AUTH_SECRET=
-GEMINI_API_KEY=
+DATABASE_URL=          # Neon connection string (pooler)
+DIRECT_URL=            # Neon direct connection (migrations)
+AUTH_SECRET=           # NextAuth signing secret (min 32 chars)
+GEMINI_API_KEY=        # Google AI Studio key
 ```
 
-Optional:
+### Stripe (optional — activates card collection and webhooks)
 
-- `PORT`
-- `AUTH_URL`
-- `LOCAL_UPLOAD_DIR`
-- `LOCAL_UPLOAD_URL`
-- `UPLOAD_PROVIDER`
+```env
+STRIPE_SECRET_KEY=          # sk_test_… or sk_live_…
+STRIPE_WEBHOOK_SECRET=      # whsec_…  (set on Railway / hosting)
+```
 
-## Database
+### Optional
 
-Neon config:
+```env
+PORT=3000
+AUTH_URL=                # Full app URL (set on Railway)
+AUTH_TRUST_HOST=true
+LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
+UPLOAD_PROVIDER=
+```
 
-- Project ID: `withered-star-79790747`
-- Branch ID: `br-crimson-sun-ai49oqj4`
-- Database: `neondb`
-- Role: `neondb_owner`
+Persist secrets via your hosting platform environment variable UI
+(Railway, Vercel, etc.) — never commit `.env` files.
 
-Commands:
+## Scripts
+
+All commands are run from `pnpm`.
+
+### Development
+
+| Command             | Description                              |
+| ------------------- | ---------------------------------------- |
+| `pnpm dev`          | Start the Next.js dev server (port 3000) |
+| `pnpm dev:all`      | Alias for `pnpm dev`                     |
+| `pnpm dev:server`   | Alias for `pnpm dev`                     |
+| `pnpm dev:frontend` | Alias for `pnpm dev`                     |
+
+### Build
+
+| Command              | Description                         |
+| -------------------- | ----------------------------------- |
+| `pnpm build`         | Production build (webpack)          |
+| `pnpm build:next`    | Alias for `pnpm build`              |
+| `pnpm build:clean`   | Clean generated artefacts           |
+| `pnpm build:preview` | Full prod build + start dist server |
+| `pnpm build:prod`    | Generate `dist/` only (no server)   |
+
+### Validate
+
+| Command                 | Description                        |
+| ----------------------- | ---------------------------------- |
+| `pnpm validate`         | Types + dist check + release check |
+| `pnpm validate:types`   | `tsc --noEmit`                     |
+| `pnpm validate:build`   | Full Next.js build                 |
+| `pnpm validate:dist`    | Railway config sync check          |
+| `pnpm validate:release` | Release checklist script           |
+
+### Lint & Format
+
+| Command             | Description                           |
+| ------------------- | ------------------------------------- |
+| `pnpm lint`         | Next.js ESLint                        |
+| `pnpm lint:fix`     | ESLint with `--fix`                   |
+| `pnpm format`       | Prettier — write                      |
+| `pnpm format:check` | Prettier — check only                 |
+| `pnpm docs:check`   | Markdown link and .markdownlint check |
+
+### Test
+
+| Command                  | Description                 |
+| ------------------------ | --------------------------- |
+| `pnpm test`              | Same as `pnpm test:all`     |
+| `pnpm test:all`          | Run CSV-analyser test suite |
+| `pnpm test:csv-analyzer` | CSV analyser specific tests |
+| `pnpm test:neon`         | Neon connection smoke test  |
+
+### Clean
+
+| Command                | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| `pnpm clean`           | Remove `dist/`, `.next/`, and generated artefacts |
+| `pnpm clean:all`       | Full clean via helper script                      |
+| `pnpm clean:dev`       | Dev-only generated artefacts                      |
+| `pnpm clean:prod`      | Production-only generated artefacts               |
+| `pnpm clean:generated` | Script-driven clean                               |
+
+### CI
+
+| Command           | Description                        |
+| ----------------- | ---------------------------------- |
+| `pnpm ci:fast`    | `validate:types` + `validate:dist` |
+| `pnpm ci:full`    | `validate` + `prod:build`          |
+| `pnpm ci:railway` | Sync Railway config                |
+
+### Audit & Dependencies
+
+| Command           | Description                 |
+| ----------------- | --------------------------- |
+| `pnpm audit`      | pnpm audit (moderate level) |
+| `pnpm audit:ci`   | Audit with `--json` output  |
+| `pnpm deps:check` | `pnpm outdated`             |
+
+### Health
+
+| Command       | Description                           |
+| ------------- | ------------------------------------- |
+| `pnpm health` | validate + tests + docs:check + audit |
+
+### Database
+
+| Command            | Description            |
+| ------------------ | ---------------------- |
+| `pnpm db:push`     | Push schema to Neon    |
+| `pnpm db:generate` | Generate migrations    |
+| `pnpm db:studio`   | Open Drizzle Studio    |
+| `pnpm db:migrate`  | Run pending migrations |
+
+### Release
+
+| Command              | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `pnpm release:check` | Full validation before release                       |
+| `pnpm release:tag`   | Create annotated git tag from `package.json` version |
+| `pnpm release`       | check → tag → prod build                             |
+
+## Development Conventions
+
+### TypeScript
 
 ```bash
-pnpm db:push
-pnpm db:migrate
-pnpm db:studio
+pnpm validate:types   # must be clean before opening a PR
 ```
 
-Key files:
-
-- `lib/db/schema.ts`
-- `lib/db/index.ts`
-- `lib/db/migrations/`
-
-## Production
+### Formatting
 
 ```bash
-pnpm ci:railway
-pnpm prod:build
-pnpm prod:start
+pnpm format:check     # CI check — no unformatted files
+pnpm format           # auto-fix
 ```
 
-- Deploy root: `dist`
-- Commit `dist/railway.json`
-- Template: `ci-settings/railway.dist.json`
+Markdown source check:
 
-## Troubleshooting
+```bash
+pnpm docs:check       # broken local links in *.md
+```
 
-| Issue        | Fix                                          |
-| ------------ | -------------------------------------------- |
-| AI fail      | `GEMINI_API_KEY`, restart                    |
-| Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
-| DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL            |
-| Railway fail | env vars, `/api/health`, `dist/railway.json` |
+### Env safety
 
-## Verified computation
+Secrets are loaded server-side only via `scripts/runtime/load-env.cjs` for
+the production dist process. Browser code must never read env vars directly.
 
-Compute metrics in code, use AI only for explanation.
+### Auth
+
+```bash
+pnpm exec tsc --noEmit        # mandatory pre-PR gate
+pnpm lint                     # must be clean
+pnpm test:all                 # must pass
+```
+
+GitHub Actions CI runs these checks automatically (`fast` job). The `full`
+job runs after the fast job passes and executes `pnpm build`.
+
+Markdown and docs-only changes skip CI (`paths-ignore`) unless a workflow
+also touches source files.
+
+## Quick Checks
+
+```bash
+pnpm exec tsc --noEmit    # type-check
+pnpm lint                 # lint
+pnpm test:all             # tests
+pnpm validate:types       # pre-PR gate
+```
+
+## Verified Computation
+
+Compute metrics in code. Use AI only for explanation.
 
 Key files:
 
@@ -109,13 +248,10 @@ Key files:
 - `lib/llmAdapter.ts`
 
 Query endpoint: `POST /api/query`
-Request:
 
 ```json
 { "datasetId": "string", "question": "string" }
 ```
-
-Response:
 
 ```json
 {
@@ -131,93 +267,69 @@ Response:
 }
 ```
 
-Validation rules:
+Validation rules: `count`, `count_distinct`, `sum`, `avg`, `min`, `max`,
+`group_by`, `top_n` — column must exist, type must match operation,
+dataset access must be authorised.
 
-- `count`, `count_distinct`, `sum`, `avg`, `min`, `max`, `group_by`, `top_n`
-- Column exists and type matches operation
-- Dataset access is authorized
-
-## Quick checks
+## Smoke Tests
 
 ```bash
 pnpm dev
 ```
 
-```bash
-curl -X POST http://localhost:3000/api/query -H "Content-Type: application/json" -d '{"datasetId":"your-dataset-id","question":"What is the total revenue?"}'
-```
+1. Open the home page
+2. Sign in or create a test account
+3. Upload a sample CSV
+4. Confirm dashboard KPIs and charts render
+5. Ask a dataset question in the assistant
+6. Generate or download a report
 
-Expected:
+## CI / GitHub Actions
 
-- explicit operation
-- computed result
-- explanation matches result
+Workflow file: `.github/workflows/ci.yml`
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI as React UI
-    participant API as Next API
-    participant Lib as lib/ services
-    participant DB as Neon PostgreSQL
-    participant AI as Gemini
+On every push to `main` and every PR, three jobs run:
 
-    User->>UI: Upload CSV
-    UI->>API: POST /api/upload
-    API->>Lib: Parse and validate dataset
-    Lib->>DB: Store dataset metadata and rows/analysis data
-    Lib-->>API: Return upload result
-    API-->>UI: Show dataset and dashboard state
+| Job    | Runs       | Steps                          |
+| ------ | ---------- | ------------------------------ |
+| `fast` | Always     | types, dist-check, lint, tests |
+| `full` | After fast | full `pnpm build`              |
+| `docs` | PR only    | `pnpm docs:check`              |
 
-    User->>UI: Ask a dataset question
-    UI->>API: POST /api/chat or /api/query
-    API->>Lib: Detect whether computation is needed
-    Lib->>DB: Fetch schema/data needed for calculation
-    Lib-->>API: Return verified computed result
-    API->>AI: Ask for explanation using verified result
-    AI-->>API: Return explanation text
-    API-->>UI: Show answer, metrics, and supporting context
-```
+Doc-only files (`.md`, `docs/`, `CHANGELOG.md`) are excluded from type
+and build CI runs but still trigger the `docs` job on PRs.
 
----
+## Security
+
+See [`../../SECURITY.md`](../../SECURITY.md) for the vulnerability disclosure policy.
+
+## Contributing
+
+See [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) for local setup,
+commit conventions, and PR guidelines.
+
+## Troubleshooting
+
+| Issue        | Fix                                          |
+| ------------ | -------------------------------------------- |
+| AI fail      | `GEMINI_API_KEY`, restart dev server         |
+| Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
+| DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL mode       |
+| Railway fail | env vars, `/api/health`, `dist/railway.json` |
 
 ## Deployment
 
-Railway deployment with Docker and GitHub Actions CI/CD.
-
-### Flow
-
-```mermaid
-flowchart LR
-    Dev[Change] --> Git[GitHub]
-    Git --> Railway[Railway]
-    Railway --> Build[Docker build]
-    Build --> Deploy[Deploy container]
-    Deploy --> Health[/api/health]
-    Deploy --> App[Production app]
-    App --> Neon[(Neon)]
+```bash
+pnpm ci:railway
+pnpm prod:build
+pnpm prod:start
 ```
 
-### Steps
+- Deploy root: `dist/`
+- Commit `dist/railway.json`
+- Template: `ci-settings/railway.dist.json`
 
-| Step           | Role                                               |
-| -------------- | -------------------------------------------------- |
-| GitHub         | Code and deployment triggers                       |
-| Railway        | Builds Docker image, runs container, health checks |
-| Docker         | Container runtime                                  |
-| Next.js server | Serves pages and APIs                              |
-| `/api/health`  | Health check endpoint                              |
-| Neon           | Production database                                |
-
-### Railway
-
-Railway root is `dist`.
-
-Commit `dist/railway.json`. Railway reads it before build.
-
-Refresh it with `pnpm ci:railway`.
-
-#### Environment
+### Railway Environment
 
 **Required:**
 
@@ -232,23 +344,23 @@ GEMINI_API_KEY=
 
 ```env
 AUTH_URL=
-TRUST_PROXY=true
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 ```
 
-#### Checklist
+### Railway Checklist
 
 - Dockerfile uses `node:22` or newer
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- `dist/railway.json` exists in git
+- `dist/railway.json` committed
 - No secrets in Docker image or logs
-- Uploads validate type and size
-- Security headers enabled in `next.config.mjs`
+- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
 
-#### Debug
+### Debug
 
 ```bash
 railway logs
@@ -256,93 +368,10 @@ railway status
 railway open
 ```
 
-Common issues:
-
-- missing env vars
-- port not bound to `0.0.0.0`
-- database connection
-- health timeout
-- leaked secrets
-
-#### Incidents
+### Incidents
 
 1. Rotate secrets
 2. Check Railway variables and logs
-3. Confirm deployed commit
+3. Confirm deployed commit (`railway status`)
 4. Disable affected route if needed
 5. Patch, redeploy, verify `/api/health`
-
-### GitHub Actions
-
-Runs checks before deployment.
-
-#### Checks
-
-```bash
-pnpm install --frozen-lockfile
-pnpm build
-pnpm exec tsc --noEmit
-pnpm audit
-```
-
-#### Secrets
-
-Only add if workflows need Railway CLI:
-
-```
-RAILWAY_TOKEN
-RAILWAY_PROJECT_ID
-```
-
-Keep app runtime secrets in Railway.
-
-#### PR Expectations
-
-- Install, build, TypeScript pass
-- Security audit visible
-- Workflow checks are short and actionable
-
-#### Triage
-
-| Failure        | Check                                                              |
-| -------------- | ------------------------------------------------------------------ |
-| Install        | pnpm version, lockfile, Node version                               |
-| Build          | Next.js errors, missing env stubs, asset paths                     |
-| TypeScript     | Existing issues vs new errors                                      |
-| Railway deploy | Railway logs, `dist/railway.json`, `ci-settings/railway.dist.json` |
-
----
-
----
-
-## Testing & Verification
-
-### Quick Checks
-
-```bash
-pnpm build
-pnpm exec tsc --noEmit
-pnpm db:studio
-curl http://localhost:3000/api/health
-```
-
-### Smoke Tests
-
-1. Run `pnpm dev`
-2. Open the public home page
-3. Sign in or create a test account
-4. Upload a sample CSV
-5. Confirm dashboard KPIs and charts render
-6. Ask a dataset question in the assistant
-7. Generate or download a report
-
-### Verified Computation Checks
-
-See the [Query Engine](#query-engine) section above for query tests.
-
-### Deployment Checks
-
-1. Confirm Railway environment variables are set
-2. Confirm `/api/health` responds after deployment
-3. Confirm the app binds to Railway `$PORT`
-4. Review Railway logs for build or runtime errors

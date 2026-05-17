@@ -5,13 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.2.0] - 2026-05-17
 
 ### Added
 
 - Added developer-friendly script aliases for validation, CI, preview, release, docs, audit, and health checks.
 - Added local release and documentation check helpers.
 - Added Prettier-backed format and format-check scripts.
+- Added `SECURITY.md` with a vulnerability disclosure policy.
 - Added Stripe SDK (`stripe@^14`) to the project dependencies.
 - Added Stripe billing columns (`stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`, `stripeStatus`, `stripeCurrentPeriodEnd`) to the `profiles` table schema.
 - Added business details columns (`businessName`, `businessEmail`, `industry`, `location`, `website`, `businessDescription`) to the `profiles` table schema.
@@ -23,6 +24,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Added Payment settings page (`/app/settings/payment`) showing STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET env-var status.
 - Added `updateBusinessDetails` server action to persist business profile fields to the database.
 - Added Stripe webhook handler (`POST /api/webhooks/stripe`) with raw-body signature verification.
+- Added `CONTRIBUTING.md` with local setup, commit conventions, and PR guidelines.
+- Added `.github/workflows/ci.yml` with `paths-ignore` for doc-only commits,
+  a fast CI job (types + dist + lint + tests), a full build job, and a
+  docs-only job for PRs that touch markdown.
+- Added `.markdownlint.json` for consistent markdown style across the repo.
 
 ### Changed
 
@@ -34,6 +40,24 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Updated `/app/api/checkout/confirm` to honour `?form=review-accepted` and return Stripe-ready status when the payment provider is connected.
 - Updated topbar to show the full plan name (e.g. `Pro · Pro`) and a business profile completion badge linking to `/app/settings/business`.
 - Updated checkout to redirect to step 2 immediately after plan review, and to disable the submit button until T&C are accepted.
+
+### Removed
+
+- Removed `src/components/modals/upgrade-modal.tsx` — in favour of the shared `Modal` component.
+
+### Refactored
+
+- Replaced `UpgradeModal` with the reusable `Modal` component in `DownloadsPage`.
+- Migrated `MegaInstallerModal` and `DatasetModal` to use the shared `Modal` component (with `fullscreen` variant where appropriate).
+- Refactored `hybrid-ai-button.tsx` to own its fullscreen `createPortal` instead of a separate popup file.
+
+### Fixed
+
+- Fixed `Modal` missing `children` prop in `downloads/page.tsx` after the Modal refactoring.
+
+## [Unreleased]
+
+<!-- Future work goes here. -->
 
 ## [5.1.0] - 2026-05-17
 
