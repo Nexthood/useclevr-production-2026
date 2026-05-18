@@ -1,13 +1,14 @@
 {
   "name": "useclevr-2026",
-  "version": "0.1.0",
+  "version": "5.2.1",
   "private": true,
   "type": "module",
-  "homepage": "https://useclevr.com",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Nexthood/UseClevr-2026.git"
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
   },
+  "homepage": "https://useclevr.com",
   "keywords": [
     "business-intelligence",
     "analytics",
@@ -115,9 +116,6 @@
     "tsx": "^4.21.0",
     "turbo": "^2.4.2",
     "typescript": "6.0.3"
-  },
-  "engines": {
-    "node": ">=22.0.0"
   },
   "enginesStrict": true,
   "packageManager": "pnpm@10.33.2"

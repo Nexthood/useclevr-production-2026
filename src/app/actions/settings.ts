@@ -122,7 +122,7 @@ export async function updateBusinessDetails(formData: FormData): Promise<UpdateB
   const industry            = String(formData.get("industry") ?? "").trim() || null
   const location            = String(formData.get("location") ?? "").trim() || null
   const website             = String(formData.get("website") ?? "").trim() || null
-  const businessDescription = String(formData.get("description") ?? "").trim() || null
+  const businessDescription = String(formData.get("businessDescription") ?? "").trim() || null
 
   await db.update(profiles)
     .set({

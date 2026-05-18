@@ -1,13 +1,84 @@
-"use client"
-
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { WaitlistSignup } from "@/components/ui/waitlist-signup"
-import { BarChart3, Database, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
+import { BarChart3, Database, MessageSquare, Shield, Sparkles, Zap, ChevronDown, HelpCircle, FileText, Globe, CreditCard, Users, ZapIcon } from "lucide-react"
 import Link from "next/link"
+import * as React from "react"
+
+const faqData = [
+  {
+    q: "How does UseClevr turn CSV data into answers?",
+    a: "Upload a CSV file and ask questions in plain English. UseClevr's AI reads your table headers and data types, runs verified calculations (sum, average, top-N, group-by, etc.), and returns both the computed result and a plain-language explanation.",
+  },
+  {
+    q: "Do I need SQL or data science skills?",
+    a: "No. UseClevr translates natural language into structured queries and deterministic calculations. You only need to understand your own data — the platform handles the rest.",
+  },
+  {
+    q: "Can I download reports?",
+    a: "Yes. Pro and Business plans include PDF export and other downloadable report formats. Free users can explore insights in the dashboard without a download.",
+  },
+  {
+    q: "Is my data secure?",
+    a: "UseClevr is GDPR-compliant and aligned with SOC 2 principles. Uploaded datasets and generated reports are your property. We never train external models on your data.",
+  },
+  {
+    q: "What payment methods are supported?",
+    a: "We support all major credit and debit cards through Stripe. Enterprise invoices are available on the Business plan.",
+  },
+  {
+    q: "Can I upgrade, downgrade, or cancel anytime?",
+    a: "Yes. Changes take effect at the start of the next billing cycle. You can manage your plan, see invoices, and update payment details from Settings → Billing.",
+  },
+  {
+    q: "What is Hybrid AI Lite?",
+    a: "Hybrid AI Lite runs lightweight AI analysis entirely in your browser using a local engine. Your data never leaves your device during analysis. It's available on Pro and above.",
+  },
+  {
+    q: "Do you offer an API?",
+    a: "Yes. UseClevr provides programmatic access for integrations. API tokens and rate limits are managed from the Settings page.",
+  },
+  {
+    q: "How do I get a custom plan?",
+    a: "For volume pricing, custom SLAs, or private deployment options, contact sales@useclevr.com or visit the Business plan options in Settings → Subscription.",
+  },
+  {
+    q: "Which languages and currencies are supported?",
+    a: "The platform is currently in English. Currency formatting supports EUR, GBP, and USD and can be changed per user in Preferences.",
+  },
+]
+
+function FaqAccordion({ items }: { items: { q: string; a: string }[] }) {
+  const [openIdx, setOpenIdx] = React.useState<number | null>(null)
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => {
+        const isOpen = openIdx === i
+        return (
+          <div key={i} className="rounded-lg border border-border bg-background overflow-hidden">
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpenIdx(isOpen ? null : i)}
+              className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left"
+            >
+              <span className="text-sm font-medium text-foreground">{item.q}</span>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isOpen && (
+              <div className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/40 pt-4">
+                {item.a}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function HomePage() {
   return (
@@ -150,6 +221,31 @@ export default function HomePage() {
                   Integrate UseClevr into your workflow with API access. Build custom integrations tailored to your needs.
                 </p>
               </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="container mx-auto px-4 md:px-6 py-20 border-t border-border/20">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/50 bg-primary/10 text-sm text-primary mb-4">
+                <HelpCircle className="h-3.5 w-3.5" />
+                FAQ
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">Frequently asked questions</h2>
+              <p className="text-lg text-muted-foreground">
+                Quick answers to common questions about UseClevr.
+              </p>
+            </div>
+            <FaqAccordion items={faqData} />
+            <div className="mt-8 text-center">
+              <Link href="/faq" prefetch={false}>
+                <Button variant="outline" className="gap-2 bg-transparent">
+                  <FileText className="h-4 w-4" />
+                  View all {faqData.length + 8}+ questions
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
