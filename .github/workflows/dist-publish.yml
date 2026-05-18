@@ -10,6 +10,7 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -31,17 +32,35 @@ jobs:
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
+      - name: Remove large/cache files from dist
+        run: |
+          rm -rf dist/.next/cache
+          rm -rf dist/node_modules
+          rm -rf dist/.cache
+          rm -rf dist/cache
+          echo "Large files remaining in dist:"
+          find dist -type f -size +90M -print || true
+
+      - name: Fail if dist still contains huge files
+        run: |
+          if find dist -type f -size +95M | grep .; then
+            echo "Error: dist still contains files larger than 95MB."
+            exit 1
+          fi
+
       - name: Publish to dist branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create orphan branch from dist contents
+
           git checkout --orphan new-dist HEAD
           git rm -rf . || true
-          cp -r dist/* ./
+
+          # Copy dist contents, including hidden files/folders like .next
+          cp -a dist/. ./
+
           git add -A
           git commit -m "Deploy from main commit ${{ github.sha }}"
-          git push origin new-dist:dist --force --quiet
+          git push origin new-dist:dist --force
