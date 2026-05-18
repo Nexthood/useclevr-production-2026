@@ -149,9 +149,9 @@ function SignupForm() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-brand-purple">Full name</Label>
+                  <Label htmlFor="name">Full name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                      <Input
                        id="name"
                        type="text"
@@ -166,9 +166,9 @@ function SignupForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-brand-purple">Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                      <Input
                        id="email"
                        type="email"
@@ -183,9 +183,9 @@ function SignupForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-brand-purple">Password</Label>
+                  <Label htmlFor="password">Password</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-purple" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                      <Input
                        id="password"
                        type={showPassword ? "text" : "password"}
@@ -250,7 +250,7 @@ function SignupForm() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full relative border-brand-purple/30 text-brand-purple hover:bg-brand-purple/10"
+                className="w-full relative border-primary/40 bg-background text-foreground hover:bg-primary/10"
                 disabled={isLoading}
                 onClick={handleDemoSignup}
               >
@@ -260,7 +260,7 @@ function SignupForm() {
                   <Rocket className="mr-2 h-4 w-4" />
                 )}
                 Try Demo Account
-                <span className="ml-2 px-2 py-0.5 text-xs bg-brand-purple/20 text-brand-purple dark:text-brand-purple rounded-full">
+                <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/15 text-primary dark:text-cyan-100">
                   Free
                 </span>
               </Button>
@@ -285,11 +285,11 @@ function SignupForm() {
       </div>
 
       {/* Right side - Features (hidden on mobile) */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-primary items-center justify-center p-8">
-        <div className="max-w-md text-white space-y-8">
+      <div className="hidden lg:flex lg:flex-1 bg-slate-950 items-center justify-center p-8 text-white dark:bg-slate-950">
+        <div className="max-w-md space-y-8">
           <div className="space-y-4">
             <h2 className="text-3xl font-bold">Start analyzing data in seconds</h2>
-            <p className="text-white/80">
+            <p className="text-slate-200">
               Upload your CSV files and ask questions in plain English. No SQL, no dashboards, no BI tools required.
             </p>
           </div>
@@ -297,7 +297,7 @@ function SignupForm() {
           <div className="space-y-4">
             {features.map((feature, index) => (
               <div key={index} className="flex items-center gap-3">
-                <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full bg-cyan-300 text-slate-950 flex items-center justify-center">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
                 <span>{feature}</span>
@@ -306,7 +306,7 @@ function SignupForm() {
           </div>
 
           <div className="pt-8 border-t border-white/20">
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-slate-300">
               Trusted by professionals at leading companies worldwide
             </p>
           </div>

@@ -137,7 +137,7 @@ export default function HybridAiButton({
                         <PlanOption
                           title="Business"
                           price="€420/month"
-                          description="Higher volume, advanced security, and dedicated support."
+                          description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
                           productId="business_monthly"
                           secondary
                         />

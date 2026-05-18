@@ -34,6 +34,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Navigation now exposes Business, Billing, and related settings more directly.
 - The topbar now displays the full plan name and links users to finish incomplete business-profile
   details.
+- Hybrid AI plan prompts now clearly show that Pro includes Lite and Business includes MEGA.
 
 ### Fixed
 
@@ -42,9 +43,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The homepage FAQ now renders correctly during production builds.
 - Deployment settings are regenerated from the source configuration on every build, preventing stale
   hosting values from being deployed.
-
-### Security
-
+- The sign-up page now has stronger contrast across form labels, action buttons, and the feature
+  panel.
 - Payment secrets are no longer loaded before they are needed, so the app can start safely while
   payment setup is incomplete.
 - Payment-provider messages are verified before subscription changes are processed.
@@ -52,6 +52,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Dev
 
 - Local development now defaults to the latest JavaScript runtime used on the maintainer machine.
+- Local setup and CI now use the same current runtime and package-manager target.
 - FAQ content is now shared between public, dashboard, and operator views to keep answers
   consistent.
 - Changelog guidance now requires product-facing language and avoids internal implementation details.
@@ -83,9 +84,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The settings sidebar now shows all available pages directly instead of hiding some behind a
   sub-menu.
 - The topbar shows the full plan name and links through to the subscription management page.
-
-### Security
-
 - Infrastructure and model details have been removed from all user-facing product text so that only
   the intended product information is visible to customers.
 

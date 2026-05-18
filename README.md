@@ -2,7 +2,7 @@
 
 AI business intelligence for uploaded CSV/business datasets.
 
-Needs Node.js 22+. Static/PHP-only hosting is not supported.
+Needs Node.js 26+. Static/PHP-only hosting is not supported.
 
 ## Stack
 

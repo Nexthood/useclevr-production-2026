@@ -350,7 +350,7 @@ UPLOAD_PROVIDER=
 
 ### Railway Checklist
 
-- Dockerfile uses `node:22` or newer
+- Dockerfile uses `node:26` or newer
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly

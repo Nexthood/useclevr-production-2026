@@ -1,12 +1,12 @@
 {
   "name": "useclevr-2026",
-  "version": "5.2.1",
+  "version": "7.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@11.1.2",
   "engines": {
-    "node": ">=22.22.0",
-    "pnpm": ">=10.33.2"
+    "node": ">=26.1.0",
+    "pnpm": ">=11.1.2"
   },
   "homepage": "https://useclevr.com",
   "keywords": [
@@ -27,7 +27,7 @@
     "build:preview": "pnpm prod:build && pnpm start:dist",
     "start": "pnpm prod:start",
     "start:next": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
-    "prod:install": "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile",
+    "prod:install": "corepack enable && corepack prepare pnpm@11.1.2 --activate && pnpm install --frozen-lockfile",
     "prod:build": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
     "build:prod": "node ./scripts/dist/create-dist.cjs",
     "ci:railway": "node ./scripts/ci/sync-railway-config.cjs",

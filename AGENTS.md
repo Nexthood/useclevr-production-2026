@@ -109,6 +109,8 @@ Strip sensitive data from AI context helpers before sending responses to openai/
 
 When writing or editing `CHANGELOG.md`:
 
+- Never add new changes to a version that has already been committed or released. Put follow-up work
+  in `## [Unreleased]` or create a new version section.
 - Every entry must describe an **active change** — something added, fixed, changed, or removed in that release. Never write entries that only describe what was retained, preserved, or left unchanged.
 - Use plain, user-facing language. Active voice: "Exports now include attachments" not "Attachment export support has been added".
 - Describe what the user observes or benefits from. Explain why the change matters, not how the code is implemented.
