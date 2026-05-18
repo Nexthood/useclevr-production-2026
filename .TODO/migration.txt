@@ -1,0 +1,109 @@
+Migration to dist branch solution
+
+
+correct:
+
+main branch = source code
+dist branch = deployable prebuilt app
+GitHub Actions = builds from main, then pushes only the build output to dist
+Railway = deploys from dist branch
+
+Use this prompt:
+
+Implement a GitHub Actions workflow that builds the Next.js app from the main branch and pushes the deployable build output to a separate `dist` branch for Railway deployment.
+
+Current situation:
+- Railway already runs the app successfully from the `/dist` folder.
+- The goal is to move that deployable `/dist` output into its own GitHub branch named `dist`.
+- Railway should later deploy from the `dist` branch with root directory `/`.
+- Do not change app logic or UI.
+- Do not refactor unrelated code.
+
+Required behavior:
+1. Keep `main` as the source-code branch.
+2. On every push to `main`, GitHub Actions should:
+   - checkout `main`
+   - install dependencies
+   - run lint if available
+   - run the production build
+   - prepare the existing deployable `/dist` folder
+   - push only the contents of `/dist` to the `dist` branch
+3. The `dist` branch should contain the deployable app at branch root, not inside another `/dist` folder.
+4. The `dist` branch must include everything Railway needs to run the already-built app:
+   - package.json
+   - lockfile if needed
+   - .next or standalone output
+   - public assets
+   - next.config if needed
+   - server.js if standalone is used
+   - any runtime files currently required by the working `/dist` setup
+5. Do not include source folders in the `dist` branch unless they are required at runtime.
+6. Do not commit `.env` files or secrets to the `dist` branch.
+7. Keep environment variables in Railway only.
+8. Make the workflow safe:
+   - use force push only to the `dist` branch
+   - do not touch `main`
+   - do not overwrite source code
+9. Add comments in the workflow explaining the steps.
+10. After implementation, document:
+   - Railway branch should be changed to `dist`
+   - Railway root directory should be `/`
+   - Railway start command should remain the same as the currently working `/dist` setup
+
+Preferred GitHub Actions file:
+.github/workflows/build-dist.yml
+
+Use the smallest possible implementation.
+
+Example workflow you can ask it to create:
+
+name: Build and Publish Dist Branch
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist folder exists
+        run: test -d dist
+
+      - name: Publish dist branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: dist
+          publish_dir: ./dist
+          force_orphan: true
+
+Railway after this:
+
+Branch: dist
+Root Directory: /
+Build Command: npm install
+Start Command: same as your current working /dist setup

@@ -23,7 +23,7 @@ jobs:
         with:
           version: 11.1.2
           cache: true
-          run_install: true
+      - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
       - run: pnpm validate:dist
       - run: pnpm lint
@@ -42,7 +42,7 @@ jobs:
         with:
           version: 11.1.2
           cache: true
-          run_install: true
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
   docs:
@@ -58,5 +58,5 @@ jobs:
         with:
           version: 11.1.2
           cache: true
-          run_install: true
+      - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
