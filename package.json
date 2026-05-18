@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@10.33.2",
   "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=10.0.0"
+    "node": ">=22.22.0",
+    "pnpm": ">=10.33.2"
   },
   "homepage": "https://useclevr.com",
   "keywords": [
@@ -109,7 +109,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "10.5.0",
     "drizzle-kit": "^0.31.10",
-    "markdownlint-cli": "^0.48.0",
+    "markdownlint-cli": "^0.40.0",
     "postcss": "8.5.12",
     "prettier": "^3.8.3",
     "tailwindcss": "3.4.17",
@@ -117,6 +117,5 @@
     "turbo": "^2.4.2",
     "typescript": "6.0.3"
   },
-  "enginesStrict": true,
-  "packageManager": "pnpm@10.33.2"
+  "enginesStrict": true
 }

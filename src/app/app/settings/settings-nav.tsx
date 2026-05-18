@@ -2,20 +2,20 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Building2, CreditCard, ReceiptText, ShieldCheck, ShoppingCart, SlidersHorizontal, User } from "lucide-react"
+import { Building2, CreditCard, ReceiptText, ShieldCheck, ShoppingCart, SlidersHorizontal, User, Briefcase } from "lucide-react"
 
 const items = [
-  { href: "/app/settings/profile", label: "Profile", icon: User },
-  { href: "/app/settings/preferences", label: "Settings", icon: SlidersHorizontal },
-  { href: "/app/settings/business", label: "Business", icon: Building2 },
-  { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
-  { href: "/app/settings/checkout", label: "Checkout", icon: ShoppingCart },
-  { href: "/app/settings/billing", label: "Billing", icon: ReceiptText },
+  { href: "/app/settings/profile",        label: "Profile",        icon: User },
+  { href: "/app/settings/preferences",    label: "Settings",       icon: SlidersHorizontal },
+  { href: "/app/settings/business",       label: "Business",       icon: Briefcase },
+  { href: "/app/settings/subscription",   label: "Subscription",   icon: CreditCard },
+  { href: "/app/settings/checkout",       label: "Checkout",       icon: ShoppingCart },
+  { href: "/app/settings/billing",        label: "Billing",        icon: ReceiptText },
 ]
 
 const adminItems = [
-  { href: "/app/settings/payment", label: "Payment", icon: CreditCard },
-  { href: "/app/settings/credits", label: "Credit Rules", icon: ShieldCheck },
+  { href: "/app/settings/payment",  label: "Payment",  icon: CreditCard },
+  { href: "/app/settings/credits",  label: "Credit Rules", icon: ShieldCheck },
 ]
 
 export function SettingsNav({ showAdmin = false }: { showAdmin?: boolean }) {

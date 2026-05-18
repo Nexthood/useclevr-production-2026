@@ -1,20 +1,22 @@
-"use client"
-
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 
-import { Card } from "@/components/ui/card"
-
-interface ModalProps {
+type ModalProps = {
+  /** Controlled open / closed */
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Accessible label exposed via `aria-labelledby` */
   title: string
+  /** Secondary descriptive text */
   description?: string
-  children: React.ReactNode
+  /** Portal target element — must be mounted before open=true. Defaults to `document.body`. */
+  container?: Element | null
+  /** Portal class name for the backdrop element — always rendered at body level. */
   className?: string
+  /** When `false` the close button in the header is hidden (default: `true`). */
   showCloseButton?: boolean
-  variant?: "default" | "fullscreen"
+  children: React.ReactNode
 }
 
 export function Modal({
@@ -22,96 +24,100 @@ export function Modal({
   onOpenChange,
   title,
   description,
-  children,
+  container,
   className,
   showCloseButton = true,
-  variant = "default",
+  children,
 }: ModalProps) {
+  // Shared ref — stable across renders
+  const overlayRef = React.useRef<HTMLDivElement | null>(null)
   const [mounted, setMounted] = React.useState(false)
 
+  // Mount / unmount the portal root once
   React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  React.useEffect(() => {
-    if (!open) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onOpenChange(false)
+    if (!mounted) {
+      const root = document.createElement("div")
+      root.id = "modal-portal-root"
+      root.style.cssText = "position:fixed;inset:0;z-index:1000;pointer-events:none"
+      document.body.appendChild(root)
+      overlayRef.current = root
+      setMounted(true)
+      return () => {
+        root.remove()
+        overlayRef.current = null
       }
     }
+  }, [mounted])
 
+  // Lock / unlock body scroll
+  React.useEffect(() => {
+    if (!open) return
+    const original = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", handleKeyDown)
-
     return () => {
-      document.body.style.overflow = ""
-      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = original
     }
+  }, [open])
+
+  // Escape key to close
+  React.useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onOpenChange(false)
+    }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
   }, [open, onOpenChange])
 
-  if (!mounted || !open) return null
+  if (!mounted || !open || !overlayRef.current) return null
 
-  if (variant === "fullscreen") {
-    return createPortal(
-      <div
-        className="fixed inset-0 z-[1000] bg-background text-foreground"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        <div
-          className="absolute inset-0 bg-black/55"
-          onClick={() => onOpenChange(false)}
-        />
-        <div className={`relative z-10 h-full w-full ${className}`}>
-          {children}
-        </div>
-      </div>,
-      document.body,
-    )
-  }
+  const containerEl = container ?? document.body
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-0 text-foreground backdrop-blur-sm animate-in fade-in duration-200"
+      className={["fixed inset-0 z-[1000] flex items-center justify-center", className]
+        .filter(Boolean)
+        .join(" ")}
+      style={{
+        pointerEvents: "auto",
+        background: "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(2px)",
+        isolation: "isolate", // ← new stacking context — safe against z-index siblings
+      }}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
+      aria-label={title}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onOpenChange(false)
+      }}
     >
       <div
-        className="absolute inset-0"
-        onClick={() => onOpenChange(false)}
-      />
-      <Card className={`relative z-10 h-full w-full max-w-full overflow-y-auto border-border bg-background p-0 shadow-2xl ${className}`}>
-        <div className="flex items-center justify-between border-b px-6 py-4 sm:px-8">
+        className="relative max-h-[calc(100vh-4rem)] w-full max-w-2xl overflow-auto rounded-xl border border-border bg-card shadow-2xl animate-in fade-in duration-200 sm:max-w-4xl"
+        style={{ pointerEvents: "auto" }}
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-card px-5 py-4">
           <div>
-            <h2 id="modal-title" className="text-xl font-semibold tracking-tight">
+            <h2 id="modal-title" className="text-lg font-semibold">
               {title}
             </h2>
             {description && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {description}
-              </p>
+              <p className="text-sm text-muted-foreground">{description}</p>
             )}
           </div>
           {showCloseButton && (
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-full p-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-full p-2 transition-colors hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Close modal"
             >
               <X className="h-5 w-5" />
             </button>
           )}
         </div>
-        <div className="h-full overflow-y-auto p-6 sm:p-8">
-          {children}
-        </div>
-      </Card>
+        <div className="p-5">{children}</div>
+      </div>
     </div>,
-    document.body,
+    containerEl
   )
 }

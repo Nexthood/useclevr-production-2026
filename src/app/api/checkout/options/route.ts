@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getBillingSettings } from "@/lib/billing/settings-store"
+import { NextRequest, NextResponse } from "next/server";
+import { getBillingSettings } from "@/lib/billing/settings-store";
 
 export async function GET(request: NextRequest) {
-  const settings = await getBillingSettings()
+  const settings = await getBillingSettings();
 
   return NextResponse.json({
     plans: settings.plans.map((plan) => ({
@@ -14,9 +14,8 @@ export async function GET(request: NextRequest) {
       description: plan.description,
       features: plan.features,
       discountLabel: plan.discountLabel ?? null,
-      paymentProviderConnected: plan.paymentProviderConnected ?? false,
-      tscAndConditionsUrl: plan.tscAndConditionsUrl ?? null,
-      status: plan.paymentProviderConnected ? "ready" : "payment_provider_not_connected",
+      stripePriceId: plan.stripePriceId ?? null,
+      status: plan.stripePriceId ? "ready" : "payment_provider_not_connected",
     })),
-  })
+  });
 }

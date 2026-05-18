@@ -1,5 +1,25 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
+  "auto_collapse_reasoning": true,
   "instructions": ["AGENTS.md", "ai-chat-behavior.config.ts", ".aiignore"],
+  "permission": {
+    "bash": "allow",
+    "doom_loop": "allow",
+    "edit": "allow",
+    "external_directory": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "lsp": "allow",
+    "question": "allow",
+    "read": "allow",
+    "repo_clone": "allow",
+    "repo_overview": "allow",
+    "skill": "allow",
+    "task": "allow",
+    "todowrite": "allow",
+    "webfetch": "allow",
+    "websearch": "allow"
+  },
   "snapshot": false
 }

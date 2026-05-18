@@ -7,6 +7,38 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Added authenticated support ticketing with customer ticket creation and a super-admin resolution queue.
+- Added dashboard FAQ and protected super-admin FAQ pages with billing, support, webhook, and operator guidance.
+- Added topbar and sidebar navigation for Tickets & Issues, plus dashboard FAQ and super-admin FAQ links.
+- Added `src/services/stripe/checkout.ts` — reusable Stripe Checkout Session helper used by the
+  checkout confirmation endpoint.
+- Added `src/services/stripe/webhook.ts` — subscription sync helper that persists `stripeCustomerId`,
+  `stripePriceId`, `stripeStatus`, and `stripeCurrentPeriodEnd` to the `profiles` table on every
+  `customer.subscription.created / updated / deleted` event.
+- Added `stripePriceId` field to `BillingPlan` in `src/lib/billing/plans.ts`; each paid plan reads its
+  price tier from the corresponding environment variable (`STRIPE_PRICE_PRO_MONTHLY`,
+  `STRIPE_PRICE_PRO_ANNUAL`, `STRIPE_PRICE_BUSINESS_MONTHLY`).
+- Added `GET /api/checkout/options` now includes `stripePriceId` per plan; `stripePriceId` presence
+  (not `paymentProviderConnected`) drives the `"ready"` / `"payment_provider_not_connected"` status
+  gate throughout the checkout flow.
+- Stripe webhook endpoint (`POST /api/webhooks/stripe`) now delegates to the subscription-sync helper
+  and returns `{ received, type, synced }` instead of only logging the event.
+
+### Changed
+
+- `POST /api/checkout/confirm` now calls `createStripeCheckoutSession` when T&C is accepted and a
+  `stripePriceId` is configured, returning a live `checkoutUrl` instead of a stub response.
+- `POST /api/checkout` and `checkout/route.ts` gate on `stripePriceId` instead of the legacy
+  `paymentProviderConnected` flag.
+- `checkout/options` route no longer exposes `tscAndConditionsUrl` or `paymentProviderConnected` in
+  the API response — both replaced by `stripePriceId` and `status`.
+
+### Removed
+
+- Removed `tscAndConditionsUrl` from `BillingPlan` interface and all plan objects in `plans.ts`.
+
 <!-- Future work goes here. -->
 
 ## [6.0.1] - 2026-05-17

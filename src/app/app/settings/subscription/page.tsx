@@ -1,19 +1,19 @@
-import Link from "next/link"
-import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react"
-import { CheckoutButton } from "@/components/forms/checkout-form"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatPlanPrice } from "@/lib/billing/plans"
-import { getBillingSettings } from "@/lib/billing/settings-store"
-import { auth } from "@/lib/auth"
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import Link from "next/link";
+import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
+import { CheckoutButton } from "@/components/forms/checkout-form";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPlanPrice } from "@/lib/billing/plans";
+import { getBillingSettings } from "@/lib/billing/settings-store";
+import { auth } from "@/lib/auth";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 
 export default async function SubscriptionSettingsPage() {
-  const session = await auth()
-  const usage = await getAnalystCreditUsage(session?.user?.id)
-  const billingSettings = await getBillingSettings()
-  const remaining = Math.max(0, usage.total - usage.analysisCount)
-  const isUnlimited = usage.subscriptionTier === "pro" || usage.subscriptionTier === "superadmin"
+  const session = await auth();
+  const usage = await getAnalystCreditUsage(session?.user?.id);
+  const billingSettings = await getBillingSettings();
+  const remaining = Math.max(0, usage.total - usage.analysisCount);
+  const isUnlimited = usage.subscriptionTier === "pro" || usage.subscriptionTier === "superadmin";
 
   return (
     <Card className="bg-card border-border">
@@ -24,7 +24,9 @@ export default async function SubscriptionSettingsPage() {
           </div>
           <div>
             <CardTitle className="text-foreground">Subscription</CardTitle>
-            <CardDescription className="text-muted-foreground">Manage your plan and billing.</CardDescription>
+            <CardDescription className="text-muted-foreground">
+              Manage your plan and billing.
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -33,12 +35,18 @@ export default async function SubscriptionSettingsPage() {
           <div>
             <p className="font-medium text-foreground">Current plan</p>
             <p className="text-sm text-muted-foreground">
-              {usage.subscriptionTier === "superadmin" ? "Super admin" : isUnlimited ? "Pro tier" : "Free tier"}
+              {usage.subscriptionTier === "superadmin"
+                ? "Super admin"
+                : isUnlimited
+                  ? "Pro tier"
+                  : "Free tier"}
             </p>
           </div>
           {!isUnlimited && (
             <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
-              <Button variant="outline" size="sm">Upgrade</Button>
+              <Button variant="outline" size="sm">
+                Upgrade
+              </Button>
             </Link>
           )}
         </div>
@@ -50,7 +58,9 @@ export default async function SubscriptionSettingsPage() {
             <div>
               <p className="font-medium text-foreground">Analyst credits</p>
               <p className="text-sm text-muted-foreground">
-                {isUnlimited ? "Unlimited analyst usage" : `${usage.analysisCount} / ${usage.total} free credits used`}
+                {isUnlimited
+                  ? "Unlimited analyst usage"
+                  : `${usage.analysisCount} / ${usage.total} free credits used`}
               </p>
               {!isUnlimited && (
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -65,7 +75,9 @@ export default async function SubscriptionSettingsPage() {
         <div className="flex items-center justify-between gap-3 pt-2">
           <div>
             <h2 className="text-base font-semibold text-foreground">Plans</h2>
-            <p className="text-sm text-muted-foreground">Short plan overview. Full plan details live on the public plans page.</p>
+            <p className="text-sm text-muted-foreground">
+              Short plan overview. Full plan details live on the public plans page.
+            </p>
           </div>
           <Link href="/pricing">
             <Button variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -75,48 +87,58 @@ export default async function SubscriptionSettingsPage() {
           </Link>
         </div>
         <div className="grid gap-3 lg:grid-cols-3">
-          {billingSettings.plans.filter((plan) => plan.id !== "pro_annual").map((plan) => {
-            const isCurrent =
-              (plan.tier === "free" && !isUnlimited) ||
-              (plan.tier === "pro" && usage.subscriptionTier === "pro") ||
-              (plan.tier === "business" && usage.subscriptionTier === "business")
+          {billingSettings.plans
+            .filter((plan) => plan.id !== "pro_annual")
+            .map((plan) => {
+              const isCurrent =
+                (plan.tier === "free" && !isUnlimited) ||
+                (plan.tier === "pro" && usage.subscriptionTier === "pro") ||
+                (plan.tier === "business" && usage.subscriptionTier === "business");
 
-            return (
-              <div key={plan.id} className="rounded-lg border border-border bg-background p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-foreground">{plan.name}</p>
-                    <p className="text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
+              return (
+                <div key={plan.id} className="rounded-lg border border-border bg-background p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">{plan.name}</p>
+                      <p className="text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
+                    </div>
+                    {isCurrent && (
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
+                        Current
+                      </span>
+                    )}
                   </div>
-                  {isCurrent && (
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
-                      Current
-                    </span>
+                  <p className="mt-3 min-h-10 text-sm text-muted-foreground">{plan.description}</p>
+                  {isCurrent ? (
+                    <Button
+                      disabled
+                      size="sm"
+                      variant="outline"
+                      className="mt-4 w-full bg-transparent"
+                    >
+                      Active plan
+                    </Button>
+                  ) : (
+                    <CheckoutButton
+                      productId={plan.id}
+                      size="sm"
+                      variant={plan.tier === "free" ? "outline" : "default"}
+                      className={
+                        plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"
+                      }
+                    >
+                      {plan.tier === "free" ? "Downgrade" : "Review change"}
+                    </CheckoutButton>
                   )}
                 </div>
-                <p className="mt-3 min-h-10 text-sm text-muted-foreground">{plan.description}</p>
-                {isCurrent ? (
-                  <Button disabled size="sm" variant="outline" className="mt-4 w-full bg-transparent">
-                    Active plan
-                  </Button>
-                ) : (
-                  <CheckoutButton
-                    productId={plan.id}
-                    size="sm"
-                    variant={plan.tier === "free" ? "outline" : "default"}
-                    className={plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"}
-                  >
-                    {plan.tier === "free" ? "Downgrade" : "Review change"}
-                  </CheckoutButton>
-                )}
-              </div>
-            )
-          })}
+              );
+            })}
         </div>
         <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Annual Pro discounts are applied automatically in checkout. If a payment provider is not connected, checkout saves a review instead of collecting a card.
+          Annual Pro discounts are applied automatically in checkout. If a payment provider is not
+          connected, checkout saves a review instead of collecting a card.
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

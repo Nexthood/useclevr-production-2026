@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift } from "lucide-react"
+import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift, Building2, ReceiptText } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor } from "@/components/ui/usage-monitor"
@@ -121,6 +121,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   Settings
                 </Link>
                 <Link
+                  href="/app/settings/business"
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <Building2 className="h-4 w-4" />
+                  Business
+                </Link>
+                <Link
                   href="/app/settings/subscription"
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
                   onClick={() => setShowUserMenu(false)}
@@ -128,6 +136,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   <CreditCard className="h-4 w-4" />
                   Subscription
                 </Link>
+                {user.role === "superadmin" && (
+                  <Link
+                    href="/app/settings/billing"
+                    className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <ReceiptText className="h-4 w-4" />
+                    Billing
+                  </Link>
+                )}
                 <hr className="my-2 border-border" />
                 <button
                   onClick={handleSignOut}

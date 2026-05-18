@@ -7,50 +7,10 @@ import { WaitlistSignup } from "@/components/ui/waitlist-signup"
 import { BarChart3, Database, MessageSquare, Shield, Sparkles, Zap, ChevronDown, HelpCircle, FileText, Globe, CreditCard, Users, ZapIcon } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
+import { getHomepageFaqs, allFaqCategories } from "@/lib/content/faq"
 
-const faqData = [
-  {
-    q: "How does UseClevr turn CSV data into answers?",
-    a: "Upload a CSV file and ask questions in plain English. UseClevr's AI reads your table headers and data types, runs verified calculations (sum, average, top-N, group-by, etc.), and returns both the computed result and a plain-language explanation.",
-  },
-  {
-    q: "Do I need SQL or data science skills?",
-    a: "No. UseClevr translates natural language into structured queries and deterministic calculations. You only need to understand your own data — the platform handles the rest.",
-  },
-  {
-    q: "Can I download reports?",
-    a: "Yes. Pro and Business plans include PDF export and other downloadable report formats. Free users can explore insights in the dashboard without a download.",
-  },
-  {
-    q: "Is my data secure?",
-    a: "UseClevr is GDPR-compliant and aligned with SOC 2 principles. Uploaded datasets and generated reports are your property. We never train external models on your data.",
-  },
-  {
-    q: "What payment methods are supported?",
-    a: "We support all major credit and debit cards through Stripe. Enterprise invoices are available on the Business plan.",
-  },
-  {
-    q: "Can I upgrade, downgrade, or cancel anytime?",
-    a: "Yes. Changes take effect at the start of the next billing cycle. You can manage your plan, see invoices, and update payment details from Settings → Billing.",
-  },
-  {
-    q: "What is Hybrid AI Lite?",
-    a: "Hybrid AI Lite runs lightweight AI analysis entirely in your browser using a local engine. Your data never leaves your device during analysis. It's available on Pro and above.",
-  },
-  {
-    q: "Do you offer an API?",
-    a: "Yes. UseClevr provides programmatic access for integrations. API tokens and rate limits are managed from the Settings page.",
-  },
-  {
-    q: "How do I get a custom plan?",
-    a: "For volume pricing, custom SLAs, or private deployment options, contact sales@useclevr.com or visit the Business plan options in Settings → Subscription.",
-  },
-  {
-    q: "Which languages and currencies are supported?",
-    a: "The platform is currently in English. Currency formatting supports EUR, GBP, and USD and can be changed per user in Preferences.",
-  },
-]
-
+const faqData = getHomepageFaqs()
+const allFaqCount = allFaqCategories.reduce((n, c) => n + c.items.length, 0)
 function FaqAccordion({ items }: { items: { q: string; a: string }[] }) {
   const [openIdx, setOpenIdx] = React.useState<number | null>(null)
   return (
@@ -243,7 +203,7 @@ export default function HomePage() {
               <Link href="/faq" prefetch={false}>
                 <Button variant="outline" className="gap-2 bg-transparent">
                   <FileText className="h-4 w-4" />
-                  View all {faqData.length + 8}+ questions
+                  View all {allFaqCount} questions
                 </Button>
               </Link>
             </div>

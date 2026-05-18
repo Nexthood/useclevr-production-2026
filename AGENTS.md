@@ -104,3 +104,15 @@ Strip sensitive data from AI context helpers before sending responses to openai/
 - `AGENTS.md` (this file)
 - `.aiignore`
 - `CHANGELOG.md`
+
+## Changelog rules (AI agents must follow these)
+
+When writing or editing `CHANGELOG.md`:
+
+- Every entry must describe an **active change** — something added, fixed, changed, or removed in that release. Never write entries that only describe what was retained, preserved, or left unchanged.
+- Use plain, user-facing language. Active voice: "Exports now include attachments" not "Attachment export support has been added".
+- Describe what the user observes or benefits from. Do not mention internal identifiers, environment variable names, or file paths.
+- Documentation-only edits, README updates, and planning notes do not belong in the changelog.
+- CI, test tooling, and refactor changes with no user-visible effect belong under `### Dev` only.
+- Section headers per release: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Dev`. Include only sections with entries.
+- Keep each entry as short as possible — one sentence per change. Do not repeat information across entries. Avoid mentioning function names, file names, or internal identifiers.

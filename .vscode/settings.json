@@ -90,5 +90,6 @@
     "*": true,
     "plaintext": false,
     "markdown": false
-  }
+  },
+  "kilo-code.new.autoApprove.enabled": true
 }
