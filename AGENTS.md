@@ -121,3 +121,24 @@ When writing or editing `CHANGELOG.md`:
 - CI, test tooling, and refactor changes with no user-visible effect belong under `### Dev` only.
 - Section headers per release: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Dev`. Include only sections with entries.
 - Keep each entry as short as possible — one sentence per change. Do not repeat information across entries. Avoid mentioning function names, file names, or internal identifiers.
+
+## Todo pipeline
+
+AI agents must keep `.todo/todo.md` and `.todo/todo-next.md` in sync with active work:
+
+- `.todo/todo.md` — tracks the **leading edge** of work (everything that is currently in progress). When all
+  tasks in this file are marked done, refresh it from `.todo/todo-next.md`.
+- `.todo/todo-next.md` — holds the **backlog** (confirmed work not yet started, plus blocked items).
+  Copy items to `todo.md` when you start them, then remove them here.
+- `.todo/todo.md` → **Completed ✅** — When a task is fully done, write a short entry in the Completed
+  section of `todo.md`.  Items in Completed must drive two destination files:
+    - **`requirements.md`** — Convert every completed item into a product-facing requirement entry using
+      the user's perspective. Describe the behaviour the user sees or the need that was addressed, not
+      how it was implemented.
+    - **`CHANGELOG.md`** — If the change is user-observable, add a changelog entry under `## [Unreleased]`
+      in the appropriate section (`Added`, `Changed`, `Fixed`, …). Developer-only or infra-only changes go
+      under `### Dev`.
+- Any newly identified work (bug reports, suggestions, new features) goes straight into `todo-next.md`
+  so it is never lost.
+- Never leave `todo.md` with stale In-Progress items. When a subsection is empty, remove it. Every
+  completed task must have a destination in `requirements.md` and `CHANGELOG.md`.

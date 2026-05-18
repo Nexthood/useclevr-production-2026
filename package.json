@@ -58,6 +58,7 @@
     "format": "prettier --write \"scripts/**/*.{js,cjs,mjs,ts,md}\" \"docs/**/*.md\" \"*.{json,md,mjs,ts}\"",
     "format:check": "prettier --check \"scripts/**/*.{js,cjs,mjs,ts,md}\" \"docs/**/*.md\" \"*.{json,md,mjs,ts}\"",
     "docs:check": "node ./scripts/docs/check-docs.cjs",
+    "docs:lint": "markdownlint \"docs/**/*.md\"",
     "audit": "pnpm audit --audit-level=moderate",
     "audit:ci": "pnpm audit --audit-level=moderate --json",
     "deps:check": "pnpm outdated",

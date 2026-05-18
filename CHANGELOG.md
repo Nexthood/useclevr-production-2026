@@ -51,12 +51,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
-- Local development now defaults to the latest JavaScript runtime used on the maintainer machine.
-- Local setup and CI now use the same current runtime and package-manager target.
-- FAQ content is now shared between public, dashboard, and operator views to keep answers
-  consistent.
-- Changelog guidance now requires product-facing language and avoids internal implementation details.
 - Development checks now catch formatting, type, and production-build issues before release.
+- The project keeps a task backlog in `.todo/` so work is tracked across AI and human contributors.
+- Completed tasks must be recorded in both `requirements.md` (product-facing) and this changelog so
+  that user-visible changes and developer context stay in sync from a single source of truth.
+- PR instructions now require contributors to update `requirements.md` and the unreleased section of
+  this changelog, reducing the chance of undocumented release notes.
+- Markdown files are now linted for line length before every docs PR, catching prose-wrap drift
+  at CI time instead of after merge.
+- A `docs:lint` npm script is available so the markdown style rules can be checked locally or in CI.
 
 ## [6.0.1] - 2026-05-17
 

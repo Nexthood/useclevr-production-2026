@@ -61,9 +61,11 @@ Examples: `Add(Billing): Stripe webhook handler`, `Fix(Checkout): missing T&C st
 
 1. Branch from `main`.
 2. Make focused, targeted changes.
-3. Update `CHANGELOG.md` under the `[Unreleased]` section.
-4. Confirm `pnpm exec tsc --noEmit` is clean.
-5. Open a PR with a clear description of what, why, and how.
+3. Update **`requirements.md`** — convert every planned / proposed / completed item into a product-facing
+   requirement entry (user perspective, not implementation detail).
+4. Update **`CHANGELOG.md`** under the `[Unreleased]` section (`Added` / `Changed` / `Fixed` / `### Dev`).
+5. Confirm `pnpm exec tsc --noEmit` is clean.
+6. Open a PR with a clear description of what, why, and how.
 
 ## Code of Conduct
 
