@@ -6,7 +6,6 @@ import { debugLog, debugError } from "@/lib/utils/debug"
 
 import { db } from "@/lib/db"
 import { datasets, users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
@@ -16,10 +15,6 @@ import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 interface CsvRow {
   [key: string]: string | number | boolean | null
 }
-
-// Retry configuration
-const MAX_RETRIES = 5
-const RETRY_DELAYS = [5000, 8000, 12000, 20000, 30000] // longer delays for Neon cold start
 
 // Minimal DB availability probe to avoid broken downstream logic
 async function isDbAvailable(): Promise<boolean> {

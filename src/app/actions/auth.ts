@@ -1,6 +1,6 @@
 "use server"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
 
 
@@ -8,7 +8,6 @@ import { db } from "@/lib/db"
 import { users, profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
-import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
 export async function signup(formData: FormData) {
