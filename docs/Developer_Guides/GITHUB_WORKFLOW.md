@@ -68,6 +68,73 @@ The required branch-rule checks are:
 `fast` runs type validation, dist config validation, lint, and tests.
 `full` runs the production Next.js build after `fast` succeeds.
 
+### Deployment Workflow
+
+The `.github/workflows/dist-publish.yml` workflow handles deployment:
+
+- Triggers on push to `main` (not PRs)
+- Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
+- Runs `pnpm prod:build` to create the dist output
+- **Uses `git checkout --orphan` to create a fresh branch** (since dist should contain only generated output)
+- Then force-pushes it to the `dist` branch
+- This works with the dist branch ruleset that allows force pushes
+
+## Auto-Merge Setup
+
+If all checks pass, then you can enable auto-merge for main.
+
+Recommended safe setup:
+
+| Setting | Value |
+| --- | --- |
+| Require PR before merging | ✅ Yes |
+| Require status checks to pass | ✅ Yes |
+| Required checks | `fast`, `full` |
+| Require branches up to date | ❌ Optional, not needed solo |
+| Auto-merge | ✅ Yes |
+| Block deletion | ✅ Yes |
+| Block force push | ✅ Yes |
+
+Best workflow:
+
+```
+beta → PR → CI passes → auto-merge into main → Action builds dist → Railway deploys
+```
+
+Only enable auto-merge if the PR is from a trusted branch like `beta`, not from random branches.
+
+**One note:** GitHub auto-merge needs to be enabled in repo settings:
+
+Settings → General → Pull Requests → Allow auto-merge
+
+### Complete Flow
+
+```
+PR opened: beta → main
+    ↓
+GitHub Actions runs
+    ↓
+If checks fail → no merge
+    ↓
+If all checks pass → auto-merge allowed/executed
+    ↓
+main updates
+    ↓
+dist build Action runs
+    ↓
+Railway deploys dist
+```
+
+**Important:** auto-merge only works safely when you have required status checks selected. Otherwise GitHub may allow merge without real validation.
+
+Best setting:
+
+- Auto-merge: enabled
+- Required status checks: enabled
+- Only selected CI checks can unlock merge
+
+So yes: auto-merge only if all green is possible and recommended once CI is stable.
+
 ## Main Branch Rules
 
 `main` is protected through a GitHub repository ruleset.
@@ -113,16 +180,15 @@ Current behavior:
 | Block force pushes | No |
 | Intended updater | GitHub Actions |
 
-Force pushes are allowed because the publish workflow uses `force_orphan: true` when replacing the
-deployment output.
+Force pushes are allowed because the publish workflow needs to completely replace the deployment output.
 
-Do not require pull requests on `dist`. The deployment workflow must be able to push generated output
-directly.
+**The workflow uses `git checkout --orphan` to create a fresh branch** (since dist should contain only generated output), then force-pushes it to the `dist` branch. This works with the dist branch ruleset that allows force pushes.
+
+Do not require pull requests on `dist`. The deployment workflow must be able to push generated output directly.
 
 ## Source Branch Dist Ignore
 
-If GitHub Actions builds and publishes the `dist` branch, then `dist/` should be ignored on source
-branches such as `main` and `beta`.
+If GitHub Actions builds and publishes the `dist` branch, then `dist/` should be ignored on source branches such as `main` and `beta`.
 
 Best setup:
 
@@ -138,8 +204,7 @@ dist/
 ```
 
 This avoids noisy generated files and prevents humans from accidentally committing local build output.
-Since Railway deploys from the `dist` branch, source branches do not need to track the local `dist/`
-folder.
+Since Railway deploys from the `dist` branch, source branches do not need to track the local `dist/` folder.
 
 ## Railway Deployment
 
@@ -182,5 +247,4 @@ If the selector is empty:
 3. Wait for the workflow to run.
 4. Return to the ruleset and select `fast` and `full`.
 
-The check names may appear as either `fast` and `full` or as `CI / fast` and `CI / full`, depending on
-the GitHub settings page.
+The check names may appear as either `fast` and `full` or as `CI / fast` and `CI / full`, depending on the GitHub settings page.
