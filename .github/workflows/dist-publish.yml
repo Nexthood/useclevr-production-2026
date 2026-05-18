@@ -32,13 +32,13 @@ jobs:
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
-      - name: Clean dist before publish
+      - name: Clean build output before publish
         run: |
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/.cache
           rm -rf dist/cache
-          echo "Large files in dist:"
+          echo "Large files in source dist:"
           find dist -type f -size +45M -print || true
 
       - name: Publish to dist branch
@@ -46,15 +46,41 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+          mv dist build-output
+
           git checkout --orphan new-dist HEAD
           git rm -rf . || true
 
-          cp -a dist/. ./
+          mkdir -p dist
+          cp -a build-output/. dist/
 
-          rm -rf .next/cache
-          rm -rf node_modules
-          rm -rf .cache
-          rm -rf cache
+          rm -rf dist/.next/cache
+          rm -rf dist/node_modules
+          rm -rf dist/.cache
+          rm -rf dist/cache
+
+          cat > .gitignore <<'EOF'
+          .env
+          .env.*
+          node_modules
+          .next/cache
+          .cache
+          cache
+          *.log
+          EOF
+
+          cat > README.md <<'EOF'
+          # Generated deployment branch
+
+          This branch is generated automatically from `main` by GitHub Actions.
+
+          Do not edit this branch manually.
+          Do not open pull requests from this branch into `main`.
+          Do not merge this branch into `main`.
+
+          Railway deploys from the `/dist` folder in this branch.
+          Source code lives in `main`.
+          EOF
 
           echo "Large files remaining:"
           find . -type f -size +45M -print || true
