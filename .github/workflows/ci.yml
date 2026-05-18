@@ -18,11 +18,8 @@ jobs:
       - uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "26.x"
-      - run: pnpm config set store-dir ~/.pnpm-store
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          run_install: true
       - run: pnpm validate:types
       - run: pnpm validate:dist
       - run: pnpm lint
@@ -36,11 +33,8 @@ jobs:
       - uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "26.x"
-      - run: pnpm config set store-dir ~/.pnpm-store
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          run_install: true
       - run: pnpm build
 
   docs:
@@ -51,9 +45,6 @@ jobs:
       - uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "26.x"
-      - run: pnpm config set store-dir ~/.pnpm-store
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          run_install: true
       - run: pnpm docs:check

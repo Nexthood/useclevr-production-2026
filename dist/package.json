@@ -1,11 +1,10 @@
 {
   "name": "useclevr-2026-dist",
-  "version": "0.1.0",
+  "version": "7.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
-    "build": "cd .. && NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
     "prod": "pnpm start",
     "prod:start": "pnpm start"
   },
@@ -33,6 +32,7 @@
     "react-dom": "^19.2.5",
     "react-icons": "^5.5.0",
     "recharts": "^3.8.1",
+    "stripe": "^14",
     "tailwind-merge": "3.5.0",
     "tw-animate-css": "^1.4.0",
     "uuid": "^14.0.0",
@@ -46,5 +46,5 @@
     "node": "26.x",
     "pnpm": ">=11.1.2"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@11.1.2"
 }

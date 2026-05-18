@@ -38,7 +38,28 @@ export const aiChatBehaviorConfig = {
       "Users upload business data, inspect dashboards, ask AI questions, and download reports.",
       "AI is an explanation layer over verified application data.",
       "Local AI features use same-origin API routes and the local agent contract.",
+      "dist '/' is the Railway deployment root. Never assume the repo root in dist context.",
     ],
+
+  distDeployment: {
+    signpost: "Build → sync → deploy",
+    pipelineFile: "ci-settings/railway.dist.json",
+    distPackage: "dist/package.json",
+    distRailway: "dist/railway.json",
+    syncScript: "scripts/ci/sync-railway-config.cjs",
+    validationScript: "scripts/ci/sync-railway-config.cjs",
+    buildGate: "pnpm validate:dist",
+    sourceOfTruth: "ci-settings/railway.dist.json",
+    doNotEdit: [
+      "dist/", // regenerated every build
+      ".next/", // always regenerated
+      "ci-settings/railway.dist.json", // only source of truth
+    ],
+    doNotRunFrom: [
+      "dist/", // no parent package.json; only deploy here
+      ".next/", // internal Next.js output
+    ],
+  },
   },
 
   codingConventions: {

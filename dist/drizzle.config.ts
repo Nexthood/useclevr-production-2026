@@ -6,7 +6,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: (process.env.DIRECT_URL || process.env.DATABASE_URL || "").trim(),
-    ssl: "require",
+    ssl: "verify-full",
   },
   verbose: true,
   strict: true,

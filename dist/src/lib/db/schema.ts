@@ -108,6 +108,19 @@ export const profiles = pgTable(
     numberFormat: varchar('numberFormat', { length: 10 }).default('auto').notNull(),
     createdAt: timestamp('createdAt').defaultNow().notNull(),
     updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+    // Stripe billing fields
+    stripeCustomerId: text('stripeCustomerId'),
+    stripeSubscriptionId: text('stripeSubscriptionId'),
+    stripePriceId: text('stripePriceId'),
+    stripeStatus: text('stripeStatus'),
+    stripeCurrentPeriodEnd: timestamp('stripeCurrentPeriodEnd'),
+    // Business details
+    businessName: text('businessName'),
+    businessEmail: text('businessEmail'),
+    industry: text('industry'),
+    location: text('location'),
+    website: text('website'),
+    businessDescription: text('businessDescription'),
   },
   (table) => ({
     userIdFk: foreignKey({
