@@ -46,12 +46,28 @@ export const allFaqCategories: FaqCategory[] = [
     category: "Plans & Billing",
     items: [
       {
+        q: "How do payments and subscriptions work?",
+        a: "UseClevr uses Stripe Checkout for secure subscription payments. When you choose a paid plan, you are redirected to Stripe's secure checkout page to enter your payment details. After payment, you are redirected back to UseClevr and your subscription is activated automatically.",
+      },
+      {
         q: "What payment methods are supported?",
         a: "We support all major credit and debit cards through Stripe. Enterprise invoices are available on the Business plan.",
       },
       {
+        q: "Does UseClevr store my card details?",
+        a: "No. UseClevr does not store your card details. Payments are processed securely by Stripe.",
+      },
+      {
         q: "Can I upgrade or downgrade my plan at any time?",
         a: "Yes. Plan changes take effect at the start of the next billing cycle. Go to Settings → Subscription to switch plans instantly.",
+      },
+      {
+        q: "What happens after I upgrade?",
+        a: "After upgrading, your account is updated automatically and you get access to the features included in your selected plan, such as higher usage limits, advanced reports, downloads, and premium analysis features.",
+      },
+      {
+        q: "Can I cancel my subscription?",
+        a: "Yes. You can cancel your subscription from your billing settings. Your paid access remains active until the end of your current billing period.",
       },
       {
         q: "What happens to my data when I downgrade or cancel?",
@@ -60,6 +76,26 @@ export const allFaqCategories: FaqCategory[] = [
       {
         q: "Is there a free plan?",
         a: "Yes — the Free plan includes 1 dataset and limited AI questions so you can try the platform before upgrading. No credit card required.",
+      },
+      {
+        q: "Can I receive an invoice?",
+        a: "Yes. Invoices and payment receipts are handled through Stripe and can be accessed from your billing area.",
+      },
+      {
+        q: "How do I get a refund?",
+        a: "Contact support to request a refund. Processing time depends on the payment provider and card issuer.",
+      },
+      {
+        q: "What if my card is expired or declined?",
+        a: "The payment provider retries the payment and usually emails you to update payment details.",
+      },
+      {
+        q: "I paid but do not have access. What do I do?",
+        a: "Open a support ticket with your transaction ID or receipt so support can restore access.",
+      },
+      {
+        q: "I see an unexpected charge. What now?",
+        a: "Check your account and subscription details first, then contact support. Contact your card issuer if the charge looks unauthorized.",
       },
       {
         q: "What is the Pro Annual plan?",
@@ -76,30 +112,6 @@ export const allFaqCategories: FaqCategory[] = [
       {
         q: "Do I need to log in or visit the site for renewal?",
         a: "No. Renewals happen automatically through the payment provider.",
-      },
-      {
-        q: "What if my card is expired or declined?",
-        a: "The payment provider retries the payment and usually emails you to update payment details.",
-      },
-      {
-        q: "I paid but do not have access. What do I do?",
-        a: "Open a support ticket with your transaction ID or receipt so support can restore access.",
-      },
-      {
-        q: "Will I receive invoices or receipts?",
-        a: "Yes. Receipts and invoices are emailed and may also be available from your account or payment portal.",
-      },
-      {
-        q: "How do I get a refund?",
-        a: "Contact support to request a refund. Processing time depends on the payment provider and card issuer.",
-      },
-      {
-        q: "I see an unexpected charge. What now?",
-        a: "Check your account and subscription details first, then contact support. Contact your card issuer if the charge looks unauthorized.",
-      },
-      {
-        q: "Are my payment details secure?",
-        a: "Payment details are handled by secure payment providers. UseClevr does not store full card numbers.",
       },
     ],
   },
