@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.65",
-    "@aws-sdk/client-s3": "^3.1038.0",
+    "@aws-sdk/client-s3": "^3.1049.0",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.13",
     "@types/papaparse": "^5.5.2",
@@ -114,7 +114,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.4.0",
     "eslint-plugin-only-warn": "^1.2.1",
-    "markdownlint-cli": "^0.40.0",
+    "markdownlint-cli": "^0.48.0",
     "postcss": "8.5.12",
     "prettier": "^3.8.3",
     "tailwindcss": "3.4.17",

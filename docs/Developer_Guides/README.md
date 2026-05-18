@@ -5,6 +5,7 @@
 | Guide                                        | Notes                    |
 | -------------------------------------------- | ------------------------ |
 | **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** | Main developer reference |
+| **[GITHUB_WORKFLOW.md](GITHUB_WORKFLOW.md)** | Branch rules, CI, and deployment branch workflow |
 
 ## Recommendation
 
