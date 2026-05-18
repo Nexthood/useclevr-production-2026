@@ -74,6 +74,8 @@ if (fs.existsSync(publicDir)) {
 
 // Load root package.json for syncing
 const rootPkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf-8"));
+const distEngines = { ...rootPkg.engines };
+delete distEngines.pnpm;
 
 // Write main distribution README
 fs.writeFileSync(
@@ -103,7 +105,7 @@ const rootDistPackage = {
   },
   dependencies: rootPkg.dependencies,
   devDependencies: { "drizzle-kit": rootPkg.devDependencies["drizzle-kit"] },
-  engines: rootPkg.engines,
+  engines: distEngines,
   packageManager: rootPkg.packageManager,
 };
 
