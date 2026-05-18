@@ -28,6 +28,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm prod:build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
       - name: Publish to dist branch
         env:
