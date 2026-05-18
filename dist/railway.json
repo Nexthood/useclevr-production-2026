@@ -3,7 +3,7 @@
   "build": {
     "builder": "RAILPACK",
     "buildCommand": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/dist/create-dist.cjs",
-    "NODE_VERSION": "latest"
+    "NODE_VERSION": "26.1.0"
   },
   "deploy": {
     "preDeployCommand": "pnpm exec drizzle-kit push",
