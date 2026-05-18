@@ -226,6 +226,24 @@
       "namedRegex": "^/api/admin/billing\\-settings(?:/)?$"
     },
     {
+      "page": "/api/admin/customers",
+      "regex": "^/api/admin/customers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/customers(?:/)?$"
+    },
+    {
+      "page": "/api/admin/discounts",
+      "regex": "^/api/admin/discounts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/discounts(?:/)?$"
+    },
+    {
+      "page": "/api/admin/levels",
+      "regex": "^/api/admin/levels(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/levels(?:/)?$"
+    },
+    {
       "page": "/api/agent/install-runtime",
       "regex": "^/api/agent/install\\-runtime(?:/)?$",
       "routeKeys": {},
@@ -260,6 +278,12 @@
       "regex": "^/api/checkout/confirm(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/checkout/confirm(?:/)?$"
+    },
+    {
+      "page": "/api/checkout/options",
+      "regex": "^/api/checkout/options(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/checkout/options(?:/)?$"
     },
     {
       "page": "/api/compare",
@@ -338,6 +362,12 @@
       "regex": "^/api/local\\-ai\\-status(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/local\\-ai\\-status(?:/)?$"
+    },
+    {
+      "page": "/api/me/business",
+      "regex": "^/api/me/business(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/me/business(?:/)?$"
     },
     {
       "page": "/api/ollama/pull",
@@ -430,6 +460,12 @@
       "namedRegex": "^/api/setup\\-profile\\-columns(?:/)?$"
     },
     {
+      "page": "/api/tickets",
+      "regex": "^/api/tickets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tickets(?:/)?$"
+    },
+    {
       "page": "/api/upload",
       "regex": "^/api/upload(?:/)?$",
       "routeKeys": {},
@@ -466,6 +502,30 @@
       "namedRegex": "^/app(?:/)?$"
     },
     {
+      "page": "/app/admin/customers",
+      "regex": "^/app/admin/customers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/admin/customers(?:/)?$"
+    },
+    {
+      "page": "/app/admin/discounts",
+      "regex": "^/app/admin/discounts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/admin/discounts(?:/)?$"
+    },
+    {
+      "page": "/app/admin/faq",
+      "regex": "^/app/admin/faq(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/admin/faq(?:/)?$"
+    },
+    {
+      "page": "/app/admin/levels",
+      "regex": "^/app/admin/levels(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/admin/levels(?:/)?$"
+    },
+    {
       "page": "/app/assistant",
       "regex": "^/app/assistant(?:/)?$",
       "routeKeys": {},
@@ -488,6 +548,12 @@
       "regex": "^/app/downloads(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/app/downloads(?:/)?$"
+    },
+    {
+      "page": "/app/faq",
+      "regex": "^/app/faq(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/faq(?:/)?$"
     },
     {
       "page": "/app/one-pager",
@@ -514,6 +580,12 @@
       "namedRegex": "^/app/settings/billing(?:/)?$"
     },
     {
+      "page": "/app/settings/business",
+      "regex": "^/app/settings/business(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/business(?:/)?$"
+    },
+    {
       "page": "/app/settings/checkout",
       "regex": "^/app/settings/checkout(?:/)?$",
       "routeKeys": {},
@@ -524,6 +596,12 @@
       "regex": "^/app/settings/credits(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/app/settings/credits(?:/)?$"
+    },
+    {
+      "page": "/app/settings/payment",
+      "regex": "^/app/settings/payment(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/settings/payment(?:/)?$"
     },
     {
       "page": "/app/settings/preferences",
@@ -542,6 +620,12 @@
       "regex": "^/app/settings/subscription(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/app/settings/subscription(?:/)?$"
+    },
+    {
+      "page": "/app/tickets",
+      "regex": "^/app/tickets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app/tickets(?:/)?$"
     },
     {
       "page": "/app/upload",
@@ -566,6 +650,12 @@
       "regex": "^/demo/data\\-processing\\-flow(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/demo/data\\-processing\\-flow(?:/)?$"
+    },
+    {
+      "page": "/faq",
+      "regex": "^/faq(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/faq(?:/)?$"
     },
     {
       "page": "/icon.png",
