@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [7.1.0] - 2026-05-18
+
+### Added
+
+- A customer management page gives super-admins a full overview of every registered user, including plan, signup date, last login, referral source, login count, and dataset count.
+- An admin page for managing customer levels lets super-admins define five tiers with interaction goals, page visits, uploads, credit use, login goals, and level rewards — all configurable without touching code.
+- A discount management page lets super-admins create, edit, enable, and disable discount rules covering free-plan discounts, percentage discounts, referral rewards, and stacking behaviour in one place.
+- Credit rule settings are now configurable from the admin panel — the number of successful referrals needed to earn one analyst credit can be adjusted, and referral credits can be toggled on or off.
+
+### Changed
+
+- The "Start free trial" button on the public pricing page now routes new users to the sign-up page instead of the paid checkout flow.
+- The Hybrid AI button uses the shared modal component so body scroll lock, Escape key handling, and backdrop behaviour are consistent with every other dialog in the app.
+- The app dashboard home page now uses the larger tinted icon boxes and gradient primary CTA from the public landing page, and a Downloads quick-action has been added alongside Datasets and AI Analyst.
+- Subscription and billing settings pages now carry the rounded-xl icon box and tinted-card styling used on the public pages.
+- The Credits settings card has been upgraded with gradient icon boxes and the Referral Config status block is visible inline.
+- The Super-admin sidebar now surfaces Customers, Customer Levels, and Discount Rules links directly under the existing super-admin block.
+
+### Dev
+
+- Super-admin sidebar links for Customers, Customer Levels, and Discount Rules are registered in the app sidebar component under the existing super-admin conditional block, keeping all three pages discoverable from one place.
+- Admin credit rule settings are now stored in the billing settings file under `referralConfig` (`referralsPerCredit`, `enabled`).
+- Customer levels and discount rules are stored in the billing settings file under `levels` and `discountRules` respectively, keeping all super-admin configuration in one persisted settings object with merge-safe defaults.
+- New API routes serve the three admin pages: GET `/api/admin/customers`, GET/POST `/api/admin/levels`, and GET/POST `/api/admin/discounts` — all gated to the super-admin role.
+
 ## [7.0.0] - 2026-05-18
 
 ### Added

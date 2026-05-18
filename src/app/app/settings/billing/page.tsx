@@ -15,8 +15,8 @@ export default async function BillingSettingsPage() {
       <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CreditCard className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
             </div>
             <div>
               <CardTitle>Billing</CardTitle>
@@ -26,17 +26,17 @@ export default async function BillingSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-border bg-background p-4">
-              <p className="text-sm text-muted-foreground">Current plan</p>
-              <p className="mt-1 text-lg font-semibold">{planLabel}</p>
+            <div className="rounded-xl border border-border bg-muted/30 p-5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Current plan</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{planLabel}</p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <p className="text-sm text-muted-foreground">Payment status</p>
-              <p className="mt-1 text-lg font-semibold">Not connected</p>
+            <div className="rounded-xl border border-border bg-muted/30 p-5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payment status</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">Not connected</p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <p className="text-sm text-muted-foreground">Billing cycle</p>
-              <p className="mt-1 text-lg font-semibold">{usage.subscriptionTier === "pro" ? "Monthly" : "None"}</p>
+            <div className="rounded-xl border border-border bg-muted/30 p-5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Billing cycle</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{usage.subscriptionTier === "pro" ? "Monthly" : "None"}</p>
             </div>
           </div>
 

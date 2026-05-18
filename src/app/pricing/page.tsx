@@ -223,12 +223,14 @@ export default function PricingPage() {
                   </p>
                 </div>
 
-                <CheckoutButton
-                  productId="pro_monthly"
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm shadow-lg shadow-black/10 dark:shadow-black/30"
-                >
-                  Start free trial →
-                </CheckoutButton>
+                <Link href="/signup" className="block" prefetch={false}>
+                  <Button
+                    size="sm"
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-lg shadow-black/10 dark:shadow-black/30"
+                  >
+                    Start free trial →
+                  </Button>
+                </Link>
               </Card>
 
               {/* Business / Custom Tier */}

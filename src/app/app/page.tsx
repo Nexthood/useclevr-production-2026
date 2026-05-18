@@ -13,7 +13,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header"
 async function getUserStats() {
   try {
     const session = await auth()
-    
+
     if (!session?.user?.id) {
       return null
     }
@@ -21,7 +21,7 @@ async function getUserStats() {
     if (!db) {
       return null
     }
-    
+
     const userDatasets = await db.query.datasets.findMany({
       where: eq(datasets.userId, session.user.id),
       columns: {
@@ -51,10 +51,38 @@ export default async function AppDashboard() {
   const displayStats = stats || { datasetCount: 0, totalRows: 0 }
 
   const statsCards = [
-    { label: "Total Datasets", value: displayStats.datasetCount.toString(), hint: displayStats.datasetCount === 0 ? "Upload a dataset to begin" : "", icon: Database, color: "text-primary dark:text-cyan-100" },
-    { label: "Total Rows", value: displayStats.totalRows.toLocaleString(), hint: displayStats.totalRows === 0 ? "No data yet" : "", icon: FileSpreadsheet, color: "text-cyan-800 dark:text-cyan-100" },
-    { label: "AI Queries", value: "0", hint: "Insights will appear after analysis", icon: Sparkles, color: "text-primary dark:text-cyan-100" },
-    { label: "Insights Found", value: "0", hint: "Insights will appear after analysis", icon: TrendingUp, color: "text-emerald-800 dark:text-emerald-100" },
+    {
+      label: "Total Datasets",
+      value: displayStats.datasetCount.toString(),
+      hint: displayStats.datasetCount === 0 ? "Upload a dataset to begin" : "",
+      icon: Database,
+      color: "text-cyan-800 dark:text-cyan-100",
+      bg: "bg-cyan-500/10",
+    },
+    {
+      label: "Total Rows",
+      value: displayStats.totalRows.toLocaleString(),
+      hint: displayStats.totalRows === 0 ? "No data yet" : "",
+      icon: FileSpreadsheet,
+      color: "text-cyan-800 dark:text-cyan-100",
+      bg: "bg-cyan-500/10",
+    },
+    {
+      label: "AI Queries",
+      value: "0",
+      hint: "Insights will appear after analysis",
+      icon: Sparkles,
+      color: "text-purple-800 dark:text-purple-100",
+      bg: "bg-purple-500/10",
+    },
+    {
+      label: "Insights Found",
+      value: "0",
+      hint: "Insights will appear after analysis",
+      icon: TrendingUp,
+      color: "text-emerald-800 dark:text-emerald-100",
+      bg: "bg-emerald-500/10",
+    },
   ]
 
   const quickActions = [
@@ -71,6 +99,13 @@ export default async function AppDashboard() {
       icon: Sparkles,
       href: "/app/assistant",
       gradient: "from-purple-500 to-pink-500",
+    },
+    {
+      title: "Downloads",
+      description: "Generate and download PDF reports.",
+      icon: FileSpreadsheet,
+      href: "/app/downloads",
+      gradient: "from-emerald-500 to-teal-500",
     },
   ]
 
@@ -95,15 +130,22 @@ export default async function AppDashboard() {
           {/* Stats Row */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {statsCards.map((stat, index) => (
-              <Card key={index} className="p-4 bg-card border-border">
+              <Card
+                key={index}
+                className="p-4 border-border bg-card hover:border-primary/20 transition-colors"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <div
+                    className={`h-12 w-12 rounded-xl ${stat.bg} flex items-center justify-center`}
+                  >
                     <stat.icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
                     <p className="text-2xl font-bold text-foreground truncate">{stat.value}</p>
-                    {stat.hint && <p className="text-xs text-muted-foreground/70 truncate">{stat.hint}</p>}
+                    {stat.hint && (
+                      <p className="text-xs text-muted-foreground/70 truncate">{stat.hint}</p>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -113,19 +155,25 @@ export default async function AppDashboard() {
           {/* Quick Actions */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {quickActions.map((action, index) => (
-              <Card key={index} className="p-4 hover:border-primary/30 transition-all duration-300 group bg-card border-border">
+              <Card
+                key={index}
+                className="p-4 hover:border-primary/30 transition-all duration-300 group bg-card border-border"
+              >
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${action.gradient} flex items-center justify-center`}>
+                  <div
+                    className={`h-10 w-10 rounded-lg bg-gradient-to-br ${action.gradient} flex items-center justify-center`}
+                  >
                     <action.icon className="h-5 w-5 text-white" />
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>
                 <h3 className="font-semibold text-foreground mb-1">{action.title}</h3>
-                <p className="text-muted-foreground text-sm mb-3">
-                  {action.description}
-                </p>
+                <p className="text-muted-foreground text-sm mb-3">{action.description}</p>
                 <Link href={action.href}>
-                  <Button variant="outline" className="w-full text-sm border-border text-foreground hover:bg-muted">
+                  <Button
+                    variant="outline"
+                    className="w-full text-sm border-border text-foreground hover:bg-muted"
+                  >
                     {action.title === "Upload Dataset" ? "Upload now" : "View all"}
                   </Button>
                 </Link>
@@ -141,7 +189,9 @@ export default async function AppDashboard() {
                   <Database className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground mb-0.5">Upload your first dataset</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-0.5">
+                    Upload your first dataset
+                  </h3>
                   <p className="text-muted-foreground text-sm">
                     Get instant insights from CSV files in seconds.
                   </p>
@@ -159,7 +209,11 @@ export default async function AppDashboard() {
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-foreground">Your Data</h3>
                 <Link href="/app/datasets">
-                  <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-muted">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border text-foreground hover:bg-muted"
+                  >
                     <Database className="mr-2 h-4 w-4" />
                     View all datasets
                   </Button>
@@ -193,7 +247,7 @@ export default async function AppDashboard() {
                 <Database className="h-4 w-4 text-emerald-800 dark:text-emerald-100" />
               </div>
               <div>
-                <h4 className="font-medium text-foreground text-sm">Private & Secure</h4>
+                <h4 className="font-medium text-foreground text-sm">Private &amp; Secure</h4>
                 <p className="text-xs text-muted-foreground">Your data stays yours</p>
               </div>
             </div>

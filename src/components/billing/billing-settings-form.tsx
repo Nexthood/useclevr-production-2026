@@ -22,6 +22,13 @@ export function BillingSettingsForm({ initialSettings }: { initialSettings: Bill
     }))
   }
 
+  const updateReferral = (patch: Partial<BillingSettings["referralConfig"]>) => {
+    setSettings((current) => ({
+      ...current,
+      referralConfig: { ...current.referralConfig, ...patch },
+    }))
+  }
+
   const updatePlan = (planId: string, patch: Record<string, unknown>) => {
     setSettings((current) => ({
       ...current,
@@ -53,11 +60,42 @@ export function BillingSettingsForm({ initialSettings }: { initialSettings: Bill
     }
   }
 
-  return (
+   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <CreditInput label="Hybrid AI Lite credits" value={settings.hybridAiCreditCosts.lite} onChange={(value) => updateCreditCost("lite", value)} />
         <CreditInput label="Hybrid AI MEGA credits" value={settings.hybridAiCreditCosts.mega} onChange={(value) => updateCreditCost("mega", value)} />
+      </div>
+
+      <div className="rounded-lg border border-border bg-background p-4">
+        <p className="text-sm font-semibold text-foreground mb-3">Referral credit rules</p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Control how many successful referrals are needed to earn one analyst credit. Set to 0 to disable referral credits.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="referrals-per-credit">Referrals needed per credit</Label>
+            <Input
+              id="referrals-per-credit"
+              type="number"
+              min={1}
+              value={settings.referralConfig.referralsPerCredit}
+              onChange={(event) => updateReferral({ referralsPerCredit: Math.max(1, Number(event.target.value) || 1) })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="referral-enabled">Referral credits</Label>
+            <select
+              id="referral-enabled"
+              value={settings.referralConfig.enabled ? "true" : "false"}
+              onChange={(event) => updateReferral({ enabled: event.target.value === "true" })}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">

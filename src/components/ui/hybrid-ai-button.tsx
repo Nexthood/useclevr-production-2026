@@ -1,11 +1,11 @@
 "use client"
 
-import { Brain, Check, Download, X } from "lucide-react"
+import { Brain, Check, Download } from "lucide-react"
 import * as React from "react"
-import { createPortal } from "react-dom"
 import { CheckoutButton } from "@/components/forms/checkout-form"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Modal } from "@/components/ui/modal"
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 
@@ -18,7 +18,6 @@ export default function HybridAiButton({
 }) {
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
-  const [mounted, setMounted] = React.useState(false)
   const hasLocalAiAccess = subscriptionTier === "pro" || subscriptionTier === "business" || subscriptionTier === "superadmin"
   const hybridTiers =
     subscriptionTier === "superadmin"
@@ -27,28 +26,6 @@ export default function HybridAiButton({
         ? (["mega"] as const)
         : (["lite"] as const)
   const defaultTier = subscriptionTier === "business" ? "mega" : "lite"
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  React.useEffect(() => {
-    if (!open) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false)
-      }
-    }
-
-    document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = ""
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [open])
 
   return (
     <>
@@ -61,95 +38,67 @@ export default function HybridAiButton({
         Hybrid AI
       </button>
 
-      {mounted && open
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-4 text-foreground backdrop-blur-sm animate-in fade-in duration-200 sm:p-8"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="hybrid-ai-title"
-            >
-              <Card className="relative max-h-[calc(100vh-4rem)] w-full max-w-4xl overflow-hidden border-border bg-background shadow-2xl">
-                <div className="flex items-center justify-between border-b px-5 py-4">
-                  <div>
-                    <h2 id="hybrid-ai-title" className="text-xl font-semibold tracking-tight">
-                      Hybrid AI
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Cloud analysis with optional local AI for sensitive datasets.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="rounded-full p-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label="Close Hybrid AI"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title="Hybrid AI"
+        description="Cloud analysis with optional local AI for sensitive datasets."
+      >
+        <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+              Included workflow
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
+              <HybridPoint title="Cloud explanation" description="Gemini explains results when cloud AI is enabled." />
+              <HybridPoint title="Local privacy mode" description="Run supported local models for private analysis." />
+              <HybridPoint title="Offline-ready setup" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
+            </div>
+          </div>
 
-                <div className="h-full overflow-y-auto p-6 sm:p-8">
-                  <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                        Included workflow
-                      </h3>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
-                        <HybridPoint title="Cloud explanation" description="Gemini explains results when cloud AI is enabled." />
-                        <HybridPoint title="Local privacy mode" description="Run supported local models for private analysis." />
-                        <HybridPoint title="Offline-ready setup" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
-                      </div>
-                    </div>
-
-                    {hasLocalAiAccess ? (
-                      <div className="rounded-lg border border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
-                        <p className="text-sm font-semibold text-slate-950 dark:text-white">
-                          Local AI access is included in your plan.
-                        </p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {subscriptionTier === "business"
-                            ? "Download or verify Hybrid AI MEGA for private business analysis."
-                            : subscriptionTier === "superadmin"
-                              ? "Download or verify Hybrid AI Lite and MEGA for testing."
-                              : "Download or verify Hybrid AI Lite for offline use."}
-                        </p>
-                        <Button
-                          className="mt-5 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                          onClick={() => {
-                            setOpen(false)
-                            setInstallerOpen(true)
-                          }}
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download Local AI
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <PlanOption
-                          title="Pro"
-                          price="€40/month"
-                          description="Includes Hybrid AI Lite, unlimited datasets, and report downloads."
-                          productId="pro_monthly"
-                        />
-                        <PlanOption
-                          title="Business"
-                          price="€420/month"
-                          description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
-                          productId="business_monthly"
-                          secondary
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </div>,
-            document.body,
-          )
-        : null}
+          {hasLocalAiAccess ? (
+            <div className="rounded-lg border border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
+              <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                Local AI access is included in your plan.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {subscriptionTier === "business"
+                  ? "Download or verify Hybrid AI MEGA for private business analysis."
+                  : subscriptionTier === "superadmin"
+                    ? "Download or verify Hybrid AI Lite and MEGA for testing."
+                    : "Download or verify Hybrid AI Lite for offline use."}
+              </p>
+              <Button
+                className="mt-5 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                onClick={() => {
+                  setOpen(false)
+                  setInstallerOpen(true)
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Local AI
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <PlanOption
+                title="Pro"
+                price="€40/month"
+                description="Includes Hybrid AI Lite, unlimited datasets, and report downloads."
+                productId="pro_monthly"
+              />
+              <PlanOption
+                title="Business"
+                price="€420/month"
+                description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
+                productId="business_monthly"
+                secondary
+              />
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <MegaInstallerModal open={installerOpen} onOpenChange={setInstallerOpen} preselectTier={defaultTier} allowedTiers={[...hybridTiers]} />
     </>

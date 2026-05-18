@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { ShieldCheck, SlidersHorizontal, Wrench } from "lucide-react"
+import { ShieldCheck, SlidersHorizontal, Wrench, Users, Award, Settings2 } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { FREE_ANALYST_CREDITS } from "@/lib/usage/analyst-credits"
 import { getBillingSettings } from "@/lib/billing/settings-store"
@@ -13,6 +13,29 @@ const roleLimits = [
   { role: "Pro customer", totalCredits: "Unlimited" },
   { role: "Super admin", totalCredits: "Unlimited" },
 ]
+
+function ReferralConfigSection({ referralConfig }: { referralConfig: { referralsPerCredit: number; enabled: boolean } }) {
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Settings2 className="h-4 w-4 text-primary" />
+        <p className="text-sm font-semibold">Referral credit rules</p>
+        <span className={`ml-auto inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${referralConfig.enabled ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-slate-500/10 text-slate-600 dark:text-slate-400"}`}>
+          {referralConfig.enabled ? "Active" : "Disabled"}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        {referralConfig.enabled
+          ? `Every ${referralConfig.referralsPerCredit} successful ${referralConfig.referralsPerCredit === 1 ? "referral" : "referrals"} earns 1 analyst credit. Configured in Credit Rules.`
+          : "Referral credits are currently disabled."}
+      </p>
+      <div className="flex items-center gap-6 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" />Referrals / credit: <strong className="text-foreground">{referralConfig.referralsPerCredit}</strong></span>
+        <span>Admins can adjust this in the Credit Rules form below.</span>
+      </div>
+    </div>
+  )
+}
 
 export default async function CreditRulesSettingsPage() {
   const session = await auth()
@@ -28,8 +51,8 @@ export default async function CreditRulesSettingsPage() {
       <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
-              <ShieldCheck className="h-5 w-5 text-white" />
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <CardTitle className="text-foreground">Credit Rules</CardTitle>
@@ -61,11 +84,13 @@ export default async function CreditRulesSettingsPage() {
         </CardContent>
       </Card>
 
+      <ReferralConfigSection referralConfig={billingSettings.referralConfig} />
+
       <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <Wrench className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+              <Wrench className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
             </div>
             <div>
               <CardTitle className="text-foreground">Hybrid AI and Package Settings</CardTitle>
@@ -83,8 +108,8 @@ export default async function CreditRulesSettingsPage() {
       <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <SlidersHorizontal className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+              <SlidersHorizontal className="h-5 w-5 text-purple-800 dark:text-purple-100" />
             </div>
             <div>
               <CardTitle className="text-foreground">Role Limits</CardTitle>

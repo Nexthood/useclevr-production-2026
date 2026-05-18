@@ -55,6 +55,36 @@
 - Payment provider configuration is gated to super-admin role only.
 - The payment setup page shows the current status of secret key and webhook secret.
 
+### Credit Rules & Referrals
+
+- Super-admins can configure how many successful referrals are needed to earn one analyst credit
+  and can toggle referral credits on or off from the Credit Rules settings page.
+- Referral rules, customer levels, and discount rules are all managed from the super-admin sidebar
+  under dedicated pages for Credit Rules, Customers, Customer Levels, and Discount Rules.
+
+### Customer Management
+
+- Super-admins can view a full customer list with plan, signup date, last login, referral source,
+  login count, and dataset count in a single admin page.
+- Totals cards show total customers, Pro / Business count, free tier count, and active-in-last-30-days
+  count at a glance.
+
+### Customer Levels & Discount Rules
+
+- Super-admins can define five customer tiers (Explorer through Champion) with independent thresholds
+  for interactions, page visits, uploads, credits used, and logins, each rewarding a configurable
+  number of analyst credits.
+- Super-admins can create, edit, enable, and disable discount rules covering free-plan discounts,
+  percentage discounts, referral rewards, and stacking behaviour — all stored in the same
+  billing settings object.
+
+### Hybrid AI
+
+- The hybrid AI popup uses the shared modal component so body scroll lock, Escape key handling,
+  and backdrop behaviour are consistent with every other dialog.
+- Free tier users see Pro and Business plan options inside the hybrid AI popup, guiding them to
+  checkout with a single click.
+
 ### Reference Files
 
 - Terms & Conditions are at `https://useclevr.com/terms`

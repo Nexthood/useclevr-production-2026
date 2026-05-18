@@ -31,49 +31,51 @@ export default async function SubscriptionSettingsPage() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
-          <div>
-            <p className="font-medium text-foreground">Current plan</p>
-            <p className="text-sm text-muted-foreground">
-              {usage.subscriptionTier === "superadmin"
-                ? "Super admin"
-                : isUnlimited
-                  ? "Pro tier"
-                  : "Free tier"}
-            </p>
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <p className="text-sm font-medium text-foreground">Current plan</p>
           </div>
+          <p className="text-sm text-muted-foreground">
+            {usage.subscriptionTier === "superadmin"
+              ? "Super admin"
+              : isUnlimited
+                ? "Pro tier"
+                : "Free tier"}
+          </p>
           {!isUnlimited && (
-            <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
-              <Button variant="outline" size="sm">
+            <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="mt-3 block">
+              <Button variant="outline" size="sm" className="bg-transparent">
                 Upgrade
               </Button>
             </Link>
           )}
         </div>
-        <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-md bg-primary/15 p-2 text-primary">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">Analyst credits</p>
-              <p className="text-sm text-muted-foreground">
-                {isUnlimited
-                  ? "Unlimited analyst usage"
-                  : `${usage.analysisCount} / ${usage.total} free credits used`}
-              </p>
-              {!isUnlimited && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {usage.limitReached
-                    ? "Free credits are used. Subscribe to Pro or top up to continue analysis."
-                    : `${remaining} free ${remaining === 1 ? "credit" : "credits"} remaining.`}
-                </p>
-              )}
-            </div>
+
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
+            <p className="text-sm font-medium text-foreground">Analyst credits</p>
           </div>
+          <p className="text-sm text-muted-foreground">
+            {isUnlimited
+              ? "Unlimited analyst usage"
+              : `${usage.analysisCount} / ${usage.total} free credits used`}
+          </p>
+          {!isUnlimited && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {usage.limitReached
+                ? "Free credits are used. Subscribe to Pro or top up to continue analysis."
+                : `${remaining} free ${remaining === 1 ? "credit" : "credits"} remaining.`}
+            </p>
+          )}
         </div>
         <div className="flex items-center justify-between gap-3 pt-2">
           <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary mb-2">
+              <Sparkles className="h-3 w-3" />
+              Pricing
+            </div>
             <h2 className="text-base font-semibold text-foreground">Plans</h2>
             <p className="text-sm text-muted-foreground">
               Short plan overview. Full plan details live on the public plans page.

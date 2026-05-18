@@ -8,9 +8,38 @@ export interface HybridAiCreditCosts {
   mega: number
 }
 
+export interface ReferralConfig {
+  referralsPerCredit: number
+  enabled: boolean
+}
+
 export interface BillingSettings {
   hybridAiCreditCosts: HybridAiCreditCosts
+  referralConfig: ReferralConfig
   plans: BillingPlan[]
+  levels?: CustomerLevel[]
+  discountRules?: DiscountRule[]
+}
+
+type CustomerLevel = {
+  id: string
+  name: string
+  minInteractions: number
+  minPageVisits: number
+  minUploads: number
+  minCreditsUsed: number
+  minLogins: number
+  creditReward: number
+}
+
+type DiscountRule = {
+  id: string
+  type: "free" | "percentage" | "referral" | "stacking"
+  name: string
+  code: string
+  percent?: number
+  description: string
+  enabled: boolean
 }
 
 const STORE_DIR = process.env.BILLING_SETTINGS_STORE_DIR || "/tmp/useclevr-billing"
@@ -22,7 +51,22 @@ export const defaultBillingSettings: BillingSettings = {
     standard: 12,
     mega: 35,
   },
+  referralConfig: {
+    referralsPerCredit: 5,
+    enabled: true,
+  },
   plans: billingPlans,
+  levels: [
+    { id: "1", name: "Explorer", minInteractions: 1,  minPageVisits: 1,  minUploads: 0, minCreditsUsed: 0, minLogins: 1, creditReward: 1 },
+    { id: "2", name: "Analyst",   minInteractions: 5,  minPageVisits: 3,  minUploads: 1, minCreditsUsed: 2, minLogins: 3, creditReward: 2 },
+    { id: "3", name: "Strategist",minInteractions: 15, minPageVisits: 8,  minUploads: 3, minCreditsUsed: 5, minLogins: 7, creditReward: 5 },
+    { id: "4", name: "Expert",    minInteractions: 40, minPageVisits: 20, minUploads: 8, minCreditsUsed: 15, minLogins: 15, creditReward: 10 },
+    { id: "5", name: "Champion",  minInteractions: 100,minPageVisits: 50, minUploads: 20,minCreditsUsed: 40,minLogins: 30, creditReward: 20 },
+  ],
+  discountRules: [
+    { id: "1", type: "percentage", name: "Pro Annual Discount", code: "ANNUAL20", percent: 17, description: "17 % off annual billing for Pro.", enabled: true },
+    { id: "2", type: "referral",   name: "Referral Reward",   code: "REFERRAL",  percent: 100, description: "Free month per successful referral.", enabled: true },
+  ],
 }
 
 function sanitizePlan(plan: BillingPlan): BillingPlan {
@@ -51,7 +95,13 @@ function mergeSettings(input: Partial<BillingSettings>): BillingSettings {
       standard: Math.max(0, Number(input.hybridAiCreditCosts?.standard) || defaultBillingSettings.hybridAiCreditCosts.standard),
       mega: Math.max(0, Number(input.hybridAiCreditCosts?.mega) || defaultBillingSettings.hybridAiCreditCosts.mega),
     },
+    referralConfig: {
+      referralsPerCredit: Math.max(1, Math.floor(Number(input.referralConfig?.referralsPerCredit) || defaultBillingSettings.referralConfig.referralsPerCredit)),
+      enabled: input.referralConfig?.enabled !== undefined ? Boolean(input.referralConfig.enabled) : defaultBillingSettings.referralConfig.enabled,
+    },
     plans,
+    levels: Array.isArray(input.levels) ? input.levels : defaultBillingSettings.levels,
+    discountRules: Array.isArray(input.discountRules) ? input.discountRules : defaultBillingSettings.discountRules,
   }
 }
 

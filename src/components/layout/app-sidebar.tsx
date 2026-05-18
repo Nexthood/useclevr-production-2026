@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift, Building2, ReceiptText, HelpCircle, Ticket, ShieldCheck } from "lucide-react"
+import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift, Building2, ReceiptText, HelpCircle, Ticket, ShieldCheck, Users, Award, Tag } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor } from "@/components/ui/usage-monitor"
@@ -61,7 +61,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-3">
-          {[...navigation, ...(user.role === "superadmin" ? [{ name: "Super-admin FAQ", href: "/app/admin/faq", icon: ShieldCheck }] : [])].map((item) => {
+          {[...navigation, ...(user.role === "superadmin"
+            ? [
+                { name: "Super-admin FAQ", href: "/app/admin/faq", icon: ShieldCheck },
+                { name: "Customers", href: "/app/admin/customers", icon: Users },
+                { name: "Customer Levels", href: "/app/admin/levels", icon: Award },
+                { name: "Discount Rules", href: "/app/admin/discounts", icon: Tag },
+              ]
+            : [])].map((item) => {
             const isActive = pathname === item.href
             return (
               <Link
