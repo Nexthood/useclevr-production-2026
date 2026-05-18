@@ -1,3 +1,5 @@
+"use client"
+
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"

@@ -8,6 +8,7 @@ import { getBillingSettings } from "@/lib/billing/settings-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { Ticket } from "lucide-react"
 
 type BusinessCompletion = {
   percent: number
@@ -43,6 +44,13 @@ export default async function Topbar() {
       <div className="flex w-full items-center justify-end">
         <div className="flex items-center gap-3">
           <HybridAiButton subscriptionTier={usage.subscriptionTier} hybridAiCreditCosts={billingSettings.hybridAiCreditCosts} />
+          <Link
+            href="/app/tickets"
+            className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15 dark:text-cyan-100"
+          >
+            <Ticket className="h-3.5 w-3.5" />
+            <span>Tickets / Issues</span>
+          </Link>
           <Link
             href="/pricing"
             className="hidden items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-50 sm:flex dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
@@ -111,4 +119,3 @@ async function loadBusinessCompletion(userId: string | null): Promise<BusinessCo
     return { percent: 0, label: "0%" }
   }
 }
-

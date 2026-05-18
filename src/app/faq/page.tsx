@@ -1,3 +1,5 @@
+"use client"
+
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"

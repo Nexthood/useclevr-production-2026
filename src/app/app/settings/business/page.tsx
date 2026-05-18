@@ -3,13 +3,12 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { updateBusinessDetails } from "@/app/actions/settings"
-import { Building2, Info, Percent, Save } from "lucide-react"
+import { Building2, Percent, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
-import { auth } from "@/lib/auth"
 
 type BusinessDetails = {
   businessName: string
@@ -40,7 +39,6 @@ function completionPercent(details: BusinessDetails): number {
 export default function BusinessSettingsPage() {
   const router = useRouter()
   const { showNotice } = useNotice()
-  const [isLoading, setIsLoading] = React.useState(true)
   const [details, setDetails] = React.useState<BusinessDetails>({
     businessName: "",
     businessEmail: "",
@@ -54,26 +52,22 @@ export default function BusinessSettingsPage() {
   React.useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const session = await auth()
-      if (!cancelled && session?.user?.id) {
-        try {
-          const res = await fetch("/api/me/business", { cache: "no-store" })
-          if (res.ok) {
-            const data = await res.json()
-            if (data.details && !cancelled) {
-              setDetails({
-                businessName:        data.details.businessName ||        "",
-                businessEmail:       data.details.businessEmail ||       "",
-                industry:            data.details.industry ||            "",
-                location:            data.details.location ||            "",
-                website:             data.details.website ||             "",
-                businessDescription: data.details.businessDescription || "",
-              })
-            }
+      try {
+        const res = await fetch("/api/me/business", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.details && !cancelled) {
+            setDetails({
+              businessName:        data.details.businessName ||        "",
+              businessEmail:       data.details.businessEmail ||       "",
+              industry:            data.details.industry ||            "",
+              location:            data.details.location ||            "",
+              website:             data.details.website ||             "",
+              businessDescription: data.details.businessDescription || "",
+            })
           }
-        } catch { /* best effort */ }
-      }
-      if (!cancelled) setIsLoading(false)
+        }
+      } catch { /* best effort */ }
     })()
     return () => { cancelled = true }
   }, [])

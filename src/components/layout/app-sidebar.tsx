@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift, Building2, ReceiptText } from "lucide-react"
+import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift, Building2, ReceiptText, HelpCircle, Ticket, ShieldCheck } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor } from "@/components/ui/usage-monitor"
@@ -17,6 +17,8 @@ const navigation = [
   // The "Ask AI" button is available on each dataset's analysis page
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Referral", href: "/app/referral", icon: Gift },
+  { name: "Tickets & Issues", href: "/app/tickets", icon: Ticket },
+  { name: "FAQ", href: "/app/faq", icon: HelpCircle },
 ]
 
 type AppSidebarProps = {
@@ -59,7 +61,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-3">
-          {navigation.map((item) => {
+          {[...navigation, ...(user.role === "superadmin" ? [{ name: "Super-admin FAQ", href: "/app/admin/faq", icon: ShieldCheck }] : [])].map((item) => {
             const isActive = pathname === item.href
             return (
               <Link

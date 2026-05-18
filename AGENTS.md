@@ -111,7 +111,10 @@ When writing or editing `CHANGELOG.md`:
 
 - Every entry must describe an **active change** — something added, fixed, changed, or removed in that release. Never write entries that only describe what was retained, preserved, or left unchanged.
 - Use plain, user-facing language. Active voice: "Exports now include attachments" not "Attachment export support has been added".
-- Describe what the user observes or benefits from. Do not mention internal identifiers, environment variable names, or file paths.
+- Describe what the user observes or benefits from. Explain why the change matters, not how the code is implemented.
+- Do not mention function names, file names, internal identifiers, route handler names, package names, environment variable names, CI filenames, or source paths.
+- Avoid developer-only wording unless the section is `### Dev`; even there, describe the practical maintenance or deployment benefit.
+- Use product and business language: "Support can resolve customer tickets from the dashboard" instead of "Added ticket-store API route".
 - Documentation-only edits, README updates, and planning notes do not belong in the changelog.
 - CI, test tooling, and refactor changes with no user-visible effect belong under `### Dev` only.
 - Section headers per release: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Dev`. Include only sections with entries.

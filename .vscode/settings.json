@@ -91,5 +91,12 @@
     "plaintext": false,
     "markdown": false
   },
-  "kilo-code.new.autoApprove.enabled": true
+  "kilo-code.new.autoApprove.enabled": true,
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.profiles.linux": {
+    "bash": {
+      "path": "bash",
+      "args": ["-i"]
+    }
+  }
 }

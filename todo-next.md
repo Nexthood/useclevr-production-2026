@@ -15,7 +15,7 @@ Last updated: 2026-05-18
 - [ ] **Add `uniqueIndex('Profile_stripeCustomerId_key')` to `profiles` table in `schema.ts`** — without it, `findFirst` silently returns whichever matching row the planner picks first. Collisions are unlikely but possible during re-onboarding, which silently breaks subscription sync.
 - [ ] **Rename `stripePriceId` → `stripePriceIds: Record<string, string | null>`** — currently only one price per user is stored. A user who upgrades from Pro to Business will shadow the old `stripePriceId`, making the previous subscription look like the current one. Consider a 1-to-many approach, or add a `subscriptionTierStripeStatus` lookup.
 - [ ] **Add `stripeCurrentPeriodEnd` null-guard on `customer.subscription.deleted`** — `updatedAt` is always written even on deletion. On cancel/delete, explicitly null `stripeCurrentPeriodEnd` so the billing expiry field is accurate after the subscription ends.
-- [ ] **Audit `subscription/page.tsx` line 78** — `filter(plan => plan.id !== "pro_annual")` excludes the annual plan from the upgrade card list, contradicting the footer *"Annual Pro discounts are applied automatically."* – decide whether to keep `pro_annual` in the visible card list or rewrite the footer.
+- [ ] **Audit `subscription/page.tsx` line 78** — `filter(plan => plan.id !== "pro_annual")` excludes the annual plan from the upgrade card list, contradicting the footer _"Annual Pro discounts are applied automatically."_ – decide whether to keep `pro_annual` in the visible card list or rewrite the footer.
 - [ ] **Chargebee/RevenueCat compatibility layer** — if the business wants to support a second billing provider in parallel with Stripe, refactor `src/services/stripe/*` behind a `BillingAdapter` interface so checkout, webhooks, and confirm routes work with any provider.
 - [ ] **Deduplicate homepage `FaqAccordion` vs `app/faq/page.tsx`** — both files export a duplicate accordion component. Move `FaqAccordion` to `src/lib/content/faq.ts` and import it from both pages to avoid behavioural drift.
 
@@ -85,13 +85,13 @@ Last updated: 2026-05-18
 
 ### Recommended approach: Content Collections (`src/lib/content/`) + sanity.io
 
-| Layer | Choice | Why |
-|---|---|---|
-| **Storage** | [Sanity.io](https://sanity.io) (free tier for small sites) | Structured content via GROQ, has a free hosted Studio (admin UI) |
-| **Data fetching** | `lib/content/page-faq.ts` → fetch `/_doc(s)?` from Sanity on request | Already structured as `FaqCategory[] { category, items[] }` — zero schema changes needed; Sanity types map 1-1 |
-| **Admin UI** | Sanity Studio (configured once in `sanity.config.ts`) | Runs on `/studio` route inside the same Next.js app; non-technical staff can add/edit/delete FAQ items |
-| **Static fallback** | `static/faq.json` current file becomes a local snapshot fallback | if Sanity is down, fall back to local file with a single import change |
-| **Deploy** | Free — runs on same Vercel/Railway instance | No external service costs |
+| Layer               | Choice                                                               | Why                                                                                                            |
+| ------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Storage**         | [Sanity.io](https://sanity.io) (free tier for small sites)           | Structured content via GROQ, has a free hosted Studio (admin UI)                                               |
+| **Data fetching**   | `lib/content/page-faq.ts` → fetch `/_doc(s)?` from Sanity on request | Already structured as `FaqCategory[] { category, items[] }` — zero schema changes needed; Sanity types map 1-1 |
+| **Admin UI**        | Sanity Studio (configured once in `sanity.config.ts`)                | Runs on `/studio` route inside the same Next.js app; non-technical staff can add/edit/delete FAQ items         |
+| **Static fallback** | `static/faq.json` current file becomes a local snapshot fallback     | if Sanity is down, fall back to local file with a single import change                                         |
+| **Deploy**          | Free — runs on same Vercel/Railway instance                          | No external service costs                                                                                      |
 
 ### Migration steps (estimate: 4–6 hours)
 

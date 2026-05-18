@@ -69,6 +69,38 @@ export const allFaqCategories: FaqCategory[] = [
         q: "Can I get a custom business plan?",
         a: "Yes. The Business / Custom plan starts at €420/month and scales with your needs. Contact sales@useclevr.com for custom pricing, private SLAs, or on-premise deployment.",
       },
+      {
+        q: "Will I be charged on my billing day?",
+        a: "Yes. Subscriptions renew automatically on the scheduled billing date.",
+      },
+      {
+        q: "Do I need to log in or visit the site for renewal?",
+        a: "No. Renewals happen automatically through the payment provider.",
+      },
+      {
+        q: "What if my card is expired or declined?",
+        a: "The payment provider retries the payment and usually emails you to update payment details.",
+      },
+      {
+        q: "I paid but do not have access. What do I do?",
+        a: "Open a support ticket with your transaction ID or receipt so support can restore access.",
+      },
+      {
+        q: "Will I receive invoices or receipts?",
+        a: "Yes. Receipts and invoices are emailed and may also be available from your account or payment portal.",
+      },
+      {
+        q: "How do I get a refund?",
+        a: "Contact support to request a refund. Processing time depends on the payment provider and card issuer.",
+      },
+      {
+        q: "I see an unexpected charge. What now?",
+        a: "Check your account and subscription details first, then contact support. Contact your card issuer if the charge looks unauthorized.",
+      },
+      {
+        q: "Are my payment details secure?",
+        a: "Payment details are handled by secure payment providers. UseClevr does not store full card numbers.",
+      },
     ],
   },
   {
