@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  source-quality:
-    name: Source quality checks
+  validate-source-and-build:
+    name: Validate source and production build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -24,20 +24,6 @@ jobs:
       - run: pnpm validate:dist
       - run: pnpm lint
       - run: pnpm test:all
-
-  production-build:
-    name: Production build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v5
-        with:
-          version: 11.1.2
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "26.x"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
       - run: pnpm build
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci

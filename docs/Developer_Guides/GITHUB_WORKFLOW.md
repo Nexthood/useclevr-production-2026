@@ -60,19 +60,20 @@ It runs on:
 - Pushes to `main`
 - Pull requests targeting `main`
 
-The required branch-rule checks are:
+The required branch-rule check is:
 
-- `fast`
-- `full`
+- `Validate source and production build`
 
-`fast` runs type validation, dist config validation, lint, and tests.
-`full` runs the production Next.js build after `fast` succeeds.
+This one check protects `main`, because `main` generates the production `dist` branch. It installs
+dependencies, runs type validation, verifies dist config, runs lint and tests, then proves Next.js can
+compile the app for Railway.
 
 ### Deployment Workflow
 
-The `.github/workflows/dist-publish.yml` workflow handles deployment:
+The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance:
 
 - Triggers on push to `main` (not PRs)
+- Syncs `beta` with `main`
 - Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
 - Runs `pnpm prod:build` to create the dist output
 - **Uses `git checkout --orphan` to create a fresh branch** (since dist should contain only generated output)
@@ -89,7 +90,7 @@ Recommended safe setup:
 | --- | --- |
 | Require PR before merging | ✅ Yes |
 | Require status checks to pass | ✅ Yes |
-| Required checks | `fast`, `full` |
+| Required checks | `Validate source and production build` |
 | Require branches up to date | ❌ Optional, not needed solo |
 | Auto-merge | ✅ Yes |
 | Block deletion | ✅ Yes |
@@ -145,10 +146,9 @@ Ruleset:
 - Target: `refs/heads/main`
 - Enforcement: active
 
-Required status checks:
+Required status check:
 
-- `fast`
-- `full`
+- `Validate source and production build`
 
 Keep strict status checks enabled so pull requests must be up to date before merge.
 
@@ -245,6 +245,7 @@ If the selector is empty:
 1. Confirm `.github/workflows/ci.yml` exists on `main`.
 2. Open a small pull request targeting `main`.
 3. Wait for the workflow to run.
-4. Return to the ruleset and select `fast` and `full`.
+4. Return to the ruleset and select `Validate source and production build`.
 
-The check names may appear as either `fast` and `full` or as `CI / fast` and `CI / full`, depending on the GitHub settings page.
+The check name may appear as either `Validate source and production build` or
+`Validate Source / Validate source and production build`, depending on the GitHub settings page.

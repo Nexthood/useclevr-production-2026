@@ -124,7 +124,7 @@ When writing or editing `CHANGELOG.md`:
 
 ## CI / Railway dist files
 
-Railway deploys `dist/` as the project root. Build is a two-phase pipeline with only one failing-cross-check — the `fast` CI validates it without touching `.next`.
+Railway deploys `dist/` as the project root. Build is a two-phase pipeline with one required source check before deployment output is published.
 
 ### Build pipeline
 
@@ -149,7 +149,7 @@ pnpm prod:build                     (build phase — one-shot)
 | `scripts/dist/create-dist.cjs` | Generates `dist/package.json`, copies schema, `railway.json`, assets. Only place dist is assembled. |
 | `scripts/ci/sync-railway-config.cjs` | Copies `ci-settings/railway.dist.json` → `dist/railway.json`. Run it — not the opposite direction. |
 
-### dist validation gate (runs in CI `fast` job)
+### dist validation gate (runs in CI source validation)
 
 ```
 pnpm validate:dist   →  node scripts/ci/sync-railway-config.cjs --check

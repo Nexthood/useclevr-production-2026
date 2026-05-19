@@ -79,7 +79,7 @@ docs/            Project documentation
   Developer_Guides/
   User_Guides/
 
-.github/workflows/ci.yml   CI pipeline (fast, full, docs-only)
+.github/workflows/ci.yml   CI pipeline (source validation, production build, docs-only)
 ```
 
 ## Environment Variables
@@ -179,8 +179,7 @@ All commands are run from `pnpm`.
 
 | Command           | Description                        |
 | ----------------- | ---------------------------------- |
-| `pnpm ci:fast`    | `validate:types` + `validate:dist` |
-| `pnpm ci:full`    | `validate` + `prod:build`          |
+| `pnpm ci:validate` | Types + dist check + lint + tests + production build |
 | `pnpm ci:railway` | Sync Railway config                |
 
 ### Audit & Dependencies
@@ -248,10 +247,8 @@ pnpm lint                     # must be clean
 pnpm test:all                 # must pass
 ```
 
-GitHub Actions CI runs these checks automatically (`fast` job). The `full` job runs after the fast
-job passes and executes `pnpm build`.
-
-Markdown and docs-only changes skip CI (`paths-ignore`) unless a workflow also touches source files.
+GitHub Actions CI runs one required source check automatically: `Validate source and production build`.
+It type-checks, validates dist config, lints, runs tests, and executes `pnpm build`.
 
 ## Quick Checks
 
@@ -314,16 +311,12 @@ pnpm dev
 
 Workflow file: `.github/workflows/ci.yml`
 
-On every push to `main` and every PR, three jobs run:
+On every push to `main` and every PR, the required job runs:
 
-| Job    | Runs       | Steps                          |
-| ------ | ---------- | ------------------------------ |
-| `fast` | Always     | types, dist-check, lint, tests |
-| `full` | After fast | full `pnpm build`              |
-| `docs` | PR only    | `pnpm docs:check`              |
-
-Doc-only files (`.md`, `docs/`, `CHANGELOG.md`) are excluded from type and build CI runs but still
-trigger the `docs` job on PRs.
+| Job | Runs | Steps |
+| --- | --- | --- |
+| `Validate source and production build` | Always | types, dist-check, lint, tests, production build |
+| `Documentation checks` | PR only | `pnpm docs:check` |
 
 ## Security
 
