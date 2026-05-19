@@ -94,7 +94,11 @@ jobs:
           if [ -d "dist-root" ]; then
             cp dist-root/.gitignore dist-branch/
             cp dist-root/README.md dist-branch/
-            cp dist-root/railway.json dist-branch/
+          fi
+
+          # Copy railway.json into the generated dist folder so it ends up inside dist-branch/dist/
+          if [ -f "dist-root/railway.json" ]; then
+            cp dist-root/railway.json dist/
           fi
 
           cd dist-branch
