@@ -1,12 +1,14 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { datasets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { analyzeCSV, DatasetRecord, CSVAnalysisResult } from "@/lib/data/csv-analyzer";
-import { analyzeDataset, DatasetAnalysis, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
+import { analyzeCSV } from "@/lib/data/csv-analyzer";
+import type { DatasetRecord, CSVAnalysisResult } from "@/lib/data/csv-analyzer";
+import { analyzeDataset, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
+import type { DatasetAnalysis } from "@/lib/data/dataset-analyzer";
 import { detectBusinessColumns, analyzeBusinessData } from "@/lib/business/business-columns";
 
 // ============================================================================
@@ -142,7 +144,6 @@ export async function POST(
 
     // Allow anonymous access for testing
     const isDemoMode = process.env.DEMO_MODE === "true" || !userId;
-    const effectiveUserId = userId || "demo-user";
 
     if (!userId && !isDemoMode) {
       return NextResponse.json<ErrorResponse>(

@@ -1,40 +1,17 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog as _debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/public/ai/route.ts
 // UseClevr AI Data API - External application access
 // Endpoints: analyze, investigate, predict, compare
 
 import { NextResponse } from 'next/server';
-import { validateAPIKey, hasAPIPermission } from '@/lib/auth/api-key-auth';
 import { investigateDataset } from '@/lib/utils/investigation-autopilot';
 import { generatePredictions } from '@/lib/business/predictive-engine';
 import { compareDatasets } from '@/lib/data/dataset-comparator';
-import { buildDatasetIntelligence, DatasetRecord } from '@/lib/data/dataset-intelligence';
+import { buildDatasetIntelligence } from '@/lib/data/dataset-intelligence';
+import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
 import { generateSQLQuery } from '@/lib/ai/ai-query-generator';
 import { executeDuckDBQuery } from '@/lib/utils/investigation-autopilot';
-
-// ============================================================================
-// AUTHENTICATION
-// ============================================================================
-
-async function authenticateRequest(request: Request, requiredPermission: string) {
-  const apiKey = request.headers.get('x-api-key');
-  
-  if (!apiKey) {
-    return { error: 'API key required. Include "x-api-key" header.', status: 401 };
-  }
-  
-  const key = await validateAPIKey(apiKey);
-  if (!key) {
-    return { error: 'Invalid API key', status: 401 };
-  }
-  
-  if (!hasAPIPermission(key, requiredPermission)) {
-    return { error: 'Insufficient permissions', status: 403 };
-  }
-  
-  return { key, error: null };
-}
 
 // ============================================================================
 // MAIN ROUTER
@@ -86,8 +63,8 @@ async function handleAnalyze(body: { action: string; dataset: unknown[]; questio
   let results: Record<string, unknown>[] = [];
   try {
     results = executeDuckDBQuery(sql, dataset as Record<string, unknown>[]);
-  } catch (e) {
-    debugWarn('[AI-API] Query execution failed:', e);
+  } catch {
+    // Query failed, return empty results
   }
   
   return NextResponse.json({

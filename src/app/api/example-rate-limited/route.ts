@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog as _debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 import { checkRateLimit } from '@/lib/utils/rate-limiter'
 import { NextResponse, type NextRequest } from 'next/server'
@@ -24,8 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Your endpoint logic here
-    const body = await request.json()
-    // ... handle request ...
+    await request.json()
 
     return NextResponse.json({ success: true })
   } catch (error) {

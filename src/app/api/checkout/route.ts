@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
 
 export async function POST(request: NextRequest) {
