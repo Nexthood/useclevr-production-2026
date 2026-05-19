@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/predict/route.ts
 // Predictive Insight Engine - detect trends and generate forward-looking insights

@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog as _debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/insight/route.ts
 import { NextResponse } from 'next/server';

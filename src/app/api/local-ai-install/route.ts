@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 /**
  * UseClevr AI MEGA Installer
@@ -8,8 +8,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  */
 
 import { NextResponse } from 'next/server';
-import { exec, spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -24,7 +23,7 @@ let installationStatus: 'idle' | 'checking' | 'installing' | 'ready' | 'error' =
 let installationProgress = '';
 let installationError = '';
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   debugLog('[INSTALLER] Starting AI engine installation...');
   
   try {
@@ -245,11 +244,11 @@ async function startLocalAIService(): Promise<{ success: boolean; error?: string
   try {
     // The bridge server should be started separately
     // Here we just verify Ollama is accessible
-    const { stdout } = await execAsync('ollama list');
+    await execAsync('ollama list');
     debugLog('[INSTALLER] Ollama is running and has models');
     
     return { success: true };
-  } catch (error: any) {
+  } catch {
     return { success: false, error: 'Could not start Ollama. Please start it manually: ollama serve' };
   }
 }

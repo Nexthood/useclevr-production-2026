@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 /**
  * Download Report API Route
@@ -8,11 +8,11 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * POST: Generate CSV from analysis data (legacy)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getReport } from '@/lib/reports/report-generator'
-import type { Report, ReportChart } from '@/lib/reports/report-generator'
+import type { Report } from '@/lib/reports/report-generator'
 import * as fs from 'fs'
-import * as path from 'path'
 
 // GET handler - Download a specific report by ID
 export async function GET(request: NextRequest) {
@@ -38,11 +38,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Default to PDF if available
-    const usePdf = format === 'pdf' || format === 'csv';
-    
-    // Check if PDF exists
-    if (report.pdfPath && fs.existsSync(report.pdfPath)) {
+// Check if PDF exists
+     if (report.pdfPath && fs.existsSync(report.pdfPath)) {
       const fileBuffer = fs.readFileSync(report.pdfPath)
       const filename = report.pdfFilename || `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.pdf`
       
