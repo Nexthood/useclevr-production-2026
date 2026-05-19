@@ -98,7 +98,7 @@ jobs:
 
           # Copy railway.json into the generated dist folder so it ends up inside dist-branch/dist/
           if [ -f "dist-root/railway.json" ]; then
-            cp dist-root/railway.json dist/
+            cp dist-root/railway.json dist-branch/dist/
           fi
 
           cd dist-branch
