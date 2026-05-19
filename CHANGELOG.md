@@ -11,6 +11,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Deployment automation now syncs the test branch before publishing generated Railway output, while
   keeping source branches free of committed build artefacts.
+- Deployment output now installs runtime dependencies directly on Railway and keeps the deployment
+  branch root free of generated framework files.
 
 ## [7.1.0] - 2026-05-18
 
