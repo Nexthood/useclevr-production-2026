@@ -85,6 +85,15 @@
 - Free tier users see Pro and Business plan options inside the hybrid AI popup, guiding them to
   checkout with a single click.
 
+### Release & Deployment
+
+- Developers can test source changes on a beta branch before opening a pull request into the stable
+  branch.
+- Platform operators receive deployments from generated production output without requiring local
+  build files to be committed to source branches.
+- The hosting platform deploys from generated output while keeping runtime secrets in the hosting
+  environment.
+
 ### Reference Files
 
 - Terms & Conditions are at `https://useclevr.com/terms`

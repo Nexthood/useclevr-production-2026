@@ -16,7 +16,7 @@ pnpm dev
 | GitHub | Repository hosting, pull requests, rulesets, and Actions | Yes | Developers need repository access before they can push branches or review PRs. |
 | Node.js 26.x | Local development, CI, and Railway runtime | No | Use the version declared by the project. |
 | pnpm 11.1.2 or newer | Dependency install and project scripts | No | Enable through Corepack or install locally. |
-| Railway | Production hosting from the `dist` branch | Yes | Holds deployment settings and runtime environment variables. |
+| Railway | Production hosting from the `dist` branch `/dist` folder | Yes | Holds deployment settings and runtime environment variables. |
 | Neon PostgreSQL | Application database | Yes | Required for persisted app data and Drizzle schema operations. |
 | Gemini API | Cloud AI features through the AI SDK | Yes | Requires a Google AI Studio or Google Cloud account and API key. |
 | Auth.js / NextAuth | Authentication runtime | No | Requires local secrets, but no separate hosted account. |
@@ -79,7 +79,8 @@ docs/            Project documentation
   Developer_Guides/
   User_Guides/
 
-.github/workflows/ci.yml   CI pipeline (fast, full, docs-only)
+.github/workflows/ci.yml                 CI pipeline (source validation, production build, docs-only)
+.github/workflows/branch-maintenance.yml Sync beta and publish generated Railway output
 ```
 
 ## Environment Variables
@@ -179,8 +180,7 @@ All commands are run from `pnpm`.
 
 | Command           | Description                        |
 | ----------------- | ---------------------------------- |
-| `pnpm ci:fast`    | `validate:types` + `validate:dist` |
-| `pnpm ci:full`    | `validate` + `prod:build`          |
+| `pnpm ci:validate` | Types + dist check + lint + tests + production build |
 | `pnpm ci:railway` | Sync Railway config                |
 
 ### Audit & Dependencies
@@ -248,10 +248,8 @@ pnpm lint                     # must be clean
 pnpm test:all                 # must pass
 ```
 
-GitHub Actions CI runs these checks automatically (`fast` job). The `full` job runs after the fast
-job passes and executes `pnpm build`.
-
-Markdown and docs-only changes skip CI (`paths-ignore`) unless a workflow also touches source files.
+GitHub Actions CI runs one required source check automatically: `Validate source and production build`.
+It type-checks, validates dist config, lints, runs tests, and executes `pnpm build`.
 
 ## Quick Checks
 
@@ -314,16 +312,12 @@ pnpm dev
 
 Workflow file: `.github/workflows/ci.yml`
 
-On every push to `main` and every PR, three jobs run:
+On every push to `main` and every PR, the required job runs:
 
-| Job    | Runs       | Steps                          |
-| ------ | ---------- | ------------------------------ |
-| `fast` | Always     | types, dist-check, lint, tests |
-| `full` | After fast | full `pnpm build`              |
-| `docs` | PR only    | `pnpm docs:check`              |
-
-Doc-only files (`.md`, `docs/`, `CHANGELOG.md`) are excluded from type and build CI runs but still
-trigger the `docs` job on PRs.
+| Job | Runs | Steps |
+| --- | --- | --- |
+| `Validate source and production build` | Always | types, dist-check, lint, tests, production build |
+| `Documentation checks` | PR only | `pnpm docs:check` |
 
 ## Security
 
@@ -341,7 +335,7 @@ guidelines.
 | AI fail      | `GEMINI_API_KEY`, restart dev server         |
 | Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
 | DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL mode       |
-| Railway fail | env vars, `/api/health`, `dist/railway.json` |
+| Railway fail | env vars, `/api/health`, generated Railway config |
 
 ## Deployment
 
@@ -352,7 +346,7 @@ pnpm prod:start
 ```
 
 - Deploy root: `dist/`
-- Commit `dist/railway.json`
+- Do not commit generated `dist/` output from source branches
 - Template: `ci-settings/railway.dist.json`
 
 ### Railway Environment
@@ -382,7 +376,7 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- `dist/railway.json` committed
+- Generated Railway config comes from `ci-settings/railway.dist.json`
 - No secrets in Docker image or logs
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
 

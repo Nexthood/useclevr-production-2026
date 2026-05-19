@@ -124,19 +124,20 @@ When writing or editing `CHANGELOG.md`:
 
 ## CI / Railway dist files
 
-Railway deploys `dist/` as the project root. Build is a two-phase pipeline with only one failing-cross-check — the `fast` CI validates it without touching `.next`.
+Railway deploys the generated `dist/` output from the `dist` branch `/dist` folder. Build is a
+two-phase pipeline with one required source check before generated output is published.
 
 ### Build pipeline
 
 ```
-CI / local (repo root)              Railway (dist container)
+CI / local (repo root)              Railway (dist branch, /dist root)
 ─────────────────                   ──────────────────────
 pnpm prod:build                     (build phase — one-shot)
   └ next build --webpack            pnpm build
   └ create-dist.cjs                 pnpm exec drizzle-kit push
      → .next/standalone + static     node server.js
      → dist/server.js
-     → dist/package.json             (no scripts build here)
+     → dist/package.json             (no full source build here)
      → dist/railway.json
      → dist/src/lib/db/ (schema)
 ```
@@ -149,21 +150,23 @@ pnpm prod:build                     (build phase — one-shot)
 | `scripts/dist/create-dist.cjs` | Generates `dist/package.json`, copies schema, `railway.json`, assets. Only place dist is assembled. |
 | `scripts/ci/sync-railway-config.cjs` | Copies `ci-settings/railway.dist.json` → `dist/railway.json`. Run it — not the opposite direction. |
 
-### dist validation gate (runs in CI `fast` job)
+### dist validation gate (runs in CI source validation)
 
 ```
 pnpm validate:dist   →  node scripts/ci/sync-railway-config.cjs --check
 ```
 
-Fails if `dist/railway.json` ≠ `ci-settings/railway.dist.json`.
+Checks `ci-settings/railway.dist.json` directly on source branches. If local `dist/railway.json`
+exists, it also fails when generated config differs from the source-of-truth file.
 
 ### Do / Do not
 
 - **Do** edit `ci-settings/railway.dist.json` for CI config changes, then run `node scripts/ci/sync-railway-config.cjs`.
-- **Do** regenerate `dist/` with `pnpm prod:build` after any change that needs a deploy preview.
+- **Do** regenerate local `dist/` with `pnpm prod:build` after any change that needs a deploy preview.
 - **Do not** run `pnpm build` from inside `dist/`. The build command (`pnpm prod:build`) runs from the repo root — `dist/` has no `build` script and no parent `package.json`.
 - **Do not** hand-edit files in `dist/`. They are generated. Regenerate them.
-- **Do not** `git add dist/` when preparing a PR. `dist/` is `.gitignore`-ed; CI regenerates it.
+- **Do not** `git add dist/` when preparing a PR. `dist/` is `.gitignore`-ed on source branches; CI
+  regenerates it and publishes it to the deployment branch.
 
 ### Why `dist/` changes on every build regardless of source
 

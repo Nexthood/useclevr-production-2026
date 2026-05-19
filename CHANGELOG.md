@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Dev
+
+- Deployment automation now syncs the test branch before publishing generated Railway output, while
+  keeping source branches free of committed build artefacts.
+
 ## [7.1.0] - 2026-05-18
 
 ### Added

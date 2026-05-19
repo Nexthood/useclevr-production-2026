@@ -24,7 +24,7 @@ import { isBuiltinUserId } from "@/lib/auth/builtin-users";
 import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
-import { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
+import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { generateText } from "ai";
@@ -347,7 +347,7 @@ export async function POST(request: Request) {
       debugLog('[ANALYZE] Checking AI availability...');
 
       // Import the new AI router that supports hybrid cloud + local
-      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, isLocalAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai/ai-router');
+      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai/ai-router');
 
       // Check both cloud and local availability
       // Gate local only if user opted into Hybrid and verified model

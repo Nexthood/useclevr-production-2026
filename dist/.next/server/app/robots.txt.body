@@ -1,8 +1,0 @@
-User-Agent: *
-Allow: /
-Disallow: /app
-Disallow: /app/
-Disallow: /api
-Disallow: /api/
-
-Sitemap: https://useclevr.com/sitemap.xml
