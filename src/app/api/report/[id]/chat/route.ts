@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/report/[id]/chat/route.ts
 // Interactive AI chat for report pages - only uses report snapshot context

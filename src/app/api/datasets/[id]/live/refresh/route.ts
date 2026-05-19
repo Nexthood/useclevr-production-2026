@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/live/refresh/route.ts
 // Trigger manual refresh for live data

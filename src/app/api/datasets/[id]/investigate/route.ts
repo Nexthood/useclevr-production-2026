@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/datasets/[id]/investigate/route.ts
 // AI Investigation Autopilot - automatically analyze dataset and generate findings

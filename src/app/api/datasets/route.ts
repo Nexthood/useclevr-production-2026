@@ -30,7 +30,7 @@ export async function GET() {
     })
 
     return NextResponse.json({ datasets: userDatasets })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

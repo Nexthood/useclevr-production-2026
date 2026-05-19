@@ -1,6 +1,6 @@
 "use client"
 
-import { debugWarn } from "@/lib/utils/debug"
+import { debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 type Props = {
   // Optional extra classes; responsive height ensures readability
@@ -23,35 +23,35 @@ export function Logo({ className = "h-12 w-auto" }: Props) {
         ].join(" ")}
         loading="eager"
         decoding="async"
-        onError={() => {
-          // Helps diagnose missing asset issues without altering UX
-          if (typeof window !== "undefined") {
-            debugWarn(
-              "Logo asset missing: /assets/images/logos/useclevr-wordmark-dark.png. Place it in assets/images/logos with transparent background (black wordmark for light mode)."
-            )
-          }
-        }}
-      />
+onError={() => {
+           // Helps diagnose missing asset issues without altering UX
+           if (typeof window !== "undefined") {
+             _debugWarn(
+               "Logo asset missing: /assets/images/logos/useclevr-wordmark-dark.png. Place it in assets/images/logos with transparent background (black wordmark for light mode)."
+             )
+           }
+         }}
+       />
 
-      {/* Dark mode: LIGHT/white wordmark */}
-      <img
-        src="/assets/images/logos/useclevr-wordmark-light.png"
-        alt="UseClevr logo"
-        className={[
-          // Swap in dark mode without layout shift; same sizing classes
-          "hidden dark:block select-none pointer-events-none align-middle",
-          className,
-        ].join(" ")}
-        loading="eager"
-        decoding="async"
-        onError={() => {
-          if (typeof window !== "undefined") {
-            debugWarn(
-              "Logo asset missing: /assets/images/logos/useclevr-wordmark-light.png. Place it in assets/images/logos with transparent background (white wordmark for dark mode)."
-            )
-          }
-        }}
-      />
+       {/* Dark mode: LIGHT/white wordmark */}
+       <img
+         src="/assets/images/logos/useclevr-wordmark-light.png"
+         alt="UseClevr logo"
+         className={[
+           // Swap in dark mode without layout shift; same sizing classes
+           "hidden dark:block select-none pointer-events-none align-middle",
+           className,
+         ].join(" ")}
+         loading="eager"
+         decoding="async"
+         onError={() => {
+           if (typeof window !== "undefined") {
+             _debugWarn(
+               "Logo asset missing: /assets/images/logos/useclevr-wordmark-light.png. Place it in assets/images/logos with transparent background (white wordmark for dark mode)."
+             )
+           }
+         }}
+       />
     </div>
   )
 }

@@ -90,36 +90,12 @@ jobs:
           rm -rf dist-branch/dist/.cache
           rm -rf dist-branch/dist/cache
 
-          cat > dist-branch/.gitignore <<'EOF'
-          .env
-          .env.*
-          node_modules/
-          .next/
-          .cache/
-          cache/
-          .agents/
-          .codex/
-          .kilo/
-          .turbo/
-          .vscode/
-          next-env.d.ts
-          scripts/
-          tsconfig.tsbuildinfo
-          *.log
-          EOF
-
-          cat > dist-branch/README.md <<'EOF'
-          # Generated deployment branch
-
-          This branch is generated automatically from `main` by GitHub Actions.
-
-          Do not edit this branch manually except for branch-level deployment maintenance.
-          Do not open pull requests from this branch into `main`.
-          Do not merge this branch into `main`.
-
-          Railway deploys from the `/dist` folder in this branch.
-          Source code lives in `main`.
-          EOF
+          # Copy dist-root files (version-controlled root configs)
+          if [ -d "dist-root" ]; then
+            cp dist-root/.gitignore dist-branch/
+            cp dist-root/README.md dist-branch/
+            cp dist-root/railway.json dist-branch/
+          fi
 
           cd dist-branch
           echo "Large files remaining:"

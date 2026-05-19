@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
 
 // app/api/query/route.ts - Direct SQL execution for analytical questions
 import { NextResponse } from 'next/server';
@@ -108,10 +108,8 @@ export async function POST(request: Request) {
         // Get grouping column
         const groupCol = findColumn(['product', 'product_id', 'product_name', 'region', 'country', 'category', 'segment', 'channel', 'customer_segment']);
         
-        // Calculate profit for each row
-        const profitData: { name: string; profit: number }[] = [];
-        
-        if (groupCol) {
+// Calculate profit for each row
+         if (groupCol) {
           // Group by product/region and calculate profit
           const agg: Record<string, number> = {};
           for (const row of data) {
