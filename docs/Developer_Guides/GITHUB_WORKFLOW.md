@@ -96,6 +96,10 @@ runs from the generated `/dist` folder. To test the Railway runtime locally, swi
 `cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the
 repository root before starting if needed.
 
+For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout
+folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local
+env values, while shell and Railway variables remain authoritative.
+
 ## Auto-Merge Setup
 
 If all checks pass, then you can enable auto-merge for main.
