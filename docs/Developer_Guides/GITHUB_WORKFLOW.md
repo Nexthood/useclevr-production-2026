@@ -91,6 +91,11 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
 The publish job does not commit `node_modules/`. Railway installs runtime dependencies and uses its
 own install cache.
 
+The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway
+runs from the generated `/dist` folder. To test the Railway runtime locally, switch to `dist`, run
+`cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the
+repository root before starting if needed.
+
 ## Auto-Merge Setup
 
 If all checks pass, then you can enable auto-merge for main.

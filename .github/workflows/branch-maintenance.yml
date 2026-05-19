@@ -79,6 +79,8 @@ jobs:
 
       - name: Publish generated folder to dist branch
         run: |
+          rm -rf dist-branch/.next
+          rm -rf dist-branch/next-env.d.ts
           rm -rf dist-branch/dist
           mkdir -p dist-branch/dist
           cp -a /tmp/useclevr-dist-output/. dist-branch/dist/
@@ -92,26 +94,32 @@ jobs:
           .env
           .env.*
           node_modules/
-          .next/cache/
+          .next/
           .cache/
           cache/
+          .agents/
+          .codex/
+          .kilo/
+          .turbo/
+          .vscode/
+          next-env.d.ts
+          scripts/
+          tsconfig.tsbuildinfo
           *.log
           EOF
 
-          if [ ! -f dist-branch/README.md ]; then
           cat > dist-branch/README.md <<'EOF'
           # Generated deployment branch
 
           This branch is generated automatically from `main` by GitHub Actions.
 
-          Do not edit this branch manually.
+          Do not edit this branch manually except for branch-level deployment maintenance.
           Do not open pull requests from this branch into `main`.
           Do not merge this branch into `main`.
 
           Railway deploys from the `/dist` folder in this branch.
           Source code lives in `main`.
           EOF
-          fi
 
           cd dist-branch
           echo "Large files remaining:"

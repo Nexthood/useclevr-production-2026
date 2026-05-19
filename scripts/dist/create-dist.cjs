@@ -106,6 +106,9 @@ const rootDistPackage = {
   dependencies: rootPkg.dependencies,
   devDependencies: { "drizzle-kit": rootPkg.devDependencies["drizzle-kit"] },
   engines: distEngines,
+  pnpm: {
+    onlyBuiltDependencies: ["core-js", "esbuild", "sharp"],
+  },
   packageManager: rootPkg.packageManager,
 };
 

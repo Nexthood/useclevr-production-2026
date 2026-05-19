@@ -348,6 +348,7 @@ pnpm prod:start
 - Deploy root: `dist/`
 - Do not commit generated `dist/` output from source branches
 - Template: `ci-settings/railway.dist.json`
+- Local Railway parity test: switch to the `dist` branch, then run `cd dist && pnpm install && PORT=8080 pnpm start`
 
 ### Railway Environment
 
