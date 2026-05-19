@@ -67,3 +67,18 @@ Only the generated `/dist` directory should be replaced by automation.
   commit is cleaner than force-pushing a replacement branch.
 - After the first successful Railway deploy, compare deploy logs for install time, start command, and
   migration command before changing the package contents further.
+- Add a small generated-build manifest later if deployment debugging needs it. It can record the
+  source branch, source commit, build time, and package-manager version without adding source code to
+  the deployment branch.
+- Keep database migration commands explicit in Railway. If migrations become slow or risky, split
+  them into a separate Railway pre-deploy step instead of adding another GitHub publish stage.
+- Do not copy `.env`, local upload files, cache folders, test fixtures, or reports into generated
+  output. Treat `scripts/dist/create-dist.cjs` as the only assembly point.
+- After two or three successful deployments, remove any temporary dist-branch force-push bypass from
+  the ruleset and let GitHub Actions use normal commits only.
+- If Railway can deploy directly from the generated standalone server, keep source files off `dist`.
+  Copy source only for files that the runtime or migration tool demonstrably needs.
+- If deployment size grows, inspect the largest files in the generated output before changing the
+  strategy. Prefer pruning copied assets and package contents over committing installed dependencies.
+- Keep the local testing command `pnpm prod:build` as the same command GitHub Actions uses, so local
+  failures match CI failures.
