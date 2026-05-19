@@ -335,7 +335,7 @@ guidelines.
 | AI fail      | `GEMINI_API_KEY`, restart dev server         |
 | Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
 | DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL mode       |
-| Railway fail | env vars, `/api/health`, `dist/railway.json` |
+| Railway fail | env vars, `/api/health`, generated Railway config |
 
 ## Deployment
 
@@ -346,7 +346,7 @@ pnpm prod:start
 ```
 
 - Deploy root: `dist/`
-- Commit `dist/railway.json`
+- Do not commit generated `dist/` output from source branches
 - Template: `ci-settings/railway.dist.json`
 
 ### Railway Environment
@@ -376,7 +376,7 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- `dist/railway.json` committed
+- Generated Railway config comes from `ci-settings/railway.dist.json`
 - No secrets in Docker image or logs
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
 

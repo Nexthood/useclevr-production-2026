@@ -156,7 +156,8 @@ pnpm prod:build                     (build phase — one-shot)
 pnpm validate:dist   →  node scripts/ci/sync-railway-config.cjs --check
 ```
 
-Fails if `dist/railway.json` ≠ `ci-settings/railway.dist.json`.
+Checks `ci-settings/railway.dist.json` directly on source branches. If local `dist/railway.json`
+exists, it also fails when generated config differs from the source-of-truth file.
 
 ### Do / Do not
 

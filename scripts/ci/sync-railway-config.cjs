@@ -13,7 +13,9 @@ if (!fs.existsSync(from)) {
 
 if (checkOnly) {
   if (!fs.existsSync(to)) {
-    throw new Error("Missing dist/railway.json");
+    JSON.parse(fs.readFileSync(from, "utf8"));
+    console.log("ci-settings/railway.dist.json is valid; dist/railway.json is generated");
+    process.exit(0);
   }
 
   if (fs.readFileSync(from, "utf8") !== fs.readFileSync(to, "utf8")) {
