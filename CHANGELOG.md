@@ -13,6 +13,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   keeping source branches free of committed build artefacts.
 - Deployment output now installs runtime dependencies directly on Railway and keeps the deployment
   branch root free of generated framework files.
+- Local production starts can now share one development env file across multiple checkouts while
+  still allowing checkout-specific overrides.
 
 ## [7.1.0] - 2026-05-18
 

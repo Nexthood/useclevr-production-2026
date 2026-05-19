@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
 // app/api/auto-questions/route.ts
 import { NextResponse } from 'next/server';

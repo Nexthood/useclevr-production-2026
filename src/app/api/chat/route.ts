@@ -3,7 +3,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 // app/api/chat/route.ts
 import { auth } from '@/lib/auth';
 import { isBuiltinUserId } from '@/lib/auth/builtin-users';
-import { DatasetRecord } from '@/lib/data/csv-analyzer';
+import type { DatasetRecord } from '@/lib/data/csv-analyzer';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import {
@@ -69,21 +69,6 @@ function formatAIResponse(text: string): string {
 // ============================================================================
 // STRICT SQL ENFORCEMENT LAYER - Never let LLM compute numbers
 // ============================================================================
-
-/**
- * Detect if question requires SQL execution (numeric/analytical question)
- */
-function requiresSQLExecution(question: string): boolean {
-  const analyticalKeywords = [
-    'how many', 'how much', 'total', 'sum', 'average', 'avg', 'mean',
-    'highest', 'lowest', 'maximum', 'minimum', 'max', 'min', 'top',
-    'bottom', 'most', 'least', 'count', 'number of', 'percentage',
-    'profit', 'revenue', 'sales', 'margin', 'region', 'country',
-    'product', 'category', 'segment', 'channel'
-  ];
-  const lowerQ = question.toLowerCase();
-  return analyticalKeywords.some(kw => lowerQ.includes(kw));
-}
 
 /**
  * Generate and execute SQL based on question - STRICT MODE
@@ -346,13 +331,6 @@ function logChatExecution(
 // DATA AGGREGATION HELPERS - Compute answers directly
 // ============================================================================
 
-interface AggregatedResult {
-  type: 'country' | 'region' | 'product' | 'channel' | 'category' | 'general';
-  question: string;
-  answer: string;
-  details: { name: string; value: number; percentage: number }[];
-}
-
 function detectColumn(columns: string[], type: 'country' | 'region' | 'product' | 'channel' | 'category' | 'revenue' | 'quantity'): string | null {
   const patterns: Record<typeof type, RegExp[]> = {
     country: [/country/i, /nation/i, /market/i],
@@ -373,13 +351,11 @@ function detectColumn(columns: string[], type: 'country' | 'region' | 'product' 
 
 function aggregateData(data: any[], groupByColumn: string, valueColumn: string): { name: string; value: number }[] {
   const aggregation: Record<string, number> = {};
-  let totalValue = 0;
 
   for (const row of data) {
     const key = row[groupByColumn] || 'Unknown';
     const value = normalizeCurrencyValue(row[valueColumn]);
     aggregation[key] = (aggregation[key] || 0) + value;
-    totalValue += value;
   }
 
   return Object.entries(aggregation)
@@ -406,7 +382,6 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
   const regionCol = detectColumn(columns, 'region');
   const productCol = detectColumn(columns, 'product');
   const channelCol = detectColumn(columns, 'channel');
-  const categoryCol = detectColumn(columns, 'category');
   const revenueCol = detectColumn(columns, 'revenue');
 
   if (!revenueCol) return '';
@@ -737,13 +712,11 @@ export async function POST(request: Request) {
     // Fetch dataset info from database (Single Source of Truth)
     let datasetInfo = null;
     let datasetRowsData: any[] = [];
-    let useProcessedData = false;
 
     if (processedData && Array.isArray(processedData) && processedData.length > 0) {
       // Use pre-processed data from frontend (already normalized)
       debugLog('[CHAT] Using processed data from frontend:', processedData.length, 'rows');
       datasetRowsData = processedData.slice(0, 50);
-      useProcessedData = true;
     } else if (datasetId) {
       debugLog('[CHAT] Fetching dataset from database...');
       const dataset = await db!.query.datasets.findFirst({
@@ -772,10 +745,6 @@ export async function POST(request: Request) {
     // ============================================================================
     // BUILD SYSTEM PROMPT - Text-only, no tool execution
     // ============================================================================
-
-    // Check if user is requesting a report
-    const reportKeywords = ['generate report', 'create report', 'export report', 'download report', 'make pdf', 'create presentation', 'create powerpoint', 'create word document', 'export excel', 'investor report', 'management report', 'board report', 'executive summary document', 'export document', 'investor deck', 'branded report', 'executive presentation', 'detailed board report'];
-    const isReportRequest = reportKeywords.some(keyword => lastMessage.toLowerCase().includes(keyword));
 
     let systemContent = `You are Clevr, elite AI analyst for startup founders and investors.
 

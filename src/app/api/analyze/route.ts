@@ -380,7 +380,7 @@ export async function POST(request: Request) {
             const localRes = await askLocalAI({ prompt })
             answer = localRes.response
             debugLog('[ANALYZE] LLM response received from: Local (Ollama)')
-          } catch (e) {
+          } catch {
             debugWarn('[ANALYZE] Local path failed at runtime, attempting safe cloud fallback')
             // Disable local for this decision and get a cloud provider
             overrideLocalAvailability(false)
@@ -471,7 +471,6 @@ export async function POST(request: Request) {
       // If still no answer, use precomputed KPIs
       if (!answer && precomputedAnalysis && precomputedAnalysis.kpis) {
         const kpis = precomputedAnalysis.kpis;
-        const breakdowns = precomputedAnalysis.breakdowns || {};
 
         // Generate insights based on unified KPIs
         const totalRevenue = kpis.totalRevenue ?? 0;

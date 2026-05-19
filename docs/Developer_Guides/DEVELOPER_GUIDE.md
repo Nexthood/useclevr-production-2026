@@ -240,6 +240,11 @@ pnpm docs:check       # broken local links in *.md
 Secrets are loaded server-side only via `scripts/runtime/load-env.cjs` for the production dist
 process. Browser code must never read env vars directly.
 
+For local work across multiple checkouts, put shared development secrets in the parent directory of
+the Git checkout, for example `../.env.local`. The runtime loader reads that file first, then reads
+checkout-local `.env` and `.env.local` files so branch-specific values can override shared defaults.
+Railway-provided environment variables still take priority over files.
+
 ### Auth
 
 ```bash
@@ -349,6 +354,8 @@ pnpm prod:start
 - Do not commit generated `dist/` output from source branches
 - Template: `ci-settings/railway.dist.json`
 - Local Railway parity test: switch to the `dist` branch, then run `cd dist && pnpm install && PORT=8080 pnpm start`
+- Shared local env: put common development secrets in `../.env.local`; checkout-local env files can
+  override those values.
 
 ### Railway Environment
 

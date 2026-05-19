@@ -50,6 +50,9 @@
 ## Deployment Risk
 
 - Keep production bundle, hosting config, healthcheck, runtime, and environment setup aligned — deployment
+- Confirm Railway deploys only from the `dist` branch `/dist` root and waits for GitHub Actions before deploying — deployment
+- Add a `dist` branch smoke check for install, start, and `/api/health` before Railway deployment — deployment
+- Decide whether database migrations stay in Railway pre-deploy or move to a separate controlled migration job — deployment
 
 ## Accessibility Risk
 

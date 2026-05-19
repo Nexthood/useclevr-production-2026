@@ -2,10 +2,40 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const cwd = process.cwd();
-const candidateDirs = [cwd];
+const candidateDirs = [];
+
+function findGitRoot(startDir) {
+  let dir = startDir;
+
+  while (true) {
+    if (fs.existsSync(path.join(dir, ".git"))) {
+      return dir;
+    }
+
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      return null;
+    }
+
+    dir = parent;
+  }
+}
+
+function addCandidate(dir) {
+  if (!dir || candidateDirs.includes(dir)) return;
+  candidateDirs.push(dir);
+}
+
+const gitRoot = findGitRoot(cwd);
+
+if (gitRoot) {
+  addCandidate(path.dirname(gitRoot));
+}
+
+addCandidate(cwd);
 
 if (path.basename(cwd) === "dist") {
-  candidateDirs.push(path.dirname(cwd));
+  addCandidate(path.dirname(cwd));
 }
 
 const files = [".env", ".env.local"];
