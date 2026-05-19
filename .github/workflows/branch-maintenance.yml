@@ -1,4 +1,4 @@
-name: Publish Dist
+name: Publish Dist And Sync Beta
 
 on:
   push:
@@ -8,7 +8,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-publish:
+  publish-dist:
+    name: Publish dist deployment branch
     runs-on: ubuntu-latest
 
     steps:
@@ -93,3 +94,23 @@ jobs:
           git add -A
           git commit -m "Deploy from main commit ${{ github.sha }}"
           git push origin new-dist:dist --force
+
+  sync-beta:
+    name: Sync beta with main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout beta
+        uses: actions/checkout@v5
+        with:
+          ref: beta
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Merge main into beta
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main --no-edit
+          git push origin beta
