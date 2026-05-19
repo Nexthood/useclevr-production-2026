@@ -347,7 +347,7 @@ export async function POST(request: Request) {
       debugLog('[ANALYZE] Checking AI availability...');
 
       // Import the new AI router that supports hybrid cloud + local
-      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, _isLocalAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai/ai-router');
+      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai/ai-router');
 
       // Check both cloud and local availability
       // Gate local only if user opted into Hybrid and verified model
