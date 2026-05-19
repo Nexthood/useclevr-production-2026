@@ -16,7 +16,7 @@ pnpm dev
 | GitHub | Repository hosting, pull requests, rulesets, and Actions | Yes | Developers need repository access before they can push branches or review PRs. |
 | Node.js 26.x | Local development, CI, and Railway runtime | No | Use the version declared by the project. |
 | pnpm 11.1.2 or newer | Dependency install and project scripts | No | Enable through Corepack or install locally. |
-| Railway | Production hosting from the `dist` branch | Yes | Holds deployment settings and runtime environment variables. |
+| Railway | Production hosting from the `dist` branch `/dist` folder | Yes | Holds deployment settings and runtime environment variables. |
 | Neon PostgreSQL | Application database | Yes | Required for persisted app data and Drizzle schema operations. |
 | Gemini API | Cloud AI features through the AI SDK | Yes | Requires a Google AI Studio or Google Cloud account and API key. |
 | Auth.js / NextAuth | Authentication runtime | No | Requires local secrets, but no separate hosted account. |
@@ -79,7 +79,8 @@ docs/            Project documentation
   Developer_Guides/
   User_Guides/
 
-.github/workflows/ci.yml   CI pipeline (source validation, production build, docs-only)
+.github/workflows/ci.yml                 CI pipeline (source validation, production build, docs-only)
+.github/workflows/branch-maintenance.yml Sync beta and publish generated Railway output
 ```
 
 ## Environment Variables

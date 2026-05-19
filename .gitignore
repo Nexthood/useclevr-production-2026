@@ -29,13 +29,8 @@ lerna-debug.log*
 .turbo/
 tsconfig.tsbuildinfo
 
-# Production output bundle. Created by `pnpm prod:build`.
-# The dist folder contains the production deployment bundle
-!dist/
-!dist/**
-
-dist/node_modules/
-dist/**/node_modules/
+# Production output bundle. Created locally by `pnpm prod:build`.
+dist/
 
 # Editor & IDE
 .vscode/settings.json

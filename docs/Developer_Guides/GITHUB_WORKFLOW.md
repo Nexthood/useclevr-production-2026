@@ -12,6 +12,7 @@ Do not merge `dist` back into `main`. Do not edit generated files on `dist` by h
 | Branch | Purpose | Updated by |
 | --- | --- | --- |
 | `main` | Stable source code | Pull requests |
+| `beta` | Test branch before release | Developers, then GitHub Actions after `main` updates |
 | `dist` | Generated Railway deployment output | GitHub Actions |
 | Feature branches | Individual changes before review | Developers |
 
@@ -22,8 +23,9 @@ The normal flow is:
 3. Open a pull request into `main`.
 4. Wait for required CI checks to pass.
 5. Merge into `main`.
-6. GitHub Actions builds the app from `main` and publishes the generated output to `dist`.
-7. Railway deploys from the root of the `dist` branch.
+6. GitHub Actions syncs `beta` from `main`.
+7. GitHub Actions builds the app from `main` and publishes the generated output to `dist:/dist`.
+8. Railway deploys from the `/dist` folder on the `dist` branch.
 
 ## Test Flow: Beta To Main
 
@@ -32,7 +34,12 @@ Use this flow when testing a change before release:
 1. Push the test change to `beta`.
 2. Verify the behavior from `beta`.
 3. Open a pull request from `beta` into `main`.
-4. Merge only after the required checks pass.
+4. Enable auto-merge on the pull request when the required check is selected.
+5. Wait for `Validate source and production build` to pass.
+6. Let GitHub merge the pull request into `main`.
+7. Watch the branch maintenance workflow sync `beta` and publish `dist:/dist`.
+
+Do not merge `dist` into `main` or open pull requests from `dist`.
 
 ## Required Local Checks
 
@@ -73,12 +80,16 @@ compile the app for Railway.
 The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance:
 
 - Triggers on push to `main` (not PRs)
-- Syncs `beta` with `main`
+- Syncs `beta` with `main` first
 - Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
 - Runs `pnpm prod:build` to create the dist output
-- **Uses `git checkout --orphan` to create a fresh branch** (since dist should contain only generated output)
-- Then force-pushes it to the `dist` branch
-- This works with the dist branch ruleset that allows force pushes
+- Checks out the existing `dist` branch after the build
+- Replaces only the generated `/dist` folder
+- Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
+- Pushes a normal commit to `dist` when generated output changes
+
+The publish job does not commit `node_modules/`. Railway installs runtime dependencies and uses its
+own install cache.
 
 ## Auto-Merge Setup
 
@@ -99,7 +110,7 @@ Recommended safe setup:
 Best workflow:
 
 ```
-beta → PR → CI passes → auto-merge into main → Action builds dist → Railway deploys
+push to beta → beta PR to main → CI passes → auto-merge → sync beta → publish dist → Railway
 ```
 
 Only enable auto-merge if the PR is from a trusted branch like `beta`, not from random branches.
@@ -121,7 +132,9 @@ If all checks pass → auto-merge allowed/executed
     ↓
 main updates
     ↓
-dist build Action runs
+Action syncs beta from main
+    ↓
+Action publishes generated /dist folder
     ↓
 Railway deploys dist
 ```
@@ -177,12 +190,11 @@ Current behavior:
 | Require pull request | No |
 | Require status checks | No |
 | Block deletion | Yes |
-| Block force pushes | No |
+| Block force pushes | Yes, if the publish workflow uses normal pushes |
 | Intended updater | GitHub Actions |
 
-Force pushes are allowed because the publish workflow needs to completely replace the deployment output.
-
-**The workflow uses `git checkout --orphan` to create a fresh branch** (since dist should contain only generated output), then force-pushes it to the `dist` branch. This works with the dist branch ruleset that allows force pushes.
+The current publish strategy updates only `/dist` on the existing branch, so force pushes are not
+required. Allow force pushes only if the workflow returns to an orphan-branch replacement strategy.
 
 Do not require pull requests on `dist`. The deployment workflow must be able to push generated output directly.
 
@@ -193,9 +205,9 @@ If GitHub Actions builds and publishes the `dist` branch, then `dist/` should be
 Best setup:
 
 - `main` and `beta`: source code only, with `dist/` ignored.
-- `dist`: generated deployment output at the branch root.
+- `dist`: generated deployment output in `/dist`, with root-level branch metadata preserved.
 - Local testing: run `pnpm prod:build` to create local `dist/`, but do not commit it.
-- GitHub Actions: build from `main`, then publish generated `dist/` contents to the `dist` branch.
+- GitHub Actions: build from `main`, then publish generated `dist/` contents to `dist:/dist`.
 
 Source branches should include this ignore rule:
 
@@ -213,9 +225,9 @@ Railway should deploy from:
 | Setting | Value |
 | --- | --- |
 | Branch | `dist` |
-| Root directory | `/` |
-| Build command | `pnpm install` |
-| Start command | Same as the working `dist` setup |
+| Root directory | `/dist` |
+| Build command | Install/runtime dependency setup only |
+| Start command | `node server.js`, unless Railway config overrides it |
 
 Runtime secrets stay in Railway environment variables. Never commit `.env` files to `main` or `dist`.
 

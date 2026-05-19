@@ -1,4 +1,4 @@
-name: Publish Dist And Sync Beta
+name: Sync Beta And Publish Dist
 
 on:
   push:
@@ -8,13 +8,36 @@ permissions:
   contents: write
 
 jobs:
-  publish-dist:
-    name: Publish dist deployment branch
+  sync-beta:
+    name: Sync beta with main
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout beta
+        uses: actions/checkout@v5
         with:
+          ref: beta
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Merge main into beta
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main --no-edit
+          git push origin beta
+
+  publish-dist:
+    name: Publish dist deployment folder
+    needs: sync-beta
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main source
+        uses: actions/checkout@v5
+        with:
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
@@ -42,35 +65,41 @@ jobs:
           echo "Large files in source dist:"
           find dist -type f -size +45M -print || true
 
-      - name: Publish to dist branch
+      - name: Stage generated output
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          mv dist /tmp/useclevr-dist-output
 
-          mv dist build-output
+      - name: Checkout dist branch
+        uses: actions/checkout@v5
+        with:
+          ref: dist
+          path: dist-branch
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-          git checkout --orphan new-dist HEAD
-          git rm -rf . || true
+      - name: Publish generated folder to dist branch
+        run: |
+          rm -rf dist-branch/dist
+          mkdir -p dist-branch/dist
+          cp -a /tmp/useclevr-dist-output/. dist-branch/dist/
 
-          mkdir -p dist
-          cp -a build-output/. dist/
+          rm -rf dist-branch/dist/.next/cache
+          rm -rf dist-branch/dist/node_modules
+          rm -rf dist-branch/dist/.cache
+          rm -rf dist-branch/dist/cache
 
-          rm -rf dist/.next/cache
-          rm -rf dist/node_modules
-          rm -rf dist/.cache
-          rm -rf dist/cache
-
-          cat > .gitignore <<'EOF'
+          cat > dist-branch/.gitignore <<'EOF'
           .env
           .env.*
-          node_modules
-          .next/cache
-          .cache
-          cache
+          node_modules/
+          .next/cache/
+          .cache/
+          cache/
           *.log
           EOF
 
-          cat > README.md <<'EOF'
+          if [ ! -f dist-branch/README.md ]; then
+          cat > dist-branch/README.md <<'EOF'
           # Generated deployment branch
 
           This branch is generated automatically from `main` by GitHub Actions.
@@ -82,7 +111,9 @@ jobs:
           Railway deploys from the `/dist` folder in this branch.
           Source code lives in `main`.
           EOF
+          fi
 
+          cd dist-branch
           echo "Large files remaining:"
           find . -type f -size +45M -print || true
 
@@ -91,26 +122,12 @@ jobs:
             exit 1
           fi
 
-          git add -A
-          git commit -m "Deploy from main commit ${{ github.sha }}"
-          git push origin new-dist:dist --force
-
-  sync-beta:
-    name: Sync beta with main
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout beta
-        uses: actions/checkout@v5
-        with:
-          ref: beta
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Merge main into beta
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git merge origin/main --no-edit
-          git push origin beta
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No dist changes to publish."
+          else
+            git commit -m "Deploy dist from main commit ${{ github.sha }}"
+            git push origin HEAD:dist
+          fi
