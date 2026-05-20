@@ -27,12 +27,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git merge origin/main --no-edit -m "chore: sync main into beta [skip ci]"
+          git merge origin/main --no-edit -m "chore: sync main into beta [skip ci]" || git pull origin main --strategy=recursive --strategy-option=theirs
           git push origin beta
 
   publish-dist:
     name: Publish dist deployment folder
-    needs: sync-beta
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
@@ -63,7 +62,9 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm dedupe
 
       - name: Build production artifacts
         run: pnpm prod:build
@@ -129,6 +130,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch existing dist to preserve ~2 commits for graph visibility
+          git fetch origin dist:dist 2>/dev/null || true
 
           git checkout --orphan new-dist
           git rm -rf . || true
