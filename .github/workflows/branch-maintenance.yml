@@ -71,6 +71,10 @@ jobs:
 
       - name: Clean build output before publish
         run: |
+          cd dist
+          pnpm install --lockfile-only
+          cd ..
+
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/.cache
@@ -171,19 +175,30 @@ jobs:
 
           rm -f railway.json
 
-          cd dist
-          pnpm install --lockfile-only
-          cp pnpm-lock.yaml ..
-          cd ..
-
           echo "Large files remaining:"
-          find . -type f -size +45M -exec ls -lh {} \; || true
+          find dist -type f -size +45M -exec ls -lh {} \; || true
 
-          if find . -type f -size +95M -exec ls -lh {} \; | grep .; then
+          if find dist -type f -size +95M -exec ls -lh {} \; | grep .; then
             echo "Error: files larger than GitHub limit still exist."
             exit 1
           fi
 
           git add -A
+          echo "Large staged files:"
+          git ls-files -s | awk '{print $4}' | while read -r file; do
+            if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 47185920 ]; then
+              ls -lh "$file"
+            fi
+          done
+
+          if git ls-files -s | awk '{print $4}' | while read -r file; do
+            if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 99614720 ]; then
+              ls -lh "$file"
+            fi
+          done | grep .; then
+            echo "Error: staged files larger than GitHub limit still exist."
+            exit 1
+          fi
+
           git commit -m "${{ steps.dist-title.outputs.title }}"
           git push origin new-dist:dist --force

@@ -170,6 +170,10 @@ node_modules
 .vercel
 ```
 
+The publish workflow also generates `dist/pnpm-lock.yaml` before final cleanup. `pnpm install
+--lockfile-only` can create local dependency links, so the workflow removes `dist/node_modules` again
+before staging and checks only files that will be committed.
+
 However, if a required runtime file itself exceeds GitHub limits, the dist branch approach becomes
 problematic.
 

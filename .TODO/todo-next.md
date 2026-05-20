@@ -44,8 +44,8 @@
 - Add a generated deployment manifest with source commit, build timestamp, runtime version, and healthcheck path — deployment
 - Add a post-publish check that fails if `railway.json` appears at the `dist` branch root instead of
   inside `/dist` — deployment
-- Add a generated-output size report before publishing to `dist` so large package/runtime files are
-  visible before Railway reads the branch — deployment
+- Review the generated-output size report after the next publish and decide whether any remaining
+  large required runtime files make the dist branch unsuitable — deployment
 - Investigate required runtime artifact sizes before choosing between dist branch, Railway source
   build, Docker image, or Actions artifact deployment — deployment
 - Add a source-cleanliness guard that runs lint and type validation before publishing generated
