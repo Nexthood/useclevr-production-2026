@@ -319,3 +319,6 @@ The GitHub Actions workflows have been verified and are correct:
 - Publish job force-cleans dist branch with git checkout --orphan new-dist and git rm -rf . ✓
 - Publishes only generated /dist folder contents ✓
 - Railway artifacts (railway.json, pnpm-workspace.yaml, package.json) isolated inside /dist/ ✓
+
+**ci.yml:**
+- Does not run on beta pushes (validated when PR targets main) ✓
