@@ -108,20 +108,14 @@ const rootDistPackage = {
   type: "module",
   scripts: {
     start:
-      "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
-    "railway:predeploy": "node ./node_modules/drizzle-kit/bin/index.js push",
-    "db:push": "node ./node_modules/drizzle-kit/bin/index.js push",
-    "db:migrate": "node ./node_modules/drizzle-kit/bin/index.js migrate",
-    prod: "pnpm start",
-    "prod:start": "pnpm start",
+      "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node .next/standalone/server.js",
   },
   dependencies: rootPkg.dependencies,
-  devDependencies: { "drizzle-kit": rootPkg.devDependencies["drizzle-kit"] },
+  devDependencies: {},
   engines: distEngines,
   pnpm: {
     onlyBuiltDependencies: ["core-js", "esbuild", "sharp"],
   },
-  packageManager: rootPkg.packageManager,
 };
 
 fs.writeFileSync(

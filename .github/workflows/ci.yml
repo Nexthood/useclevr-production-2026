@@ -10,7 +10,8 @@ jobs:
   validate-source-and-build:
     name: Validate source and production build
     if: >
-      !contains(github.event.head_commit.message || '', '[skip ci]')
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && !contains(github.event.head_commit.message || '', 'Merge pull request'))
     runs-on: ubuntu-latest
 
     steps:

@@ -6,8 +6,7 @@
     "NODE_VERSION": "26.1.0"
   },
   "deploy": {
-    "preDeployCommand": "node ./node_modules/drizzle-kit/bin/index.js push",
-    "startCommand": "node server.js",
+    "startCommand": "node .next/standalone/server.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
