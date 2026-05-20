@@ -109,9 +109,9 @@ const rootDistPackage = {
   scripts: {
     start:
       "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js",
-    "railway:predeploy": "pnpm exec drizzle-kit push",
-    "db:push": "pnpm exec drizzle-kit push",
-    "db:migrate": "pnpm exec drizzle-kit migrate",
+    "railway:predeploy": "node ./node_modules/drizzle-kit/bin/index.js push",
+    "db:push": "node ./node_modules/drizzle-kit/bin/index.js push",
+    "db:migrate": "node ./node_modules/drizzle-kit/bin/index.js migrate",
     prod: "pnpm start",
     "prod:start": "pnpm start",
   },
