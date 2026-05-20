@@ -1,6 +1,6 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
 
-import { PrecomputedMetrics } from '../utils/pipeline-types';
+import type { PrecomputedMetrics } from '../utils/pipeline-types';
 import { invokeTool, setAnalysisCache } from './server';
 
 export interface MCPToolContext {
@@ -102,7 +102,7 @@ export async function analyzeWithMCP(
   question: string,
   datasetId: string,
   queryResult: any[],
-  availableColumns: string[]
+  _availableColumns: string[]
 ): Promise<AnalysisWithMCPResult> {
   debugLog(`[MCP-INTEGRATION] Analyzing with MCP tools for dataset: ${datasetId}`);
 

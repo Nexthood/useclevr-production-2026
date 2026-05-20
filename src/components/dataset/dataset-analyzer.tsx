@@ -1,38 +1,21 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
-import * as React from "react"
-import { 
-  Sparkles, 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown,
-  Lightbulb, 
-  Table2,
-  Loader2,
-  X,
-  ChevronRight,
-  Info,
-  FileText
-} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatCurrencyForKPI, formatCurrencyCompact, formatPercentage, detectCurrencyFromColumn, formatCurrencyWithDecimals, formatCurrencySimple, formatPercentSimple } from "@/lib/utils/formatting"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell 
+import { formatCurrencyCompact, formatCurrencyForKPI, formatPercentage, formatPercentSimple } from "@/lib/utils/formatting"
+import {
+    BarChart3, FileText, Lightbulb, Loader2, Sparkles, Table2, TrendingDown, TrendingUp, X
+} from "lucide-react"
+import * as React from "react"
+import {
+    Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis,
+    YAxis
 } from "recharts"
-import { BusinessOnePager } from "@/components/business-one-pager"
 
 // ============================================================================
 // Type Definitions
@@ -121,7 +104,7 @@ export function DatasetAnalyzer({
   const [isAnalyzing, setIsAnalyzing] = React.useState(false)
   const [revenueViewMode, setRevenueViewMode] = React.useState<'region' | 'country'>('region')
   const [countryDisplayMode, setCountryDisplayMode] = React.useState<'top' | 'all'>('top')
-  const [autoProcessing, setAutoProcessing] = React.useState(!initialIsAnalyzed && data.length > 0)
+  const [autoProcessing, _setAutoProcessing] = React.useState(!initialIsAnalyzed && data.length > 0)
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
   const [reportGenerated, setReportGenerated] = React.useState(false)
   const [isForecasting, setIsForecasting] = React.useState(false)
@@ -602,10 +585,10 @@ export function DatasetAnalyzer({
   // ============================================================================
   // Investigation Handler
   // ============================================================================
-  const [investigationFindings, setInvestigationFindings] = React.useState<string[]>([])
-  const [isInvestigating, setIsInvestigating] = React.useState(false)
+  const [_investigationFindings, setInvestigationFindings] = React.useState<string[]>([])
+  const [_isInvestigating, setIsInvestigating] = React.useState(false)
 
-  const handleInvestigate = async () => {
+  const _handleInvestigate = async () => {
     setIsInvestigating(true)
     try {
       const response = await fetch(`/api/datasets/${datasetId}/investigate`, {
@@ -1856,11 +1839,11 @@ export function DatasetAnalyzer({
                 
                 const groupCol = columns.find(c => c !== numericCol && !isDateColumn(c));
                 
-                const totalCategories = groupCol ? new Set(rawData.map(r => r[groupCol])).size : 0;
-                const totalValue = numericCol ? rawData.reduce((sum, r) => sum + (parseFloat(String(r[numericCol])) || 0), 0) : 0;
+                const _totalCategories = groupCol ? new Set(rawData.map(r => r[groupCol])).size : 0;
+                const _totalValue = numericCol ? rawData.reduce((sum, r) => sum + (parseFloat(String(r[numericCol])) || 0), 0) : 0;
                 
                 // Format the label for display
-                const getMetricLabel = (col: string | null): string => {
+                const _getMetricLabel = (col: string | null): string => {
                   if (!col) return 'Total Value';
                   const lower = col.toLowerCase();
                   if (lower.includes('revenue') || lower.includes('sales')) return 'Total Revenue';

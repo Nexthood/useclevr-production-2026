@@ -1,8 +1,8 @@
 "use client"
 
+import { Briefcase, CreditCard, ReceiptText, ShieldCheck, ShoppingCart, SlidersHorizontal, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Building2, CreditCard, ReceiptText, ShieldCheck, ShoppingCart, SlidersHorizontal, User, Briefcase } from "lucide-react"
 
 const items = [
   { href: "/app/settings/profile",        label: "Profile",        icon: User },

@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 /**
  * Dataset Engine - Pure JavaScript Query Engine
@@ -75,8 +75,8 @@ export function runQueryJS(query: string): any[] {
   
   // Parse query
   const hasGroupBy = q.includes('group by');
-  const hasOrderBy = q.includes('order by');
-  const hasLimit = q.includes('limit');
+  const _hasOrderBy = q.includes('order by');
+  const _hasLimit = q.includes('limit');
   
   // Extract SELECT columns
   let selectMatch = q.match(/select\s+(.+?)\s+from/i);

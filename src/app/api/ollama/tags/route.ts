@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
 import { fetchOllamaModels } from "@/lib/ai/ollama-client"
+import { NextResponse } from "next/server"
 
 const TIMEOUT_MS = 5000
 

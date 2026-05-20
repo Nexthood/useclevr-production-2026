@@ -1,14 +1,14 @@
 "use client"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
 import { updateBusinessDetails } from "@/app/actions/settings"
-import { Building2, Percent, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
+import { Building2, Percent, Save } from "lucide-react"
+import { useRouter } from "next/navigation"
+import * as React from "react"
 
 type BusinessDetails = {
   businessName: string

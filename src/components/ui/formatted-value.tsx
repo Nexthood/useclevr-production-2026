@@ -1,8 +1,7 @@
 "use client"
 
-import React from 'react'
-import { useFormatting } from '@/lib/utils/formatting-context'
 import { formatCurrency as formatCurrencyUtil, formatNumber as formatNumberUtil } from '@/lib/utils/formatting'
+import { useFormatting } from '@/lib/utils/formatting-context'
 
 interface FormattedCurrencyProps {
   value: number
@@ -20,7 +19,7 @@ interface FormattedNumberProps {
 export function FormattedCurrency({ 
   value, 
   currency, 
-  showCurrencyCode = false,
+  showCurrencyCode: _showCurrencyCode = false,
   className = '' 
 }: FormattedCurrencyProps) {
   const { preferences, isLoading } = useFormatting()

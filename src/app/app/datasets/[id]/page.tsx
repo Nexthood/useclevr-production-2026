@@ -1,13 +1,13 @@
+import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { AppPageHeader } from "@/components/layout/app-page-header"
 
 export default async function DatasetDetailPage({
   params,
@@ -50,7 +50,7 @@ export default async function DatasetDetailPage({
   const data = allData.slice(0, 100)
 
   // Get column types from dataset record (stored during upload)
-  const columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
+  const _columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
 
   return (
     <div className="flex flex-col min-h-screen">

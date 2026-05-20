@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
 import { generateOllamaCompletion } from "@/lib/ai/ollama-client"
+import { NextResponse } from "next/server"
 
 const TIMEOUT_MS = 15000 // 15s minimal verification window
 

@@ -4,9 +4,9 @@ import { debugError } from "@/lib/utils/debug"
 
 
 
-import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { useNotice } from "@/components/ui/notice-bar"
+import { useEffect } from "react"
 
 export default function AppError({
   error,

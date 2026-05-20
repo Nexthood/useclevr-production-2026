@@ -1,9 +1,9 @@
+import { auth } from "@/lib/auth";
+import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
+import { createStripeCheckoutSession } from "@/services/stripe/checkout";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
-import { auth } from "@/lib/auth";
-import { createStripeCheckoutSession } from "@/services/stripe/checkout";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));

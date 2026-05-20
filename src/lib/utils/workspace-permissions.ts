@@ -5,10 +5,11 @@
  * Handles role-based access control for workspaces.
  */
 
-import { db } from '../db';
-import { workspaces, workspaceMembers, workspaceInvitations, workspaceRoles, WorkspaceRole, datasets } from '../db/schema';
-import { eq, and, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { db } from '../db';
+import type { WorkspaceRole } from '../db/schema';
+import { datasets, workspaceInvitations, workspaceMembers, workspaces } from '../db/schema';
 
 export interface Workspace {
   id: string;

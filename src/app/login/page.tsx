@@ -2,19 +2,19 @@
 
 import type React from "react"
 
-import Link from "next/link"
-import { Suspense, useCallback, useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { signIn } from "next-auth/react"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useNotice } from "@/components/ui/notice-bar"
-import { Loader2, ArrowRight, Sparkles, Mail, Lock, Rocket, Eye, EyeOff } from "lucide-react"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles } from "lucide-react"
+import { signIn } from "next-auth/react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useState } from "react"
 
 const loginPresets = [
   {

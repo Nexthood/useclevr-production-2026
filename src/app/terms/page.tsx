@@ -1,5 +1,5 @@
-import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
 
 export const metadata = {
   title: "Terms of Service - UseClevr",

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { createTicket, listTickets, updateTicket } from "@/lib/support/ticket-store"
+import { auth } from "@/lib/auth";
+import { createTicket, listTickets, updateTicket } from "@/lib/support/ticket-store";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 function getUser(session: any) {
   const userId = session?.user?.id

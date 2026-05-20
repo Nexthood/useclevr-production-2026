@@ -1,5 +1,5 @@
-import { debugError } from "@/lib/utils/debug"
-import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
+import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client";
+import { debugError } from "@/lib/utils/debug";
 
 /**
  * LLM Adapter
@@ -69,7 +69,7 @@ export function generateAnalysisPrompt(
   let unifiedContext = '';
   
   if (precomputedAnalysis?.kpis) {
-    const { kpis, breakdowns } = precomputedAnalysis;
+    const { kpis, breakdowns: _breakdowns } = precomputedAnalysis;
     const totalRevenue = kpis.totalRevenue ?? 0;
     const totalProfit = kpis.totalProfit ?? 0;
     const profitMargin = kpis.profitMargin ?? 0;

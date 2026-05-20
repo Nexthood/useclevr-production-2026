@@ -1,16 +1,16 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug"
 
 
 
-import { useState, useEffect, useCallback } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Download, FileText, Image, File, Presentation, FileSpreadsheet, FileInput, Search, AlertCircle, CheckCircle, Loader2, RefreshCw, Trash2 } from "lucide-react"
-import { Modal } from "@/components/ui/modal"
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Modal } from "@/components/ui/modal"
+import { AlertCircle, CheckCircle, Download, File, FileInput, FileSpreadsheet, FileText, Image, Loader2, Presentation, RefreshCw, Search, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 
 interface DownloadItem {
   id: string
@@ -48,7 +48,7 @@ export default function DownloadsPage() {
   const [error, setError] = useState<string | null>(null)
   const [downloadCount, setDownloadCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
-  const [filterStatus, setFilterStatus] = useState<'all' | 'ready'>('all')
+  const [filterStatus, _setFilterStatus] = useState<'all' | 'ready'>('all')
 
   // Fetch user data and downloads in parallel
   const fetchData = useCallback(async () => {

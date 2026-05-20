@@ -1,14 +1,14 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
+import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Upload, Database, Sparkles, ArrowRight, FileSpreadsheet, TrendingUp, Zap, Brain } from "lucide-react"
+import { ArrowRight, Database, FileSpreadsheet, Sparkles, TrendingUp, Upload, Zap } from "lucide-react"
 import Link from "next/link"
-import { AppPageHeader } from "@/components/layout/app-page-header"
 
 async function getUserStats() {
   try {

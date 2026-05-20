@@ -10,11 +10,11 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export function AiChatButton() {
-  const [isChatOpen, setIsChatOpen] = useState(false)
-  const [datasetId, setDatasetId] = useState<string | undefined>()
-  const [datasetName, setDatasetName] = useState<string | undefined>()
-  const [rowCount, setRowCount] = useState<number | undefined>()
-  const [columnCount, setColumnCount] = useState<number | undefined>()
+  const [_isChatOpen, _setIsChatOpen] = useState(false)
+  const [_datasetId, setDatasetId] = useState<string | undefined>()
+  const [_datasetName, setDatasetName] = useState<string | undefined>()
+  const [_rowCount, setRowCount] = useState<number | undefined>()
+  const [_columnCount, setColumnCount] = useState<number | undefined>()
   const pathname = usePathname()
 
   useEffect(() => {

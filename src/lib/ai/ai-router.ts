@@ -1,5 +1,5 @@
-import { debugLog, debugError } from "@/lib/utils/debug"
 import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
+import { debugError, debugLog } from "@/lib/utils/debug"
 
 /**
  * Hybrid AI Router
@@ -42,7 +42,7 @@ export async function checkLocalAIAvailability(): Promise<boolean> {
     localAIAvailable = true
     debugLog("[AI-ROUTER] Local: AVAILABLE ✓")
     return true
-  } catch (error) {
+  } catch {
     localAIAvailable = false
     debugLog("[AI-ROUTER] Local: NOT AVAILABLE (network error)")
     return false

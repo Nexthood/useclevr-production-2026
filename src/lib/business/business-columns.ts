@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // UNIVERSAL COST COLUMN DETECTOR
@@ -56,7 +56,7 @@ interface VerifiedFinancials {
   error?: string;
 }
 
-function calculateVerifiedProfit(
+function _calculateVerifiedProfit(
   row: any,
   revenueColumn: string | null,
   costComponents: Record<string, string | null>
@@ -99,7 +99,7 @@ function calculateVerifiedProfit(
 // All logic must derive from: const rows = dataset.data || []
 // No legacy metadata. No RAM state. Single source of truth.
 
-import { formatCurrencySimple, formatPercentSimple } from '../utils/formatting';
+import { formatCurrencySimple } from '../utils/formatting';
 
 // ============================================================================
 // COLUMN NAME NORMALIZER
@@ -390,7 +390,7 @@ export function analyzeBusinessData(
   detectedColumns: DetectedBusinessColumns
 ): { kpis: BusinessKPIs; breakdowns: BusinessBreakdowns; risks: RiskAnalysis; insights: BusinessInsights[]; recommendations: ActionableRecommendation[] } {
   
-  const { revenueColumn, profitColumn, costColumn, dateColumn, productColumn, regionColumn, fallbackRegionColumn, quantityColumn, costComponents } = detectedColumns;
+  const { revenueColumn, profitColumn, costColumn: _costColumn, dateColumn, productColumn, regionColumn, fallbackRegionColumn, quantityColumn: _quantityColumn, costComponents } = detectedColumns;
   
   // Use fallback column for aggregation when regionColumn is not found
   const aggregationColumn = regionColumn || fallbackRegionColumn;

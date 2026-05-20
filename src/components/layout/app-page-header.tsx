@@ -1,6 +1,6 @@
-import type React from "react"
-import Link from "next/link"
 import { ChevronRight } from "lucide-react"
+import Link from "next/link"
+import type React from "react"
 
 type Breadcrumb = {
   label: string

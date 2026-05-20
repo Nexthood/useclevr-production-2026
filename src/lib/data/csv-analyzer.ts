@@ -5,24 +5,27 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 // ============================================================================
 
 import {
-  convertCurrency,
-  detectCurrencyFromColumn,
-  detectCurrencyFromValues,
-  fetchExchangeRates,
-  findCurrencyColumns,
-  setSessionBaseCurrency
+    convertCurrency,
+    detectCurrencyFromColumn,
+    detectCurrencyFromValues,
+    fetchExchangeRates,
+    findCurrencyColumns,
+    setSessionBaseCurrency
 } from '../business/fx-service';
 import { normalizeNumberString, parseNormalizedNumber } from '../utils/formatting';
 
-import { ExecutiveAnalysisResult, generateExecutiveInsights } from '../business/business-insights';
+import type { ExecutiveAnalysisResult } from '../business/business-insights';
+import { generateExecutiveInsights } from '../business/business-insights';
 
 // NEW: Import multi-currency processor
+import type {
+    BusinessKPIs,
+    ExecutiveSummary
+} from '../business/multi-currency-processor';
 import {
-  BusinessKPIs,
-  calculateKPIs,
-  ExecutiveSummary,
-  generateExecutiveSummary,
-  processMultiCurrencyDataset
+    calculateKPIs,
+    generateExecutiveSummary,
+    processMultiCurrencyDataset
 } from '../business/multi-currency-processor';
 
 // ============================================================================
@@ -460,7 +463,7 @@ function detectDatasetCategory(columns: string[]): DatasetTypeCategory {
 }
 
 // Detect semantic meaning and role for a single column
-function detectColumnSemantic(columnName: string, stats: ColumnStatistics, sampleValues: any[]): ColumnSemantic {
+function detectColumnSemantic(columnName: string, stats: ColumnStatistics, _sampleValues: any[]): ColumnSemantic {
   const colLower = columnName.toLowerCase();
 
   // ID columns
@@ -550,10 +553,10 @@ function generateSuggestedQuestions(
   columnSemantics: ColumnSemantic[],
   hasDate: boolean,
   dateRangeInput: string | null,
-  rowCount: number
+  _rowCount: number
 ): string[] {
   const questions: string[] = [];
-  const colLower = columns.map(c => c.toLowerCase());
+  const _colLower = columns.map(c => c.toLowerCase());
 
   // Parse date range for questions
   let dateRange: { start: string; end: string } | null = null;
@@ -570,7 +573,7 @@ function generateSuggestedQuestions(
   const quantityCol = columnSemantics.find(s => s.dataRole === "quantity");
   const categoryCol = columnSemantics.find(s => s.dataRole === "categorical" || (s.dataRole === "name/text" && s.interpretedMeaning.includes("product")));
   const geoCol = columnSemantics.find(s => s.dataRole === "geographic");
-  const dateCol = columnSemantics.find(s => s.dataRole === "date");
+  const _dateCol = columnSemantics.find(s => s.dataRole === "date");
 
   // Time-based question
   if (hasDate && dateRange) {
@@ -793,7 +796,7 @@ function detectColumnType(values: unknown[]): "numeric" | "text" | "boolean" | "
   return "text";
 }
 
-function calculateColumnStats(values: unknown[], columnName: string): ColumnStatistics {
+function calculateColumnStats(values: unknown[], _columnName: string): ColumnStatistics {
   const nonNullValues = values.filter((v) => v !== null && v !== undefined && v !== "");
   const nullCount = values.length - nonNullValues.length;
   const uniqueCount = new Set(nonNullValues.map(String)).size;
@@ -1024,9 +1027,9 @@ interface DatasetTypeResult {
 
 function detectDatasetType(
   columns: string[],
-  columnStats: Record<string, ColumnStatistics>
+  _columnStats: Record<string, ColumnStatistics>
 ): DatasetTypeResult {
-  const detectedColumns: string[] = [];
+  const _detectedColumns: string[] = [];
 
   // Check for explicit geographic data (lat/lng are definitive)
   const hasGeo = columns.some(c => STRICT_PATTERNS.geo.test(c));
@@ -1151,7 +1154,7 @@ interface Insight {
   sourceMetric?: string;
 }
 
-function generateTraceableInsights(
+function _generateTraceableInsights(
   data: DatasetRecord[],
   columns: string[],
   columnStats: Record<string, ColumnStatistics>,
@@ -1324,7 +1327,7 @@ function detectDuplicates(data: DatasetRecord[]): number {
   return duplicates;
 }
 
-function detectOutliers(values: number[], columnName: string): number {
+function detectOutliers(values: number[], _columnName: string): number {
   if (values.length < 10) return 0;
 
   const mean = calculateMean(values);
@@ -1341,8 +1344,8 @@ function detectOutliers(values: number[], columnName: string): number {
 
 function calculateEnhancedCategoricalMetrics(
   values: unknown[],
-  data: DatasetRecord[],
-  columns: string[]
+  _data: DatasetRecord[],
+  _columns: string[]
 ): EnhancedCategoricalMetrics {
   const nonNullValues = values.filter((v) => v !== null && v !== undefined && v !== "");
   const totalCount = nonNullValues.length;
@@ -1414,7 +1417,7 @@ function calculateEnhancedCategoricalMetrics(
 function calculateGroupedMetrics(
   data: DatasetRecord[],
   columns: string[],
-  columnStats: Record<string, ColumnStatistics>
+  _columnStats: Record<string, ColumnStatistics>
 ): GroupedMetrics {
   const groupedMetrics: GroupedMetrics = {
     revenue_by_region: {},
@@ -1516,7 +1519,7 @@ function generateEnhancedBusinessInsights(
   data: DatasetRecord[],
   columns: string[],
   groupedMetrics: GroupedMetrics,
-  numericStats: Record<string, NumericColumnStats>
+  _numericStats: Record<string, NumericColumnStats>
 ): EnhancedBusinessInsights {
   const insights: EnhancedBusinessInsights = {
     top_performing_region: null,
@@ -2033,7 +2036,7 @@ function generateVisualizationSuggestions(
 
   // Profit by Region - geographic performance
   if (regionCol && (hasProfit || (revenueCol && costCol))) {
-    const profitMetric = hasProfit ? profitCol : `(${revenueCol} - ${costCol})`;
+    const _profitMetric = hasProfit ? profitCol : `(${revenueCol} - ${costCol})`;
     suggestions.push({
       chart_type: "bar",
       title: `Profit by ${regionCol}`,
@@ -2323,7 +2326,7 @@ export async function analyzeCSV(data: DatasetRecord[], baseCurrency: string = '
     debugLog('[ANALYZER] Starting multi-currency processing...');
     multiCurrencyProcessed = await processMultiCurrencyDataset(data, baseCurrency);
 
-    if (multiCurrencyProcessed.monetaryColumns.length > 0) {
+    if (multiCurrencyProcessed.derivationLog.normalizedColumns.length > 0) {
       debugLog('[ANALYZER] Calculating KPIs from processed data...');
       businessKPIs = calculateKPIs(multiCurrencyProcessed);
       executiveSummary = generateExecutiveSummary(businessKPIs);
@@ -2368,7 +2371,7 @@ export async function analyzeCSV(data: DatasetRecord[], baseCurrency: string = '
   }
 
   const highMissingCols = Object.entries(missingCounts).filter(
-    ([col, count]) => count > rowCount * 0.1
+    ([_col, count]) => count > rowCount * 0.1
   );
   if (highMissingCols.length > 0) {
     warnings.push(
@@ -2468,7 +2471,7 @@ export async function analyzeCSV(data: DatasetRecord[], baseCurrency: string = '
     categoricalMetrics: (() => {
       const enhanced: Record<string, EnhancedCategoricalMetrics> = {};
       // Use pre-calculated categoricalStats and enhance with outliers
-      Object.entries(categoricalStats).forEach(([key, val]) => {
+      Object.entries(categoricalStats).forEach(([key, _val]) => {
         // Get values for this column to calculate outliers
         const colValues = data.map(row => row[key]);
         const enhancedMetrics = calculateEnhancedCategoricalMetrics(colValues, data, columns);

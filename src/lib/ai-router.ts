@@ -1,1 +1,1 @@
-export * from "./ai/ai-router"
+export * from "./ai/ai-router";

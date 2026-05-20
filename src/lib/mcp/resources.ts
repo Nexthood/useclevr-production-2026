@@ -1,4 +1,3 @@
-import { DatasetSchemaOutput, PrecomputedKpisOutput, TopRegionsOutput, RevenueTrendsOutput, ProfitabilitySummaryOutput } from './tools';
 import { getAnalysisCache } from './handlers';
 
 export interface MCPResource {

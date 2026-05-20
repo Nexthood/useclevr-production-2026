@@ -5,7 +5,7 @@
  * Priority: Cloud → Hybrid → Offline
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ConnectionMode = 'online' | 'hybrid' | 'offline';
 

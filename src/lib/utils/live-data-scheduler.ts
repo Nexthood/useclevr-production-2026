@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 /**
  * Live Data Scheduler
@@ -9,11 +9,11 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { generatePredictions } from '../business/predictive-engine';
+import { buildDashboard } from '../data/dashboard-builder';
 import { buildDatasetIntelligence } from '../data/dataset-intelligence';
-import { buildDashboard, DashboardConfig } from '../data/dashboard-builder';
-import { generatePredictions, PredictiveResult } from '../business/predictive-engine';
-import { investigateDataset, InvestigationResult } from '../data/dataset-investigator';
+import { investigateDataset } from '../data/dataset-investigator';
 
 export type RefreshInterval = '15min' | 'hourly' | 'daily' | null;
 

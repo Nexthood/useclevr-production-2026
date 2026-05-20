@@ -409,6 +409,9 @@ UPLOAD_PROVIDER=
 - The `dist` branch root must not contain `railway.json`; Railway reads `/dist/railway.json`
 - Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
 - Database migrations stay in Railway pre-deploy while this is a single web-service deployment
+- Railway dashboard custom command fields should be empty; old `npm` command overrides can bypass the
+  generated config. If a temporary override is needed, use `pnpm run railway:predeploy` and
+  `pnpm start`.
 - No secrets in Docker image or logs
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
 

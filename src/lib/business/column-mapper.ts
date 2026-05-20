@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // SEMANTIC COLUMN MAPPER - Business Column Detection & User Override
@@ -12,17 +12,11 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // - User override with re-analysis trigger
 // ============================================================================
 
-import {
-  ColumnMapping,
-  BusinessColumnType,
-  MappingOverride,
-  DetectedBusinessColumns,
-  CostComponents,
-  ColumnSchema,
-  PreviewData,
+import type {
+    BusinessColumnType, ColumnMapping, CostComponents, DetectedBusinessColumns, MappingOverride, PreviewData
 } from '../utils/pipeline-types';
 
-import { DatasetType } from '../data/dataset-type-detector';
+import type { DatasetType } from '../data/dataset-type-detector';
 
 // ============================================================================
 // CONSTANTS - Column Name Patterns
@@ -54,15 +48,15 @@ const PRODUCT_PATTERNS = [
   'item_name', 'product_title', 'goods', 'merchandise', 'description', 'product_description'
 ];
 
-const CUSTOMER_PATTERNS = [
+const _CUSTOMER_PATTERNS = [
   'customer', 'client', 'user', 'buyer', 'email', 'customer_id', 'user_id', 'client_id'
 ];
 
-const CATEGORY_PATTERNS = [
+const _CATEGORY_PATTERNS = [
   'category', 'type', 'kind', 'group', 'segment', 'classification', 'department'
 ];
 
-const DATE_PATTERNS = [
+const _DATE_PATTERNS = [
   'date', 'timestamp', 'datetime', 'created_at', 'updated_at', 'order_date',
   'transaction_date', 'sale_date', 'period', 'month', 'year', 'quarter'
 ];

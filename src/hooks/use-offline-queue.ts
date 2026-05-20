@@ -5,7 +5,7 @@
  * and automatic sync when back online.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface QueuedQuestion {
   id: string;
@@ -106,7 +106,7 @@ async function clearQueue(): Promise<void> {
 /**
  * Cache dataset for offline access
  */
-const DATASET_CACHE_NAME = 'useclevr-datasets';
+const _DATASET_CACHE_NAME = 'useclevr-datasets';
 const MAX_CACHED_DATASETS = 5;
 
 interface CachedDataset {
@@ -230,7 +230,7 @@ export function useOfflineQueue(): OfflineQueueResult {
           if (response.ok) {
             await removeFromQueue(q.id);
           }
-        } catch (error) {
+        } catch {
           console.warn('[OFFLINE] Failed to sync question:', q.id);
         }
       }

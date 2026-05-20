@@ -1,11 +1,11 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 // app/api/workspaces/route.ts
 // Workspace management API - CRUD operations for workspaces
 
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createWorkspace, getUserWorkspaces } from '@/lib/utils/workspace-permissions';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {

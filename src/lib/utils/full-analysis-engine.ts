@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // FULL DATASET ANALYSIS ENGINE - Deterministic KPI Computation
@@ -12,19 +12,10 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // - AI explanations
 // ============================================================================
 
-import {
-  PrecomputedMetrics,
-  DetectedBusinessColumns,
-  CostComponents,
-  CleaningStats,
-  ColumnMapping,
-  TopPerformer,
-  WorstPerformer,
-  RegionalMetric,
-  ProductMetric,
-  MonthlyAggregate,
-  CategoryAggregate,
-  ConsistencyValidationResult,
+import type {
+    CategoryAggregate, CleaningStats,
+    ColumnMapping, ConsistencyValidationResult, DetectedBusinessColumns, MonthlyAggregate, PrecomputedMetrics, ProductMetric, RegionalMetric, TopPerformer,
+    WorstPerformer
 } from './pipeline-types';
 
 // ============================================================================
@@ -71,7 +62,7 @@ function calculatePercentage(value: number, total: number): number {
 /**
  * Sort and get top N items
  */
-function getTopN<T>(
+function getTopN<_T>(
   record: Record<string, number>,
   n: number,
   sortBy: 'desc' | 'asc' = 'desc'
@@ -107,8 +98,8 @@ export function runFullDatasetAnalysis(
   
   // Extract column names from mapping
   const revenueColumn = mappings.revenue;
-  const profitColumn = mappings.profit;
-  const costColumn = mappings.cost;
+  const _profitColumn = mappings.profit;
+  const _costColumn = mappings.cost;
   const dateColumn = mappings.date;
   const productColumn = mappings.product;
   const regionColumn = mappings.region || mappings.country;
@@ -362,7 +353,7 @@ export function runFullDatasetAnalysis(
 
 function calculateGrowthMetrics(
   revenueByMonth: Record<string, number>,
-  transactionCountByMonth: Record<string, number>
+  _transactionCountByMonth: Record<string, number>
 ): {
   growthRate: number | null;
   growthTrend: 'up' | 'down' | 'stable' | null;

@@ -1,11 +1,11 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
-import * as React from "react"
-import { Sparkles, Send, X, MessageSquare, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react"
+import * as React from "react"
 
 interface Message {
   id: string

@@ -2,12 +2,10 @@
 
 import { debugError } from "@/lib/utils/debug"
 
-
-
 import { db } from "@/lib/db"
-import { users, profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { profiles, users } from "@/lib/db/schema"
 import bcrypt from "bcryptjs"
+import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export async function signup(formData: FormData) {

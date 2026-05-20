@@ -1,1 +1,1 @@
-export * from "./utils/investigation-autopilot"
+export * from "./utils/investigation-autopilot";

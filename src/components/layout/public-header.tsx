@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { getSession } from "next-auth/react"
 import { Logo } from "@/components/layout/logo"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Button } from "@/components/ui/button"
-import { Brain, Sparkles, Cloud, WifiOff } from "lucide-react"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { Brain, Cloud, Sparkles, WifiOff } from "lucide-react"
+import { getSession } from "next-auth/react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export function PublicHeader() {
   const [isOffline, setIsOffline] = useState(false)

@@ -1,6 +1,5 @@
-import { CreditCard, Key, Link2, ShieldCheck } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CreditCard, Key, Link2, ShieldCheck } from "lucide-react"
 
 export default async function PaymentSettingsPage() {
   const keyConfigured = Boolean(process.env.STRIPE_SECRET_KEY)

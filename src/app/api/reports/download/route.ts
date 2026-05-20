@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug"
 
 /**
  * Download Report API Route
@@ -8,18 +8,18 @@ import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug
  * POST: Generate CSV from analysis data (legacy)
  */
 
+import type { Report } from '@/lib/reports/report-generator'
+import { getReport } from '@/lib/reports/report-generator'
+import * as fs from 'fs'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { getReport } from '@/lib/reports/report-generator'
-import type { Report } from '@/lib/reports/report-generator'
-import * as fs from 'fs'
 
 // GET handler - Download a specific report by ID
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const reportId = searchParams.get('id')
-    const format = searchParams.get('format') || 'pdf'
+    const _format = searchParams.get('format') || 'pdf'
 
     if (!reportId) {
       return NextResponse.json(

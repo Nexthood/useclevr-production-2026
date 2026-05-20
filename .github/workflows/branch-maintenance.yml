@@ -10,6 +10,7 @@ permissions:
 jobs:
   sync-beta:
     name: Sync beta with main
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -25,15 +26,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git merge origin/main --no-edit
+          git merge origin/main --no-edit -m "chore: sync main into beta [skip ci]"
           git push origin beta
 
   publish-dist:
     name: Publish dist deployment folder
     needs: sync-beta
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
+      - name: Guard main branch only
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Dist publish is only allowed from main."
+            exit 1
+          fi
+
       - name: Checkout main source for build
         uses: actions/checkout@v5
         with:
@@ -66,8 +75,10 @@ jobs:
           rm -rf dist/node_modules
           rm -rf dist/.cache
           rm -rf dist/cache
+          rm -rf dist/.turbo
+          rm -rf dist/.vercel
           echo "Large files in source dist:"
-          find dist -type f -size +45M -print || true
+          find dist -type f -size +45M -exec ls -lh {} \; || true
 
       - name: Stage generated output
         run: mv dist /tmp/useclevr-dist-output
@@ -79,7 +90,9 @@ jobs:
           script: |
             const shortSha = context.sha.slice(0, 7);
             let prNumber = null;
-            let title = context.payload.head_commit?.message?.split('\n')[0]?.trim() || `Update dist ${shortSha}`;
+            let title =
+              context.payload.head_commit?.message?.split('\n')[0]?.trim() ||
+              `Update dist ${shortSha}`;
 
             const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner: context.repo.owner,
@@ -119,11 +132,10 @@ jobs:
           rm -rf dist/node_modules
           rm -rf dist/.cache
           rm -rf dist/cache
+          rm -rf dist/.turbo
+          rm -rf dist/.vercel
 
-          if [ -d "/tmp/useclevr-dist-output/../dist-root" ]; then
-            cp /tmp/useclevr-dist-output/../dist-root/.gitignore . 2>/dev/null || true
-            cp /tmp/useclevr-dist-output/../dist-root/README.md . 2>/dev/null || true
-          elif [ -d "dist-root" ]; then
+          if [ -d "dist-root" ]; then
             cp dist-root/.gitignore . 2>/dev/null || true
             cp dist-root/README.md . 2>/dev/null || true
           fi
@@ -136,6 +148,8 @@ jobs:
           .next/cache
           .cache
           cache
+          .turbo
+          .vercel
           *.log
           EOF
           fi
@@ -163,9 +177,9 @@ jobs:
           cd ..
 
           echo "Large files remaining:"
-          find . -type f -size +45M -print || true
+          find . -type f -size +45M -exec ls -lh {} \; || true
 
-          if find . -type f -size +95M | grep .; then
+          if find . -type f -size +95M -exec ls -lh {} \; | grep .; then
             echo "Error: files larger than GitHub limit still exist."
             exit 1
           fi

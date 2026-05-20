@@ -1,11 +1,12 @@
 /**
  * Auto Dashboard Builder
- * 
+ *
  * Automatically generates KPIs and charts based on dataset structure.
  * Uses DuckDB-style aggregations for data processing.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from './dataset-intelligence';
+import type { DatasetRecord } from './dataset-intelligence';
+import { buildDatasetIntelligence } from './dataset-intelligence';
 
 export interface KPI {
   id: string;
@@ -45,28 +46,28 @@ export function buildDashboard(
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
   const kpis: KPI[] = [];
   const charts: ChartConfig[] = [];
-  
+
   const dims = intelligence.dimensions;
   const metrics = intelligence.metrics;
   const numericCols = metrics.numericColumns;
   const categoricalCols = dims.categoryColumns;
   const timeCols = dims.timeColumns;
   const geoCols = dims.geographicColumns;
-  
+
   // Get key columns
-  const revenueCol = numericCols.find(c => 
+  const revenueCol = numericCols.find(c =>
     c.toLowerCase().includes('revenue') || c.toLowerCase().includes('sales') || c.toLowerCase().includes('amount')
   );
-  const profitCol = numericCols.find(c => 
+  const profitCol = numericCols.find(c =>
     c.toLowerCase().includes('profit') || c.toLowerCase().includes('margin')
   );
-  const costCol = numericCols.find(c => 
+  const _costCol = numericCols.find(c =>
     c.toLowerCase().includes('cost') || c.toLowerCase().includes('cogs')
   );
-  const quantityCol = numericCols.find(c => 
+  const quantityCol = numericCols.find(c =>
     c.toLowerCase().includes('quantity') || c.toLowerCase().includes('units') || c.toLowerCase().includes('qty')
   );
-  
+
   // Generate KPIs
   // 1. Row count
   kpis.push({
@@ -75,7 +76,7 @@ export function buildDashboard(
     value: data.length,
     format: 'number'
   });
-  
+
   // 2. Total Revenue
   if (revenueCol) {
     const totalRevenue = aggregateSum(data, revenueCol);
@@ -86,7 +87,7 @@ export function buildDashboard(
       format: 'currency'
     });
   }
-  
+
   // 3. Total Profit
   if (profitCol) {
     const totalProfit = aggregateSum(data, profitCol);
@@ -96,7 +97,7 @@ export function buildDashboard(
       value: totalProfit,
       format: 'currency'
     });
-    
+
     // 4. Profit Margin
     if (revenueCol) {
       const totalRevenue = aggregateSum(data, revenueCol);
@@ -109,7 +110,7 @@ export function buildDashboard(
       });
     }
   }
-  
+
   // 5. Average Order Value
   if (revenueCol && quantityCol) {
     const totalRevenue = aggregateSum(data, revenueCol);
@@ -122,7 +123,7 @@ export function buildDashboard(
       format: 'currency'
     });
   }
-  
+
   // Generate Charts
   // 1. Revenue by Category (bar chart)
   if (revenueCol && categoricalCols.length > 0) {
@@ -137,7 +138,7 @@ export function buildDashboard(
       data: chartData.slice(0, 10) // Top 10
     });
   }
-  
+
   // 2. Revenue by Region (bar chart)
   if (revenueCol && geoCols.length > 0) {
     const groupCol = geoCols[0];
@@ -151,7 +152,7 @@ export function buildDashboard(
       data: chartData.slice(0, 10)
     });
   }
-  
+
   // 3. Time Series (line chart)
   if (revenueCol && timeCols.length > 0) {
     const timeCol = timeCols[0];
@@ -165,13 +166,13 @@ export function buildDashboard(
       data: chartData
     });
   }
-  
+
   // 4. Top Products (bar chart)
   if (revenueCol) {
-    const productCol = categoricalCols.find(c => 
+    const productCol = categoricalCols.find(c =>
       c.toLowerCase().includes('product') || c.toLowerCase().includes('item')
     ) || categoricalCols[0];
-    
+
     if (productCol) {
       const chartData = aggregateGroup(data, productCol, revenueCol);
       charts.push({
@@ -184,7 +185,7 @@ export function buildDashboard(
       });
     }
   }
-  
+
   // 5. Category Distribution (pie chart)
   if (revenueCol && categoricalCols.length > 1) {
     const groupCol = categoricalCols[1];
@@ -198,7 +199,7 @@ export function buildDashboard(
       data: chartData.slice(0, 6)
     });
   }
-  
+
   return {
     kpis,
     charts,
@@ -224,18 +225,18 @@ function aggregateSum(data: Record<string, unknown>[], col: string): number {
  * Aggregate by category
  */
 function aggregateGroup(
-  data: Record<string, unknown>[], 
-  groupCol: string, 
+  data: Record<string, unknown>[],
+  groupCol: string,
   valueCol: string
 ): { name: string; value: number }[] {
   const agg: Record<string, number> = {};
-  
+
   for (const row of data) {
     const key = String(row[groupCol] || 'Unknown');
     const val = parseFloat(String(row[valueCol]).replace(/[^0-9.-]/g, '')) || 0;
     agg[key] = (agg[key] || 0) + val;
   }
-  
+
   return Object.entries(agg)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
@@ -245,23 +246,23 @@ function aggregateGroup(
  * Aggregate time series
  */
 function aggregateTimeSeries(
-  data: Record<string, unknown>[], 
-  timeCol: string, 
+  data: Record<string, unknown>[],
+  timeCol: string,
   valueCol: string
 ): { name: string; value: number }[] {
   // Sort by time
-  const sorted = [...data].sort((a, b) => 
+  const sorted = [...data].sort((a, b) =>
     String(a[timeCol]).localeCompare(String(b[timeCol]))
   );
-  
+
   const agg: Record<string, number> = {};
-  
+
   for (const row of sorted) {
     const key = String(row[timeCol] || 'Unknown');
     const val = parseFloat(String(row[valueCol]).replace(/[^0-9.-]/g, '')) || 0;
     agg[key] = (agg[key] || 0) + val;
   }
-  
+
   return Object.entries(agg)
     .map(([name, value]) => ({ name, value }))
     .slice(-12); // Last 12 periods
@@ -280,11 +281,11 @@ export function formatKPIValue(kpi: KPI): string {
     }
     return `$${num.toFixed(2)}`;
   }
-  
+
   if (kpi.format === 'percentage') {
     return `${Number(kpi.value).toFixed(2)}%`;
   }
-  
+
   if (kpi.format === 'number') {
     const num = Number(kpi.value);
     if (num >= 1000000) {
@@ -294,6 +295,6 @@ export function formatKPIValue(kpi: KPI): string {
     }
     return num.toLocaleString();
   }
-  
+
   return String(kpi.value);
 }

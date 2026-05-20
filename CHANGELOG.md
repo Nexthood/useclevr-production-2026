@@ -9,9 +9,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
-- Railway publish workflow now generates matching pnpm-lock.yaml from dist package.json.
-- Rename GitHub Actions steps to descriptive names.
-- The distribution packaging script now includes pnpm-lock.yaml for deterministic Railway installs.
+- Restructured Migrate to Payload.md for clear AI implementation steps.
+- Added GitHub Action to auto-merge PRs from beta → main.
+- Updated branch-maintenance workflow to include PR number in dist commit messages (e.g., PR-28:).
+- Fixed workflow YAML indentation and added cache cleanup before size check to prevent false positives.
+- Updated todo files to reflect completed work and current in-progress items.
+- Cleaned repo-wide ESLint warnings so `pnpm lint` now runs with zero warnings.
+- Verified TypeScript validation after the lint cleanup.
+- Fixed CSV business KPI analysis so multi-currency normalization no longer reads a missing
+  `monetaryColumns` field or maps `country` as `quantity`.
+- Hardened Railway pre-deploy by routing migrations through a generated pnpm-backed
+  `railway:predeploy` script and documenting that old dashboard npm overrides must be cleared.
+- Added GitHub deployment strategy notes covering dist branch limits, Railway source builds, Docker
+  image deployment, and GitHub Actions artifacts.
+- Optimized CI triggers so beta pushes do not duplicate the pull request validation workflow.
+- Fixed the auto-merge workflow trigger so beta-to-main pull requests are matched by base branch
+  `main` and filtered by head branch `beta`.
+- Replaced the auto-merge helper action with an explicit `gh pr merge <PR number> --auto` command so
+  the workflow does not depend on local branch detection.
 
 ## [7.2.0] - 2026-05-20
 

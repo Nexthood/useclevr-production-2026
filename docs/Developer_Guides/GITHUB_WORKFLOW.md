@@ -85,213 +85,177 @@ pnpm prod:build
 The main CI workflow is `.github/workflows/ci.yml`.
 
 It runs on:
-
 - Pushes to `main`
 - Pull requests targeting `main`
 
-The required branch-rule check is:
+It intentionally does not run on `beta` pushes. A `beta` push is validated when it becomes a pull
+request into `main`, which avoids running the same source validation twice for the normal test flow.
 
+CI is automatically skipped for commits containing `[skip ci]` in the commit message.
+
+The required branch-rule check is:
 - `Validate source and production build`
 
-This one check protects `main`, because `main` generates the production `dist` branch. It installs
-dependencies, runs type validation, verifies dist config, runs lint and tests, then proves Next.js can
-compile the app for Railway.
+This one check protects `main`, because `main` generates the production `dist` branch. It installs dependencies, runs type validation, verifies dist config, runs lint and tests, then proves Next.js can compile the app for Railway.
+
+### Auto-Merge Workflow
+
+The `.github/workflows/auto-merge.yml` workflow automatically enables auto-merge for PRs from
+`beta` to `main` when all checks pass. It listens for pull requests targeting `main` and then checks
+that the source branch is `beta`, because GitHub's `pull_request.branches` filter matches the base
+branch, not the head branch. The workflow calls `gh pr merge <event PR number> --auto` explicitly so
+it does not depend on the runner's current Git branch.
 
 ### Deployment Workflow
 
 The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance:
 
 - Triggers on push to `main` (not PRs)
-- Syncs `beta` with `main` first
+- Syncs `beta` with `main` first (with `[skip ci]` in commit message)
 - Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
 - Runs `pnpm prod:build` to create the dist output
 - Checks out the existing `dist` branch after the build
 - Replaces only the generated `/dist` folder
 - Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
-- Pushes a normal commit to `dist` when generated output changes, using the merged PR title instead
-  of a long source commit id
+- Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
 
-The publish job does not commit `node_modules/`. Railway installs runtime dependencies and uses its
-own install cache.
+The publish job does not commit `node_modules/`. Railway installs runtime dependencies and uses its own install cache.
 
-`server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is
-one destination; today the only target is Railway at `server-settings/railway/`, but the folder can
-hold additional target folders later without changing the source validation workflow.
+`server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; today the only target is Railway at `server-settings/railway/`, but the folder can hold additional target folders later without changing the source validation workflow.
 
-Database migrations stay in Railway `preDeployCommand` for this phase. A separate migration service
-or job is future work only when migrations or background jobs need isolation from the web process.
+Database migrations stay in Railway `preDeployCommand` for this phase. A separate migration service or job is future work only when migrations or background jobs need isolation from the web process.
 
-The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway
-runs from the generated `/dist` folder. To test the Railway runtime locally, switch to `dist`, run
-`cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the
-repository root before starting if needed.
+The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the Railway runtime locally, switch to `dist`, run `cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the repository root before starting if needed.
 
-The branch root and `dist-root/` must not contain `railway.json`. Railway should use
-`dist/railway.json` from the generated deployment folder, and the generated folder also carries
-`pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required by `sharp`,
-`esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval setting
-directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
+The `dist` branch root must not contain `railway.json`. Railway should use `dist/railway.json` from the generated deployment folder, and the generated folder also carries `pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required by `sharp`, `esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval setting directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
 
-For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout
-folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local
-env values, while shell and Railway variables remain authoritative.
+Railway service settings must not keep old custom `npm` commands. Clear dashboard build, pre-deploy,
+and start command overrides so `/dist/railway.json` controls the deployment. If an override is
+temporarily needed, use `pnpm run railway:predeploy` for migrations and `pnpm start` for runtime.
 
-## Auto-Merge Setup
+For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local env values, while shell and Railway variables remain authoritative.
 
-If all checks pass, then you can enable auto-merge for main.
+## Deployment Strategy Notes
 
-Recommended safe setup:
+Current deployment flow:
 
-| Setting | Value |
-| --- | --- |
-| Require PR before merging | ✅ Yes |
-| Require status checks to pass | ✅ Yes |
-| Required checks | `Validate source and production build` |
-| Require branches up to date | ❌ Optional, not needed solo |
-| Auto-merge | ✅ Yes |
-| Block deletion | ✅ Yes |
-| Block force push | ✅ Yes |
-
-Best workflow:
-
-```
-push to beta → beta PR to main → CI passes → auto-merge → sync beta → publish dist → Railway
+```text
+beta → PR → main → GitHub Action → dist branch → Railway deploys from /dist
 ```
 
-Only enable auto-merge if the PR is from a trusted branch like `beta`, not from random branches.
+The current setup keeps production deployment artifacts isolated from the source branch and allows
+Railway to deploy only generated production output.
 
-**One note:** GitHub auto-merge needs to be enabled in repo settings:
+Current issue observed:
 
-Settings → General → Pull Requests → Allow auto-merge
-
-### Complete Flow
-
-```
-PR opened: beta → main
-    ↓
-GitHub Actions runs
-    ↓
-If checks fail → no merge
-    ↓
-If all checks pass → auto-merge allowed/executed
-    ↓
-main updates
-    ↓
-Action syncs beta from main
-    ↓
-Action publishes generated /dist folder
-    ↓
-Railway deploys dist
+```text
+Publishing to the dist branch can fail because some generated build/runtime dependency files exceed
+GitHub file size limits (100 MB hard limit).
 ```
 
-**Important:** auto-merge only works safely when you have required status checks selected. Otherwise GitHub may allow merge without real validation.
+This mainly happens when large files are included inside:
 
-Best setting:
-
-- Auto-merge: enabled
-- Required status checks: enabled
-- Only selected CI checks can unlock merge
-
-So yes: auto-merge only if all green is possible and recommended once CI is stable.
-
-## Main Branch Rules
-
-`main` is protected through a GitHub repository ruleset.
-
-Ruleset:
-
-- Name: `main requires CI`
-- Target: `refs/heads/main`
-- Enforcement: active
-
-Required status check:
-
-- `Validate source and production build`
-
-Keep strict status checks enabled so pull requests must be up to date before merge.
-
-Recommended behavior:
-
-- Require pull requests before merging.
-- Require passing CI checks.
-- Block deletion.
-- Block force pushes.
-- Do not bypass the rule for normal development.
-
-## Dist Branch Rules
-
-`dist` is a generated deployment branch, not a development branch.
-
-Ruleset:
-
-- Name: `dist protects deploy output`
-- Target: `refs/heads/dist`
-- Enforcement: active
-
-Current behavior:
-
-| Setting | Value |
-| --- | --- |
-| Require pull request | No |
-| Require status checks | No |
-| Block deletion | Yes |
-| Block force pushes | Yes, if the publish workflow uses normal pushes |
-| Intended updater | GitHub Actions |
-
-The current publish strategy updates only `/dist` on the existing branch, so force pushes are not
-required. Allow force pushes only if the workflow returns to an orphan-branch replacement strategy.
-
-Do not require pull requests on `dist`. The deployment workflow must be able to push generated output directly.
-
-## Source Branch Dist Ignore
-
-If GitHub Actions builds and publishes the `dist` branch, then `dist/` should be ignored on source branches such as `main` and `beta`.
-
-Best setup:
-
-- `main` and `beta`: source code only, with `dist/` ignored.
-- `dist`: generated deployment output in `/dist`, with root-level branch metadata preserved.
-- Local testing: run `pnpm prod:build` to create local `dist/`, but do not commit it.
-- GitHub Actions: build from `main`, then publish generated `dist/` contents to `dist:/dist`.
-
-Source branches should include this ignore rule:
-
-```gitignore
-dist/
+```text
+.next/standalone
+.next/server
+dependencies/runtime build artifacts
 ```
 
-This avoids noisy generated files and prevents humans from accidentally committing local build output.
-Since Railway deploys from the `dist` branch, source branches do not need to track the local `dist/` folder.
+The current workflow already removes unnecessary cache folders such as:
 
-## Railway Deployment
+```text
+.next/cache
+node_modules
+.turbo
+.vercel
+```
 
-Railway should deploy from:
+However, if a required runtime file itself exceeds GitHub limits, the dist branch approach becomes
+problematic.
 
-| Setting | Value |
-| --- | --- |
-| Branch | `dist` |
-| Root directory | `/dist` |
-| Build command | Install/runtime dependency setup only |
-| Start command | `node server.js`, unless Railway config overrides it |
+### Option 1 — Railway Builds From Main
 
-Runtime secrets stay in Railway environment variables. Never commit `.env` files to `main` or `dist`.
+Simplest architecture:
 
-## Do And Do Not
+```text
+beta → PR → main → Railway builds from main
+```
 
-Do:
+Advantages:
 
-- Work from `main` or a feature branch based on `main`.
-- Open pull requests into `main`.
-- Let GitHub Actions publish `dist`.
-- Treat `dist` as disposable generated output.
+- No dist branch required
+- No GitHub file size problems
+- Simpler Git history
+- Simpler CI/CD pipeline
 
-Do not:
+Disadvantages:
 
-- Edit `dist` manually.
-- Merge `dist` into `main`.
-- Open pull requests from `dist`.
-- Add secrets, local uploads, or `.env` files to any branch.
-- Change Railway to build from `main` unless the deployment strategy changes.
+- Railway performs the production build itself
+- Less control over prebuilt deployment artifacts
+
+### Option 2 — Dist Branch With Generated Artifacts
+
+Current architecture:
+
+```text
+beta → PR → main → GitHub Action builds → dist branch → Railway deploys from /dist
+```
+
+Advantages:
+
+- Production branch contains only deployment artifacts
+- Railway deploys faster from prebuilt output
+- Clear separation between source and deployment
+
+Disadvantages:
+
+- GitHub file size limits may block deployment
+- More CI/CD complexity
+- Requires force-cleaning dist branch history if large runtime artifacts must be removed from history
+
+### Option 3 — Docker Image Deployment
+
+Possible future architecture:
+
+```text
+beta → PR → main → GitHub Action builds Docker image → container registry → Railway deploys image
+```
+
+Advantages:
+
+- No GitHub file size limitations for runtime artifacts
+- Most production-grade deployment approach
+- Consistent runtime environment
+
+Disadvantages:
+
+- More DevOps complexity
+- Requires container registry management
+
+### Option 4 — GitHub Actions Artifacts
+
+Possible workflow:
+
+```text
+GitHub Action build → upload artifact → deploy artifact
+```
+
+Advantages:
+
+- Avoids Git branch pollution
+- Cleaner Git history
+
+Disadvantages:
+
+- Railway integration is less straightforward
+- Artifact retention/management required
+
+Current recommendation: keep the current dist branch architecture temporarily while investigating
+which generated runtime files are actually required and which large files can safely be excluded from
+deployment output.
+
+Do not decide the final deployment architecture until runtime artifact size and Railway deployment
+behavior are fully understood.
 
 ## If Checks Do Not Appear In Branch Rules
 
@@ -304,5 +268,22 @@ If the selector is empty:
 3. Wait for the workflow to run.
 4. Return to the ruleset and select `Validate source and production build`.
 
-The check name may appear as either `Validate source and production build` or
-`Validate Source / Validate source and production build`, depending on the GitHub settings page.
+The check name may appear as either `Validate source and production build` or `Validate Source / Validate source and production build`, depending on the GitHub settings page.
+
+## GitHub Actions Verification
+
+The GitHub Actions workflows have been verified and are correct:
+
+**ci.yml:**
+- Validation runs on push to branches [main] ✓
+- Validation runs on pull_request to branches [main] ✓
+- Beta pushes do not run the same validation twice; validation happens on the beta → main PR ✓
+- Skips CI for commits containing [skip ci] in both validation and documentation jobs ✓
+
+**branch-maintenance.yml:**
+- Runs only on push to branches: [main] ✓ (dist deployment from main only)
+- Both jobs have if: github.ref == 'refs/heads/main' ✓
+- Sync job merges main into beta with [skip ci] in commit message ✓
+- Publish job force-cleans dist branch with git checkout --orphan new-dist and git rm -rf . ✓
+- Publishes only generated /dist folder contents ✓
+- Railway artifacts (railway.json, pnpm-workspace.yaml, package.json) isolated inside /dist/ ✓

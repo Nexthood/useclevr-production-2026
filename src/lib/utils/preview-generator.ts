@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // PREVIEW GENERATOR - Deterministic Preview Extraction
@@ -17,13 +17,12 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // - AI metric generation
 // ============================================================================
 
+import type {
+    ColumnSchema, ColumnType, PreviewData
+} from './pipeline-types';
 import {
-  PreviewData,
-  ColumnType,
-  ColumnSchema,
-  PREVIEW_ROW_COUNT,
-  MAX_PREVIEW_ROWS,
-  MIN_PREVIEW_ROWS
+    MAX_PREVIEW_ROWS,
+    MIN_PREVIEW_ROWS, PREVIEW_ROW_COUNT
 } from './pipeline-types';
 
 // ============================================================================

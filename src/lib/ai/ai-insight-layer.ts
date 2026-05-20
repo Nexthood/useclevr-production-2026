@@ -19,13 +19,12 @@
 // - Produce business numbers outside deterministic metrics
 // ============================================================================
 
-import {
-  PrecomputedMetrics,
-  AIInsightInput,
-  AIInsightOutput,
-  DriverDetectionResult,
-} from '../utils/pipeline-types';
 import { detectDrivers } from '../data/driver-detection-engine';
+import type {
+    AIInsightInput,
+    AIInsightOutput,
+    DriverDetectionResult, PrecomputedMetrics
+} from '../utils/pipeline-types';
 
 // ============================================================================
 // CONVERT PRECOMPUTED METRICS TO AI INPUT

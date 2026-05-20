@@ -1,15 +1,15 @@
 // app/report/[id]/page.tsx
 // Public report page with interactive AI assistant
 
-import { getReport } from '@/lib/reports/report-generator';
 import { answerReportQuestion, generateReportSuggestions } from '@/lib/reports/report-ai-chat';
+import { getReport } from '@/lib/reports/report-generator';
+import { Bot, Send } from 'lucide-react';
 import { notFound, redirect } from 'next/navigation';
-import { MessageCircle, X, Send, Bot } from 'lucide-react';
 
 // Force dynamic rendering for each request
 export const dynamic = 'force-dynamic';
 
-interface Message {
+interface _Message {
   role: 'user' | 'assistant';
   content: string;
 }

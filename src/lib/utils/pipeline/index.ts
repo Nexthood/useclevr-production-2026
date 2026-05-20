@@ -5,91 +5,39 @@
 // ============================================================================
 
 // Core Types
-export * from '../pipeline-types';
-
-// Dataset Type Detection
+// AI Insight Layer
 export {
-  detectDatasetType,
-  getDatasetTypeDisplayName,
-  getAllDatasetTypes,
-} from '../../data/dataset-type-detector';
-
-// Upload & Storage
-export {
-  getUploadConfig,
-  uploadFile,
-  getFileUrl,
-  deleteFile,
-  processUploadedFile,
-  detectMimeType,
-} from '../../data/upload-handler';
-
-// Preview Generation
-export { generatePreview, requiresBackgroundProcessing, getProcessingStrategy } from '../../utils/preview-generator';
-
+    generateAIInsightPrompt, generateRuleBasedInsights, metricsToAIInput, parseLLMResponse
+} from '../../ai/ai-insight-layer';
 // Semantic Column Mapping
-export { 
-  detectBusinessColumnsFromPreview, 
-  createColumnMapping, 
-  applyMappingOverride,
-  validateColumnMapping,
-  applyDatasetTypeOverride,
+export {
+    applyDatasetTypeOverride, applyMappingOverride, createColumnMapping, detectBusinessColumnsFromPreview, validateColumnMapping
 } from '../../business/column-mapper';
-
 // Data Cleaning & Normalization
 export { cleanAndNormalizeDataset, generateDataQualityReport } from '../../data/data-cleaner';
-
+// Dataset Type Detection
+export {
+    detectDatasetType, getAllDatasetTypes, getDatasetTypeDisplayName
+} from '../../data/dataset-type-detector';
+// Upload & Storage
+export {
+    deleteFile, detectMimeType, getFileUrl, getUploadConfig, processUploadedFile, uploadFile
+} from '../../data/upload-handler';
 // Full Dataset Analysis
 export { runFullDatasetAnalysis, validatePrecomputedMetrics } from '../../utils/full-analysis-engine';
-
-// AI Insight Layer
-export { 
-  metricsToAIInput, 
-  generateRuleBasedInsights, 
-  generateAIInsightPrompt,
-  parseLLMResponse 
-} from '../../ai/ai-insight-layer';
-
 // Pipeline Orchestrator
-export { PipelineOrchestrator, runAnalysisPipeline, getDatasetProcessingInfo } from '../../utils/pipeline-orchestrator';
-
+export { getDatasetProcessingInfo, PipelineOrchestrator, runAnalysisPipeline } from '../../utils/pipeline-orchestrator';
+// Preview Generation
+export { generatePreview, getProcessingStrategy, requiresBackgroundProcessing } from '../../utils/preview-generator';
 // Background Jobs
-export { 
-  createAnalysisJob, 
-  getJob, 
-  getJobsByDataset,
-  getNextJob,
-  completeJob,
-  retryJob,
-  cancelJob,
-  getQueueStats,
-  startJobProcessor,
-  stopJobProcessor,
-  shouldUseBackgroundProcessing,
-  estimateProcessingTime,
-  cleanupOldJobs
+export {
+    cancelJob, cleanupOldJobs, completeJob, createAnalysisJob, estimateProcessingTime, getJob,
+    getJobsByDataset,
+    getNextJob, getQueueStats, retryJob, shouldUseBackgroundProcessing, startJobProcessor,
+    stopJobProcessor
 } from '../background-jobs';
-
 // Metrics Storage
-export { 
-  storeMetrics, 
-  getMetrics, 
-  hasMetrics, 
-  deleteMetrics,
-  getAllMetricDatasetIds,
-  storeAIInsights, 
-  getAIInsights, 
-  hasAIInsights,
-  deleteAIInsights,
-  storeAnalysisResults,
-  getAnalysisResults,
-  serializeMetrics,
-  deserializeMetrics,
-  serializeAIInsights,
-  deserializeAIInsights,
-  getCacheStats,
-  clearAllCache,
-  cleanupDataset,
-  validateMetricsStructure,
-  areMetricsStale
+export {
+    areMetricsStale, cleanupDataset, clearAllCache, deleteAIInsights, deleteMetrics, deserializeAIInsights, deserializeMetrics, getAIInsights, getAllMetricDatasetIds, getAnalysisResults, getCacheStats, getMetrics, hasAIInsights, hasMetrics, serializeAIInsights, serializeMetrics, storeAIInsights, storeAnalysisResults, storeMetrics, validateMetricsStructure
 } from '../metrics-storage';
+export * from '../pipeline-types';

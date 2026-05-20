@@ -1,8 +1,8 @@
-import { debugError } from "@/lib/utils/debug"
+import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import { count, eq } from "drizzle-orm"
-import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
 
 export const FREE_ANALYST_CREDITS = 2
 

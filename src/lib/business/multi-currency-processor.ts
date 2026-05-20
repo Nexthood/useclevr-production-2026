@@ -1,11 +1,11 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // Intelligent Business Dataset Processor - Preprocessing Normalization Layer
 // ============================================================================
 
-import { DatasetRecord } from '../data/csv-analyzer';
-import { fetchExchangeRates, isValidISOCurrency, ExchangeRates } from './fx-service';
+import type { DatasetRecord } from '../data/csv-analyzer';
+import { isValidISOCurrency } from './fx-service';
 
 // ============================================================================
 // Type Definitions
@@ -56,7 +56,7 @@ export interface CurrencyColumnInfo {
 // Currency Symbol Patterns
 // ============================================================================
 
-const CURRENCY_SYMBOLS = /[€¥£₹₽₩₱₪₫₴฿₮₦₳₵¢]/g;
+const _CURRENCY_SYMBOLS = /[€¥£₹₽₩₱₪₫₴฿₮₦₳₵¢]/g;
 
 // Detect standalone currency symbols
 function hasCurrencySymbol(value: string): boolean {
@@ -177,7 +177,7 @@ function normalizeMonetaryValue(value: unknown): number {
 
 // QUANTITY: Units sold, volume, quantity
 const QUANTITY_PATTERNS = [
-  /qty|quantity|units_sold|units sold|volume|count|pieces|items|num_purchased|number_sold|order_qty/i
+  /(^|[_\s-])(qty|quantity|units_sold|units sold|volume|count|pieces|items|num_purchased|number_sold|order_qty)($|[_\s-])/i
 ];
 
 // PRICE: Unit price, price, cost
@@ -648,7 +648,7 @@ export interface ExecutiveInsights {
   opportunities: string[];
 }
 
-export function generateExecutiveInsights(kpis: ExecutiveKPIs, mappings: ColumnMappings): ExecutiveInsights {
+export function generateExecutiveInsights(kpis: ExecutiveKPIs, _mappings: ColumnMappings): ExecutiveInsights {
   debugLog('\n========== EXECUTIVE INSIGHTS ==========');
   
   if (kpis.status === 'insufficient_data') {

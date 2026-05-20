@@ -1,1 +1,1 @@
-export * from "./data/dataset-intelligence"
+export * from "./data/dataset-intelligence";

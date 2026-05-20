@@ -1,1 +1,1 @@
-export * from './ui/business-one-pager'
+export * from './ui/business-one-pager';

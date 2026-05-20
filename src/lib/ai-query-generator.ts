@@ -1,1 +1,1 @@
-export * from "./ai/ai-query-generator"
+export * from "./ai/ai-query-generator";

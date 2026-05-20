@@ -1,12 +1,12 @@
-import { debugError, debugLog as _debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 // app/api/workspaces/[id]/members/route.ts
 // Workspace members management
 
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getWorkspaceMembers, removeWorkspaceMember, updateMemberRole, hasWorkspacePermission } from '@/lib/utils/workspace-permissions';
-import { WorkspaceRole } from '@/lib/db/schema';
+import type { WorkspaceRole } from '@/lib/db/schema';
+import { getWorkspaceMembers, hasWorkspacePermission, removeWorkspaceMember, updateMemberRole } from '@/lib/utils/workspace-permissions';
+import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,

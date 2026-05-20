@@ -1,15 +1,15 @@
 "use client"
 
-import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { WaitlistSignup } from "@/components/ui/waitlist-signup"
-import { BarChart3, Database, MessageSquare, Shield, Sparkles, Zap, ChevronDown, HelpCircle, FileText, Globe, CreditCard, Users, ZapIcon } from "lucide-react"
+import { allFaqCategories, getHomepageFaqs } from "@/lib/content/faq"
+import { BarChart3, ChevronDown, Database, FileText, HelpCircle, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
-import { getHomepageFaqs, allFaqCategories } from "@/lib/content/faq"
 
 const faqData = getHomepageFaqs()
 const allFaqCount = allFaqCategories.reduce((n, c) => n + c.items.length, 0)

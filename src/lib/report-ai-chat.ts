@@ -1,1 +1,1 @@
-export * from "./reports/report-ai-chat"
+export * from "./reports/report-ai-chat";

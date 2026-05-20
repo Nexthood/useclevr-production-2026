@@ -1,9 +1,9 @@
-import Link from "next/link"
-import { CreditCard, FileText, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { CreditCard, FileText, ShieldCheck } from "lucide-react"
+import Link from "next/link"
 
 export default async function BillingSettingsPage() {
   const session = await auth()

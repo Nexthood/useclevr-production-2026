@@ -1,6 +1,6 @@
 "use client"
 
-import { debugLog, debugError } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
@@ -1023,7 +1023,7 @@ export function ProfitabilityUpload() {
         ? profitabilityResult.revenueByRegion.map(([name, value]: [string, number]) => ({ name, value }))
         : []
 
-    const revenueByRegionData = profitabilityResult.revenueByRegion
+    const _revenueByRegionData = profitabilityResult.revenueByRegion
       ? profitabilityResult.revenueByRegion.slice(0, 10).map(([name, value]: [string, number]) => ({ name, value }))
       : []
 

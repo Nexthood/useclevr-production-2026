@@ -1,14 +1,11 @@
 "use client"
 
-import * as React from "react"
-import { 
-  FileSpreadsheet, 
-  Settings, 
-  ShieldCheck, 
-  Sparkles, 
-  FileText,
-  Check
+import {
+    Check, FileSpreadsheet, FileText, Settings,
+    ShieldCheck,
+    Sparkles
 } from "lucide-react"
+import * as React from "react"
 
 interface DataProcessingFlowProps {
   currentStep: number
@@ -102,7 +99,7 @@ export function DataProcessingFlow({ currentStep, showSqlSnippet = true, variant
           const Icon = step.icon
           const active = isActive(step.id)
           const completed = isCompleted(step.id)
-          const pending = isPending(step.id)
+          const _pending = isPending(step.id)
 
           return (
             <React.Fragment key={step.id}>

@@ -1,11 +1,11 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/query/route.ts - Direct SQL execution for analytical questions
-import { NextResponse } from 'next/server';
+import { processQuestion } from '@/lib/ai/ai-query-generator';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { processQuestion } from '@/lib/ai/ai-query-generator';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   debugLog('========== QUERY REQUEST START ==========');

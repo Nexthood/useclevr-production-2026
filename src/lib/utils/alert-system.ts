@@ -5,7 +5,8 @@
  * Uses DuckDB-style aggregations for calculations.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import type { DatasetRecord } from '../data/dataset-intelligence';
+import { buildDatasetIntelligence } from '../data/dataset-intelligence';
 
 export type AlertType = 
   | 'revenue_drop'
@@ -53,7 +54,7 @@ export async function generateAlerts(
   // Get columns
   const timeCols = intelligence.dimensions.timeColumns;
   const numericCols = intelligence.metrics.numericColumns;
-  const categoricalCols = intelligence.dimensions.categoryColumns;
+  const _categoricalCols = intelligence.dimensions.categoryColumns;
   
   // Find key metrics
   const revenueCol = numericCols.find(c => 

@@ -1,6 +1,6 @@
 "use server"
 
-import { debugLog, debugError } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 

@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // DATA CLEANER & NORMALIZER - Deterministic Data Cleaning
@@ -13,10 +13,8 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // - Detect invalid rows
 // ============================================================================
 
-import {
-  CleaningStats,
-  DataQualityReport,
-  ColumnType,
+import type {
+    CleaningStats, ColumnType, DataQualityReport
 } from '../utils/pipeline-types';
 
 // ============================================================================
@@ -25,7 +23,7 @@ import {
 
 const CURRENCY_SYMBOLS = ['$', '€', '£', '¥', '₹', 'C$', 'A$', 'CHF', '₽', 'R$', '₩', '₪'];
 
-const DATE_PATTERNS = [
+const _DATE_PATTERNS = [
   { regex: /^\d{4}-\d{2}-\d{2}$/, format: 'iso' },
   { regex: /^\d{2}\/\d{2}\/\d{4}$/, format: 'us' },
   { regex: /^\d{2}-\d{2}-\d{4}$/, format: 'eu' },
@@ -161,7 +159,7 @@ function parseDateToISO(value: any): { parsed: string | null; wasCleaned: boolea
 /**
  * Check if row is valid (has at least one non-null numeric or date value)
  */
-function isValidRow(row: Record<string, any>, columnTypes: Record<string, ColumnType>): boolean {
+function _isValidRow(row: Record<string, any>, _columnTypes: Record<string, ColumnType>): boolean {
   const values = Object.values(row);
   
   // Check if at least one value is valid

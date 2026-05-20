@@ -8,6 +8,7 @@ Each subfolder is one server destination. The current production target is Railw
 
 Railway branch: `dist`
 Railway service root: `/dist`
+Railway config file: `/dist/railway.json`
 Migration phase: Railway `preDeployCommand`
 
 Railway needs this file in the deployed commit:
@@ -52,3 +53,12 @@ runtime deployment config belongs in generated output.
 Keep migrations in Railway `preDeployCommand` while the app runs as one web service. Move migrations
 to a separate controlled job only after schema changes, background work, or operational risk require
 isolation.
+
+Railway service settings should not keep old custom npm commands. Leave build, pre-deploy, and start
+commands unset in the dashboard so `/dist/railway.json` controls them. If a manual override is needed,
+use the generated pnpm-backed scripts:
+
+```bash
+pnpm run railway:predeploy
+pnpm start
+```

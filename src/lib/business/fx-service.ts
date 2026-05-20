@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // Exchange Rate Service for Multi-Currency Financial Processing
@@ -197,7 +197,7 @@ export async function fetchExchangeRates(baseCurrency: string = 'EUR'): Promise<
   }
 
   // If we have cached rates but they're stale, try to refresh
-  const useFallback = cachedRates && cachedRates.base === baseCurrency;
+  const _useFallback = cachedRates && cachedRates.base === baseCurrency;
   
   try {
     // Using exchangerate-api.com free tier (no API key needed for basic usage)

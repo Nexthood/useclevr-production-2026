@@ -1,18 +1,16 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug"
 
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
+import {
+    BUILTIN_DEMO_USER, findBuiltinUserByCredentials,
+    isBuiltinUserId, type BuiltinUserRole
+} from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
+import { eq } from "drizzle-orm"
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
 import { z } from "zod"
-import {
-  BUILTIN_DEMO_USER,
-  type BuiltinUserRole,
-  findBuiltinUserByCredentials,
-  isBuiltinUserId,
-} from "@/lib/auth/builtin-users"
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog('[Auth] Module loading - initializing NextAuth v5')
@@ -220,7 +218,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * SignIn Callback
      * CRITICAL: Return boolean, not redirect
      */
-    async signIn({ user, account }) {
+    async signIn({ user: _user, account }) {
       // Allow OAuth sign in
       if (account?.provider === "credentials") {
         // Credentials provider already validated in authorize()

@@ -5,7 +5,8 @@
  * Uses statistical analysis for predictions + AI for explanations.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import type { DatasetRecord } from '../data/dataset-intelligence';
+import { buildDatasetIntelligence } from '../data/dataset-intelligence';
 
 export interface Prediction {
   id: string;

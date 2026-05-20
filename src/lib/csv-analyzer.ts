@@ -1,1 +1,1 @@
-export * from "./data/csv-analyzer"
+export * from "./data/csv-analyzer";

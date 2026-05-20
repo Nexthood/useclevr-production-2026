@@ -1,11 +1,11 @@
-import Stripe from "stripe";
 import { getDb } from "@/lib/db/index";
 import { profiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import Stripe from "stripe";
 
 let _stripe: Stripe | null = null;
 
-function getStripe(): Stripe {
+function _getStripe(): Stripe {
   if (_stripe) return _stripe;
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
@@ -15,7 +15,7 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
-type SubscriptionEventType =
+type _SubscriptionEventType =
   | "customer.subscription.created"
   | "customer.subscription.updated"
   | "customer.subscription.deleted";

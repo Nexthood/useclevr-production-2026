@@ -1,12 +1,12 @@
-import Link from "next/link"
-import { redirect } from "next/navigation"
-import { ShieldCheck, Ticket } from "lucide-react"
-import { AppPageHeader } from "@/components/layout/app-page-header"
 import { FaqList } from "@/components/faq/faq-list"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { superAdminFaqCategories } from "@/lib/content/dashboard-faq"
+import { ShieldCheck, Ticket } from "lucide-react"
+import Link from "next/link"
+import { redirect } from "next/navigation"
 
 export default async function SuperAdminFaqPage() {
   const session = await auth()

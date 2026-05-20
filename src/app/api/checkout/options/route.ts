@@ -1,6 +1,6 @@
+import { getBillingSettings } from "@/lib/billing/settings-store";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getBillingSettings } from "@/lib/billing/settings-store";
 
 export async function GET(_request: NextRequest) {
   const settings = await getBillingSettings();

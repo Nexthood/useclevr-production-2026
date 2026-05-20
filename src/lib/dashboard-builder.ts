@@ -1,1 +1,1 @@
-export * from "./data/dashboard-builder"
+export * from "./data/dashboard-builder";

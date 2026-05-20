@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
 import { CheckoutButton } from "@/components/forms/checkout-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { auth } from "@/lib/auth";
 import { formatPlanPrice } from "@/lib/billing/plans";
 import { getBillingSettings } from "@/lib/billing/settings-store";
-import { auth } from "@/lib/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default async function SubscriptionSettingsPage() {
   const session = await auth();

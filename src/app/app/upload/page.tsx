@@ -1,10 +1,10 @@
 "use client"
 
-import * as React from "react"
-import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp } from "lucide-react"
 import { CsvUpload } from "@/components/forms/csv-upload"
 import { ProfitabilityUpload } from "@/components/forms/profitability-upload"
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp } from "lucide-react"
+import * as React from "react"
 
 export default function UploadPage() {
   const [uploadMode, setUploadMode] = React.useState<"standard" | "profitability">("standard")

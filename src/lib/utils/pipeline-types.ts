@@ -1,4 +1,4 @@
-import { DatasetType, DatasetTypeDetection } from '../data/dataset-type-detector';
+import type { DatasetType, DatasetTypeDetection } from '../data/dataset-type-detector';
 
 // ============================================================================
 // USELEVLR DETERMINISTIC PIPELINE - Core Types and Interfaces

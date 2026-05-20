@@ -1,25 +1,12 @@
 "use client"
 
-import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Sparkles, 
-  Send, 
-  Loader2, 
-  FileSpreadsheet, 
-  Columns, 
-  Rows, 
-  Database,
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  Lightbulb,
-  Copy,
-  ThumbsUp,
-  ThumbsDown
+import {
+    Columns, Copy, Database, Info,
+    Lightbulb, Loader2, Send, Sparkles, ThumbsDown, ThumbsUp
 } from "lucide-react"
+import * as React from "react"
 
 interface Message {
   id: string
@@ -107,7 +94,7 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
 
       setMessages((prev) => [...prev, assistantMessage])
       setColumnsUsed(data.columns_used || [])
-    } catch (error) {
+    } catch {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",

@@ -1,10 +1,10 @@
 "use client"
 
-import * as React from "react"
-import { X, Download, Sparkles, Send, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
+import { CheckCircle, Download, Loader2, Send, Sparkles, X } from "lucide-react"
+import * as React from "react"
 
 interface DatasetModalProps {
   isOpen: boolean
@@ -46,7 +46,7 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
   const [inputValue, setInputValue] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const [analysisResult, setAnalysisResult] = React.useState<AnalysisResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = React.useState(false)
+  const [_isAnalyzing, setIsAnalyzing] = React.useState(false)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
 
   // Auto-analyze when modal opens
