@@ -34,25 +34,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main source
+      - name: Checkout main source for build
         uses: actions/checkout@v5
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v5
+      - name: Setup pnpm package manager
+        uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
 
-      - uses: actions/setup-node@v5
+      - name: Setup Node.js runtime
+        uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm prod:build
+      - name: Build production artifacts
+        run: pnpm prod:build
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
@@ -66,10 +70,9 @@ jobs:
           find dist -type f -size +45M -print || true
 
       - name: Stage generated output
-        run: |
-          mv dist /tmp/useclevr-dist-output
+        run: mv dist /tmp/useclevr-dist-output
 
-      - name: Checkout dist branch
+      - name: Checkout dist branch for deployment
         uses: actions/checkout@v5
         with:
           ref: dist
@@ -77,7 +80,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Prepare dist commit title
+      - name: Prepare dist commit title from PR
         id: dist-title
         uses: actions/github-script@v8
         with:
