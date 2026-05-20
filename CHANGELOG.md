@@ -22,6 +22,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railway:predeploy` script and documenting that old dashboard npm overrides must be cleared.
 - Added GitHub deployment strategy notes covering dist branch limits, Railway source builds, Docker
   image deployment, and GitHub Actions artifacts.
+- Optimized CI triggers so beta pushes do not duplicate the pull request validation workflow.
+- Fixed the auto-merge workflow trigger so beta-to-main pull requests are matched by base branch
+  `main` and filtered by head branch `beta`.
 
 ## [7.2.0] - 2026-05-20
 

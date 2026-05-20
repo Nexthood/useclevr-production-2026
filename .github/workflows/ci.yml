@@ -2,7 +2,7 @@ name: Validate Source
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main]
   pull_request:
     branches: [main]
 

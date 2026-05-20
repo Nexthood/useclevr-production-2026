@@ -86,8 +86,10 @@ The main CI workflow is `.github/workflows/ci.yml`.
 
 It runs on:
 - Pushes to `main`
-- Pushes to `beta`
 - Pull requests targeting `main`
+
+It intentionally does not run on `beta` pushes. A `beta` push is validated when it becomes a pull
+request into `main`, which avoids running the same source validation twice for the normal test flow.
 
 CI is automatically skipped for commits containing `[skip ci]` in the commit message.
 
@@ -98,7 +100,10 @@ This one check protects `main`, because `main` generates the production `dist` b
 
 ### Auto-Merge Workflow
 
-The `.github/workflows/auto-merge.yml` workflow automatically enables auto-merge for PRs from `beta` to `main` when all checks pass.
+The `.github/workflows/auto-merge.yml` workflow automatically enables auto-merge for PRs from
+`beta` to `main` when all checks pass. It listens for pull requests targeting `main` and then checks
+that the source branch is `beta`, because GitHub's `pull_request.branches` filter matches the base
+branch, not the head branch.
 
 ### Deployment Workflow
 
@@ -269,8 +274,9 @@ The check name may appear as either `Validate source and production build` or `V
 The GitHub Actions workflows have been verified and are correct:
 
 **ci.yml:**
-- Validation runs on push to branches [main, beta] ✓
+- Validation runs on push to branches [main] ✓
 - Validation runs on pull_request to branches [main] ✓
+- Beta pushes do not run the same validation twice; validation happens on the beta → main PR ✓
 - Skips CI for commits containing [skip ci] in both validation and documentation jobs ✓
 
 **branch-maintenance.yml:**
