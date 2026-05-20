@@ -18,6 +18,17 @@ jobs:
       github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
+      - name: Format PR title with PR number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$PR_TITLE" =~ ^PR-[0-9]+: ]]; then
+            NEW_TITLE="PR-$PR_NUMBER: $PR_TITLE"
+            gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --repo "${{ github.repository }}"
+          fi
+
       - name: Enable auto-merge if checks pass
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

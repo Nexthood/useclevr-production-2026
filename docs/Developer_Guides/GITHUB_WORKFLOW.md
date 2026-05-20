@@ -47,7 +47,7 @@ The `commit-msg` hook validates commit messages automatically. Bypass with `git 
 
 ## Pull Request Titles
 
-Pull request titles should start with `PR:` for deployment tracking. The merged PR title becomes the dist branch commit message.
+Pull request titles should start with `PR:` for deployment tracking. The auto-merge workflow formats them as `PR-{number}: title`. The formatted title becomes the dist branch commit message.
 
 ## Test Flow: Beta To Main
 
@@ -123,6 +123,18 @@ The publish job does not commit `node_modules/`. Railway installs runtime depend
 
 `server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; today the only target is Railway at `server-settings/railway/`, but the folder can hold additional target folders later without changing the source validation workflow.
 
+### Railway Runtime Behavior
+
+Railway deployment flow:
+
+1. **Build phase** (controlled by `server-settings/railway/railway.dist.json`):
+   - `pnpm install --frozen-lockfile --prod` - Installs only production dependencies
+   - `optional = false` in `pnpm-workspace.yaml` prevents optional SWC binaries
+
+2. **Start phase**:
+   - `node server.js` (from `dist/server.js`, which is `dist/.next/standalone/server.js`)
+   - Railway runs from `dist/` folder, so the path is relative to `/dist`
+
 Database migrations stay in Railway `preDeployCommand` for this phase. A separate migration service or job is future work only when migrations or background jobs need isolation from the web process.
 
 The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the Railway runtime locally, switch to `dist`, run `cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the repository root before starting if needed.
@@ -175,6 +187,10 @@ The publish workflow also generates `dist/pnpm-lock.yaml` before final cleanup. 
 before staging and checks only files that will be committed. After switching to the orphan `dist`
 branch workspace, the workflow also deletes root-level build leftovers such as `.next/` and
 `node_modules/`; those are untracked workspace files from the build job, not deployment files.
+
+The workflow also removes `.next/cache/webpack` which contains large webpack pack files that are
+not needed for the standalone build. These are excluded during `create-dist.cjs` copy and cleaned
+again before publishing.
 
 Next.js SWC platform packages such as `@next/swc-linux-x64-gnu` are optional build-time dependencies.
 The source build can install them, but the generated Railway runtime package uses `--no-optional` and
@@ -297,3 +313,6 @@ The GitHub Actions workflows have been verified and are correct:
 - Publish job force-cleans dist branch with git checkout --orphan new-dist and git rm -rf . ✓
 - Publishes only generated /dist folder contents ✓
 - Railway artifacts (railway.json, pnpm-workspace.yaml, package.json) isolated inside /dist/ ✓
+
+**ci.yml:**
+- Does not run on beta pushes (validated when PR targets main) ✓
