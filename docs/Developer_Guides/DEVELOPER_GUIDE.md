@@ -68,9 +68,10 @@ src/
   assets/        Static files and generated report assets
 
 scripts/         Node/CJS helper scripts
-  ci/            CI config sync (Railway)
+  server/        Server-host-specific helpers, grouped by host
   docs/          Docs lint and link-check scripts
   build/         Clean, dist, and build helpers
+  package-dist/  Assemble generated production output
   release/       Tag and release-check scripts
   runtime/       Runtime env loader
   health/        Health-check scripts
@@ -181,7 +182,8 @@ All commands are run from `pnpm`.
 | Command           | Description                        |
 | ----------------- | ---------------------------------- |
 | `pnpm ci:validate` | Types + dist check + lint + tests + production build |
-| `pnpm ci:railway` | Sync Railway config                |
+| `pnpm deploy:railway:sync` | Sync Railway deploy-target config |
+| `pnpm ci:railway`          | Compatibility alias for Railway sync |
 
 ### Audit & Dependencies
 
@@ -233,6 +235,23 @@ Markdown source check:
 
 ```bash
 pnpm docs:check       # broken local links in *.md
+```
+
+### Git Hooks
+
+Husky manages local Git hooks from `.husky/`; the local Git hook path should point at `.husky/_`.
+Do not keep custom scripts in `.git/hooks` beyond Git sample files.
+
+Current hook:
+
+- `commit-msg` — runs commitlint and allows `PR:` commit titles used by generated dist commits.
+
+Setup and checks:
+
+```bash
+pnpm install          # runs the Husky prepare script
+git config --local --get core.hooksPath
+pnpm exec commitlint --from HEAD~1 --to HEAD
 ```
 
 ### Env safety
@@ -345,17 +364,19 @@ guidelines.
 ## Deployment
 
 ```bash
-pnpm ci:railway
+pnpm deploy:railway:sync
 pnpm prod:build
 pnpm prod:start
 ```
 
 - Deploy root: `dist/`
 - Do not commit generated `dist/` output from source branches
-- Template: `ci-settings/railway.dist.json`
+- Template: `server-settings/railway/railway.dist.json`
 - Local Railway parity test: switch to the `dist` branch, then run `cd dist && pnpm install && PORT=8080 pnpm start`
 - Shared local env: put common development secrets in `../.env.local`; checkout-local env files can
   override those values.
+- `server-settings/` contains one subfolder per server host; GitHub Actions workflow files stay
+  in `.github/workflows/`.
 
 ### Railway Environment
 
@@ -384,7 +405,10 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- Generated Railway config comes from `ci-settings/railway.dist.json`
+- Generated Railway config comes from `server-settings/railway/railway.dist.json`
+- The `dist` branch root must not contain `railway.json`; Railway reads `/dist/railway.json`
+- Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
+- Database migrations stay in Railway pre-deploy while this is a single web-service deployment
 - No secrets in Docker image or logs
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
 

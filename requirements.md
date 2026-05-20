@@ -93,9 +93,34 @@
   build files to be committed to source branches.
 - The hosting platform deploys from generated output while keeping runtime secrets in the hosting
   environment.
+- Production deployments use a generated deployment folder with its own runtime package,
+  hosting config, and dependency build approvals.
+- Server-host settings are grouped by host so Railway and future secondary destinations can
+  keep separate templates.
+- Application source remains independent from hosting-specific files, so server targets can change
+  without pushing deployment details into product code.
+- Production packaging scripts remain in tracked source paths that do not conflict with ignored
+  generated output folders.
+- Project planning lives under one root TODO folder with separate active, next, completed, and dist
+  migration files so follow-up work is easier to audit.
+- Dist migration planning distinguishes active work, completed work, future requests, and deliberate
+  no-fix decisions.
+- Developer machines use Husky-managed Git hooks instead of custom local `.git/hooks` scripts.
+- Dist deployment commits use short pull request titles so deployment history is readable.
+- The deployment branch keeps permanent branch metadata separate from generated application output
+  so hosting configuration is read from the deployment folder, not the branch root.
+- Developers can run the generated production server locally with shared development environment
+  values that apply across branch checkouts.
+- Database migrations run as part of the hosting platform pre-deploy phase so schema changes are
+  applied in the target environment before the new web process starts.
 
 ### Reference Files
 
 - Terms & Conditions are at `https://useclevr.com/terms`
 - Privacy Policy is at `https://useclevr.com/privacy`
 - Public plans page at `/pricing`
+
+### Developer Requirements
+
+- Commit messages follow conventional commit format (feat, fix, docs, etc.) enforced by commitlint
+- Pull request titles start with `PR:` for deployment tracking

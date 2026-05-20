@@ -1,5 +1,7 @@
 # Developer Guides
 
+- [Root Structure](FOLDER_STRUCTURE.md)
+
 ## Primary Guide
 
 | Guide                                        | Notes                    |

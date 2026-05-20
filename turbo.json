@@ -16,7 +16,7 @@
     },
     "build:prod": {
       "dependsOn": ["build"],
-      "inputs": ["scripts/dist/create-dist.cjs"],
+      "inputs": ["scripts/package-dist/create-dist.cjs"],
       "outputs": ["dist/**"],
       "cache": true
     },

@@ -17,6 +17,7 @@ Railway runs production with Docker, Node.js 22+, and pnpm.
 | Database | Neon connection strings valid for target environment |
 | Generated files | Runtime uploads, reports, temporaries in ignored or ephemeral paths |
 | Logs | Build and runtime logs contain enough context to diagnose failures |
+| Git hooks | Husky hooks are in `.husky/`; `.git/hooks` only keeps Git sample files |
 
 ## Required Production Variables
 
@@ -33,4 +34,5 @@ pnpm railway:build
 pnpm railway:start
 pnpm prod:build
 pnpm prod:start
+pnpm deploy:railway:sync
 ```

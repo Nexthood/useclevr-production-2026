@@ -77,6 +77,28 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Prepare dist commit title
+        id: dist-title
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+
+            const prTitle = prs.data[0]?.title?.trim();
+            const shortSha = context.sha.slice(0, 7);
+            let title = prTitle || context.payload.head_commit?.message?.split('\n')[0]?.trim() || `Update dist ${shortSha}`;
+
+            title = title.replace(/\s+/g, ' ').slice(0, 80).trim();
+            if (!title.startsWith('PR:')) {
+              title = `PR: ${title}`;
+            }
+
+            core.setOutput('title', title);
+
       - name: Publish generated folder to dist branch
         run: |
           rm -rf dist-branch/.next
@@ -99,11 +121,6 @@ jobs:
             cp dist-root/README.md dist-branch/
           fi
 
-          # Copy railway.json into the generated dist folder so it ends up inside dist-branch/dist/
-          if [ -f "dist-root/railway.json" ]; then
-            cp dist-root/railway.json dist-branch/dist/
-          fi
-
           cd dist-branch
           echo "Large files remaining:"
           find . -type f -size +45M -print || true
@@ -119,6 +136,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No dist changes to publish."
           else
-            git commit -m "Deploy dist from main commit ${{ github.sha }}"
+            git commit -m "${{ steps.dist-title.outputs.title }}"
             git push origin HEAD:dist
           fi
