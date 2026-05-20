@@ -28,7 +28,16 @@ function copyDir(from, to, options = {}) {
       if (!relativePath) return true;
 
       const firstSegment = relativePath.split(path.sep)[0];
-      return !(options.excludeRootDirs || []).includes(firstSegment);
+      if ((options.excludeRootDirs || []).includes(firstSegment)) {
+        return false;
+      }
+
+      // Exclude .next/cache/webpack which contains large pack files
+      if (relativePath.includes(".next" + path.sep + "cache" + path.sep + "webpack")) {
+        return false;
+      }
+
+      return true;
     },
   });
 }
