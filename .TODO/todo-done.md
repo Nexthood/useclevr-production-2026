@@ -28,3 +28,9 @@
   checkout folder while allowing checkout-local overrides.
 - **Husky commit hooks** — Local Git hooks now run from `.husky/`, commit messages are checked with
   commitlint through pnpm, and generated dist commits may use short `PR:` titles.
+- **Repo-wide lint cleanup** — ESLint now reports zero warnings after import cleanup, unused binding
+  cleanup, and catch-parameter cleanup across source files.
+- **Business KPI mapping fix** — Multi-currency CSV analysis now reads normalized monetary columns
+  from the processor result and no longer mistakes `country` for the quantity column.
+- **Deployment strategy notes** — GitHub workflow docs now compare the current dist branch flow with
+  Railway source builds, Docker image deployment, and GitHub Actions artifact options.

@@ -1,13 +1,12 @@
 "use client"
 
+import { CheckoutButton } from "@/components/forms/checkout-form"
+import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
+import { Button } from "@/components/ui/button"
+import { Modal } from "@/components/ui/modal"
+import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 import { Brain, Check, Download } from "lucide-react"
 import * as React from "react"
-import { CheckoutButton } from "@/components/forms/checkout-form"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Modal } from "@/components/ui/modal"
-import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
-import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 
 export default function HybridAiButton({
   subscriptionTier = "free",

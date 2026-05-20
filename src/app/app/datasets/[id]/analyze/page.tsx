@@ -1,15 +1,15 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug"
 
+import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer"
+import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Button } from "@/components/ui/button"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { Button } from "@/components/ui/button"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer"
-import { AppPageHeader } from "@/components/layout/app-page-header"
 
 // Type for analysis result (simplified for props)
 type AnalysisResult = Record<string, unknown>
@@ -22,7 +22,7 @@ export default async function AnalyzePage({
   const { id } = await params
 
   const session = await auth()
-  const userId = (session?.user as { id?: string })?.id
+  const _userId = (session?.user as { id?: string })?.id
 
   // Get dataset using Drizzle - read data directly from dataset.data column
   const dataset = await db.query.datasets.findFirst({
@@ -55,7 +55,7 @@ export default async function AnalyzePage({
   const hasAnalysis: boolean = Boolean(
     dataset.analysis && typeof dataset.analysis === 'object' && Object.keys(dataset.analysis as object).length > 0
   )
-  const initialAnalysis = hasAnalysis ? (dataset.analysis as AnalysisResult) : undefined
+  const _initialAnalysis = hasAnalysis ? (dataset.analysis as AnalysisResult) : undefined
   
   debugLog('[DEBUG-PAGE] Dataset analysis status:', { 
     id: dataset.id, 

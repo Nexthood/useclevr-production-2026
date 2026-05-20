@@ -1,20 +1,21 @@
 "use client"
 
-import * as React from "react"
-import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Cloud, Wifi, WifiOff, Cpu } from "lucide-react"
+import { uploadCSV } from "@/app/actions/upload"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { uploadCSV } from "@/app/actions/upload"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
-import { useToast } from "@/hooks/use-toast"
 import { useNotice } from "@/components/ui/notice-bar"
-import { useConnectionStatus, getConnectionMessage, getConnectionDescription, ConnectionMode } from "@/hooks/use-connection-status"
-import { debugLog, debugError } from "@/lib/utils/debug"
+import type { ConnectionMode } from "@/hooks/use-connection-status"
+import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
+import { useToast } from "@/hooks/use-toast"
+import { debugError, debugLog } from "@/lib/utils/debug"
+import { AlertCircle, CheckCircle2, Cloud, Cpu, FileSpreadsheet, Loader2, Wifi, WifiOff } from "lucide-react"
+import * as React from "react"
 
 const UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
 const LEGACY_UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
 
-interface CsvRow {
+interface _CsvRow {
   [key: string]: string | number | boolean | null | undefined
 }
 
@@ -39,7 +40,7 @@ export function CsvUpload() {
   // Helper to check connection mode
   const isOffline = connectionMode === 'offline'
   const isHybrid = connectionMode === 'hybrid'
-  const isOnline = connectionMode === 'online'
+  const _isOnline = connectionMode === 'online'
 
   // Get connection status icon and color
   const getConnectionIcon = (mode: ConnectionMode) => {

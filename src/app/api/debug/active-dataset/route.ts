@@ -1,10 +1,10 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/debug/active-dataset/route.ts
-import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 // ============================================================================
 // DEBUG ENDPOINT - Active Dataset Verification

@@ -1,7 +1,7 @@
+import { auth } from "@/lib/auth";
+import { getBillingSettings, saveBillingSettings } from "@/lib/billing/settings-store";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth"
-import { getBillingSettings, saveBillingSettings } from "@/lib/billing/settings-store"
 
 async function requireSuperAdmin() {
   const session = await auth()

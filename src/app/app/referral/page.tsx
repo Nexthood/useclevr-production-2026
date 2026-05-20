@@ -1,10 +1,10 @@
 "use client"
 
-import { debugLog } from "@/lib/utils/debug"
-import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Copy, Share2, QrCode, Users, MousePointer, CreditCard, Gift, Check, Sparkles, Loader2 } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { debugLog } from "@/lib/utils/debug"
+import { Check, Copy, CreditCard, Gift, Loader2, MousePointer, QrCode, Share2, Sparkles, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface ReferralStats {
   clicks: number
@@ -88,7 +88,7 @@ export default function ReferralCenter() {
           url: referralLink,
         })
         await recordEvent("track")
-      } catch (err) {
+      } catch {
         debugLog("Share cancelled")
       }
     } else {

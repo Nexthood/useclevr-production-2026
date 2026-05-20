@@ -5,10 +5,9 @@
 
 "use client";
 
-import React from 'react';
-import { TrendingUp, TrendingDown, Minus, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { DriverDetectionResult, MetricDriver, DriverContribution } from '@/lib/utils/pipeline-types';
+import type { DriverContribution, DriverDetectionResult, MetricDriver } from '@/lib/utils/pipeline-types';
+import { AlertTriangle, ArrowRight, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
 interface DriverDisplayProps {
   drivers: DriverDetectionResult;
@@ -36,7 +35,7 @@ export function DriverDisplay({ drivers, showDetails = true }: DriverDisplayProp
       )}
 
       {/* Driver Cards */}
-      {drivers.drivers.map((driver, index) => (
+      {drivers.drivers.map((driver, _index) => (
         <DriverCard key={driver.metric} driver={driver} showDetails={showDetails} />
       ))}
     </div>

@@ -5,7 +5,8 @@
  * Uses DuckDB-style aggregations for calculations.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from './dataset-intelligence';
+import type { DatasetRecord } from './dataset-intelligence';
+import { buildDatasetIntelligence } from './dataset-intelligence';
 
 export interface ComparisonMetric {
   metric: string;
@@ -80,8 +81,8 @@ export async function compareDatasets(
   }
   
   // Check for columns in dataset A but not B
-  const onlyInA = numericA.filter(col => !numericB.includes(col));
-  const onlyInB = numericB.filter(col => !numericA.includes(col));
+  const _onlyInA = numericA.filter(col => !numericB.includes(col));
+  const _onlyInB = numericB.filter(col => !numericA.includes(col));
   
   // Build matching columns info
   const allColumns = [...new Set([...intelA.schema.columns.map(c => c.name), ...intelB.schema.columns.map(c => c.name)])];
@@ -134,7 +135,7 @@ function aggregateSum(data: Record<string, unknown>[], col: string): number {
 /**
  * Calculate average
  */
-function aggregateAvg(data: Record<string, unknown>[], col: string): number {
+function _aggregateAvg(data: Record<string, unknown>[], col: string): number {
   const values = data
     .map(row => parseFloat(String(row[col]).replace(/[^0-9.-]/g, '')))
     .filter(v => !isNaN(v));

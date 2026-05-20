@@ -1,11 +1,11 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { User } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProfileForm } from "./profile-form"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 
 export default async function ProfileSettingsPage() {
   const session = await auth()

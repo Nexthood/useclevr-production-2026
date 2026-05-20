@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 /**
  * Shareable Report Generator
@@ -8,10 +8,10 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * Uses file-based storage for persistence.
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
-import { generatePdfReport, getPdfPath } from './pdf-report-generator';
+import { v4 as uuidv4 } from 'uuid';
+import { generatePdfReport } from './pdf-report-generator';
 
 // File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
 const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';

@@ -1,10 +1,10 @@
-import Link from "next/link"
-import { auth } from "@/lib/auth"
-import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Users, Gift, TrendingUp, ArrowRight, Check } from "lucide-react"
+import { auth } from "@/lib/auth"
+import { ArrowRight, Check, Gift, Sparkles, TrendingUp, Users } from "lucide-react"
+import Link from "next/link"
 
 export default async function AffiliatePage() {
   const session = await auth()

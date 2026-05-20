@@ -1,7 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { FREE_UPLOADS_LIMIT } from "@/lib/business/products"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
 // Credit packages for purchase
 export const CREDIT_PACKAGES = [
@@ -46,7 +46,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
           setIsPro(storedTier === "paid" || storedTier === "pro")
         }
       }
-    } catch (e) {
+    } catch {
       // localStorage not available
     }
   }, [])
@@ -59,7 +59,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem("useclevr_credits", newCredits.toString())
       localStorage.setItem("useclevr_tier", "pro")
-    } catch (e) {}
+    } catch {}
   }
 
   const useCredits = (amount: number): boolean => {
@@ -68,7 +68,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
       setCredits(newCredits)
       try {
         localStorage.setItem("useclevr_credits", newCredits.toString())
-      } catch (e) {}
+      } catch {}
       return true
     }
     setShowUpgradeModal(true)
@@ -81,7 +81,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
       setFreeUploadsUsed(newCount)
       try {
         localStorage.setItem("useclevr_free_uploads", newCount.toString())
-      } catch (e) {}
+      } catch {}
       
       // Show upgrade modal after using all free uploads
       if (newCount >= FREE_UPLOADS_LIMIT) {

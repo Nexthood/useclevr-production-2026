@@ -1,12 +1,12 @@
-import { redirect } from "next/navigation"
-import { ShieldCheck, SlidersHorizontal, Wrench, Users, Award, Settings2 } from "lucide-react"
-import { auth } from "@/lib/auth"
-import { FREE_ANALYST_CREDITS } from "@/lib/usage/analyst-credits"
-import { getBillingSettings } from "@/lib/billing/settings-store"
 import { BillingSettingsForm } from "@/components/billing/billing-settings-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { auth } from "@/lib/auth"
+import { getBillingSettings } from "@/lib/billing/settings-store"
+import { FREE_ANALYST_CREDITS } from "@/lib/usage/analyst-credits"
+import { Settings2, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react"
+import { redirect } from "next/navigation"
 
 const roleLimits = [
   { role: "Free customer", totalCredits: FREE_ANALYST_CREDITS },

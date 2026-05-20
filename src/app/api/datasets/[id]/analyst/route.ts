@@ -1,13 +1,13 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/datasets/[id]/analyst/route.ts
 // UseClevr AI Analyst Mode - Multi-step analysis with structured report
 
-import { NextResponse } from 'next/server';
+import { runAnalystMode } from '@/lib/ai/ai-analyst-mode';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { runAnalystMode } from '@/lib/ai/ai-analyst-mode';
+import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,

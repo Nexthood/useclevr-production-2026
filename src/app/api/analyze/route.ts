@@ -19,14 +19,14 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
  * - Never crashes the UI
  */
 
+import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
 import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
-import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
-import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { generateText } from "ai";
 
 // Generate business insights from query results without LLM

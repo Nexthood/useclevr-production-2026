@@ -1,11 +1,13 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { UserFormattingPreferences, getDefaultPreferences } from '@/lib/utils/formatting'
+import type { UserFormattingPreferences } from '@/lib/utils/formatting';
+import { getDefaultPreferences } from '@/lib/utils/formatting';
+import type { ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 interface FormattingContextType {
   preferences: UserFormattingPreferences

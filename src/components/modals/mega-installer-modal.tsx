@@ -1,11 +1,10 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 
-import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
-import { Brain, Zap, Cpu, Clock, CheckCircle, XCircle, Pause, Play, Download, AlertCircle } from "lucide-react"
+import { Download } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 type DownloadState = string
 type TierId = 'lite' | 'mega'

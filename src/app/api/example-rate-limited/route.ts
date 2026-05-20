@@ -1,4 +1,4 @@
-import { debugError, debugLog as _debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
 import { checkRateLimit } from '@/lib/utils/rate-limiter'
 import { NextResponse, type NextRequest } from 'next/server'

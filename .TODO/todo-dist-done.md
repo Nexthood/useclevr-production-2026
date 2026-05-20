@@ -41,6 +41,8 @@
       their own target subfolders.
 - [x] Hardened Railway install against `pnpm approve-builds` failures with generated approvals and a
       build-command config override.
+- [x] Hardened Railway pre-deploy against old npm command overrides by generating
+      `railway:predeploy`, `db:push`, and `db:migrate` scripts that run through pnpm.
 - [x] Updated dist publish commits to use the merged PR title, with `PR:` enforced and long source
       commit ids removed from normal dist commit titles.
 - [x] Updated developer docs, requirements, changelog, and agent guidance with the current deployment

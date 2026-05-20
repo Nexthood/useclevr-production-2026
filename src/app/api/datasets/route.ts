@@ -2,10 +2,10 @@ import { debugError } from "@/lib/utils/debug"
 
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { datasets, datasetRows } from "@/lib/db/schema"
+import { datasetRows, datasets } from "@/lib/db/schema"
+import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
-import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
 
 export async function GET() {
   try {

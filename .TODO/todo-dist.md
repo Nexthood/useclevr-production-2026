@@ -23,6 +23,9 @@ only permanent branch files such as `.gitignore` and `README.md`; deployment con
 - [ ] Confirm the next `beta` to `main` merge publishes a fresh `dist:/dist` folder.
 - [ ] Confirm only `/dist` changes on the `dist` branch after publish.
 
+These checks intentionally stay open until the next real merge. Local validation now passes:
+`pnpm validate:dist`, `pnpm build`, and `pnpm build:prod`.
+
 ## Migration Notes
 
 - Keep server-host templates in host-specific subfolders such as `server-settings/railway/`;

@@ -1,14 +1,14 @@
 import {
-  boolean,
-  foreignKey,
-  integer,
-  jsonb,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uniqueIndex,
-  varchar,
+    boolean,
+    foreignKey,
+    integer,
+    jsonb,
+    pgTable,
+    primaryKey,
+    text,
+    timestamp,
+    uniqueIndex,
+    varchar
 } from 'drizzle-orm/pg-core'
 
 // User table - NextAuth compatible

@@ -1,11 +1,11 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/report/[id]/chat/route.ts
 // Interactive AI chat for report pages - only uses report snapshot context
 
-import { NextResponse } from 'next/server';
-import { getReport } from '@/lib/reports/report-generator';
 import { answerReportQuestion } from '@/lib/reports/report-ai-chat';
+import { getReport } from '@/lib/reports/report-generator';
+import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,

@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // BACKGROUND JOB SYSTEM - Simple Queue for Large Dataset Processing
@@ -7,7 +7,8 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // Uses in-memory queue (can be replaced with BullMQ/Redis in production)
 // ============================================================================
 
-import { AnalysisJob, LARGE_DATASET_THRESHOLD } from './pipeline-types';
+import type { AnalysisJob } from './pipeline-types';
+import { LARGE_DATASET_THRESHOLD } from './pipeline-types';
 
 // ============================================================================
 // JOB QUEUE (In-Memory)

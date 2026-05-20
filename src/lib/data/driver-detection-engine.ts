@@ -11,13 +11,7 @@
  */
 
 import type {
-  PrecomputedMetrics,
-  MetricDriver,
-  DriverContribution,
-  DriverDetectionResult,
-  DriverDetectionConfig,
-  RegionalMetric,
-  ProductMetric,
+    DriverContribution, DriverDetectionConfig, DriverDetectionResult, MetricDriver, PrecomputedMetrics, ProductMetric, RegionalMetric
 } from '../utils/pipeline-types';
 import { DEFAULT_DRIVER_CONFIG } from '../utils/pipeline-types';
 
@@ -126,7 +120,7 @@ function analyzeRevenueDrivers(
 function calculateRegionalDrivers(
   metrics: PrecomputedMetrics,
   totalRevenue: number,
-  cfg: DriverDetectionConfig
+  _cfg: DriverDetectionConfig
 ): DriverContribution[] {
   if (!metrics.regionalPerformance || metrics.regionalPerformance.length === 0) {
     return [];
@@ -150,7 +144,7 @@ function calculateRegionalDrivers(
 function calculateProductDrivers(
   metrics: PrecomputedMetrics,
   totalRevenue: number,
-  cfg: DriverDetectionConfig
+  _cfg: DriverDetectionConfig
 ): DriverContribution[] {
   if (!metrics.productPerformance || metrics.productPerformance.length === 0) {
     return [];

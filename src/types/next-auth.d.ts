@@ -1,5 +1,5 @@
-import NextAuth from "next-auth"
 import type { BuiltinUserRole } from "@/lib/auth/builtin-users"
+import "next-auth"
 
 declare module "next-auth" {
   interface Session {

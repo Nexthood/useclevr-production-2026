@@ -1,13 +1,13 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
 
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import * as React from "react"
 
 interface CheckoutButtonProps {
   productId: string
@@ -24,7 +24,7 @@ export function CheckoutButton({
   variant = "default",
   size = "default",
 }: CheckoutButtonProps) {
-  const router = useRouter()
+  const _router = useRouter()
   const [loading, setLoading] = React.useState(false)
 
   const handleCheckout = async () => {

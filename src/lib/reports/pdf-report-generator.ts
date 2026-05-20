@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 /**
  * PDF Report Generator for UseClevr
@@ -13,10 +13,10 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * - Max 3 pages for comprehensive reports
  */
 
-import { jsPDF } from 'jspdf';
 import * as fs from 'fs';
+import { jsPDF } from 'jspdf';
 import * as path from 'path';
-import type { Report, ReportChart } from './report-generator';
+import type { Report } from './report-generator';
 
 // PDF storage directory: use explicit temp directory to avoid broad project tracing in Next/Turbopack
 const PDF_DIR = path.join(process.env.TEMP_DIR || '/tmp/useclevr-reports', 'pdfs');
@@ -29,7 +29,7 @@ function ensurePdfDir() {
 }
 
 // Professional monetary formatter
-function formatCurrency(value: number): string {
+function _formatCurrency(value: number): string {
   if (Math.abs(value) >= 1000000) {
     return `$${(value / 1000000).toFixed(2)}M`;
   }
@@ -51,7 +51,7 @@ function formatCompactNumber(value: number): string {
 }
 
 // Percentage formatter
-function formatPercent(value: number): string {
+function _formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
@@ -123,7 +123,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
   };
   
   // Helper: draw section divider line
-  const drawDivider = (): void => {
+  const _drawDivider = (): void => {
     doc.setDrawColor(...colors.border);
     doc.setLineWidth(0.3);
     doc.line(margin, y, pageWidth - margin, y);

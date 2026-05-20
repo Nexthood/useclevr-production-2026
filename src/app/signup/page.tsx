@@ -2,19 +2,19 @@
 
 import type React from "react"
 
-import Link from "next/link"
-import { Suspense, useState } from "react"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
+import { signup } from "@/app/actions/auth"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useNotice } from "@/components/ui/notice-bar"
-import { signup } from "@/app/actions/auth"
-import { Loader2, ArrowRight, Sparkles, Mail, Lock, User, CheckCircle2, Rocket, Eye, EyeOff } from "lucide-react"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react"
+import { signIn } from "next-auth/react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
 
 function SignupForm() {
   const router = useRouter()

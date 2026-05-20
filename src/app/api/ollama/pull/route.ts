@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
 import { getOllamaBaseUrl } from "@/lib/ai/ollama-client"
+import { NextResponse } from "next/server"
 
 const PULL_PATH = "/api/pull"
 const TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes

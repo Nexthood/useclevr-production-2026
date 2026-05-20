@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 /**
  * AI Dataset Memory
@@ -7,7 +7,8 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * Uses schema-based similarity detection.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from './dataset-intelligence';
+import type { DatasetIntelligence, DatasetRecord } from './dataset-intelligence';
+import { buildDatasetIntelligence } from './dataset-intelligence';
 
 export interface DatasetMemory {
   id: string;

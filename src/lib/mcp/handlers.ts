@@ -1,12 +1,12 @@
 import { debugLog } from "@/lib/utils/debug";
 
-import { PrecomputedMetrics } from '../utils/pipeline-types';
-import {
+import type { PrecomputedMetrics } from '../utils/pipeline-types';
+import type {
     DatasetSchemaOutput,
     PrecomputedKpisOutput,
     ProfitabilitySummaryOutput,
     RevenueTrendsOutput,
-    TopRegionsOutput,
+    TopRegionsOutput
 } from './tools';
 
 interface MCPCache {

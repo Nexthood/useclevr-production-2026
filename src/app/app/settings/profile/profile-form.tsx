@@ -1,12 +1,12 @@
 "use client"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
 import { updateProfile } from "@/app/actions/settings"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
+import { useRouter } from "next/navigation"
+import * as React from "react"
 
 type ProfileFormProps = {
   fullName: string

@@ -1,10 +1,10 @@
-import type { NextRequest } from "next/server"
-import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 import { z } from "zod"
 
 const parseBoolean = z

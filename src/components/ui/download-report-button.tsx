@@ -1,11 +1,11 @@
 "use client"
 
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug"
 
 
 
-import * as React from "react"
 import { Download, FileText, Loader2 } from "lucide-react"
+import * as React from "react"
 
 interface DownloadReportButtonProps {
   analysisData: {

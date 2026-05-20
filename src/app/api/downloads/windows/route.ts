@@ -1,5 +1,5 @@
+import { createReadStream, existsSync, statSync } from "fs"
 import { NextResponse } from "next/server"
-import { createReadStream, statSync, existsSync } from "fs"
 import { join } from "path"
 
 const FILE_NAME = "UseClevr-Hybrid-Runtime-Setup.exe"

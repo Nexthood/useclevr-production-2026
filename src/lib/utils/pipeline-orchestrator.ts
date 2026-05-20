@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 // ============================================================================
 // PIPELINE ORCHESTRATOR - Deterministic Pipeline Coordination
@@ -12,25 +12,18 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // 6. Store precomputed metrics
 // ============================================================================
 
-import {
-  AnalysisStatus,
-  AnalysisStatusInfo,
-  DatasetMetadata,
-  PreviewData,
-  ColumnMapping,
-  DetectedBusinessColumns,
-  PrecomputedMetrics,
-  AIInsightOutput,
-  LARGE_DATASET_THRESHOLD,
-  DatasetType,
+import type {
+    AIInsightOutput, AnalysisStatus,
+    AnalysisStatusInfo, ColumnMapping, DatasetMetadata, DetectedBusinessColumns,
+    PrecomputedMetrics, PreviewData
 } from './pipeline-types';
 
-import { generatePreview, requiresBackgroundProcessing, getProcessingStrategy } from './preview-generator';
-import { detectBusinessColumnsFromPreview, createColumnMapping, applyMappingOverride, validateColumnMapping } from '../business/column-mapper';
+import { generateRuleBasedInsights, metricsToAIInput } from '../ai/ai-insight-layer';
+import { applyMappingOverride, createColumnMapping, detectBusinessColumnsFromPreview, validateColumnMapping } from '../business/column-mapper';
+import { cleanAndNormalizeDataset } from '../data/data-cleaner';
 import { detectDatasetType } from '../data/dataset-type-detector';
-import { cleanAndNormalizeDataset, generateDataQualityReport } from '../data/data-cleaner';
 import { runFullDatasetAnalysis, validatePrecomputedMetrics } from './full-analysis-engine';
-import { metricsToAIInput, generateRuleBasedInsights, generateAIInsightPrompt } from '../ai/ai-insight-layer';
+import { generatePreview, getProcessingStrategy, requiresBackgroundProcessing } from './preview-generator';
 
 // ============================================================================
 // PIPELINE STATE

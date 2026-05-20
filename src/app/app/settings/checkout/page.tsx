@@ -1,13 +1,12 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { Check, FileText, ChevronRight, CreditCard, Lock } from "lucide-react";
-import { CheckoutConfirmButton } from "@/components/billing/checkout-confirm-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Check, ChevronRight, CreditCard, FileText, Lock } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import * as React from "react";
 
 type CheckoutStep = "review" | "terms";
 
@@ -19,7 +18,7 @@ function CheckoutClient() {
   // URL changes between steps 1 → 2.
   const planId = searchParams.get("plan") ?? "pro_monthly";
   const initialDiscount = searchParams.get("discount");
-  const [discount, setDiscount] = React.useState<boolean>(initialDiscount === "auto");
+  const [discount, _setDiscount] = React.useState<boolean>(initialDiscount === "auto");
   const [plan, setPlan] = React.useState(getBillingPlan(planId));
   const [step, setStep] = React.useState<CheckoutStep>("review");
   const [termsAccepted, setTermsAccepted] = React.useState(false);

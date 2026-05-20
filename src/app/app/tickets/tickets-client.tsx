@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import type { FormEvent } from "react"
-import { AlertCircle, CheckCircle2, Clock, Loader2, MessageSquare, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import type { SupportTicket, TicketPriority, TicketStatus } from "@/lib/support/ticket-store"
+import { AlertCircle, CheckCircle2, Clock, Loader2, MessageSquare, Send } from "lucide-react"
+import type { FormEvent } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 type TicketsClientProps = {
   isSuperAdmin: boolean

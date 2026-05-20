@@ -1,10 +1,10 @@
 "use client"
 
-import * as React from "react"
 import { joinWaitlist } from "@/app/actions/waitlist"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, CheckCircle2 } from "lucide-react"
+import { CheckCircle2, Loader2 } from "lucide-react"
+import * as React from "react"
 
 interface WaitlistSignupProps {
   source?: string

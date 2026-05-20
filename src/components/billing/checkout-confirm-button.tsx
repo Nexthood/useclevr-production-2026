@@ -1,8 +1,8 @@
 "use client"
 
-import * as React from "react"
-import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
+import * as React from "react"
 
 export function CheckoutConfirmButton({ planId }: { planId: string }) {
   const [isSaving, setIsSaving] = React.useState(false)

@@ -42,7 +42,7 @@ export default async function CheckoutSuccessPage({
       // Do not auto-start any downloads or runtime; only provide UI context.
       return redirect("/app?hybrid=lite&setup=1")
     }
-  } catch (e) {
+  } catch {
     // Non-fatal if cookie cannot be set
   }
 

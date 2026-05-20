@@ -85,7 +85,7 @@ const EXECUTION_TIMEOUT_MS = 30000 // 30 seconds
 /**
  * Check if a command has been executed too many times (loop detection)
  */
-function checkExecutionLoop(commandKey: string, args: string): { allowed: boolean; message?: string } {
+function _checkExecutionLoop(commandKey: string, args: string): { allowed: boolean; message?: string } {
   const now = Date.now()
   const existing = executionLog.get(commandKey)
 

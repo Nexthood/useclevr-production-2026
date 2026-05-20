@@ -1,4 +1,4 @@
-import { debugError } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 /**
  * AI Query Generator
@@ -7,7 +7,8 @@ import { debugError } from "@/lib/utils/debug"
  * then executes them via DuckDB.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import type { DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import { buildDatasetIntelligence } from '../data/dataset-intelligence';
 
 export interface QueryResult {
   sql: string;

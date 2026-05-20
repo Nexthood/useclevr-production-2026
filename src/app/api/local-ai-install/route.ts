@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 /**
  * UseClevr AI MEGA Installer
@@ -7,8 +7,8 @@ import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug
  * Supports: Ollama runtime + AI models
  */
 
-import { NextResponse } from 'next/server';
 import { exec } from 'child_process';
+import { NextResponse } from 'next/server';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);

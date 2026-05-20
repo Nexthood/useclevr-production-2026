@@ -2,7 +2,7 @@
 // Executive-Level Business Insights Engine
 // ============================================================================
 
-import { DatasetRecord, ColumnStatistics } from '../data/csv-analyzer';
+import type { ColumnStatistics, DatasetRecord } from '../data/csv-analyzer';
 
 // Helper function for percentage formatting with max 2 decimal places
 const formatPercent = (val: number) => `${val.toFixed(2)}%`;
@@ -297,7 +297,7 @@ function isDatasetTooSmall(data: DatasetRecord[]): boolean {
 export function generateExecutiveInsights(
   data: DatasetRecord[],
   columns: string[],
-  columnStats: Record<string, ColumnStatistics>
+  _columnStats: Record<string, ColumnStatistics>
 ): ExecutiveAnalysisResult {
   const result: ExecutiveAnalysisResult = {
     summary: '',

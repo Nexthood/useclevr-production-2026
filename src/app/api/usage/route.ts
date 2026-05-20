@@ -1,4 +1,4 @@
-import { debugError } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 /**
  * Usage API Route
@@ -6,8 +6,8 @@ import { debugError } from "@/lib/utils/debug"
  * Returns current user's usage counts and subscription status
  */
 
-import { auth } from "@/lib/auth"
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { auth } from "@/lib/auth";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 
 // This route is dynamic (uses auth/db); prevent static optimization
 export const dynamic = "force-dynamic";

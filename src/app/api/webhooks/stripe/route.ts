@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { handleSubscriptionEvent } from "@/services/stripe/webhook";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
 
 function getRawBody(request: NextRequest): Promise<Uint8Array> {
   return request.arrayBuffer().then((buf) => new Uint8Array(buf));

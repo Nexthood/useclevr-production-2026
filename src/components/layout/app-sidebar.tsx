@@ -1,14 +1,13 @@
 "use client"
 
+import { Logo } from "@/components/layout/logo"
+import { UsageMonitor, useUsage } from "@/components/ui/usage-monitor"
+import { Award, Building2, CreditCard, Database, FileText, Gift, HelpCircle, LayoutDashboard, LogOut, ReceiptText, Settings, ShieldCheck, Tag, Ticket, User, Users } from "lucide-react"
+import type { Session } from "next-auth"
+import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Database, FileText, Settings, LogOut, User, CreditCard, Gift, Building2, ReceiptText, HelpCircle, Ticket, ShieldCheck, Users, Award, Tag } from "lucide-react"
-import { signOut } from "next-auth/react"
-import { Logo } from "@/components/layout/logo"
-import { UsageMonitor } from "@/components/ui/usage-monitor"
-import { useUsage } from "@/components/ui/usage-monitor"
 import { useState } from "react"
-import type { Session } from "next-auth"
 
 const navigation = [
   { name: "Dashboard", href: "/app", icon: LayoutDashboard },

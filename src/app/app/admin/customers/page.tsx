@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Users, User, Calendar, Link2, CreditCard, Zap, Clock } from "lucide-react"
+import { Calendar, Clock, CreditCard, Link2, User, Users, Zap } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface CustomerRow {
   id: string

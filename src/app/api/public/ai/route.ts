@@ -1,17 +1,16 @@
-import { debugError, debugLog as _debugLog, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 // app/api/public/ai/route.ts
 // UseClevr AI Data API - External application access
 // Endpoints: analyze, investigate, predict, compare
 
-import { NextResponse } from 'next/server';
-import { investigateDataset } from '@/lib/utils/investigation-autopilot';
+import { generateSQLQuery } from '@/lib/ai/ai-query-generator';
 import { generatePredictions } from '@/lib/business/predictive-engine';
 import { compareDatasets } from '@/lib/data/dataset-comparator';
-import { buildDatasetIntelligence } from '@/lib/data/dataset-intelligence';
 import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
-import { generateSQLQuery } from '@/lib/ai/ai-query-generator';
-import { executeDuckDBQuery } from '@/lib/utils/investigation-autopilot';
+import { buildDatasetIntelligence } from '@/lib/data/dataset-intelligence';
+import { executeDuckDBQuery, investigateDataset } from '@/lib/utils/investigation-autopilot';
+import { NextResponse } from 'next/server';
 
 // ============================================================================
 // MAIN ROUTER

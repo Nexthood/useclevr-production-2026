@@ -1,13 +1,13 @@
 "use client"
 
-import * as React from "react"
-import { Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
-import { useFormatting } from "@/lib/utils/formatting-context"
 import { formatCurrency, formatNumber } from "@/lib/utils/formatting"
+import { useFormatting } from "@/lib/utils/formatting-context"
+import { Globe } from "lucide-react"
+import * as React from "react"
 
 export function PreferencesPanel() {
   const { preferences, setPreferences } = useFormatting()

@@ -1,20 +1,11 @@
 "use client"
 
-import * as React from "react"
-import { 
-  Sparkles, 
-  Send, 
-  Loader2, 
-  X, 
-  Upload, 
-  BarChart3, 
-  TrendingUp, 
-  FileQuestion,
-  ChevronDown,
-  ChevronUp
-} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+    BarChart3, FileQuestion, Loader2, Send, Sparkles, TrendingUp, Upload, X
+} from "lucide-react"
+import * as React from "react"
 
 // Clevr Agent Configuration
 const CLEVR_CONFIG = {
@@ -76,7 +67,7 @@ export function ClevrChat({
   const [isLoading, setIsLoading] = React.useState(false)
   const [greetingIndex, setGreetingIndex] = React.useState(0)
   const [idlePromptIndex, setIdlePromptIndex] = React.useState(0)
-  const [showOptions, setShowOptions] = React.useState(false)
+  const [_showOptions, setShowOptions] = React.useState(false)
   const [isIdle, setIsIdle] = React.useState(true)
   const idleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)

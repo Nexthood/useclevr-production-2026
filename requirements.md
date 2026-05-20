@@ -12,6 +12,8 @@
 - Uploaded datasets render in a structured data table with row-count metadata.
 - Users can ask AI questions about their uploaded dataset and get structured answers.
 - AI analysis uses a two-pass discovery + query pipeline so questions stay within data scope.
+- Business KPI analysis maps quantity, product, country/region, and revenue columns by explicit
+  semantic matches so country values are not counted as quantities.
 - Hybrid AI Lite lets Pro-tier users pose crowd-level questions against their own data.
 - Hybrid AI MEGA lets Business-tier users run large-scale federated queries at scale.
 
@@ -113,6 +115,10 @@
   values that apply across branch checkouts.
 - Database migrations run as part of the hosting platform pre-deploy phase so schema changes are
   applied in the target environment before the new web process starts.
+- Hosting pre-deploy and runtime commands use pnpm-backed generated scripts, and old dashboard-level
+  npm command overrides are not part of the supported deployment path.
+- Source validation runs with a zero-warning lint baseline and TypeScript validation before release
+  or generated deployment output is trusted.
 
 ### Reference Files
 
@@ -122,5 +128,9 @@
 
 ### Developer Requirements
 
-- Commit messages follow conventional commit format (feat, fix, docs, etc.) enforced by commitlint
+- Commit messages follow conventional commit format (feat, fix, docs, etc.) enforced by commitlint.
 - Pull request titles start with `PR:` for deployment tracking
+- Source files stay free of unused imports, unused values, and type-only import warnings so CI output
+  remains readable.
+- CSV analyzer business smoke tests must produce successful business KPIs without hidden
+  multi-currency fallback errors.

@@ -1,1 +1,1 @@
-export * from "./ai/ai-analyst-mode"
+export * from "./ai/ai-analyst-mode";

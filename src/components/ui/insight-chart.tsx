@@ -241,7 +241,7 @@ export function InsightChart({
   };
 
   // Determine best chart type based on data
-  const getChartType = (): 'bar' | 'line' | 'pie' | 'area' => {
+  const _getChartType = (): 'bar' | 'line' | 'pie' | 'area' => {
     if (chartType && chartType !== 'auto') return chartType;
 
     // If data has many points, use line
@@ -268,7 +268,7 @@ export function InsightChart({
 /**
  * Determine chart type from question and data
  */
-export function suggestChartType(question: string, data: { name: string; value: number }[]): 'bar' | 'line' | 'pie' | 'area' {
+export function suggestChartType(question: string, _data: { name: string; value: number }[]): 'bar' | 'line' | 'pie' | 'area' {
   const q = question.toLowerCase();
 
   // Trends over time

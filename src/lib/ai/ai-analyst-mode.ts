@@ -8,7 +8,8 @@ import { debugLog, debugWarn } from "@/lib/utils/debug";
  * AI only interprets results and generates narrative explanations.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import type { DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import { buildDatasetIntelligence } from '../data/dataset-intelligence';
 import { executeDuckDBQuery } from '../utils/investigation-autopilot';
 
 export interface AnalysisPlan {

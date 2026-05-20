@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 /**
  * Report AI Chat
@@ -7,7 +7,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * Uses only the stored report snapshot context - no access to full dataset.
  */
 
-import { Report } from './report-generator';
+import type { Report } from './report-generator';
 
 export interface ReportChatMessage {
   role: 'user' | 'assistant';

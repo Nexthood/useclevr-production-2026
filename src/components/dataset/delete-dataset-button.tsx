@@ -1,8 +1,8 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { deleteDataset } from "@/app/actions/datasets"
+import { Button } from "@/components/ui/button"
+import { Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function DeleteDatasetButton({ datasetId }: { datasetId: string }) {

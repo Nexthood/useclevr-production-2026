@@ -2,23 +2,29 @@ name: Validate Source
 
 on:
   push:
-    branches: [main]
+    branches: [main, beta]
   pull_request:
     branches: [main]
 
 jobs:
   validate-source-and-build:
     name: Validate source and production build
+    if: >
+      !contains(github.event.head_commit.message || '', '[skip ci]')
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v5
+
       - uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
+
       - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
       - run: pnpm validate:dist
@@ -30,16 +36,22 @@ jobs:
 
   docs:
     name: Documentation checks
+    if: >
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.title || '', '[skip ci]')
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+
     steps:
       - uses: actions/checkout@v5
+
       - uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
+
       - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

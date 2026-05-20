@@ -1,5 +1,5 @@
-import { ThemeProvider } from "@/components/ui/theme-provider"
 import { NoticeProvider } from "@/components/ui/notice-bar"
+import { ThemeProvider } from "@/components/ui/theme-provider"
 import type { Metadata, Viewport } from "next"
 import type React from "react"
 import "./../assets/styles/globals.css"

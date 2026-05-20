@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 // ============================================================================
 // DATASET TYPE DETECTOR - Auto Business Model Detection
@@ -7,7 +7,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // using heuristics and semantic signals from column names and data patterns.
 // ============================================================================
 
-import { PreviewData, ColumnSchema } from '../utils/pipeline-types';
+import type { PreviewData } from '../utils/pipeline-types';
 
 // ============================================================================
 // DATASET TYPES
@@ -173,7 +173,7 @@ function hasGeographicData(previewData: PreviewData): boolean {
  */
 export function detectDatasetType(previewData: PreviewData): DatasetTypeDetection {
   const columnNames = previewData.columns;
-  const columnTypes = previewData.columnTypes;
+  const _columnTypes = previewData.columnTypes;
   
   debugLog('[DATASET-TYPE] Starting detection for columns:', columnNames);
   

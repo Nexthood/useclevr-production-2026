@@ -1,12 +1,10 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugWarn } from "@/lib/utils/debug";
 /**
  * Auto Question Engine
  * 
  * Generates 5 high-impact business questions based on dataset structure.
  * Triggered immediately after CSV upload.
  */
-
-import { analyzeCSV, DatasetRecord } from '../data/csv-analyzer';
 
 export interface ColumnInfo {
   name: string;
@@ -88,7 +86,7 @@ function detectBusinessColumns(columns: ColumnInfo[]): {
   const costPatterns = ['cost', 'cogs', 'expense', 'unit_cost', 'shipping_cost'];
   const categoryPatterns = ['category', 'type', 'segment', 'industry', 'class'];
   
-  const columnNames = columns.map(c => c.name.toLowerCase());
+  const _columnNames = columns.map(c => c.name.toLowerCase());
   
   return {
     revenue: columns.find(c => revenuePatterns.some(p => c.name.toLowerCase().includes(p)))?.name || null,
@@ -141,7 +139,7 @@ export async function generateAutoQuestions(
   
   // Question 2: Growth trends & anomalies
   if (business.date && (business.revenue || business.profit || business.quantity)) {
-    const metric = business.profit || business.revenue || business.quantity;
+    const _metric = business.profit || business.revenue || business.quantity;
     const metricName = business.profit ? 'profit' : business.revenue ? 'revenue' : 'sales';
     questions.push(`What caused the ${metricName} ${business.quantity ? 'and quantity ' : ''}change last month compared to the previous period?`);
   } else if (business.product || business.category) {
@@ -172,7 +170,7 @@ export async function generateAutoQuestions(
   
   // Question 5: Risk & opportunity signals
   if (business.profit || business.revenue) {
-    const metric = business.profit || business.revenue;
+    const _metric = business.profit || business.revenue;
     if (business.region) {
       questions.push(`Which region is underperforming and needs immediate attention?`);
     } else if (business.product) {

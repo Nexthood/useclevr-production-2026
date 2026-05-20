@@ -1,14 +1,14 @@
-import { debugLog, debugError, debugWarn as _debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/datasets/[id]/suggestions/route.ts
 // Get smart question suggestions for a dataset
 
-import { NextResponse } from 'next/server';
+import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
+import { buildDatasetIntelligence, generateSuggestions } from '@/lib/data/dataset-intelligence';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { buildDatasetIntelligence, generateSuggestions } from '@/lib/data/dataset-intelligence';
-import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
+import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,

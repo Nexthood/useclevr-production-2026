@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError } from "@/lib/utils/debug";
 
 /**
  * Business Insight Engine
@@ -75,7 +75,7 @@ function normalizeValue(value: any): number {
  * profit = revenue - cogs - discount - tax - shipping - refund
  * If no cost column, use proxy: profit = revenue * 0.7 (30% COGS assumed)
  */
-function calculateProfit(row: any, revenueCol: string, columns: string[]): number {
+function _calculateProfit(row: any, revenueCol: string, columns: string[]): number {
   const revenue = normalizeValue(row[revenueCol]);
   
   // Find cost-related columns
@@ -126,7 +126,7 @@ function detectColumnTypes(data: any[]): Record<string, 'number' | 'string' | 'd
  */
 function generateSQL(question: string, columns: string[], data: any[]): string | null {
   const q = question.toLowerCase();
-  const columnTypes = detectColumnTypes(data);
+  const _columnTypes = detectColumnTypes(data);
   
   // Find key columns
   const revenueCol = columns.find(c => /revenue|sales|amount|total|value|income/.test(c.toLowerCase()));
@@ -248,7 +248,7 @@ function generateSQL(question: string, columns: string[], data: any[]): string |
 /**
  * Execute query on in-memory data (simulates SQL)
  */
-function executeQuery(sql: string, data: any[], question: string, columns: string[]): any[] {
+function executeQuery(sql: string, data: any[], _question: string, _columns: string[]): any[] {
   try {
     // Parse the SQL to understand what we need to do
     const sqlLower = sql.toLowerCase();
@@ -261,7 +261,7 @@ function executeQuery(sql: string, data: any[], question: string, columns: strin
       return [];
     }
     
-    const nameCol = selectMatch[1].replace(/"/g, '').replace(/'/g, '');
+    const _nameCol = selectMatch[1].replace(/"/g, '').replace(/'/g, '');
     let valueCol: string | null = null;
     
     // Extract the value column
@@ -469,7 +469,7 @@ function getCurrencySymbol(currency: string): string {
 /**
  * Format currency for display with thousand separators
  */
-function formatCurrency(value: number, currency: string = 'USD'): string {
+function _formatCurrency(value: number, currency: string = 'USD'): string {
   if (value >= 1000) {
     return `${getCurrencySymbol(currency)}${((value / 1000)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   }
@@ -479,7 +479,7 @@ function formatCurrency(value: number, currency: string = 'USD'): string {
 /**
  * Format percentage for display
  */
-function formatPercentage(value: number): string {
+function _formatPercentage(value: number): string {
   return `${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}%`;
 }
 

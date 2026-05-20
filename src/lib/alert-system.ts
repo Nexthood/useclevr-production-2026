@@ -1,1 +1,1 @@
-export * from "./utils/alert-system"
+export * from "./utils/alert-system";

@@ -1,8 +1,8 @@
 "use client"
 
-import { InsightChart } from "@/components/ui/insight-chart"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { InsightChart } from "@/components/ui/insight-chart"
 import jsPDF from "jspdf"
 import { Download, FileText, Sparkles, X } from "lucide-react"
 import * as React from "react"
@@ -17,7 +17,7 @@ interface OnePagerProps {
 }
 
 export function BusinessOnePager(props: OnePagerProps) {
-  const { analysis, datasetName, rowCount, inline = false } = props
+  const { analysis, datasetName, rowCount: _rowCount, inline = false } = props
   const [open, setOpen] = React.useState(inline ? true : false)
   const [generating, setGenerating] = React.useState(false)
 

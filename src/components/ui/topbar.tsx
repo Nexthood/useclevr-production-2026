@@ -1,14 +1,14 @@
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 import HybridAiButton from "@/components/ui/hybrid-ai-button"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
-import Link from "next/link"
 import { auth } from "@/lib/auth"
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { getBillingSettings } from "@/lib/billing/settings-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { eq } from "drizzle-orm"
 import { Ticket } from "lucide-react"
+import Link from "next/link"
 
 type BusinessCompletion = {
   percent: number

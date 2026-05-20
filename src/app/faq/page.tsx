@@ -3,11 +3,9 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import Link from "next/link"
-import { ChevronDown, HelpCircle, Info } from "lucide-react"
-import * as React from "react"
 import { allFaqCategories } from "@/lib/content/faq"
+import { ChevronDown, HelpCircle } from "lucide-react"
+import * as React from "react"
 
 function FaqAccordion({ items }: { items: { q: string; a: string }[] }) {
   const [openIdx, setOpenIdx] = React.useState<number | null>(null)

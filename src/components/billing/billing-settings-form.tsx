@@ -1,11 +1,11 @@
 "use client"
 
-import * as React from "react"
-import { Loader2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { BillingSettings } from "@/lib/billing/settings-store"
+import { Loader2, Save } from "lucide-react"
+import * as React from "react"
 
 export function BillingSettingsForm({ initialSettings }: { initialSettings: BillingSettings }) {
   const [settings, setSettings] = React.useState(initialSettings)

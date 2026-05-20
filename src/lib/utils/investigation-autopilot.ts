@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog, debugWarn } from "@/lib/utils/debug";
 
 /**
  * AI Investigation Autopilot
@@ -8,7 +8,8 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * AI only generates natural language explanations.
  */
 
-import { buildDatasetIntelligence, DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import type { DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
+import { buildDatasetIntelligence } from '../data/dataset-intelligence';
 
 // SQL execution using a DuckDB-like API
 // This implementation generates SQL and executes via a simulated DuckDB engine
@@ -51,11 +52,11 @@ export interface InvestigationResult {
  */
 export function executeDuckDBQuery(sql: string, data: Record<string, unknown>[]): Record<string, unknown>[] {
   // Parse SQL to extract key information
-  const sqlLower = sql.toLowerCase();
+  const _sqlLower = sql.toLowerCase();
   
   // Extract SELECT columns
   const selectMatch = sql.match(/select\s+(.+?)\s+from/i);
-  const selectCols = selectMatch ? selectMatch[1].split(',').map(c => c.trim()) : [];
+  const _selectCols = selectMatch ? selectMatch[1].split(',').map(c => c.trim()) : [];
   
   // Extract GROUP BY column
   const groupMatch = sql.match(/group\s+by\s+"?(\w+)"?/i);
@@ -239,7 +240,7 @@ function generateInvestigationQueries(intelligence: DatasetIntelligence): Invest
  */
 function analyzeResultsForPatterns(
   queryResults: QueryResult[],
-  intelligence: DatasetIntelligence
+  _intelligence: DatasetIntelligence
 ): PatternFinding[] {
   const findings: PatternFinding[] = [];
   

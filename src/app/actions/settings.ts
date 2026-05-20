@@ -1,11 +1,11 @@
 "use server"
 
 import { auth } from "@/lib/auth"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 
 type UpdateProfileResult = {
   success?: boolean

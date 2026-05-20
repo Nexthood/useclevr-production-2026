@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
 /**
  * Query Engine
@@ -8,7 +8,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
  * Now uses actual column names from the dataset.
  */
 
-import { getTableColumns, getDatasetInfo } from './datasetEngine';
+import { getTableColumns } from './datasetEngine';
 
 /**
  * Generate a SQL query based on user question
@@ -33,23 +33,23 @@ export async function generateQuery(question: string, columns: string[] = []): P
   // Detect actual column names in the dataset
   const revenueCol = columns.find(c => /revenue|income|sales/i.test(c)) || 'net_revenue';
   const profitCol = columns.find(c => /profit|earnings|net.*income/i.test(c));
-  const costCol = columns.find(c => /cost|expense|cogs/i.test(c));
+  const _costCol = columns.find(c => /cost|expense|cogs/i.test(c));
   const regionCol = columns.find(c => /region|territory|area/i.test(c)) || 'region';
   const countryCol = columns.find(c => /country/i.test(c)) || 'country';
   const productCol = columns.find(c => /product|item|sku/i.test(c)) || 'product_category';
   const customerCol = columns.find(c => /customer|client/i.test(c));
-  const dateCol = columns.find(c => /date|month|year|time/i.test(c)) || 'order_date';
+  const _dateCol = columns.find(c => /date|month|year|time/i.test(c)) || 'order_date';
   const quantityCol = columns.find(c => /quantity|qty/i.test(c)) || 'quantity';
   
   // Detect if we have these metrics
   const hasRevenue = columns.some(c => /revenue|income|sales/i.test(c));
   const hasProfit = columns.some(c => /profit|earnings|net.*income/i.test(c));
-  const hasCost = columns.some(c => /cost|expense|cogs/i.test(c));
+  const _hasCost = columns.some(c => /cost|expense|cogs/i.test(c));
   const hasRegion = columns.some(c => /region|territory|area/i.test(c));
   const hasCountry = columns.some(c => /country/i.test(c));
   const hasProduct = columns.some(c => /product|item|sku|category/i.test(c));
-  const hasCustomer = columns.some(c => /customer|client/i.test(c));
-  const hasDate = columns.some(c => /date|month|year|time/i.test(c));
+  const _hasCustomer = columns.some(c => /customer|client/i.test(c));
+  const _hasDate = columns.some(c => /date|month|year|time/i.test(c));
   
   // Most profitable / top revenue by region
   if (/most.*profitable|top.*region|top.*area|best.*region/i.test(q)) {

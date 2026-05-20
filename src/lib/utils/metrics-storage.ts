@@ -1,4 +1,4 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 // ============================================================================
 // PRECOMPUTED METRICS STORAGE - Single Source of Truth
@@ -11,7 +11,7 @@ import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
 // - AI explanations
 // ============================================================================
 
-import { PrecomputedMetrics, AIInsightOutput } from './pipeline-types';
+import type { AIInsightOutput, PrecomputedMetrics } from './pipeline-types';
 
 // ============================================================================
 // IN-MEMORY CACHE (Use Redis in production)

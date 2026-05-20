@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
-import QRCode from "qrcode"
-import { buildReferralLink, normalizeReferralCode } from "@/lib/referrals/referral-store"
+import { buildReferralLink, normalizeReferralCode } from "@/lib/referrals/referral-store";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import QRCode from "qrcode";
 
 export async function GET(request: NextRequest) {
   const code = normalizeReferralCode(request.nextUrl.searchParams.get("code"))

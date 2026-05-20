@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { profiles, datasets as _datasets } from "@/lib/db/schema";
-import { eq as _eq, count as _count, sql as _sql, desc } from "drizzle-orm";
+import { profiles } from "@/lib/db/schema";
+import { desc } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 async function requireSuperAdmin() {
   const session = await auth()

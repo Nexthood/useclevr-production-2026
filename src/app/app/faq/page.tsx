@@ -1,10 +1,10 @@
-import Link from "next/link"
-import { HelpCircle, MessageSquare } from "lucide-react"
-import { AppPageHeader } from "@/components/layout/app-page-header"
 import { FaqList } from "@/components/faq/faq-list"
+import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { dashboardFaqCategories } from "@/lib/content/dashboard-faq"
+import { HelpCircle, MessageSquare } from "lucide-react"
+import Link from "next/link"
 
 export default function DashboardFaqPage() {
   return (

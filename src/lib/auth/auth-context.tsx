@@ -1,7 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
 interface User {
   id: string
@@ -33,13 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(JSON.parse(storedUser))
         }
       }
-    } catch (e) {
+    } catch {
       // localStorage not available
     }
     setIsLoading(false)
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, _password: string) => {
     // Demo mode - accepts any credentials
     const demoUser: User = {
       id: "demo-user-1",
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       localStorage.setItem("useclevr_user", JSON.stringify(demoUser))
-    } catch (e) {}
+    } catch {}
     setUser(demoUser)
     router.push("/app")
   }
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       localStorage.setItem("useclevr_user", JSON.stringify(demoUser))
-    } catch (e) {}
+    } catch {}
     setUser(demoUser)
     router.push("/app")
   }
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     try {
       localStorage.removeItem("useclevr_user")
-    } catch (e) {}
+    } catch {}
     setUser(null)
     router.push("/login")
   }

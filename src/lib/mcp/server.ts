@@ -1,26 +1,18 @@
-import { debugLog, debugError, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog } from "@/lib/utils/debug";
 
 import {
-  mcpTools,
-  getToolByName,
-  GetDatasetSchemaInput,
-  GetPrecomputedKpisInput,
-  GetTopRegionsInput,
-  GetRevenueTrendsInput,
-  GetProfitabilitySummaryInput,
+    GetDatasetSchemaInput,
+    GetPrecomputedKpisInput, GetProfitabilitySummaryInput, GetRevenueTrendsInput, getToolByName, GetTopRegionsInput, mcpTools
 } from './tools';
 
 import {
-  getDatasetSchema,
-  getPrecomputedKpis,
-  getTopRegions,
-  getRevenueTrends,
-  getProfitabilitySummary,
+    getDatasetSchema,
+    getPrecomputedKpis, getProfitabilitySummary, getRevenueTrends, getTopRegions
 } from './handlers';
 
 import {
-  getAvailableResources,
-  readResource,
+    getAvailableResources,
+    readResource
 } from './resources';
 
 export interface MCPToolInvocation {
