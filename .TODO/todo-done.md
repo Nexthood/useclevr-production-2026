@@ -3,7 +3,7 @@
 ## Completed
 
 - **GitHub Actions workflow steps** — Renamed steps in branch-maintenance.yml to descriptive names.
-- **Dist packaging lockfile** — Distribution packaging script now includes pnpm-lock.yaml for deterministic Railway installs.
+- **Railway lockfile generation** — Publish workflow now generates matching pnpm-lock.yaml from dist package.json for deterministic installs.
 - **Railway build fix** — Removed --frozen-lockfile since dist package.json has fewer deps than root.
 - **Super-admin credit rule settings** — Referral credit rules can be configured from Credit Rules,
   including referrals needed per credit and whether referral credits are enabled.

@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Railway publish workflow now generates matching pnpm-lock.yaml from dist package.json.
 - Rename GitHub Actions steps to descriptive names.
 - The distribution packaging script now includes pnpm-lock.yaml for deterministic Railway installs.
 
