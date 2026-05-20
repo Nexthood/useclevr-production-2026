@@ -2,6 +2,9 @@
 
 ## Completed
 
+- **GitHub Actions workflow steps** — Renamed steps in branch-maintenance.yml to descriptive names.
+- **Railway lockfile generation** — Publish workflow now generates matching pnpm-lock.yaml from dist package.json for deterministic installs.
+- **Railway build fix** — Removed --frozen-lockfile since dist package.json has fewer deps than root.
 - **Super-admin credit rule settings** — Referral credit rules can be configured from Credit Rules,
   including referrals needed per credit and whether referral credits are enabled.
 - **Super-admin customer dashboard** — Super-admins can review customer totals, plans, signup dates,

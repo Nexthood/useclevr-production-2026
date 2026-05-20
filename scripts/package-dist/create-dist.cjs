@@ -136,12 +136,6 @@ fs.writeFileSync(
 assertExists(distRailwayTemplate, "Railway dist template");
 fs.cpSync(distRailwayTemplate, path.join(distDir, "railway.json"));
 
-// Copy lockfile for deterministic installs on Railway
-const lockfile = path.join(rootDir, "pnpm-lock.yaml");
-if (fs.existsSync(lockfile)) {
-  fs.cpSync(lockfile, path.join(distDir, "pnpm-lock.yaml"));
-}
-
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {
   const envFile = path.join(targetDir, ".env");

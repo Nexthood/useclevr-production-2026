@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Dev
+
+- Railway publish workflow now generates matching pnpm-lock.yaml from dist package.json.
+- Rename GitHub Actions steps to descriptive names.
+- The distribution packaging script now includes pnpm-lock.yaml for deterministic Railway installs.
+
 ## [7.2.0] - 2026-05-20
 
 ### Dev
