@@ -115,22 +115,19 @@ jobs:
           rm -rf dist-branch/dist/.cache
           rm -rf dist-branch/dist/cache
 
-          # Remove any existing railway.json at the root of the dist branch (we only want it inside the generated dist folder)
           rm -f dist-branch/railway.json
 
-# Copy dist-root files (version-controlled root configs)
-           if [ -d "dist-root" ]; then
-             cp dist-root/.gitignore dist-branch/
-             cp dist-root/README.md dist-branch/
-           fi
+          if [ -d "dist-root" ]; then
+            cp dist-root/.gitignore dist-branch/
+            cp dist-root/README.md dist-branch/
+          fi
 
-           # Generate matching lockfile for dist/package.json
-           cd dist-branch/dist
-           pnpm install --lockfile-only
-           cp pnpm-lock.yaml ../
-           cd ..
+          cd dist-branch/dist
+          pnpm install --lockfile-only
+          cp pnpm-lock.yaml ..
+          cd ..
 
-           echo "Large files remaining:"
+          echo "Large files remaining:"
           find . -type f -size +45M -print || true
 
           if find . -type f -size +95M | grep .; then
