@@ -6,7 +6,7 @@
     "NODE_VERSION": "26.1.0"
   },
   "deploy": {
-    "preDeployCommand": "pnpm run railway:predeploy",
+    "preDeployCommand": "node ./node_modules/drizzle-kit/bin/index.js push",
     "startCommand": "node server.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
