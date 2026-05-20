@@ -29,6 +29,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the workflow does not depend on local branch detection.
 - Optimized dist publishing so lockfile generation runs before final cleanup and the GitHub size gate
   checks staged deployment files instead of leftover build workspace files.
+- Cleaned root-level build workspace leftovers after orphan checkout so untracked `.next/cache` and
+  `node_modules` files cannot fail dist publishing.
+- Disabled optional dependency installs for the generated Railway runtime package so Next.js SWC
+  compiler binaries are kept in the source build phase only.
 
 ## [7.2.0] - 2026-05-20
 

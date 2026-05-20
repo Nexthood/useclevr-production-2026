@@ -172,7 +172,13 @@ node_modules
 
 The publish workflow also generates `dist/pnpm-lock.yaml` before final cleanup. `pnpm install
 --lockfile-only` can create local dependency links, so the workflow removes `dist/node_modules` again
-before staging and checks only files that will be committed.
+before staging and checks only files that will be committed. After switching to the orphan `dist`
+branch workspace, the workflow also deletes root-level build leftovers such as `.next/` and
+`node_modules/`; those are untracked workspace files from the build job, not deployment files.
+
+Next.js SWC platform packages such as `@next/swc-linux-x64-gnu` are optional build-time dependencies.
+The source build can install them, but the generated Railway runtime package uses `--no-optional` and
+`optional: false` so deploy installs do not pull those compiler binaries.
 
 However, if a required runtime file itself exceeds GitHub limits, the dist branch approach becomes
 problematic.
