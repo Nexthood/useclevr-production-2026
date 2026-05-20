@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
-package-lock.json
+
+# Note: pnpm-lock.yaml is explicitly NOT ignored so it gets committed to the dist branch
+# for deterministic Railway installs
 
 # Next.js local dev/build cache. Created by `pnpm dev` and `pnpm build`.
 .next/
