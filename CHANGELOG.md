@@ -27,6 +27,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `main` and filtered by head branch `beta`.
 - Replaced the auto-merge helper action with an explicit `gh pr merge <PR number> --auto` command so
   the workflow does not depend on local branch detection.
+- Optimized dist publishing so lockfile generation runs before final cleanup and the GitHub size gate
+  checks staged deployment files instead of leftover build workspace files.
 
 ## [7.2.0] - 2026-05-20
 
