@@ -128,6 +128,7 @@ fs.writeFileSync(
     "  esbuild: true",
     "  sharp: true",
     "dangerouslyAllowAllBuilds: true",
+    "optional: false",
     "onlyBuiltDependencies:",
     "  - core-js",
     "  - esbuild",

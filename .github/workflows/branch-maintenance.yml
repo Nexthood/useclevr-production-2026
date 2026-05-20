@@ -72,11 +72,13 @@ jobs:
       - name: Clean build output before publish
         run: |
           cd dist
-          pnpm install --lockfile-only
+          pnpm install --lockfile-only --no-optional
           cd ..
 
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
+          rm -rf dist/node_modules/.pnpm/@next+swc-*
+          rm -rf dist/node_modules/@next/swc-*
           rm -rf dist/.cache
           rm -rf dist/cache
           rm -rf dist/.turbo
@@ -128,6 +130,12 @@ jobs:
 
           git checkout --orphan new-dist
           git rm -rf . || true
+          rm -rf .next
+          rm -rf node_modules
+          rm -rf .cache
+          rm -rf cache
+          rm -rf .turbo
+          rm -rf .vercel
 
           mkdir -p dist
           cp -a /tmp/useclevr-dist-output/. dist/
@@ -175,7 +183,7 @@ jobs:
 
           rm -f railway.json
 
-          echo "Large files remaining:"
+          echo "Large generated deployment files:"
           find dist -type f -size +45M -exec ls -lh {} \; || true
 
           if find dist -type f -size +95M -exec ls -lh {} \; | grep .; then
