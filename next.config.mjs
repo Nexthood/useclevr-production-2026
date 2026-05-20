@@ -1,14 +1,8 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   turbopack: {
-    root: __dirname,
+    root: process.cwd(),
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -20,6 +14,21 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
+  },
+  webpack: (config, { dev }) => {
+    if (!dev && config.cache) {
+      config.cache = false;
+    }
+    if (!dev && config.optimization?.splitChunks) {
+      Object.assign(config.optimization.splitChunks, {
+        chunks: "all",
+        maxInitialRequests: 25,
+        maxAsyncRequests: 25,
+        minSize: 20000,
+        maxSize: 244000,
+      });
+    }
+    return config;
   },
   // Security headers
   async headers() {

@@ -108,18 +108,22 @@ it does not depend on the runner's current Git branch.
 
 ### Deployment Workflow
 
-The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance:
+The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance in parallel jobs:
 
-- Triggers on push to `main` (not PRs)
-- Syncs `beta` with `main` first (with `[skip ci]` in commit message)
-- Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
-- Runs `pnpm prod:build` to create the dist output
-- Checks out the existing `dist` branch after the build
-- Replaces only the generated `/dist` folder
-- Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
-- Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
+- **sync-beta**: Triggers on push to `main` (not PRs)
+  - Syncs `beta` with `main` using `git merge --strategy-option=theirs` to handle conflicts
+  - Commit message includes `[skip ci]` to prevent CI duplication
 
-The publish job does not commit `node_modules/`. Railway installs runtime dependencies and uses its own install cache.
+- **publish-dist**: Triggers on push to `main` (not PRs)
+  - Runs independently, not dependent on sync-beta
+  - Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
+  - Runs `pnpm prod:build` to create the dist output
+  - Checks out the existing `dist` branch after the build
+  - Replaces only the generated `/dist` folder
+  - Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
+  - Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
+
+Running jobs in parallel means `publish-dist` can complete even if `sync-beta` fails due to merge conflicts.
 
 `server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; today the only target is Railway at `server-settings/railway/`, but the folder can hold additional target folders later without changing the source validation workflow.
 
@@ -310,9 +314,8 @@ The GitHub Actions workflows have been verified and are correct:
 - Runs only on push to branches: [main] ✓ (dist deployment from main only)
 - Both jobs have if: github.ref == 'refs/heads/main' ✓
 - Sync job merges main into beta with [skip ci] in commit message ✓
+- Uses `--strategy-option=theirs` to handle merge conflicts ✓
+- Publish job runs independently, not dependent on sync-beta ✓
 - Publish job force-cleans dist branch with git checkout --orphan new-dist and git rm -rf . ✓
 - Publishes only generated /dist folder contents ✓
 - Railway artifacts (railway.json, pnpm-workspace.yaml, package.json) isolated inside /dist/ ✓
-
-**ci.yml:**
-- Does not run on beta pushes (validated when PR targets main) ✓
