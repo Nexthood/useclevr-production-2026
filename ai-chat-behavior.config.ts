@@ -38,23 +38,31 @@ export const aiChatBehaviorConfig = {
       "Users upload business data, inspect dashboards, ask AI questions, and download reports.",
       "AI is an explanation layer over verified application data.",
       "Local AI features use same-origin API routes and the local agent contract.",
-      "dist '/' is the Railway deployment root. Never assume the repo root in dist context.",
+      "Railway deploys from the dist branch `/dist` folder. Never place railway.json at the dist branch root.",
     ],
 
   distDeployment: {
     signpost: "Build → sync → deploy",
-    pipelineFile: "ci-settings/railway.dist.json",
+    targetSettingsDir: "server-settings",
+    targetSettingsPattern: "One subfolder per deploy destination, for example server-settings/railway/.",
+    targetSettingsPurpose: "Server-host templates copied into generated output, not GitHub workflow files or app source.",
+    pipelineFile: "server-settings/railway/railway.dist.json",
     distPackage: "dist/package.json",
     distRailway: "dist/railway.json",
-    syncScript: "scripts/ci/sync-railway-config.cjs",
-    validationScript: "scripts/ci/sync-railway-config.cjs",
+    distPnpmWorkspace: "dist/pnpm-workspace.yaml",
+    migrationDecision: "Keep database migrations in Railway preDeployCommand until isolation is needed.",
+    futureIsolation: "Add a separate Railway service or migration job only for background jobs or migration risk.",
+    syncScript: "scripts/server/railway/sync-config.cjs",
+    validationScript: "scripts/server/railway/sync-config.cjs",
     buildGate: "pnpm validate:dist",
-    sourceOfTruth: "ci-settings/railway.dist.json",
+    sourceOfTruth: "server-settings/railway/railway.dist.json",
+    packagingScript: "scripts/package-dist/create-dist.cjs",
     doNotEdit: [
       "dist/", // regenerated every build
       ".next/", // always regenerated
-      "ci-settings/railway.dist.json", // only source of truth
     ],
+    editForDeployTargetChanges: ["server-settings/railway/railway.dist.json"],
+    serverScriptPattern: "Server-specific scripts live under scripts/server/<host>/; local/general scripts live elsewhere in scripts/.",
     doNotRunFrom: [
       "dist/", // no parent package.json; only deploy here
       ".next/", // internal Next.js output

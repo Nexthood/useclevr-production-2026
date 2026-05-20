@@ -8,7 +8,7 @@ const nextStaticDir = path.join(rootDir, ".next", "static");
 const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
-const distRailwayTemplate = path.join(rootDir, "ci-settings", "railway.dist.json");
+const distRailwayTemplate = path.join(rootDir, "server-settings", "railway", "railway.dist.json");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -115,6 +115,22 @@ const rootDistPackage = {
 fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
+);
+
+fs.writeFileSync(
+  path.join(distDir, "pnpm-workspace.yaml"),
+  [
+    "allowBuilds:",
+    "  core-js: true",
+    "  esbuild: true",
+    "  sharp: true",
+    "dangerouslyAllowAllBuilds: true",
+    "onlyBuiltDependencies:",
+    "  - core-js",
+    "  - esbuild",
+    "  - sharp",
+    "",
+  ].join("\n"),
 );
 
 assertExists(distRailwayTemplate, "Railway dist template");

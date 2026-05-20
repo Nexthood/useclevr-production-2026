@@ -5,16 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.2.0] - 2026-05-20
 
 ### Dev
 
+- Commit messages are now enforced to follow conventional commit format via commitlint and Husky hooks.
 - Deployment automation now syncs the test branch before publishing generated Railway output, while
   keeping source branches free of committed build artefacts.
 - Deployment output now installs runtime dependencies directly on Railway and keeps the deployment
   branch root free of generated framework files.
 - Local production starts can now share one development env file across multiple checkouts while
   still allowing checkout-specific overrides.
+- Generated Railway packages now include dependency build approvals so pnpm can install production
+  runtime dependencies without manual approval.
+- Deployment target settings are now documented as reusable host templates, separate from GitHub
+  workflow definitions.
+- Generated hosting config now has one source of truth, preventing branch metadata from overriding
+  the deployment folder config.
+- Database migrations now stay in the hosting pre-deploy phase for the current single-service
+  deployment path.
+- Deployment templates now live under a target-focused folder with an explicit Railway sync command,
+  leaving room for additional deployment destinations.
+- Railway deployment settings now live in a dedicated target subfolder and force pnpm dependency
+  build approvals during install.
+- Server-host settings and Railway-specific helper scripts now live in clearly named folders, keeping
+  application source and local scripts separate from host-specific deployment details.
+- The generated-output packaging script now lives outside any ignored `dist/` path, so it can be
+  staged normally.
+- Todo tracking now lives under one root `.TODO/` folder with separate active, next, done, and dist
+  migration files.
+- Generated dist commits now use the merged pull request title with a `PR:` prefix instead of long
+  source commit ids.
+- Todo tracking now separates done, future, no-fix, and dist migration records inside `.TODO/`.
+- Local Git hooks now use Husky with commit-message validation, and lint auto-fix uses ESLint
+  directly.
 
 ## [7.1.0] - 2026-05-18
 
@@ -88,7 +112,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Dev
 
 - Development checks now catch formatting, type, and production-build issues before release.
-- The project keeps a task backlog in `.todo/` so work is tracked across AI and human contributors.
+- The project keeps a task backlog in `.TODO/` so work is tracked across AI and human contributors.
 - Completed tasks must be recorded in both `requirements.md` (product-facing) and this changelog so
   that user-visible changes and developer context stay in sync from a single source of truth.
 - PR instructions now require contributors to update `requirements.md` and the unreleased section of
@@ -141,7 +165,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `.markdownlint.json` for consistent markdown style across the repo.
 - Added `docs/Developer_Guides/next.md` — structured post-mortem documenting the ESM / CJS
   module-type mismatch (`"type": "commonjs"` vs `"type": "module"`) that caused Railway startup
-  failures, including root-cause analysis, the fix applied to `scripts/dist/create-dist.cjs`, and a
+  failures, including root-cause analysis, the fix applied to `scripts/package-dist/create-dist.cjs`, and a
   rebuild checklist.
 
 ### Changed

@@ -122,10 +122,17 @@ When writing or editing `CHANGELOG.md`:
 - Section headers per release: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Dev`. Include only sections with entries.
 - Keep each entry as short as possible — one sentence per change. Do not repeat information across entries. Avoid mentioning function names, file names, or internal identifiers.
 
-## CI / Railway dist files
+## CI / Deploy Target Dist Files
 
 Railway deploys the generated `dist/` output from the `dist` branch `/dist` folder. Build is a
 two-phase pipeline with one required source check before generated output is published.
+
+Pull request titles should start with `PR:`. Dist publish commits should use the merged PR title when
+available, with a short fallback title only when no PR title exists.
+
+`server-settings/` stores server-host templates copied into generated output. It is not the CI
+workflow folder. GitHub Actions workflows live in `.github/workflows/`. Each subfolder is one deploy
+destination, such as `server-settings/railway/`.
 
 ### Build pipeline
 
@@ -146,24 +153,34 @@ pnpm prod:build                     (build phase — one-shot)
 
 | File | Role |
 |---|---|
-| `ci-settings/railway.dist.json` | Source-of-truth for CI + build config. Copy. Don't edit `dist/railway.json` directly. |
-| `scripts/dist/create-dist.cjs` | Generates `dist/package.json`, copies schema, `railway.json`, assets. Only place dist is assembled. |
-| `scripts/ci/sync-railway-config.cjs` | Copies `ci-settings/railway.dist.json` → `dist/railway.json`. Run it — not the opposite direction. |
+| `server-settings/railway/railway.dist.json` | Source-of-truth for the Railway deploy target. Copy. Don't edit `dist/railway.json` directly. |
+| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, `dist/pnpm-workspace.yaml`, copies schema, `railway.json`, assets. Only place dist is assembled. |
+| `scripts/server/railway/sync-config.cjs` | Copies `server-settings/railway/railway.dist.json` → `dist/railway.json`. Run it — not the opposite direction. |
+
+Database migrations stay in Railway `preDeployCommand` while the deployment is a single web service.
+Do not add a separate migration job unless background work or migration risk requires isolation.
 
 ### dist validation gate (runs in CI source validation)
 
 ```
-pnpm validate:dist   →  node scripts/ci/sync-railway-config.cjs --check
+pnpm validate:dist   →  node scripts/server/railway/sync-config.cjs --check
 ```
 
-Checks `ci-settings/railway.dist.json` directly on source branches. If local `dist/railway.json`
+Checks `server-settings/railway/railway.dist.json` directly on source branches. If local `dist/railway.json`
 exists, it also fails when generated config differs from the source-of-truth file.
 
 ### Do / Do not
 
-- **Do** edit `ci-settings/railway.dist.json` for CI config changes, then run `node scripts/ci/sync-railway-config.cjs`.
+- **Do** edit `server-settings/railway/railway.dist.json` for Railway target config changes, then run `node scripts/server/railway/sync-config.cjs`.
 - **Do** regenerate local `dist/` with `pnpm prod:build` after any change that needs a deploy preview.
+- **Do** keep generated-output packaging scripts under `scripts/package-dist/`; `scripts/dist/` is
+  blocked by the `dist/` ignore rule.
 - **Do not** run `pnpm build` from inside `dist/`. The build command (`pnpm prod:build`) runs from the repo root — `dist/` has no `build` script and no parent `package.json`.
+- **Do not** place `railway.json` at the `dist` branch root. Railway must read `/dist/railway.json`.
+- **Do not** move `server-settings/` under build scripts; it stores server-host templates.
+- **Do** keep server-specific helper scripts under `scripts/server/<host>/`; keep local/general
+  scripts in the existing non-server `scripts/` subfolders.
+- **Do** keep Railway pnpm build approvals in generated `/dist` output and the Railway build command.
 - **Do not** hand-edit files in `dist/`. They are generated. Regenerate them.
 - **Do not** `git add dist/` when preparing a PR. `dist/` is `.gitignore`-ed on source branches; CI
   regenerates it and publishes it to the deployment branch.
@@ -174,24 +191,29 @@ exists, it also fails when generated config differs from the source-of-truth fil
 
 ## Todo pipeline
 
-AI agents must keep `.todo/todo.md` and `.todo/todo-next.md` in sync with active work:
+AI agents must keep `.TODO/todo.md` and `.TODO/todo-next.md` in sync with active work:
 
-- `.todo/todo.md` — tracks the **leading edge** of work (everything that is currently in progress). When all
-  tasks in this file are marked done, refresh it from `.todo/todo-next.md`.
-- `.todo/todo-next.md` — holds the **backlog** (confirmed work not yet started, plus blocked items).
+- `.TODO/todo.md` — tracks the **leading edge** of work (everything that is currently in progress). When all
+  tasks in this file are marked done, refresh it from `.TODO/todo-next.md`.
+- `.TODO/todo-next.md` — holds the **backlog** (confirmed work not yet started, plus blocked items).
   Copy items to `todo.md` when you start them, then remove them here.
-- `.todo/todo.md` → **Completed ✅** — When a task is fully done, write a short entry in the Completed
-  section of `todo.md`. Items in Completed must drive two destination files:
+- `.TODO/todo.md` → **Completed ✅** — When a task is fully done, write a short entry in the Completed
+  section of `todo.md`, then move durable completed work to `.TODO/todo-done.md`. Items in Completed
+  must drive two destination files:
   - **`requirements.md`** — Convert every completed item into a product-facing requirement entry using
     the user's perspective. Describe the behaviour the user sees or the need that was addressed, not
     how it was implemented.
   - **`CHANGELOG.md`** — If the change is user-observable, add a changelog entry under `## [Unreleased]`
     in the appropriate section (`Added`, `Changed`, `Fixed`, …). Developer-only or infra-only changes go
     under `### Dev`.
-- Any newly identified work (bug reports, suggestions, new features) goes straight into `todo-next.md`
+- Any newly identified work (bug reports, suggestions, new features) goes straight into `.TODO/todo-next.md`
   so it is never lost.
 - Never leave `todo.md` with stale In-Progress items. When a subsection is empty, remove it. Every
   completed task must have a destination in `requirements.md` and `CHANGELOG.md`.
+- Dist migration planning is tracked separately in `.TODO/todo-dist.md` and
+  `.TODO/todo-dist-done.md`. Future-only dist work goes in `.TODO/todo-dist-future.md`, and
+  deliberate no-fix decisions go in `.TODO/todo-dist-no-fix.md`. Do not duplicate dist planning
+  elsewhere.
 
 ### Per-dev commit messaging style
 

@@ -27,6 +27,28 @@ The normal flow is:
 7. GitHub Actions builds the app from `main` and publishes the generated output to `dist:/dist`.
 8. Railway deploys from the `/dist` folder on the `dist` branch.
 
+## Conventional Commits
+
+This project uses [commitlint](https://commitlint.js.org/) to enforce conventional commit messages. All commits must follow the format:
+
+```
+type(scope?): subject
+```
+
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+**Examples:**
+- `feat: add user authentication`
+- `fix(api): handle null response`
+- `docs: update deployment guide`
+- `chore(deps): update dependencies`
+
+The `commit-msg` hook validates commit messages automatically. Bypass with `git commit --no-verify` only for urgent fixes.
+
+## Pull Request Titles
+
+Pull request titles should start with `PR:` for deployment tracking. The merged PR title becomes the dist branch commit message.
+
 ## Test Flow: Beta To Main
 
 Use this flow when testing a change before release:
@@ -86,15 +108,29 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
 - Checks out the existing `dist` branch after the build
 - Replaces only the generated `/dist` folder
 - Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
-- Pushes a normal commit to `dist` when generated output changes
+- Pushes a normal commit to `dist` when generated output changes, using the merged PR title instead
+  of a long source commit id
 
 The publish job does not commit `node_modules/`. Railway installs runtime dependencies and uses its
 own install cache.
+
+`server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is
+one destination; today the only target is Railway at `server-settings/railway/`, but the folder can
+hold additional target folders later without changing the source validation workflow.
+
+Database migrations stay in Railway `preDeployCommand` for this phase. A separate migration service
+or job is future work only when migrations or background jobs need isolation from the web process.
 
 The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway
 runs from the generated `/dist` folder. To test the Railway runtime locally, switch to `dist`, run
 `cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the
 repository root before starting if needed.
+
+The branch root and `dist-root/` must not contain `railway.json`. Railway should use
+`dist/railway.json` from the generated deployment folder, and the generated folder also carries
+`pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required by `sharp`,
+`esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval setting
+directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
 
 For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout
 folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local
