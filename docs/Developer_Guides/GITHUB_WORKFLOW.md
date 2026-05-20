@@ -103,7 +103,8 @@ This one check protects `main`, because `main` generates the production `dist` b
 The `.github/workflows/auto-merge.yml` workflow automatically enables auto-merge for PRs from
 `beta` to `main` when all checks pass. It listens for pull requests targeting `main` and then checks
 that the source branch is `beta`, because GitHub's `pull_request.branches` filter matches the base
-branch, not the head branch.
+branch, not the head branch. The workflow calls `gh pr merge <event PR number> --auto` explicitly so
+it does not depend on the runner's current Git branch.
 
 ### Deployment Workflow
 

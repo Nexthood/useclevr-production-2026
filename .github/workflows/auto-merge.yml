@@ -19,9 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Enable auto-merge if checks pass
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          merge-method: merge
-          required-approvals: 0
-          merge-on-ready: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --merge --auto
