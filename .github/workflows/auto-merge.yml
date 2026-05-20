@@ -1,0 +1,22 @@
+name: Auto-merge PRs from beta to main
+
+on:
+  pull_request:
+    branches: [beta]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge PR from beta to main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge if checks pass
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: merge
+          required-approvals: 0
+          merge-on-ready: true

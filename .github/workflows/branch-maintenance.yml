@@ -39,7 +39,7 @@ jobs:
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup pnpm package manager
         uses: pnpm/action-setup@v5
@@ -72,57 +72,92 @@ jobs:
       - name: Stage generated output
         run: mv dist /tmp/useclevr-dist-output
 
-      - name: Checkout dist branch for deployment
-        uses: actions/checkout@v5
-        with:
-          ref: dist
-          path: dist-branch
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
       - name: Prepare dist commit title from PR
         id: dist-title
         uses: actions/github-script@v8
         with:
           script: |
+            const shortSha = context.sha.slice(0, 7);
+            let prNumber = null;
+            let title = context.payload.head_commit?.message?.split('\n')[0]?.trim() || `Update dist ${shortSha}`;
+
             const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
             });
 
-            const prTitle = prs.data[0]?.title?.trim();
-            const shortSha = context.sha.slice(0, 7);
-            let title = prTitle || context.payload.head_commit?.message?.split('\n')[0]?.trim() || `Update dist ${shortSha}`;
+            if (prs.data.length > 0) {
+              prNumber = prs.data[0].number;
+              title = prs.data[0].title?.trim() || title;
+            }
 
-            title = title.replace(/\s+/g, ' ').slice(0, 80).trim();
-            if (!title.startsWith('PR:')) {
-              title = `PR: ${title}`;
+            title = title.replace(/^PR-\d+:\s*/i, '');
+            title = title.replace(/^PR:\s*/i, '');
+            title = title.replace(/\s+/g, ' ').slice(0, 70).trim();
+
+            if (prNumber) {
+              title = `PR-${prNumber}: ${title}`;
+            } else {
+              title = `Main: ${title}`;
             }
 
             core.setOutput('title', title);
 
-      - name: Publish generated folder to dist branch
+      - name: Publish generated folder to clean dist branch
         run: |
-          rm -rf dist-branch/.next
-          rm -rf dist-branch/next-env.d.ts
-          rm -rf dist-branch/dist
-          mkdir -p dist-branch/dist
-          cp -a /tmp/useclevr-dist-output/. dist-branch/dist/
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          rm -rf dist-branch/dist/.next/cache
-          rm -rf dist-branch/dist/node_modules
-          rm -rf dist-branch/dist/.cache
-          rm -rf dist-branch/dist/cache
+          git checkout --orphan new-dist
+          git rm -rf . || true
 
-          rm -f dist-branch/railway.json
+          mkdir -p dist
+          cp -a /tmp/useclevr-dist-output/. dist/
 
-          if [ -d "dist-root" ]; then
-            cp dist-root/.gitignore dist-branch/
-            cp dist-root/README.md dist-branch/
+          rm -rf dist/.next/cache
+          rm -rf dist/node_modules
+          rm -rf dist/.cache
+          rm -rf dist/cache
+
+          if [ -d "/tmp/useclevr-dist-output/../dist-root" ]; then
+            cp /tmp/useclevr-dist-output/../dist-root/.gitignore . 2>/dev/null || true
+            cp /tmp/useclevr-dist-output/../dist-root/README.md . 2>/dev/null || true
+          elif [ -d "dist-root" ]; then
+            cp dist-root/.gitignore . 2>/dev/null || true
+            cp dist-root/README.md . 2>/dev/null || true
           fi
 
-          cd dist-branch/dist
+          if [ ! -f ".gitignore" ]; then
+            cat > .gitignore <<'EOF'
+          .env
+          .env.*
+          node_modules
+          .next/cache
+          .cache
+          cache
+          *.log
+          EOF
+          fi
+
+          if [ ! -f "README.md" ]; then
+            cat > README.md <<'EOF'
+          # Generated deployment branch
+
+          This branch is generated automatically from `main` by GitHub Actions.
+
+          Do not edit this branch manually.
+          Do not open pull requests from this branch into `main`.
+          Do not merge this branch into `main`.
+
+          Railway deploys from the `/dist` folder in this branch.
+          Source code lives in `main`.
+          EOF
+          fi
+
+          rm -f railway.json
+
+          cd dist
           pnpm install --lockfile-only
           cp pnpm-lock.yaml ..
           cd ..
@@ -135,12 +170,6 @@ jobs:
             exit 1
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo "No dist changes to publish."
-          else
-            git commit -m "${{ steps.dist-title.outputs.title }}"
-            git push origin HEAD:dist
-          fi
+          git commit -m "${{ steps.dist-title.outputs.title }}"
+          git push origin new-dist:dist --force

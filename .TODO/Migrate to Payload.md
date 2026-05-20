@@ -1,170 +1,127 @@
-Migrate to Payload
+# Migrate to Payload CMS
 
-You are working inside the existing UseClevr Next.js project.
+## Overview
+Integrate Payload CMS into the existing UseClevr Next.js app while preserving current functionality.
 
-Goal:
-Upgrade the project to the latest stable Next.js setup and integrate Payload CMS into the same Next.js app, without breaking the current client-side website/app pages.
+## Current State (Before Migration)
+- Homepage at `/` (public/marketing)
+- App at `/app` (dashboard, settings, AI analyst)
+- Next.js 16.2.4, React 19, pnpm
+- Stripe for payments, Neon Postgres database
 
-Important:
-This project already contains changelog files, skills files, commits, and project history. Before making changes, inspect the repo carefully:
-- package.json
-- next.config.*
-- app/
-- pages/ if present
-- components/
-- lib/
-- middleware.*
-- existing auth/payment/database code
-- changelog / skills / commits / notes files
-- existing README or docs
+## Target State
+- `/` - Homepage unchanged
+- `/alpha` - Existing app experience
+- `/admin` - Payload CMS admin panel
+- `/api/payload/*` - Payload API routes
+- Payments remain with Stripe (source of truth)
+- Payload stores CMS content + minimal billing metadata
 
-Do NOT refactor unrelated code.
-Do NOT redesign the UI.
-Do NOT remove existing features.
-Make the smallest safe changes.
+---
 
-Main tasks:
+## Phase 1: Next.js & Project Setup
 
-1. Upgrade Next.js safely
-- Check the current Next.js version.
-- Upgrade to the latest stable Next.js version compatible with the project.
-- Update React and React DOM only if required.
-- Fix any breaking changes caused by the upgrade.
-- Replace deprecated `next lint` usage with `eslint .` if needed.
-- Ensure GitHub Actions still builds successfully.
-- Keep Railway deployment compatibility.
+### Task 1.1: Verify Current Setup
+- [ ] Check `package.json` for current versions
+- [ ] Check `next.config.*` for existing config
+- [ ] Check `app/` structure
+- [ ] Check if `pages/` directory exists
 
-2. Keep the existing client-side home/pages unchanged
-- The current website/app client-side pages must keep working as they are.
-- Do not rewrite the current home page or landing page.
-- Do not change existing design unless required to fix compatibility.
+### Task 1.2: Next.js Version Check
+- [ ] Current version is already latest stable (per user confirmation)
+- [ ] No immediate upgrade required
 
-3. Move current public/client pages under `/alpha`
-- Migrate the existing current app/client-side experience to `/alpha`.
-- The `/alpha` route should preserve the current behavior and layout.
-- Keep existing components reused instead of duplicating large code.
-- Make sure old imports and routes still resolve.
-- If the current homepage should remain public marketing, keep it stable.
-- If route conflicts exist, document them before changing.
+---
 
-Expected routing:
-- `/` = existing public/marketing homepage, unchanged unless necessary
-- `/alpha` = current client-side UseClevr experience
-- `/admin` = Payload CMS admin panel
-- API routes = must not conflict with existing app APIs
+## Phase 2: Routing Restructure
 
-4. Add Payload CMS inside the same Next.js app
-- Integrate Payload CMS into the existing Next.js app, not as a separate service.
-- Use Neon Postgres as the Payload database.
-- Do not add a second Railway service.
-- Add Payload admin at `/admin`.
-- Add Payload API routes according to the official Payload + Next.js setup.
-- Use environment variables, do not hardcode secrets.
+### Task 2.1: Create `/alpha` Route Structure
+- [ ] Move `app/(dashboard)` content to `app/(alpha)`
+- [ ] Update imports to use shared components
+- [ ] Ensure `app/page.tsx` (homepage) stays at `/`
 
-Payload should initially support simple CMS collections:
-- FAQ items
-- Blog posts
-- Changelog entries
-- Static page sections
-- Legal pages
-- Resources/articles
+### Task 2.2: Verify Routes
+- `/` - Homepage (unchanged)
+- `/alpha` - App experience
+- `/admin` - Payload admin (to be added)
 
-Do NOT migrate analytics engine/user report logic into Payload.
-Payload is only for CMS/admin content.
+---
 
-5. Add Stripe plugin/support for Payload
-- Add Payload Stripe integration/plugin only if it fits cleanly.
-- Stripe remains the source of truth for payments and subscriptions.
-- Payload should store/sync useful billing metadata only, such as:
-  - stripeCustomerId
-  - stripeSubscriptionId
-  - plan
-  - subscriptionStatus
-  - credits if already used by the app
-- Do not replace existing Stripe checkout logic if it already exists.
-- Keep Stripe Checkout flow:
-  Next.js pricing page → API checkout route → Stripe Checkout → success/cancel page → webhook updates DB/Payload.
-- Ensure webhook logic is not duplicated or broken.
+## Phase 3: Payload Integration
 
-6. Static assets with GitHub workflow
-- Do NOT store uploaded CMS/user media on Railway disk.
-- For now, static marketing assets should be stored in the GitHub repo under:
-  `/public/assets/...`
-- These assets are controlled assets only:
-  - logos
-  - icons
-  - landing images
-  - manually approved blog images
-  - static PDFs
-- The app should read them as normal Next.js public assets, for example:
-  `/assets/blog/example.webp`
-- Do NOT implement GitHub as dynamic CMS upload storage.
-- Do NOT write user uploads to GitHub automatically.
-- For future dynamic media, leave a clean TODO for Cloudflare R2 / Google Cloud Storage / S3 adapter.
+### Task 3.1: Install Payload
+```bash
+pnpm add payload @payloadcms/plugin-cloud-storage
+```
 
-7. Neon Postgres setup
-- Use Neon Postgres for Payload database.
-- Reuse existing DATABASE_URL if appropriate.
-- If the app already uses Neon/Drizzle/Prisma, do not break existing database logic.
-- Avoid schema conflicts between existing app tables and Payload tables.
-- Add required env examples to `.env.example`.
+### Task 3.2: Create Payload Config
+- [ ] Create `src/payload/payload.config.ts`
+- [ ] Set `serverURL` from `NEXT_PUBLIC_SERVER_URL`
+- [ ] Configure Neon Postgres in `DATABASE_URL`
 
-Needed environment variables may include:
-- DATABASE_URL
-- PAYLOAD_SECRET
-- NEXT_PUBLIC_SERVER_URL
-- STRIPE_SECRET_KEY
-- STRIPE_WEBHOOK_SECRET
-- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-- STRIPE_PRICE_ID_PRO or existing price IDs
+### Task 3.3: Add Collections
+- [ ] FAQ items collection
+- [ ] Blog posts collection
+- [ ] Changelog entries collection
+- [ ] Static page sections
+- [ ] Legal pages
 
-8. Railway compatibility
-- Keep one Railway service.
-- Use package.json engines if Node version is required.
-- Prefer Node 24.x LTS unless the project explicitly requires Node 26.x.
-- Ensure build command and start command still work.
-- Do not rely on local disk for persistent uploads.
-- Confirm the app builds with:
-  npm install
-  npm run build
-  npm run start
+### Task 3.4: Create Admin Route
+- [ ] Add `app/admin/` route with Payload admin panel
+- [ ] Add `app/api/payload/[...path]/route.ts` for API
 
-9. GitHub Actions
-- Update CI so it works with the upgraded Next.js version.
-- Replace any direct `next lint` command with `npm run lint`.
-- Ensure scripts are correct:
-  - build
-  - start
-  - lint
-  - typecheck if already present
-- Do not create unnecessary enterprise CI complexity.
+---
 
-10. Documentation
-After changes, update or create a short implementation note:
-- What was upgraded
-- Where Payload config lives
+## Phase 4: Environment Variables
+
+Add to `.env.example`:
+- `PAYLOAD_SECRET` - Secret for Payload sessions
+- `NEXT_PUBLIC_SERVER_URL` - Server URL (for payload links)
+
+---
+
+## Phase 5: Railway Deployment
+
+### Task 5.1: Verify Single Service
+- [ ] Payload runs in same Railway service
+- [ ] No separate Railway service needed
+
+### Task 5.2: Build/Start Commands
+- Build command: `pnpm build`
+- Start command: `pnpm start`
+
+---
+
+## Phase 6: Documentation
+
+Create `docs/Developer_Guides/PAYLOAD_INTEGRATION.md`:
+- What was added
+- Where Payload config lives (`src/payload/`)
 - How `/admin` works
 - How `/alpha` routing works
-- What env vars are required
-- What was intentionally not changed
-- Any TODOs for future R2/GCS/S3 media storage
+- Required env vars
+- What was NOT changed
 
-Acceptance criteria:
-- `npm install` succeeds
-- `npm run build` succeeds
-- `npm run lint` succeeds or existing lint issues are documented without hiding them
-- Existing homepage still works
-- Existing client-side UseClevr pages work under `/alpha`
-- Payload admin loads at `/admin`
-- Payload uses Neon Postgres
-- Stripe checkout/webhook logic is not broken
-- Static assets load from `/public/assets`
-- No Railway disk media storage is introduced
-- No unrelated UI redesign or app logic refactor is done
+---
 
-Work style:
-- First inspect the current repo structure.
-- Then make a short plan.
-- Then implement in small commits/steps.
-- If there is an existing architecture decision in changelog, skills files, commits, or notes, follow it.
-- Prefer minimal, safe changes over large rewrites.
+## Acceptance Criteria
+
+- [ ] `pnpm install` succeeds
+- [ ] `pnpm build` succeeds
+- [ ] `pnpm lint` passes (or issues documented)
+- [ ] Homepage `/` loads unchanged
+- [ ] App works at `/alpha`
+- [ ] `/admin` loads Payload admin
+- [ ] Payload uses Neon Postgres
+- [ ] Stripe checkout still works
+- [ ] Static assets load correctly
+- [ ] No Railway disk storage for CMS media
+
+---
+
+## Risks & Constraints
+
+- DO NOT refactor existing code unnecessarily
+- DO NOT redesign UI
+- DO NOT break Stripe checkout/webhooks
+- DO NOT use Railway disk for persistent media uploads
