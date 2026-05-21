@@ -1,5 +1,6 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicPageHeader } from "@/components/layout/public-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { getPricingFaqs } from "@/lib/content/faq"
@@ -38,25 +39,24 @@ export default function PricingPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 py-8 md:px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold mb-3">Choose your plan</h1>
-              <p className="text-base text-muted-foreground mb-4">
-                Start free and scale as you grow. No hidden fees, cancel anytime.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
-                <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
-                  <Check className="h-4 w-4" />
-                  <span>14-day free trial</span>
-                </div>
-                <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
-                  <Check className="h-4 w-4" />
-                  <span>No credit card required</span>
-                </div>
+        <PublicPageHeader
+          title="Choose your plan"
+          description="Start free and scale as you grow. No hidden fees, cancel anytime."
+          actions={
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+              <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
+                <Check className="h-4 w-4" />
+                <span>14-day free trial</span>
+              </div>
+              <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
+                <Check className="h-4 w-4" />
+                <span>No credit card required</span>
               </div>
             </div>
-
+          }
+        />
+        <section className="container mx-auto px-4 py-8 md:px-6">
+          <div className="max-w-6xl mx-auto">
             <div className="relative grid gap-6 md:grid-cols-3">
               {/* Free Tier */}
               <Card className="space-y-4 border-border/50 bg-card p-6">

@@ -53,6 +53,12 @@
 - A built-in FAQ answers account, billing, dataset, report, credits, and Hybrid AI questions.
 - A protected operator FAQ covers support operations, payments, billing recovery, security,
   and incident handling for authorised platform staff only.
+- Dashboard users can search FAQ answers from a floating help chat, then send a support request
+  when no answer matches their question.
+- Dashboard FAQ includes an inline ticket form so users can open a support request without leaving
+  the FAQ page.
+- Product-update waitlist signup remains usable during local development even when production
+  database access is unavailable.
 
 ### Payment Provider Setup
 
@@ -73,6 +79,7 @@
 
 - Super-admins can view a full customer list with plan, signup date, last login, referral source,
   login count, and dataset count in a single admin page.
+- Super-admins always see built-in demo and super-admin accounts at the top of the customer list.
 - Totals cards show total customers, Pro / Business count, free tier count, and active-in-last-30-days
   count at a glance.
 
@@ -84,11 +91,14 @@
 - Super-admins can create, edit, enable, and disable discount rules covering free-plan discounts,
   percentage discounts, referral rewards, and stacking behaviour — all stored in the same
   billing settings object.
+- Super-admins edit customer levels and discount rules in horizontal table rows so related fields
+  stay visible while scanning.
 
 ### Hybrid AI
 
 - The hybrid AI popup uses the shared modal component so body scroll lock, Escape key handling,
   and backdrop behaviour are consistent with every other dialog.
+- The hybrid AI popup opens reliably from the dashboard topbar.
 - Free tier users see Pro and Business plan options inside the hybrid AI popup, guiding them to
   checkout with a single click.
 
@@ -132,6 +142,8 @@
   or generated deployment output is trusted.
 - Public pages include legal links in their bottom navigation so users can reach Terms and Privacy
   from authentication and marketing screens.
+- Public pages outside the homepage share a consistent title section so navigation feels stable
+  across FAQ, pricing, contact, security, privacy, and terms.
 
 ### Reference Files
 

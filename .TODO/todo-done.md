@@ -52,3 +52,13 @@
   `/dist` or appears at the deployment branch root.
 - **Dist publish source guard** — The publish workflow now validates types, generated config, and
   lint before building deployment output.
+- **Waitlist fallback** — Landing page product-update signups now succeed locally even when the
+  production database is not available.
+- **Shared page headers** — Public legal, FAQ, pricing, contact, and security pages now use one
+  shared title section.
+- **Dashboard help access** — Support tickets, dashboard FAQ, and admin FAQ now live under the
+  topbar Help menu, with a responsive sidebar reserved for primary navigation.
+- **Support chat and ticket forms** — Dashboard users can search FAQ answers from a floating help
+  chat, send fallback support requests, and open tickets directly from the FAQ page.
+- **Admin management tables** — Customer level and discount rule management now use horizontal row
+  inputs for faster scanning and editing.

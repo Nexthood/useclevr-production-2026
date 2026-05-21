@@ -112,6 +112,7 @@ function mergeSettings(input: Partial<BillingSettings>): BillingSettings {
 export async function getBillingSettings(): Promise<BillingSettings> {
   try {
     const db = getDb()
+    if (!db) throw new Error("Database unavailable")
     const [row] = await db.select().from(appSettings).where(eq(appSettings.key, SETTINGS_KEY)).limit(1)
     if (row) {
       return mergeSettings(row.value as Partial<BillingSettings>)
@@ -132,6 +133,7 @@ export async function saveBillingSettings(settings: BillingSettings): Promise<Bi
   const nextSettings = mergeSettings(settings)
   try {
     const db = getDb()
+    if (!db) throw new Error("Database unavailable")
     await db.insert(appSettings).values({
       key: SETTINGS_KEY,
       value: nextSettings,

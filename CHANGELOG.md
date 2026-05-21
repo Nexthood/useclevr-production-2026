@@ -10,10 +10,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Public pricing and FAQ copy now describes Hybrid AI access without exposing runtime download sizes.
+- Public pages outside the homepage now share one title section design.
+- Dashboard help links now live under the topbar Help menu, while the sidebar focuses on primary
+  app areas.
+- Customer level and discount rule management now uses horizontal table rows for faster editing.
 
 ### Fixed
 
 - Contact visitors can now submit demo and sales requests from the Contact page.
+- Product-update waitlist signup now succeeds during local development when the production database
+  is unavailable.
+- The Hybrid AI popup now opens reliably from the dashboard topbar.
+- Dashboard FAQ now includes an inline ticket form.
+- Super-admin customer lists now show built-in demo and super-admin accounts even when database
+  customer rows cannot load.
 - Local generated-output starts now use localhost for authentication while Railway keeps its server
   binding.
 - Login errors now stay inside the login page instead of appearing as a global notice.

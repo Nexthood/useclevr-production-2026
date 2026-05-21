@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
+import { HelpChatbox } from "@/components/ui/help-chatbox"
 import Topbar from "@/components/ui/topbar"
 import { auth } from "@/lib/auth"
 import { FormattingProvider } from "@/lib/utils/formatting-context"
@@ -22,9 +23,10 @@ export default async function AppLayout({
         <AppSidebar user={session.user} />
         <div className="min-h-screen md:ml-[220px]">
           <Topbar />
-          <main className="min-h-screen pt-12">
+          <main className="min-h-screen pt-16">
             {children}
           </main>
+          <HelpChatbox />
         </div>
       </div>
     </FormattingProvider>

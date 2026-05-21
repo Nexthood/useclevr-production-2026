@@ -1,10 +1,9 @@
 import { FaqList } from "@/components/faq/faq-list"
 import { AppPageHeader } from "@/components/layout/app-page-header"
-import { Button } from "@/components/ui/button"
+import { SupportTicketForm } from "@/components/support/support-ticket-form"
 import { Card } from "@/components/ui/card"
 import { dashboardFaqCategories } from "@/lib/content/dashboard-faq"
 import { HelpCircle, MessageSquare } from "lucide-react"
-import Link from "next/link"
 
 export default function DashboardFaqPage() {
   return (
@@ -30,12 +29,15 @@ export default function DashboardFaqPage() {
                 Use this FAQ for dashboard-specific questions. Public product questions remain on the general FAQ.
               </p>
             </div>
-            <Link href="/app/tickets">
-              <Button className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Open ticket
-              </Button>
-            </Link>
+            <MessageSquare className="h-6 w-6 text-primary" aria-hidden="true" />
+          </Card>
+
+          <Card className="p-5">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              Open ticket
+            </h2>
+            <SupportTicketForm compact />
           </Card>
 
           <FaqList categories={dashboardFaqCategories} />

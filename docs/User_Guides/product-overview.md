@@ -21,3 +21,16 @@ reports.
 | Assistant | Answers dataset questions and explains verified results. |
 | Downloads | Stores generated reports and files.                      |
 | Settings  | Holds account and product preferences.                   |
+
+## Support
+
+- Use the topbar Help menu for support tickets, dashboard FAQ, and admin FAQ when available.
+- Use the floating help chat to search FAQ answers from inside the dashboard.
+- If the help chat does not find an answer, send a support request with an email and message.
+- Dashboard FAQ includes a ticket form for signed-in users who need direct support.
+
+## Admin Areas
+
+- Super-admins can review customers, including built-in demo and super-admin accounts.
+- Customer levels and discount rules use table rows so thresholds, rewards, codes, and status can be
+  scanned and edited quickly.

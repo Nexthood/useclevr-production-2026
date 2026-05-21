@@ -35,19 +35,19 @@ export function Modal({
 
   // Mount / unmount the portal root once
   React.useEffect(() => {
-    if (!mounted) {
-      const root = document.createElement("div")
-      root.id = "modal-portal-root"
-      root.style.cssText = "position:fixed;inset:0;z-index:1000;pointer-events:none"
-      document.body.appendChild(root)
-      overlayRef.current = root
-      setMounted(true)
-      return () => {
-        root.remove()
-        overlayRef.current = null
-      }
+    const root = document.createElement("div")
+    root.id = "modal-portal-root"
+    root.style.cssText = "position:fixed;inset:0;z-index:1000;pointer-events:none"
+    document.body.appendChild(root)
+    overlayRef.current = root
+    setMounted(true)
+
+    return () => {
+      root.remove()
+      overlayRef.current = null
+      setMounted(false)
     }
-  }, [mounted])
+  }, [])
 
   // Lock / unlock body scroll
   React.useEffect(() => {

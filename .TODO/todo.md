@@ -18,5 +18,7 @@ No active leading-edge items.
 - Production risk items now have database-backed operational storage, referral idempotency and
   self-referral guards, deployment smoke checks, edge-case data tests, and a production readiness
   checklist. Checkout-specific work moved to `.TODO/todo-future.md`.
+- Public page headers now share one title treatment, landing waitlist signup falls back when the
+  database is unavailable, and dashboard support/admin pages now use responsive shared support UI.
 
 ## Blocked 🚧

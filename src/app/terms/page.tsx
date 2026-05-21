@@ -1,5 +1,6 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicPageHeader } from "@/components/layout/public-page-header"
 
 export const metadata = {
   title: "Terms of Service - UseClevr",
@@ -12,11 +13,9 @@ export default function TermsPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 md:px-6 py-20">
+        <PublicPageHeader title="Terms of Service" description="Last updated: April 13, 2026" />
+        <section className="container mx-auto px-4 md:px-6 py-12">
           <div className="max-w-3xl mx-auto prose prose-neutral dark:prose-invert">
-            <h1 className="text-3xl font-semibold text-foreground">Terms of Service</h1>
-            <p className="text-muted-foreground">Last updated: April 13, 2026</p>
-
             <h2>1. Overview</h2>
             <p>
               These Terms of Service ("Terms") govern your access to and use of UseClevr, including our website, 

@@ -8,6 +8,7 @@ import * as schema from './schema'
 
 const globalForDb = globalThis as unknown as {
   db: ReturnType<typeof createDbClient> | undefined
+  dbUnavailable: boolean | undefined
 }
 
 function isServerlessUrl(url: string) {
@@ -71,10 +72,27 @@ function createDbClient() {
   return db
 }
 
-export const db = globalForDb.db ?? createDbClient()
+function createUnavailableDbClient() {
+  globalForDb.dbUnavailable = true
+  return new Proxy({}, {
+    get() {
+      throw new Error('[DB] DATABASE_URL not set - database features will be unavailable')
+    },
+  }) as ReturnType<typeof createDbClient>
+}
+
+function initDbClient() {
+  const connectionUrl = (process.env.DATABASE_URL || process.env.DIRECT_URL || '').trim()
+  if (!connectionUrl) return createUnavailableDbClient()
+  globalForDb.dbUnavailable = false
+  return createDbClient()
+}
+
+export const db = globalForDb.db ?? initDbClient()
 
 // Null-safe getter for use in other modules
 export function getDb() {
+  if (globalForDb.dbUnavailable) return null
   return db
 }
 

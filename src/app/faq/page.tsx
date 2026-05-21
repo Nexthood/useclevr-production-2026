@@ -2,6 +2,7 @@
 
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicPageHeader } from "@/components/layout/public-page-header"
 import { Button } from "@/components/ui/button"
 import { allFaqCategories } from "@/lib/content/faq"
 import { ChevronDown, HelpCircle } from "lucide-react"
@@ -50,19 +51,14 @@ export default function FaqPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <PublicHeader />
-      <main className="flex-1 py-20">
+      <main className="flex-1">
+        <PublicPageHeader
+          eyebrow={<><HelpCircle className="h-3.5 w-3.5" /> FAQ</>}
+          title="Frequently asked questions"
+          description="Everything you need to know about UseClevr, from setup to billing and beyond."
+        />
+        <section className="py-12">
         <div className="container mx-auto px-4 max-w-3xl">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/50 bg-primary/10 text-sm text-primary mb-4">
-              <HelpCircle className="h-3.5 w-3.5" />
-              FAQ
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Frequently asked questions</h1>
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Everything you need to know about UseClevr, from setup to billing and beyond.
-            </p>
-          </div>
-
           {allFaqCategories.map((section) => (
             <div key={section.category} className="mb-12">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -84,6 +80,7 @@ export default function FaqPage() {
             </a>
           </div>
         </div>
+        </section>
       </main>
       <PublicFooter />
     </div>

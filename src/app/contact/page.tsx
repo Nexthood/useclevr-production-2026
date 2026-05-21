@@ -1,5 +1,6 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicPageHeader } from "@/components/layout/public-page-header"
 import { ContactRequestForm } from "@/components/forms/contact-request-form"
 import { Card } from "@/components/ui/card"
 import { CalendarDays, Mail } from "lucide-react"
@@ -15,13 +16,9 @@ export default function ContactPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 md:px-6 py-20">
+        <PublicPageHeader title="Get in touch" description="We'd love to hear from you." />
+        <section className="container mx-auto px-4 md:px-6 py-12">
           <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Get in touch</h1>
-              <p className="text-lg text-muted-foreground">We'd love to hear from you</p>
-            </div>
-
             <Card className="p-6 md:p-10 bg-card border-border/50">
               <div className="mb-8 flex items-start gap-3">
                 <CalendarDays className="mt-1 h-5 w-5 text-primary" />
