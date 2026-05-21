@@ -83,15 +83,15 @@ export default function HomePage() {
                   Start free trial
                 </Button>
               </Link>
-              <a href="mailto:sales@useclevr.com">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-14 rounded-full border-border bg-transparent px-10 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
-                >
-                  Schedule demo
-                </Button>
-              </a>
+               <Link href="/contact" prefetch={false}>
+                 <Button
+                   size="lg"
+                   variant="outline"
+                   className="h-14 rounded-full border-border bg-transparent px-10 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
+                 >
+                   Schedule demo
+                 </Button>
+               </Link>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 pt-8 text-sm text-muted-foreground">
