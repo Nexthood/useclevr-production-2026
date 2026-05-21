@@ -46,7 +46,7 @@ export const aiChatBehaviorConfig = {
     targetSettingsDir: "server-settings",
     targetSettingsPattern: "One subfolder per deploy destination, for example server-settings/railway/.",
     targetSettingsPurpose: "Server-host templates copied into generated output, not GitHub workflow files or app source.",
-    pipelineFile: "server-settings/railway/railway.dist.json",
+    pipelineFile: "dist-root/server-settings/railway/railway.dist.json",
     distPackage: "dist/package.json",
     distRailway: "dist/railway.json",
     distPnpmWorkspace: "dist/pnpm-workspace.yaml",
@@ -55,13 +55,13 @@ export const aiChatBehaviorConfig = {
     syncScript: "scripts/server/railway/sync-config.cjs",
     validationScript: "scripts/server/railway/sync-config.cjs",
     buildGate: "pnpm validate:dist",
-    sourceOfTruth: "server-settings/railway/railway.dist.json",
+    sourceOfTruth: "dist-root/server-settings/railway/railway.dist.json",
     packagingScript: "scripts/package-dist/create-dist.cjs",
     doNotEdit: [
       "dist/", // regenerated every build
       ".next/", // always regenerated
     ],
-    editForDeployTargetChanges: ["server-settings/railway/railway.dist.json"],
+    editForDeployTargetChanges: ["dist-root/server-settings/railway/railway.dist.json"],
     serverScriptPattern: "Server-specific scripts live under scripts/server/<host>/; local/general scripts live elsewhere in scripts/.",
     doNotRunFrom: [
       "dist/", // no parent package.json; only deploy here

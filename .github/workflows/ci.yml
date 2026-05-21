@@ -9,50 +9,114 @@ on:
 jobs:
   validate-source-and-build:
     name: Validate source and production build
-    if: >
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && !contains(github.event.head_commit.message || '', 'Merge pull request'))
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: pnpm/action-setup@v5
+      - name: Get head commit message (for PR) or use push commit message
+        id: commit-message
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const commit = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+            });
+            return commit.data.commit.message;
+      - name: Set commit message for push
+        if: github.event_name == 'push'
+        run: echo "message=${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
+        id: commit-message
+      - name: Check if we should skip
+        id: skip-check
+        run: |
+          if [[ "${{ steps.commit-message.outputs.message }}" == *"[skip ci]"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.commit-message.outputs.message }}" == *"Merge pull request"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+      - name: Skip job if skip ci
+        if: steps.skip-check.outputs.skip == 'true'
+        run: exit 0
+      - name: Actually run the job
+        if: steps.skip-check.outputs.skip == 'false'
+        uses: actions/checkout@v5
+      - name: Setup pnpm package manager
+        if: steps.skip-check.outputs.skip == 'false'
+        uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
-
-      - uses: actions/setup-node@v5
+      - name: Setup Node.js runtime
+        if: steps.skip-check.outputs.skip == 'false'
+        uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm validate:types
-      - run: pnpm validate:dist
-      - run: pnpm lint
-      - run: pnpm test:all
-      - run: pnpm build
+      - name: Install dependencies
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm install --frozen-lockfile --loglevel warn
+      - name: Validate types
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm validate:types --loglevel warn
+      - name: Validate dist
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm validate:dist --loglevel warn
+      - name: Lint
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm lint --loglevel warn
+      - name: Test
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm test:all --loglevel warn
+      - name: Build production artifacts
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm build --loglevel warn
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
   docs:
     name: Documentation checks
-    if: >
-      github.event_name == 'pull_request' &&
-      !contains(github.event.pull_request.title || '', '[skip ci]')
     runs-on: ubuntu-latest
-
+    if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: pnpm/action-setup@v5
+      - name: Get head commit message (for PR)
+        id: commit-message
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const commit = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+            });
+            return commit.data.commit.message;
+      - name: Check if we should skip
+        id: skip-check
+        run: |
+          if [[ "${{ steps.commit-message.outputs.message }}" == *"[skip ci]"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+      - name: Skip job if skip ci
+        if: steps.skip-check.outputs.skip == 'true'
+        run: exit 0
+      - name: Actually run the job
+        if: steps.skip-check.outputs.skip == 'false'
+        uses: actions/checkout@v5
+      - name: Setup pnpm package manager
+        if: steps.skip-check.outputs.skip == 'false'
+        uses: pnpm/action-setup@v5
         with:
           version: 11.1.2
-
-      - uses: actions/setup-node@v5
+      - name: Setup Node.js runtime
+        if: steps.skip-check.outputs.skip == 'false'
+        uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm docs:check
+      - name: Install dependencies
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm install --frozen-lockfile --loglevel warn
+      - name: Run docs check
+        if: steps.skip-check.outputs.skip == 'false'
+        run: pnpm docs:check --loglevel warn

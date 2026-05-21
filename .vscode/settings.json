@@ -68,7 +68,7 @@
   ],
   "eslint.format.enable": true,
   "git.ignoreLimitWarning": true,
-  "extensions.ignoreRecommendations": false,
+  "extensions.ignoreRecommendations": true,
   "emmet.includeLanguages": {
     "javascript": "javascriptreact",
     "typescript": "typescriptreact"
