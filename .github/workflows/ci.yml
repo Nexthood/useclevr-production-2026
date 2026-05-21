@@ -24,12 +24,12 @@ jobs:
           node-version: "26.x"
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile --loglevel warn
+      - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
-      - run: pnpm validate:dist --loglevel warn
-      - run: pnpm lint --loglevel warn
-      - run: pnpm test:all --loglevel warn
-      - run: pnpm build --loglevel warn
+      - run: pnpm validate:dist
+      - run: pnpm lint
+      - run: pnpm test:all
+      - run: pnpm build
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
@@ -52,5 +52,5 @@ jobs:
           node-version: "26.x"
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile --loglevel warn
-      - run: pnpm docs:check --loglevel warn
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:check
