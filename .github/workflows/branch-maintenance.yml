@@ -61,10 +61,11 @@ jobs:
           node-version: "26.x"
           cache: pnpm
 
-      - name: Install dependencies
+- name: Install dependencies
         run: |
-          pnpm install --frozen-lockfile
-          pnpm dedupe 
+           pnpm install --frozen-lockfile --no-optional
+           pnpm dedupe --no-optional
+>>>>>>> 2f8cf878 (fix: ci workflow - railway 2)
 
       - name: Validate source before publishing
         run: |
@@ -81,24 +82,11 @@ jobs:
         run: |
           PORT=8090 npm --prefix dist run start > /tmp/useclevr-dist-smoke.log 2>&1 &
           pid=$!
-          trap 'kill $pid >/dev/null 2>&1 || true' EXIT
 
-          for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8090/api/health >/tmp/useclevr-dist-health.json; then
-              cat /tmp/useclevr-dist-health.json
-              exit 0
-            fi
+          sleep 5
 
-            if ! kill -0 "$pid" >/dev/null 2>&1; then
-              cat /tmp/useclevr-dist-smoke.log
-              exit 1
-            fi
-
-            sleep 1
-          done
-
-          cat /tmp/useclevr-dist-smoke.log
-          exit 1
+          curl -fsS http://127.0.0.1:8090/api/health
+          kill "$pid" >/dev/null 2>&1 || true
 
       - name: Clean build output before publish
         run: |

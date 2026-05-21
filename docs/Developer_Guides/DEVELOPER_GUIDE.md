@@ -374,8 +374,8 @@ pnpm prod:start
 
 - Deploy root: `dist/`
 - Do not commit generated `dist/` output from source branches
-- Template: `dist-root/server-settings/railway/railway.dist.json`
-- Vercel template: `dist-root/server-settings/vercel/vercel.source.json`
+- Template: `dist-root/railway.json`
+- Vercel template: `dist-root/vercel.json`
 - Local runtime parity test: switch to the `dist` branch, then run `cd dist && pnpm install && npm run start`
 - Shared local env: put common development secrets in `../.env.local`; checkout-local env files can
   override those values.
@@ -409,7 +409,7 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- Generated Railway config comes from `dist-root/server-settings/railway/railway.dist.json`
+- Generated Railway config comes from `dist-root/railway.json`
 - The `dist` branch root must not contain `railway.json`; Railway reads `/dist/railway.json`
 - Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
 - Database migrations stay in Railway pre-deploy while this is a single web-service deployment
@@ -422,7 +422,7 @@ UPLOAD_PROVIDER=
 ### Vercel Checklist
 
 - Vercel deploys from `main`, not from the generated `dist` branch.
-- Root `vercel.json` is synced from `dist-root/server-settings/vercel/vercel.source.json`.
+- Root `vercel.json` is synced from `dist-root/vercel.json`.
 - Run `pnpm deploy:vercel:sync` after Vercel template edits.
 - Run `pnpm validate:dist` before opening the PR so Railway and Vercel deploy settings are both in sync.
 - Configure the same required production secrets in Vercel project environment variables.

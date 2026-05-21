@@ -167,38 +167,20 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isMutedPath, showNotice])
 
-  const Icon = notice ? icons[notice.type] : Info
-  const noticeBar = notice && !isMutedPath ? (
-    <div className="relative z-[120] flex justify-center pointer-events-none">
-      <div
-        role={notice.type === "error" ? "alert" : "status"}
-        className={[
-          "pointer-events-auto flex w-full items-center gap-3 border-b px-6 py-2 shadow-sm animate-in slide-in-from-top duration-300",
-          styles[notice.type], "notice-bar"
-        ].join(" ")}
-      >
-        <Icon className="h-4 w-4 flex-shrink-0" />
-        <div className="flex flex-1 items-center gap-2 min-w-0">
-          <p className="text-sm font-semibold">{notice.title}</p>
-          {notice.message && (
-            <p className="text-sm opacity-90">{notice.message}</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={clearNotice}
-          className="rounded-md p-1 opacity-60 transition hover:opacity-100 focus-visible:outline-none hover:bg-black/10 dark:hover:bg-white/10"
-          aria-label="Dismiss notice"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  ) : null
+   const icons = {
+    error: AlertCircle,
+    success: CheckCircle2,
+    info: Info,
+  }
 
-  return (
+  const styles = {
+    error: "border-red-500 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200",
+    success: "border-green-500 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200",
+    info: "border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
+  }
+
+   return (
     <NoticeContext.Provider value={{ notice, showNotice, clearNotice }}>
-      {noticeBar}
       {children}
     </NoticeContext.Provider>
   )

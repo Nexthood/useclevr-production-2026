@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 
 export type CustomerLevel = {
@@ -38,15 +39,34 @@ const numericFields = [
 export default function AdminLevelsPage() {
   const [levels, setLevels] = useState<CustomerLevel[]>(DEFAULT_LEVELS)
   const [saved, setSaved] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
-    fetch("/api/admin/levels", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+    const loadLevels = async () => {
+      setIsLoading(true)
+      try {
+        const res = await fetch("/api/admin/levels", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to load levels")
+        const data = await res.json()
         if (Array.isArray(data?.levels) && data.levels.length > 0) setLevels(data.levels)
-      })
-      .catch(() => undefined)
-  }, [])
+        toast({
+          title: "Levels loaded",
+          description: "Customer levels have been successfully refreshed.",
+          variant: "default",
+        })
+      } catch (err) {
+        toast({
+          title: "Error loading levels",
+          description: err instanceof Error ? err.message : "Failed to load",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadLevels()
+  }, [toast])
 
   const addLevel = () => {
     setLevels((prev) => [...prev, { id: String(Date.now()), name: `Level ${prev.length + 1}`, minInteractions: 0, minPageVisits: 0, minUploads: 0, minCreditsUsed: 0, minLogins: 1, creditReward: 0 }])
@@ -64,6 +84,7 @@ export default function AdminLevelsPage() {
   }
 
   const save = async () => {
+    setIsLoading(true)
     try {
       const res = await fetch("/api/admin/levels", {
         method: "POST",
@@ -72,8 +93,19 @@ export default function AdminLevelsPage() {
       })
       if (!res.ok) throw new Error("Save failed")
       setSaved("Levels saved.")
+      toast({
+        title: "Levels saved",
+        description: "Your changes have been successfully saved.",
+        variant: "default",
+      })
     } catch {
-      setSaved("Save failed. Try again.")
+      toast({
+        title: "Error saving levels",
+        description: "Save failed. Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -92,8 +124,8 @@ export default function AdminLevelsPage() {
               <Plus className="h-4 w-4" />
               Add level
             </Button>
-            <Button size="sm" onClick={save}>
-              Save
+            <Button size="sm" onClick={save} disabled={isLoading}>
+              {isLoading ? "Saving…" : "Save"}
             </Button>
           </div>
         }

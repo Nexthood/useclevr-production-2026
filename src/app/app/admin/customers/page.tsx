@@ -2,7 +2,8 @@
 
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Card } from "@/components/ui/card"
-import { Calendar, Clock, CreditCard, Link2, User, Users, Zap } from "lucide-react"
+import { Calendar, Clock, CreditCard, Link2, User, Users, Zap, Edit, Check, X, Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 
 interface CustomerRow {
@@ -18,26 +19,179 @@ interface CustomerRow {
   datasets: number
 }
 
+interface EditableCustomer extends CustomerRow {
+  isEditing?: boolean
+  editName: string
+  editEmail: string
+  editPlan: string
+  editPlanStatus: string
+  editBusinessName: string
+}
+
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editableCustomers, setEditableCustomers] = useState<EditableCustomer[]>([])
+  const { toast } = useToast()
 
   useEffect(() => {
     const load = async () => {
       try {
+        setIsLoading(true)
         const res = await fetch("/api/admin/customers", { cache: "no-store" })
         if (!res.ok) throw new Error("Failed to load customers")
         const data = await res.json()
         setCustomers(data.customers || [])
+        // Initialize editable customers
+        setEditableCustomers(
+          data.customers?.map((c: CustomerRow) => ({
+            ...c,
+            isEditing: false,
+            editName: c.name || "",
+            editEmail: c.email || "",
+            editPlan: c.plan,
+            editPlanStatus: c.planStatus,
+            editBusinessName: c.name || "" // Using name as businessName fallback
+          })) || []
+        )
+        toast({
+          title: "Customers loaded",
+          description: "Customer data has been successfully refreshed.",
+          variant: "default",
+        })
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load")
+        const message = err instanceof Error ? err.message : "Failed to load"
+        setError(message)
+        toast({
+          title: "Error loading customers",
+          description: message,
+          variant: "destructive",
+        })
       } finally {
         setIsLoading(false)
       }
     }
     load()
-  }, [])
+  }, [toast])
+
+  const handleEditClick = (id: string) => {
+    setEditableCustomers(prev =>
+      prev.map(c => c.id === id ? { ...c, isEditing: true } : c)
+    )
+  }
+
+  const handleCancelEdit = (id: string) => {
+    setEditableCustomers(prev =>
+      prev.map(c => c.id === id ? { ...c, isEditing: false } : c)
+    )
+  }
+
+  const handleSaveEdit = async (id: string) => {
+    const customer = editableCustomers.find(c => c.id === id)
+    if (!customer) return
+
+    try {
+      const res = await fetch("/api/admin/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          updates: {
+            fullName: customer.editName,
+            email: customer.editEmail,
+            subscriptionTier: customer.editPlan,
+            stripeStatus: customer.editPlanStatus,
+            businessName: customer.editBusinessName
+          }
+        })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to update customer")
+      }
+
+      const updatedCustomer = await res.json()
+      
+      // Update the customers list
+      setCustomers(prev =>
+        prev.map(c => 
+          c.id === id ? {
+            ...c,
+            name: updatedCustomer.customer.name,
+            email: updatedCustomer.customer.email,
+            plan: updatedCustomer.customer.plan,
+            planStatus: updatedCustomer.customer.planStatus,
+            businessName: updatedCustomer.customer.name // Using name as businessName fallback
+          } : c
+        )
+      )
+      
+      // Update editable customers
+      setEditableCustomers(prev =>
+        prev.map(c => 
+          c.id === id ? {
+            ...c,
+            isEditing: false,
+            name: updatedCustomer.customer.name,
+            email: updatedCustomer.customer.email,
+            plan: updatedCustomer.customer.plan,
+            planStatus: updatedCustomer.customer.planStatus
+          } : c
+        )
+      )
+      
+      toast({
+        title: "Customer updated",
+        description: "Customer information has been successfully saved.",
+        variant: "default",
+      })
+    } catch (err) {
+      toast({
+        title: "Error updating customer",
+        description: err instanceof Error ? err.message : "Failed to update customer",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteClick = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this customer? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/admin/customers?id=${id}`, {
+        method: "DELETE"
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to delete customer")
+      }
+
+      const result = await res.json()
+      
+      // Remove from customers list
+      setCustomers(prev => prev.filter(c => c.id !== id))
+      
+      // Remove from editable customers
+      setEditableCustomers(prev => prev.filter(c => c.id !== id))
+      
+      toast({
+        title: "Customer deleted",
+        description: result.message || "Customer has been successfully removed.",
+        variant: "default",
+      })
+    } catch (err) {
+      toast({
+        title: "Error deleting customer",
+        description: err instanceof Error ? err.message : "Failed to delete customer",
+        variant: "destructive",
+      })
+    }
+  }
 
   const totals = {
     customers: customers.length,
@@ -107,6 +261,7 @@ export default function AdminCustomersPage() {
                   <th className="px-5 py-3 font-medium">Referral</th>
                   <th className="px-5 py-3 font-medium text-right">Logins</th>
                   <th className="px-5 py-3 font-medium text-right">Datasets</th>
+                  <th className="px-5 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,6 +297,43 @@ export default function AdminCustomersPage() {
                     </td>
                     <td className="px-5 py-3 text-right text-muted-foreground">{c.loginCount}</td>
                     <td className="px-5 py-3 text-right text-muted-foreground">{c.datasets}</td>
+                    <td className="px-5 py-3 flex space-x-2">
+                      {!editableCustomers.find(ec => ec.id === c.id)?.isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleEditClick(c.id)}
+                            className="btn-edit inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-blue-500/10 hover:text-blue-600"
+                            aria-label={`Edit ${c.name}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(c.id)}
+                            className="btn-delete inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
+                            aria-label={`Delete ${c.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleSaveEdit(c.id)}
+                            className="btn-save inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700"
+                            aria-label={`Save changes for ${c.name}`}
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleCancelEdit(c.id)}
+                            className="btn-cancel inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-gray-500/10 hover:text-gray-600"
+                            aria-label={`Cancel editing ${c.name}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

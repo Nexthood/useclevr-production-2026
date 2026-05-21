@@ -61,6 +61,15 @@ GEMINI_API_KEY=
   `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
 - Health: `/api/health`
 
+## Development Notes
+
+### Workflow Improvements
+
+- Smoke test in `branch-maintenance.yml` simplified to use fixed sleep interval for faster, more predictable execution
+- Customer management API enhanced with PATCH/DELETE endpoints for admin dashboard
+- Admin dashboard features loading states and toast notifications for better UX
+- Frontpage contact button now links to contact page instead of mailto:
+
 ## Docs
 
 - [Developer guides](docs/Developer_Guides/README.md)

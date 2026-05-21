@@ -16,7 +16,7 @@ continues to deploy from `dist:/dist`.
 Source of truth:
 
 ```text
-dist-root/server-settings/vercel/vercel.source.json
+dist-root/vercel.json
 ```
 
 Generated root config:

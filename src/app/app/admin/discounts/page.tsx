@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 
 export type DiscountRule = {
@@ -27,15 +28,34 @@ const ruleTypes: DiscountRule["type"][] = ["free", "percentage", "referral", "st
 export default function AdminDiscountsPage() {
   const [rules, setRules] = useState<DiscountRule[]>(DEFAULT_RULES)
   const [saved, setSaved] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
-    fetch("/api/admin/discounts", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+    const loadRules = async () => {
+      setIsLoading(true)
+      try {
+        const res = await fetch("/api/admin/discounts", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to load discount rules")
+        const data = await res.json()
         if (Array.isArray(data?.discountRules) && data.discountRules.length > 0) setRules(data.discountRules)
-      })
-      .catch(() => undefined)
-  }, [])
+        toast({
+          title: "Discount rules loaded",
+          description: "Discount rules have been successfully refreshed.",
+          variant: "default",
+        })
+      } catch (err) {
+        toast({
+          title: "Error loading discount rules",
+          description: err instanceof Error ? err.message : "Failed to load",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadRules()
+  }, [toast])
 
   const updateRule = (id: string, patch: Partial<DiscountRule>) => {
     setRules((prev) => prev.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)))
@@ -56,6 +76,7 @@ export default function AdminDiscountsPage() {
   }
 
   const save = async () => {
+    setIsLoading(true)
     try {
       const res = await fetch("/api/admin/discounts", {
         method: "POST",
@@ -64,8 +85,19 @@ export default function AdminDiscountsPage() {
       })
       if (!res.ok) throw new Error("Save failed")
       setSaved("Discount rules saved.")
+      toast({
+        title: "Discount rules saved",
+        description: "Your changes have been successfully saved.",
+        variant: "default",
+      })
     } catch {
-      setSaved("Save failed. Try again.")
+      toast({
+        title: "Error saving discount rules",
+        description: "Save failed. Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
