@@ -124,8 +124,8 @@ export default function AdminLevelsPage() {
               <Plus className="h-4 w-4" />
               Add level
             </Button>
-            <Button size="sm" onClick={save}>
-              Save
+            <Button size="sm" onClick={save} disabled={isLoading}>
+              {isLoading ? "Saving…" : "Save"}
             </Button>
           </div>
         }
