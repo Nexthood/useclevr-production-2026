@@ -116,8 +116,8 @@ export default function AdminDiscountsPage() {
               <Plus className="h-4 w-4" />
               Add rule
             </Button>
-            <Button size="sm" onClick={save}>
-              Save
+            <Button size="sm" onClick={save} disabled={isLoading}>
+              {isLoading ? "Saving…" : "Save"}
             </Button>
           </div>
         }

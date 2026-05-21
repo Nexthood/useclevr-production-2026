@@ -1,3 +1,15 @@
 #!/usr/bin/env sh
 
+# TypeScript type check (catches compile-time errors like missing providers)
 pnpm validate:types
+
+# ESLint — whole repo, all TS/JS/MJS files
+pnpm lint
+
+# YAML syntax check for GitHub workflow files
+for f in .github/workflows/*.yml; do
+  if ! node -e "require('js-yaml').load(require('fs').readFileSync('$f','utf8'))" 2>/dev/null; then
+    echo "YAML syntax error in $f"
+    exit 1
+  fi
+done
