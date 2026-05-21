@@ -132,6 +132,8 @@
   platform config can live at the branch root while the app runs from `/dist`.
 - The deployment branch publishes host config files at the branch root while keeping generated
   application output inside `/dist`.
+- Auto-merged release pull requests dispatch branch maintenance after merge so beta sync and dist
+  publishing run even when token-generated events are suppressed.
 - Developers can run the generated production server locally with shared development environment
   values that apply across branch checkouts.
 - Local generated-output starts use localhost for authentication, while Railway and Vercel starts

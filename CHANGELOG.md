@@ -33,6 +33,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
+  publish do not depend on suppressed token-generated events.
 - Dist publishing now syncs deployment root files from the source branch while keeping generated app
   output inside `/dist`.
 - Local pre-commit validation now runs the production publish build so missing bundle dependencies
