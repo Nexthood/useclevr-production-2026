@@ -40,7 +40,7 @@ GEMINI_API_KEY=
 | `pnpm build`             | Build                                                                                |
 | `pnpm start`             | Start built app                                                                      |
 | `pnpm prod`              | Production bundle                                                                    |
-| `pnpm ci:railway`        | Sync `dist/railway.json` only                                                        |
+| `pnpm ci:railway`        | Sync the generated Railway config from `dist-root/server-config/railway.json`        |
 | `pnpm analyze:business`  | Inspect latest dataset business metrics from the database                            |
 | `pnpm test:csv-analyzer` | Run the CSV analyzer smoke script                                                    |
 | `pnpm test:neon`         | Test database connectivity with `NEON_DATABASE_URL`, `DIRECT_URL`, or `DATABASE_URL` |
@@ -53,7 +53,8 @@ GEMINI_API_KEY=
 ## Deploy
 
 - Use Railway root directory `dist`.
-- Railway service config must exist at `dist/railway.json` in the deployed commit.
+- Railway config file path should point to `/railway.json` in the deployed commit.
+- The generated `/dist` folder remains the application runtime root.
 - To refresh only that file: `pnpm ci:railway`.
 - To refresh the full bundle: `pnpm prod:build`.
 - Build command: `echo 'Using pre-built artifacts from dist/'`

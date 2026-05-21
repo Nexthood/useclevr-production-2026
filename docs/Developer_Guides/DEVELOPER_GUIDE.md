@@ -17,7 +17,7 @@ pnpm dev
 | Node.js 26.x | Local development, CI, and Railway runtime | No | Use the version declared by the project. |
 | pnpm 11.1.2 or newer | Dependency install and project scripts | No | Enable through Corepack or install locally. |
 | Railway | Production hosting from the `dist` branch `/dist` folder | Yes | Holds deployment settings and runtime environment variables. |
-| Vercel | Source-branch production or preview hosting from `main` | Yes | Uses root `vercel.json` synced from the Vercel server-settings template. |
+| Vercel | Source-branch production or preview hosting from `main` | Yes | Uses root `vercel.json` synced from the Vercel server-config template. |
 | Neon PostgreSQL | Application database | Yes | Required for persisted app data and Drizzle schema operations. |
 | Gemini API | Cloud AI features through the AI SDK | Yes | Requires a Google AI Studio or Google Cloud account and API key. |
 | Auth.js / NextAuth | Authentication runtime | No | Requires local secrets, but no separate hosted account. |
@@ -374,13 +374,13 @@ pnpm prod:start
 
 - Deploy root: `dist/`
 - Do not commit generated `dist/` output from source branches
-- Template: `dist-root/railway.json`
-- Vercel template: `dist-root/vercel.json`
+- Template: `dist-root/server-config/railway.json`
+- Vercel template: `dist-root/server-config/vercel.json`
 - Local runtime parity test: switch to the `dist` branch, then run `cd dist && pnpm install && npm run start`
 - Shared local env: put common development secrets in `../.env.local`; checkout-local env files can
   override those values.
-- `dist-root/server-settings/` contains one subfolder per server host; GitHub Actions workflow files stay
-  in `.github/workflows/`.
+- `dist-root/server-config/` contains host config templates with platform-native filenames; GitHub
+  Actions workflow files stay in `.github/workflows/`.
 
 ### Railway Environment
 
@@ -409,8 +409,9 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- Generated Railway config comes from `dist-root/railway.json`
-- The `dist` branch root must not contain `railway.json`; Railway reads `/dist/railway.json`
+- Generated Railway config comes from `dist-root/server-config/railway.json`
+- The `dist` branch root contains `railway.json`; Railway uses root directory `/dist` and config
+  file path `/railway.json`
 - Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
 - Database migrations stay in Railway pre-deploy while this is a single web-service deployment
 - Railway dashboard custom command fields should be empty; old `npm` command overrides can bypass the
@@ -422,7 +423,7 @@ UPLOAD_PROVIDER=
 ### Vercel Checklist
 
 - Vercel deploys from `main`, not from the generated `dist` branch.
-- Root `vercel.json` is synced from `dist-root/vercel.json`.
+- Root `vercel.json` is synced from `dist-root/server-config/vercel.json`.
 - Run `pnpm deploy:vercel:sync` after Vercel template edits.
 - Run `pnpm validate:dist` before opening the PR so Railway and Vercel deploy settings are both in sync.
 - Configure the same required production secrets in Vercel project environment variables.

@@ -9,7 +9,7 @@ const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
 const runtimeScriptsDir = path.join(rootDir, "scripts", "runtime");
-const distRailwayTemplate = path.join(rootDir, "dist-root", "server-settings", "railway", "railway.dist.json");
+const distRailwayTemplate = path.join(rootDir, "dist-root", "server-config", "railway.json");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {

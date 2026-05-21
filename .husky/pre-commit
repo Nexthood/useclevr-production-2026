@@ -1,10 +1,7 @@
 #!/usr/bin/env sh
 
-# TypeScript type check (catches compile-time errors like missing providers)
-pnpm validate:types
-
-# ESLint — whole repo, all TS/JS/MJS files
-pnpm lint
+# TypeScript, deploy config, lint, and production publish build checks
+pnpm validate:precommit
 
 # YAML syntax check for GitHub workflow files
 for f in .github/workflows/*.yml; do
