@@ -63,8 +63,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm install --frozen-lockfile --no-warn
-          pnpm dedupe --no-warn
+          pnpm install --frozen-lockfile
+          pnpm dedupe 
 
       - name: Validate source before publishing
         run: |
