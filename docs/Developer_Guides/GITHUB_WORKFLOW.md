@@ -129,19 +129,21 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
 - Starts the generated server and checks `/api/health` before publishing
 - Checks out the existing `dist` branch after the build
 - Replaces only the generated `/dist` folder
-- Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
-- Fails if `railway.json` appears at the deployment branch root or is missing from `/dist`
+- Syncs `dist-root/` from `main` to the deployment branch root
+- Publishes `server-config/railway.json` and `server-config/vercel.json` as root `railway.json` and `vercel.json`
+- Fails if root `railway.json`, root `vercel.json`, or generated `/dist/railway.json` is missing
 - Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
 
 Running jobs in parallel means `publish-dist` can complete even if `sync-beta` fails due to merge conflicts.
 
-`dist-root/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; Railway lives at `dist-root/railway/` and Vercel lives at `dist-root/vercel/`.
+`dist-root/` stores deployment-branch root files, not the CI workflow itself. Host config templates
+live at `dist-root/server-config/railway.json` and `dist-root/server-config/vercel.json`.
 
 ### Railway Runtime Behavior
 
 Railway deployment flow:
 
-1. **Build phase** (controlled by `dist-root/railway.json`):
+1. **Build phase** (controlled by `dist-root/server-config/railway.json`):
    - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
    - `optional = false` in `pnpm-workspace.yaml` prevents optional SWC binaries
 
@@ -156,10 +158,14 @@ Database migrations stay in Railway `preDeployCommand` for this phase. A separat
 
 The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the runtime locally, switch to `dist`, run `cd dist && pnpm install && npm run start`, and open `http://localhost:8080`. The default local start uses `localhost` for Auth.js; Railway and Vercel use named target scripts.
 
-The `dist` branch root must not contain `railway.json`. Railway should use `dist/railway.json` from the generated deployment folder, and the generated folder also carries `pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required by `sharp`, `esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval setting directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
+The `dist` branch root must contain `railway.json`. Railway should keep root directory `/dist` and
+config file path `/railway.json`, while the generated folder also carries `dist/railway.json` for
+local parity and `pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required
+by `sharp`, `esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval
+setting directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
 
 Railway service settings must not keep old custom `npm` commands. Clear dashboard build, pre-deploy,
-and start command overrides so `/dist/railway.json` controls the deployment. If an override is
+and start command overrides so `/railway.json` controls the deployment. If an override is
 temporarily needed, use `pnpm run railway:predeploy` for migrations and `pnpm start` for runtime.
 
 ### Local And Server Start Commands
@@ -186,7 +192,7 @@ beta → PR → main → Vercel builds from main
 Vercel reads root `vercel.json`, which is synced from:
 
 ```text
-dist-root/vercel.json
+dist-root/server-config/vercel.json
 ```
 
 Edit the template, then run:
@@ -367,8 +373,9 @@ The GitHub Actions workflows have been verified and are correct:
 - Uses `--strategy-option=theirs` to handle merge conflicts ✓
 - Publish job runs independently, not dependent on sync-beta ✓
 - Publish job force-cleans dist branch with git checkout --orphan new-dist and git rm -rf . ✓
-- Publishes only generated /dist folder contents ✓
-- Railway artifacts (railway.json, pnpm-workspace.yaml, package.json) isolated inside /dist/ ✓
+- Publishes generated `/dist` folder contents without changing the folder shape ✓
+- Syncs `dist-root/` to the deployment branch root ✓
+- Publishes root `railway.json` and `vercel.json` from `dist-root/server-config/` ✓
 
 **ci.yml:**
 - Does not run on beta pushes (validated when PR targets main) ✓

@@ -108,7 +108,9 @@ jobs:
           find dist -type f -size +45M -exec ls -lh {} \; || true
 
       - name: Stage generated output
-        run: mv dist /tmp/useclevr-dist-output
+        run: |
+          mv dist /tmp/useclevr-dist-output
+          cp -a dist-root /tmp/useclevr-dist-root
 
       - name: Prepare dist commit title from PR
         id: dist-title
@@ -171,10 +173,22 @@ jobs:
           rm -rf dist/.turbo
           rm -rf dist/.vercel
 
-          if [ -d "dist-root" ]; then
-            cp dist-root/.gitignore . 2>/dev/null || true
-            cp dist-root/README.md . 2>/dev/null || true
+          if [ -d "/tmp/useclevr-dist-root" ]; then
+            cp -a /tmp/useclevr-dist-root/. .
           fi
+
+          if [ ! -f "server-config/railway.json" ]; then
+            echo "Error: server-config/railway.json is missing from dist-root."
+            exit 1
+          fi
+
+          if [ ! -f "server-config/vercel.json" ]; then
+            echo "Error: server-config/vercel.json is missing from dist-root."
+            exit 1
+          fi
+
+          cp server-config/railway.json railway.json
+          cp server-config/vercel.json vercel.json
 
           if [ ! -f ".gitignore" ]; then
             cat > .gitignore <<'EOF'
@@ -205,8 +219,13 @@ jobs:
           EOF
           fi
 
-          if [ -f "railway.json" ]; then
-            echo "Error: railway.json must not exist at the dist branch root."
+          if [ ! -f "railway.json" ]; then
+            echo "Error: railway.json is missing from the dist branch root."
+            exit 1
+          fi
+
+          if [ ! -f "vercel.json" ]; then
+            echo "Error: vercel.json is missing from the dist branch root."
             exit 1
           fi
 
@@ -214,6 +233,10 @@ jobs:
             echo "Error: generated dist/railway.json is missing."
             exit 1
           fi
+
+          cmp -s server-config/railway.json railway.json
+          cmp -s server-config/vercel.json vercel.json
+          cmp -s server-config/railway.json dist/railway.json
 
           echo "Large generated deployment files:"
           find dist -type f -size +45M -exec ls -lh {} \; || true

@@ -2,12 +2,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = process.cwd();
-const from = path.join(root, "dist-root", "vercel.json");
+const from = path.join(root, "dist-root", "server-config", "vercel.json");
 const to = path.join(root, "vercel.json");
 const checkOnly = process.argv.includes("--check");
 
 if (!fs.existsSync(from)) {
-  throw new Error("Missing dist-root/vercel.json");
+  throw new Error("Missing dist-root/server-config/vercel.json");
 }
 
 if (checkOnly) {
@@ -18,7 +18,7 @@ if (checkOnly) {
   }
 
   if (fs.readFileSync(from, "utf8") !== fs.readFileSync(to, "utf8")) {
-    throw new Error("vercel.json is out of sync with dist-root/vercel.json");
+    throw new Error("vercel.json is out of sync with dist-root/server-config/vercel.json");
   }
 
   console.log("vercel.json is in sync");

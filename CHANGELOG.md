@@ -33,6 +33,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Dist publishing now syncs deployment root files from the source branch while keeping generated app
+  output inside `/dist`.
+- Local pre-commit validation now runs the production publish build so missing bundle dependencies
+  fail before deployment.
 - Restructured Migrate to Payload.md for clear AI implementation steps.
 - Added GitHub Action to auto-merge PRs from beta → main.
 - Updated branch-maintenance workflow to include PR number in dist commit messages (e.g., PR-28:).

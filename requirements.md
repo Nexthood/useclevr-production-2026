@@ -128,8 +128,10 @@
   no-fix decisions.
 - Developer machines use Husky-managed Git hooks instead of custom local `.git/hooks` scripts.
 - Dist deployment commits use short pull request titles so deployment history is readable.
-- The deployment branch keeps permanent branch metadata separate from generated application output
-  so hosting configuration is read from the deployment folder, not the branch root.
+- The deployment branch keeps permanent host config separate from generated application output so
+  platform config can live at the branch root while the app runs from `/dist`.
+- The deployment branch publishes host config files at the branch root while keeping generated
+  application output inside `/dist`.
 - Developers can run the generated production server locally with shared development environment
   values that apply across branch checkouts.
 - Local generated-output starts use localhost for authentication, while Railway and Vercel starts
@@ -140,6 +142,8 @@
   npm command overrides are not part of the supported deployment path.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
+- Local pre-commit validation runs the production publish build so missing bundle dependencies are
+  caught before deployment.
 - Public pages include legal links in their bottom navigation so users can reach Terms and Privacy
   from authentication and marketing screens.
 - Public pages outside the homepage share a consistent title section so navigation feels stable

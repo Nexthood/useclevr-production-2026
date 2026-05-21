@@ -10,6 +10,10 @@ No active leading-edge items.
 
 ## Completed ✅
 
+- Dist publish now syncs deployment root files from `dist-root/` while keeping generated app output
+  inside `/dist`.
+- Local pre-commit validation now runs the production publish build so missing bundle dependencies
+  fail before deployment.
 - Public login and notice behavior now keeps auth errors inline on `/login` and prevents global notices
   from overlaying page layouts.
 - Contact page now accepts demo, sales, and support requests from public visitors.
