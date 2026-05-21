@@ -146,6 +146,8 @@
   or generated deployment output is trusted.
 - Local pre-commit validation runs the production publish build so missing bundle dependencies are
   caught before deployment.
+- Publish builds install PDF export browser dependencies as explicit production packages, even when
+  optional dependency installs are disabled.
 - Public pages include legal links in their bottom navigation so users can reach Terms and Privacy
   from authentication and marketing screens.
 - Public pages outside the homepage share a consistent title section so navigation feels stable
