@@ -10,6 +10,8 @@ No active leading-edge items.
 
 ## Completed ✅
 
+- Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
+  publish do not depend on suppressed token-generated events.
 - Dist publish now syncs deployment root files from `dist-root/` while keeping generated app output
   inside `/dist`.
 - Local pre-commit validation now runs the production publish build so missing bundle dependencies
