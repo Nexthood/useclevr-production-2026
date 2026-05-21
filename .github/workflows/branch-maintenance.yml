@@ -40,8 +40,8 @@ jobs:
     steps:
       - name: Guard main branch only
         run: |
-          if [ "${GITHUB_REF}" != "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
-            echo "Dist publish is only allowed from main."
+          if [ "${GITHUB_REF}" != "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" != "pull_request" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
+            echo "Dist publish is only allowed from main, merged pull requests, or manual dispatch."
             exit 1
           fi
 
