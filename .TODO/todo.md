@@ -10,6 +10,8 @@ No active leading-edge items.
 
 ## Completed ✅
 
+- PDF export browser dependencies are now explicit production dependencies so publish builds with
+  optional installs disabled do not miss bundler-required modules.
 - Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
   publish do not depend on suppressed token-generated events.
 - Dist publish now syncs deployment root files from `dist-root/` while keeping generated app output

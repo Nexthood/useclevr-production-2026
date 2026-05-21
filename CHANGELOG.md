@@ -33,6 +33,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- PDF export browser dependencies are now explicit production dependencies so publish builds with
+  optional installs disabled do not miss bundler-required modules.
 - Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
   publish do not depend on suppressed token-generated events.
 - Dist publishing now syncs deployment root files from the source branch while keeping generated app
