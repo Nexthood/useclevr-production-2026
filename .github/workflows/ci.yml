@@ -12,27 +12,17 @@ jobs:
     name: Validate source and production build
     runs-on: ubuntu-latest
     steps:
-      - name: Read commit message
+      - name: Get latest commit message
         id: commit-message
-        uses: actions/github-script@v8
-        with:
-          script: |
-            if (context.eventName === 'pull_request') {
-              const commit = await github.rest.repos.getCommit({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: context.payload.pull_request.head.sha,
-              });
-              core.setOutput('message', commit.data.commit.message);
-              return;
-            }
-
-            core.setOutput('message', context.payload.head_commit?.message || '');
-
+        run: |
+          commit_msg=$(git log -1 --pretty=%B)
+          echo "message=$commit_msg" >> $GITHUB_OUTPUT
       - name: Check if we should skip
         id: skip-check
         run: |
           if [[ "${{ steps.commit-message.outputs.message }}" == *"[skip ci]"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.commit-message.outputs.message }}" == *"Merge pull request"* ]]; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -79,17 +69,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - name: Read commit message
+      - name: Get latest commit message
         id: commit-message
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const commit = await github.rest.repos.getCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.payload.pull_request.head.sha,
-            });
-            core.setOutput('message', commit.data.commit.message);
+        run: |
+          commit_msg=$(git log -1 --pretty=%B)
+          echo "message=$commit_msg" >> $GITHUB_OUTPUT
       - name: Check if we should skip
         id: skip-check
         run: |
