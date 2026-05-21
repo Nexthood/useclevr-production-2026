@@ -61,11 +61,10 @@ jobs:
           node-version: "26.x"
           cache: pnpm
 
-- name: Install dependencies
+      - name: Install dependencies
         run: |
-           pnpm install --frozen-lockfile --no-optional
-           pnpm dedupe --no-optional
->>>>>>> 2f8cf878 (fix: ci workflow - railway 2)
+          pnpm install --frozen-lockfile --no-optional
+          pnpm dedupe --no-optional
 
       - name: Validate source before publishing
         run: |

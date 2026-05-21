@@ -1,6 +1,5 @@
 "use client"
 
-import { AlertCircle, CheckCircle2, Info, X } from "lucide-react"
 import * as React from "react"
 
 type NoticeType = "error" | "success" | "info"
@@ -23,18 +22,6 @@ type NoticeContextValue = {
 const NoticeContext = React.createContext<NoticeContextValue | null>(null)
 
 const noticeEventName = "useclevr:notice"
-
-const icons = {
-  error: AlertCircle,
-  success: CheckCircle2,
-  info: Info,
-}
-
-const styles = {
-  error: "border-red-500 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200",
-  success: "border-green-500 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200",
-  info: "border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
-}
 
 const getFailedInteractionMessage = (status: number) => {
   if (status === 401 || status === 403) {
@@ -165,19 +152,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.fetch = originalFetch
     }
-  }, [isMutedPath, showNotice])
-
-   const icons = {
-    error: AlertCircle,
-    success: CheckCircle2,
-    info: Info,
-  }
-
-  const styles = {
-    error: "border-red-500 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200",
-    success: "border-green-500 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200",
-    info: "border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
-  }
+   }, [isMutedPath, showNotice])
 
    return (
     <NoticeContext.Provider value={{ notice, showNotice, clearNotice }}>
