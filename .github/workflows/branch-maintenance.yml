@@ -3,6 +3,8 @@ name: Sync Beta And Publish Dist
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [closed]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +13,7 @@ permissions:
 jobs:
   sync-beta:
     name: Sync beta with main
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -32,13 +34,13 @@ jobs:
 
   publish-dist:
     name: Publish dist deployment folder
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request' && github.event.pull_request.merged }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Guard main branch only
         run: |
-          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+          if [ "${GITHUB_REF}" != "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
             echo "Dist publish is only allowed from main."
             exit 1
           fi
