@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { BUILTIN_USERS } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
@@ -9,17 +10,32 @@ async function requireSuperAdmin() {
   return session?.user?.role === "superadmin"
 }
 
+function builtinCustomers() {
+  return BUILTIN_USERS.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    plan: user.role === "superadmin" ? "superadmin" : "free",
+    planStatus: "static",
+    signupDate: null,
+    lastLogin: null,
+    referralSource: "Built-in account",
+    loginCount: 0,
+    datasets: 0,
+  }))
+}
+
 export async function GET() {
   if (!(await requireSuperAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const db = getDb()
-  if (!db) {
-    return NextResponse.json({ customers: [] })
-  }
-
   try {
+    const db = getDb()
+    if (!db) {
+      return NextResponse.json({ customers: builtinCustomers() })
+    }
+
     const rows = await db
       .select({
         id: profiles.userId,
@@ -33,7 +49,7 @@ export async function GET() {
       .from(profiles)
       .orderBy(desc(profiles.createdAt))
 
-    const customers = rows.map((r) => ({
+    const persistedCustomers = rows.map((r) => ({
       id: r.id,
       name: r.name || r.businessName || "—",
       email: r.email || "—",
@@ -46,9 +62,15 @@ export async function GET() {
       datasets: 0,
     }))
 
+    const builtinIds = new Set<string>(BUILTIN_USERS.map((user) => user.id))
+    const customers = [
+      ...builtinCustomers(),
+      ...persistedCustomers.filter((customer) => !builtinIds.has(customer.id)),
+    ]
+
     return NextResponse.json({ customers })
   } catch (err) {
     console.error("[admin/customers] error:", err)
-    return NextResponse.json({ error: "Failed to load customers" }, { status: 500 })
+    return NextResponse.json({ customers: builtinCustomers(), warning: "Database customers could not be loaded." })
   }
 }

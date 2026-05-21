@@ -2,7 +2,8 @@
 
 This project separates source code from deployment output.
 
-`main` is the source branch. Developers review, test, and merge source changes there.
+`main` is the source branch. Developers review, test, and merge source changes there. Vercel deploys
+from `main` using root `vercel.json`.
 `dist` is the generated deployment branch. GitHub Actions publishes build output there for Railway.
 
 Do not merge `dist` back into `main`. Do not edit generated files on `dist` by hand.
@@ -26,6 +27,7 @@ The normal flow is:
 6. GitHub Actions syncs `beta` from `main`.
 7. GitHub Actions builds the app from `main` and publishes the generated output to `dist:/dist`.
 8. Railway deploys from the `/dist` folder on the `dist` branch.
+9. Vercel deploys from `main` when its project is connected to the source branch.
 
 ## Conventional Commits
 
@@ -88,15 +90,20 @@ It runs on:
 - Pushes to `main`
 - Pull requests targeting `main`
 
-It intentionally does not run on `beta` pushes. A `beta` push is validated when it becomes a pull
-request into `main`, which avoids running the same source validation twice for the normal test flow.
+It intentionally does not run on `beta` pushes. A direct push to `beta` is only a test branch update;
+it should not validate as a release candidate until it becomes a pull request into `main`. This also
+keeps the automatic `main` → `beta` sync commit from starting CI on `beta`.
+After the pull request merges, the push to `main` also runs the same validation so the protected
+source branch and deployment publisher see a confirmed main-branch result.
 
 CI is automatically skipped for commits containing `[skip ci]` in the commit message.
 
 The required branch-rule check is:
 - `Validate source and production build`
 
-This one check protects `main`, because `main` generates the production `dist` branch. It installs dependencies, runs type validation, verifies dist config, runs lint and tests, then proves Next.js can compile the app for Railway.
+This one check protects `main`, because `main` generates the production `dist` branch and can also
+deploy directly to Vercel. It installs dependencies, runs type validation, verifies Railway and
+Vercel config sync, runs lint and tests, then proves Next.js can compile the app.
 
 ### Auto-Merge Workflow
 
@@ -115,39 +122,82 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
   - Commit message includes `[skip ci]` to prevent CI duplication
 
 - **publish-dist**: Triggers on push to `main` (not PRs)
-  - Runs independently, not dependent on sync-beta
-  - Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
-  - Runs `pnpm prod:build` to create the dist output
-  - Checks out the existing `dist` branch after the build
-  - Replaces only the generated `/dist` folder
-  - Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
-  - Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
+- Runs independently, not dependent on sync-beta
+- Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
+- Runs type validation, dist config validation, and lint before publishing generated output
+- Runs `pnpm prod:build` to create the dist output
+- Starts the generated server and checks `/api/health` before publishing
+- Checks out the existing `dist` branch after the build
+- Replaces only the generated `/dist` folder
+- Preserves root-level branch files such as `.gitignore`, `README.md`, and future deployment metadata
+- Fails if `railway.json` appears at the deployment branch root or is missing from `/dist`
+- Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
 
 Running jobs in parallel means `publish-dist` can complete even if `sync-beta` fails due to merge conflicts.
 
-`server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; today the only target is Railway at `server-settings/railway/`, but the folder can hold additional target folders later without changing the source validation workflow.
+`dist-root/server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; Railway lives at `dist-root/server-settings/railway/` and Vercel lives at `dist-root/server-settings/vercel/`.
 
 ### Railway Runtime Behavior
 
 Railway deployment flow:
 
-1. **Build phase** (controlled by `server-settings/railway/railway.dist.json`):
-   - `pnpm install --frozen-lockfile --prod` - Installs only production dependencies
+1. **Build phase** (controlled by `dist-root/server-settings/railway/railway.dist.json`):
+   - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
    - `optional = false` in `pnpm-workspace.yaml` prevents optional SWC binaries
 
-2. **Start phase**:
-   - `node server.js` (from `dist/server.js`, which is `dist/.next/standalone/server.js`)
+2. **Pre-deploy phase**:
+   - `pnpm run railway:predeploy` applies database schema changes through pnpm.
+
+3. **Start phase**:
+   - `pnpm run start:railway` starts the generated standalone server with Railway host binding.
    - Railway runs from `dist/` folder, so the path is relative to `/dist`
 
 Database migrations stay in Railway `preDeployCommand` for this phase. A separate migration service or job is future work only when migrations or background jobs need isolation from the web process.
 
-The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the Railway runtime locally, switch to `dist`, run `cd dist && pnpm install && PORT=8080 pnpm start`, and load local environment variables from the repository root before starting if needed.
+The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the runtime locally, switch to `dist`, run `cd dist && pnpm install && npm run start`, and open `http://localhost:8080`. The default local start uses `localhost` for Auth.js; Railway and Vercel use named target scripts.
 
 The `dist` branch root must not contain `railway.json`. Railway should use `dist/railway.json` from the generated deployment folder, and the generated folder also carries `pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required by `sharp`, `esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval setting directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
 
 Railway service settings must not keep old custom `npm` commands. Clear dashboard build, pre-deploy,
 and start command overrides so `/dist/railway.json` controls the deployment. If an override is
 temporarily needed, use `pnpm run railway:predeploy` for migrations and `pnpm start` for runtime.
+
+### Local And Server Start Commands
+
+Generated `dist/package.json` keeps local and server starts separate:
+
+```bash
+npm run start          # local default, AUTH_URL=http://localhost:8080
+npm run start:railway  # Railway target, HOSTNAME=0.0.0.0
+npm run start:vercel   # Vercel target placeholder
+```
+
+The source checkout mirrors this with `pnpm start:dist`, `pnpm prod:railway`, and
+`pnpm prod:vercel`. Use the named server target only when testing that host's environment.
+
+### Vercel Source Deployment
+
+Vercel deployment flow:
+
+```text
+beta → PR → main → Vercel builds from main
+```
+
+Vercel reads root `vercel.json`, which is synced from:
+
+```text
+dist-root/server-settings/vercel/vercel.source.json
+```
+
+Edit the template, then run:
+
+```bash
+pnpm deploy:vercel:sync
+pnpm validate:dist
+```
+
+Do not point Vercel at the generated `dist` branch. Railway owns the generated-output path; Vercel
+owns source-branch builds. Database migrations do not run as a Vercel pre-deploy phase in this setup.
 
 For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local env values, while shell and Railway variables remain authoritative.
 

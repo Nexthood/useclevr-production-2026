@@ -1,7 +1,9 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicPageHeader } from "@/components/layout/public-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { getPricingFaqs } from "@/lib/content/faq"
 import { Brain, Building2, Check, Cpu, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 
@@ -29,31 +31,32 @@ export const metadata = {
   canonical: "https://useclevr.com/pricing",
 }
 
+const pricingFaqs = getPricingFaqs()
+
 export default function PricingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicHeader />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 py-8 md:px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold mb-3">Choose your plan</h1>
-              <p className="text-base text-muted-foreground mb-4">
-                Start free and scale as you grow. No hidden fees, cancel anytime.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
-                <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
-                  <Check className="h-4 w-4" />
-                  <span>14-day free trial</span>
-                </div>
-                <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
-                  <Check className="h-4 w-4" />
-                  <span>No credit card required</span>
-                </div>
+        <PublicPageHeader
+          title="Choose your plan"
+          description="Start free and scale as you grow. No hidden fees, cancel anytime."
+          actions={
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+              <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
+                <Check className="h-4 w-4" />
+                <span>14-day free trial</span>
+              </div>
+              <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
+                <Check className="h-4 w-4" />
+                <span>No credit card required</span>
               </div>
             </div>
-
+          }
+        />
+        <section className="container mx-auto px-4 py-8 md:px-6">
+          <div className="max-w-6xl mx-auto">
             <div className="relative grid gap-6 md:grid-cols-3">
               {/* Free Tier */}
               <Card className="space-y-4 border-border/50 bg-card p-6">
@@ -314,7 +317,7 @@ export default function PricingPage() {
                     <span className="text-xs bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded dark:bg-slate-800 dark:text-slate-100">Pro</span>
                   </div>
                   <p className="text-sm text-muted-foreground">For normal laptops</p>
-                  <p className="text-xs font-medium text-foreground mt-2">~2GB download</p>
+                  <p className="text-xs font-medium text-foreground mt-2">Included with Pro</p>
                 </Card>
                 <Card className="p-4 bg-card border border-border">
                   <div className="flex items-center gap-2 mb-2">
@@ -323,7 +326,7 @@ export default function PricingPage() {
                     <span className="text-xs bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded dark:bg-emerald-950 dark:text-emerald-100">Business</span>
                   </div>
                   <p className="text-sm text-muted-foreground">For high-performance systems with Business support</p>
-                  <p className="text-xs font-medium text-foreground mt-2">~5GB download</p>
+                  <p className="text-xs font-medium text-foreground mt-2">Included with Business</p>
                 </Card>
               </div>
             </div>
@@ -331,31 +334,22 @@ export default function PricingPage() {
             <div className="mt-12">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Frequently asked questions</h2>
               <div className="grid gap-4 max-w-3xl mx-auto">
-                <Card className="p-6 bg-card border-border/50">
-                  <h3 className="text-base font-semibold mb-2">Can I change plans later?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
-                  </p>
-                </Card>
-                <Card className="p-6 bg-card border-border/50">
-                  <h3 className="text-base font-semibold mb-2">What payment methods do you accept?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We accept all major credit cards, PayPal, and wire transfers for Enterprise plans.
-                  </p>
-                </Card>
-                <Card className="p-6 bg-card border-border/50">
-                  <h3 className="text-base font-semibold mb-2">Is there a free trial for Pro?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Yes, all new Pro subscribers get a 14-day free trial. No credit card required to start.
-                  </p>
-                </Card>
-                <Card className="p-6 bg-card border-border/50">
-                  <h3 className="text-base font-semibold mb-2">What happens to my data if I cancel?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your data is retained for 30 days after cancellation. You can export it anytime or request permanent
-                    deletion.
-                  </p>
-                </Card>
+                {pricingFaqs.map((item) => (
+                  <Card key={item.q} className="p-6 bg-card border-border/50">
+                    {item.tag && (
+                      <span className="mb-3 inline-flex rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                        {item.tag}
+                      </span>
+                    )}
+                    <h3 className="text-base font-semibold mb-2">{item.q}</h3>
+                    <p className="text-sm text-muted-foreground">{item.a}</p>
+                  </Card>
+                ))}
+              </div>
+              <div className="mt-6 text-center">
+                <Link href="/faq">
+                  <Button variant="outline" className="bg-transparent">View all FAQ</Button>
+                </Link>
               </div>
             </div>
           </div>

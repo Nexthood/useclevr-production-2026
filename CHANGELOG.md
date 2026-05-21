@@ -7,6 +7,30 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Public pricing and FAQ copy now describes Hybrid AI access without exposing runtime download sizes.
+- Public pages outside the homepage now share one title section design.
+- Dashboard help links now live under the topbar Help menu, while the sidebar focuses on primary
+  app areas.
+- Customer level and discount rule management now uses horizontal table rows for faster editing.
+
+### Fixed
+
+- Contact visitors can now submit demo and sales requests from the Contact page.
+- Product-update waitlist signup now succeeds during local development when the production database
+  is unavailable.
+- The Hybrid AI popup now opens reliably from the dashboard topbar.
+- Dashboard FAQ now includes an inline ticket form.
+- Super-admin customer lists now show built-in demo and super-admin accounts even when database
+  customer rows cannot load.
+- Local generated-output starts now use localhost for authentication while Railway keeps its server
+  binding.
+- Login errors now stay inside the login page instead of appearing as a global notice.
+- Public legal pages and authentication screens now expose Terms and Privacy links consistently.
+- Mobile public navigation now opens as a compact menu while keeping mode and theme controls visible.
+- Referral signup and paid events now support idempotency keys and block self-referral rewards.
+
 ### Dev
 
 - Restructured Migrate to Payload.md for clear AI implementation steps.
@@ -23,6 +47,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added GitHub deployment strategy notes covering dist branch limits, Railway source builds, Docker
   image deployment, and GitHub Actions artifacts.
 - Optimized CI triggers so beta pushes do not duplicate the pull request validation workflow.
+- Fixed source validation so beta-to-main pull requests and the resulting main-branch merge both run
+  the required CI check, while beta pushes stay quiet.
+- Added a dist publish guard so Railway config must stay inside the generated deployment folder and
+  never at the deployment branch root.
+- Added source validation inside the dist publish workflow so generated deployment output is not
+  published from a dirty type or lint baseline.
 - Fixed the auto-merge workflow trigger so beta-to-main pull requests are matched by base branch
   `main` and filtered by head branch `beta`.
 - Replaced the auto-merge helper action with an explicit `gh pr merge <PR number> --auto` command so
@@ -33,6 +63,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `node_modules` files cannot fail dist publishing.
 - Disabled optional dependency installs for the generated Railway runtime package so Next.js SWC
   compiler binaries are kept in the source build phase only.
+- Aligned deployment template paths with the current deployment settings folder and added a Vercel
+  target placeholder for future host-specific settings.
+- Added Vercel source-branch deployment settings alongside the Railway generated-output target.
+- Added database-backed operational storage for support tickets, referral events, and billing
+  settings with local file fallback.
+- Added a generated deployment manifest and a dist server smoke test before publishing Railway output.
+- Added CSV edge-case coverage for empty uploads, malformed rows, mixed currencies, and time zones.
+- Added a production readiness checklist for deployment, accounts, access, data, AI, and billing
+  operations.
 
 ## [7.2.0] - 2026-05-20
 

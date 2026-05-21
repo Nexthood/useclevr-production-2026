@@ -16,8 +16,8 @@ type AppPageHeaderProps = {
 
 export function AppPageHeader({ title, description, breadcrumbs = [], actions }: AppPageHeaderProps) {
   return (
-    <header className="sticky top-9 z-40 border-b border-border bg-card/95 backdrop-blur">
-      <div className="flex min-h-16 flex-col items-start justify-between gap-3 px-4 py-3 sm:flex-row sm:items-center sm:px-6">
+    <header className="sticky top-16 z-40 border-b border-border bg-card/95 backdrop-blur">
+      <div className="flex min-h-16 flex-col items-start justify-between gap-3 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
         <div className="min-w-0 space-y-0.5">
           <h1 className="truncate text-xl font-semibold text-foreground">{title}</h1>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}

@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useNotice } from "@/components/ui/notice-bar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles } from "lucide-react"
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -50,21 +49,21 @@ const getLoginErrorMessage = (code?: string | null) => {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { clearNotice, showNotice } = useNotice()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [loginError, setLoginError] = useState<{ title: string; message?: string; details?: string } | null>(null)
 
   const showLoginError = useCallback(
     (title: string, message?: string) => {
-      showNotice({
-        type: "error",
+      setLoginError({
         title,
         message,
+        details: "If you are running the generated dist server locally, start it with the local start command so Auth.js uses localhost instead of the server bind address.",
       })
     },
-    [showNotice],
+    [],
   )
 
   useEffect(() => {
@@ -95,7 +94,7 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    clearNotice()
+    setLoginError(null)
 
     try {
       const result = await signIn("credentials", {
@@ -163,27 +162,40 @@ function LoginForm() {
               Sign in to continue to UseClevr
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="mb-5 grid gap-3">
+            <CardContent>
+            {loginError && (
+              <div className="mb-5 rounded-lg border border-red-500/40 bg-red-50 p-4 text-red-900 dark:bg-red-950/40 dark:text-red-100">
+                <div className="flex gap-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-sm font-semibold">{loginError.title}</p>
+                    {loginError.message && <p className="text-sm opacity-90">{loginError.message}</p>}
+                    {loginError.details && (
+                      <details className="text-xs opacity-90">
+                        <summary className="cursor-pointer font-medium">Details</summary>
+                        <p className="mt-2 leading-relaxed">{loginError.details}</p>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-5 grid gap-2">
               {loginPresets.map((preset) => (
                 <button
                   key={preset.email}
                   type="button"
                   onClick={() => fillCredentials(preset)}
-                  className="w-full rounded-md border border-primary/30 bg-primary/10 p-4 text-left text-sm transition hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="w-full rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-left text-sm transition hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <div className="flex items-start gap-3">
-                    <Rocket className={`mt-0.5 h-4 w-4 flex-shrink-0 ${preset.iconClassName}`} />
-                    <div className="min-w-0 space-y-1">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Rocket className={`h-4 w-4 flex-shrink-0 ${preset.iconClassName}`} />
+                    <div className="min-w-0">
                       <p className="font-semibold text-foreground">{preset.label}</p>
-                      <div className="grid gap-1 text-sm">
-                        <p className="break-all text-muted-foreground">
-                          Email: <span className="font-medium text-foreground">{preset.email}</span>
-                        </p>
-                        <p className="text-muted-foreground">
-                          Password: <span className="font-medium text-foreground">{preset.password}</span>
-                        </p>
-                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {preset.email} / {preset.password}
+                      </p>
                     </div>
                   </div>
                 </button>
@@ -299,10 +311,18 @@ function LoginForm() {
       </main>
 
       <footer className="border-t border-border/40 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-12 items-center justify-center px-4 text-sm text-muted-foreground">
+        <div className="container mx-auto flex min-h-12 flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-3 text-sm text-muted-foreground">
           <span>Secure, private data analysis</span>
           <span className="mx-2">•</span>
           <span>Enterprise-ready</span>
+          <span className="mx-2">•</span>
+          <Link href="/terms" className="hover:text-foreground">
+            Terms
+          </Link>
+          <span className="mx-2">•</span>
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
         </div>
       </footer>
     </div>

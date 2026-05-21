@@ -1,5 +1,6 @@
 "use client"
 
+import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Card } from "@/components/ui/card"
 import { Calendar, Clock, CreditCard, Link2, User, Users, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -10,7 +11,7 @@ interface CustomerRow {
   email: string | null
   plan: string
   planStatus: string
-  signupDate: string
+  signupDate: string | null
   lastLogin: string | null
   referralSource: string | null
   loginCount: number
@@ -50,8 +51,17 @@ export default function AdminCustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Totals */}
+    <div className="min-h-screen bg-background">
+      <AppPageHeader
+        title="Customers"
+        description="Review registered customers, static demo accounts, plans, and account activity."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Customers" },
+        ]}
+      />
+
+      <main className="space-y-6 px-5 py-5">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
           { label: "Total customers", value: totals.customers, icon: Users, color: "text-cyan-800 dark:text-cyan-100", bg: "bg-cyan-500/10" },
@@ -139,6 +149,7 @@ export default function AdminCustomersPage() {
           </div>
         )}
       </Card>
+      </main>
     </div>
   )
 }

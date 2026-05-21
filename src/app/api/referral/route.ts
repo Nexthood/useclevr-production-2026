@@ -5,13 +5,18 @@ import {
     normalizeReferralCode,
     referralCookieName
 } from "@/lib/referrals/referral-store";
+import { auth } from "@/lib/auth";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const session = await auth()
   const cookieCode = normalizeReferralCode(request.cookies.get(referralCookieName)?.value)
   const code = cookieCode || createReferralCode()
-  const stats = await getReferralStats(code)
+  const stats = await getReferralStats(code, {
+    userId: session?.user?.id,
+    email: session?.user?.email,
+  })
 
   const response = NextResponse.json({
     code,

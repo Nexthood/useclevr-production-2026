@@ -1,5 +1,6 @@
 "use client"
 
+import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { debugLog } from "@/lib/utils/debug"
@@ -97,14 +98,17 @@ export default function ReferralCenter() {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <main>
+    <div className="min-h-screen bg-background">
+      <AppPageHeader
+        title="Referral Center"
+        description="Invite others and earn rewards."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Referral" },
+        ]}
+      />
+      <main className="px-5 py-5">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Referral Center</h1>
-            <p className="text-muted-foreground mt-1">Invite others and earn rewards</p>
-          </div>
 
           {/* Main Card - Referral Link */}
           <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border-purple-500/20">

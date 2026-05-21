@@ -10,6 +10,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Referral code is required." }, { status: 400 })
   }
 
-  const stats = await recordReferralEvent(code, "signup")
-  return NextResponse.json({ success: true, stats })
+  try {
+    const stats = await recordReferralEvent(code, "signup", {
+      eventKey: body.eventKey || body.signupId || body.userId || body.email,
+      referredUserId: body.userId,
+      referredEmail: body.email,
+    })
+    return NextResponse.json({ success: true, stats })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not record referral signup." },
+      { status: 400 },
+    )
+  }
 }

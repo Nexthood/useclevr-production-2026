@@ -1,9 +1,7 @@
 "use client"
 
 import {
-    Check, FileSpreadsheet, FileText, Settings,
-    ShieldCheck,
-    Sparkles
+    Check, FileSpreadsheet, FileText, ShieldCheck, Sparkles
 } from "lucide-react"
 import * as React from "react"
 
@@ -14,11 +12,9 @@ interface DataProcessingFlowProps {
 }
 
 const steps = [
-  { id: 1, label: "Upload", icon: FileSpreadsheet },
-  { id: 2, label: "Understand", icon: Settings },
-  { id: 3, label: "Analyze", icon: ShieldCheck },
-  { id: 4, label: "Explain", icon: Sparkles },
-  { id: 5, label: "Export", icon: FileText },
+  { id: 1, label: "Upload", sublabel: "CSV + columns", icon: FileSpreadsheet },
+  { id: 2, label: "Analyze", sublabel: "verified metrics", icon: ShieldCheck },
+  { id: 3, label: "Report", sublabel: "answers + export", icon: FileText },
 ]
 
 const sqlSnippets = [
@@ -50,8 +46,6 @@ export function DataProcessingFlow({ currentStep, showSqlSnippet = true, variant
         setTimeout(() => setAutoPlayStep(1), 500),
         setTimeout(() => setAutoPlayStep(2), 1100),
         setTimeout(() => setAutoPlayStep(3), 1700),
-        setTimeout(() => setAutoPlayStep(4), 2300),
-        setTimeout(() => setAutoPlayStep(5), 2900),
       ]
       return () => timers.forEach(clearTimeout)
     }
@@ -89,12 +83,12 @@ export function DataProcessingFlow({ currentStep, showSqlSnippet = true, variant
   const iconSize = isHero ? "w-4 h-4 md:w-4 md:h-4" : "w-5 h-5 md:w-6 md:h-6"
   const labelSize = isHero ? "text-xs" : "text-xs"
   const gap = isHero ? "gap-1 md:gap-0.5" : "gap-2 md:gap-1"
-  const connectorWidth = isHero ? "w-4 md:w-5" : "w-8 md:w-8"
+  const connectorWidth = isHero ? "w-8 md:w-12" : "w-8 md:w-8"
 
   return (
     <div className="flex flex-col items-center justify-center w-full">
       {/* Main flow */}
-      <div className={`flex flex-col md:flex-row items-center justify-center ${gap}`}>
+      <div className={`flex flex-col sm:flex-row items-center justify-center ${gap}`}>
         {steps.map((step, index) => {
           const Icon = step.icon
           const active = isActive(step.id)
@@ -154,13 +148,16 @@ export function DataProcessingFlow({ currentStep, showSqlSnippet = true, variant
                 >
                   {step.label}
                 </span>
+                {isHero && (
+                  <span className="mt-0.5 text-[11px] text-muted-foreground">{step.sublabel}</span>
+                )}
               </div>
 
               {/* Connector line with soft light wave - hero mode */}
               {index < steps.length - 1 && (
                 <div 
                   className={`
-                    hidden md:block ${connectorWidth} h-0.5 mx-0.5 md:mx-1 transition-all duration-300 relative overflow-hidden
+                    hidden sm:block ${connectorWidth} h-0.5 mx-0.5 md:mx-1 transition-all duration-300 relative overflow-hidden
                     ${completed ? "bg-primary" : "bg-border"}
                   `}
                 >
@@ -175,7 +172,7 @@ export function DataProcessingFlow({ currentStep, showSqlSnippet = true, variant
               {index < steps.length - 1 && (
                 <div 
                   className={`
-                    md:hidden w-0.5 h-3 md:h-4 transition-all duration-300 relative overflow-hidden
+                    sm:hidden w-0.5 h-3 md:h-4 transition-all duration-300 relative overflow-hidden
                     ${completed ? "bg-primary" : "bg-border"}
                   `}
                 >
@@ -199,7 +196,7 @@ export function DataProcessingFlow({ currentStep, showSqlSnippet = true, variant
           `}
         >
           <span className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-primary" />
+            <Sparkles className="w-4 h-4 text-primary" />
             Running verified SQL computation...
           </span>
         </div>

@@ -276,10 +276,18 @@ function SignupForm() {
         </main>
 
         <footer className="border-t border-border/40 bg-background/80 backdrop-blur-sm">
-          <div className="container mx-auto flex h-12 items-center justify-center px-4 text-sm text-muted-foreground">
+          <div className="container mx-auto flex min-h-12 flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-3 text-sm text-muted-foreground">
             <span>Secure, private data analysis</span>
             <span className="mx-2">•</span>
             <span>Enterprise-ready</span>
+            <span className="mx-2">•</span>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <span className="mx-2">•</span>
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
           </div>
         </footer>
       </div>

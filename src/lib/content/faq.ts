@@ -8,6 +8,7 @@
 export interface FaqItem {
   q: string
   a: string
+  tag?: string
 }
 
 export interface FaqCategory {
@@ -132,7 +133,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Which Hybrid AI mode should I pick?",
-        a: "Lite is recommended for everyday use on most devices. Standard adds cost-benefit analysis. Mega (~5 GB engine) is designed for business workstations and must be requested via support.",
+        a: "Lite is recommended for everyday use on most devices. Standard adds cost-benefit analysis. Mega is designed for business workstations and must be requested via support.",
       },
     ],
   },
@@ -170,7 +171,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "What is Hybrid AI Lite vs Mega?",
-        a: "Hybrid AI Lite (~2 GB) is the recommended option for everyday use on most devices. Hybrid AI MEGA (~5 GB) is designed for business workstations with higher capacity requirements.",
+        a: "Hybrid AI Lite is the recommended option for everyday use on most devices. Hybrid AI MEGA is designed for business workstations with higher capacity requirements.",
       },
       {
         q: "Can I self-host UseClevr?",
@@ -181,7 +182,20 @@ export const allFaqCategories: FaqCategory[] = [
 ]
 
 // ── Flat list for the homepage accordion (first N + link to full page) ─────────
-export function getHomepageFaqs(limit = 10): FaqItem[] {
+export function getHomepageFaqs(limit = 5): FaqItem[] {
   const all = allFaqCategories.flatMap((c) => c.items)
   return all.slice(0, limit)
+}
+
+export function getPricingFaqs(limit = 5): FaqItem[] {
+  const pricingCategories = new Set(["Plans & Billing", "AI & Analysis", "Technical"])
+  return allFaqCategories
+    .filter((category) => pricingCategories.has(category.category))
+    .flatMap((category) =>
+      category.items.map((item) => ({
+        ...item,
+        tag: category.category,
+      })),
+    )
+    .slice(0, limit)
 }

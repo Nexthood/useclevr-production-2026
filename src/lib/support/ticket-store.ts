@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
+import { getDb } from "@/lib/db"
+import { supportTickets } from "@/lib/db/schema"
+import { desc, eq } from "drizzle-orm"
 import path from "node:path"
 
 export type TicketStatus = "open" | "in_progress" | "resolved"
@@ -58,7 +61,44 @@ async function writeStore(store: TicketStoreFile) {
   await rename(tmpPath, STORE_PATH)
 }
 
+function toTicket(row: typeof supportTickets.$inferSelect): SupportTicket {
+  return {
+    id: row.id,
+    userId: row.userId,
+    userEmail: row.userEmail,
+    subject: row.subject,
+    message: row.message,
+    category: row.category,
+    priority: row.priority === "urgent" ? "urgent" : "normal",
+    status: normalizeStatus(row.status),
+    adminNote: row.adminNote,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
+  }
+}
+
+function getDbClient() {
+  try {
+    return getDb()
+  } catch {
+    return null
+  }
+}
+
 export async function listTickets(options: { userId?: string; includeAll?: boolean }) {
+  const db = getDbClient()
+  if (db) {
+    try {
+      const rows = options.includeAll
+        ? await db.select().from(supportTickets).orderBy(desc(supportTickets.updatedAt))
+        : await db.select().from(supportTickets).where(eq(supportTickets.userId, options.userId || "")).orderBy(desc(supportTickets.updatedAt))
+      return rows.map(toTicket)
+    } catch {
+      // Fall back to local file storage for local/offline development.
+    }
+  }
+
   const store = await readStore()
   return Object.values(store.tickets)
     .filter((ticket) => options.includeAll || ticket.userId === options.userId)
@@ -81,8 +121,9 @@ export async function createTicket(input: {
   }
 
   const now = new Date().toISOString()
+  const id = `ticket-${randomUUID().replace(/-/g, "").slice(0, 12)}`
   const ticket: SupportTicket = {
-    id: `ticket-${randomUUID().replace(/-/g, "").slice(0, 12)}`,
+    id,
     userId: input.userId,
     userEmail: input.userEmail,
     subject,
@@ -94,6 +135,29 @@ export async function createTicket(input: {
     createdAt: now,
     updatedAt: now,
     resolvedAt: null,
+  }
+
+  const db = getDbClient()
+  if (db) {
+    try {
+      const [row] = await db.insert(supportTickets).values({
+        id,
+        userId: ticket.userId,
+        userEmail: ticket.userEmail,
+        subject,
+        message,
+        category: ticket.category,
+        priority: ticket.priority,
+        status: ticket.status,
+        adminNote: ticket.adminNote,
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+        resolvedAt: null,
+      }).returning()
+      return toTicket(row)
+    } catch {
+      // Fall back to local file storage for local/offline development.
+    }
   }
 
   const store = await readStore()
@@ -110,6 +174,41 @@ export async function updateTicket(input: {
   isSuperAdmin: boolean
 }) {
   const id = cleanText(input.id)
+  const db = getDbClient()
+  if (db) {
+    try {
+      const [existing] = await db.select().from(supportTickets).where(eq(supportTickets.id, id)).limit(1)
+
+      if (!existing) {
+        throw new Error("Ticket not found.")
+      }
+
+      if (!input.isSuperAdmin && existing.userId !== input.userId) {
+        throw new Error("You do not have access to this ticket.")
+      }
+
+      const nextStatus = input.isSuperAdmin
+        ? normalizeStatus(input.status)
+        : input.status === "resolved"
+          ? "resolved"
+          : existing.status
+      const now = new Date()
+      const [row] = await db.update(supportTickets).set({
+        status: nextStatus,
+        adminNote: input.isSuperAdmin ? cleanText(input.adminNote) : existing.adminNote,
+        resolvedAt: nextStatus === "resolved" ? now : null,
+        updatedAt: now,
+      }).where(eq(supportTickets.id, id)).returning()
+
+      return toTicket(row)
+    } catch (error) {
+      if (error instanceof Error && /not found|access/.test(error.message.toLowerCase())) {
+        throw error
+      }
+      // Fall back to local file storage for local/offline development.
+    }
+  }
+
   const store = await readStore()
   const ticket = store.tickets[id]
 

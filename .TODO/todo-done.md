@@ -34,3 +34,31 @@
   from the processor result and no longer mistakes `country` for the quantity column.
 - **Deployment strategy notes** — GitHub workflow docs now compare the current dist branch flow with
   Railway source builds, Docker image deployment, and GitHub Actions artifact options.
+- **Public auth and contact polish** — Login errors stay inline, public contact requests can be
+  submitted without sign-in, and legal links are visible from public/auth page footers.
+- **Generated runtime target split** — Local generated-output starts use localhost auth defaults,
+  while Railway and Vercel have explicit named server targets.
+- **Vercel deployment settings** — Vercel now has a source-branch deploy template synced to root
+  `vercel.json`, while Railway remains on generated `dist:/dist` output.
+- **Operational persistence** — Support tickets, referral stats, referral events, and billing
+  settings now use database-backed storage when a database is configured, with local file fallback.
+- **Referral reward guards** — Referral signup and paid events now support idempotency keys and block
+  self-referral rewards.
+- **Production readiness checklist** — Deployment, account, access, data, AI, and billing operations
+  checks are documented in one release checklist.
+- **CSV edge-case tests** — Empty uploads, malformed rows, and mixed currency/time-zone samples now
+  run in the project test suite.
+- **Dist root config guard** — The publish workflow now fails if Railway config is missing from
+  `/dist` or appears at the deployment branch root.
+- **Dist publish source guard** — The publish workflow now validates types, generated config, and
+  lint before building deployment output.
+- **Waitlist fallback** — Landing page product-update signups now succeed locally even when the
+  production database is not available.
+- **Shared page headers** — Public legal, FAQ, pricing, contact, and security pages now use one
+  shared title section.
+- **Dashboard help access** — Support tickets, dashboard FAQ, and admin FAQ now live under the
+  topbar Help menu, with a responsive sidebar reserved for primary navigation.
+- **Support chat and ticket forms** — Dashboard users can search FAQ answers from a floating help
+  chat, send fallback support requests, and open tickets directly from the FAQ page.
+- **Admin management tables** — Customer level and discount rule management now use horizontal row
+  inputs for faster scanning and editing.

@@ -2,11 +2,12 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "pnpm install --frozen-lockfile --prod --config.dangerouslyAllowAllBuilds=true",
+    "buildCommand": "pnpm install --frozen-lockfile --prod --no-optional --config.dangerouslyAllowAllBuilds=true",
     "NODE_VERSION": "26.1.0"
   },
   "deploy": {
-    "startCommand": "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node .next/standalone/server.js",
+    "preDeployCommand": "pnpm run railway:predeploy",
+    "startCommand": "pnpm run start:railway",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",

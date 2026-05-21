@@ -311,3 +311,71 @@ export const workspaceInvitations = pgTable(
     tokenIdx: uniqueIndex('WorkspaceInvitation_token_key').on(table.token),
   })
 )
+
+// ============================================================================
+// OPERATIONAL TABLES - Support, referrals, and persisted app settings
+// ============================================================================
+
+export const supportTickets = pgTable(
+  'SupportTicket',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull(),
+    userEmail: varchar('userEmail', { length: 255 }).notNull(),
+    subject: text('subject').notNull(),
+    message: text('message').notNull(),
+    category: varchar('category', { length: 80 }).default('General').notNull(),
+    priority: varchar('priority', { length: 20 }).default('normal').notNull(),
+    status: varchar('status', { length: 30 }).default('open').notNull(),
+    adminNote: text('adminNote').default('').notNull(),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+    resolvedAt: timestamp('resolvedAt'),
+  }
+)
+
+export const referralStats = pgTable(
+  'ReferralStats',
+  {
+    code: varchar('code', { length: 32 }).primaryKey(),
+    ownerUserId: text('ownerUserId'),
+    ownerEmail: varchar('ownerEmail', { length: 255 }),
+    clicks: integer('clicks').default(0).notNull(),
+    signups: integer('signups').default(0).notNull(),
+    paidReferrals: integer('paidReferrals').default(0).notNull(),
+    creditsEarned: integer('creditsEarned').default(0).notNull(),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex('ReferralStats_code_key').on(table.code),
+  })
+)
+
+export const referralEvents = pgTable(
+  'ReferralEvent',
+  {
+    id: text('id').primaryKey(),
+    code: varchar('code', { length: 32 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(),
+    eventKey: varchar('eventKey', { length: 255 }).notNull(),
+    referredUserId: text('referredUserId'),
+    referredEmail: varchar('referredEmail', { length: 255 }),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    eventKeyIdx: uniqueIndex('ReferralEvent_eventKey_key').on(table.eventKey),
+  })
+)
+
+export const appSettings = pgTable(
+  'AppSetting',
+  {
+    key: varchar('key', { length: 120 }).primaryKey(),
+    value: jsonb('value').notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    keyIdx: uniqueIndex('AppSetting_key_key').on(table.key),
+  })
+)

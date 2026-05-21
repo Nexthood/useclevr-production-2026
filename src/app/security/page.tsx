@@ -1,5 +1,6 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicPageHeader } from "@/components/layout/public-page-header"
 import { Card } from "@/components/ui/card"
 import { Database, Lock, Shield, Sparkles } from "lucide-react"
 
@@ -14,19 +15,13 @@ export default function SecurityPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 md:px-6 py-20">
+        <PublicPageHeader
+          eyebrow={<><Shield className="h-4 w-4" /><span>Security & Compliance</span></>}
+          title="Built for enterprise trust"
+          description="Your data security and privacy are non-negotiable. We maintain the highest standards."
+        />
+        <section className="container mx-auto px-4 md:px-6 py-12">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/50 bg-primary/10 text-sm text-primary mb-4">
-                <Shield className="h-4 w-4" />
-                <span>Security & Compliance</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Built for enterprise trust</h1>
-              <p className="text-lg text-muted-foreground">
-                Your data security and privacy are non-negotiable. We maintain the highest standards.
-              </p>
-            </div>
-
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               <Card className="p-8 bg-card border-border/50">
                 <div className="flex items-start gap-4">

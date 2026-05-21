@@ -4,12 +4,16 @@ This folder stores server-host templates that GitHub Actions copies into generat
 It is not the GitHub Actions workflow folder; workflow files live in `.github/workflows/`.
 It also stays outside `src/` so application code remains free of host-specific configuration.
 
-Each subfolder is one server destination. The current production target is Railway.
+Each subfolder is one server destination. Current planned production targets are Railway and Vercel.
 
 Railway branch: `dist`
 Railway service root: `/dist`
 Railway config file: `/dist/railway.json`
 Migration phase: Railway `preDeployCommand`
+
+Vercel branch: `main`
+Vercel project root: `/`
+Vercel config file: `/vercel.json`
 
 Railway needs this file in the deployed commit:
 
@@ -32,15 +36,16 @@ pnpm prod:build
 Template source:
 
 ```text
-server-settings/railway/railway.dist.json
+dist-root/server-settings/railway/railway.dist.json
+dist-root/server-settings/vercel/vercel.source.json
 ```
 
-If a second destination is added, keep one server subfolder per destination, for example:
+Keep one server subfolder per destination, for example:
 
 ```text
-server-settings/railway/railway.dist.json
-server-settings/docker/docker.dist.json
-server-settings/fly/fly.dist.json
+dist-root/server-settings/railway/railway.dist.json
+dist-root/server-settings/vercel/vercel.source.json
+dist-root/server-settings/docker/docker.dist.json
 ```
 
 Keep this folder focused on server-host templates. Server-specific helper scripts belong under
@@ -62,3 +67,6 @@ use the generated pnpm-backed scripts:
 pnpm run railway:predeploy
 pnpm start
 ```
+
+Vercel should use `/vercel.json` generated from the Vercel template. Do not hand-edit `vercel.json`;
+edit `dist-root/server-settings/vercel/vercel.source.json`, then run `pnpm deploy:vercel:sync`.

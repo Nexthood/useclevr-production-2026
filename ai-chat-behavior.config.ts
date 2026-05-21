@@ -33,20 +33,23 @@ export const aiChatBehaviorConfig = {
       "Gemini via AI SDK",
       "pnpm",
       "Railway",
+      "Vercel",
     ],
     productRules: [
       "Users upload business data, inspect dashboards, ask AI questions, and download reports.",
       "AI is an explanation layer over verified application data.",
       "Local AI features use same-origin API routes and the local agent contract.",
       "Railway deploys from the dist branch `/dist` folder. Never place railway.json at the dist branch root.",
+      "Vercel deploys the source app from main using vercel.json synced from dist-root/server-settings/vercel/.",
     ],
 
   distDeployment: {
     signpost: "Build → sync → deploy",
-    targetSettingsDir: "server-settings",
-    targetSettingsPattern: "One subfolder per deploy destination, for example server-settings/railway/.",
+    targetSettingsDir: "dist-root/server-settings",
+    targetSettingsPattern: "One subfolder per deploy destination, for example dist-root/server-settings/railway/.",
     targetSettingsPurpose: "Server-host templates copied into generated output, not GitHub workflow files or app source.",
     pipelineFile: "dist-root/server-settings/railway/railway.dist.json",
+    vercelPipelineFile: "dist-root/server-settings/vercel/vercel.source.json",
     distPackage: "dist/package.json",
     distRailway: "dist/railway.json",
     distPnpmWorkspace: "dist/pnpm-workspace.yaml",
@@ -55,13 +58,16 @@ export const aiChatBehaviorConfig = {
     syncScript: "scripts/server/railway/sync-config.cjs",
     validationScript: "scripts/server/railway/sync-config.cjs",
     buildGate: "pnpm validate:dist",
-    sourceOfTruth: "dist-root/server-settings/railway/railway.dist.json",
+    sourceOfTruth: "dist-root/server-settings/railway/railway.dist.json and dist-root/server-settings/vercel/vercel.source.json",
     packagingScript: "scripts/package-dist/create-dist.cjs",
     doNotEdit: [
       "dist/", // regenerated every build
       ".next/", // always regenerated
     ],
-    editForDeployTargetChanges: ["dist-root/server-settings/railway/railway.dist.json"],
+    editForDeployTargetChanges: [
+      "dist-root/server-settings/railway/railway.dist.json",
+      "dist-root/server-settings/vercel/vercel.source.json",
+    ],
     serverScriptPattern: "Server-specific scripts live under scripts/server/<host>/; local/general scripts live elsewhere in scripts/.",
     doNotRunFrom: [
       "dist/", // no parent package.json; only deploy here
@@ -202,6 +208,20 @@ export const aiChatBehaviorConfig = {
       "State what is missing, avoid guessing, and suggest the specific upload, column mapping, filter, or analysis step needed.",
   },
 
+  versioningRules: {
+    semVer: {
+      description: [
+        "Follow Semantic Versioning (SemVer) for all releases:",
+        "- PATCH (x.y.Z): Backward-compatible bug fixes",
+        "- MINOR (x.Y.z): Backward-compatible new features",
+        "- MAJOR (X.y.z): Breaking changes",
+        "- Explicit version bumps when requested via commit message or ticket",
+      ].join("\n"),
+      pattern: "Update version in CHANGELOG.md under ## [X.Y.Z] - YYYY-MM-DD header when releasing",
+      changelog: "Every release must document user-visible changes in CHANGELOG.md under appropriate section (Added, Changed, Fixed, Removed)",
+      requirements: "Update requirements.md with new product-facing requirements when features are added or significantly changed"
+    }
+  },
   responseRules: {
     structure: [
       "Answer the user's direct question first.",

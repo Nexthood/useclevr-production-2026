@@ -66,10 +66,39 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm dedupe
 
+      - name: Validate source before publishing
+        run: |
+          pnpm validate:types --loglevel warn
+          pnpm validate:dist --loglevel warn
+          pnpm lint --loglevel warn
+
       - name: Build production artifacts
         run: pnpm prod:build
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Smoke test generated server
+        run: |
+          PORT=8090 npm --prefix dist run start > /tmp/useclevr-dist-smoke.log 2>&1 &
+          pid=$!
+          trap 'kill $pid >/dev/null 2>&1 || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8090/api/health >/tmp/useclevr-dist-health.json; then
+              cat /tmp/useclevr-dist-health.json
+              exit 0
+            fi
+
+            if ! kill -0 "$pid" >/dev/null 2>&1; then
+              cat /tmp/useclevr-dist-smoke.log
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          cat /tmp/useclevr-dist-smoke.log
+          exit 1
 
       - name: Clean build output before publish
         run: |
@@ -187,7 +216,15 @@ jobs:
           EOF
           fi
 
-          rm -f railway.json
+          if [ -f "railway.json" ]; then
+            echo "Error: railway.json must not exist at the dist branch root."
+            exit 1
+          fi
+
+          if [ ! -f "dist/railway.json" ]; then
+            echo "Error: generated dist/railway.json is missing."
+            exit 1
+          fi
 
           echo "Large generated deployment files:"
           find dist -type f -size +45M -exec ls -lh {} \; || true

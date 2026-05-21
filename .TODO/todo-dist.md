@@ -28,9 +28,11 @@ These checks intentionally stay open until the next real merge. Local validation
 
 ## Migration Notes
 
-- Keep server-host templates in host-specific subfolders such as `server-settings/railway/`;
+- Keep server-host templates in host-specific subfolders such as `dist-root/server-settings/railway/`;
   if Railway, Vercel, or Docker targets diverge, keep one folder per destination.
 - Keep `scripts/package-dist/create-dist.cjs` as the only assembly point for generated output.
 - Keep `node_modules/` out of Git and rely on Railway/Railpack plus pnpm caching.
 - Keep pull request titles short and prefixed with `PR:` because the dist publish commit uses the PR
   title.
+- Keep local generated-output starts as the default `npm run start`, and reserve named commands such
+  as `npm run start:railway` and `npm run start:vercel` for server target parity testing.

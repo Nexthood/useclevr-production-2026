@@ -87,7 +87,7 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-14 px-10 text-base border-border hover:bg-accent/5 rounded-full bg-transparent"
+                  className="h-14 rounded-full border-border bg-transparent px-10 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
                 >
                   Schedule demo
                 </Button>
@@ -231,7 +231,7 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-14 px-10 text-base border-border/50 hover:bg-accent/5 bg-transparent rounded-full"
+                  className="h-14 rounded-full border-border/50 bg-transparent px-10 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
                 >
                   Contact sales
                 </Button>

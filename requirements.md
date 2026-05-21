@@ -16,6 +16,7 @@
   semantic matches so country values are not counted as quantities.
 - Hybrid AI Lite lets Pro-tier users pose crowd-level questions against their own data.
 - Hybrid AI MEGA lets Business-tier users run large-scale federated queries at scale.
+- Hybrid AI public plan copy explains plan access without exposing runtime download sizes.
 
 ### Downloads & Reports
 
@@ -44,11 +45,20 @@
 ### Support
 
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
+- Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
   and marking tickets resolved.
+- Support tickets, support notes, billing settings, and referral events persist in the database when
+  production database access is configured.
 - A built-in FAQ answers account, billing, dataset, report, credits, and Hybrid AI questions.
 - A protected operator FAQ covers support operations, payments, billing recovery, security,
   and incident handling for authorised platform staff only.
+- Dashboard users can search FAQ answers from a floating help chat, then send a support request
+  when no answer matches their question.
+- Dashboard FAQ includes an inline ticket form so users can open a support request without leaving
+  the FAQ page.
+- Product-update waitlist signup remains usable during local development even when production
+  database access is unavailable.
 
 ### Payment Provider Setup
 
@@ -61,6 +71,7 @@
 
 - Super-admins can configure how many successful referrals are needed to earn one analyst credit
   and can toggle referral credits on or off from the Credit Rules settings page.
+- Referral rewards are idempotent and do not reward self-referrals.
 - Referral rules, customer levels, and discount rules are all managed from the super-admin sidebar
   under dedicated pages for Credit Rules, Customers, Customer Levels, and Discount Rules.
 
@@ -68,6 +79,7 @@
 
 - Super-admins can view a full customer list with plan, signup date, last login, referral source,
   login count, and dataset count in a single admin page.
+- Super-admins always see built-in demo and super-admin accounts at the top of the customer list.
 - Totals cards show total customers, Pro / Business count, free tier count, and active-in-last-30-days
   count at a glance.
 
@@ -79,11 +91,14 @@
 - Super-admins can create, edit, enable, and disable discount rules covering free-plan discounts,
   percentage discounts, referral rewards, and stacking behaviour — all stored in the same
   billing settings object.
+- Super-admins edit customer levels and discount rules in horizontal table rows so related fields
+  stay visible while scanning.
 
 ### Hybrid AI
 
 - The hybrid AI popup uses the shared modal component so body scroll lock, Escape key handling,
   and backdrop behaviour are consistent with every other dialog.
+- The hybrid AI popup opens reliably from the dashboard topbar.
 - Free tier users see Pro and Business plan options inside the hybrid AI popup, guiding them to
   checkout with a single click.
 
@@ -97,8 +112,12 @@
   environment.
 - Production deployments use a generated deployment folder with its own runtime package,
   hosting config, and dependency build approvals.
+- Production deployments include a manifest with source commit, build timestamp, runtime version,
+  and healthcheck path.
 - Server-host settings are grouped by host so Railway and future secondary destinations can
   keep separate templates.
+- Vercel can deploy the source branch with its own synced host template while Railway continues to
+  deploy generated output.
 - Application source remains independent from hosting-specific files, so server targets can change
   without pushing deployment details into product code.
 - Production packaging scripts remain in tracked source paths that do not conflict with ignored
@@ -113,12 +132,18 @@
   so hosting configuration is read from the deployment folder, not the branch root.
 - Developers can run the generated production server locally with shared development environment
   values that apply across branch checkouts.
+- Local generated-output starts use localhost for authentication, while Railway and Vercel starts
+  use explicit server-target commands.
 - Database migrations run as part of the hosting platform pre-deploy phase so schema changes are
   applied in the target environment before the new web process starts.
 - Hosting pre-deploy and runtime commands use pnpm-backed generated scripts, and old dashboard-level
   npm command overrides are not part of the supported deployment path.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
+- Public pages include legal links in their bottom navigation so users can reach Terms and Privacy
+  from authentication and marketing screens.
+- Public pages outside the homepage share a consistent title section so navigation feels stable
+  across FAQ, pricing, contact, security, privacy, and terms.
 
 ### Reference Files
 
