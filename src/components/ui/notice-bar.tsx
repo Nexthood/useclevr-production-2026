@@ -2,7 +2,6 @@
 
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react"
 import * as React from "react"
-import { createPortal } from "react-dom"
 
 type NoticeType = "error" | "success" | "info"
 
@@ -61,13 +60,11 @@ const getFetchUrl = (input: Parameters<typeof window.fetch>[0]) => {
 
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
   const [notice, setNotice] = React.useState<Notice | null>(null)
-  const [isAppPath, setIsAppPath] = React.useState(false)
-  const [mounted, setMounted] = React.useState(false)
+  const [isMutedPath, setIsMutedPath] = React.useState(false)
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   React.useEffect(() => {
-    setMounted(true)
-    setIsAppPath(window.location.pathname.startsWith("/app"))
+    setIsMutedPath(window.location.pathname.startsWith("/login"))
   }, [])
 
   const clearNotice = React.useCallback(() => {
@@ -79,6 +76,8 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const showNotice = React.useCallback((input: NoticeInput) => {
+    if (isMutedPath) return
+
     if (timerRef.current) {
       clearTimeout(timerRef.current)
     }
@@ -93,7 +92,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     //   setNotice(null)
     //   timerRef.current = null
     // }, input.type === "error" ? 9000 : 5000)
-  }, [])
+  }, [isMutedPath])
 
   React.useEffect(() => {
     const handleNotice = (event: Event) => {
@@ -142,7 +141,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
         const requestUrl = getFetchUrl(args[0])
         const isAuthRequest = requestUrl.includes("/api/auth/")
 
-        if (!response.ok && !isAuthRequest) {
+        if (!response.ok && !isAuthRequest && !isMutedPath) {
           showNotice({
             type: "error",
             title: "Action failed.",
@@ -152,11 +151,13 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
 
         return response
       } catch (error) {
-        showNotice({
-          type: "error",
-          title: "Connection failed.",
-          message: "Check your connection and try again.",
-        })
+        if (!isMutedPath) {
+          showNotice({
+            type: "error",
+            title: "Connection failed.",
+            message: "Check your connection and try again.",
+          })
+        }
         throw error
       }
     }
@@ -164,16 +165,11 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.fetch = originalFetch
     }
-  }, [showNotice])
+  }, [isMutedPath, showNotice])
 
   const Icon = notice ? icons[notice.type] : Info
-  const noticeBar = notice ? (
-    <div
-      className={[
-        "fixed right-0 z-[120] flex justify-center pointer-events-none",
-        isAppPath ? "left-[220px] top-9" : "left-0 top-0",
-      ].join(" ")}
-    >
+  const noticeBar = notice && !isMutedPath ? (
+    <div className="relative z-[120] flex justify-center pointer-events-none">
       <div
         role={notice.type === "error" ? "alert" : "status"}
         className={[
@@ -202,8 +198,8 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <NoticeContext.Provider value={{ notice, showNotice, clearNotice }}>
+      {noticeBar}
       {children}
-      {mounted && noticeBar ? createPortal(noticeBar, document.body) : null}
     </NoticeContext.Provider>
   )
 }

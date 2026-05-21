@@ -53,6 +53,14 @@
       commit ids removed from normal dist commit titles.
 - [x] Updated developer docs, requirements, changelog, and agent guidance with the current deployment
       workflow.
+- [x] Split generated production start commands by target so local starts use localhost auth defaults
+      and Railway keeps its `0.0.0.0` host binding.
+- [x] Added Vercel source-branch deploy settings alongside Railway generated-output settings.
+- [x] Aligned deploy scripts and docs with the current `dist-root/server-settings/` template path.
+- [x] Added a dist publish guard that fails if `railway.json` is missing from `/dist` or appears at
+      the deployment branch root.
+- [x] Added a source-cleanliness guard to the dist publish job so type validation, dist config
+      validation, and lint must pass before generated output is published.
 
 ## Result
 

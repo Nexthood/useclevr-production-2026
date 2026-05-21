@@ -5,34 +5,34 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   validate-source-and-build:
     name: Validate source and production build
     runs-on: ubuntu-latest
     steps:
-      - name: Get head commit message (for PR) or use push commit message
+      - name: Read commit message
         id: commit-message
-        if: github.event_name == 'pull_request'
         uses: actions/github-script@v8
         with:
           script: |
-            const commit = await github.rest.repos.getCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.payload.pull_request.head.sha,
-            });
-            return commit.data.commit.message;
-      - name: Set commit message for push
-        if: github.event_name == 'push'
-        run: echo "message=${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
-        id: commit-message
+            if (context.eventName === 'pull_request') {
+              const commit = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.payload.pull_request.head.sha,
+              });
+              core.setOutput('message', commit.data.commit.message);
+              return;
+            }
+
+            core.setOutput('message', context.payload.head_commit?.message || '');
+
       - name: Check if we should skip
         id: skip-check
         run: |
           if [[ "${{ steps.commit-message.outputs.message }}" == *"[skip ci]"* ]]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-          elif [[ "${{ steps.commit-message.outputs.message }}" == *"Merge pull request"* ]]; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - name: Get head commit message (for PR)
+      - name: Read commit message
         id: commit-message
         uses: actions/github-script@v8
         with:
@@ -89,7 +89,7 @@ jobs:
               repo: context.repo.repo,
               ref: context.payload.pull_request.head.sha,
             });
-            return commit.data.commit.message;
+            core.setOutput('message', commit.data.commit.message);
       - name: Check if we should skip
         id: skip-check
         run: |

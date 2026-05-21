@@ -14,7 +14,7 @@ export default function TermsPage() {
       <main className="flex-1">
         <section className="container mx-auto px-4 md:px-6 py-20">
           <div className="max-w-3xl mx-auto prose prose-neutral dark:prose-invert">
-            <h1>Terms of Service</h1>
+            <h1 className="text-3xl font-semibold text-foreground">Terms of Service</h1>
             <p className="text-muted-foreground">Last updated: April 13, 2026</p>
 
             <h2>1. Overview</h2>

@@ -1,11 +1,21 @@
-# UseClevr Deployment Configs
+# UseClevr Deployment Branch Root
 
-This folder contains version-controlled files that are copied to the dist branch root during deployment.
+This folder contains version-controlled files and server-host templates used when publishing the
+generated `dist` branch.
 
-Files:
-- .gitignore: Ignore patterns for deployment artifacts
-- README.md: This file
-- railway.json: Railway deployment configuration
+Root files such as `.gitignore` and `README.md` may be copied to the deployment branch root.
+Runtime hosting config must live inside the generated `/dist` folder.
 
-These files are synced to the dist branch by the branch-maintenance.yml workflow.
-# test
+Railway source-of-truth:
+
+```text
+dist-root/server-settings/railway/railway.dist.json
+```
+
+Generated Railway config:
+
+```text
+dist/railway.json
+```
+
+Do not place `railway.json` at the deployment branch root.

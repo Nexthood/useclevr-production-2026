@@ -8,7 +8,8 @@ const nextStaticDir = path.join(rootDir, ".next", "static");
 const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
-const distRailwayTemplate = path.join(rootDir, "server-settings", "railway", "railway.dist.json");
+const runtimeScriptsDir = path.join(rootDir, "scripts", "runtime");
+const distRailwayTemplate = path.join(rootDir, "dist-root", "server-settings", "railway", "railway.dist.json");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -67,6 +68,9 @@ if (fs.existsSync(dbSchemaDir)) {
 }
 fs.cpSync(path.join(rootDir, "drizzle.config.ts"), path.join(distDir, "drizzle.config.ts"));
 
+// Copy runtime start helpers used by local, Railway, and future server targets.
+copyDir(runtimeScriptsDir, path.join(distDir, "scripts", "runtime"));
+
 // Copy assets to dist root
 copyDir(srcAssetsDir, path.join(distDir, "assets"));
 
@@ -99,6 +103,19 @@ fs.writeFileSync(
   ].join("\n"),
 );
 
+fs.writeFileSync(
+  path.join(distDir, "deployment-manifest.json"),
+  `${JSON.stringify({
+    sourceCommit: process.env.GITHUB_SHA || process.env.SOURCE_COMMIT || "local",
+    sourceBranch: process.env.GITHUB_REF_NAME || process.env.SOURCE_BRANCH || "local",
+    buildTimestamp: new Date().toISOString(),
+    nodeVersion: process.version,
+    healthcheckPath: "/api/health",
+    railwayRoot: "/dist",
+    vercelSourceBranch: "main",
+  }, null, 2)}\n`,
+);
+
 // Write package.json and copy CI deploy template to dist root for hosts
 // configured to deploy `dist` as the project root.
 const rootDistPackage = {
@@ -107,8 +124,13 @@ const rootDistPackage = {
   private: true,
   type: "module",
   scripts: {
-    start:
-      "AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node .next/standalone/server.js",
+    start: "npm run start:local",
+    "start:local": "USECLEVR_SERVER_TARGET=local node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
+    "start:railway": "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
+    "start:vercel": "USECLEVR_SERVER_TARGET=vercel node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
+    "railway:predeploy": "pnpm exec drizzle-kit push",
+    "db:push": "pnpm exec drizzle-kit push",
+    "db:migrate": "pnpm exec drizzle-kit migrate",
   },
   dependencies: rootPkg.dependencies,
   devDependencies: {},

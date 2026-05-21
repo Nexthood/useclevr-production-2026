@@ -3,7 +3,7 @@
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { Brain, Cloud, Sparkles, WifiOff } from "lucide-react"
+import { Brain, Cloud, Menu, Sparkles, WifiOff, X } from "lucide-react"
 import { getSession } from "next-auth/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -13,6 +13,7 @@ export function PublicHeader() {
   const [showHybridAIPopover, setShowHybridAIPopover] = useState(false)
   const [showModePopover, setShowModePopover] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -35,15 +36,15 @@ export function PublicHeader() {
   }, [])
 
   return (
-    <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-      <div className="flex h-24 w-full items-center justify-between px-4 md:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-20 w-full items-center justify-between gap-3 px-4 md:px-6 lg:px-8">
         {/* Left - Logo */}
-        <Link href="/" className="flex h-20 items-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md">
-          <Logo className="h-16 w-auto" />
+        <Link href="/" className="flex h-16 shrink-0 items-center rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+          <Logo className="h-12 w-auto md:h-14" />
         </Link>
         
         {/* Center - Navigation */}
-        <nav className="hidden md:flex items-center gap-4 ml-8">
+        <nav className="hidden lg:flex items-center gap-4 ml-8">
           {/* Hybrid AI - with popover */}
           <div className="relative">
             <button 
@@ -167,7 +168,7 @@ export function PublicHeader() {
 
           <ThemeToggle />
           
-          <div className="flex items-center gap-1 ml-1">
+          <div className="hidden items-center gap-1 ml-1 lg:flex">
             {isLoggedIn ? (
               <Link href="/app">
                 <Button size="sm">Dashboard</Button>
@@ -185,8 +186,70 @@ export function PublicHeader() {
               </>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-foreground transition hover:bg-muted lg:hidden"
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+      {mobileOpen && (
+        <div className="absolute left-0 right-0 top-20 z-50 border-b border-border bg-background shadow-xl lg:hidden">
+          <nav className="container mx-auto grid gap-2 px-4 py-5">
+            <Link
+              href="/pricing"
+              className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+              onClick={() => setMobileOpen(false)}
+            >
+              Plans
+            </Link>
+            <Link
+              href="/affiliate"
+              className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+              onClick={() => setMobileOpen(false)}
+            >
+              Affiliate
+            </Link>
+            <Link
+              href="/contact"
+              className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+              onClick={() => setMobileOpen(false)}
+            >
+              Book demo
+            </Link>
+            <Link
+              href="/faq"
+              className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+              onClick={() => setMobileOpen(false)}
+            >
+              FAQ
+            </Link>
+            <div className="mt-3 grid gap-2 border-t border-border pt-4">
+              {isLoggedIn ? (
+                <Link href="/app" onClick={() => setMobileOpen(false)}>
+                  <Button className="w-full">Dashboard</Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" className="w-full bg-transparent">
+                      Sign in
+                    </Button>
+                  </Link>
+                  <Link href="/signup" onClick={() => setMobileOpen(false)}>
+                    <Button className="w-full">Get Started</Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   )
 }

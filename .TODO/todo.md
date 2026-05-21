@@ -6,6 +6,17 @@
 
 ## In Progress 🔄
 
-- Production risk items: tickets to DB migration, referral idempotency, self-referral / abuse blocking, payment-provider event reconciliation, checkout edge cases (abandonment / proration / refunds / expired cards)
+No active leading-edge items.
+
+## Completed ✅
+
+- Public login and notice behavior now keeps auth errors inline on `/login` and prevents global notices
+  from overlaying page layouts.
+- Contact page now accepts demo, sales, and support requests from public visitors.
+- Generated production starts now separate local, Railway, and Vercel server targets.
+- Public marketing/auth pages now expose Terms and Privacy access consistently.
+- Production risk items now have database-backed operational storage, referral idempotency and
+  self-referral guards, deployment smoke checks, edge-case data tests, and a production readiness
+  checklist. Checkout-specific work moved to `.TODO/todo-future.md`.
 
 ## Blocked 🚧

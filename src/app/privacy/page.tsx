@@ -1,9 +1,17 @@
-"use client";
+import { PublicFooter } from "@/components/layout/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
+
+export const metadata = {
+  title: "Privacy Policy - UseClevr",
+  description: "Privacy policy for UseClevr",
+}
 
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <div className="flex min-h-screen flex-col">
+      <PublicHeader />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
       <h1 className="text-3xl font-semibold">Privacy Policy</h1>
       <p className="mt-2 text-sm text-gray-500">Last updated: April 13, 2026</p>
 
@@ -244,6 +252,8 @@ export default function PrivacyPolicyPage() {
           </a>
         </p>
       </section>
-    </main>
+      </main>
+      <PublicFooter />
+    </div>
   );
 }

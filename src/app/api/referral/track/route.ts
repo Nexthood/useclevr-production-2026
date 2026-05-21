@@ -10,6 +10,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Referral code is required." }, { status: 400 })
   }
 
-  const stats = await recordReferralEvent(code, "click")
+  const stats = await recordReferralEvent(code, "click", {
+    eventKey: body.eventKey,
+  })
   return NextResponse.json({ success: true, stats })
 }

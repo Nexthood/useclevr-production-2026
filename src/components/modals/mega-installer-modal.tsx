@@ -37,8 +37,8 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
   const [activated, setActivated] = useState<boolean>(false)
 
   const tierOptions = [
-    { id: 'lite', name: 'Hybrid AI Lite', description: 'Fast setup for everyday private analysis.', size: '~2GB', badge: 'Recommended', enabled: true },
-    { id: 'mega', name: 'Hybrid AI MEGA', description: 'Higher-capacity setup for business workstations.', size: '~5GB', badge: 'Business', enabled: true },
+    { id: 'lite', name: 'Hybrid AI Lite', description: 'Fast setup for everyday private analysis.', size: 'Pro', badge: 'Recommended', enabled: true },
+    { id: 'mega', name: 'Hybrid AI MEGA', description: 'Higher-capacity setup for business workstations.', size: 'Business', badge: 'Business', enabled: true },
   ] satisfies Array<{ id: TierId; name: string; description: string; size: string; badge: string; enabled: boolean }>
   const visibleTierOptions = tierOptions.filter((tier) => allowedTiers.includes(tier.id))
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -391,8 +391,8 @@ export function MegaInstallerModal({ open, onOpenChange, preselectTier, allowedT
           <p className="text-sm text-muted-foreground mb-6">
             {selectedTier === 'lite' ? "Fast setup for everyday private analysis." : selectedTier === 'mega' ? "Higher-capacity setup for business workstations." : "Download and install Hybrid AI."}
             <br />
-            {selectedTier === 'lite' && "~2GB download • Estimated 3-5 minutes"}
-            {selectedTier === 'mega' && "~5GB download • Estimated 8-15 minutes"}
+            {selectedTier === 'lite' && "Recommended for everyday private analysis"}
+            {selectedTier === 'mega' && "Recommended for business workstations"}
           </p>
           {(state === 'downloading' || state === 'paused' || state === 'resuming') && (
             <div className="mb-6 space-y-3">

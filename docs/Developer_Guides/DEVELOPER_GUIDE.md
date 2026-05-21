@@ -17,6 +17,7 @@ pnpm dev
 | Node.js 26.x | Local development, CI, and Railway runtime | No | Use the version declared by the project. |
 | pnpm 11.1.2 or newer | Dependency install and project scripts | No | Enable through Corepack or install locally. |
 | Railway | Production hosting from the `dist` branch `/dist` folder | Yes | Holds deployment settings and runtime environment variables. |
+| Vercel | Source-branch production or preview hosting from `main` | Yes | Uses root `vercel.json` synced from the Vercel server-settings template. |
 | Neon PostgreSQL | Application database | Yes | Required for persisted app data and Drizzle schema operations. |
 | Gemini API | Cloud AI features through the AI SDK | Yes | Requires a Google AI Studio or Google Cloud account and API key. |
 | Auth.js / NextAuth | Authentication runtime | No | Requires local secrets, but no separate hosted account. |
@@ -30,6 +31,7 @@ Required service accounts for production:
 
 - GitHub
 - Railway
+- Vercel, if deploying the source branch there
 - Neon PostgreSQL
 - Gemini API provider
 
@@ -145,7 +147,7 @@ All commands are run from `pnpm`.
 | `pnpm validate`         | Types + dist check + release check |
 | `pnpm validate:types`   | `tsc --noEmit`                     |
 | `pnpm validate:build`   | Full Next.js build                 |
-| `pnpm validate:dist`    | Railway config sync check          |
+| `pnpm validate:dist`    | Railway and Vercel config sync check |
 | `pnpm validate:release` | Release checklist script           |
 
 ### Lint & Format
@@ -183,6 +185,7 @@ All commands are run from `pnpm`.
 | ----------------- | ---------------------------------- |
 | `pnpm ci:validate` | Types + dist check + lint + tests + production build |
 | `pnpm deploy:railway:sync` | Sync Railway deploy-target config |
+| `pnpm deploy:vercel:sync`  | Sync Vercel source-target config |
 | `pnpm ci:railway`          | Compatibility alias for Railway sync |
 
 ### Audit & Dependencies
@@ -371,11 +374,12 @@ pnpm prod:start
 
 - Deploy root: `dist/`
 - Do not commit generated `dist/` output from source branches
-- Template: `server-settings/railway/railway.dist.json`
-- Local Railway parity test: switch to the `dist` branch, then run `cd dist && pnpm install && PORT=8080 pnpm start`
+- Template: `dist-root/server-settings/railway/railway.dist.json`
+- Vercel template: `dist-root/server-settings/vercel/vercel.source.json`
+- Local runtime parity test: switch to the `dist` branch, then run `cd dist && pnpm install && npm run start`
 - Shared local env: put common development secrets in `../.env.local`; checkout-local env files can
   override those values.
-- `server-settings/` contains one subfolder per server host; GitHub Actions workflow files stay
+- `dist-root/server-settings/` contains one subfolder per server host; GitHub Actions workflow files stay
   in `.github/workflows/`.
 
 ### Railway Environment
@@ -405,7 +409,7 @@ UPLOAD_PROVIDER=
 - Start command binds to `0.0.0.0`
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
-- Generated Railway config comes from `server-settings/railway/railway.dist.json`
+- Generated Railway config comes from `dist-root/server-settings/railway/railway.dist.json`
 - The `dist` branch root must not contain `railway.json`; Railway reads `/dist/railway.json`
 - Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
 - Database migrations stay in Railway pre-deploy while this is a single web-service deployment
@@ -414,6 +418,16 @@ UPLOAD_PROVIDER=
   `pnpm start`.
 - No secrets in Docker image or logs
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
+
+### Vercel Checklist
+
+- Vercel deploys from `main`, not from the generated `dist` branch.
+- Root `vercel.json` is synced from `dist-root/server-settings/vercel/vercel.source.json`.
+- Run `pnpm deploy:vercel:sync` after Vercel template edits.
+- Run `pnpm validate:dist` before opening the PR so Railway and Vercel deploy settings are both in sync.
+- Configure the same required production secrets in Vercel project environment variables.
+- Do not rely on Vercel for Railway-style pre-deploy migrations; run migrations through Railway,
+  manual operator control, or a future dedicated migration job.
 
 ### Debug
 

@@ -1,4 +1,7 @@
 import { billingPlans, type BillingPlan } from "@/lib/billing/plans"
+import { getDb } from "@/lib/db"
+import { appSettings } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import path from "node:path"
 
@@ -44,6 +47,7 @@ type DiscountRule = {
 
 const STORE_DIR = process.env.BILLING_SETTINGS_STORE_DIR || "/tmp/useclevr-billing"
 const STORE_PATH = path.join(STORE_DIR, "billing-settings.json")
+const SETTINGS_KEY = "billing"
 
 export const defaultBillingSettings: BillingSettings = {
   hybridAiCreditCosts: {
@@ -107,6 +111,16 @@ function mergeSettings(input: Partial<BillingSettings>): BillingSettings {
 
 export async function getBillingSettings(): Promise<BillingSettings> {
   try {
+    const db = getDb()
+    const [row] = await db.select().from(appSettings).where(eq(appSettings.key, SETTINGS_KEY)).limit(1)
+    if (row) {
+      return mergeSettings(row.value as Partial<BillingSettings>)
+    }
+  } catch {
+    // Fall back to local file storage for local/offline development.
+  }
+
+  try {
     const raw = await readFile(STORE_PATH, "utf8")
     return mergeSettings(JSON.parse(raw) as Partial<BillingSettings>)
   } catch {
@@ -116,6 +130,24 @@ export async function getBillingSettings(): Promise<BillingSettings> {
 
 export async function saveBillingSettings(settings: BillingSettings): Promise<BillingSettings> {
   const nextSettings = mergeSettings(settings)
+  try {
+    const db = getDb()
+    await db.insert(appSettings).values({
+      key: SETTINGS_KEY,
+      value: nextSettings,
+      updatedAt: new Date(),
+    }).onConflictDoUpdate({
+      target: appSettings.key,
+      set: {
+        value: nextSettings,
+        updatedAt: new Date(),
+      },
+    })
+    return nextSettings
+  } catch {
+    // Fall back to local file storage for local/offline development.
+  }
+
   await mkdir(STORE_DIR, { recursive: true })
   const tmpPath = `${STORE_PATH}.${process.pid}.tmp`
   await writeFile(tmpPath, JSON.stringify(nextSettings, null, 2), "utf8")
