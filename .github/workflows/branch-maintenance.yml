@@ -73,7 +73,7 @@ jobs:
           pnpm lint
 
       - name: Build production artifacts
-        run: pnpm prod:build
+        run: pnpm prod:build --loglevel error
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 

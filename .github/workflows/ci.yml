@@ -29,7 +29,7 @@ jobs:
       - run: pnpm validate:dist
       - run: pnpm lint
       - run: pnpm test:all
-      - run: pnpm build
+      - run: pnpm build --loglevel error
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
