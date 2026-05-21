@@ -16,7 +16,7 @@ Use this checklist before promoting a beta-to-main change to production.
 - Railway dashboard command overrides are empty unless a temporary pnpm-backed override is required.
 - Railway waits for GitHub Actions before deploying.
 - Vercel deploys from branch `main` with root `/`.
-- Vercel `vercel.json` is in sync with `dist-root/server-settings/vercel/vercel.source.json`.
+- Vercel `vercel.json` is in sync with `dist-root/vercel.json`.
 - Vercel preview and production branch settings match the intended release flow.
 - `/api/health` returns 200 on each production target.
 - `dist/deployment-manifest.json` identifies the source commit and healthcheck path.

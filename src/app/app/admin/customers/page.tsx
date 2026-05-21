@@ -2,7 +2,7 @@
 
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Card } from "@/components/ui/card"
-import { Calendar, Clock, CreditCard, Link2, User, Users, Zap, Edit, Check, X } from "lucide-react"
+import { Calendar, Clock, CreditCard, Link2, User, Users, Zap, Edit, Check, X, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 

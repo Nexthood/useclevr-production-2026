@@ -135,13 +135,13 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
 
 Running jobs in parallel means `publish-dist` can complete even if `sync-beta` fails due to merge conflicts.
 
-`dist-root/server-settings/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; Railway lives at `dist-root/server-settings/railway/` and Vercel lives at `dist-root/server-settings/vercel/`.
+`dist-root/` stores server-host templates, not the CI workflow itself. Each subfolder is one destination; Railway lives at `dist-root/railway/` and Vercel lives at `dist-root/vercel/`.
 
 ### Railway Runtime Behavior
 
 Railway deployment flow:
 
-1. **Build phase** (controlled by `dist-root/server-settings/railway/railway.dist.json`):
+1. **Build phase** (controlled by `dist-root/railway.json`):
    - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
    - `optional = false` in `pnpm-workspace.yaml` prevents optional SWC binaries
 
@@ -186,7 +186,7 @@ beta → PR → main → Vercel builds from main
 Vercel reads root `vercel.json`, which is synced from:
 
 ```text
-dist-root/server-settings/vercel/vercel.source.json
+dist-root/vercel.json
 ```
 
 Edit the template, then run:

@@ -33,24 +33,16 @@ Full production bundle:
 pnpm prod:build
 ```
 
-Template source:
+Template source (simplified at dist-root root level):
 
 ```text
-dist-root/server-settings/railway/railway.dist.json
-dist-root/server-settings/vercel/vercel.source.json
+dist-root/railway.json
+dist-root/vercel.json
 ```
 
-Keep one server subfolder per destination, for example:
+These simplified templates are at the `dist-root` root level, outside the `/dist` folder.
 
-```text
-dist-root/server-settings/railway/railway.dist.json
-dist-root/server-settings/vercel/vercel.source.json
-dist-root/server-settings/docker/docker.dist.json
-```
-
-Keep this folder focused on server-host templates. Server-specific helper scripts belong under
-`scripts/server/<host>/`; local/general scripts stay in the existing non-server `scripts/`
-subfolders.
+Keep server-specific helper scripts under `scripts/server/<host>/`; local/general scripts stay in the existing non-server `scripts/` subfolders.
 
 Do not keep a copy in `dist-root/`. Root files for the deployment branch are branch metadata only;
 runtime deployment config belongs in generated output.
@@ -69,4 +61,4 @@ pnpm start
 ```
 
 Vercel should use `/vercel.json` generated from the Vercel template. Do not hand-edit `vercel.json`;
-edit `dist-root/server-settings/vercel/vercel.source.json`, then run `pnpm deploy:vercel:sync`.
+edit `dist-root/vercel.json`, then run `pnpm deploy:vercel:sync`.

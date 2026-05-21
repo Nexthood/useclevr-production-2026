@@ -10,7 +10,7 @@ root: /dist
 config: /dist/railway.json
 ```
 
-Do not put `railway.json` at the `dist` branch root or in `dist-root/`.
+Railway config source-of-truth is at `dist-root/railway.json`. Do not manually edit `dist/railway.json`; edit `dist-root/railway.json` and run `pnpm deploy:railway:sync`.
 
 The generated `/dist` folder includes:
 

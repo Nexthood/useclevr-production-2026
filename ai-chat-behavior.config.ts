@@ -40,16 +40,16 @@ export const aiChatBehaviorConfig = {
       "AI is an explanation layer over verified application data.",
       "Local AI features use same-origin API routes and the local agent contract.",
       "Railway deploys from the dist branch `/dist` folder. Never place railway.json at the dist branch root.",
-      "Vercel deploys the source app from main using vercel.json synced from dist-root/server-settings/vercel/.",
+      "Vercel deploys the source app from main using vercel.json synced from dist-root/vercel/.",
     ],
 
   distDeployment: {
     signpost: "Build → sync → deploy",
     targetSettingsDir: "dist-root/server-settings",
-    targetSettingsPattern: "One subfolder per deploy destination, for example dist-root/server-settings/railway/.",
+    targetSettingsPattern: "One subfolder per deploy destination, for example dist-root/railway/.",
     targetSettingsPurpose: "Server-host templates copied into generated output, not GitHub workflow files or app source.",
-    pipelineFile: "dist-root/server-settings/railway/railway.dist.json",
-    vercelPipelineFile: "dist-root/server-settings/vercel/vercel.source.json",
+    pipelineFile: "dist-root/railway.json",
+    vercelPipelineFile: "dist-root/vercel.json",
     distPackage: "dist/package.json",
     distRailway: "dist/railway.json",
     distPnpmWorkspace: "dist/pnpm-workspace.yaml",
@@ -58,15 +58,15 @@ export const aiChatBehaviorConfig = {
     syncScript: "scripts/server/railway/sync-config.cjs",
     validationScript: "scripts/server/railway/sync-config.cjs",
     buildGate: "pnpm validate:dist",
-    sourceOfTruth: "dist-root/server-settings/railway/railway.dist.json and dist-root/server-settings/vercel/vercel.source.json",
+    sourceOfTruth: "dist-root/railway.json and dist-root/vercel.json",
     packagingScript: "scripts/package-dist/create-dist.cjs",
     doNotEdit: [
       "dist/", // regenerated every build
       ".next/", // always regenerated
     ],
     editForDeployTargetChanges: [
-      "dist-root/server-settings/railway/railway.dist.json",
-      "dist-root/server-settings/vercel/vercel.source.json",
+      "dist-root/railway.json",
+      "dist-root/vercel.json",
     ],
     serverScriptPattern: "Server-specific scripts live under scripts/server/<host>/; local/general scripts live elsewhere in scripts/.",
     doNotRunFrom: [

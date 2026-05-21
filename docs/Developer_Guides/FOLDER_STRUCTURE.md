@@ -21,7 +21,8 @@ outside `src/`.
 | `scripts/runtime/` | Local runtime | Runtime env loading for local production starts. |
 | `scripts/server/` | Server hosts | Host-specific helper scripts, grouped by server provider. |
 | `dist-root/` | GitHub Actions | Permanent deployment branch files and server-host templates copied into generated output. |
-| `dist-root/server-settings/` | Server hosts, GitHub Actions | Server-host templates such as Railway and Vercel config; kept out of `src/`. |
+| `dist-root/railway.json` | Railway | Railway deploy config source-of-truth at dist-root root level. |
+| `dist-root/vercel.json` | Vercel | Vercel deploy config source-of-truth at dist-root root level. |
 | `src/` | Next.js app | Product code, UI, API routes, app assets, services, and libraries. |
 | `AGENTS.md` | AI agents | Project-specific operating rules. |
 | `CHANGELOG.md` | Developers, release notes | User-facing and dev-facing release history. |
@@ -43,7 +44,7 @@ outside `src/`.
 | `tailwind.config.ts` | Tailwind | Design token and utility config. |
 | `tsconfig.json` | TypeScript | Type checking config. |
 | `turbo.json` | Turborepo | Task cache inputs and outputs. |
-| `vercel.json` | Vercel | Source-branch deploy config synced from `dist-root/server-settings/vercel/`. |
+| `vercel.json` | Vercel | Source-branch deploy config synced from `dist-root/vercel.json`. |
 
 Generated or local-only folders such as `dist/`, `.next/`, `node_modules/`, `.turbo/`, logs, and
 environment files are ignored and should not be committed.

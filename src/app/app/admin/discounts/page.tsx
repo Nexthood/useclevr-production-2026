@@ -100,7 +100,6 @@ export default function AdminDiscountsPage() {
       setIsLoading(false)
     }
   }
-  }
 
   return (
     <div className="min-h-screen bg-background">
