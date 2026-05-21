@@ -68,9 +68,9 @@ jobs:
 
       - name: Validate source before publishing
         run: |
-          pnpm validate:types --loglevel warn
-          pnpm validate:dist --loglevel warn
-          pnpm lint --loglevel warn
+          pnpm validate:types
+          pnpm validate:dist
+          pnpm lint
 
       - name: Build production artifacts
         run: pnpm prod:build
