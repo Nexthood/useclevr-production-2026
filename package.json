@@ -31,7 +31,7 @@
     "prod:install": "corepack enable && corepack prepare pnpm@11.1.2 --activate && pnpm install --frozen-lockfile",
     "prod:build": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/package-dist/create-dist.cjs",
     "build:prod": "node ./scripts/package-dist/create-dist.cjs",
-    "deploy:railway:sync": "node ./scripts/server/railway/sync-config.cjs",
+    "deploy:railway:sync": "node ./scripts/server/railway/sync-config.cjs --check",
     "deploy:railway:check": "node ./scripts/server/railway/sync-config.cjs --check",
     "deploy:vercel:sync": "node ./scripts/server/vercel/sync-config.cjs",
     "deploy:vercel:check": "node ./scripts/server/vercel/sync-config.cjs --check",

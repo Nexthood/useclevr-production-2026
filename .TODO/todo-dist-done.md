@@ -16,12 +16,12 @@
       existing `dist` branch.
 - [x] Preserved root-level `dist` branch files such as `.gitignore` and `README.md`.
 - [x] Removed root-level generated framework files from the `dist` branch.
-- [x] Kept `railway.json` out of the `dist` branch root and inside the generated `/dist` folder.
-- [x] Confirmed the deployment branch root has no `railway.json`; only `/dist/railway.json` is used.
+- [x] Kept `railway.json` out of the `dist` branch root and generated `/dist` folder.
+- [x] Confirmed the deployment branch stores Railway config only at `/server-config/railway.json`.
 - [x] Removed the duplicate `dist-root/railway.json` source so generated Railway config has one
       source of truth.
 - [x] Kept `node_modules/` and build caches out of the published deployment branch.
-- [x] Generated `/dist/pnpm-workspace.yaml` so Railway can run approved pnpm dependency build scripts
+- [x] Removed generated `/dist/pnpm-workspace.yaml` so Railway cannot read stale workspace metadata
       during install.
 - [x] Confirmed generated installs pass locally with pnpm build approvals and without committing
       `node_modules/`.
@@ -57,13 +57,15 @@
       and Railway keeps its `0.0.0.0` host binding.
 - [x] Added Vercel source-branch deploy settings alongside Railway generated-output settings.
 - [x] Aligned deploy scripts and docs with the current `dist-root/server-settings/` template path.
-- [x] Added a dist publish guard that fails if `railway.json` is missing from `/dist` or appears at
-      the deployment branch root.
+- [x] Added a dist publish guard that fails if `railway.json` or `vercel.json` appears at the
+      deployment branch root or inside `/dist`.
+- [x] Added generated `/dist/nixpacks.toml` so Railway Nixpacks installs with Node 26 and Corepack
+      pnpm instead of the default npm install phase.
 - [x] Added a source-cleanliness guard to the dist publish job so type validation, dist config
       validation, and lint must pass before generated output is published.
 
 ## Result
 
 Source branches now stay source-only. GitHub Actions builds generated output from `main`, syncs
-`beta`, publishes only `dist:/dist`, and leaves Railway to install runtime dependencies with its own
-cache and the generated pnpm build approvals.
+`beta`, publishes only `dist:/dist` plus `/server-config`, and leaves Railway to install runtime
+dependencies through generated Nixpacks and Corepack pnpm.

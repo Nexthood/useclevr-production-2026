@@ -7,7 +7,7 @@ deployment output to the `dist` branch for Railway.
 
 Railway must deploy from branch `dist` with `/dist` as the service root. The `dist` branch root keeps
 only permanent branch files such as `.gitignore` and `README.md`; deployment config lives inside
-`/dist`.
+`/server-config`.
 
 ## Remaining Tasks
 
@@ -28,10 +28,10 @@ These checks intentionally stay open until the next real merge. Local validation
 
 ## Migration Notes
 
-- Keep server-host templates in host-specific subfolders such as `dist-root/server-settings/railway/`;
+- Keep server-host templates in `dist-root/server-config/` with platform-native filenames;
   if Railway, Vercel, or Docker targets diverge, keep one folder per destination.
 - Keep `scripts/package-dist/create-dist.cjs` as the only assembly point for generated output.
-- Keep `node_modules/` out of Git and rely on Railway/Railpack plus pnpm caching.
+- Keep `node_modules/` out of Git and rely on Railway Nixpacks plus pnpm caching.
 - Keep pull request titles short and prefixed with `PR:` because the dist publish commit uses the PR
   title.
 - Keep local generated-output starts as the default `npm run start`, and reserve named commands such

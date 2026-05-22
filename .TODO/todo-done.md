@@ -8,6 +8,8 @@
   workflow log output.
 - **Dist config placement** — Dist branch host config stays only in `/server-config`, and pnpm
   workspace metadata is removed from deployment output.
+- **Railway Nixpacks install** — Generated deployment output now carries a Nixpacks plan that installs
+  production dependencies with Corepack pnpm instead of default npm.
 - **GitHub Actions workflow steps** — Renamed steps in branch-maintenance.yml to descriptive names.
 - **Railway lockfile generation** — Publish workflow now generates matching pnpm-lock.yaml from dist package.json for deterministic installs.
 - **Railway build fix** — Removed --frozen-lockfile since dist package.json has fewer deps than root.

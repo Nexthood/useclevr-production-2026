@@ -6,8 +6,9 @@ generated `dist` branch.
 Everything in this folder is copied to the deployment branch root. Runtime application output stays
 inside the generated `/dist` folder.
 
-Host config files use the platform-native filenames under `server-config/`, then the publish workflow
-copies them to the deployment branch root as `railway.json` and `vercel.json`.
+Host config files use the platform-native filenames under `server-config/`. The publish workflow
+keeps them in `/server-config` on the deployment branch and does not copy them to the branch root or
+inside `/dist`.
 
 ## Railway
 
@@ -20,11 +21,12 @@ dist-root/server-config/railway.json
 Published Railway config:
 
 ```text
-railway.json
+server-config/railway.json
 ```
 
-Railway should use branch `dist`, root directory `/dist`, and config file path `/railway.json`.
-The generated `/dist` folder still includes `dist/railway.json` for local parity.
+Railway should use branch `dist`, root directory `/dist`, and config file path
+`/server-config/railway.json`. Generated `/dist` includes `nixpacks.toml` so Nixpacks runs Corepack
+pnpm in its install phase and does not run the default `npm i`.
 
 ## Vercel
 
@@ -34,10 +36,11 @@ Vercel source-of-truth:
 dist-root/server-config/vercel.json
 ```
 
-Generated root config (at the deployment branch root):
+Published Vercel config on the deployment branch:
 
 ```text
-vercel.json
+server-config/vercel.json
 ```
 
-Vercel deploys the source app from `main` using the root `vercel.json`, which is synced from the above template.
+Vercel deploys the source app from `main` using the source-branch root `vercel.json`, which is
+synced from the above template.

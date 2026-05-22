@@ -13,7 +13,8 @@ Use this checklist before promoting a beta-to-main change to production.
 ## Deployment Targets
 
 - Railway deploys from branch `dist` with root `/dist`.
-- Railway config file path points to `/railway.json` on the dist branch root.
+- Railway config file path points to `/server-config/railway.json` on the dist branch.
+- Railway logs show a pnpm install from generated `/dist/nixpacks.toml`, not a default `npm i`.
 - Railway dashboard command overrides are empty unless a temporary pnpm-backed override is required.
 - Railway waits for GitHub Actions before deploying.
 - Vercel deploys from branch `main` with root `/`.

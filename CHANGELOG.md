@@ -38,6 +38,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
 - Dist deployments now keep host config files in the deployment config folder only, preventing
   Railway from building the branch root by mistake.
+- Railway generated-output builds now use a generated Nixpacks plan so deployment installs run
+  through Corepack pnpm instead of defaulting to npm.
 - Railway runtime builds now use Nixpacks with explicit Corepack pnpm activation to avoid Railpack
   `mise install` failures.
 - PDF export browser dependencies are now explicit production dependencies so publish builds with

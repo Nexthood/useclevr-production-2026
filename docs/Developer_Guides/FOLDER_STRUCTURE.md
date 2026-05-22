@@ -21,8 +21,8 @@ outside `src/`.
 | `scripts/runtime/` | Local runtime | Runtime env loading for local production starts. |
 | `scripts/server/` | Server hosts | Host-specific helper scripts, grouped by server provider. |
 | `dist-root/` | GitHub Actions | Permanent deployment branch files copied to the dist branch root. |
-| `dist-root/server-config/railway.json` | Railway | Railway deploy config source-of-truth published as root `railway.json` on the dist branch. |
-| `dist-root/server-config/vercel.json` | Vercel | Vercel deploy config source-of-truth published as root `vercel.json` on the dist branch and synced to source root. |
+| `dist-root/server-config/railway.json` | Railway | Railway deploy config source-of-truth published as `/server-config/railway.json` on the dist branch. |
+| `dist-root/server-config/vercel.json` | Vercel | Vercel deploy config source-of-truth published as `/server-config/vercel.json` on the dist branch and synced to source root. |
 | `src/` | Next.js app | Product code, UI, API routes, app assets, services, and libraries. |
 | `AGENTS.md` | AI agents | Project-specific operating rules. |
 | `CHANGELOG.md` | Developers, release notes | User-facing and dev-facing release history. |
