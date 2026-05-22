@@ -410,6 +410,7 @@ UPLOAD_PROVIDER=
 - App uses Railway `$PORT`
 - `/api/health` returns 200 quickly
 - Generated Railway config comes from `dist-root/server-config/railway.json`
+- Railway runtime builds use Nixpacks and Corepack-managed pnpm, avoiding Railpack `mise install`
 - The `dist` branch root contains `railway.json`; Railway uses root directory `/dist` and config
   file path `/railway.json`
 - Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
