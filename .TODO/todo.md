@@ -10,6 +10,8 @@ No active leading-edge items.
 
 ## Completed ✅
 
+- Railway runtime builds now use Nixpacks with explicit Corepack pnpm activation to avoid Railpack
+  `mise install` failures.
 - PDF export browser dependencies are now explicit production dependencies so publish builds with
   optional installs disabled do not miss bundler-required modules.
 - Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist

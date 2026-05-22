@@ -142,6 +142,8 @@
   applied in the target environment before the new web process starts.
 - Hosting pre-deploy and runtime commands use pnpm-backed generated scripts, and old dashboard-level
   npm command overrides are not part of the supported deployment path.
+- Railway runtime builds use Corepack-managed pnpm through Nixpacks so deployment no longer depends
+  on Railpack `mise install`.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
 - Local pre-commit validation runs the production publish build so missing bundle dependencies are

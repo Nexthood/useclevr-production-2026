@@ -144,6 +144,8 @@ live at `dist-root/server-config/railway.json` and `dist-root/server-config/verc
 Railway deployment flow:
 
 1. **Build phase** (controlled by `dist-root/server-config/railway.json`):
+   - Nixpacks provides the deployment builder so Railway does not run Railpack `mise install`.
+   - Corepack activates pnpm 11.1.2 before install.
    - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
    - `optional = false` in `pnpm-workspace.yaml` prevents optional SWC binaries
 
