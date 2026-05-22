@@ -1,5 +1,4 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { DashboardNoticeBar } from "@/components/ui/dashboard-notice-bar"
 import { HelpChatbox } from "@/components/ui/help-chatbox"
 import Topbar from "@/components/ui/topbar"
 import { auth } from "@/lib/auth"
@@ -24,7 +23,6 @@ export default async function AppLayout({
         <AppSidebar user={session.user} />
         <div className="min-h-screen md:ml-[220px]">
           <Topbar />
-          <DashboardNoticeBar />
           <main className="min-h-screen pt-16">
             {children}
           </main>

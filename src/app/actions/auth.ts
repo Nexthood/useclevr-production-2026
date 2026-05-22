@@ -2,6 +2,7 @@
 
 import { debugError } from "@/lib/utils/debug"
 
+import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import bcrypt from "bcryptjs"
@@ -73,6 +74,15 @@ export async function signup(formData: FormData) {
     // User was created but profile failed - still return success
     // The profile can be created later
   }
+
+  await recordActivity({
+    userId: user.id,
+    userEmail: user.email,
+    type: "register",
+    feature: "account",
+    title: "Account registered",
+    description: "Account access was created with email signup.",
+  })
 
   revalidatePath("/app/datasets")
   return { success: true }

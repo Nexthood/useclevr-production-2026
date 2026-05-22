@@ -10,6 +10,11 @@ on:
 permissions:
   contents: write
 
+env:
+  NO_COLOR: "1"
+  FORCE_COLOR: "0"
+  TERM: dumb
+
 jobs:
   sync-beta:
     name: Sync beta with main
@@ -93,8 +98,11 @@ jobs:
         run: |
           cd dist
           pnpm install --lockfile-only --no-optional
+          rm -f pnpm-workspace.yaml
           cd ..
 
+          rm -f pnpm-workspace.yaml
+          rm -f dist/pnpm-workspace.yaml
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/node_modules/.pnpm/@next+swc-*
@@ -104,8 +112,11 @@ jobs:
           rm -rf dist/.turbo
           rm -rf dist/.vercel
           rm -rf dist/.next/cache/webpack
-          echo "Large files in source dist:"
-          find dist -type f -size +45M -exec ls -lh {} \; || true
+          large_source_file="$(find dist -type f -size +95M -print -quit)"
+          if [ -n "$large_source_file" ]; then
+            echo "Error: generated dist contains a file larger than GitHub limit."
+            exit 1
+          fi
 
       - name: Stage generated output
         run: |
@@ -151,8 +162,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch existing dist to preserve ~2 commits for graph visibility
-          git fetch origin dist:dist 2>/dev/null || true
+          previous_dist_parent=""
+          if git fetch --depth=1 origin dist:dist 2>/dev/null && git rev-parse --verify dist >/dev/null 2>&1; then
+            previous_tree="$(git rev-parse dist^{tree})"
+            previous_title="$(git log -1 --format=%s dist)"
+            previous_dist_parent="$(git commit-tree "$previous_tree" -m "$previous_title")"
+          fi
 
           git checkout --orphan new-dist
           git rm -rf . || true
@@ -177,6 +192,9 @@ jobs:
             cp -a /tmp/useclevr-dist-root/. .
           fi
 
+          rm -f pnpm-workspace.yaml
+          rm -f dist/pnpm-workspace.yaml
+
           if [ ! -f "server-config/railway.json" ]; then
             echo "Error: server-config/railway.json is missing from dist-root."
             exit 1
@@ -186,9 +204,6 @@ jobs:
             echo "Error: server-config/vercel.json is missing from dist-root."
             exit 1
           fi
-
-          cp server-config/railway.json railway.json
-          cp server-config/vercel.json vercel.json
 
           if [ ! -f ".gitignore" ]; then
             cat > .gitignore <<'EOF'
@@ -215,53 +230,49 @@ jobs:
           Do not merge this branch into `main`.
 
           Railway deploys from the `/dist` folder in this branch.
+          Railway config is stored at `/server-config/railway.json`.
           Source code lives in `main`.
           EOF
           fi
 
-          if [ ! -f "railway.json" ]; then
-            echo "Error: railway.json is missing from the dist branch root."
+          if [ -f "railway.json" ]; then
+            echo "Error: railway.json must stay in server-config, not the dist branch root."
             exit 1
           fi
 
-          if [ ! -f "vercel.json" ]; then
-            echo "Error: vercel.json is missing from the dist branch root."
+          if [ -f "vercel.json" ]; then
+            echo "Error: vercel.json must stay in server-config, not the dist branch root."
             exit 1
           fi
 
-          if [ ! -f "dist/railway.json" ]; then
-            echo "Error: generated dist/railway.json is missing."
+          if [ -f "dist/railway.json" ] || [ -f "dist/vercel.json" ]; then
+            echo "Error: host config files must not be published inside dist/."
             exit 1
           fi
 
-          cmp -s server-config/railway.json railway.json
-          cmp -s server-config/vercel.json vercel.json
-          cmp -s server-config/railway.json dist/railway.json
+          node -e "JSON.parse(require('fs').readFileSync('server-config/railway.json', 'utf8')); JSON.parse(require('fs').readFileSync('server-config/vercel.json', 'utf8'))"
 
-          echo "Large generated deployment files:"
-          find dist -type f -size +45M -exec ls -lh {} \; || true
-
-          if find dist -type f -size +95M -exec ls -lh {} \; | grep .; then
+          large_dist_file="$(find dist -type f -size +95M -print -quit)"
+          if [ -n "$large_dist_file" ]; then
             echo "Error: files larger than GitHub limit still exist."
             exit 1
           fi
 
           git add -A
-          echo "Large staged files:"
-          git ls-files -s | awk '{print $4}' | while read -r file; do
-            if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 47185920 ]; then
-              ls -lh "$file"
-            fi
-          done
-
           if git ls-files -s | awk '{print $4}' | while read -r file; do
             if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 99614720 ]; then
-              ls -lh "$file"
+              printf '%s\n' "$file"
             fi
           done | grep .; then
             echo "Error: staged files larger than GitHub limit still exist."
             exit 1
           fi
 
-          git commit -m "${{ steps.dist-title.outputs.title }}"
+          tree_sha="$(git write-tree)"
+          if [ -n "$previous_dist_parent" ]; then
+            commit_sha="$(git commit-tree "$tree_sha" -p "$previous_dist_parent" -m "${{ steps.dist-title.outputs.title }}")"
+          else
+            commit_sha="$(git commit-tree "$tree_sha" -m "${{ steps.dist-title.outputs.title }}")"
+          fi
+          git update-ref refs/heads/new-dist "$commit_sha"
           git push origin new-dist:dist --force

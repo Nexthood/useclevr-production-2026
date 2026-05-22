@@ -1,5 +1,6 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
 
+import { recordActivity } from "@/lib/activity/activity-store";
 import { auth } from "@/lib/auth";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import type { CSVAnalysisResult, DatasetRecord } from "@/lib/data/csv-analyzer";
@@ -181,6 +182,7 @@ export async function POST(
 
     const datasetData = dataset as {
       id: string;
+      userId: string;
       name: string;
       status: string;
       rowCount: number;
@@ -387,6 +389,20 @@ export async function POST(
         })
         .where(eq(datasets.id, id));
       debugLog('[ANALYZE] Analysis saved to database for dataset:', id);
+      if (userId) {
+        await recordActivity({
+          userId,
+          type: "dataset_analyzed",
+          feature: "datasets",
+          title: "Dataset analyzed",
+          description: `${datasetData.name} analysis was refreshed.`,
+          metadata: {
+            datasetId: id,
+            rowCount: datasetData.rowCount,
+            columnCount: datasetData.columnCount,
+          },
+        });
+      }
     } catch (saveError) {
       debugError('[ANALYZE] Failed to save analysis to database:', saveError);
       // Continue anyway - we still want to return the analysis result

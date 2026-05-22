@@ -1,6 +1,7 @@
 import { debugError } from "@/lib/utils/debug"
 
 import { auth } from "@/lib/auth"
+import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
@@ -86,6 +87,20 @@ export async function POST(request: Request) {
     }
 
     const usage = await consumeAnalystCredit(session.user.id)
+    await recordActivity({
+      userId: session.user.id,
+      userEmail: session.user.email,
+      type: "dataset_uploaded",
+      feature: "datasets",
+      title: "Dataset uploaded",
+      description: `${name || fileName || "Dataset"} was added with ${rows?.length || 0} rows.`,
+      metadata: {
+        datasetId,
+        name: name || fileName,
+        rowCount: rows?.length || 0,
+        columnCount: columns?.length || 0,
+      },
+    })
 
     return NextResponse.json({
       dataset: {

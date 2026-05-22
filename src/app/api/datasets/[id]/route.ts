@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth"
+import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
@@ -69,6 +70,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const dataset = await db.query.datasets.findFirst({
+      where: and(
+        eq(datasets.id, id),
+        eq(datasets.userId, session.user.id)
+      ),
+      columns: {
+        name: true,
+        rowCount: true,
+      },
+    })
+
     // Delete dataset (rows will be deleted due to cascade)
     await db.delete(datasets).where(
       and(
@@ -76,6 +88,21 @@ export async function DELETE(
         eq(datasets.userId, session.user.id)
       )
     )
+
+    if (dataset) {
+      await recordActivity({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        type: "dataset_deleted",
+        feature: "datasets",
+        title: "Dataset deleted",
+        description: `${dataset.name} was removed.`,
+        metadata: {
+          datasetId: id,
+          rowCount: dataset.rowCount,
+        },
+      })
+    }
 
     return NextResponse.json({ success: true })
   } catch {

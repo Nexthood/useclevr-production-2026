@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/index";
+import { recordActivity } from "@/lib/activity/activity-store";
 import { profiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
@@ -72,5 +73,25 @@ export async function handleSubscriptionEvent(
 
   await activeDb.update(profiles).set(updates).where(eq(profiles.id, idFromExisting));
 
+  await recordActivity({
+    userId: existing.userId,
+    userEmail: existing.email,
+    type: "subscribed",
+    feature: "subscription",
+    title: getSubscriptionActivityTitle(event.type),
+    description: `Subscription status is ${status}.`,
+    metadata: {
+      stripeStatus: status,
+      stripePriceId: priceId,
+      stripeSubscriptionId: sub.id,
+    },
+  });
+
   return { synced: true };
+}
+
+function getSubscriptionActivityTitle(eventType: string) {
+  if (eventType === "customer.subscription.deleted") return "Subscription ended";
+  if (eventType === "customer.subscription.updated") return "Subscription updated";
+  return "Subscription started";
 }

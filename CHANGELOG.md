@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Dashboard notices now live in a topbar inbox with a persistent count and recent product activity.
+- The topbar credits button now opens subscription settings instead of sending users to public plans.
 - Public pricing and FAQ copy now describes Hybrid AI access without exposing runtime download sizes.
 - Public pages outside the homepage now share one title section design.
 - Dashboard help links now live under the topbar Help menu, while the sidebar focuses on primary
@@ -33,14 +35,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
+- Dist deployments now keep host config files in the deployment config folder only, preventing
+  Railway from building the branch root by mistake.
 - Railway runtime builds now use Nixpacks with explicit Corepack pnpm activation to avoid Railpack
   `mise install` failures.
 - PDF export browser dependencies are now explicit production dependencies so publish builds with
   optional installs disabled do not miss bundler-required modules.
 - Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
   publish do not depend on suppressed token-generated events.
-- Dist publishing now syncs deployment root files from the source branch while keeping generated app
-  output inside `/dist`.
+- Dist publishing now syncs deployment config files from the source branch while keeping generated
+  app output inside `/dist`.
 - Local pre-commit validation now runs the production publish build so missing bundle dependencies
   fail before deployment.
 - Restructured Migrate to Payload.md for clear AI implementation steps.
@@ -59,8 +64,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Optimized CI triggers so beta pushes do not duplicate the pull request validation workflow.
 - Fixed source validation so beta-to-main pull requests and the resulting main-branch merge both run
   the required CI check, while beta pushes stay quiet.
-- Added a dist publish guard so Railway config must stay inside the generated deployment folder and
-  never at the deployment branch root.
+- Added a dist publish guard so host config stays in the deployment config folder and never lands at
+  the deployment branch root.
 - Added source validation inside the dist publish workflow so generated deployment output is not
   published from a dirty type or lint baseline.
 - Fixed the auto-merge workflow trigger so beta-to-main pull requests are matched by base branch

@@ -4,6 +4,7 @@ import {
     BUILTIN_DEMO_USER, findBuiltinUserByCredentials,
     isBuiltinUserId, type BuiltinUserRole
 } from "@/lib/auth/builtin-users"
+import { recordActivity } from "@/lib/activity/activity-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import bcrypt from "bcryptjs"
@@ -251,7 +252,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      */
     async createUser({ user }) {
       debugLog("New user created:", user.email)
-      // You could send welcome email here
+      if (user.id && !isBuiltinUserId(user.id)) {
+        await recordActivity({
+          userId: user.id,
+          userEmail: user.email,
+          type: "register",
+          feature: "account",
+          title: "Account registered",
+          description: "Account access was created.",
+        })
+      }
     },
     /**
      * Sign In Event
@@ -259,6 +269,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      */
     async signIn({ user, isNewUser }) {
       debugLog(`User signed in: ${user.email}, isNewUser: ${isNewUser}`)
+      if (user.id && !isBuiltinUserId(user.id)) {
+        await recordActivity({
+          userId: user.id,
+          userEmail: user.email,
+          type: "login",
+          feature: "account",
+          title: "Signed in",
+          description: "A session started for this account.",
+        })
+      }
     },
   },
   debug: process.env.NODE_ENV === "development",

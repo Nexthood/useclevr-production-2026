@@ -30,7 +30,7 @@ export function DashboardNoticeBar() {
         </div>
         <button
           type="button"
-          onClick={clearNotice}
+          onClick={() => clearNotice()}
           className="rounded-md p-1 opacity-60 transition hover:opacity-100 focus-visible:outline-none hover:bg-black/10 dark:hover:bg-white/10"
           aria-label="Dismiss notice"
         >

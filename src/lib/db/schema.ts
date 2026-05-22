@@ -211,6 +211,29 @@ export const datasetRows = pgTable(
   })
 )
 
+// UserActivity table - lightweight product activity feed
+export const userActivities = pgTable(
+  'UserActivity',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull(),
+    userEmail: varchar('userEmail', { length: 255 }),
+    type: varchar('type', { length: 80 }).notNull(),
+    feature: varchar('feature', { length: 80 }).notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: 'UserActivity_userId_fkey',
+    }).onDelete('cascade'),
+  })
+)
+
 // ============================================================================
 // WAITLIST TABLE - Lightweight email collection
 // ============================================================================

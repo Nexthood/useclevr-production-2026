@@ -9,7 +9,6 @@ const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
 const runtimeScriptsDir = path.join(rootDir, "scripts", "runtime");
-const distRailwayTemplate = path.join(rootDir, "dist-root", "server-config", "railway.json");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -116,8 +115,7 @@ fs.writeFileSync(
   }, null, 2)}\n`,
 );
 
-// Write package.json and copy CI deploy template to dist root for hosts
-// configured to deploy `dist` as the project root.
+// Write package.json for hosts configured to deploy `dist` as the project root.
 const rootDistPackage = {
   name: "useclevr-2026-dist",
   version: rootPkg.version,
@@ -144,26 +142,6 @@ fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
 );
-
-fs.writeFileSync(
-  path.join(distDir, "pnpm-workspace.yaml"),
-  [
-    "allowBuilds:",
-    "  core-js: true",
-    "  esbuild: true",
-    "  sharp: true",
-    "dangerouslyAllowAllBuilds: true",
-    "optional: false",
-    "onlyBuiltDependencies:",
-    "  - core-js",
-    "  - esbuild",
-    "  - sharp",
-    "",
-  ].join("\n"),
-);
-
-assertExists(distRailwayTemplate, "Railway dist template");
-fs.cpSync(distRailwayTemplate, path.join(distDir, "railway.json"));
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {

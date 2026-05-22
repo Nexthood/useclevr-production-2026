@@ -10,6 +10,12 @@ No active leading-edge items.
 
 ## Completed ✅
 
+- Dashboard notices now live in a topbar inbox with recent project activity, user activity history,
+  super-admin total activity, and subscription-focused credit access.
+- Dist publish history now keeps the previous deployment commit visible while reducing workflow log
+  output.
+- Dist deployment config now stays only in `/server-config`, and pnpm workspace metadata is removed
+  from deployment output so Railway installs the generated runtime from `/dist`.
 - Railway runtime builds now use Nixpacks with explicit Corepack pnpm activation to avoid Railpack
   `mise install` failures.
 - PDF export browser dependencies are now explicit production dependencies so publish builds with
