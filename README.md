@@ -58,7 +58,7 @@ GEMINI_API_KEY=
 - Railway and Vercel config files stay only under `/server-config` on the dist branch.
 - To validate the Railway config template: `pnpm ci:railway`.
 - To refresh the full bundle: `pnpm prod:build`.
-- Build command: `corepack enable && corepack prepare pnpm@11.1.2 --activate && pnpm install --frozen-lockfile --prod --no-optional --config.dangerouslyAllowAllBuilds=true`
+- Railway Nixpacks install is controlled by generated `/dist/nixpacks.toml`; the Railway build command is `true`.
 - Start command: `pnpm run start:railway`
 - Health: `/api/health`
 

@@ -16,6 +16,8 @@ No active leading-edge items.
   output.
 - Dist deployment config now stays only in `/server-config`, and pnpm workspace metadata is removed
   from deployment output so Railway installs the generated runtime from `/dist`.
+- Railway generated-output builds now use a generated Nixpacks plan so installs use Corepack pnpm
+  instead of Nixpacks' default npm command.
 - Railway runtime builds now use Nixpacks with explicit Corepack pnpm activation to avoid Railpack
   `mise install` failures.
 - PDF export browser dependencies are now explicit production dependencies so publish builds with

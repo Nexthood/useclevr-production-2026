@@ -184,9 +184,9 @@ All commands are run from `pnpm`.
 | Command           | Description                        |
 | ----------------- | ---------------------------------- |
 | `pnpm ci:validate` | Types + dist check + lint + tests + production build |
-| `pnpm deploy:railway:sync` | Sync Railway deploy-target config |
+| `pnpm deploy:railway:sync` | Validate Railway deploy-target config |
 | `pnpm deploy:vercel:sync`  | Sync Vercel source-target config |
-| `pnpm ci:railway`          | Compatibility alias for Railway sync |
+| `pnpm ci:railway`          | Compatibility alias for Railway config validation |
 
 ### Audit & Dependencies
 
@@ -367,7 +367,7 @@ guidelines.
 ## Deployment
 
 ```bash
-pnpm deploy:railway:sync
+pnpm deploy:railway:check
 pnpm prod:build
 pnpm prod:start
 ```
@@ -411,9 +411,9 @@ UPLOAD_PROVIDER=
 - `/api/health` returns 200 quickly
 - Generated Railway config comes from `dist-root/server-config/railway.json`
 - Railway runtime builds use Nixpacks and Corepack-managed pnpm, avoiding Railpack `mise install`
-- The `dist` branch root contains `railway.json`; Railway uses root directory `/dist` and config
-  file path `/railway.json`
-- Railway install uses generated pnpm build approvals for `sharp`, `esbuild`, and `core-js`
+- Railway uses root directory `/dist` and config file path `/server-config/railway.json`
+- Railway install is controlled by generated `/dist/nixpacks.toml`, which uses Node 26 and
+  Corepack-managed pnpm 11.1.2 instead of the default `npm i`
 - Database migrations stay in Railway pre-deploy while this is a single web-service deployment
 - Railway dashboard custom command fields should be empty; old `npm` command overrides can bypass the
   generated config. If a temporary override is needed, use `pnpm run railway:predeploy` and

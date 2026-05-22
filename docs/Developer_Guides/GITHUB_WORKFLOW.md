@@ -130,8 +130,8 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
 - Checks out the existing `dist` branch after the build
 - Replaces only the generated `/dist` folder
 - Syncs `dist-root/` from `main` to the deployment branch root
-- Publishes `server-config/railway.json` and `server-config/vercel.json` as root `railway.json` and `vercel.json`
-- Fails if root `railway.json`, root `vercel.json`, or generated `/dist/railway.json` is missing
+- Publishes `server-config/railway.json` and `server-config/vercel.json` under `/server-config`
+- Fails if `railway.json` or `vercel.json` lands at the branch root or inside `/dist`
 - Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
 
 Running jobs in parallel means `publish-dist` can complete even if `sync-beta` fails due to merge conflicts.
@@ -145,9 +145,9 @@ Railway deployment flow:
 
 1. **Build phase** (controlled by `dist-root/server-config/railway.json`):
    - Nixpacks provides the deployment builder so Railway does not run Railpack `mise install`.
-   - Corepack activates pnpm 11.1.2 before install.
+   - Generated `/dist/nixpacks.toml` installs Node 26 and activates pnpm 11.1.2 before install.
    - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
-   - `optional = false` in `pnpm-workspace.yaml` prevents optional SWC binaries
+   - Generated output omits `pnpm-workspace.yaml` so Railway cannot read stale workspace metadata
 
 2. **Pre-deploy phase**:
    - `pnpm run railway:predeploy` applies database schema changes through pnpm.
@@ -160,14 +160,13 @@ Database migrations stay in Railway `preDeployCommand` for this phase. A separat
 
 The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the runtime locally, switch to `dist`, run `cd dist && pnpm install && npm run start`, and open `http://localhost:8080`. The default local start uses `localhost` for Auth.js; Railway and Vercel use named target scripts.
 
-The `dist` branch root must contain `railway.json`. Railway should keep root directory `/dist` and
-config file path `/railway.json`, while the generated folder also carries `dist/railway.json` for
-local parity and `pnpm-workspace.yaml` so pnpm can run the approved dependency build scripts required
-by `sharp`, `esbuild`, and `core-js`. The Railway build command also passes pnpm's build-approval
-setting directly so Railpack cannot stop on an interactive `pnpm approve-builds` prompt.
+Railway should keep root directory `/dist` and config file path `/server-config/railway.json`.
+Generated `/dist` carries `nixpacks.toml` so Nixpacks runs Corepack-managed pnpm in the install phase
+instead of auto-detecting npm. The Railway build command is `true` because GitHub Actions already
+builds the standalone app before publishing.
 
 Railway service settings must not keep old custom `npm` commands. Clear dashboard build, pre-deploy,
-and start command overrides so `/railway.json` controls the deployment. If an override is
+and start command overrides so `/server-config/railway.json` controls the deployment. If an override is
 temporarily needed, use `pnpm run railway:predeploy` for migrations and `pnpm start` for runtime.
 
 ### Local And Server Start Commands
@@ -245,10 +244,11 @@ node_modules
 ```
 
 The publish workflow also generates `dist/pnpm-lock.yaml` before final cleanup. `pnpm install
---lockfile-only` can create local dependency links, so the workflow removes `dist/node_modules` again
-before staging and checks only files that will be committed. After switching to the orphan `dist`
-branch workspace, the workflow also deletes root-level build leftovers such as `.next/` and
-`node_modules/`; those are untracked workspace files from the build job, not deployment files.
+--lockfile-only` can create local dependency links, so the workflow removes `dist/node_modules` and
+`dist/pnpm-workspace.yaml` again before staging and checks only files that will be committed. After
+switching to the orphan `dist` branch workspace, the workflow also deletes root-level build leftovers
+such as `.next/` and `node_modules/`; those are untracked workspace files from the build job, not
+deployment files.
 
 The workflow also removes `.next/cache/webpack` which contains large webpack pack files that are
 not needed for the standalone build. These are excluded during `create-dist.cjs` copy and cleaned
@@ -377,7 +377,7 @@ The GitHub Actions workflows have been verified and are correct:
 - Publish job force-cleans dist branch with git checkout --orphan new-dist and git rm -rf . ✓
 - Publishes generated `/dist` folder contents without changing the folder shape ✓
 - Syncs `dist-root/` to the deployment branch root ✓
-- Publishes root `railway.json` and `vercel.json` from `dist-root/server-config/` ✓
+- Publishes `server-config/railway.json` and `server-config/vercel.json` from `dist-root/server-config/` ✓
 
 **ci.yml:**
 - Does not run on beta pushes (validated when PR targets main) ✓

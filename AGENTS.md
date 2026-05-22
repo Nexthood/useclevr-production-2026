@@ -142,11 +142,12 @@ available, with a short fallback title only when no PR title exists.
 CI / local (repo root)              Railway (dist branch, /dist root)
 ─────────────────                   ──────────────────────
 pnpm prod:build                     (build phase — one-shot)
-  └ next build --webpack            pnpm build
+  └ next build --webpack            pnpm install via nixpacks.toml
   └ create-dist.cjs                 pnpm exec drizzle-kit push
      → .next/standalone + static     node server.js
      → dist/server.js
      → dist/package.json             (no full source build here)
+     → dist/nixpacks.toml
      → dist/src/lib/db/ (schema)
      → server-config/railway.json
      → server-config/vercel.json
@@ -158,7 +159,7 @@ pnpm prod:build                     (build phase — one-shot)
 |---|---|
 | `dist-root/server-config/railway.json` | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch. |
 | `dist-root/server-config/vercel.json` | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
-| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, copies schema, runtime scripts, and assets. Only place dist is assembled. |
+| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, `dist/nixpacks.toml`, copies schema, runtime scripts, and assets. Only place dist is assembled. |
 | `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`. |
 | `scripts/server/vercel/sync-config.cjs` | Copies `dist-root/server-config/vercel.json` → `vercel.json`. Run it — not the opposite direction. |
 
@@ -190,6 +191,7 @@ template.
 - **Do** keep server-specific helper scripts under `scripts/server/<host>/`; keep local/general
   scripts in the existing non-server `scripts/` subfolders.
 - **Do** keep Railway pnpm build approvals in generated `/dist` output and the Railway build command.
+- **Do** keep generated `/dist/nixpacks.toml` so Railway Nixpacks uses Corepack pnpm instead of the default `npm i`.
 - **Do** keep Vercel source-branch config in root `vercel.json`, synced from the Vercel template.
 - **Do not** hand-edit files in `dist/`. They are generated. Regenerate them.
 - **Do not** `git add dist/` when preparing a PR. `dist/` is `.gitignore`-ed on source branches; CI
