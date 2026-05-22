@@ -132,9 +132,9 @@ required source check before generated Railway output is published.
 Pull request titles should start with `PR:`. Dist publish commits should use the merged PR title when
 available, with a short fallback title only when no PR title exists.
 
-`dist-root/` stores files copied to the deployment branch root. Host config templates live in
-`dist-root/server-config/` with the platform-native names `railway.json` and `vercel.json`.
-GitHub Actions workflows live in `.github/workflows/`.
+`dist-root/server-config/` stores deployment config files copied to the deployment branch
+`/server-config` folder. Host config templates keep the platform-native names `railway.json` and
+`vercel.json`. GitHub Actions workflows live in `.github/workflows/`.
 
 ### Build pipeline
 
@@ -147,20 +147,19 @@ pnpm prod:build                     (build phase — one-shot)
      → .next/standalone + static     node server.js
      → dist/server.js
      → dist/package.json             (no full source build here)
-     → dist/railway.json
      → dist/src/lib/db/ (schema)
-     → railway.json at branch root
-     → vercel.json at branch root
+     → server-config/railway.json
+     → server-config/vercel.json
 ```
 
 ### Source-of-truth files
 
 | File | Role |
 |---|---|
-| `dist-root/server-config/railway.json` | Source-of-truth for the Railway deploy target. Published to the dist branch root and copied into generated output for local parity. |
-| `dist-root/server-config/vercel.json` | Source-of-truth for the Vercel source deploy target. Published to the dist branch root and synced to root `vercel.json` on source branches. |
-| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, `dist/pnpm-workspace.yaml`, copies schema, `railway.json`, assets. Only place dist is assembled. |
-| `scripts/server/railway/sync-config.cjs` | Copies `dist-root/server-config/railway.json` → `dist/railway.json`. Run it — not the opposite direction. |
+| `dist-root/server-config/railway.json` | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch. |
+| `dist-root/server-config/vercel.json` | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
+| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, copies schema, runtime scripts, and assets. Only place dist is assembled. |
+| `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`. |
 | `scripts/server/vercel/sync-config.cjs` | Copies `dist-root/server-config/vercel.json` → `vercel.json`. Run it — not the opposite direction. |
 
 Database migrations stay in Railway `preDeployCommand` while the deployment is a single web service.
@@ -172,20 +171,21 @@ Do not add a separate migration job unless background work or migration risk req
 pnpm validate:dist   →  Railway and Vercel deploy config sync checks
 ```
 
-Checks Railway and Vercel deploy templates directly on source branches. If local `dist/railway.json`
-exists, it also fails when generated config differs from the Railway source-of-truth file. It also
-fails when source-branch root `vercel.json` differs from the Vercel template.
+Checks Railway and Vercel deploy templates directly on source branches. Railway config must remain
+under `dist-root/server-config/`; Vercel source-branch root `vercel.json` must match the Vercel
+template.
 
 ### Do / Do not
 
-- **Do** edit `dist-root/server-config/railway.json` for Railway target config changes, then run `node scripts/server/railway/sync-config.cjs`.
+- **Do** edit `dist-root/server-config/railway.json` for Railway target config changes, then run `node scripts/server/railway/sync-config.cjs --check`.
 - **Do** edit `dist-root/server-config/vercel.json` for Vercel target config changes, then run `node scripts/server/vercel/sync-config.cjs`.
 - **Do** regenerate local `dist/` with `pnpm prod:build` after any change that needs a deploy preview.
 - **Do** keep generated-output packaging scripts under `scripts/package-dist/`; `scripts/dist/` is
   blocked by the `dist/` ignore rule.
 - **Do not** run `pnpm build` from inside `dist/`. The build command (`pnpm prod:build`) runs from the repo root — `dist/` has no `build` script and no parent `package.json`.
-- **Do** publish `railway.json` and `vercel.json` at the `dist` branch root from `dist-root/server-config/`.
-- **Do** keep the Railway service root directory set to `/dist`; the config file path is `/railway.json`.
+- **Do** publish `railway.json` and `vercel.json` only under `/server-config` on the `dist` branch.
+- **Do** keep the Railway service root directory set to `/dist`; the config file path is `/server-config/railway.json`.
+- **Do not** publish `railway.json` or `vercel.json` at the `dist` branch root or inside `/dist`.
 - **Do not** move `dist-root/` under build scripts; it stores server-host templates.
 - **Do** keep server-specific helper scripts under `scripts/server/<host>/`; keep local/general
   scripts in the existing non-server `scripts/` subfolders.
@@ -237,7 +237,7 @@ AI agents must keep `.TODO/todo.md` and `.TODO/todo-next.md` in sync with active
 
   | Prefer | Avoid |
   ||---|---|
-  | **`dist/railway.json`** | `dist/railway.json`, ``code/`` |
+  | **`server-config/railway.json`** | `server-config/railway.json`, ``code/`` |
   | **`dist/`** | \`dist/\`, `code/` |
   | Yes | absolutely, truly, rapidly |
   | gates deactivated | louvers disengaged |

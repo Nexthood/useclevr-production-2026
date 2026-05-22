@@ -1,5 +1,6 @@
 import { debugError, debugLog } from "@/lib/utils/debug"
 
+import { recordActivity } from '@/lib/activity/activity-store'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { datasets, users } from '@/lib/db/schema'
@@ -599,6 +600,20 @@ export async function POST(request: Request) {
     debugLog('[UPLOAD] =============================================')
 
     const usage = await consumeAnalystCredit(userId)
+    await recordActivity({
+      userId,
+      userEmail: session?.user?.email,
+      type: 'dataset_uploaded',
+      feature: 'datasets',
+      title: 'Dataset uploaded',
+      description: `${datasetName} was added with ${processed.length} rows.`,
+      metadata: {
+        datasetId,
+        name: datasetName,
+        rowCount: processed.length,
+        columnCount: headers.length,
+      },
+    })
 
     // Return success
     return NextResponse.json({

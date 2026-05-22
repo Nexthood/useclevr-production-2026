@@ -2,6 +2,12 @@
 
 ## Completed
 
+- **Dashboard notices and activity** — Topbar notices now persist in an inbox with recent product
+  activity, user activity history, and super-admin total activity.
+- **Dist history visibility** — Dist publish keeps the previous deployment commit visible and reduces
+  workflow log output.
+- **Dist config placement** — Dist branch host config stays only in `/server-config`, and pnpm
+  workspace metadata is removed from deployment output.
 - **GitHub Actions workflow steps** — Renamed steps in branch-maintenance.yml to descriptive names.
 - **Railway lockfile generation** — Publish workflow now generates matching pnpm-lock.yaml from dist package.json for deterministic installs.
 - **Railway build fix** — Removed --frozen-lockfile since dist package.json has fewer deps than root.

@@ -40,7 +40,7 @@ GEMINI_API_KEY=
 | `pnpm build`             | Build                                                                                |
 | `pnpm start`             | Start built app                                                                      |
 | `pnpm prod`              | Production bundle                                                                    |
-| `pnpm ci:railway`        | Sync the generated Railway config from `dist-root/server-config/railway.json`        |
+| `pnpm ci:railway`        | Validate the Railway config template in `dist-root/server-config/railway.json`       |
 | `pnpm analyze:business`  | Inspect latest dataset business metrics from the database                            |
 | `pnpm test:csv-analyzer` | Run the CSV analyzer smoke script                                                    |
 | `pnpm test:neon`         | Test database connectivity with `NEON_DATABASE_URL`, `DIRECT_URL`, or `DATABASE_URL` |
@@ -53,13 +53,13 @@ GEMINI_API_KEY=
 ## Deploy
 
 - Use Railway root directory `dist`.
-- Railway config file path should point to `/railway.json` in the deployed commit.
+- Railway config file path should point to `/server-config/railway.json` in the deployed commit.
 - The generated `/dist` folder remains the application runtime root.
-- To refresh only that file: `pnpm ci:railway`.
+- Railway and Vercel config files stay only under `/server-config` on the dist branch.
+- To validate the Railway config template: `pnpm ci:railway`.
 - To refresh the full bundle: `pnpm prod:build`.
-- Build command: `echo 'Using pre-built artifacts from dist/'`
-- Start command:
-  `AUTH_URL=${AUTH_URL:-$NEXTAUTH_URL} AUTH_SECRET=${AUTH_SECRET:-$NEXTAUTH_SECRET} AUTH_TRUST_HOST=true HOSTNAME=0.0.0.0 PORT=${PORT:-8080} node server.js`
+- Build command: `corepack enable && corepack prepare pnpm@11.1.2 --activate && pnpm install --frozen-lockfile --prod --no-optional --config.dangerouslyAllowAllBuilds=true`
+- Start command: `pnpm run start:railway`
 - Health: `/api/health`
 
 ## Development Notes

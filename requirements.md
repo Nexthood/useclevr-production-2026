@@ -44,6 +44,8 @@
 
 ### Support
 
+- Dashboard notices appear in a topbar inbox with a persistent count so users can review and clear
+  notices when they are ready.
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
 - Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
@@ -77,6 +79,8 @@
 
 ### Customer Management
 
+- Users can review their last 100 account, subscription, and dataset activity events from Settings.
+- Super-admins can review recent product activity across all users from a protected settings page.
 - Super-admins can view a full customer list with plan, signup date, last login, referral source,
   login count, and dataset count in a single admin page.
 - Super-admins always see built-in demo and super-admin accounts at the top of the customer list.
@@ -128,10 +132,11 @@
   no-fix decisions.
 - Developer machines use Husky-managed Git hooks instead of custom local `.git/hooks` scripts.
 - Dist deployment commits use short pull request titles so deployment history is readable.
-- The deployment branch keeps permanent host config separate from generated application output so
-  platform config can live at the branch root while the app runs from `/dist`.
-- The deployment branch publishes host config files at the branch root while keeping generated
-  application output inside `/dist`.
+- Dist deployment history keeps the previous deployment commit visible in the branch graph.
+- The deployment branch keeps permanent host config in `/server-config` while the app runs from
+  `/dist`.
+- The deployment branch never publishes Railway or Vercel config files at the branch root or inside
+  `/dist`.
 - Auto-merged release pull requests dispatch branch maintenance after merge so beta sync and dist
   publishing run even when token-generated events are suppressed.
 - Developers can run the generated production server locally with shared development environment

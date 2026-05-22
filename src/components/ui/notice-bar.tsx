@@ -15,8 +15,10 @@ type NoticeInput = Omit<Notice, "id">
 
 type NoticeContextValue = {
   notice: Notice | null
+  notices: Notice[]
   showNotice: (notice: NoticeInput) => void
-  clearNotice: () => void
+  clearNotice: (id?: number) => void
+  clearAllNotices: () => void
 }
 
 const NoticeContext = React.createContext<NoticeContextValue | null>(null)
@@ -46,40 +48,34 @@ const getFetchUrl = (input: Parameters<typeof window.fetch>[0]) => {
 }
 
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
-  const [notice, setNotice] = React.useState<Notice | null>(null)
+  const [notices, setNotices] = React.useState<Notice[]>([])
   const [isMutedPath, setIsMutedPath] = React.useState(false)
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const notice = notices[0] ?? null
 
   React.useEffect(() => {
     setIsMutedPath(window.location.pathname.startsWith("/login"))
   }, [])
 
-  const clearNotice = React.useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-    setNotice(null)
+  const clearNotice = React.useCallback((id?: number) => {
+    setNotices((current) => {
+      if (id === undefined) return current.slice(1)
+      return current.filter((item) => item.id !== id)
+    })
   }, [])
 
   const showNotice = React.useCallback((input: NoticeInput) => {
     if (isMutedPath) return
 
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-
-    setNotice({
+    const nextNotice = {
       ...input,
       id: Date.now(),
-    })
-
-    // Remove auto-dismiss for permanent bar
-    // timerRef.current = setTimeout(() => {
-    //   setNotice(null)
-    //   timerRef.current = null
-    // }, input.type === "error" ? 9000 : 5000)
+    }
+    setNotices((current) => [nextNotice, ...current].slice(0, 20))
   }, [isMutedPath])
+
+  const clearAllNotices = React.useCallback(() => {
+    setNotices([])
+  }, [])
 
   React.useEffect(() => {
     const handleNotice = (event: Event) => {
@@ -113,9 +109,6 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener(noticeEventName, handleNotice)
       window.removeEventListener("error", handleError)
       window.removeEventListener("unhandledrejection", handleRejection)
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
     }
   }, [showNotice])
 
@@ -155,7 +148,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
    }, [isMutedPath, showNotice])
 
    return (
-    <NoticeContext.Provider value={{ notice, showNotice, clearNotice }}>
+    <NoticeContext.Provider value={{ notice, notices, showNotice, clearNotice, clearAllNotices }}>
       {children}
     </NoticeContext.Provider>
   )

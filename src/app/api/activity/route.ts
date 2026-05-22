@@ -1,0 +1,22 @@
+import { auth } from "@/lib/auth"
+import { listAllActivities, listUserActivities } from "@/lib/activity/activity-store"
+import { NextResponse } from "next/server"
+
+export async function GET(request: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const url = new URL(request.url)
+  const limit = Number(url.searchParams.get("limit") ?? "20")
+  const scope = url.searchParams.get("scope")
+  const isSuperAdmin = session.user.role === "superadmin"
+
+  const activities =
+    scope === "all" && isSuperAdmin
+      ? await listAllActivities(limit)
+      : await listUserActivities(session.user.id, limit)
+
+  return NextResponse.json({ activities })
+}
