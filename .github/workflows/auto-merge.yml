@@ -35,20 +35,3 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --merge --auto
-
-      - name: Dispatch branch maintenance after merge
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          for attempt in {1..120}; do
-            MERGED_AT="$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json mergedAt --jq '.mergedAt')"
-            if [ "$MERGED_AT" != "null" ] && [ -n "$MERGED_AT" ]; then
-              gh workflow run branch-maintenance.yml --repo "${{ github.repository }}" --ref main
-              exit 0
-            fi
-            sleep 10
-          done
-
-          echo "Timed out waiting for PR #$PR_NUMBER to merge before dispatching branch maintenance."
-          exit 1
