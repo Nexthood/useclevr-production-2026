@@ -44,6 +44,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   release so Nixpacks does not fail on stale package-manager signatures or Node engine checks.
 - Railway generated-output packages no longer mix explicit build approvals with the runtime install
   flag that allows dependency build scripts.
+- Railway runtime installs now tolerate generated deployment packages without a committed lockfile.
 - Repository text formatting is now normalized with UTF-8 and LF rules for local and CI consistency.
 - Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
 - Dist deployments now keep host config files in the deployment config folder only, preventing
