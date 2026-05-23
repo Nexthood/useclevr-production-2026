@@ -3,8 +3,6 @@ name: Sync Beta And Publish Dist
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [closed]
   workflow_dispatch:
 
 permissions:
@@ -15,10 +13,14 @@ env:
   FORCE_COLOR: "0"
   TERM: dumb
 
+concurrency:
+  group: branch-maintenance
+  cancel-in-progress: true
+
 jobs:
   sync-beta:
     name: Sync beta with main
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -39,14 +41,14 @@ jobs:
 
   publish-dist:
     name: Publish dist deployment folder
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request' && github.event.pull_request.merged }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Guard main branch only
         run: |
-          if [ "${GITHUB_REF}" != "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" != "pull_request" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
-            echo "Dist publish is only allowed from main, merged pull requests, or manual dispatch."
+          if [ "${GITHUB_REF}" != "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
+            echo "Dist publish is only allowed from main or manual dispatch."
             exit 1
           fi
 
