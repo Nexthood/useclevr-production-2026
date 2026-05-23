@@ -2,14 +2,10 @@ name: Validate Source
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main]
 
 jobs:
   validate-source-and-build:
-    name: Validate source and production build
-    if: >
-      !(github.ref == 'refs/heads/beta' &&
-        contains(github.event.head_commit.message || '', '[skip ci]'))
     runs-on: ubuntu-latest
 
     steps:
@@ -34,10 +30,6 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
   docs:
-    name: Documentation checks
-    if: >
-      !(github.ref == 'refs/heads/beta' &&
-        contains(github.event.head_commit.message || '', '[skip ci]'))
     runs-on: ubuntu-latest
 
     steps:

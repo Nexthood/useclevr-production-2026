@@ -26,6 +26,12 @@ if (target === "railway") {
 
 const fs = require("node:fs");
 
+const nextBuildDir = path.join(process.cwd(), ".next");
+const nextBuildRestoreDir = path.join(process.cwd(), "next-build");
+if (!fs.existsSync(nextBuildDir) && fs.existsSync(nextBuildRestoreDir)) {
+  fs.cpSync(nextBuildRestoreDir, nextBuildDir, { recursive: true });
+}
+
 const serverCandidates = [
   path.join(process.cwd(), "server.js"),
   path.join(process.cwd(), "dist", "server.js"),

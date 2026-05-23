@@ -32,7 +32,7 @@ control Nixpacks install and build phases from the Railway service root:
 - setup uses Node 22 so Railway does not fall back to Node 18's stale Corepack
 - install refreshes Corepack and activates pnpm 10.23.0 for Node 22.11 compatibility
 - install runs production `pnpm install`
-- build restores `.next` from `next-build` if Railway's snapshot omits dot-directories
+- runtime start restores `.next` from `next-build` if Railway's snapshot omits dot-directories
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
@@ -106,5 +106,6 @@ the generated deployment package is smaller than the source workspace and Railwa
 generated output only.
 
 If runtime logs show `Could not find a production build in the './.next' directory`, keep the
-generated `next-build` folder and the Nixpacks build restore step. Railway can omit dot-directories
-from the service snapshot, while Next still expects `.next` at runtime.
+generated `next-build` folder and the runtime restore step. Railway can omit dot-directories from the
+service snapshot, while Next still expects `.next` at runtime. Do not rely on the Nixpacks build
+phase for this restore while Railway config owns `buildCommand`.

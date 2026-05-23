@@ -158,8 +158,8 @@
 - Railway runtime installs can run from generated deployment packages without a committed lockfile.
 - Railway generated deployment packages include the migration tooling needed for the pre-deploy schema
   step.
-- Railway generated deployments keep a restore copy of the Next.js build output so runtime start does
-  not depend on host snapshot handling of dot-directories.
+- Railway generated deployments restore the Next.js build output during runtime start so host
+  snapshot handling of dot-directories cannot block boot.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
 - Project text files use UTF-8 and LF formatting so local checks and CI read the same file content.

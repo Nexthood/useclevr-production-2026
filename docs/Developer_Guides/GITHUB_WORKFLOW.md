@@ -88,13 +88,10 @@ The main CI workflow is `.github/workflows/ci.yml`.
 
 It runs on:
 - Pushes to `main`
-- Pull requests targeting `main`
 
 It intentionally does not run on `beta` pushes. A direct push to `beta` is only a test branch update;
 it should not validate as a release candidate until it becomes a pull request into `main`. This also
 keeps the automatic `main` → `beta` sync commit from starting CI on `beta`.
-After the pull request merges, the push to `main` also runs the same validation so the protected
-source branch and deployment publisher see a confirmed main-branch result.
 
 CI is automatically skipped for commits containing `[skip ci]` in the commit message.
 
@@ -117,12 +114,11 @@ it does not depend on the runner's current Git branch.
 
 The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance in parallel jobs:
 
-- **sync-beta**: Triggers on push to `main` (not PRs)
+- **sync-beta**: Triggers on push to `main` and `workflow_dispatch`
   - Syncs `beta` with `main` using `git merge --strategy-option=theirs` to handle conflicts
   - Commit message includes `[skip ci]` to prevent CI duplication
 
-- **publish-dist**: Triggers on push to `main` (not PRs)
-- Runs independently, not dependent on sync-beta
+- **publish-dist**: Triggers on push to `main` and `workflow_dispatch`
 - Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
 - Runs type validation, dist config validation, and lint before publishing generated output
 - Runs `pnpm prod:build` to create the dist output
@@ -134,7 +130,7 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
 - Fails if `railway.json` or `vercel.json` lands at the branch root or inside `/dist`
 - Pushes a normal commit to `dist` when generated output changes, using the merged PR number and title (e.g., `PR-28: fix: ...`) instead of a long source commit id
 
-Running jobs in parallel means `publish-dist` can complete even if `sync-beta` fails due to merge conflicts.
+Concurrency control prevents duplicate workflow runs: only one `branch-maintenance` workflow can run at a time, avoiding the race condition where both PR close event and auto-merge dispatch would trigger simultaneously.
 
 `dist-root/` stores deployment-branch root files, not the CI workflow itself. Host config templates
 live at `dist-root/server-config/railway.json` and `dist-root/server-config/vercel.json`.
@@ -316,13 +312,13 @@ The GitHub Actions workflows have been verified and are correct:
 
 **ci.yml:**
 - Validation runs on push to branches [main] ✓
-- Validation runs on pull_request to branches [main] ✓
-- Beta pushes do not run the same validation twice; validation happens on the beta → main PR ✓
-- Skips CI for commits containing [skip ci] in both validation and documentation jobs ✓
+- Beta pushes do not run CI (prevents duplicate runs) ✓
+- Skips CI for commits containing [skip ci] ✓
 
 **branch-maintenance.yml:**
-- Runs only on push to branches: [main] ✓ (dist deployment from main only)
-- Both jobs have if: github.ref == 'refs/heads/main' ✓
+- Runs only on push to branches: [main] or workflow_dispatch ✓ (dist deployment from main only)
+- Both jobs have `if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main'` ✓
+- Concurrency control prevents duplicate runs ✓
 - Sync job merges main into beta with [skip ci] in commit message ✓
 - Uses `--strategy-option=theirs` to handle merge conflicts ✓
 - Publish job runs independently, not dependent on sync-beta ✓
@@ -330,6 +326,3 @@ The GitHub Actions workflows have been verified and are correct:
 - Publishes generated `/dist` folder contents without changing the folder shape ✓
 - Syncs `dist-root/` to the deployment branch root ✓
 - Publishes `server-config/railway.json` and `server-config/vercel.json` from `dist-root/server-config/` ✓
-
-**ci.yml:**
-- Does not run on beta pushes (validated when PR targets main) ✓
