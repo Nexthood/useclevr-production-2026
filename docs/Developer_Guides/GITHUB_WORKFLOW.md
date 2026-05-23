@@ -145,7 +145,7 @@ Railway deployment flow:
 
 1. **Build phase** (controlled by `dist-root/server-config/railway.json`):
    - Nixpacks provides the deployment builder so Railway does not run Railpack `mise install`.
-   - Generated `/dist/nixpacks.toml` installs Node 26 and activates pnpm 11.1.2 before install.
+   - Generated `/dist/nixpacks.toml` activates pnpm 11.1.2 before install.
    - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
    - Generated output omits `pnpm-workspace.yaml` so Railway cannot read stale workspace metadata
 

@@ -25,9 +25,8 @@ GitHub Actions builds the app from `main`, publishes generated output to `/dist`
 branch, and publishes Railway config to `/server-config/railway.json`.
 
 `dist-root/server-config/nixpacks.toml` is copied to generated `/dist/nixpacks.toml` so it can
-control Nixpacks phases from the Railway service root:
+control Nixpacks install and build phases from the Railway service root:
 
-- setup installs Node 26
 - install enables Corepack and activates pnpm 11.1.2
 - install runs production `pnpm install`
 - build is a no-op because GitHub Actions already built the standalone app
