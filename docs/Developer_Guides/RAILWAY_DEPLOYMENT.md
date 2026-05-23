@@ -29,7 +29,8 @@ branch, and publishes Railway config to `/server-config/railway.json`.
 `dist-root/server-config/nixpacks.toml` is copied to generated `/dist/nixpacks.toml` so it can
 control Nixpacks install and build phases from the Railway service root:
 
-- install enables Corepack and activates pnpm 11.1.2
+- setup uses Node 22 so Railway does not fall back to Node 18's stale Corepack
+- install refreshes Corepack and activates pnpm 11.1.2
 - install runs production `pnpm install`
 - build is a no-op because GitHub Actions already built the standalone app
 
@@ -94,3 +95,7 @@ If logs show workspace metadata errors, confirm generated `/dist` does not conta
 If logs show `$NIXPACKS_PATH` as undefined, keep the Nixpacks plan explicit in
 `dist-root/server-config/nixpacks.toml`; do not depend on Railway-only build variables unless they
 are defined before use.
+
+If logs show `Cannot find matching keyid` during `corepack prepare`, Railway used an old Corepack
+from Node 18. Keep the generated Nixpacks plan on Node 22 and install the latest Corepack before
+activating pnpm.

@@ -40,6 +40,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Railway and Vercel deployment docs now own their host-specific commands, settings, and
   troubleshooting notes.
+- Railway generated-output builds now refresh Corepack on Node 22 before activating pnpm so Nixpacks
+  does not fail on stale Node 18 package-manager signatures.
 - Repository text formatting is now normalized with UTF-8 and LF rules for local and CI consistency.
 - Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
 - Dist deployments now keep host config files in the deployment config folder only, preventing

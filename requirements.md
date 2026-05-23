@@ -151,6 +151,8 @@
   npm command overrides are not part of the supported deployment path.
 - Railway runtime builds use Corepack-managed pnpm through Nixpacks so deployment no longer depends
   on Railpack `mise install`.
+- Railway runtime builds use a current Node/Corepack setup before activating pnpm so package-manager
+  signature updates do not block deploys.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
 - Project text files use UTF-8 and LF formatting so local checks and CI read the same file content.
