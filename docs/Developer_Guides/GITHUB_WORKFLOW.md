@@ -139,35 +139,11 @@ Running jobs in parallel means `publish-dist` can complete even if `sync-beta` f
 `dist-root/` stores deployment-branch root files, not the CI workflow itself. Host config templates
 live at `dist-root/server-config/railway.json` and `dist-root/server-config/vercel.json`.
 
-### Railway Runtime Behavior
+### Host Deployment Guides
 
-Railway deployment flow:
-
-1. **Build phase** (controlled by `dist-root/server-config/railway.json`):
-   - Nixpacks provides the deployment builder so Railway does not run Railpack `mise install`.
-   - Generated `/dist/nixpacks.toml` activates pnpm 11.1.2 before install.
-   - `pnpm install --frozen-lockfile --prod --no-optional` - Installs only production dependencies
-   - Generated output omits `pnpm-workspace.yaml` so Railway cannot read stale workspace metadata
-
-2. **Pre-deploy phase**:
-   - `pnpm run railway:predeploy` applies database schema changes through pnpm.
-
-3. **Start phase**:
-   - `pnpm run start:railway` starts the generated standalone server with Railway host binding.
-   - Railway runs from `dist/` folder, so the path is relative to `/dist`
-
-Database migrations stay in Railway `preDeployCommand` for this phase. A separate migration service or job is future work only when migrations or background jobs need isolation from the web process.
-
-The `dist` branch root is intentionally small. Permanent files live at the branch root, while Railway runs from the generated `/dist` folder. To test the runtime locally, switch to `dist`, run `cd dist && pnpm install && npm run start`, and open `http://localhost:8080`. The default local start uses `localhost` for Auth.js; Railway and Vercel use named target scripts.
-
-Railway should keep root directory `/dist` and config file path `/server-config/railway.json`.
-Generated `/dist` carries `nixpacks.toml` so Nixpacks runs Corepack-managed pnpm in the install phase
-instead of auto-detecting npm. The Railway build command is `true` because GitHub Actions already
-builds the standalone app before publishing.
-
-Railway service settings must not keep old custom `npm` commands. Clear dashboard build, pre-deploy,
-and start command overrides so `/server-config/railway.json` controls the deployment. If an override is
-temporarily needed, use `pnpm run railway:predeploy` for migrations and `pnpm start` for runtime.
+Railway runtime behavior lives in [`RAILWAY_DEPLOYMENT.md`](RAILWAY_DEPLOYMENT.md). Vercel
+source-branch behavior lives in [`VERCEL_DEPLOYMENT.md`](VERCEL_DEPLOYMENT.md). Keep host-specific
+CLI, dashboard, runtime, and troubleshooting steps in those files.
 
 ### Local And Server Start Commands
 
@@ -181,30 +157,6 @@ npm run start:vercel   # Vercel target placeholder
 
 The source checkout mirrors this with `pnpm start:dist`, `pnpm prod:railway`, and
 `pnpm prod:vercel`. Use the named server target only when testing that host's environment.
-
-### Vercel Source Deployment
-
-Vercel deployment flow:
-
-```text
-beta → PR → main → Vercel builds from main
-```
-
-Vercel reads root `vercel.json`, which is synced from:
-
-```text
-dist-root/server-config/vercel.json
-```
-
-Edit the template, then run:
-
-```bash
-pnpm deploy:vercel:sync
-pnpm validate:dist
-```
-
-Do not point Vercel at the generated `dist` branch. Railway owns the generated-output path; Vercel
-owns source-branch builds. Database migrations do not run as a Vercel pre-deploy phase in this setup.
 
 For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local env values, while shell and Railway variables remain authoritative.
 

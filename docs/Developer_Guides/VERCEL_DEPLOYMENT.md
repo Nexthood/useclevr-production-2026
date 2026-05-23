@@ -5,6 +5,7 @@
 - [Vercel Settings](#vercel-settings)
 - [Commands](#commands)
 - [Validation](#validation)
+- [Troubleshooting](#troubleshooting)
 
 Vercel deploys the source application from `main`.
 
@@ -36,3 +37,12 @@ pnpm validate:dist
 
 Do not point Vercel at the generated `dist` branch. Railway owns the generated-output deployment
 path; Vercel owns source-branch builds.
+
+## Troubleshooting
+
+- If Vercel reads stale settings, run `pnpm deploy:vercel:sync` and confirm root `vercel.json`
+  matches `dist-root/server-config/vercel.json`.
+- If a Vercel build cannot install packages, confirm the project uses Corepack pnpm and the same Node
+  major version as CI.
+- If runtime secrets differ from Railway, update Vercel project environment variables directly; do
+  not commit secrets to source.

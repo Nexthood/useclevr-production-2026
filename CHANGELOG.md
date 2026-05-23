@@ -19,6 +19,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Payment provider settings now require super-admin access even when opened by direct URL.
+- Super-admin dashboard pages now require super-admin access even when opened by direct URL.
+- Dashboard notices now dismiss the selected notice reliably when multiple notices arrive together.
 - Contact visitors can now submit demo and sales requests from the Contact page.
 - Product-update waitlist signup now succeeds during local development when the production database
   is unavailable.
@@ -35,6 +38,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Railway and Vercel deployment docs now own their host-specific commands, settings, and
+  troubleshooting notes.
+- Repository text formatting is now normalized with UTF-8 and LF rules for local and CI consistency.
 - Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
 - Dist deployments now keep host config files in the deployment config folder only, preventing
   Railway from building the branch root by mistake.

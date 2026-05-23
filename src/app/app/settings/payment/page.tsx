@@ -1,7 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { auth } from "@/lib/auth"
 import { CreditCard, Key, Link2, ShieldCheck } from "lucide-react"
+import { redirect } from "next/navigation"
 
 export default async function PaymentSettingsPage() {
+  const session = await auth()
+  if (session?.user?.role !== "superadmin") {
+    redirect("/app/settings/subscription")
+  }
+
   const keyConfigured = Boolean(process.env.STRIPE_SECRET_KEY)
   const webhookConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET)
 

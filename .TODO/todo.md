@@ -10,6 +10,11 @@ No active leading-edge items.
 
 ## Completed ✅
 
+- Railway and Vercel now have dedicated deployment guides for host-specific commands, settings, and
+  troubleshooting.
+- Repository text formatting now has UTF-8 and LF rules for local and CI consistency.
+- Payment provider settings and super-admin dashboard pages now require super-admin access from direct
+  URLs, and dashboard notices dismiss the selected notice reliably.
 - Dashboard notices now live in a topbar inbox with recent project activity, user activity history,
   super-admin total activity, and subscription-focused credit access.
 - Dist publish history now keeps the previous deployment commit visible while reducing workflow log

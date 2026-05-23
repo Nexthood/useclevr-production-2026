@@ -5,7 +5,9 @@
 - [Railway Settings](#railway-settings)
 - [Build Shape](#build-shape)
 - [Runtime Commands](#runtime-commands)
+- [Railway CLI](#railway-cli)
 - [Local Checks](#local-checks)
+- [Troubleshooting](#troubleshooting)
 
 Railway deploys generated production output from the `dist` branch.
 
@@ -45,6 +47,32 @@ pnpm run start:railway
 
 The start command binds to Railway `$PORT` and `0.0.0.0` through the runtime helper.
 
+## Railway CLI
+
+Fastest safe operator flow:
+
+```bash
+railway login
+railway link
+railway status
+railway logs
+```
+
+Trigger the latest deploy:
+
+```bash
+railway redeploy
+```
+
+If `redeploy` is unavailable in the installed CLI:
+
+```bash
+railway up
+```
+
+Use `pnpm dlx @railway/cli <command>` when Railway is not installed globally. CLI access requires a
+browser login or `RAILWAY_TOKEN` in the shell environment.
+
 ## Local Checks
 
 ```bash
@@ -55,5 +83,14 @@ test ! -f dist/railway.json
 test ! -f dist/vercel.json
 ```
 
+## Troubleshooting
+
 If Railway logs show `RUN npm i`, Nixpacks did not use generated `/dist/nixpacks.toml` or Railway is
 building the wrong root directory.
+
+If logs show workspace metadata errors, confirm generated `/dist` does not contain
+`pnpm-workspace.yaml` and the deployment branch root does not contain `pnpm-workspace.yaml`.
+
+If logs show `$NIXPACKS_PATH` as undefined, keep the Nixpacks plan explicit in
+`dist-root/server-config/nixpacks.toml`; do not depend on Railway-only build variables unless they
+are defined before use.

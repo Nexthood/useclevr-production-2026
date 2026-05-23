@@ -120,6 +120,8 @@
   and healthcheck path.
 - Server-host settings are grouped by host so Railway and future secondary destinations can
   keep separate templates.
+- Railway and Vercel deployment operations have separate guides so host-specific CLI, dashboard,
+  runtime, and troubleshooting steps stay easy to replace.
 - Vercel can deploy the source branch with its own synced host template while Railway continues to
   deploy generated output.
 - Application source remains independent from hosting-specific files, so server targets can change
@@ -151,6 +153,7 @@
   on Railpack `mise install`.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
+- Project text files use UTF-8 and LF formatting so local checks and CI read the same file content.
 - Local pre-commit validation runs the production publish build so missing bundle dependencies are
   caught before deployment.
 - Publish builds install PDF export browser dependencies as explicit production packages, even when
@@ -159,6 +162,9 @@
   from authentication and marketing screens.
 - Public pages outside the homepage share a consistent title section so navigation feels stable
   across FAQ, pricing, contact, security, privacy, and terms.
+- Payment provider settings require super-admin access from navigation and direct URLs.
+- Super-admin dashboard pages require super-admin access from navigation and direct URLs.
+- Dashboard notices dismiss the selected notice reliably when several notices arrive close together.
 
 ### Reference Files
 
