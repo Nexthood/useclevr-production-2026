@@ -6,6 +6,8 @@
   settings, runtime behavior, and troubleshooting.
 - **Railway Corepack build fix** — Railway generated-output builds now refresh Corepack on Node 22
   and use a Node-compatible pnpm release to avoid signature and engine failures.
+- **Railway pnpm config fix** — Generated runtime packages no longer mix conflicting pnpm
+  build-approval settings.
 - **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
   with LF endings.
 - **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now
