@@ -17,6 +17,8 @@ No active leading-edge items.
 - Railway generated-output packages no longer mix conflicting pnpm build-approval settings.
 - Railway generated-output installs now tolerate deployment packages without a committed lockfile.
 - Railway generated-output packages now include pre-deploy migration tooling.
+- Railway generated-output deploys now restore the Next.js build directory if the host snapshot omits
+  dot-directories.
 - Repository text formatting now has UTF-8 and LF rules for local and CI consistency.
 - Payment provider settings and super-admin dashboard pages now require super-admin access from direct
   URLs, and dashboard notices dismiss the selected notice reliably.

@@ -60,6 +60,10 @@ if (fs.existsSync(nextStaticDir)) {
   copyDir(nextStaticDir, path.join(distDir, ".next", "static"));
 }
 
+// Railway's source snapshot can omit dot-directories from the service root. Keep a non-dot copy and
+// restore it inside the image before runtime starts.
+copyDir(path.join(distDir, ".next"), path.join(distDir, "next-build"));
+
 // Copy database schema and migrations for production CLI tools (drizzle-kit)
 if (fs.existsSync(dbSchemaDir)) {
   const destDbDir = path.join(distDir, "src", "lib", "db");

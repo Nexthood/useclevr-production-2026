@@ -5,4 +5,4 @@ nixPkgs = ["nodejs_22", "npm-9_x"]
 cmds = ["npm install -g corepack@latest && corepack enable && corepack prepare pnpm@10.23.0 --activate && pnpm install --no-frozen-lockfile --prod --no-optional --config.dangerouslyAllowAllBuilds=true"]
 
 [phases.build]
-cmds = ["true"]
+cmds = ["if [ -d next-build ] && [ ! -d .next ]; then cp -a next-build .next; fi"]
