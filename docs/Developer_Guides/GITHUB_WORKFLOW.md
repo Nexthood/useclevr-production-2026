@@ -110,6 +110,9 @@ that the source branch is `beta`, because GitHub's `pull_request.branches` filte
 branch, not the head branch. The workflow calls `gh pr merge <event PR number> --auto` explicitly so
 it does not depend on the runner's current Git branch.
 
+After the PR merges to `main`, the `branch-maintenance.yml` workflow automatically triggers on the
+`push` event to `main`, handling both beta sync and dist publish.
+
 ### Deployment Workflow
 
 The `.github/workflows/branch-maintenance.yml` workflow handles deployment branch maintenance in parallel jobs:

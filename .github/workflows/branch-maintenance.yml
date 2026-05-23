@@ -3,7 +3,6 @@ name: Sync Beta And Publish Dist
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,9 +19,7 @@ concurrency:
 jobs:
   sync-beta:
     name: Sync beta with main
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout beta
         uses: actions/checkout@v5
@@ -41,14 +38,13 @@ jobs:
 
   publish-dist:
     name: Publish dist deployment folder
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Guard main branch only
         run: |
-          if [ "${GITHUB_REF}" != "refs/heads/main" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
-            echo "Dist publish is only allowed from main or manual dispatch."
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Dist publish is only allowed from main."
             exit 1
           fi
 
