@@ -32,7 +32,7 @@ control Nixpacks install and build phases from the Railway service root:
 - setup uses Node 22 so Railway does not fall back to Node 18's stale Corepack
 - install refreshes Corepack and activates pnpm 10.23.0 for Node 22.11 compatibility
 - install runs production `pnpm install`
-- build is a no-op because GitHub Actions already built the standalone app
+- build restores `.next` from `next-build` if Railway's snapshot omits dot-directories
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
@@ -104,3 +104,7 @@ Railway's Nixpacks Node 22 package moves past 22.13.
 If logs show `ERR_PNPM_NO_LOCKFILE`, keep Railway runtime installs on `--no-frozen-lockfile` because
 the generated deployment package is smaller than the source workspace and Railway installs from
 generated output only.
+
+If runtime logs show `Could not find a production build in the './.next' directory`, keep the
+generated `next-build` folder and the Nixpacks build restore step. Railway can omit dot-directories
+from the service snapshot, while Next still expects `.next` at runtime.

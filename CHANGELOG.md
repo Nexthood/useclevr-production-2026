@@ -47,6 +47,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Railway runtime installs now tolerate generated deployment packages without a committed lockfile.
 - Railway generated-output packages now include migration tooling required by the pre-deploy schema
   step.
+- Railway generated-output deploys now restore the Next.js build directory inside the image when the
+  host snapshot omits dot-directories.
 - Repository text formatting is now normalized with UTF-8 and LF rules for local and CI consistency.
 - Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
 - Dist deployments now keep host config files in the deployment config folder only, preventing
