@@ -30,7 +30,7 @@ branch, and publishes Railway config to `/server-config/railway.json`.
 control Nixpacks install and build phases from the Railway service root:
 
 - setup uses Node 22 so Railway does not fall back to Node 18's stale Corepack
-- install refreshes Corepack and activates pnpm 11.1.2
+- install refreshes Corepack and activates pnpm 10.23.0 for Node 22.11 compatibility
 - install runs production `pnpm install`
 - build is a no-op because GitHub Actions already built the standalone app
 
@@ -98,4 +98,5 @@ are defined before use.
 
 If logs show `Cannot find matching keyid` during `corepack prepare`, Railway used an old Corepack
 from Node 18. Keep the generated Nixpacks plan on Node 22 and install the latest Corepack before
-activating pnpm.
+activating pnpm. If logs show pnpm requiring Node 22.13 or newer, keep Railway on pnpm 10 until
+Railway's Nixpacks Node 22 package moves past 22.13.
