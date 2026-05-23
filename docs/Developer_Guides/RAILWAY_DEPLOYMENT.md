@@ -100,3 +100,7 @@ If logs show `Cannot find matching keyid` during `corepack prepare`, Railway use
 from Node 18. Keep the generated Nixpacks plan on Node 22 and install the latest Corepack before
 activating pnpm. If logs show pnpm requiring Node 22.13 or newer, keep Railway on pnpm 10 until
 Railway's Nixpacks Node 22 package moves past 22.13.
+
+If logs show `ERR_PNPM_NO_LOCKFILE`, keep Railway runtime installs on `--no-frozen-lockfile` because
+the generated deployment package is smaller than the source workspace and Railway installs from
+generated output only.

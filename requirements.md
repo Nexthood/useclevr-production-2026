@@ -155,6 +155,7 @@
   package-manager signature updates and Node engine checks do not block deploys.
 - Railway runtime packages avoid conflicting pnpm build-approval settings during generated-output
   installation.
+- Railway runtime installs can run from generated deployment packages without a committed lockfile.
 - Source validation runs with a zero-warning lint baseline and TypeScript validation before release
   or generated deployment output is trusted.
 - Project text files use UTF-8 and LF formatting so local checks and CI read the same file content.
