@@ -12,6 +12,8 @@ No active leading-edge items.
 
 - Railway and Vercel now have dedicated deployment guides for host-specific commands, settings, and
   troubleshooting.
+- Railway generated-output builds now refresh Corepack on Node 22 before activating pnpm to avoid
+  stale package-manager signature failures.
 - Repository text formatting now has UTF-8 and LF rules for local and CI consistency.
 - Payment provider settings and super-admin dashboard pages now require super-admin access from direct
   URLs, and dashboard notices dismiss the selected notice reliably.
