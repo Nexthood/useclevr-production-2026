@@ -131,7 +131,11 @@ const rootDistPackage = {
     "db:push": "pnpm exec drizzle-kit push",
     "db:migrate": "pnpm exec drizzle-kit migrate",
   },
-  dependencies: rootPkg.dependencies,
+  dependencies: {
+    ...rootPkg.dependencies,
+    "drizzle-kit": rootPkg.devDependencies["drizzle-kit"],
+    tsx: rootPkg.devDependencies.tsx,
+  },
   devDependencies: {},
   engines: distEngines,
 };

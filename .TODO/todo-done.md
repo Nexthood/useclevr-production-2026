@@ -10,6 +10,8 @@
   build-approval settings.
 - **Railway lockfile tolerance** — Runtime installs now tolerate generated deployment packages without
   a committed lockfile.
+- **Railway migration tooling** — Generated runtime packages now include the tooling needed for the
+  pre-deploy schema step.
 - **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
   with LF endings.
 - **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now
