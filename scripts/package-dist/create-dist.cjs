@@ -134,9 +134,6 @@ const rootDistPackage = {
   dependencies: rootPkg.dependencies,
   devDependencies: {},
   engines: distEngines,
-  pnpm: {
-    onlyBuiltDependencies: ["core-js", "esbuild", "sharp"],
-  },
 };
 
 fs.writeFileSync(
