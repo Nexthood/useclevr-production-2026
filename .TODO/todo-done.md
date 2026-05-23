@@ -5,7 +5,7 @@
 - **Deployment guides** — Railway and Vercel now have dedicated host guides for CLI commands,
   settings, runtime behavior, and troubleshooting.
 - **Railway Corepack build fix** — Railway generated-output builds now refresh Corepack on Node 22
-  before activating pnpm to avoid stale package-manager signature failures.
+  and use a Node-compatible pnpm release to avoid signature and engine failures.
 - **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
   with LF endings.
 - **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now
