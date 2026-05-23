@@ -9,6 +9,7 @@ const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
 const runtimeScriptsDir = path.join(rootDir, "scripts", "runtime");
+const distNixpacksTemplate = path.join(rootDir, "dist-root", "server-config", "nixpacks.toml");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -143,20 +144,8 @@ fs.writeFileSync(
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
 );
 
-fs.writeFileSync(
-  path.join(distDir, "nixpacks.toml"),
-  [
-    "[phases.setup]",
-    'nixPkgs = ["nodejs_26"]',
-    "",
-    "[phases.install]",
-    'cmds = ["corepack enable && corepack prepare pnpm@11.1.2 --activate && pnpm install --frozen-lockfile --prod --no-optional --config.dangerouslyAllowAllBuilds=true"]',
-    "",
-    "[phases.build]",
-    'cmds = ["true"]',
-    "",
-  ].join("\n"),
-);
+assertExists(distNixpacksTemplate, "Nixpacks dist template");
+fs.cpSync(distNixpacksTemplate, path.join(distDir, "nixpacks.toml"));
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {

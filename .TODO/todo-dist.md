@@ -36,3 +36,23 @@ These checks intentionally stay open until the next real merge. Local validation
   title.
 - Keep local generated-output starts as the default `npm run start`, and reserve named commands such
   as `npm run start:railway` and `npm run start:vercel` for server target parity testing.
+
+## Suggestions And Questions
+
+- [ ] Measure Railway build memory and local `pnpm prod:build` peak memory after the next publish.
+- [ ] Add a small CI assertion that generated `/dist` contains `nixpacks.toml` and does not contain
+      `pnpm-workspace.yaml`, `railway.json`, or `vercel.json`.
+- [ ] Decide whether generated `/dist/nixpacks.toml` should stay copied from
+      `dist-root/server-config/nixpacks.toml` or move to a Railway-supported config path if Railway
+      adds one for service-root-relative Nixpacks config.
+- [ ] Review whether dist branch history should keep exactly two commits or use tags/releases for
+      longer deployment audit history.
+- [ ] Confirm whether Vercel remains a live deployment target or only a documented fallback.
+
+## Future
+
+- [ ] Track Railway's Nixpacks support status. If Railway deprecates Nixpacks in favor of Railpack,
+      re-test Railpack with Corepack pnpm and remove the old `mise install` failure path.
+- [ ] Add a Docker deployment option if Nixpacks and Railpack both create unstable install behavior.
+- [ ] Split database migrations into a separate job only if migration duration, lock risk, or
+      background work makes the single web-service pre-deploy phase unsafe.
