@@ -1,5 +1,11 @@
 # Vercel Deployment
 
+## Table Of Contents
+
+- [Vercel Settings](#vercel-settings)
+- [Commands](#commands)
+- [Validation](#validation)
+
 Vercel deploys the source application from `main`.
 
 ## Vercel Settings

@@ -1,14 +1,19 @@
 # UseClevr Deployment Branch Root
 
+## Table Of Contents
+
+- [Railway](#railway)
+- [Vercel](#vercel)
+
 This folder contains version-controlled files and server-host templates used when publishing the
 generated `dist` branch.
 
 Everything in this folder is copied to the deployment branch root. Runtime application output stays
 inside the generated `/dist` folder.
 
-Host config files use the platform-native filenames under `server-config/`. The publish workflow
-keeps them in `/server-config` on the deployment branch and does not copy them to the branch root or
-inside `/dist`.
+Host config files use platform-native filenames under `server-config/`. The publish workflow keeps
+them in `/server-config` on the deployment branch and does not copy them to the branch root. The
+Nixpacks template is copied into `/dist` because Nixpacks reads it from the Railway service root.
 
 ## Railway
 

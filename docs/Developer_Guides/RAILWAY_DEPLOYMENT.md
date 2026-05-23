@@ -1,5 +1,12 @@
 # Railway Deployment
 
+## Table Of Contents
+
+- [Railway Settings](#railway-settings)
+- [Build Shape](#build-shape)
+- [Runtime Commands](#runtime-commands)
+- [Local Checks](#local-checks)
+
 Railway deploys generated production output from the `dist` branch.
 
 ## Railway Settings
@@ -17,7 +24,8 @@ temporary incident. The config file owns those commands.
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
 branch, and publishes Railway config to `/server-config/railway.json`.
 
-Generated `/dist/nixpacks.toml` controls Nixpacks phases:
+`dist-root/server-config/nixpacks.toml` is copied to generated `/dist/nixpacks.toml` so it can
+control Nixpacks phases from the Railway service root:
 
 - setup installs Node 26
 - install enables Corepack and activates pnpm 11.1.2
