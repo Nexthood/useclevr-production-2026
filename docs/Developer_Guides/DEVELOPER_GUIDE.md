@@ -362,7 +362,7 @@ guidelines.
 | AI fail      | `GEMINI_API_KEY`, restart dev server         |
 | Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
 | DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL mode       |
-| Railway fail | env vars, `/api/health`, generated Railway config |
+| Railway fail | see [`RAILWAY_DEPLOYMENT.md`](RAILWAY_DEPLOYMENT.md) |
 
 ## Deployment
 
@@ -374,75 +374,19 @@ pnpm prod:start
 
 - Deploy root: `dist/`
 - Do not commit generated `dist/` output from source branches
-- Template: `dist-root/server-config/railway.json`
-- Vercel template: `dist-root/server-config/vercel.json`
+- Railway guide: [`RAILWAY_DEPLOYMENT.md`](RAILWAY_DEPLOYMENT.md)
+- Vercel guide: [`VERCEL_DEPLOYMENT.md`](VERCEL_DEPLOYMENT.md)
+- Server config guide: [`CI_SERVER_CONFIGS.md`](CI_SERVER_CONFIGS.md)
 - Local runtime parity test: switch to the `dist` branch, then run `cd dist && pnpm install && npm run start`
 - Shared local env: put common development secrets in `../.env.local`; checkout-local env files can
   override those values.
 - `dist-root/server-config/` contains host config templates with platform-native filenames; GitHub
   Actions workflow files stay in `.github/workflows/`.
 
-### Railway Environment
-
-**Required:**
-
-```env
-DATABASE_URL=
-DIRECT_URL=
-AUTH_SECRET=
-GEMINI_API_KEY=
-```
-
-**Optional:**
-
-```env
-AUTH_URL=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
-UPLOAD_PROVIDER=
-```
-
-### Railway Checklist
-
-- Dockerfile uses `node:26` or newer
-- Start command binds to `0.0.0.0`
-- App uses Railway `$PORT`
-- `/api/health` returns 200 quickly
-- Generated Railway config comes from `dist-root/server-config/railway.json`
-- Railway runtime builds use Nixpacks and Corepack-managed pnpm, avoiding Railpack `mise install`
-- Railway uses root directory `/dist` and config file path `/server-config/railway.json`
-- Railway install is controlled by generated `/dist/nixpacks.toml`, which uses Corepack-managed pnpm
-  11.1.2 instead of the default `npm i`
-- Database migrations stay in Railway pre-deploy while this is a single web-service deployment
-- Railway dashboard custom command fields should be empty; old `npm` command overrides can bypass the
-  generated config. If a temporary override is needed, use `pnpm run railway:predeploy` and
-  `pnpm start`.
-- No secrets in Docker image or logs
-- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set to activate payments
-
-### Vercel Checklist
-
-- Vercel deploys from `main`, not from the generated `dist` branch.
-- Root `vercel.json` is synced from `dist-root/server-config/vercel.json`.
-- Run `pnpm deploy:vercel:sync` after Vercel template edits.
-- Run `pnpm validate:dist` before opening the PR so Railway and Vercel deploy settings are both in sync.
-- Configure the same required production secrets in Vercel project environment variables.
-- Do not rely on Vercel for Railway-style pre-deploy migrations; run migrations through Railway,
-  manual operator control, or a future dedicated migration job.
-
-### Debug
-
-```bash
-railway logs
-railway status
-railway open
-```
-
 ### Incidents
 
 1. Rotate secrets
-2. Check Railway variables and logs
-3. Confirm deployed commit (`railway status`)
+2. Check host variables and logs
+3. Confirm deployed commit in the host dashboard or CLI
 4. Disable affected route if needed
 5. Patch, redeploy, verify `/api/health`

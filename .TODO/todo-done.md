@@ -2,6 +2,13 @@
 
 ## Completed
 
+- **Deployment guides** — Railway and Vercel now have dedicated host guides for CLI commands,
+  settings, runtime behavior, and troubleshooting.
+- **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
+  with LF endings.
+- **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now
+  require super-admin access from direct URLs, and notice dismissal now targets the selected notice
+  reliably.
 - **Dashboard notices and activity** — Topbar notices now persist in an inbox with recent product
   activity, user activity history, and super-admin total activity.
 - **Dist history visibility** — Dist publish keeps the previous deployment commit visible and reduces

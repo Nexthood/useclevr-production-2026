@@ -24,6 +24,7 @@ type NoticeContextValue = {
 const NoticeContext = React.createContext<NoticeContextValue | null>(null)
 
 const noticeEventName = "useclevr:notice"
+let noticeIdCounter = 0
 
 const getFailedInteractionMessage = (status: number) => {
   if (status === 401 || status === 403) {
@@ -68,7 +69,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
 
     const nextNotice = {
       ...input,
-      id: Date.now(),
+      id: Date.now() + noticeIdCounter++,
     }
     setNotices((current) => [nextNotice, ...current].slice(0, 20))
   }, [isMutedPath])
