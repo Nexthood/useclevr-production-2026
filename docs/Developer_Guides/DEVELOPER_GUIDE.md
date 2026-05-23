@@ -412,8 +412,8 @@ UPLOAD_PROVIDER=
 - Generated Railway config comes from `dist-root/server-config/railway.json`
 - Railway runtime builds use Nixpacks and Corepack-managed pnpm, avoiding Railpack `mise install`
 - Railway uses root directory `/dist` and config file path `/server-config/railway.json`
-- Railway install is controlled by generated `/dist/nixpacks.toml`, which uses Node 26 and
-  Corepack-managed pnpm 11.1.2 instead of the default `npm i`
+- Railway install is controlled by generated `/dist/nixpacks.toml`, which uses Corepack-managed pnpm
+  11.1.2 instead of the default `npm i`
 - Database migrations stay in Railway pre-deploy while this is a single web-service deployment
 - Railway dashboard custom command fields should be empty; old `npm` command overrides can bypass the
   generated config. If a temporary override is needed, use `pnpm run railway:predeploy` and
