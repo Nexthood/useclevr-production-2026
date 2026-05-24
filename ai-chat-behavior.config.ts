@@ -39,43 +39,48 @@ export const aiChatBehaviorConfig = {
       "Users upload business data, inspect dashboards, ask AI questions, and download reports.",
       "AI is an explanation layer over verified application data.",
       "Local AI features use same-origin API routes and the local agent contract.",
-      "Railway deploys from the dist branch `/dist` folder with `/railway.json` at the branch root.",
+      "Railway deploys from the dist branch `/dist` folder with `/server-config/railway.json` as the host config.",
       "Vercel deploys the source app from main using vercel.json synced from dist-root/server-config/vercel.json.",
     ],
 
-  distDeployment: {
-    signpost: "Build → sync → deploy",
-    targetSettingsDir: "dist-root/server-config",
-    targetSettingsPattern: "Platform-native config filenames, for example railway.json and vercel.json.",
-    targetSettingsPurpose: "Server-host templates copied to the deployment branch root, not GitHub workflow files or app source.",
-    pipelineFile: "dist-root/server-config/railway.json",
-    vercelPipelineFile: "dist-root/server-config/vercel.json",
-    distRootRailway: "railway.json",
-    distRootVercel: "vercel.json",
-    distPackage: "dist/package.json",
-    distRailway: "dist/railway.json",
-    distPnpmWorkspace: "dist/pnpm-workspace.yaml",
-    migrationDecision: "Keep database migrations in Railway preDeployCommand until isolation is needed.",
-    futureIsolation: "Add a separate Railway service or migration job only for background jobs or migration risk.",
-    syncScript: "scripts/server/railway/sync-config.cjs",
-    validationScript: "scripts/server/railway/sync-config.cjs",
-    buildGate: "pnpm validate:dist",
-    sourceOfTruth: "dist-root/server-config/railway.json and dist-root/server-config/vercel.json",
-    packagingScript: "scripts/package-dist/create-dist.cjs",
-    doNotEdit: [
-      "dist/", // regenerated every build
-      ".next/", // always regenerated
-    ],
-    editForDeployTargetChanges: [
-      "dist-root/server-config/railway.json",
-      "dist-root/server-config/vercel.json",
-    ],
-    serverScriptPattern: "Server-specific scripts live under scripts/server/<host>/; local/general scripts live elsewhere in scripts/.",
-    doNotRunFrom: [
-      "dist/", // no parent package.json; only deploy here
-      ".next/", // internal Next.js output
-    ],
-  },
+    distDeployment: {
+      signpost: "Build → sync → deploy",
+      targetSettingsDir: "dist-root/server-config",
+      targetSettingsPattern:
+        "Platform-native config filenames, for example railway.json and vercel.json.",
+      targetSettingsPurpose:
+        "Server-host templates copied to the deployment branch server-config folder, not GitHub workflow files or app source.",
+      pipelineFile: "dist-root/server-config/railway.json",
+      vercelPipelineFile: "dist-root/server-config/vercel.json",
+      distRootRailway: "server-config/railway.json",
+      distRootVercel: "server-config/vercel.json",
+      distPackage: "dist/package.json",
+      distRailway: "dist/nixpacks.toml",
+      distPnpmWorkspace: "dist/pnpm-workspace.yaml",
+      migrationDecision:
+        "Keep database migrations in Railway preDeployCommand until isolation is needed.",
+      futureIsolation:
+        "Add a separate Railway service or migration job only for background jobs or migration risk.",
+      syncScript: "scripts/server/railway/sync-config.cjs",
+      validationScript: "scripts/server/railway/sync-config.cjs",
+      buildGate: "pnpm validate:dist",
+      sourceOfTruth: "dist-root/server-config/railway.json and dist-root/server-config/vercel.json",
+      packagingScript: "scripts/package-dist/create-dist.cjs",
+      doNotEdit: [
+        "dist/", // regenerated every build
+        ".next/", // always regenerated
+      ],
+      editForDeployTargetChanges: [
+        "dist-root/server-config/railway.json",
+        "dist-root/server-config/vercel.json",
+      ],
+      serverScriptPattern:
+        "Server-specific scripts live under scripts/server/<host>/; local/general scripts live elsewhere in scripts/.",
+      doNotRunFrom: [
+        "dist/", // no parent package.json; only deploy here
+        ".next/", // internal Next.js output
+      ],
+    },
   },
 
   codingConventions: {
@@ -220,9 +225,11 @@ export const aiChatBehaviorConfig = {
         "- Explicit version bumps when requested via commit message or ticket",
       ].join("\n"),
       pattern: "Update version in CHANGELOG.md under ## [X.Y.Z] - YYYY-MM-DD header when releasing",
-      changelog: "Every release must document user-visible changes in CHANGELOG.md under appropriate section (Added, Changed, Fixed, Removed)",
-      requirements: "Update requirements.md with new product-facing requirements when features are added or significantly changed"
-    }
+      changelog:
+        "Every release must document user-visible changes in CHANGELOG.md under appropriate section (Added, Changed, Fixed, Removed)",
+      requirements:
+        "Update requirements.md with new product-facing requirements when features are added or significantly changed",
+    },
   },
   responseRules: {
     structure: [

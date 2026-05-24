@@ -23,6 +23,15 @@ temporary incident. The config file owns those commands.
 
 ## Build Shape
 
+```mermaid
+flowchart LR
+  Main[main branch] --> Build[pnpm prod:build]
+  Build --> DistBranch[dist branch /dist]
+  Config[dist-root/server-config/railway.json] --> ServerConfig[dist branch /server-config]
+  DistBranch --> Railway[Railway service root /dist]
+  ServerConfig --> Railway
+```
+
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
 branch, and publishes Railway config to `/server-config/railway.json`.
 
@@ -42,11 +51,12 @@ The generated output intentionally does not include `pnpm-workspace.yaml`, `rail
 Railway config uses:
 
 ```bash
-pnpm run railway:predeploy
+pnpm run db:migrate
 pnpm run start:railway
 ```
 
-The start command binds to Railway `$PORT` and `0.0.0.0` through the runtime helper.
+The start command binds to Railway `$PORT` and forces `0.0.0.0` through the runtime helper, even when
+the host injects its own `HOSTNAME` value.
 
 ## Railway CLI
 

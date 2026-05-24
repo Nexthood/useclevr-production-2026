@@ -118,6 +118,8 @@
   hosting config, and dependency build approvals.
 - Production deployments include a manifest with source commit, build timestamp, runtime version,
   and healthcheck path.
+- Developers can use documented package scripts and TODO workflows to keep local checks, deployment
+  checks, and dependency reviews consistent.
 - Server-host settings are grouped by host so Railway and future secondary destinations can
   keep separate templates.
 - Railway and Vercel deployment operations have separate guides so host-specific CLI, dashboard,

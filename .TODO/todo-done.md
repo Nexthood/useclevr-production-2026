@@ -14,6 +14,10 @@
   pre-deploy schema step.
 - **Railway Next build restore** — Generated deployments now restore the Next.js build output during
   runtime start for hosts that omit dot-directories.
+- **Railway health binding fix** — Generated starts now force the public host binding so platform
+  health checks can reach the app.
+- **Package and TODO docs** — Package scripts and developer docs now separate manual dependency
+  freshness checks from pre-commit validation.
 - **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
   with LF endings.
 - **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now

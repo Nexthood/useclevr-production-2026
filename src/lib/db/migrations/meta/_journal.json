@@ -15,6 +15,13 @@
       "when": 1771346066943,
       "tag": "0001_conscious_human_torch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779580375699,
+      "tag": "0002_clean_iceman",
+      "breakpoints": true
     }
   ]
 }

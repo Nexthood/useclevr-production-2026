@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { BUILTIN_USERS } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
-import { profiles } from "@/lib/db/schema";
+import { profiles, waitlist } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
 
 async function requireSuperAdmin() {
   const session = await auth();
@@ -183,5 +184,96 @@ export async function DELETE(request: Request) {
   } catch (err) {
     console.error("[admin/customers] DELETE error:", err);
     return NextResponse.json({ error: "Failed to delete customer" }, { status: 500 });
+  }
+}
+
+type CustomerInput = {
+  email: string
+  fullName?: string | null
+  subscriptionTier?: string
+  sendInvite?: boolean
+}
+
+export async function POST(request: Request) {
+  if (!(await requireSuperAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { email, fullName, subscriptionTier = "free", sendInvite = false }: CustomerInput = body;
+
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    const db = getDb();
+    if (!db) {
+      return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+
+    // Check if user already exists
+    const existingProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.email, email),
+    });
+
+    if (existingProfile) {
+      return NextResponse.json({ error: "Customer with this email already exists" }, { status: 409 });
+    }
+
+    // Add to waitlist as a pending invite
+    const inviteToken = uuidv4();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
+
+    await db.insert(waitlist).values({
+      id: `invite_${Date.now()}_${inviteToken.slice(0, 8)}`,
+      email,
+      source: "admin_invite",
+      status: "new",
+    });
+
+    // Create a profile entry for the invited customer
+    const userId = `user_${Date.now()}_${uuidv4().slice(0, 8)}`;
+    const newProfile = {
+      id: uuidv4(),
+      userId,
+      email,
+      fullName: fullName || null,
+      subscriptionTier,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await db.insert(profiles).values(newProfile);
+
+    return NextResponse.json({
+      success: true,
+      customer: {
+        id: userId,
+        name: fullName || null,
+        email,
+        plan: subscriptionTier,
+        planStatus: "pending_invite",
+        signupDate: new Date().toISOString(),
+        lastLogin: null,
+        referralSource: "Admin invite",
+        loginCount: 0,
+        datasets: 0,
+      },
+      inviteSent: sendInvite,
+      message: sendInvite
+        ? "Customer added and invite sent successfully"
+        : "Customer added to system. Invite ready to send.",
+    });
+  } catch (err) {
+    console.error("[admin/customers] POST error:", err);
+    return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
   }
 }
