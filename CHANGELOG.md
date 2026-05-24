@@ -41,6 +41,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Package scripts are grouped by workflow, with manual dependency freshness checks kept out of the
   pre-commit gate.
 - Developer docs now include package-script usage and TODO workflow references.
+- Railway predeploy now uses an idempotent schema sync so existing databases with empty migration
+  history do not block startup.
 - Railway and Vercel deployment docs now own their host-specific commands, settings, and
   troubleshooting notes.
 - Railway generated-output builds now refresh Corepack on Node 22 and use a Node-compatible pnpm

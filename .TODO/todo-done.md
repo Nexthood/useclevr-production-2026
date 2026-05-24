@@ -16,6 +16,8 @@
   runtime start for hosts that omit dot-directories.
 - **Railway health binding fix** — Generated starts now force the public host binding so platform
   health checks can reach the app.
+- **Railway predeploy schema sync** — Generated deploys now use an idempotent additive schema sync so
+  existing databases with empty migration history do not block startup.
 - **Package and TODO docs** — Package scripts and developer docs now separate manual dependency
   freshness checks from pre-commit validation.
 - **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8

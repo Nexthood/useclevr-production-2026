@@ -51,12 +51,13 @@ The generated output intentionally does not include `pnpm-workspace.yaml`, `rail
 Railway config uses:
 
 ```bash
-pnpm run db:migrate
+pnpm run railway:predeploy
 pnpm run start:railway
 ```
 
-The start command binds to Railway `$PORT` and forces `0.0.0.0` through the runtime helper, even when
-the host injects its own `HOSTNAME` value.
+The predeploy command runs an idempotent additive schema sync for generated deployments. The start
+command binds to Railway `$PORT` and forces `0.0.0.0` through the runtime helper, even when the host
+injects its own `HOSTNAME` value.
 
 ## Railway CLI
 
