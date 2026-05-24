@@ -11,14 +11,14 @@ process.env.PORT = port;
 
 if (target === "railway") {
   process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || "";
-  process.env.HOSTNAME ||= "0.0.0.0";
+  process.env.HOSTNAME = "0.0.0.0";
 } else if (target === "vercel") {
   if (!process.env.AUTH_URL && !process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
     process.env.AUTH_URL = `https://${process.env.VERCEL_URL}`;
   } else {
     process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || "";
   }
-  process.env.HOSTNAME ||= "0.0.0.0";
+  process.env.HOSTNAME = "0.0.0.0";
 } else {
   process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || `http://localhost:${port}`;
   process.env.HOSTNAME ||= "127.0.0.1";
