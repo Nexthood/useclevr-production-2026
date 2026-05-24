@@ -10,22 +10,22 @@ pnpm dev
 
 ## Technical Requirements
 
-| Technology | Required for | Account required | Notes |
-| --- | --- | --- | --- |
-| Git | Source control | No | Install locally and configure your name and email. |
-| GitHub | Repository hosting, pull requests, rulesets, and Actions | Yes | Developers need repository access before they can push branches or review PRs. |
-| Node.js 26.x | Local development, CI, and Railway runtime | No | Use the version declared by the project. |
-| pnpm 11.1.2 or newer | Dependency install and project scripts | No | Enable through Corepack or install locally. |
-| Railway | Production hosting from the `dist` branch `/dist` folder | Yes | Holds deployment settings and runtime environment variables. |
-| Vercel | Source-branch production or preview hosting from `main` | Yes | Uses root `vercel.json` synced from the Vercel server-config template. |
-| Neon PostgreSQL | Application database | Yes | Required for persisted app data and Drizzle schema operations. |
-| Gemini API | Cloud AI features through the AI SDK | Yes | Requires a Google AI Studio or Google Cloud account and API key. |
-| Auth.js / NextAuth | Authentication runtime | No | Requires local secrets, but no separate hosted account. |
-| Stripe | Checkout, billing, and webhook flows | Yes, when billing is enabled | Optional for development unless testing payments. |
-| AWS S3 | Durable file storage when `UPLOAD_PROVIDER=s3` | Yes, when S3 is used | Requires bucket and access credentials. |
-| Cloudflare R2 | Durable file storage when `UPLOAD_PROVIDER=r2` | Yes, when R2 is used | S3-compatible storage; often preferred for app uploads. |
-| Local filesystem uploads | Local upload fallback | No | Uses `/tmp/useclevr-uploads` by default and is not durable on Railway. |
-| Ollama | Local AI features | No | Optional local runtime for local model testing. |
+| Technology               | Required for                                             | Account required             | Notes                                                                          |
+| ------------------------ | -------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------ |
+| Git                      | Source control                                           | No                           | Install locally and configure your name and email.                             |
+| GitHub                   | Repository hosting, pull requests, rulesets, and Actions | Yes                          | Developers need repository access before they can push branches or review PRs. |
+| Node.js 26.x             | Local development, CI, and Railway runtime               | No                           | Use the version declared by the project.                                       |
+| pnpm 11.1.2 or newer     | Dependency install and project scripts                   | No                           | Enable through Corepack or install locally.                                    |
+| Railway                  | Production hosting from the `dist` branch `/dist` folder | Yes                          | Holds deployment settings and runtime environment variables.                   |
+| Vercel                   | Source-branch production or preview hosting from `main`  | Yes                          | Uses root `vercel.json` synced from the Vercel server-config template.         |
+| Neon PostgreSQL          | Application database                                     | Yes                          | Required for persisted app data and Drizzle schema operations.                 |
+| Gemini API               | Cloud AI features through the AI SDK                     | Yes                          | Requires a Google AI Studio or Google Cloud account and API key.               |
+| Auth.js / NextAuth       | Authentication runtime                                   | No                           | Requires local secrets, but no separate hosted account.                        |
+| Stripe                   | Checkout, billing, and webhook flows                     | Yes, when billing is enabled | Optional for development unless testing payments.                              |
+| AWS S3                   | Durable file storage when `UPLOAD_PROVIDER=s3`           | Yes, when S3 is used         | Requires bucket and access credentials.                                        |
+| Cloudflare R2            | Durable file storage when `UPLOAD_PROVIDER=r2`           | Yes, when R2 is used         | S3-compatible storage; often preferred for app uploads.                        |
+| Local filesystem uploads | Local upload fallback                                    | No                           | Uses `/tmp/useclevr-uploads` by default and is not durable on Railway.         |
+| Ollama                   | Local AI features                                        | No                           | Optional local runtime for local model testing.                                |
 
 Required service accounts for production:
 
@@ -142,23 +142,28 @@ All commands are run from `pnpm`.
 
 ### Validate
 
-| Command                 | Description                        |
-| ----------------------- | ---------------------------------- |
-| `pnpm validate`         | Types + dist check + release check |
-| `pnpm validate:types`   | `tsc --noEmit`                     |
-| `pnpm validate:build`   | Full Next.js build                 |
+| Command                 | Description                          |
+| ----------------------- | ------------------------------------ |
+| `pnpm validate`         | Types + dist check + release check   |
+| `pnpm validate:types`   | `tsc --noEmit`                       |
+| `pnpm validate:build`   | Full Next.js build                   |
 | `pnpm validate:dist`    | Railway and Vercel config sync check |
-| `pnpm validate:release` | Release checklist script           |
+| `pnpm validate:release` | Release checklist script             |
 
 ### Lint & Format
 
-| Command             | Description                           |
-| ------------------- | ------------------------------------- |
-| `pnpm lint`         | Next.js ESLint                        |
-| `pnpm lint:fix`     | ESLint with `--fix`                   |
-| `pnpm format`       | Prettier — write                      |
-| `pnpm format:check` | Prettier — check only                 |
-| `pnpm docs:check`   | Markdown link and .markdownlint check |
+| Command               | Description                               |
+| --------------------- | ----------------------------------------- |
+| `pnpm lint`           | Package metadata + TODO metadata + ESLint |
+| `pnpm lint:fix`       | ESLint with `--fix`                       |
+| `pnpm lint:docs`      | Markdownlint for docs and root markdown   |
+| `pnpm lint:changelog` | Ensure changelog has unreleased entries   |
+| `pnpm lint:commits`   | Check recent commit messages              |
+| `pnpm lint:deps`      | Manual dependency freshness check         |
+| `pnpm format`         | Prettier — write                          |
+| `pnpm format:check`   | Prettier — check only                     |
+| `pnpm docs:check`     | Markdown local-link check                 |
+| `pnpm link:docs`      | Alias for markdown local-link check       |
 
 ### Test
 
@@ -181,12 +186,12 @@ All commands are run from `pnpm`.
 
 ### CI
 
-| Command           | Description                        |
-| ----------------- | ---------------------------------- |
-| `pnpm ci:validate` | Types + dist check + lint + tests + production build |
-| `pnpm deploy:railway:sync` | Validate Railway deploy-target config |
-| `pnpm deploy:vercel:sync`  | Sync Vercel source-target config |
-| `pnpm ci:railway`          | Compatibility alias for Railway config validation |
+| Command                    | Description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `pnpm ci:validate`         | Types + dist check + lint + tests + production build |
+| `pnpm deploy:railway:sync` | Validate Railway deploy-target config                |
+| `pnpm deploy:vercel:sync`  | Sync Vercel source-target config                     |
+| `pnpm ci:railway`          | Compatibility alias for Railway config validation    |
 
 ### Audit & Dependencies
 
@@ -341,10 +346,10 @@ Workflow file: `.github/workflows/ci.yml`
 
 On every push to `main` and every PR, the required job runs:
 
-| Job | Runs | Steps |
-| --- | --- | --- |
-| `Validate source and production build` | Always | types, dist-check, lint, tests, production build |
-| `Documentation checks` | PR only | `pnpm docs:check` |
+| Job                                    | Runs    | Steps                                            |
+| -------------------------------------- | ------- | ------------------------------------------------ |
+| `Validate source and production build` | Always  | types, dist-check, lint, tests, production build |
+| `Documentation checks`                 | PR only | `pnpm docs:check`                                |
 
 ## Security
 
@@ -357,11 +362,11 @@ guidelines.
 
 ## Troubleshooting
 
-| Issue        | Fix                                          |
-| ------------ | -------------------------------------------- |
-| AI fail      | `GEMINI_API_KEY`, restart dev server         |
-| Auth fail    | `AUTH_SECRET`, `AUTH_URL`                    |
-| DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL mode       |
+| Issue        | Fix                                                  |
+| ------------ | ---------------------------------------------------- |
+| AI fail      | `GEMINI_API_KEY`, restart dev server                 |
+| Auth fail    | `AUTH_SECRET`, `AUTH_URL`                            |
+| DB fail      | `DATABASE_URL`, `DIRECT_URL`, SSL mode               |
 | Railway fail | see [`RAILWAY_DEPLOYMENT.md`](RAILWAY_DEPLOYMENT.md) |
 
 ## Deployment

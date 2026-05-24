@@ -155,13 +155,13 @@ pnpm prod:build                     (build phase — one-shot)
 
 ### Source-of-truth files
 
-| File | Role |
-|---|---|
-| `dist-root/server-config/railway.json` | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch. |
-| `dist-root/server-config/vercel.json` | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
-| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, `dist/nixpacks.toml`, copies schema, runtime scripts, and assets. Only place dist is assembled. |
-| `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`. |
-| `scripts/server/vercel/sync-config.cjs` | Copies `dist-root/server-config/vercel.json` → `vercel.json`. Run it — not the opposite direction. |
+| File                                     | Role                                                                                                                                                                        |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dist-root/server-config/railway.json`   | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch.                                                          |
+| `dist-root/server-config/vercel.json`    | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
+| `scripts/package-dist/create-dist.cjs`   | Generates `dist/package.json`, `dist/nixpacks.toml`, copies schema, runtime scripts, and assets. Only place dist is assembled.                                              |
+| `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`.                                                                                |
+| `scripts/server/vercel/sync-config.cjs`  | Copies `dist-root/server-config/vercel.json` → `vercel.json`. Run it — not the opposite direction.                                                                          |
 
 Database migrations stay in Railway `preDeployCommand` while the deployment is a single web service.
 Do not add a separate migration job unless background work or migration risk requires isolation.
@@ -232,14 +232,14 @@ AI agents must keep `.TODO/todo.md` and `.TODO/todo-next.md` in sync with active
 <!-- Apply only to formalised output. Re-verify conciseness for each sentence. -->
 <!-- Source: captured working notes from the session, distilled 2026-05-18. -->
 
-- Keep the tone **analytical yet concise**, grounded in **engineering discipline and product-first thinking**.  
-- Use **active voice**, minimise adjectives, and remove all boilerplate filler. Every sentence must contribute concrete information — no praise, no hedging, and no agendas beyond what’s on the page.  
-- Follow standard **subject–verb–object** order wherever possible; state **what is true and why** rather than **what could or might occur**.  
-- When naming files or subsystems, use **bold** formatting inline and avoid ASCII tagging:  
+- Keep the tone **analytical yet concise**, grounded in **engineering discipline and product-first thinking**.
+- Use **active voice**, minimise adjectives, and remove all boilerplate filler. Every sentence must contribute concrete information — no praise, no hedging, and no agendas beyond what’s on the page.
+- Follow standard **subject–verb–object** order wherever possible; state **what is true and why** rather than **what could or might occur**.
+- When naming files or subsystems, use **bold** formatting inline and avoid ASCII tagging:
 
   | Prefer | Avoid |
   ||---|---|
-  | **`server-config/railway.json`** | `server-config/railway.json`, ``code/`` |
+  | **`server-config/railway.json`** | `server-config/railway.json`, `code/` |
   | **`dist/`** | \`dist/\`, `code/` |
   | Yes | absolutely, truly, rapidly |
   | gates deactivated | louvers disengaged |

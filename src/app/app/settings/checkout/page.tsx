@@ -227,10 +227,10 @@ function CheckoutClient() {
               <div className="mt-4 space-y-3">
                 <Button onClick={onSubmit} disabled={!termsAccepted || isGoing} className="w-full">
                   {isGoing
-                    ? "Saving…"
+                    ? "Saving..."
                     : termsAccepted
-                      ? "Save review &amp; continue"
-                      : "Accept terms &amp; conditions to continue"}
+                      ? "Save review and continue"
+                      : "Accept terms and conditions to continue"}
                 </Button>
                 <Button variant="outline" className="w-full bg-transparent" onClick={goBack}>
                   Back to plan review

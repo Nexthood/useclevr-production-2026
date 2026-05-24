@@ -1,4 +1,4 @@
-import { analyzeCSV, type DatasetRecord } from "../../src/lib/data/csv-analyzer"
+import { analyzeCSV, type DatasetRecord } from "../../src/lib/data/csv-analyzer";
 
 const cases: Array<{ name: string; rows: DatasetRecord[]; expectRows: number }> = [
   {
@@ -24,25 +24,27 @@ const cases: Array<{ name: string; rows: DatasetRecord[]; expectRows: number }> 
     ],
     expectRows: 3,
   },
-]
+];
 
 async function run() {
   for (const testCase of cases) {
-    const result = await analyzeCSV(testCase.rows)
+    const result = await analyzeCSV(testCase.rows);
 
     if (result.total_rows !== testCase.expectRows) {
-      throw new Error(`${testCase.name}: expected ${testCase.expectRows} rows, got ${result.total_rows}`)
+      throw new Error(
+        `${testCase.name}: expected ${testCase.expectRows} rows, got ${result.total_rows}`,
+      );
     }
 
     if (!result.data_quality || !result.key_metrics) {
-      throw new Error(`${testCase.name}: analyzer returned an incomplete result`)
+      throw new Error(`${testCase.name}: analyzer returned an incomplete result`);
     }
 
-    console.log(`ok - ${testCase.name}`)
+    console.log(`ok - ${testCase.name}`);
   }
 }
 
 run().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+  console.error(error);
+  process.exit(1);
+});

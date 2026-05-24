@@ -46,6 +46,8 @@
 
 - Dashboard notices appear in a topbar inbox with a persistent count so users can review and clear
   notices when they are ready.
+- Dashboard notices and activity feeds show high-value account, billing, and dataset events without
+  recording routine page changes, clicks, or repeated login noise.
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
 - Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
@@ -83,6 +85,7 @@
 - Super-admins can review recent product activity across all users from a protected settings page.
 - Super-admins can view a full customer list with plan, signup date, last login, referral source,
   login count, and dataset count in a single admin page.
+- Super-admins can queue an invite from the customer list for existing customer rows.
 - Super-admins always see built-in demo and super-admin accounts at the top of the customer list.
 - Totals cards show total customers, Pro / Business count, free tier count, and active-in-last-30-days
   count at a glance.
@@ -120,6 +123,8 @@
   and healthcheck path.
 - Developers can use documented package scripts and TODO workflows to keep local checks, deployment
   checks, and dependency reviews consistent.
+- Developers can run focused checks for package metadata, TODO metadata, docs, changelog, commit
+  history, links, and dependency freshness.
 - Server-host settings are grouped by host so Railway and future secondary destinations can
   keep separate templates.
 - Railway and Vercel deployment operations have separate guides so host-specific CLI, dashboard,

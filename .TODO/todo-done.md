@@ -2,6 +2,10 @@
 
 ## Completed
 
+- **Notice and activity pruning** — Dashboard notices and activity now focus on high-value account,
+  billing, and dataset events while suppressing routine login and background request noise.
+- **Admin billing polish** — Customer invites, checkout labels, billing history, and payment
+  readiness wording now better match operator workflows.
 - **Deployment guides** — Railway and Vercel now have dedicated host guides for CLI commands,
   settings, runtime behavior, and troubleshooting.
 - **Railway Corepack build fix** — Railway generated-output builds now refresh Corepack on Node 22
@@ -20,6 +24,8 @@
   existing databases with empty migration history do not block startup.
 - **Package and TODO docs** — Package scripts and developer docs now separate manual dependency
   freshness checks from pre-commit validation.
+- **Local lint split** — Package metadata, TODO metadata, docs, changelog, commit, link, and
+  dependency freshness checks now have dedicated scripts.
 - **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
   with LF endings.
 - **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now

@@ -1,6 +1,6 @@
-import { fileURLToPath } from "node:url"
+import { fileURLToPath } from "node:url";
 
-const CWD = fileURLToPath(new URL(".", import.meta.url))
+const CWD = fileURLToPath(new URL(".", import.meta.url));
 
 // ── Flat config (ESM, ESLint 10.x) ─────────────────────────────────────────
 // Next.js 16 dropped the built-in `next lint` command — use eslint directly.
@@ -48,4 +48,4 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
     },
   },
-]
+];

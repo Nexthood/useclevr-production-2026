@@ -109,15 +109,19 @@ fs.writeFileSync(
 
 fs.writeFileSync(
   path.join(distDir, "deployment-manifest.json"),
-  `${JSON.stringify({
-    sourceCommit: process.env.GITHUB_SHA || process.env.SOURCE_COMMIT || "local",
-    sourceBranch: process.env.GITHUB_REF_NAME || process.env.SOURCE_BRANCH || "local",
-    buildTimestamp: new Date().toISOString(),
-    nodeVersion: process.version,
-    healthcheckPath: "/api/health",
-    railwayRoot: "/dist",
-    vercelSourceBranch: "main",
-  }, null, 2)}\n`,
+  `${JSON.stringify(
+    {
+      sourceCommit: process.env.GITHUB_SHA || process.env.SOURCE_COMMIT || "local",
+      sourceBranch: process.env.GITHUB_REF_NAME || process.env.SOURCE_BRANCH || "local",
+      buildTimestamp: new Date().toISOString(),
+      nodeVersion: process.version,
+      healthcheckPath: "/api/health",
+      railwayRoot: "/dist",
+      vercelSourceBranch: "main",
+    },
+    null,
+    2,
+  )}\n`,
 );
 
 // Write package.json for hosts configured to deploy `dist` as the project root.
@@ -128,9 +132,12 @@ const rootDistPackage = {
   type: "module",
   scripts: {
     start: "npm run start:local",
-    "start:local": "USECLEVR_SERVER_TARGET=local node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
-    "start:railway": "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
-    "start:vercel": "USECLEVR_SERVER_TARGET=vercel node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
+    "start:local":
+      "USECLEVR_SERVER_TARGET=local node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
+    "start:railway":
+      "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
+    "start:vercel":
+      "USECLEVR_SERVER_TARGET=vercel node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "railway:predeploy": "node ./scripts/runtime/railway-predeploy.cjs",
     "db:push": "pnpm exec drizzle-kit push",
     "db:migrate": "pnpm exec drizzle-kit migrate",

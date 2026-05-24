@@ -10,6 +10,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Dashboard notices now live in a topbar inbox with a persistent count and recent product activity.
+- Dashboard notices and activity now focus on rare, useful events instead of frequent background
+  interactions.
+- Billing and payment settings now use more customer-operations language and list-style history
+  layouts.
 - The topbar credits button now opens subscription settings instead of sending users to public plans.
 - Public pricing and FAQ copy now describes Hybrid AI access without exposing runtime download sizes.
 - Public pages outside the homepage now share one title section design.
@@ -19,6 +23,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Checkout action labels now render plain text instead of encoded HTML entities.
 - Payment provider settings now require super-admin access even when opened by direct URL.
 - Super-admin dashboard pages now require super-admin access even when opened by direct URL.
 - Dashboard notices now dismiss the selected notice reliably when multiple notices arrive together.
@@ -38,6 +43,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Local lint scripts now split package metadata, TODO metadata, docs, changelog, commit, link, and
+  dependency freshness checks.
 - Package scripts are grouped by workflow, with manual dependency freshness checks kept out of the
   pre-commit gate.
 - Developer docs now include package-script usage and TODO workflow references.

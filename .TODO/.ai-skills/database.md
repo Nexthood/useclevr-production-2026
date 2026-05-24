@@ -8,14 +8,14 @@ Drizzle ORM with Neon PostgreSQL.
 
 ## Checklist
 
-| Area | Check |
-| --- | --- |
-| Schema | Changes in `lib/db/schema.ts` and migrations when needed |
-| Connections | `DATABASE_URL` and `DIRECT_URL` server-side only, match Neon requirements |
-| Migrations | Shared or production-impacting changes have a migration path |
-| Query safety | Queries parameterized and scoped to correct user/workspace |
-| Performance | Common paths (dashboard, upload, report, query) have indexes or limits |
-| Data shape | API responses don't expose private columns or tenant data |
+| Area             | Check                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| Schema           | Changes in `lib/db/schema.ts` and migrations when needed                           |
+| Connections      | `DATABASE_URL` and `DIRECT_URL` server-side only, match Neon requirements          |
+| Migrations       | Shared or production-impacting changes have a migration path                       |
+| Query safety     | Queries parameterized and scoped to correct user/workspace                         |
+| Performance      | Common paths (dashboard, upload, report, query) have indexes or limits             |
+| Data shape       | API responses don't expose private columns or tenant data                          |
 | Failure handling | Connection and query errors return server-side diagnostics without leaking secrets |
 
 ## Commands

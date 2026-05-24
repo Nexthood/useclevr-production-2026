@@ -1,14 +1,19 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
-import { CreditCard, FileText, ShieldCheck } from "lucide-react"
-import Link from "next/link"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { auth } from "@/lib/auth";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { CreditCard, FileText, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 export default async function BillingSettingsPage() {
-  const session = await auth()
-  const usage = await getAnalystCreditUsage(session?.user?.id)
-  const planLabel = usage.subscriptionTier === "superadmin" ? "Super admin" : usage.subscriptionTier === "pro" ? "Pro" : "Free"
+  const session = await auth();
+  const usage = await getAnalystCreditUsage(session?.user?.id);
+  const planLabel =
+    usage.subscriptionTier === "superadmin"
+      ? "Super admin"
+      : usage.subscriptionTier === "pro"
+        ? "Pro"
+        : "Free";
 
   return (
     <div className="space-y-4">
@@ -27,16 +32,24 @@ export default async function BillingSettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-muted/30 p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Current plan</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Current plan
+              </p>
               <p className="mt-1 text-lg font-semibold text-foreground">{planLabel}</p>
             </div>
             <div className="rounded-xl border border-border bg-muted/30 p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payment status</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Payment status
+              </p>
               <p className="mt-1 text-lg font-semibold text-foreground">Not connected</p>
             </div>
             <div className="rounded-xl border border-border bg-muted/30 p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Billing cycle</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">{usage.subscriptionTier === "pro" ? "Monthly" : "None"}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Billing cycle
+              </p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {usage.subscriptionTier === "pro" ? "Monthly" : "None"}
+              </p>
             </div>
           </div>
 
@@ -46,7 +59,8 @@ export default async function BillingSettingsPage() {
               <div>
                 <p className="font-medium">Payment provider not connected</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Plan selection, checkout review, and automatic discount logic are available. Card collection and invoices activate once the payment provider is configured.
+                  Plan selection, checkout review, and automatic discount logic are available. Card
+                  collection and invoices activate once the payment provider is configured.
                 </p>
               </div>
             </div>
@@ -72,12 +86,19 @@ export default async function BillingSettingsPage() {
             Invoice history
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border border-border bg-background p-6 text-center text-sm text-muted-foreground">
-            No invoices yet.
+        <CardContent className="p-0">
+          <div className="overflow-hidden rounded-b-lg border-t border-border">
+            <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr] bg-muted/30 px-5 py-3 text-xs font-medium text-muted-foreground">
+              <span>Invoice</span>
+              <span>Status</span>
+              <span className="text-right">Amount</span>
+            </div>
+            <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+              No invoices yet.
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
