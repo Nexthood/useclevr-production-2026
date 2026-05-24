@@ -94,3 +94,133 @@ Create all branches from main → Strip/documentation on each → Push all
 
 ## External Repo (Future)
 **Nexthood/_ai-base-project** sync happens after branches are ready and verified.
+
+
+[additional]
+
+# todo-base-project.md - Strip Down Plan for _ai-base-project
+
+## Overview
+Two-stage plan: Stage 1 strips useclevr-2026 on `base-project` branch. Stage 2 sets up the stripped content in Nexthood/_ai-base-project on `beta` branch and verifies dist workflow.
+
+---
+
+## Stage 1: Strip useclevr-2026 on base-project branch
+
+### Tasks (Strip-down approach on useclevr-2026 repo)
+
+1. [ ] **Branch Setup**
+   - Create and switch to `base-project` branch in useclevr-2026
+
+2. [ ] **Strip Pages and Routes**
+   - Remove all pages from `src/app/` except `page.tsx` for hello frontpage
+   - Remove `src/app/api/chat/route.ts`
+   - Remove `src/app/api/query/route.ts`
+   - Remove `src/app/api/upload/route.ts`
+   - Remove all dashboard, analytics, and business intelligence pages
+
+3. [ ] **Strip Business Logic**
+   - Remove entire `src/lib/business/` directory
+   - Remove entire `src/lib/ai/` directory
+   - Remove `src/lib/queryEngine.ts`
+   - Remove `src/lib/queryIntentPrompt.ts`
+   - Remove `src/lib/data/` directory
+
+4. [ ] **Strip Components**
+   - Remove UI components except minimal Card components needed for structure
+   - Remove all specialized components (charts, filters, upload components)
+
+5. [ ] **Strip Authentication**
+   - Remove Auth.js configuration and providers
+   - Remove authentication middleware and session handling
+
+6. [ ] **Strip Database**
+   - Remove Drizzle ORM configuration
+   - Remove Neon PostgreSQL schema and migrations
+   - Remove `src/lib/db/` directory
+
+7. [ ] **Strip Assets**
+   - Remove all files from `src/assets/` except favicon
+   - Remove `src/app/assets/` route handler
+   - Keep only default Next.js favicon
+
+8. [ ] **Strip CI/CD and Deploy Config**
+   - Remove `dist-root/` directory entirely
+   - Remove `.github/workflows/` directory entirely
+   - Remove `scripts/package-dist/` and `scripts/server/` directories
+   - Keep only essential package.json scripts
+
+9. [ ] **Strip Configuration Files**
+   - Remove `AGENTS.md`
+   - Remove `ai-chat-behavior.config.ts`
+   - Remove `gemini-behavior.config.ts`
+   - Remove `CHANGELOG.md`
+   - Remove `.TODO/` directory
+
+10. [ ] **Strip Documentation**
+    - Replace `README.md` with minimal content for base project
+    - Remove project-specific markdown documentation
+
+11. [ ] **Simplify Infrastructure**
+    - Create minimal `package.json` with pnpm scripts
+    - Keep `husky` pre-commit hooks but simplify
+    - Simplify `tsconfig.json`
+    - Simplify `tailwind.config.js`
+    - Remove eslint config, keep minimal next.js defaults
+
+12. [ ] **Create Hello Frontpage**
+    - Modify `src/app/page.tsx` to show:
+      - `<h1>Hello main title</h1>`
+      - `<p>welcome</p>` (single word content)
+    - Ensure favicon is present
+
+13. [ ] **Push Stage 1 Complete**
+    - Commit all stripped changes to `base-project` branch in useclevr-2026
+    - Push to origin
+
+---
+
+## Stage 2: Setup Nexthood/_ai-base-project
+
+### Tasks
+
+1. [ ] **Branch Setup**
+   - Create and switch to `beta` branch in Nexthood/_ai-base-project (repo exists but empty)
+   - Note: useclevr-2026 `base-project` branch has stripped content to copy
+
+2. [ ] **Initialize Base Project**
+   - Copy stripped content from useclevr-2026 `base-project` branch
+   - Or manually apply same stripping to new repo
+   - Commit with minimal setup
+
+3. [ ] **Add dist Configuration**
+   - Add minimal `dist-root/` structure with basic Railway/Vercel config
+   - Ensure `scripts/package-dist/create-dist.cjs` exists for packaging
+
+4. [ ] **Push and PR**
+    - Commit changes to `beta` branch in Nexthood/_ai-base-project
+    - Push `beta` branch to GitHub
+    - Create PR: `beta` → `main` using `gh pr create`
+
+5. [ ] **Verify Auto-Publish**
+    - Monitor PR for auto-merge
+    - After merge, verify `dist` branch is created/updated
+    - User will check dist branch on Railway
+
+---
+
+## Suggestions
+
+1. **dist-root preservation**: Should we preserve minimal `dist-root/server-config/` as template for future deployments?
+
+2. **Asset handling**: Keep `src/assets/` with just favicon, or remove and use public folder?
+
+3. **Script simplification**: Simplify `pnpm validate`, `pnpm health` to basic `next build`/`next lint` or keep current structure?
+
+## Questions
+
+1. Should the `.TODO/` directory pattern be preserved in the stripped version, or completely removed?
+
+2. Should `pnpm exec tsc --noEmit --pretty false` typecheck be kept or simplified?
+
+3. Preserve Next.js app router structure exactly, or simplify to pages router for base project?
