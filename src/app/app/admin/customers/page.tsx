@@ -1,8 +1,13 @@
 "use client"
 
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Calendar, Clock, CreditCard, Link2, User, Users, Zap, Edit, Check, X, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar, Clock, CreditCard, Link2, User, Users, Zap, Edit, Check, X, Trash2, Plus, Send } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 
@@ -33,6 +38,11 @@ export default function AdminCustomersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editableCustomers, setEditableCustomers] = useState<EditableCustomer[]>([])
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [newCustomerEmail, setNewCustomerEmail] = useState("")
+  const [newCustomerName, setNewCustomerName] = useState("")
+  const [newCustomerPlan, setNewCustomerPlan] = useState("free")
+  const [sendInvite, setSendInvite] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -193,6 +203,68 @@ export default function AdminCustomersPage() {
     }
   }
 
+  const handleAddCustomer = async () => {
+    if (!newCustomerEmail.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter an email address.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const res = await fetch("/api/admin/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: newCustomerEmail.trim(),
+          fullName: newCustomerName.trim() || null,
+          subscriptionTier: newCustomerPlan,
+          sendInvite,
+        }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to add customer")
+      }
+
+      const data = await res.json()
+      
+      if (data.success && data.customer) {
+        setCustomers(prev => [data.customer, ...prev])
+        setEditableCustomers(prev => [{
+          ...data.customer,
+          isEditing: false,
+          editName: data.customer.name || "",
+          editEmail: data.customer.email || "",
+          editPlan: data.customer.plan,
+          editPlanStatus: data.customer.planStatus,
+          editBusinessName: data.customer.name || ""
+        }, ...prev])
+      }
+
+      setShowAddDialog(false)
+      setNewCustomerEmail("")
+      setNewCustomerName("")
+      setNewCustomerPlan("free")
+      setSendInvite(false)
+
+      toast({
+        title: "Customer added",
+        description: data.message || "Customer has been successfully added.",
+        variant: "default",
+      })
+    } catch (err) {
+      toast({
+        title: "Error adding customer",
+        description: err instanceof Error ? err.message : "Failed to add customer",
+        variant: "destructive",
+      })
+    }
+  }
+  
   const totals = {
     customers: customers.length,
     pro: customers.filter((c) => c.plan === "pro" || c.plan === "business").length,
@@ -213,6 +285,12 @@ export default function AdminCustomersPage() {
           { label: "Dashboard", href: "/app" },
           { label: "Customers" },
         ]}
+        actions={
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add customer
+          </Button>
+        }
       />
 
       <main className="space-y-6 px-5 py-5">
@@ -342,6 +420,72 @@ export default function AdminCustomersPage() {
         )}
       </Card>
       </main>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add new customer</DialogTitle>
+            <DialogDescription>
+              Add a customer manually or send them an invitation to join.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email address *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="customer@example.com"
+                value={newCustomerEmail}
+                onChange={(e) => setNewCustomerEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Full name</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="plan">Plan</Label>
+              <Select value={newCustomerPlan} onValueChange={setNewCustomerPlan}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="sendInvite"
+                checked={sendInvite}
+                onChange={(e) => setSendInvite(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <Label htmlFor="sendInvite" className="text-sm">
+                Send invitation email
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCustomer} disabled={!newCustomerEmail.trim()}>
+              <Send className="mr-2 h-4 w-4" />
+              Add customer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
