@@ -2,15 +2,16 @@
 
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor, useUsage } from "@/components/ui/usage-monitor"
-import { Award, Building2, CreditCard, Database, FileText, Gift, Globe, LogOut, Menu, ReceiptText, Settings, Sparkles, Tag, User, Users, X } from "lucide-react"
+import { Award, BarChart3, Building2, CreditCard, Database, FileText, Gift, Globe, LogOut, Menu, ReceiptText, Settings, Sparkles, Tag, User, Users, X } from "lucide-react"
 import type { Session } from "next-auth"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import { FaApple, FaGithub, FaGooglePlay, FaLinkedin, FaXTwitter } from "react-icons/fa6"
+import { FaApple, FaGooglePlay, FaLinkedin, FaXTwitter } from "react-icons/fa6"
 
 const navigation = [
+  { name: "Dashboard", href: "/app", icon: BarChart3 },
   { name: "Datasets", href: "/app/datasets", icon: Database },
   { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
@@ -107,12 +108,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </div>
 
 <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <SocialLink icon={FaXTwitter} label="X" href="https://twitter.com/useclevr" />
-            <SocialLink icon={FaLinkedin} label="LinkedIn" href="https://linkedin.com/company/useclevr" />
-            <SocialLink icon={FaGithub} label="GitHub" href="https://github.com/useclevr" />
-          </div>
-        </div>
+               <div className="mt-3 grid grid-cols-2 gap-2">
+                 <SocialLink icon={FaXTwitter} label="X" href="https://twitter.com/useclevr" />
+                 <SocialLink icon={FaLinkedin} label="LinkedIn" href="https://linkedin.com/company/useclevr" />
+               </div>
+             </div>
 
         <div className="relative">
           <button
