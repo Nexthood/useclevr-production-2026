@@ -7,6 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Dashboard language selector with four options: English, German, Hungarian, and Romanian.
+- Language preference persists in localStorage and applies across the application.
+- Translation service with 24-hour caching layer to minimize API calls to Google Translation.
+- Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
+  questions from one workspace.
+
 ### Changed
 
 - Dashboard onboarding now tracks setup progress from account data, routes users to the relevant

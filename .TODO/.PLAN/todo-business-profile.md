@@ -268,3 +268,20 @@ companyCalculationContext
 T-275: Break Company Calculation Context into separate type file for cleaner imports
 T-276: Add TypeScript validation for Mermaid diagrams in pre-commit
 T-277: Create draft PR template for plan review process
+T-294: Add business profile import/export functionality for backup and migration
+T-295: Add business profile validation rules with real-time feedback
+T-296: Implement business profile templates for common business types
+T-297: Add multi-currency support to business profile settings
+T-298: Create business profile audit log for tracking changes
+T-299: Add business profile sharing between team members
+T-300: Implement business profile version history with rollback
+T-301: Add business profile API for third-party integrations
+T-302: Create business profile completion wizard with progress steps
+T-303: Add business profile analytics dashboard for insights
+T-304: Implement business profile data privacy controls
+T-305: Add business profile notifications for incomplete sections
+T-306: Create business profile import from LinkedIn/other sources
+T-307: Add business profile custom field support
+T-308: Implement business profile search and filtering
+T-309: Add business profile bulk edit capabilities
+T-310: Create business profile public profile page option

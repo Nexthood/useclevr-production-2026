@@ -11,6 +11,8 @@
 - Users can upload CSV or Excel files and receive instant AI-generated analysis.
 - Uploaded datasets render in a structured data table with row-count metadata.
 - Users can ask AI questions about their uploaded dataset and get structured answers.
+- Dashboard users can open the AI Assistant from the sidebar, select one of their datasets, and ask
+  business questions without leaving the assistant workspace.
 - AI analysis uses a two-pass discovery + query pipeline so questions stay within data scope.
 - Business KPI analysis maps quantity, product, country/region, and revenue columns by explicit
   semantic matches so country values are not counted as quantities.
@@ -43,6 +45,9 @@
 - A live completion percentage is shown in the topbar so users can see how complete their
   business profile is.
 - Incomplete business profile fields are surfaced in the topbar with a direct link to Settings.
+- Dashboard users can switch between English, German, Hungarian, and Romanian languages from
+  the language selector in the topbar.
+- Language preference persists across sessions and page reloads.
 
 ### Support
 
