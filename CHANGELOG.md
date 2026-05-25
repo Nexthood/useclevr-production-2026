@@ -7,8 +7,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Dashboard language selector with four options: English, German, Hungarian, and Romanian.
+- Language preference persists in localStorage and applies across the application.
+- Translation service with 24-hour caching layer to minimize API calls to Google Translation.
+- Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
+  questions from one workspace.
+- Business settings now show profile sections, completion metrics, and review flags that explain
+  which company details improve AI confidence.
+- Setup progress now counts profile fields, business profile fields, first data actions, and key
+  dashboard pages visited at least once.
+- The setup progress panel now includes a guided tour through incomplete setup items.
+- Dashboard FAQ now starts with quick actions for feedback, chat support, and support tickets.
+
 ### Changed
 
+- The dashboard sidebar app panel now uses App Store and Google Play icons, and social links open
+  the current external pages in a new tab.
 - Dashboard onboarding now tracks setup progress from account data, routes users to the relevant
   setup pages, and keeps reopening for accounts below 25% completion.
 - Social login buttons now start configured Google and GitHub sign-in or registration flows.
@@ -61,6 +77,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dedicated project audit and testing guides.
 - TODO management docs now document how retired audit and dist tasks moved into the regular queues.
 - GitHub workflow docs now cover issues, projects, versioning, releases, and workflow artifacts.
+- Developer docs now include a GitHub issue template, release artifact checklist, git command
+  patterns, long-running command handling, common prompt templates, and AI collaboration guides.
 - Dist migration tracking now has no active unresolved items; future publish confirmations moved to
   the dist future queue.
 - Admin management lists now share one table pattern before row-level editing.

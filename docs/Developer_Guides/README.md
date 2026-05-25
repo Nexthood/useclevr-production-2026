@@ -17,6 +17,13 @@
 | **[PROJECT_AUDIT_GUIDE.md](PROJECT_AUDIT_GUIDE.md)**     | Start-to-finish project audit workflow               |
 | **[PROJECT_TESTING_GUIDE.md](PROJECT_TESTING_GUIDE.md)** | Start-to-finish project testing workflow             |
 
+## Workflow References
+
+- **[GIT_COMMAND_PATTERNS.md](GIT_COMMAND_PATTERNS.md)**: Common non-interactive git command patterns.
+- **[LONG_RUNNING_COMMANDS.md](LONG_RUNNING_COMMANDS.md)**: Timeout and progress handling for local commands.
+- **[COMMON_PROMPTS.md](COMMON_PROMPTS.md)**: Reusable prompts for common development work.
+- **[RELEASE_ARTIFACT_CHECKLIST.md](RELEASE_ARTIFACT_CHECKLIST.md)**: Release artifact inclusion rules.
+
 ## Recommendation
 
 Use **DEVELOPER_GUIDE.md** for setup, deployment, and core repo conventions

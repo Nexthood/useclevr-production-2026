@@ -11,6 +11,8 @@
 - Users can upload CSV or Excel files and receive instant AI-generated analysis.
 - Uploaded datasets render in a structured data table with row-count metadata.
 - Users can ask AI questions about their uploaded dataset and get structured answers.
+- Dashboard users can open the AI Assistant from the sidebar, select one of their datasets, and ask
+  business questions without leaving the assistant workspace.
 - AI analysis uses a two-pass discovery + query pipeline so questions stay within data scope.
 - Business KPI analysis maps quantity, product, country/region, and revenue columns by explicit
   semantic matches so country values are not counted as quantities.
@@ -39,10 +41,19 @@
 
 - Dashboard onboarding uses account data to show setup progress, reopen automatically while users
   are below 25% completion, and send each panel to the relevant setup or workflow page.
+- Setup progress counts completed profile fields, completed business profile fields, first upload
+  and analysis actions, and key dashboard pages visited at least once.
+- Dashboard users can open a setup progress panel from the topbar and start a guided tour through
+  incomplete setup items.
 - Users fill in company name, industry, location, website, and description in Settings.
+- Business settings show identity, contact, and operations sections with review flags that explain
+  which missing details lower AI confidence.
 - A live completion percentage is shown in the topbar so users can see how complete their
   business profile is.
 - Incomplete business profile fields are surfaced in the topbar with a direct link to Settings.
+- Dashboard users can switch between English, German, Hungarian, and Romanian languages from
+  the language selector in the topbar.
+- Language preference persists across sessions and page reloads.
 
 ### Support
 
@@ -50,6 +61,8 @@
   the dashboard.
 - Dashboard users can reach coming-soon mobile app buttons, social placeholders, account controls,
   and Terms from the sidebar footer.
+- Dashboard sidebar app buttons use App Store and Google Play icons, and social buttons open the
+  current external pages in a new tab.
 - Dashboard notices appear in a topbar inbox with a persistent count so users can review and clear
   notices when they are ready.
 - Dashboard notices and activity feeds show high-value account, billing, and dataset events without
@@ -69,6 +82,8 @@
   when no answer matches their question.
 - Dashboard FAQ uses expandable answers and includes an inline ticket form so users can open a
   support request without leaving the FAQ page.
+- Dashboard FAQ offers one-line actions for feedback, chat support, and ticket creation before the
+  FAQ list.
 - Super-admins can filter operator notes from the same dashboard FAQ page instead of opening a
   separate FAQ page.
 - Product-update waitlist signup remains usable during local development even when production

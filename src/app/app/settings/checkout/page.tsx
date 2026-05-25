@@ -224,6 +224,11 @@ function CheckoutClient() {
                   ? "Payment will be processed once you continue past this screen."
                   : "Card payment activates after the payment provider is connected."}
               </p>
+              {!canReview && (
+                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Payment provider connection is required before saving card details. Contact support to enable Stripe integration.
+                </div>
+              )}
               <div className="mt-4 space-y-3">
                 <Button onClick={onSubmit} disabled={!termsAccepted || isGoing} className="w-full">
                   {isGoing

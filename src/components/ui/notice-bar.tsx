@@ -23,6 +23,40 @@ type NoticeContextValue = {
 
 const NoticeContext = React.createContext<NoticeContextValue | null>(null);
 
+export type NoticeErrorType = "Configuration" | "CredentialsSignin" | string;
+
+export function useNoticeAutoOpen(errorCode?: string | null) {
+  const context = React.useContext(NoticeContext)
+  React.useEffect(() => {
+    if (!errorCode || !context) return
+    const title = getLoginErrorMessage(errorCode)
+    context.showNotice({
+      type: "error",
+      title,
+      message: errorCode === "Configuration"
+        ? "The login page is still available, but the auth service needs attention."
+        : "Please check your details and try again.",
+    })
+    window.history.replaceState(null, "", "/login")
+  }, [errorCode, context])
+}
+
+export function getLoginErrorMessage(code?: string | null) {
+  if (!code) {
+    return "We could not sign you in. Please try again."
+  }
+
+  if (code === "CredentialsSignin") {
+    return "The email or password does not match our records."
+  }
+
+  if (code === "Configuration") {
+    return "Login is temporarily unavailable. Please contact support."
+  }
+
+  return "We could not sign you in. Please try again."
+}
+
 const noticeEventName = "useclevr:notice";
 let noticeIdCounter = 0;
 
@@ -62,7 +96,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
   const notice = notices[0] ?? null;
 
   React.useEffect(() => {
-    setIsMutedPath(window.location.pathname.startsWith("/login"));
+    setIsMutedPath(false);
   }, []);
 
   const clearNotice = React.useCallback((id?: number) => {

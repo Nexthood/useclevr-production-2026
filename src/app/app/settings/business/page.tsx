@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
-import { Building2, Percent, Save } from "lucide-react"
+import { AlertCircle, Building2, CheckCircle2, Mail, MapPin, Percent, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import * as React from "react"
 
@@ -19,13 +19,13 @@ type BusinessDetails = {
   businessDescription: string
 }
 
-const FIELDS: { id: keyof BusinessDetails; label: string; placeholder: string; type?: string }[] = [
-  { id: "businessName",        label: "Company name",    placeholder: "Acme Corp" },
-  { id: "businessEmail",       label: "Company email",   placeholder: "contact@acme.com", type: "email" },
-  { id: "industry",            label: "Industry",        placeholder: "Technology" },
-  { id: "location",            label: "Location",        placeholder: "Copenhagen, Denmark" },
-  { id: "website",             label: "Website",         placeholder: "https://acme.com", type: "url" },
-  { id: "businessDescription", label: "Business description", placeholder: "Brief description of what your company does", type: "textarea" },
+const FIELDS: { id: keyof BusinessDetails; label: string; placeholder: string; type?: string; section: string }[] = [
+  { id: "businessName",        label: "Company name",    placeholder: "Acme Corp", section: "Identity" },
+  { id: "industry",            label: "Industry",        placeholder: "Technology", section: "Identity" },
+  { id: "businessDescription", label: "Business description", placeholder: "Brief description of what your company does", type: "textarea", section: "Identity" },
+  { id: "businessEmail",       label: "Company email",   placeholder: "contact@acme.com", type: "email", section: "Contact" },
+  { id: "website",             label: "Website",         placeholder: "https://acme.com", type: "url", section: "Contact" },
+  { id: "location",            label: "Location",        placeholder: "Copenhagen, Denmark", section: "Operations" },
 ]
 
 function completionPercent(details: BusinessDetails): number {
@@ -34,6 +34,33 @@ function completionPercent(details: BusinessDetails): number {
     return v.length > 0
   }).length
   return Math.round((filled / FIELDS.length) * 100)
+}
+
+function reviewFlags(details: BusinessDetails) {
+  const flags: { label: string; complete: boolean; help: string }[] = [
+    {
+      label: "Business identity",
+      complete: Boolean(details.businessName.trim() && details.industry.trim()),
+      help: "Add a company name and industry so reports use the right business context.",
+    },
+    {
+      label: "Contact details",
+      complete: Boolean(details.businessEmail.includes("@") && details.website.trim()),
+      help: "Add a company email and website for support, reports, and future customer-facing outputs.",
+    },
+    {
+      label: "Operating location",
+      complete: Boolean(details.location.trim()),
+      help: "Add the primary location so currency, tax, and region assumptions can be reviewed.",
+    },
+    {
+      label: "Analysis context",
+      complete: details.businessDescription.trim().length >= 40,
+      help: "Add a short description with what the company sells, who it serves, and how it earns revenue.",
+    },
+  ]
+
+  return flags
 }
 
 export default function BusinessSettingsPage() {
@@ -92,9 +119,51 @@ export default function BusinessSettingsPage() {
   }
 
   const pct = completionPercent(details)
+  const flags = reviewFlags(details)
+  const sections = Array.from(new Set(FIELDS.map((field) => field.section)))
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="border-border bg-card lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Business profile</CardTitle>
+            <CardDescription>
+              Complete these fields once so analysis, reports, and support context use the same company details.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ProfileMetric icon={Building2} label="Identity" value={`${FIELDS.filter((field) => field.section === "Identity" && details[field.id]).length}/3`} />
+              <ProfileMetric icon={Mail} label="Contact" value={`${FIELDS.filter((field) => field.section === "Contact" && details[field.id]).length}/2`} />
+              <ProfileMetric icon={MapPin} label="Operations" value={`${FIELDS.filter((field) => field.section === "Operations" && details[field.id]).length}/1`} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle>Review</CardTitle>
+            <CardDescription>Flags that affect AI confidence.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {flags.map((flag) => (
+              <div key={flag.label} className="flex gap-2 text-sm">
+                {flag.complete ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
+                ) : (
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                )}
+                <div>
+                  <p className="font-medium text-foreground">{flag.label}</p>
+                  <p className="text-muted-foreground">{flag.complete ? "Ready" : flag.help}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -123,32 +192,46 @@ export default function BusinessSettingsPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {FIELDS.map((field) => (
-              <div key={field.id} className="space-y-1.5">
-                <Label htmlFor={field.id}>
-                  {field.label}
-                </Label>
-                {field.type === "textarea" ? (
-                  <textarea
-                    id={field.id}
-                    name={field.id}
-                    placeholder={field.placeholder}
-                    rows={3}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    value={details[field.id]}
-                    onChange={(e) => handleChange(field.id, e.target.value)}
-                  />
-                ) : (
-                  <Input
-                    id={field.id}
-                    name={field.id}
-                    type={field.type ?? "text"}
-                    placeholder={field.placeholder}
-                    value={details[field.id]}
-                    onChange={(e) => handleChange(field.id, e.target.value)}
-                  />
-                )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {sections.map((section) => (
+              <div key={section} className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">{section}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {section === "Identity" && "Describe what the company is and how it should appear in reports."}
+                    {section === "Contact" && "Add customer-facing contact details for reports and support context."}
+                    {section === "Operations" && "Add the main operating location for regional assumptions."}
+                  </p>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {FIELDS.filter((field) => field.section === section).map((field) => (
+                    <div key={field.id} className={field.type === "textarea" ? "space-y-1.5 lg:col-span-2" : "space-y-1.5"}>
+                      <Label htmlFor={field.id}>
+                        {field.label}
+                      </Label>
+                      {field.type === "textarea" ? (
+                        <textarea
+                          id={field.id}
+                          name={field.id}
+                          placeholder={field.placeholder}
+                          rows={4}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          value={details[field.id]}
+                          onChange={(e) => handleChange(field.id, e.target.value)}
+                        />
+                      ) : (
+                        <Input
+                          id={field.id}
+                          name={field.id}
+                          type={field.type ?? "text"}
+                          placeholder={field.placeholder}
+                          value={details[field.id]}
+                          onChange={(e) => handleChange(field.id, e.target.value)}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
             <div className="flex justify-end pt-2">
@@ -160,6 +243,26 @@ export default function BusinessSettingsPage() {
           </form>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function ProfileMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background p-3">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-primary" />
+        <p className="text-sm font-medium text-foreground">{label}</p>
+      </div>
+      <p className="mt-2 text-2xl font-semibold text-primary">{value}</p>
     </div>
   )
 }

@@ -258,6 +258,14 @@ companyCalculationContext
 ### S-3 AI Confidence & Accuracy Layer
 - AI Setup Confidence score
 - Warnings for uncertain entries
+
+## [suggestions - 2026-05-25 review]
+
+T-311: Split business profile completion into field completion, page visit completion, and workflow completion so users understand what raises progress.
+T-312: Add a topbar setup panel that lists missing profile, business, dataset, analysis, and page-visit items.
+T-313: Add a guided setup tour that opens the exact dashboard pages needed for incomplete setup items.
+T-314: Store page visits as non-feed activity so progress can use them without cluttering user activity history.
+T-315: Add business-profile review flags for missing website, missing business email, vague industry, and short business descriptions.
 - Smart recommendations
 
 ---
@@ -270,7 +278,6 @@ T-276: Add TypeScript validation for Mermaid diagrams in pre-commit
 T-277: Create draft PR template for plan review process
 
 [additional]
-
 Build a simple, professional Company Setup Wizard for UseClevr.
 
 Goal:
@@ -278,7 +285,7 @@ Before a user analyzes CSV/business data, UseClevr should collect key company, t
 
 Important:
 Do NOT build OCR, document scanning, bank integrations or external accounting integrations in this version.
-This is a fast MVP setup wizard with manual input, “Not sure” options, setup accuracy score and accountant review flags.
+This is a fast MVP setup wizard with manual input, "Not sure" options, setup accuracy score and accountant review flags.
 
 Create a new page:
 
@@ -614,7 +621,7 @@ Expenses section: 15 points
 Insurance section: 10 points
 Loans & Leasing section: 10 points
 
-If a critical field is “Not sure”, reduce confidence or mark it as review-required.
+If a critical field is "Not sure", reduce confidence or mark it as review-required.
 
 Accountant Review Flags:
 Create flags when:
@@ -709,12 +716,12 @@ Implementation Requirements:
 - Keep labels simple and user-friendly.
 
 UX Details:
-- Every difficult question must include “Not sure”.
-- “Not sure” should never block the user.
+- Every difficult question must include "Not sure".
+- "Not sure" should never block the user.
 - Show helper text under important questions:
   Example:
-  “Loan repayments affect cashflow, but only the interest part is usually treated as an expense.”
-- Show a small right-side or bottom “Accuracy Preview” panel:
+  "Loan repayments affect cashflow, but only the interest part is usually treated as an expense."
+- Show a small right-side or bottom "Accuracy Preview" panel:
   Revenue: High/Medium/Low
   Tax: High/Medium/Low
   Expenses: High/Medium/Low
@@ -723,3 +730,24 @@ UX Details:
 
 Deliverable:
 Create the full working Company Setup Wizard page with all steps, state handling, validation-lite, accuracy calculation, accountant review flags and final payload generation.
+
+---
+
+### Additional Suggestions
+T-294: Add business profile import/export functionality for backup and migration
+T-295: Add business profile validation rules with real-time feedback
+T-296: Implement business profile templates for common business types
+T-297: Add multi-currency support to business profile settings
+T-298: Create business profile audit log for tracking changes
+T-299: Add business profile sharing between team members
+T-300: Implement business profile version history with rollback
+T-301: Add business profile API for third-party integrations
+T-302: Create business profile completion wizard with progress steps
+T-303: Add business profile analytics dashboard for insights
+T-304: Implement business profile data privacy controls
+T-305: Add business profile notifications for incomplete sections
+T-306: Create business profile import from LinkedIn/other sources
+T-307: Add business profile custom field support
+T-308: Implement business profile search and filtering
+T-309: Add business profile bulk edit capabilities
+T-310: Create business profile public profile page option

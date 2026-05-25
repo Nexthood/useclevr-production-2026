@@ -7,7 +7,7 @@ import { dashboardFaqCategories } from "@/lib/content/dashboard-faq"
 import { allFaqCategories } from "@/lib/content/faq"
 import { HelpCircle, Loader2, MessageSquare, Send, X } from "lucide-react"
 import type { FormEvent } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -52,6 +52,12 @@ export function HelpChatbox() {
     () => email.includes("@") && contactMessage.trim().length > 8,
     [email, contactMessage]
   )
+
+  useEffect(() => {
+    const openChat = () => setOpen(true)
+    window.addEventListener("toggle-help-chat", openChat)
+    return () => window.removeEventListener("toggle-help-chat", openChat)
+  }, [])
 
   function handleQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

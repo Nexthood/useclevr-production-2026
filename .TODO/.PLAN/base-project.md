@@ -123,3 +123,26 @@ Start with full features (layer3), then progressively strip down.
 T-272: Create test script to verify each layer builds successfully
 T-273: Add dist packaging validation for stripped layers
 T-274: Document migration path from useclevr-2026 base to _ai-base-project
+T-294: Create setup script for initializing layer branches from template
+T-295: Add CI workflow for testing stripped layer builds
+T-296: Create documentation for each layer's feature set
+T-297: Add automated branch creation script for new layer variants
+T-298: Implement feature flag system across stripped layers
+T-299: Create README templates for each layer branch
+T-300: Add dependency analysis for minimal layer requirements
+T-301: Implement selective file copying for layer generation
+T-302: Create layer comparison tool for feature tracking
+T-303: Add version tagging system for layer releases
+T-304: Implement security audit for stripped layers
+T-305: Create deployment templates for each layer type
+T-306: Add test coverage requirements for each layer
+T-307: Implement automated layer update propagation
+T-308: Create external repo sync automation
+T-309: Add license compliance check for base project
+T-310: Implement changelog generation for layer branches
+
+## [suggestions - 2026-05-25 review]
+
+T-311: Add a dry-run report before layer stripping that lists files removed, files kept, and dependency changes.
+T-312: Add a source-branch guard so base layer generation cannot run from a dirty product branch by accident.
+T-313: Add a smoke-test matrix covering layer navigation, auth mode, data mode, and deploy mode.

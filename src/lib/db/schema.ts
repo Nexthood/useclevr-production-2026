@@ -351,6 +351,8 @@ export const supportTickets = pgTable(
     priority: varchar('priority', { length: 20 }).default('normal').notNull(),
     status: varchar('status', { length: 30 }).default('open').notNull(),
     adminNote: text('adminNote').default('').notNull(),
+    adminName: varchar('adminName', { length: 255 }).default('').notNull(),
+    adminNoteUpdatedAt: timestamp('adminNoteUpdatedAt'),
     createdAt: timestamp('createdAt').defaultNow().notNull(),
     updatedAt: timestamp('updatedAt').defaultNow().notNull(),
     resolvedAt: timestamp('resolvedAt'),

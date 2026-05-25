@@ -79,27 +79,15 @@ No active implementation task is currently in progress.
   repeat-open behavior, and step navigation links.
 - T-268. Add keyboard and screen-reader coverage for the shared modal use in onboarding and activity
   panels.
-- T-269. Add a GitHub issue template that links promoted issues back to local `T-` tasks and release
-  targets.
-- T-270. Add a release artifact checklist for deciding which CI outputs should be attached to GitHub
-  Releases.
 - T-271. Break Company Calculation Context into separate type file for cleaner imports.
 - T-272. Create test script to verify each layer builds successfully.
 - T-273. Add dist packaging validation for stripped layers.
 - T-274. Document migration path from useclevr-2026 base to _ai-base-project.
 - T-275. Add TypeScript validation for Mermaid diagrams in pre-commit.
 - T-276. Create draft PR template for plan review process.
-- T-277. Add common command patterns for git workflows.
-- T-278. Include timeout handling patterns for long-running commands.
 - T-279. Expand analysis to include file-based interaction patterns.
-- T-280. Add template prompts for common development tasks.
-- T-281. Create User-AI-Communication-Patterns.md document.
-- T-282. Create Future-AI-Collaboration-Guidelines.md document.
 - T-284. Run a full dashboard interaction audit across topbar, sidebar, settings, dataset, checkout,
-  admin, FAQ, ticket, and download flows.
+   admin, FAQ, ticket, and download flows.
 - T-285. Add an authenticated end-to-end smoke test that clicks each dashboard button and verifies
-  expected navigation, modal, form, or API behavior.
-- T-286. Verify Google and GitHub OAuth login and registration in staging with configured provider
-  credentials and callback URLs.
-
-- add upload Google Drive implementation, this probably easier for those have the google social login
+   expected navigation, modal, form, or API behavior.
+- T-286. Verify Google and GitHub OAuth login and registration in staging with configured provider credentials and callback URLs.

@@ -18,6 +18,8 @@ export interface SupportTicket {
   priority: TicketPriority
   status: TicketStatus
   adminNote: string
+  adminName: string
+  adminNoteUpdatedAt: string | null
   createdAt: string
   updatedAt: string
   resolvedAt: string | null
@@ -72,6 +74,8 @@ function toTicket(row: typeof supportTickets.$inferSelect): SupportTicket {
     priority: row.priority === "urgent" ? "urgent" : "normal",
     status: normalizeStatus(row.status),
     adminNote: row.adminNote,
+    adminName: row.adminName || "",
+    adminNoteUpdatedAt: row.adminNoteUpdatedAt ? row.adminNoteUpdatedAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
@@ -132,6 +136,8 @@ export async function createTicket(input: {
     priority: normalizePriority(input.priority),
     status: "open",
     adminNote: "",
+    adminName: "",
+    adminNoteUpdatedAt: null,
     createdAt: now,
     updatedAt: now,
     resolvedAt: null,

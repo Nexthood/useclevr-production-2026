@@ -1,0 +1,28 @@
+name: Local task
+description: Promote a local TODO task into a tracked GitHub issue.
+title: "T-000: "
+labels:
+  - task
+body:
+  - type: input
+    id: task-id
+    attributes:
+      label: Local task ID
+      description: Use the matching T- task from .TODO.
+      placeholder: T-000
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User-visible outcome
+      description: Describe what changes for users or operators.
+    validations:
+      required: true
+  - type: textarea
+    id: release
+    attributes:
+      label: Release target
+      description: Note changelog, requirements, docs, or deployment follow-up.
+    validations:
+      required: false

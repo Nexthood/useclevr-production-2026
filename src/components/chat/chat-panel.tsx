@@ -125,9 +125,8 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={() => setIsExpanded(false)} />
-      <div className="relative bg-background w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+    <div className="fixed bottom-6 right-6 z-50 w-full max-w-lg">
+      <div className="relative bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="bg-primary p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -145,11 +144,11 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
           {messages.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">Ask about your data</p>
-              
+
               {/* Smart Suggestions */}
               {suggestions.length > 0 && (
                 <div className="mb-4">
@@ -167,7 +166,7 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
                   </div>
                 </div>
               )}
-              
+
               {columns.length > 0 && (
                 <div className="flex flex-wrap gap-2 justify-center">
                   {columns.slice(0, 5).map((col) => (
