@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans";
-import { DiscountRule } from "@/app/app/admin/discounts/page";
+import type { DiscountRule } from "@/app/app/admin/discounts/page";
 import { Check, ChevronRight, CreditCard, FileText, Lock, Tag } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";

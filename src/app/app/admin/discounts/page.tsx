@@ -20,13 +20,6 @@ export type DiscountRule = {
   planTarget?: "all" | "free" | "pro" | "business";
 };
 
-const planTargetOptions: { value: DiscountRule["planTarget"]; label: string }[] = [
-  { value: "all", label: "All plans" },
-  { value: "free", label: "Free" },
-  { value: "pro", label: "Pro" },
-  { value: "business", label: "Business" },
-];
-
 const DEFAULT_RULES: DiscountRule[] = [
   {
     id: "1",
