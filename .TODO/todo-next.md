@@ -101,5 +101,3 @@ No active implementation task is currently in progress.
   expected navigation, modal, form, or API behavior.
 - T-286. Verify Google and GitHub OAuth login and registration in staging with configured provider
   credentials and callback URLs.
-
-- add upload Google Drive implementation, this probably easier for those have the google social login
