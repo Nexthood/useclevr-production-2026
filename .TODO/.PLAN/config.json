@@ -1,0 +1,27 @@
+{
+  "prefixes": {
+    "phase": "P-",
+    "stage": "S-",
+    "task": "T-",
+    "list": "L-",
+    "group": "U-"
+  },
+  "counters": {
+    "P": 9,
+    "S": 12,
+    "T": 277
+  },
+  "general": {
+    "settings": {
+      "includeTableOfContents": true,
+      "includeSuggestionsSection": true,
+      "useMermaidForFlows": true
+    }
+  },
+  "instructions": "Use P- prefix for phases (## headers), S- for stages (### headers), T- for suggestion tasks, L- for list items, U- for groups (#### headers).",
+  "workflows": [
+    "Read counter before adding item",
+    "Increment counter after use",
+    "Move completed suggestions to TODO system"
+  ]
+}

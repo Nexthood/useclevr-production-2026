@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { recordActivity } from "@/lib/activity/activity-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -87,6 +88,15 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
     })
   }
 
+  await recordActivity({
+    userId,
+    userEmail: email,
+    type: "profile_updated",
+    feature: "settings",
+    title: "Profile updated",
+    description: "Account profile details were saved.",
+  })
+
   revalidatePath("/app")
   revalidatePath("/app/settings")
   revalidatePath("/app/settings/profile")
@@ -124,17 +134,48 @@ export async function updateBusinessDetails(formData: FormData): Promise<UpdateB
   const website             = String(formData.get("website") ?? "").trim() || null
   const businessDescription = String(formData.get("businessDescription") ?? "").trim() || null
 
-  await db.update(profiles)
-    .set({
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    columns: {
+      userId: true,
+      email: true,
+      fullName: true,
+    },
+  })
+
+  if (existingProfile) {
+    await db.update(profiles)
+      .set({
+        businessName,
+        businessEmail,
+        industry,
+        location,
+        website,
+        businessDescription,
+        updatedAt: new Date(),
+      })
+      .where(eq(profiles.userId, userId))
+  } else {
+    await db.insert(profiles).values({
+      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      userId,
       businessName,
       businessEmail,
       industry,
       location,
       website,
       businessDescription,
-      updatedAt: new Date(),
     })
-    .where(eq(profiles.userId, userId))
+  }
+
+  await recordActivity({
+    userId,
+    userEmail: session.user.email,
+    type: "business_updated",
+    feature: "settings",
+    title: "Business details updated",
+    description: "Business profile details were saved.",
+  })
 
   revalidatePath("/app")
   revalidatePath("/app/settings")

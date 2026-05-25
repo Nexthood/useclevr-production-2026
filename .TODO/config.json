@@ -1,20 +1,15 @@
 {
-  "currentTaskPrefix": "T",
-  "nextTaskNumber": 130,
+  "currentTaskPrefix": "T-",
+  "nextTaskNumber": 297,
   "todoFiles": {
-    "active": ".TODO/todo.md",
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",
     "ignore": ".TODO/todo-ignore.md",
-    "future": ".TODO/todo-future.md",
-    "dist": ".TODO/todo-dist.md",
-    "distDone": ".TODO/todo-dist-done.md",
-    "distFuture": ".TODO/todo-dist-future.md",
-    "distNoFix": ".TODO/todo-dist-no-fix.md"
+    "future": ".TODO/todo-future.md"
   },
   "linksHeader": "Links",
-  "taskIdPattern": "^T\\d{2,}$",
-  "instructions": "Get T-number (task number) from .TODO/config.json before adding new numbered tasks. Assign a T-number to each new numbered task in todo-next.md, keep one task per bullet, move completed tasks to todo-done.md, use a Links section for related references where the file format supports it, and keep TODO metadata inside .TODO/config.json.",
+  "taskIdPattern": "^T-\\d{2,}$",
+  "instructions": "Get T-number (task number) from .TODO/config.json before adding new numbered tasks. Assign a T- prefixed task number to every task in todo-next.md, todo-done.md, todo-future.md, and todo-ignore.md. Keep todo-next.md as the only active queue. Move completed tasks to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Do not duplicate tasks that already exist in todo-next.md.",
   "suggestions": [
     "Keep TODO-next focused on important developer and end-user work.",
     "Use shared config under data-config/frontend_shared.json and data-config/server.json for the date/alias rule source.",

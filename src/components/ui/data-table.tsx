@@ -10,8 +10,11 @@ export interface DataTableColumn<T extends Record<string, unknown>> {
 interface DataTableProps<T extends Record<string, unknown>> {
   columns: DataTableColumn<T>[]
   rows: T[]
+  title?: string
+  description?: string
   emptyMessage?: string
   rowKey?: (row: T, rowIndex: number) => React.Key
+  minWidth?: string
 }
 
 function formatCell(value: unknown) {
@@ -24,13 +27,22 @@ function formatCell(value: unknown) {
 export function DataTable<T extends Record<string, unknown>>({
   columns,
   rows,
+  title,
+  description,
   emptyMessage = "No rows to display.",
   rowKey,
+  minWidth = "min-w-full",
 }: DataTableProps<T>) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
+      {(title || description) && (
+        <div className="border-b border-border px-5 py-4">
+          {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
+          {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+        </div>
+      )}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-full text-sm">
+        <table className={`w-full ${minWidth} text-sm`}>
           <thead className="bg-muted/60 text-muted-foreground">
             <tr>
               {columns.map((column) => (

@@ -3,9 +3,10 @@
 import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Zap } from "lucide-react";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { Edit, Plus, Trash2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export type DiscountRule = {
@@ -39,8 +40,6 @@ const DEFAULT_RULES: DiscountRule[] = [
   },
 ];
 
-const ruleTypes: DiscountRule["type"][] = ["free", "percentage", "referral", "stacking"];
-
 export default function AdminDiscountsPage() {
   const [rules, setRules] = useState<DiscountRule[]>(DEFAULT_RULES);
   const [saved, setSaved] = useState<string | null>(null);
@@ -73,11 +72,6 @@ export default function AdminDiscountsPage() {
     };
     loadRules();
   }, [toast]);
-
-  const updateRule = (id: string, patch: Partial<DiscountRule>) => {
-    setRules((prev) => prev.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)));
-    setSaved(null);
-  };
 
   const addRule = () => {
     setRules((prev) => [
@@ -203,107 +197,84 @@ export default function AdminDiscountsPage() {
           ))}
         </div>
 
-        <Card className="overflow-hidden border-border bg-card">
+        <div className="space-y-3">
           {saved && (
-            <p className="border-b border-border px-5 py-3 text-sm text-muted-foreground">
+            <p className="rounded-lg border border-border bg-card px-5 py-3 text-sm text-muted-foreground">
               {saved}
             </p>
           )}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1040px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-3 py-3 font-medium">Type</th>
-                  <th className="px-3 py-3 font-medium">Code</th>
-                  <th className="px-3 py-3 font-medium">Percent</th>
-                  <th className="px-3 py-3 font-medium">Description</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 text-right font-medium">Remove</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((rule) => (
-                  <tr key={rule.id} className="border-b border-border/60">
-                    <td className="px-4 py-3">
-                      <Input
-                        value={rule.name}
-                        onChange={(event) => updateRule(rule.id, { name: event.target.value })}
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <select
-                        value={rule.type}
-                        onChange={(event) =>
-                          updateRule(rule.id, { type: event.target.value as DiscountRule["type"] })
-                        }
-                        className="h-10 w-32 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-                      >
-                        {ruleTypes.map((type) => (
-                          <option key={type} value={type}>
-                            {type}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-3">
-                      <Input
-                        value={rule.code}
-                        onChange={(event) => updateRule(rule.id, { code: event.target.value })}
-                        className="w-32 font-mono"
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={rule.percent ?? 0}
-                        onChange={(event) =>
-                          updateRule(rule.id, {
-                            percent: Math.min(100, Math.max(0, Number(event.target.value) || 0)),
-                          })
-                        }
-                        className="w-24"
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <Input
-                        value={rule.description}
-                        onChange={(event) =>
-                          updateRule(rule.id, { description: event.target.value })
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <select
-                        value={rule.enabled ? "true" : "false"}
-                        onChange={(event) =>
-                          updateRule(rule.id, { enabled: event.target.value === "true" })
-                        }
-                        className="h-10 w-28 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-                      >
-                        <option value="true">Active</option>
-                        <option value="false">Disabled</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => removeRule(rule.id)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
-                        aria-label={`Remove ${rule.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+          <DataTable
+            rows={rules as unknown as Record<string, unknown>[]}
+            columns={discountColumns(removeRule)}
+            rowKey={(row) => String(row.id)}
+            minWidth="min-w-[1040px]"
+          />
+        </div>
       </main>
     </div>
   );
+}
+
+function discountColumns(
+  removeRule: (id: string) => void,
+): DataTableColumn<Record<string, unknown>>[] {
+  return [
+    {
+      key: "name",
+      header: "Name",
+      render: (row) => (
+        <div>
+          <p className="font-medium text-foreground">{String(row.name)}</p>
+          <p className="text-xs text-muted-foreground">{String(row.description || "No description")}</p>
+        </div>
+      ),
+    },
+    { key: "type", header: "Type" },
+    {
+      key: "code",
+      header: "Code",
+      render: (row) => <span className="font-mono text-xs">{String(row.code || "-")}</span>,
+    },
+    {
+      key: "percent",
+      header: "Percent",
+      align: "right",
+      render: (row) => `${Number(row.percent ?? 0).toLocaleString()}%`,
+    },
+    {
+      key: "enabled",
+      header: "Status",
+      render: (row) => (
+        <span
+          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${row.enabled ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-slate-500/10 text-slate-700 dark:text-slate-300"}`}
+        >
+          {row.enabled ? "Active" : "Disabled"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex justify-end gap-2">
+          <Link
+            href={`/app/admin/edit?type=discount&id=${encodeURIComponent(String(row.id))}`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+            aria-label={`Edit ${String(row.name)}`}
+          >
+            <Edit className="h-4 w-4" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => removeRule(String(row.id))}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
+            aria-label={`Remove ${String(row.name)}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
 }

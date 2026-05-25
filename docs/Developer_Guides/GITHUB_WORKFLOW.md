@@ -52,6 +52,31 @@ The `commit-msg` hook validates commit messages automatically. Bypass with `git 
 
 Pull request titles should start with `PR:` for deployment tracking. The auto-merge workflow formats them as `PR-{number}: title`. The formatted title becomes the dist branch commit message.
 
+## GitHub Issues, Projects, Releases, And Artifacts
+
+Use GitHub Issues for work that needs collaboration, triage, or historical discussion outside the
+local `.TODO/` queue. Use `.TODO/todo-next.md` for local agent-ready implementation tasks. When an
+issue becomes implementation work, give the local task a `T-` number and link the issue in the task
+body or pull request.
+
+Use GitHub Projects for cross-cutting planning across issues, pull requests, releases, and deployment
+follow-up. Keep project fields product-oriented: status, owner, priority, release target, and risk.
+Do not duplicate every local TODO item into a project board; promote only work that benefits from
+coordination or reporting.
+
+Use version tags only for reviewed releases. Keep release notes aligned with `CHANGELOG.md`, and do
+not add follow-up work to an already released version section. If a fix follows a release, document it
+under `## [Unreleased]` until the next release tag.
+
+Use GitHub Releases when a version needs a stable changelog, deployment reference, or downloadable
+artifact set. Attach artifacts only when they are useful outside CI logs, such as generated manifests,
+smoke-test summaries, or signed packages. Do not attach generated `.next/`, `dist/`, or dependency
+folders unless a release process explicitly requires them.
+
+Use workflow artifacts for temporary CI evidence: build manifests, smoke-test output, coverage
+reports, screenshots, or logs that help review a pull request. Keep artifact retention short unless
+the artifact is needed for compliance or incident review.
+
 ## Test Flow: Beta To Main
 
 Use this flow when testing a change before release:

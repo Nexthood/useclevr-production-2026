@@ -1,4 +1,3 @@
-import { CheckoutButton } from "@/components/forms/checkout-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
@@ -13,7 +12,10 @@ export default async function SubscriptionSettingsPage() {
   const usage = await getAnalystCreditUsage(session?.user?.id);
   const billingSettings = await getBillingSettings();
   const remaining = Math.max(0, usage.total - usage.analysisCount);
-  const isUnlimited = usage.subscriptionTier === "pro" || usage.subscriptionTier === "superadmin";
+  const isUnlimited =
+    usage.subscriptionTier === "pro" ||
+    usage.subscriptionTier === "business" ||
+    usage.subscriptionTier === "superadmin";
 
   return (
     <Card className="bg-card border-border">
@@ -121,16 +123,17 @@ export default async function SubscriptionSettingsPage() {
                       Active plan
                     </Button>
                   ) : (
-                    <CheckoutButton
-                      productId={plan.id}
-                      size="sm"
-                      variant={plan.tier === "free" ? "outline" : "default"}
-                      className={
-                        plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"
-                      }
-                    >
-                      {plan.tier === "free" ? "Downgrade" : "Review change"}
-                    </CheckoutButton>
+                    <Link href={`/app/settings/checkout?plan=${plan.id}`}>
+                      <Button
+                        size="sm"
+                        variant={plan.tier === "free" ? "outline" : "default"}
+                        className={
+                          plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"
+                        }
+                      >
+                        {plan.tier === "free" ? "Downgrade" : "Review change"}
+                      </Button>
+                    </Link>
                   )}
                 </div>
               );

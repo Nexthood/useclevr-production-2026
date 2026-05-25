@@ -37,6 +37,8 @@
 
 ### Business Profile
 
+- Dashboard onboarding uses account data to show setup progress, reopen automatically while users
+  are below 25% completion, and send each panel to the relevant setup or workflow page.
 - Users fill in company name, industry, location, website, and description in Settings.
 - A live completion percentage is shown in the topbar so users can see how complete their
   business profile is.
@@ -44,10 +46,16 @@
 
 ### Support
 
+- Social login and registration create usable local account and profile records before users enter
+  the dashboard.
+- Dashboard users can reach coming-soon mobile app buttons, social placeholders, account controls,
+  and Terms from the sidebar footer.
 - Dashboard notices appear in a topbar inbox with a persistent count so users can review and clear
   notices when they are ready.
 - Dashboard notices and activity feeds show high-value account, billing, and dataset events without
   recording routine page changes, clicks, or repeated login noise.
+- Dashboard activity surfaces saved product actions including profile, business, upload, analysis,
+  deletion, registration, and subscription events.
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
 - Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
@@ -59,8 +67,10 @@
   and incident handling for authorised platform staff only.
 - Dashboard users can search FAQ answers from a floating help chat, then send a support request
   when no answer matches their question.
-- Dashboard FAQ includes an inline ticket form so users can open a support request without leaving
-  the FAQ page.
+- Dashboard FAQ uses expandable answers and includes an inline ticket form so users can open a
+  support request without leaving the FAQ page.
+- Super-admins can filter operator notes from the same dashboard FAQ page instead of opening a
+  separate FAQ page.
 - Product-update waitlist signup remains usable during local development even when production
   database access is unavailable.
 
@@ -89,6 +99,8 @@
 - Super-admins always see built-in demo and super-admin accounts at the top of the customer list.
 - Totals cards show total customers, Pro / Business count, free tier count, and active-in-last-30-days
   count at a glance.
+- Super-admins review customers in a read-first table and open focused edit pages for individual
+  customer rows.
 
 ### Customer Levels & Discount Rules
 
@@ -98,8 +110,8 @@
 - Super-admins can create, edit, enable, and disable discount rules covering free-plan discounts,
   percentage discounts, referral rewards, and stacking behaviour — all stored in the same
   billing settings object.
-- Super-admins edit customer levels and discount rules in horizontal table rows so related fields
-  stay visible while scanning.
+- Super-admins review customer levels and discount rules in read-first tables before opening focused
+  edit pages for individual rows.
 
 ### Hybrid AI
 
@@ -107,7 +119,7 @@
   and backdrop behaviour are consistent with every other dialog.
 - The hybrid AI popup opens reliably from the dashboard topbar.
 - Free tier users see Pro and Business plan options inside the hybrid AI popup, guiding them to
-  checkout with a single click.
+  checkout review with a single click.
 
 ### Release & Deployment
 
@@ -194,5 +206,20 @@
 - Pull request titles start with `PR:` for deployment tracking
 - Source files stay free of unused imports, unused values, and type-only import warnings so CI output
   remains readable.
+- Production builds fail when TypeScript validation fails, so generated deployment output cannot hide
+  source type errors.
+- App Router pages use the root layout and metadata APIs for the document shell instead of legacy
+  document configuration.
+- Public FAQ content renders emphasis without injecting HTML, keeping shared content safer to reuse.
+- Admin management tables use the shared table pattern so customer, customer level, discount, and
+  future activity rows scan consistently before editing.
+- Dist migration tracking keeps active work separate from future post-merge confirmations, so
+  deployment follow-up items do not remain in the active migration queue.
+- TODO management uses `T-` task numbers and one active queue so agents can triage next, completed,
+  future, and ignored work consistently.
+- Developers have start-to-finish project audit and testing guides for repeatable review and release
+  checks.
+- Developers can use GitHub issues, projects, releases, and workflow artifacts with documented
+  boundaries between collaborative planning and local TODO tracking.
 - CSV analyzer business smoke tests must produce successful business KPIs without hidden
   multi-currency fallback errors.

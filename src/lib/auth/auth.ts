@@ -8,11 +8,13 @@ import {
 } from "@/lib/auth/builtin-users";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
-import { profiles, users } from "@/lib/db/schema";
+import { accounts, profiles, users } from "@/lib/db/schema";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
 import { z } from "zod";
 
 // DIAGNOSTIC: Log when auth module is loaded
@@ -45,6 +47,11 @@ const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
+
+const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+const githubClientId = process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID || process.env.GITHUB_CLIENT_ID;
+const githubClientSecret = process.env.AUTH_GITHUB_SECRET || process.env.GITHUB_SECRET || process.env.GITHUB_CLIENT_SECRET;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -144,6 +151,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
+    ...(googleClientId && googleClientSecret
+      ? [
+          Google({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }),
+        ]
+      : []),
+    ...(githubClientId && githubClientSecret
+      ? [
+          GitHub({
+            clientId: githubClientId,
+            clientSecret: githubClientSecret,
+          }),
+        ]
+      : []),
   ],
   session: {
     strategy: "jwt",
@@ -221,13 +244,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * SignIn Callback
      * CRITICAL: Return boolean, not redirect
      */
-    async signIn({ user: _user, account }) {
-      // Allow OAuth sign in
-      if (account?.provider === "credentials") {
+    async signIn({ user, account }) {
+      if (account?.provider === "credentials" || account?.provider === "demo") {
         // Credentials provider already validated in authorize()
         return true;
       }
-      // Allow OAuth providers
+
+      if (account?.provider && account.providerAccountId) {
+        await ensureOAuthUserRecord({
+          user,
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          accountType: account.type,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          expiresAt: account.expires_at,
+          tokenType: account.token_type,
+          scope: account.scope,
+          idToken: account.id_token,
+          sessionState: typeof account.session_state === "string" ? account.session_state : undefined,
+        });
+      }
+
       return true;
     },
     /**
@@ -289,3 +327,121 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
    */
   trustHost: true,
 });
+
+async function ensureOAuthUserRecord({
+  user,
+  provider,
+  providerAccountId,
+  accountType,
+  accessToken,
+  refreshToken,
+  expiresAt,
+  tokenType,
+  scope,
+  idToken,
+  sessionState,
+}: {
+  user: { id?: string; email?: string | null; name?: string | null; image?: string | null };
+  provider: string;
+  providerAccountId: string;
+  accountType?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  tokenType?: string;
+  scope?: string;
+  idToken?: string;
+  sessionState?: string;
+}) {
+  const dbClient = getDbClient();
+  const email = user.email?.trim().toLowerCase();
+
+  if (!dbClient || !email) return;
+
+  const existingUser = await dbClient.query.users.findFirst({
+    where: eq(users.email, email),
+    columns: { id: true },
+  });
+
+  const userId = existingUser?.id || `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  user.id = userId;
+
+  if (existingUser) {
+    await dbClient.update(users)
+      .set({
+        name: user.name || null,
+        image: user.image || null,
+      })
+      .where(eq(users.id, userId));
+  } else {
+    await dbClient.insert(users).values({
+      id: userId,
+      email,
+      name: user.name || null,
+      image: user.image || null,
+      emailVerified: new Date(),
+    });
+
+    await recordActivity({
+      userId,
+      userEmail: email,
+      type: "register",
+      feature: "account",
+      title: "Account registered",
+      description: "Account access was created.",
+    });
+  }
+
+  await dbClient.insert(accounts)
+    .values({
+      id: `account_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      userId,
+      type: accountType || "oauth",
+      provider,
+      providerAccountId,
+      accessToken: accessToken || null,
+      refreshToken: refreshToken || null,
+      expiresAt: expiresAt || null,
+      tokenType: tokenType || null,
+      scope: scope || null,
+      idToken: idToken || null,
+      sessionState: sessionState || null,
+    })
+    .onConflictDoUpdate({
+      target: [accounts.provider, accounts.providerAccountId],
+      set: {
+        userId,
+        accessToken: accessToken || null,
+        refreshToken: refreshToken || null,
+        expiresAt: expiresAt || null,
+        tokenType: tokenType || null,
+        scope: scope || null,
+        idToken: idToken || null,
+        sessionState: sessionState || null,
+      },
+    });
+
+  const existingProfile = await dbClient.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    columns: { id: true },
+  });
+
+  if (existingProfile) {
+    await dbClient.update(profiles)
+      .set({
+        email,
+        fullName: user.name || null,
+        avatarUrl: user.image || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(profiles.userId, userId));
+  } else {
+    await dbClient.insert(profiles).values({
+      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      userId,
+      email,
+      fullName: user.name || null,
+      avatarUrl: user.image || null,
+    });
+  }
+}

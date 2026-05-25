@@ -1,11 +1,11 @@
 "use client"
 
-import { CheckoutButton } from "@/components/forms/checkout-form"
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 import { Brain, Check, Download } from "lucide-react"
+import Link from "next/link"
 import * as React from "react"
 
 export default function HybridAiButton({
@@ -138,14 +138,15 @@ function PlanOption({
         </div>
         <p className="shrink-0 text-sm font-semibold">{price}</p>
       </div>
-      <CheckoutButton
-        productId={productId}
-        size="sm"
-        variant={secondary ? "outline" : "default"}
-        className={secondary ? "mt-4 w-full bg-transparent" : "mt-4 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"}
-      >
-        Review plan
-      </CheckoutButton>
+      <Link href={`/app/settings/checkout?plan=${productId}`} className="block">
+        <Button
+          size="sm"
+          variant={secondary ? "outline" : "default"}
+          className={secondary ? "mt-4 w-full bg-transparent" : "mt-4 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"}
+        >
+          Review plan
+        </Button>
+      </Link>
     </div>
   )
 }

@@ -7,6 +7,9 @@ import { v4 as uuidv4 } from "uuid";
 export type ProductActivityType =
   | "register"
   | "login"
+  | "onboarding_seen"
+  | "profile_updated"
+  | "business_updated"
   | "subscribed"
   | "dataset_uploaded"
   | "dataset_analyzed"
@@ -27,6 +30,8 @@ type RecordActivityInput = {
 const MAX_USER_ACTIVITIES = 100;
 const FEED_ACTIVITY_TYPES: ProductActivityType[] = [
   "register",
+  "profile_updated",
+  "business_updated",
   "subscribed",
   "dataset_uploaded",
   "dataset_analyzed",

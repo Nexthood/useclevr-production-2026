@@ -1,35 +1,68 @@
+# AI Interaction Guidelines
 
-holding file.
+## P-1 Communication Patterns
 
+### S-1 User Request Structure
+- Prefers short, direct prompts
+- Values minimal screen estate (concise output)
+- Expects explicit git workflow requests (stage, push, PR)
+- Prefers actionable output over explanations
 
-Add to dev guid, dev ai guide:
+### S-2 AI Interpretation Patterns
+- Assumes context from file review before action
+- Prefers inline editing over verbose explanations
+- Validates changes with lint/type checks when possible
 
-add sections, TOC,
+### S-3 Effective Workflow Pattern
+1. User request
+2. AI reviews relevant files
+3. AI makes focused changes
+4. AI runs validation
+5. AI provides one-sentence summary
 
-One section is report flow from changes to railway build status.
+---
 
-AI instruction:
+## P-2 GitHub Workflow Expectations
 
-minimal chat output, don't clutter my screen estate.
-explicit git ask: stage all, push to beta, pr to main, re-sleep between status and final status report of dist branch workflow, final report in one sentence. then exit.
+### S-1 Expected Flow
+```text
+git status --short --branch
+Precommit gate runs (validation + build)
+Commit changes
+Push beta
+Create PR main
+Wait for auto-merge
+Check dist branch workflow
+Final status report
+```
 
-Expected workflow:
+### S-2 Common Points of Confusion
+- Precommit gate timing out on `prod:build`
+- Dist branch publication timing
+- Merge vs push behavior
 
-running gate/status, then stage everything, commit, push beta, PR main.
+---
 
-Ran git status --short --branch
-Precommit gate is in the production build now; no failure yet.
+## P-3 Development Communication Best Practices
 
-Precommit gate passed; staging all tracked changes now.
+### S-1 What User Wants to See
+- Minimal output during processes
+- Clear success/failure indicators
+- One-sentence final summary
 
+### S-2 What User Doesn't Want
+- Verbose explanations
+- Multiple confirmation prompts
+- Uncertainty language ("should", "might")
 
-Ran 2 commands
-Committed; pushing beta and opening PR.
+---
 
+## [suggestions]
 
-Ran 1 command, used GitHub
-PR #58 opened; enabling auto-merge and waiting.
+### File Implementation Suggestions
+T-278: Add common command patterns for git workflows
+T-279: Include timeout handling patterns for long-running commands
 
-
-Ran 1 command, used GitHub
-PR is mergeable but not merged yet; sleeping before next status.
+### Tasks
+T-280: Expand analysis to include file-based interaction patterns
+T-281: Add template prompts for common development tasks

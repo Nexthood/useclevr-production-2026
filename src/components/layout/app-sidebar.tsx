@@ -2,15 +2,15 @@
 
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor, useUsage } from "@/components/ui/usage-monitor"
-import { Award, Building2, CreditCard, Database, FileText, Gift, LayoutDashboard, LogOut, Menu, ReceiptText, Settings, Tag, User, Users, X } from "lucide-react"
+import { Award, Building2, CreditCard, Database, FileText, Gift, Globe, LogOut, Menu, ReceiptText, Settings, Tag, User, Users, X } from "lucide-react"
 import type { Session } from "next-auth"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
+import { FaAndroid, FaApple, FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6"
 
 const navigation = [
-  { name: "Dashboard", href: "/app", icon: LayoutDashboard },
   { name: "Datasets", href: "/app/datasets", icon: Database },
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Business", href: "/app/settings/business", icon: Building2 },
@@ -95,6 +95,27 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <UsageMonitor used={usage} total={total} isPro={isPro} />
         )}
 
+        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
+            App download
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <ComingSoonButton icon={FaApple} label="Apple" />
+            <ComingSoonButton icon={FaAndroid} label="Android" />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
+            Social
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <SocialLink icon={FaXTwitter} label="X" />
+            <SocialLink icon={FaLinkedin} label="LinkedIn" />
+            <SocialLink icon={FaGithub} label="GitHub" />
+          </div>
+        </div>
+
         <div className="relative">
           <button
             type="button"
@@ -148,6 +169,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </div>
           )}
         </div>
+
+        <Link
+          href="/terms"
+          className="flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-sidebar-foreground/70 transition hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
+          <Globe className="h-3.5 w-3.5" />
+          Terms & Conditions
+        </Link>
       </div>
     </>
   )
@@ -183,5 +212,43 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </div>
       )}
     </>
+  )
+}
+
+function ComingSoonButton({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      title="Coming soon"
+      className="flex items-center justify-center gap-2 rounded-md border border-sidebar-border bg-sidebar px-2 py-2 text-xs font-medium text-sidebar-foreground transition hover:bg-sidebar-accent"
+    >
+      <Icon className="h-4 w-4" />
+      <span className="sr-only">{label}</span>
+      <span aria-hidden="true">Soon</span>
+    </button>
+  )
+}
+
+function SocialLink({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+}) {
+  return (
+    <a
+      href="#empty"
+      aria-label={label}
+      className="flex h-9 items-center justify-center rounded-md border border-sidebar-border bg-sidebar text-sidebar-foreground transition hover:bg-sidebar-accent hover:text-primary"
+    >
+      <Icon className="h-4 w-4" />
+    </a>
   )
 }

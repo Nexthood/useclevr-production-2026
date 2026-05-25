@@ -3,9 +3,10 @@
 import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Zap } from "lucide-react";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { Edit, Plus, Trash2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export type CustomerLevel = {
@@ -130,11 +131,6 @@ export default function AdminLevelsPage() {
     setSaved(null);
   };
 
-  const updateLevel = (id: string, patch: Partial<CustomerLevel>) => {
-    setLevels((prev) => prev.map((level) => (level.id === id ? { ...level, ...patch } : level)));
-    setSaved(null);
-  };
-
   const removeLevel = (id: string) => {
     setLevels((prev) => prev.filter((level) => level.id !== id));
     setSaved(null);
@@ -243,69 +239,67 @@ export default function AdminLevelsPage() {
           ))}
         </div>
 
-        <Card className="overflow-hidden border-border bg-card">
+        <div className="space-y-3">
           {saved && (
-            <p className="border-b border-border px-5 py-3 text-sm text-muted-foreground">
+            <p className="rounded-lg border border-border bg-card px-5 py-3 text-sm text-muted-foreground">
               {saved}
             </p>
           )}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Level</th>
-                  {numericFields.map((field) => (
-                    <th key={field.key} className="px-3 py-3 font-medium">
-                      {field.label}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-right font-medium">Remove</th>
-                </tr>
-              </thead>
-              <tbody>
-                {levels.map((level, index) => (
-                  <tr key={level.id} className="border-b border-border/60">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="w-14 text-xs text-muted-foreground">#{index + 1}</span>
-                        <Input
-                          value={level.name}
-                          onChange={(event) => updateLevel(level.id, { name: event.target.value })}
-                        />
-                      </div>
-                    </td>
-                    {numericFields.map((field) => (
-                      <td key={field.key} className="px-3 py-3">
-                        <Input
-                          type="number"
-                          min={field.min}
-                          value={level[field.key]}
-                          onChange={(event) =>
-                            updateLevel(level.id, {
-                              [field.key]: Math.max(field.min, Number(event.target.value) || 0),
-                            })
-                          }
-                          className="w-24"
-                        />
-                      </td>
-                    ))}
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => removeLevel(level.id)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
-                        aria-label={`Remove ${level.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+          <DataTable
+            rows={levels as unknown as Record<string, unknown>[]}
+            columns={levelColumns(removeLevel)}
+            rowKey={(row) => String(row.id)}
+            minWidth="min-w-[980px]"
+          />
+        </div>
       </main>
     </div>
   );
+}
+
+function levelColumns(
+  removeLevel: (id: string) => void,
+): DataTableColumn<Record<string, unknown>>[] {
+  return [
+    {
+      key: "name",
+      header: "Level",
+      render: (row, index) => (
+        <div>
+          <p className="font-medium text-foreground">{String(row.name)}</p>
+          <p className="text-xs text-muted-foreground">#{index + 1}</p>
+        </div>
+      ),
+    },
+    ...numericFields.map((field) => ({
+      key: field.key,
+      header: field.label,
+      align: "right" as const,
+      render: (row: Record<string, unknown>) => Number(row[field.key] ?? 0).toLocaleString(),
+    })),
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex justify-end gap-2">
+          <Link
+            href={`/app/admin/edit?type=level&id=${encodeURIComponent(String(row.id))}`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+            aria-label={`Edit ${String(row.name)}`}
+          >
+            <Edit className="h-4 w-4" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => removeLevel(String(row.id))}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
+            aria-label={`Remove ${String(row.name)}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
 }

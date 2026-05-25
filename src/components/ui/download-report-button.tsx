@@ -49,8 +49,8 @@ export function DownloadReportButton({ analysisData, disabled = false }: Downloa
       a.download = `analysis-report-${Date.now()}.${format === 'csv' ? 'csv' : 'pdf'}`
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
     } catch (error) {
       debugError("Download error:", error)
     } finally {

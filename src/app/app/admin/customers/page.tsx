@@ -3,6 +3,7 @@
 import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -29,13 +30,12 @@ import {
   Users,
   Zap,
   Edit,
-  Check,
-  X,
   Trash2,
   Plus,
   Send,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface CustomerRow {
@@ -51,20 +51,10 @@ interface CustomerRow {
   datasets: number;
 }
 
-interface EditableCustomer extends CustomerRow {
-  isEditing?: boolean;
-  editName: string;
-  editEmail: string;
-  editPlan: string;
-  editPlanStatus: string;
-  editBusinessName: string;
-}
-
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editableCustomers, setEditableCustomers] = useState<EditableCustomer[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [newCustomerName, setNewCustomerName] = useState("");
@@ -80,18 +70,6 @@ export default function AdminCustomersPage() {
         if (!res.ok) throw new Error("Failed to load customers");
         const data = await res.json();
         setCustomers(data.customers || []);
-        // Initialize editable customers
-        setEditableCustomers(
-          data.customers?.map((c: CustomerRow) => ({
-            ...c,
-            isEditing: false,
-            editName: c.name || "",
-            editEmail: c.email || "",
-            editPlan: c.plan,
-            editPlanStatus: c.planStatus,
-            editBusinessName: c.name || "", // Using name as businessName fallback
-          })) || [],
-        );
         toast({
           title: "Customers loaded",
           description: "Customer data has been successfully refreshed.",
@@ -111,87 +89,6 @@ export default function AdminCustomersPage() {
     };
     load();
   }, [toast]);
-
-  const handleEditClick = (id: string) => {
-    setEditableCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, isEditing: true } : c)));
-  };
-
-  const handleCancelEdit = (id: string) => {
-    setEditableCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, isEditing: false } : c)));
-  };
-
-  const handleSaveEdit = async (id: string) => {
-    const customer = editableCustomers.find((c) => c.id === id);
-    if (!customer) return;
-
-    try {
-      const res = await fetch("/api/admin/customers", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          updates: {
-            fullName: customer.editName,
-            email: customer.editEmail,
-            subscriptionTier: customer.editPlan,
-            stripeStatus: customer.editPlanStatus,
-            businessName: customer.editBusinessName,
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to update customer");
-      }
-
-      const updatedCustomer = await res.json();
-
-      // Update the customers list
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                name: updatedCustomer.customer.name,
-                email: updatedCustomer.customer.email,
-                plan: updatedCustomer.customer.plan,
-                planStatus: updatedCustomer.customer.planStatus,
-                businessName: updatedCustomer.customer.name, // Using name as businessName fallback
-              }
-            : c,
-        ),
-      );
-
-      // Update editable customers
-      setEditableCustomers((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                isEditing: false,
-                name: updatedCustomer.customer.name,
-                email: updatedCustomer.customer.email,
-                plan: updatedCustomer.customer.plan,
-                planStatus: updatedCustomer.customer.planStatus,
-              }
-            : c,
-        ),
-      );
-
-      toast({
-        title: "Customer updated",
-        description: "Customer information has been successfully saved.",
-        variant: "default",
-      });
-    } catch (err) {
-      toast({
-        title: "Error updating customer",
-        description: err instanceof Error ? err.message : "Failed to update customer",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleDeleteClick = async (id: string) => {
     if (
@@ -216,9 +113,6 @@ export default function AdminCustomersPage() {
 
       // Remove from customers list
       setCustomers((prev) => prev.filter((c) => c.id !== id));
-
-      // Remove from editable customers
-      setEditableCustomers((prev) => prev.filter((c) => c.id !== id));
 
       toast({
         title: "Customer deleted",
@@ -307,18 +201,6 @@ export default function AdminCustomersPage() {
 
       if (data.success && data.customer) {
         setCustomers((prev) => [data.customer, ...prev]);
-        setEditableCustomers((prev) => [
-          {
-            ...data.customer,
-            isEditing: false,
-            editName: data.customer.name || "",
-            editEmail: data.customer.email || "",
-            editPlan: data.customer.plan,
-            editPlanStatus: data.customer.planStatus,
-            editBusinessName: data.customer.name || "",
-          },
-          ...prev,
-        ]);
       }
 
       setShowAddDialog(false);
@@ -413,123 +295,25 @@ export default function AdminCustomersPage() {
         </div>
 
         {/* Customer table */}
-        <Card className="border-border bg-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-border">
-            <h2 className="text-base font-semibold text-foreground">Customer list</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Signup date, last login, plan, referral source, and activity.
-            </p>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : error ? (
-            <div className="p-8 text-center text-sm text-red-600 dark:text-red-400">{error}</div>
-          ) : customers.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No customers found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 text-left text-xs text-muted-foreground">
-                    <th className="px-5 py-3 font-medium">Customer</th>
-                    <th className="px-5 py-3 font-medium">Plan</th>
-                    <th className="px-5 py-3 font-medium">Signup</th>
-                    <th className="px-5 py-3 font-medium">Last login</th>
-                    <th className="px-5 py-3 font-medium">Referral</th>
-                    <th className="px-5 py-3 font-medium text-right">Logins</th>
-                    <th className="px-5 py-3 font-medium text-right">Datasets</th>
-                    <th className="px-5 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customers.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b border-border/50 hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-foreground">{c.name || "—"}</p>
-                        <p className="text-xs text-muted-foreground">{c.email || "—"}</p>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${c.plan === "free" ? "bg-slate-500/10 text-slate-700 dark:text-slate-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"}`}
-                        >
-                          {c.plan}
-                        </span>
-                        <span className="ml-1.5 text-xs text-muted-foreground">{c.planStatus}</span>
-                      </td>
-                      <td className="px-5 py-3 text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {c.signupDate ? new Date(c.signupDate).toLocaleDateString() : "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {c.lastLogin ? new Date(c.lastLogin).toLocaleDateString() : "Never"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <Link2 className="h-3 w-3" />
-                          {c.referralSource || "Direct"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-right text-muted-foreground">{c.loginCount}</td>
-                      <td className="px-5 py-3 text-right text-muted-foreground">{c.datasets}</td>
-                      <td className="px-5 py-3 flex space-x-2">
-                        {!editableCustomers.find((ec) => ec.id === c.id)?.isEditing ? (
-                          <>
-                            <button
-                              onClick={() => handleEditClick(c.id)}
-                              className="btn-edit inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-blue-500/10 hover:text-blue-600"
-                              aria-label={`Edit ${c.name}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleInviteClick(c)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-emerald-500/10 hover:text-emerald-600"
-                              aria-label={`Send invite to ${c.name || c.email || "customer"}`}
-                            >
-                              <Send className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(c.id)}
-                              className="btn-delete inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
-                              aria-label={`Delete ${c.name}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleSaveEdit(c.id)}
-                              className="btn-save inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700"
-                              aria-label={`Save changes for ${c.name}`}
-                            >
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleCancelEdit(c.id)}
-                              className="btn-cancel inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-gray-500/10 hover:text-gray-600"
-                              aria-label={`Cancel editing ${c.name}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        {isLoading ? (
+          <Card className="border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            Loading…
+          </Card>
+        ) : error ? (
+          <Card className="border-border bg-card p-8 text-center text-sm text-red-600 dark:text-red-400">
+            {error}
+          </Card>
+        ) : (
+          <DataTable
+            title="Customer list"
+            description="Signup date, last login, plan, referral source, and activity."
+            emptyMessage="No customers found."
+            rows={customers as unknown as Record<string, unknown>[]}
+            columns={customerColumns(handleInviteClick, handleDeleteClick)}
+            rowKey={(row) => String(row.id)}
+            minWidth="min-w-[1100px]"
+          />
+        )}
       </main>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -599,4 +383,104 @@ export default function AdminCustomersPage() {
       </Dialog>
     </div>
   );
+}
+
+function customerColumns(
+  onInvite: (customer: CustomerRow) => void,
+  onDelete: (id: string) => void,
+): DataTableColumn<Record<string, unknown>>[] {
+  return [
+    {
+      key: "customer",
+      header: "Customer",
+      render: (row) => (
+        <div>
+          <p className="font-medium text-foreground">{String(row.name || "—")}</p>
+          <p className="text-xs text-muted-foreground">{String(row.email || "—")}</p>
+        </div>
+      ),
+    },
+    {
+      key: "plan",
+      header: "Plan",
+      render: (row) => (
+        <div>
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${row.plan === "free" ? "bg-slate-500/10 text-slate-700 dark:text-slate-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"}`}
+          >
+            {String(row.plan)}
+          </span>
+          <span className="ml-1.5 text-xs text-muted-foreground">{String(row.planStatus)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "signupDate",
+      header: "Signup",
+      render: (row) => (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <Calendar className="h-3 w-3" />
+          {row.signupDate ? new Date(String(row.signupDate)).toLocaleDateString() : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "lastLogin",
+      header: "Last login",
+      render: (row) => (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          {row.lastLogin ? new Date(String(row.lastLogin)).toLocaleDateString() : "Never"}
+        </span>
+      ),
+    },
+    {
+      key: "referralSource",
+      header: "Referral",
+      render: (row) => (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <Link2 className="h-3 w-3" />
+          {String(row.referralSource || "Direct")}
+        </span>
+      ),
+    },
+    { key: "loginCount", header: "Logins", align: "right" },
+    { key: "datasets", header: "Datasets", align: "right" },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => {
+        const customer = row as unknown as CustomerRow
+
+        return (
+          <div className="flex justify-end gap-2">
+            <Link
+              href={`/app/admin/edit?type=customer&id=${encodeURIComponent(customer.id)}`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+              aria-label={`Edit ${customer.name || customer.email || "customer"}`}
+            >
+              <Edit className="h-4 w-4" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => onInvite(customer)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-emerald-500/10 hover:text-emerald-600"
+              aria-label={`Send invite to ${customer.name || customer.email || "customer"}`}
+            >
+              <Send className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(customer.id)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-600"
+              aria-label={`Delete ${customer.name || customer.email || "customer"}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )
+      },
+    },
+  ]
 }
