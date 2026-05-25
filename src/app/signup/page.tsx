@@ -14,7 +14,7 @@ import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Spa
 import { getProviders, signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { FaGithub } from "react-icons/fa6"
+import { FaLinkedin } from "react-icons/fa6"
 import { Suspense, useEffect, useState } from "react"
 
 function SignupForm() {
@@ -122,7 +122,7 @@ function SignupForm() {
     setIsLoading(false)
   }
 
-  const handleSocialSignup = async (provider: "google" | "github") => {
+  const handleSocialSignup = async (provider: "google" | "linkedin") => {
     if (!availableProviders[provider]) {
       showSignupError(
         "Social registration is not configured.",
@@ -320,20 +320,20 @@ function SignupForm() {
                   )}
                   Sign up with Google
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isLoading || socialLoading !== null}
-                  onClick={() => handleSocialSignup("github")}
-                >
-                  {socialLoading === "github" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FaGithub className="mr-2 h-4 w-4" />
-                  )}
-                  Sign up with GitHub
-                </Button>
+<Button
+                   type="button"
+                   variant="outline"
+                   className="w-full"
+                   disabled={isLoading || socialLoading !== null}
+                   onClick={() => handleSocialSignup("linkedin")}
+                 >
+                   {socialLoading === "linkedin" ? (
+                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                   ) : (
+                     <FaLinkedin className="mr-2 h-4 w-4" />
+                   )}
+                   Sign up with LinkedIn
+                 </Button>
               </div>
 
               <div className="text-center text-sm mt-6">

@@ -7,6 +7,7 @@ import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activi
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
 import { CreditPanel } from "@/components/ui/credit-panel"
 import { TourGuideButton } from "@/components/ui/tour-guide-button"
+import { UserLevelLink } from "@/components/ui/user-level-link"
 import { auth } from "@/lib/auth"
 import { getBillingSettings } from "@/lib/billing/settings-store"
 import { getAnalystCreditUsage, FREE_ANALYST_CREDITS } from "@/lib/usage/analyst-credits"
@@ -37,6 +38,7 @@ export default async function Topbar() {
           <OnboardingProcessButton />
           <TopbarNoticeActivityDrawer />
           <HelpMenu isSuperAdmin={isSuperAdmin} />
+          <UserLevelLink subscriptionTier={usage.subscriptionTier} />
           <CreditPanel remainingCredits={remainingCredits} totalCredits={totalCredits} />
           <ThemeToggle />
           <LanguageSelector />

@@ -41,6 +41,7 @@ type DiscountForm = {
   percent: number
   description: string
   enabled: boolean
+  planTarget: "all" | "free" | "pro" | "business"
 }
 
 const levelFields = [
@@ -74,6 +75,27 @@ export default function AdminEditPage() {
     if (type === "level") return "/app/admin/levels"
     if (type === "discount") return "/app/admin/discounts"
     return "/app/admin/customers"
+  }, [type])
+
+  const itemTitle = useMemo(() => {
+    if (type === "customer" && customer) return customer.name
+    if (type === "level" && level) return level.name
+    if (type === "discount" && discount) return discount.name
+    return id ?? "Loading..."
+  }, [type, customer, level, discount, id])
+
+  const pageTitle = useMemo(() => {
+    if (type === "customer") return "Edit customer"
+    if (type === "level") return "Edit customer level"
+    if (type === "discount") return "Edit discount rule"
+    return "Edit admin row"
+  }, [type])
+
+  const description = useMemo(() => {
+    if (type === "customer") return "Update customer account details and subscription."
+    if (type === "level") return "Update customer level requirements and rewards."
+    if (type === "discount") return "Update discount rule settings and eligibility."
+    return "Update admin row details."
   }, [type])
 
   useEffect(() => {
@@ -200,12 +222,12 @@ export default function AdminEditPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppPageHeader
-        title="Edit admin row"
-        description="Update one customer, customer level, or discount rule from a focused edit page."
+        title={pageTitle}
+        description={description}
         breadcrumbs={[
           { label: "Dashboard", href: "/app" },
-          { label: "Admin", href: listHref },
-          { label: "Edit" },
+          { label: type === "customer" ? "Customers" : type === "level" ? "Customer Levels" : "Discount Rules", href: listHref },
+          { label: itemTitle },
         ]}
         actions={
           <Link href={listHref}>
@@ -338,6 +360,12 @@ function DiscountFields({
         max={100}
         value={value.percent}
         onChange={(percent) => onChange({ ...value, percent })}
+      />
+      <SelectField
+        label="Plan Target"
+        value={value.planTarget}
+        options={["all", "free", "pro", "business"]}
+        onChange={(planTarget) => onChange({ ...value, planTarget: planTarget as DiscountForm["planTarget"] })}
       />
       <SelectField
         label="Status"

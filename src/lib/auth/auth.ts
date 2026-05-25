@@ -11,11 +11,11 @@ import { getDb } from "@/lib/db";
 import { accounts, profiles, users } from "@/lib/db/schema";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import GitHub from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
-import { z } from "zod";
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import Google from "next-auth/providers/google"
+import LinkedIn from "next-auth/providers/linkedin"
+import { z } from "zod"
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog("[Auth] Module loading - initializing NextAuth v5");
@@ -50,8 +50,8 @@ const loginSchema = z.object({
 
 const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-const githubClientId = process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID || process.env.GITHUB_CLIENT_ID;
-const githubClientSecret = process.env.AUTH_GITHUB_SECRET || process.env.GITHUB_SECRET || process.env.GITHUB_CLIENT_SECRET;
+const linkedinClientId = process.env.AUTH_LINKEDIN_ID || process.env.LINKEDIN_ID || process.env.LINKEDIN_CLIENT_ID;
+const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET || process.env.LINKEDIN_SECRET || process.env.LINKEDIN_CLIENT_SECRET;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -159,11 +159,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }),
         ]
       : []),
-    ...(githubClientId && githubClientSecret
+    ...(linkedinClientId && linkedinClientSecret
       ? [
-          GitHub({
-            clientId: githubClientId,
-            clientSecret: githubClientSecret,
+          LinkedIn({
+            clientId: linkedinClientId,
+            clientSecret: linkedinClientSecret,
           }),
         ]
       : []),

@@ -12,7 +12,7 @@ import { BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Sparkles } from "lucide-react"
 import { getProviders, signIn } from "next-auth/react"
 import Link from "next/link"
-import { FaGithub } from "react-icons/fa6"
+import { FaLinkedin } from "react-icons/fa6"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { useNoticeAutoOpen } from "@/components/ui/notice-bar"
@@ -87,7 +87,7 @@ function LoginForm() {
     }
   }
 
-  const handleSocialSignIn = async (provider: "google" | "github") => {
+  const handleSocialSignIn = async (provider: "google" | "linkedin") => {
     if (!availableProviders[provider]) {
       window.location.href = "/login?error=Configuration"
       return
@@ -119,10 +119,29 @@ function LoginForm() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-5 space-y-2 text-sm">
-              <p><span className="font-semibold">Demo account:</span> {BUILTIN_DEMO_USER.email}</p>
-              <p><span className="font-semibold">Super admin:</span> {BUILTIN_SUPER_ADMIN_USER.email}</p>
-            </div>
+<div className="mb-5 space-y-2 text-sm">
+               <p className="text-muted-foreground">Demo credentials:</p>
+               <button
+                 type="button"
+                 onClick={() => {
+                   setEmail(BUILTIN_DEMO_USER.email)
+                   setPassword(BUILTIN_DEMO_USER.password)
+                 }}
+                 className="text-left text-primary hover:underline"
+               >
+                 <span className="font-semibold">Demo:</span> {BUILTIN_DEMO_USER.email} / {BUILTIN_DEMO_USER.password}
+               </button>
+               <button
+                 type="button"
+                 onClick={() => {
+                   setEmail(BUILTIN_SUPER_ADMIN_USER.email)
+                   setPassword(BUILTIN_SUPER_ADMIN_USER.password)
+                 }}
+                 className="text-left text-primary hover:underline"
+               >
+                 <span className="font-semibold">Admin:</span> {BUILTIN_SUPER_ADMIN_USER.email} / {BUILTIN_SUPER_ADMIN_USER.password}
+               </button>
+             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -238,14 +257,14 @@ function LoginForm() {
                 variant="outline"
                 className="w-full"
                 disabled={isLoading || socialLoading !== null}
-                onClick={() => handleSocialSignIn("github")}
+                onClick={() => handleSocialSignIn("linkedin")}
               >
-                {socialLoading === "github" ? (
+                {socialLoading === "linkedin" ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <FaGithub className="mr-2 h-4 w-4" />
+                  <FaLinkedin className="mr-2 h-4 w-4" />
                 )}
-                Continue with GitHub
+                Continue with LinkedIn
               </Button>
             </div>
 
