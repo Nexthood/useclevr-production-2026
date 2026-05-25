@@ -140,3 +140,9 @@ T-307: Implement automated layer update propagation
 T-308: Create external repo sync automation
 T-309: Add license compliance check for base project
 T-310: Implement changelog generation for layer branches
+
+## [suggestions - 2026-05-25 review]
+
+T-311: Add a dry-run report before layer stripping that lists files removed, files kept, and dependency changes.
+T-312: Add a source-branch guard so base layer generation cannot run from a dirty product branch by accident.
+T-313: Add a smoke-test matrix covering layer navigation, auth mode, data mode, and deploy mode.

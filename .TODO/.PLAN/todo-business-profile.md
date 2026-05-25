@@ -258,6 +258,14 @@ companyCalculationContext
 ### S-3 AI Confidence & Accuracy Layer
 - AI Setup Confidence score
 - Warnings for uncertain entries
+
+## [suggestions - 2026-05-25 review]
+
+T-311: Split business profile completion into field completion, page visit completion, and workflow completion so users understand what raises progress.
+T-312: Add a topbar setup panel that lists missing profile, business, dataset, analysis, and page-visit items.
+T-313: Add a guided setup tour that opens the exact dashboard pages needed for incomplete setup items.
+T-314: Store page visits as non-feed activity so progress can use them without cluttering user activity history.
+T-315: Add business-profile review flags for missing website, missing business email, vague industry, and short business descriptions.
 - Smart recommendations
 
 ---

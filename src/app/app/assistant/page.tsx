@@ -1,5 +1,6 @@
 "use client"
 
+import { AiAssistantWorkspace } from "@/components/chat/ai-assistant-workspace"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 
 export default function AssistantPage() {
@@ -14,10 +15,8 @@ export default function AssistantPage() {
         ]}
       />
 
-      <main className="h-[calc(100vh-136px)]">
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          Select a dataset to begin AI analysis.
-        </div>
+      <main>
+        <AiAssistantWorkspace />
       </main>
     </div>
   )

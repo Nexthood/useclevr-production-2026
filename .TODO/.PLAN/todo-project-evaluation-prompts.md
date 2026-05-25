@@ -126,3 +126,9 @@ T-310: Create validation and testing prompt templates
 ### Tasks
 T-284: Create User-AI-Communication-Patterns.md document
 T-285: Create Future-AI-Collaboration-Guidelines.md document
+
+## [suggestions - 2026-05-25 review]
+
+T-311: Add a prompt for checking whether restored features still have route links, sidebar links, API support, and changelog coverage.
+T-312: Add a prompt for retiring TODO tasks after implementation with explicit requirements and changelog checks.
+T-313: Add an evaluation prompt for separating user-visible product work from developer-only maintenance.

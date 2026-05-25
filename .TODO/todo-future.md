@@ -13,6 +13,9 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Future
 
+- T-299. Review restore candidates for legacy report PDF generation and cloud live-data refresh
+  behavior before deciding whether they should return to the product.
+
 - T-127. Replace checkout review URL proof with a server-issued one-time token before payment collection is enabled.
 - T-128. Add real billing invoice rows once the payment provider returns invoice history.
 - T-129. Review whether the payment readiness page needs provider-specific setup actions after Stripe is connected.

@@ -23,11 +23,14 @@ import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
 import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
+import { db } from "@/lib/db";
+import { datasetRows, datasets } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { generateText } from "ai";
+import { and, eq } from "drizzle-orm";
 
 // Generate business insights from query results without LLM
 function generateBusinessInsights(result: any[], question: string): { insight: string; explanation: string; recommendation: string } {
@@ -175,6 +178,10 @@ export async function POST(request: Request) {
     debugLog('[ANALYZE] Columns:', columns?.length || 0);
     debugLog('[ANALYZE] Precomputed analysis:', precomputedAnalysis ? 'YES - using unified KPIs' : 'NO - will compute');
 
+    currentDataset = [];
+    currentColumns = [];
+    datasetLoaded = false;
+
     // Initialize MCP context if precomputed analysis is available
     if (precomputedAnalysis && datasetId) {
       try {
@@ -231,6 +238,57 @@ export async function POST(request: Request) {
           insight: "Data loading failed",
           explanation: "The dataset could not be processed.",
           recommendation: "Try uploading the file again.",
+          data: [],
+          chartType: "table",
+        });
+      }
+    } else if (datasetId && session?.user?.id) {
+      debugLog('[ANALYZE] Loading dataset from database...');
+      try {
+        const storedDataset = await db.query.datasets.findFirst({
+          where: and(eq(datasets.id, datasetId), eq(datasets.userId, session.user.id)),
+        });
+
+        if (!storedDataset) {
+          return Response.json({
+            success: false,
+            error: "Dataset not found",
+            answer: "I could not find that dataset.",
+            insight: "Dataset unavailable",
+            explanation: "The selected dataset could not be loaded for this account.",
+            recommendation: "Select another dataset or upload a new file.",
+            data: [],
+            chartType: "table",
+          });
+        }
+
+        let storedData = (storedDataset.data as Record<string, unknown>[]) || [];
+
+        if (storedData.length === 0) {
+          const rows = await db.query.datasetRows.findMany({
+            where: eq(datasetRows.datasetId, datasetId),
+            columns: { data: true },
+            orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+          });
+          storedData = rows.map((row) => row.data as Record<string, unknown>);
+        }
+
+        if (storedData.length > 0) {
+          loadDataJS(storedData);
+          currentDataset = storedData;
+          currentColumns = (storedDataset.columns as string[]) || Object.keys(storedData[0] || {});
+          datasetLoaded = true;
+          debugLog('[ANALYZE] Stored dataset loaded:', getDatasetInfo());
+        }
+      } catch (loadError) {
+        debugError('[ANALYZE] Failed to load stored dataset:', loadError);
+        return Response.json({
+          success: false,
+          error: "Failed to load dataset",
+          answer: "There was a problem loading your dataset.",
+          insight: "Data loading failed",
+          explanation: "The selected dataset could not be prepared for analysis.",
+          recommendation: "Try another dataset or refresh the page.",
           data: [],
           chartType: "table",
         });

@@ -83,3 +83,9 @@ T-310: Implement validation gate bypass documentation
 ### Tasks
 T-280: Expand analysis to include file-based interaction patterns
 T-281: Add template prompts for common development tasks
+
+## [suggestions - 2026-05-25 review]
+
+T-311: Add a compact "request intent checklist" for broad prompts that mix planning, implementation, and release bookkeeping.
+T-312: Add a status-update template for long-running local checks that states command, current phase, and next action in one line.
+T-313: Document when agents should preserve staged changes from earlier turns before starting a new task.

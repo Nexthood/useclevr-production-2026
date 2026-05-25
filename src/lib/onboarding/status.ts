@@ -9,6 +9,7 @@ export type OnboardingStep = {
   description: string
   href: string
   complete: boolean
+  group?: string
 }
 
 export type OnboardingStatus = {
@@ -16,6 +17,8 @@ export type OnboardingStatus = {
   autoOpen: boolean
   hasSeenOnboarding: boolean
   steps: OnboardingStep[]
+  completedCount: number
+  totalCount: number
 }
 
 const ONBOARDING_SEEN_TYPES = ["onboarding_seen"] as const
@@ -30,7 +33,7 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
     return emptyStatus(false)
   }
 
-  const [profile, firstDataset, analyzedActivity, seenActivity] = await Promise.all([
+  const [profile, firstDataset, analyzedActivity, seenActivity, pageVisitActivities] = await Promise.all([
     db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
       columns: {
@@ -59,52 +62,91 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
       columns: { id: true },
       orderBy: [desc(userActivities.createdAt)],
     }),
+    db.query.userActivities.findMany({
+      where: and(eq(userActivities.userId, userId), eq(userActivities.type, "page_visited")),
+      columns: { metadata: true },
+      orderBy: [desc(userActivities.createdAt)],
+      limit: 100,
+    }),
   ])
 
-  const hasProfile = Boolean(profile?.fullName && profile?.email)
-  const hasBusinessDetails = Boolean(
-    profile?.businessName &&
-      profile?.businessEmail &&
-      profile?.industry &&
-      profile?.location &&
-      profile?.website &&
-      profile?.businessDescription,
+  const visitedPages = new Set(
+    pageVisitActivities
+      .map((activity) => {
+        const metadata = activity.metadata as { path?: unknown } | null
+        return typeof metadata?.path === "string" ? metadata.path : null
+      })
+      .filter((path): path is string => Boolean(path)),
   )
+
+  const profileFields = [
+    { id: "profile-name", title: "Add your name", complete: Boolean(profile?.fullName) },
+    { id: "profile-email", title: "Confirm account email", complete: Boolean(profile?.email) },
+  ]
+  const businessFields = [
+    { id: "business-name", title: "Add company name", complete: Boolean(profile?.businessName) },
+    { id: "business-email", title: "Add company email", complete: Boolean(profile?.businessEmail) },
+    { id: "business-industry", title: "Add industry", complete: Boolean(profile?.industry) },
+    { id: "business-location", title: "Add location", complete: Boolean(profile?.location) },
+    { id: "business-website", title: "Add website", complete: Boolean(profile?.website) },
+    { id: "business-description", title: "Add business description", complete: Boolean(profile?.businessDescription) },
+  ]
+  const requiredPageVisits = [
+    { id: "visit-profile", title: "Visit profile settings", href: "/app/settings/profile" },
+    { id: "visit-business", title: "Visit business settings", href: "/app/settings/business" },
+    { id: "visit-datasets", title: "Visit datasets", href: "/app/datasets" },
+    { id: "visit-assistant", title: "Visit AI Assistant", href: "/app/assistant" },
+    { id: "visit-downloads", title: "Visit reports and downloads", href: "/app/downloads" },
+    { id: "visit-faq", title: "Visit dashboard FAQ", href: "/app/faq" },
+  ]
   const hasDataset = Boolean(firstDataset)
   const hasAnalysis = Boolean(analyzedActivity)
 
   const steps: OnboardingStep[] = [
-    {
-      id: "profile",
-      title: "Complete profile",
-      description: "Add your name and account email in Settings.",
+    ...profileFields.map((field) => ({
+      id: field.id,
+      title: field.title,
+      description: "Complete the basic account fields in profile settings.",
       href: "/app/settings/profile",
-      complete: hasProfile,
-    },
-    {
-      id: "business",
-      title: "Complete business details",
-      description: "Fill company context so analysis and suggestions fit your work.",
+      complete: field.complete,
+      group: "Profile",
+    })),
+    ...businessFields.map((field) => ({
+      id: field.id,
+      title: field.title,
+      description: "Complete the business profile fields that tailor analysis and reports.",
       href: "/app/settings/business",
-      complete: hasBusinessDetails,
-    },
+      complete: field.complete,
+      group: "Business profile",
+    })),
     {
-      id: "upload",
+      id: "dataset-uploaded",
       title: "Upload data",
       description: "Add a CSV dataset from the upload workflow.",
       href: "/app/upload",
       complete: hasDataset,
+      group: "Data workflow",
     },
     {
-      id: "analysis",
+      id: "dataset-analyzed",
       title: "Run analysis",
       description: "Open a dataset and generate its first analysis.",
       href: "/app/datasets",
       complete: hasAnalysis,
+      group: "Data workflow",
     },
+    ...requiredPageVisits.map((page) => ({
+      id: page.id,
+      title: page.title,
+      description: "Open this dashboard area at least once so setup progress reflects explored pages.",
+      href: page.href,
+      complete: visitedPages.has(page.href),
+      group: "Page visits",
+    })),
   ]
+  const completedCount = steps.filter((step) => step.complete).length
   const completionPercent = Math.round(
-    (steps.filter((step) => step.complete).length / steps.length) * 100,
+    (completedCount / steps.length) * 100,
   )
   const hasSeenOnboarding = Boolean(seenActivity)
 
@@ -113,6 +155,8 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
     autoOpen: !hasSeenOnboarding || completionPercent < 25,
     hasSeenOnboarding,
     steps,
+    completedCount,
+    totalCount: steps.length,
   }
 }
 
@@ -122,5 +166,7 @@ function emptyStatus(autoOpen: boolean): OnboardingStatus {
     autoOpen,
     hasSeenOnboarding: false,
     steps: [],
+    completedCount: 0,
+    totalCount: 0,
   }
 }

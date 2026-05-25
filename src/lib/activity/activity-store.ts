@@ -8,6 +8,7 @@ export type ProductActivityType =
   | "register"
   | "login"
   | "onboarding_seen"
+  | "page_visited"
   | "profile_updated"
   | "business_updated"
   | "subscribed"

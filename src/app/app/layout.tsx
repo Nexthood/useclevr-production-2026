@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { HelpChatbox } from "@/components/ui/help-chatbox"
+import { PageVisitTracker } from "@/components/ui/page-visit-tracker"
 import Topbar from "@/components/ui/topbar"
 import { auth } from "@/lib/auth"
 import { FormattingProvider } from "@/lib/utils/formatting-context"
@@ -27,6 +28,7 @@ export default async function AppLayout({
             {children}
           </main>
           <HelpChatbox />
+          <PageVisitTracker />
         </div>
       </div>
     </FormattingProvider>

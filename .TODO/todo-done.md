@@ -13,6 +13,19 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Completed
 
+- T-298. Business profile review, setup progress tracking, the setup tour, sidebar links, dashboard
+  FAQ actions, plan suggestions, and TODO retirement updates were completed.
+- T-269. A GitHub issue template now links promoted issues back to local task IDs and release
+  targets.
+- T-270. A release artifact checklist now defines which CI outputs should be attached to GitHub
+  Releases.
+- T-277. Common git command patterns were documented for repeatable local workflows.
+- T-278. Long-running command and timeout handling patterns were documented.
+- T-280. Common development task prompt templates were documented.
+- T-281. User-AI communication patterns were documented.
+- T-282. Future AI collaboration guidelines were documented.
+- T-297. Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask
+  follow-up business questions in one workspace.
 - T-126. Admin customer, customer level, and discount pages now use shared read-first tables with focused row edit pages.
 - T-204. Dashboard sidebar footer now includes coming-soon mobile app buttons, social placeholders, the user panel, and Terms access.
 - T-205. Dashboard now opens directly to datasets, Hybrid AI and subscription changes use checkout review, paid download access includes Business and super-admin users, and dashboard FAQ uses filtered expandable answers.

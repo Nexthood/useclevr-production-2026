@@ -1,4 +1,5 @@
 import { FaqList } from "@/components/faq/faq-list"
+import { DashboardFaqActions } from "@/components/faq/dashboard-faq-actions"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { SupportTicketForm } from "@/components/support/support-ticket-form"
 import { Card } from "@/components/ui/card"
@@ -35,6 +36,8 @@ export default async function DashboardFaqPage({
 
       <main className="px-5 py-5">
         <div className="mx-auto max-w-4xl space-y-5">
+          <DashboardFaqActions />
+
           <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold">
