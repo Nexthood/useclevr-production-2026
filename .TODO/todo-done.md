@@ -87,7 +87,7 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 - T-290. Service layer extraction created lib/services/reportService.ts for report generation orchestration.
 - T-291. Service layer extraction created lib/services/datasetService.ts for dataset analysis orchestration.
 - T-292. Configuration centralization created lib/config/index.ts with Zod validation for runtime envs.
-- T-293. Dashboard language feature implemented with language selector in topbar, LanguageProvider context, and Google Translation service with caching.
+- T-293. Dashboard language feature implemented with language selector in topbar, LanguageProvider context, and Google Translation service with caching. Language context enhanced with `translate` function for dynamic Google Translation API calls.
 - T-301. Ticketing features fixed: super admin can send messages, admin name and timestamp now displayed in admin notes.
 - T-302. FAQ items open by default with open/close all buttons in header.
 - T-303. FAQ page includes open/close all buttons.
@@ -96,4 +96,5 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 - T-306. Social panel title removed from sidebar.
 - T-307. Topbar reordered: Hybrid AI button moved left, notice icon placed before logout.
 - T-308. Hover color contrast improved in dashboard FAQ actions (hover:bg-accent/50).
+- T-309. Language context enhanced with `translate` function using Google Translation API.
 - T-310. Cookie consent bar added with accept button.

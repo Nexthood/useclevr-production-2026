@@ -91,4 +91,3 @@ No active implementation task is currently in progress.
 - T-285. Add an authenticated end-to-end smoke test that clicks each dashboard button and verifies
    expected navigation, modal, form, or API behavior.
 - T-286. Verify Google and GitHub OAuth login and registration in staging with configured provider credentials and callback URLs.
-- T-309. Fix language feature not applying on language change.
