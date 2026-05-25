@@ -10,12 +10,12 @@ Do not merge `dist` back into `main`. Do not edit generated files on `dist` by h
 
 ## Branch Model
 
-| Branch | Purpose | Updated by |
-| --- | --- | --- |
-| `main` | Stable source code | Pull requests |
-| `beta` | Test branch before release | Developers, then GitHub Actions after `main` updates |
-| `dist` | Generated Railway deployment output | GitHub Actions |
-| Feature branches | Individual changes before review | Developers |
+| Branch           | Purpose                             | Updated by                                           |
+| ---------------- | ----------------------------------- | ---------------------------------------------------- |
+| `main`           | Stable source code                  | Pull requests                                        |
+| `beta`           | Test branch before release          | Developers, then GitHub Actions after `main` updates |
+| `dist`           | Generated Railway deployment output | GitHub Actions                                       |
+| Feature branches | Individual changes before review    | Developers                                           |
 
 The normal flow is:
 
@@ -40,6 +40,7 @@ type(scope?): subject
 **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
 **Examples:**
+
 - `feat: add user authentication`
 - `fix(api): handle null response`
 - `docs: update deployment guide`
@@ -50,6 +51,31 @@ The `commit-msg` hook validates commit messages automatically. Bypass with `git 
 ## Pull Request Titles
 
 Pull request titles should start with `PR:` for deployment tracking. The auto-merge workflow formats them as `PR-{number}: title`. The formatted title becomes the dist branch commit message.
+
+## GitHub Issues, Projects, Releases, And Artifacts
+
+Use GitHub Issues for work that needs collaboration, triage, or historical discussion outside the
+local `.TODO/` queue. Use `.TODO/todo-next.md` for local agent-ready implementation tasks. When an
+issue becomes implementation work, give the local task a `T-` number and link the issue in the task
+body or pull request.
+
+Use GitHub Projects for cross-cutting planning across issues, pull requests, releases, and deployment
+follow-up. Keep project fields product-oriented: status, owner, priority, release target, and risk.
+Do not duplicate every local TODO item into a project board; promote only work that benefits from
+coordination or reporting.
+
+Use version tags only for reviewed releases. Keep release notes aligned with `CHANGELOG.md`, and do
+not add follow-up work to an already released version section. If a fix follows a release, document it
+under `## [Unreleased]` until the next release tag.
+
+Use GitHub Releases when a version needs a stable changelog, deployment reference, or downloadable
+artifact set. Attach artifacts only when they are useful outside CI logs, such as generated manifests,
+smoke-test summaries, or signed packages. Do not attach generated `.next/`, `dist/`, or dependency
+folders unless a release process explicitly requires them.
+
+Use workflow artifacts for temporary CI evidence: build manifests, smoke-test output, coverage
+reports, screenshots, or logs that help review a pull request. Keep artifact retention short unless
+the artifact is needed for compliance or incident review.
 
 ## Test Flow: Beta To Main
 
@@ -87,6 +113,7 @@ pnpm prod:build
 The main CI workflow is `.github/workflows/ci.yml`.
 
 It runs on:
+
 - Pushes to `main`
 
 It intentionally does not run on `beta` pushes. A direct push to `beta` is only a test branch update;
@@ -96,6 +123,7 @@ keeps the automatic `main` → `beta` sync commit from starting CI on `beta`.
 CI is automatically skipped for commits containing `[skip ci]` in the commit message.
 
 The required branch-rule check is:
+
 - `Validate source and production build`
 
 This one check protects `main`, because `main` generates the production `dist` branch and can also
@@ -314,11 +342,13 @@ The check name may appear as either `Validate source and production build` or `V
 The GitHub Actions workflows have been verified and are correct:
 
 **ci.yml:**
+
 - Validation runs on push to branches [main] ✓
 - Beta pushes do not run CI (prevents duplicate runs) ✓
 - Skips CI for commits containing [skip ci] ✓
 
 **branch-maintenance.yml:**
+
 - Runs only on push to branches: [main] or workflow_dispatch ✓ (dist deployment from main only)
 - Both jobs have `if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main'` ✓
 - Concurrency control prevents duplicate runs ✓

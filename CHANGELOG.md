@@ -9,7 +9,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Dashboard onboarding now tracks setup progress from account data, routes users to the relevant
+  setup pages, and keeps reopening for accounts below 25% completion.
+- Social login buttons now start configured Google and GitHub sign-in or registration flows.
+- The dashboard sidebar now includes coming-soon mobile app buttons, social placeholders, a user
+  panel stack, and a bottom Terms link.
+- The dashboard now opens directly on datasets, while admin customer, level, and discount lists use
+  read-first rows with focused row edit pages.
+- Dashboard FAQ now uses expandable answers and lets super-admins filter customer help and operator
+  notes from one page.
+- Hybrid AI and subscription plan buttons now go through checkout review before any payment action.
 - Dashboard notices now live in a topbar inbox with a persistent count and recent product activity.
+- Dashboard notices and activity now focus on rare, useful events instead of frequent background
+  interactions.
+- Billing and payment settings now use more customer-operations language and list-style history
+  layouts.
 - The topbar credits button now opens subscription settings instead of sending users to public plans.
 - Public pricing and FAQ copy now describes Hybrid AI access without exposing runtime download sizes.
 - Public pages outside the homepage now share one title section design.
@@ -19,6 +33,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Business and super-admin accounts now keep paid download access instead of falling back to the free
+  download limit.
+- Checkout action labels now render plain text instead of encoded HTML entities.
+- The dashboard activity popup now uses the shared overlay and shows clear loading or unavailable
+  states for recent activity.
 - Payment provider settings now require super-admin access even when opened by direct URL.
 - Super-admin dashboard pages now require super-admin access even when opened by direct URL.
 - Dashboard notices now dismiss the selected notice reliably when multiple notices arrive together.
@@ -38,6 +57,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- TODO management now uses `T-` task numbers, a single active queue, retired dist/audit queues, and
+  dedicated project audit and testing guides.
+- TODO management docs now document how retired audit and dist tasks moved into the regular queues.
+- GitHub workflow docs now cover issues, projects, versioning, releases, and workflow artifacts.
+- Dist migration tracking now has no active unresolved items; future publish confirmations moved to
+  the dist future queue.
+- Admin management lists now share one table pattern before row-level editing.
+- Production builds now fail on TypeScript errors, and the App Router shell no longer carries legacy
+  document configuration.
+- Public FAQ answers now render highlighted values through React instead of injected HTML.
+- Local lint scripts now split package metadata, TODO metadata, docs, changelog, commit, link, and
+  dependency freshness checks.
 - Package scripts are grouped by workflow, with manual dependency freshness checks kept out of the
   pre-commit gate.
 - Developer docs now include package-script usage and TODO workflow references.

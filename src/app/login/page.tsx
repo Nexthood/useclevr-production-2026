@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
 import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles } from "lucide-react"
-import { signIn } from "next-auth/react"
+import { getProviders, signIn } from "next-auth/react"
 import Link from "next/link"
+import { FaGithub } from "react-icons/fa6"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
 
@@ -53,6 +54,8 @@ function LoginForm() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [socialLoading, setSocialLoading] = useState<string | null>(null)
+  const [availableProviders, setAvailableProviders] = useState<Record<string, unknown>>({})
   const [loginError, setLoginError] = useState<{ title: string; message?: string; details?: string } | null>(null)
 
   const showLoginError = useCallback(
@@ -65,6 +68,12 @@ function LoginForm() {
     },
     [],
   )
+
+  useEffect(() => {
+    getProviders()
+      .then((providers) => setAvailableProviders(providers ?? {}))
+      .catch(() => setAvailableProviders({}))
+  }, [])
 
   useEffect(() => {
     const errorCode = searchParams.get("error")
@@ -136,6 +145,20 @@ function LoginForm() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSocialSignIn = async (provider: "google" | "github") => {
+    if (!availableProviders[provider]) {
+      showLoginError(
+        "Social login is not configured.",
+        "Use email login for now, or ask support to connect this provider.",
+      )
+      return
+    }
+
+    setSocialLoading(provider)
+    setLoginError(null)
+    await signIn(provider, { callbackUrl: "/app" })
   }
 
   return (
@@ -278,7 +301,17 @@ function LoginForm() {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full opacity-60" disabled>
+            <div className="grid gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isLoading || socialLoading !== null}
+              onClick={() => handleSocialSignIn("google")}
+            >
+              {socialLoading === "google" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -297,8 +330,24 @@ function LoginForm() {
                   fill="#EA4335"
                 />
               </svg>
+              )}
               Continue with Google
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isLoading || socialLoading !== null}
+              onClick={() => handleSocialSignIn("github")}
+            >
+              {socialLoading === "github" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FaGithub className="mr-2 h-4 w-4" />
+              )}
+              Continue with GitHub
+            </Button>
+            </div>
 
             <div className="text-center text-sm mt-6">
               <span className="text-muted-foreground">Don't have an account? </span>

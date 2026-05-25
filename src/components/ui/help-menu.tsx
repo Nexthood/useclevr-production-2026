@@ -1,6 +1,6 @@
 "use client"
 
-import { HelpCircle, MessageSquare, ShieldCheck, Ticket } from "lucide-react"
+import { HelpCircle, MessageSquare, Ticket } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
@@ -51,7 +51,7 @@ export function HelpMenu({ isSuperAdmin = false }: HelpMenuProps) {
           role="menu"
           className="absolute right-0 top-full z-[130] mt-2 w-52 rounded-lg border border-border bg-card p-2 shadow-xl"
         >
-          {[...helpLinks, ...(isSuperAdmin ? [{ href: "/app/admin/faq", label: "Admin FAQ", icon: ShieldCheck }] : [])].map((item) => (
+          {[...helpLinks, ...(isSuperAdmin ? [{ href: "/app/faq?scope=operator", label: "Operator FAQ", icon: MessageSquare }] : [])].map((item) => (
             <Link
               key={item.href}
               href={item.href}

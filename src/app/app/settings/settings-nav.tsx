@@ -5,7 +5,6 @@ import {
   CreditCard,
   ReceiptText,
   ShieldCheck,
-  ShoppingCart,
   SlidersHorizontal,
   User,
 } from "lucide-react";
@@ -17,7 +16,6 @@ const items = [
   { href: "/app/settings/preferences", label: "Settings", icon: SlidersHorizontal },
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
   { href: "/app/settings/activity", label: "Activity", icon: Activity },
-  { href: "/app/settings/checkout", label: "Checkout", icon: ShoppingCart },
   { href: "/app/settings/billing", label: "Billing", icon: ReceiptText },
 ];
 

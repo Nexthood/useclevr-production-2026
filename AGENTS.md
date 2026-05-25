@@ -155,13 +155,13 @@ pnpm prod:build                     (build phase — one-shot)
 
 ### Source-of-truth files
 
-| File | Role |
-|---|---|
-| `dist-root/server-config/railway.json` | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch. |
-| `dist-root/server-config/vercel.json` | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
-| `scripts/package-dist/create-dist.cjs` | Generates `dist/package.json`, `dist/nixpacks.toml`, copies schema, runtime scripts, and assets. Only place dist is assembled. |
-| `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`. |
-| `scripts/server/vercel/sync-config.cjs` | Copies `dist-root/server-config/vercel.json` → `vercel.json`. Run it — not the opposite direction. |
+| File                                     | Role                                                                                                                                                                        |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dist-root/server-config/railway.json`   | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch.                                                          |
+| `dist-root/server-config/vercel.json`    | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
+| `scripts/package-dist/create-dist.cjs`   | Generates `dist/package.json`, `dist/nixpacks.toml`, copies schema, runtime scripts, and assets. Only place dist is assembled.                                              |
+| `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`.                                                                                |
+| `scripts/server/vercel/sync-config.cjs`  | Copies `dist-root/server-config/vercel.json` → `vercel.json`. Run it — not the opposite direction.                                                                          |
 
 Database migrations stay in Railway `preDeployCommand` while the deployment is a single web service.
 Do not add a separate migration job unless background work or migration risk requires isolation.
@@ -203,43 +203,33 @@ template.
 
 ## Todo pipeline
 
-AI agents must keep `.TODO/todo.md` and `.TODO/todo-next.md` in sync with active work:
+AI agents must keep the regular `.TODO/` queue files in sync:
 
-- `.TODO/todo.md` — tracks the **leading edge** of work (everything that is currently in progress). When all
-  tasks in this file are marked done, refresh it from `.TODO/todo-next.md`.
-- `.TODO/todo-next.md` — holds the **backlog** (confirmed work not yet started, plus blocked items).
-  Copy items to `todo.md` when you start them, then remove them here.
-- `.TODO/todo.md` → **Completed ✅** — When a task is fully done, write a short entry in the Completed
-  section of `todo.md`, then move durable completed work to `.TODO/todo-done.md`. Items in Completed
-  must drive two destination files:
-  - **`requirements.md`** — Convert every completed item into a product-facing requirement entry using
-    the user's perspective. Describe the behaviour the user sees or the need that was addressed, not
-    how it was implemented.
-  - **`CHANGELOG.md`** — If the change is user-observable, add a changelog entry under `## [Unreleased]`
-    in the appropriate section (`Added`, `Changed`, `Fixed`, …). Developer-only or infra-only changes go
-    under `### Dev`.
-- Any newly identified work (bug reports, suggestions, new features) goes straight into `.TODO/todo-next.md`
-  so it is never lost.
-- Never leave `todo.md` with stale In-Progress items. When a subsection is empty, remove it. Every
-  completed task must have a destination in `requirements.md` and `CHANGELOG.md`.
-- Dist migration planning is tracked separately in `.TODO/todo-dist.md` and
-  `.TODO/todo-dist-done.md`. Future-only dist work goes in `.TODO/todo-dist-future.md`, and
-  deliberate no-fix decisions go in `.TODO/todo-dist-no-fix.md`. Do not duplicate dist planning
-  elsewhere.
+- `.TODO/config.json` owns TODO metadata. Read `nextTaskNumber` before adding tasks, use the `T-`
+  prefix, and increment `nextTaskNumber` after assigning new task IDs.
+- `.TODO/todo-next.md` is the **only active queue**. Put confirmed work here before it starts and keep
+  one `T-` task per bullet.
+- `.TODO/todo-done.md` stores completed work. User-observable completed work must also update
+  `requirements.md`, and release-facing changes must update `CHANGELOG.md`.
+- `.TODO/todo-future.md` stores valid deferred work.
+- `.TODO/todo-ignore.md` stores deliberate no-fix decisions with rationale.
+- Dist and audit-specific TODO files are retired. Dist follow-ups and audit findings belong in the
+  regular next, done, future, or ignore files.
+- Run `pnpm lint:todos` after TODO metadata changes.
 
 ### Per-dev commit messaging style
 
 <!-- Apply only to formalised output. Re-verify conciseness for each sentence. -->
 <!-- Source: captured working notes from the session, distilled 2026-05-18. -->
 
-- Keep the tone **analytical yet concise**, grounded in **engineering discipline and product-first thinking**.  
-- Use **active voice**, minimise adjectives, and remove all boilerplate filler. Every sentence must contribute concrete information — no praise, no hedging, and no agendas beyond what’s on the page.  
-- Follow standard **subject–verb–object** order wherever possible; state **what is true and why** rather than **what could or might occur**.  
-- When naming files or subsystems, use **bold** formatting inline and avoid ASCII tagging:  
+- Keep the tone **analytical yet concise**, grounded in **engineering discipline and product-first thinking**.
+- Use **active voice**, minimise adjectives, and remove all boilerplate filler. Every sentence must contribute concrete information — no praise, no hedging, and no agendas beyond what’s on the page.
+- Follow standard **subject–verb–object** order wherever possible; state **what is true and why** rather than **what could or might occur**.
+- When naming files or subsystems, use **bold** formatting inline and avoid ASCII tagging:
 
   | Prefer | Avoid |
   ||---|---|
-  | **`server-config/railway.json`** | `server-config/railway.json`, ``code/`` |
+  | **`server-config/railway.json`** | `server-config/railway.json`, `code/` |
   | **`dist/`** | \`dist/\`, `code/` |
   | Yes | absolutely, truly, rapidly |
   | gates deactivated | louvers disengaged |

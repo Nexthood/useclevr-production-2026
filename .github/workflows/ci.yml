@@ -3,6 +3,8 @@ name: Validate Source
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   validate-source-and-build:

@@ -1,37 +1,41 @@
-import { debugError, debugLog, debugWarn } from "@/lib/utils/debug"
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 import {
-    BUILTIN_DEMO_USER, findBuiltinUserByCredentials,
-    isBuiltinUserId, type BuiltinUserRole
-} from "@/lib/auth/builtin-users"
-import { recordActivity } from "@/lib/activity/activity-store"
-import { getDb } from "@/lib/db"
-import { profiles, users } from "@/lib/db/schema"
-import bcrypt from "bcryptjs"
-import { eq } from "drizzle-orm"
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { z } from "zod"
+  BUILTIN_DEMO_USER,
+  findBuiltinUserByCredentials,
+  isBuiltinUserId,
+  type BuiltinUserRole,
+} from "@/lib/auth/builtin-users";
+import { recordActivity } from "@/lib/activity/activity-store";
+import { getDb } from "@/lib/db";
+import { accounts, profiles, users } from "@/lib/db/schema";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+import { z } from "zod";
 
 // DIAGNOSTIC: Log when auth module is loaded
-debugLog('[Auth] Module loading - initializing NextAuth v5')
-debugLog('[Auth] Drizzle client available:', !!getDb())
+debugLog("[Auth] Module loading - initializing NextAuth v5");
+debugLog("[Auth] Drizzle client available:", !!getDb());
 
 // Helper to get db with null safety
 const getDbClient = () => {
-  const client = getDb()
+  const client = getDb();
   if (!client) {
-    debugWarn('[Auth] Database client is null - using demo mode only')
-    return null
+    debugWarn("[Auth] Database client is null - using demo mode only");
+    return null;
   }
-  return client
-}
+  return client;
+};
 
 /**
  * NextAuth v5 (Auth.js) Configuration
- * 
+ *
  * CRITICAL PATTERNS TO PREVENT HEADER ERRORS:
- * 
+ *
  * 1. Never throw errors after sending a response
  * 2. Always return null or throw in authorize(), never both
  * 3. Use try-catch in callbacks to prevent unhandled rejections
@@ -42,7 +46,12 @@ const getDbClient = () => {
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-})
+});
+
+const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+const githubClientId = process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID || process.env.GITHUB_CLIENT_ID;
+const githubClientSecret = process.env.AUTH_GITHUB_SECRET || process.env.GITHUB_SECRET || process.env.GITHUB_CLIENT_SECRET;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -58,14 +67,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize() {
         // Return demo user directly - no database lookup
-        debugLog('[Demo] Demo login authenticated')
+        debugLog("[Demo] Demo login authenticated");
         return {
           id: BUILTIN_DEMO_USER.id,
           email: BUILTIN_DEMO_USER.email,
           name: BUILTIN_DEMO_USER.name,
           image: null,
           role: BUILTIN_DEMO_USER.role,
-        }
+        };
       },
     }),
     // Regular credentials provider for real users
@@ -77,57 +86,57 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          const rawEmail = typeof credentials?.email === "string" ? credentials.email : ""
-          const rawPassword = typeof credentials?.password === "string" ? credentials.password : ""
+          const rawEmail = typeof credentials?.email === "string" ? credentials.email : "";
+          const rawPassword = typeof credentials?.password === "string" ? credentials.password : "";
 
-          const builtinUser = findBuiltinUserByCredentials(rawEmail, rawPassword)
+          const builtinUser = findBuiltinUserByCredentials(rawEmail, rawPassword);
           if (builtinUser) {
-            debugLog(`[Auth] Built-in ${builtinUser.role} credentials authenticated`)
+            debugLog(`[Auth] Built-in ${builtinUser.role} credentials authenticated`);
             return {
               id: builtinUser.id,
               email: builtinUser.email,
               name: builtinUser.name,
               image: null,
               role: builtinUser.role,
-            }
+            };
           }
 
           // Validate input first
-          const validatedFields = loginSchema.safeParse(credentials)
-          
+          const validatedFields = loginSchema.safeParse(credentials);
+
           if (!validatedFields.success) {
-            return null
+            return null;
           }
 
-          const { email, password } = validatedFields.data
-          const dbClient = getDbClient()
+          const { email, password } = validatedFields.data;
+          const dbClient = getDbClient();
 
           if (!dbClient) {
-            return null
+            return null;
           }
 
           // Query database
-          let user
+          let user;
           try {
             const userResult = await dbClient.query.users.findFirst({
               where: eq(users.email, email),
-            })
-            user = userResult
+            });
+            user = userResult;
           } catch (dbError) {
-            debugError("Database connection error during auth:", dbError)
-            return null
+            debugError("Database connection error during auth:", dbError);
+            return null;
           }
 
           // User not found or no password
           if (!user || !user.password) {
-            return null
+            return null;
           }
 
           // Verify password
-          const isValid = await bcrypt.compare(password, user.password)
+          const isValid = await bcrypt.compare(password, user.password);
 
           if (!isValid) {
-            return null
+            return null;
           }
 
           return {
@@ -135,13 +144,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             image: user.image,
-          }
+          };
         } catch (error) {
-          debugError("Auth error:", error)
-          return null
+          debugError("Auth error:", error);
+          return null;
         }
       },
     }),
+    ...(googleClientId && googleClientSecret
+      ? [
+          Google({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }),
+        ]
+      : []),
+    ...(githubClientId && githubClientSecret
+      ? [
+          GitHub({
+            clientId: githubClientId,
+            clientSecret: githubClientSecret,
+          }),
+        ]
+      : []),
   ],
   session: {
     strategy: "jwt",
@@ -159,27 +184,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       // Add user ID to token on initial sign in
       if (user) {
-        token.id = user.id
-        token.role = ("role" in user ? user.role : "user") as BuiltinUserRole
+        token.id = user.id;
+        token.role = ("role" in user ? user.role : "user") as BuiltinUserRole;
       }
       // Always return the token
-      return token
+      return token;
     },
     /**
      * Session Callback
      * CRITICAL: Always return the session object, never undefined
-     * 
+     *
      * Pattern: Check if data exists, add it, then return session
      */
     async session({ session, token }) {
       // Add user ID to session if available
       if (token.id && session.user) {
-        const userId = token.id as string
-        session.user.id = userId
-        session.user.role = (token.role || "user") as BuiltinUserRole
+        const userId = token.id as string;
+        session.user.id = userId;
+        session.user.role = (token.role || "user") as BuiltinUserRole;
 
         if (!isBuiltinUserId(userId)) {
-          const dbClient = getDbClient()
+          const dbClient = getDbClient();
 
           if (dbClient) {
             try {
@@ -191,7 +216,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   email: true,
                   image: true,
                 },
-              })
+              });
               const profile = await dbClient.query.profiles.findFirst({
                 where: eq(profiles.userId, userId),
                 columns: {
@@ -199,34 +224,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   email: true,
                   avatarUrl: true,
                 },
-              })
+              });
 
               if (user) {
-                session.user.name = profile?.fullName || user.name
-                session.user.email = profile?.email || user.email || session.user.email
-                session.user.image = profile?.avatarUrl || user.image
+                session.user.name = profile?.fullName || user.name;
+                session.user.email = profile?.email || user.email || session.user.email;
+                session.user.image = profile?.avatarUrl || user.image;
               }
             } catch (error) {
-              debugWarn("[Auth] Session refresh from database failed:", error)
+              debugWarn("[Auth] Session refresh from database failed:", error);
             }
           }
         }
       }
       // Always return session - even if no changes
-      return session
+      return session;
     },
     /**
      * SignIn Callback
      * CRITICAL: Return boolean, not redirect
      */
-    async signIn({ user: _user, account }) {
-      // Allow OAuth sign in
-      if (account?.provider === "credentials") {
+    async signIn({ user, account }) {
+      if (account?.provider === "credentials" || account?.provider === "demo") {
         // Credentials provider already validated in authorize()
-        return true
+        return true;
       }
-      // Allow OAuth providers
-      return true
+
+      if (account?.provider && account.providerAccountId) {
+        await ensureOAuthUserRecord({
+          user,
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          accountType: account.type,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          expiresAt: account.expires_at,
+          tokenType: account.token_type,
+          scope: account.scope,
+          idToken: account.id_token,
+          sessionState: typeof account.session_state === "string" ? account.session_state : undefined,
+        });
+      }
+
+      return true;
     },
     /**
      * Redirect Callback
@@ -235,14 +275,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async redirect({ url, baseUrl }) {
       try {
         // Allows relative URLs
-        if (url.startsWith("/")) return `${baseUrl}${url}`
+        if (url.startsWith("/")) return `${baseUrl}${url}`;
         // Allows URLs on the same origin
-        if (new URL(url).origin === baseUrl) return url
+        if (new URL(url).origin === baseUrl) return url;
       } catch (error) {
-        debugWarn("[Auth] Ignoring invalid redirect URL:", error)
+        debugWarn("[Auth] Ignoring invalid redirect URL:", error);
       }
 
-      return `${baseUrl}/login`
+      return `${baseUrl}/login`;
     },
   },
   events: {
@@ -251,7 +291,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Use Drizzle properly to avoid connection issues
      */
     async createUser({ user }) {
-      debugLog("New user created:", user.email)
+      debugLog("New user created:", user.email);
       if (user.id && !isBuiltinUserId(user.id)) {
         await recordActivity({
           userId: user.id,
@@ -260,7 +300,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           feature: "account",
           title: "Account registered",
           description: "Account access was created.",
-        })
+        });
       }
     },
     /**
@@ -268,30 +308,140 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Log for debugging, don't throw
      */
     async signIn({ user, isNewUser }) {
-      debugLog(`User signed in: ${user.email}, isNewUser: ${isNewUser}`)
-      if (user.id && !isBuiltinUserId(user.id)) {
-        await recordActivity({
-          userId: user.id,
-          userEmail: user.email,
-          type: "login",
-          feature: "account",
-          title: "Signed in",
-          description: "A session started for this account.",
-        })
-      }
+      debugLog(`User signed in: ${user.email}, isNewUser: ${isNewUser}`);
+      // Login events are intentionally not shown in the product activity feed.
+      // They happen often and drown out rarer account, billing, and dataset events.
     },
   },
   debug: process.env.NODE_ENV === "development",
   logger: {
     error: (error) => {
-      debugError("NextAuth error:", error)
+      debugError("NextAuth error:", error);
     },
     warn: (warning) => {
-      debugWarn("NextAuth warning:", warning)
+      debugWarn("NextAuth warning:", warning);
     },
   },
   /**
    * CRITICAL: Trust host for production deployments
    */
   trustHost: true,
-})
+});
+
+async function ensureOAuthUserRecord({
+  user,
+  provider,
+  providerAccountId,
+  accountType,
+  accessToken,
+  refreshToken,
+  expiresAt,
+  tokenType,
+  scope,
+  idToken,
+  sessionState,
+}: {
+  user: { id?: string; email?: string | null; name?: string | null; image?: string | null };
+  provider: string;
+  providerAccountId: string;
+  accountType?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  tokenType?: string;
+  scope?: string;
+  idToken?: string;
+  sessionState?: string;
+}) {
+  const dbClient = getDbClient();
+  const email = user.email?.trim().toLowerCase();
+
+  if (!dbClient || !email) return;
+
+  const existingUser = await dbClient.query.users.findFirst({
+    where: eq(users.email, email),
+    columns: { id: true },
+  });
+
+  const userId = existingUser?.id || `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  user.id = userId;
+
+  if (existingUser) {
+    await dbClient.update(users)
+      .set({
+        name: user.name || null,
+        image: user.image || null,
+      })
+      .where(eq(users.id, userId));
+  } else {
+    await dbClient.insert(users).values({
+      id: userId,
+      email,
+      name: user.name || null,
+      image: user.image || null,
+      emailVerified: new Date(),
+    });
+
+    await recordActivity({
+      userId,
+      userEmail: email,
+      type: "register",
+      feature: "account",
+      title: "Account registered",
+      description: "Account access was created.",
+    });
+  }
+
+  await dbClient.insert(accounts)
+    .values({
+      id: `account_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      userId,
+      type: accountType || "oauth",
+      provider,
+      providerAccountId,
+      accessToken: accessToken || null,
+      refreshToken: refreshToken || null,
+      expiresAt: expiresAt || null,
+      tokenType: tokenType || null,
+      scope: scope || null,
+      idToken: idToken || null,
+      sessionState: sessionState || null,
+    })
+    .onConflictDoUpdate({
+      target: [accounts.provider, accounts.providerAccountId],
+      set: {
+        userId,
+        accessToken: accessToken || null,
+        refreshToken: refreshToken || null,
+        expiresAt: expiresAt || null,
+        tokenType: tokenType || null,
+        scope: scope || null,
+        idToken: idToken || null,
+        sessionState: sessionState || null,
+      },
+    });
+
+  const existingProfile = await dbClient.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    columns: { id: true },
+  });
+
+  if (existingProfile) {
+    await dbClient.update(profiles)
+      .set({
+        email,
+        fullName: user.name || null,
+        avatarUrl: user.image || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(profiles.userId, userId));
+  } else {
+    await dbClient.insert(profiles).values({
+      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      userId,
+      email,
+      fullName: user.name || null,
+      avatarUrl: user.image || null,
+    });
+  }
+}

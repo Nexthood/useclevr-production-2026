@@ -1,95 +1,77 @@
-# Task Queue — Done
+# Done TODO
+
+Completed work lives here after product requirements and changelog updates are handled where needed.
+
+Get T-number (task number) from `.TODO/config.json` before adding new tasks.
+
+## Links
+
+- [TODO-done.md](todo-done.md)
+- [TODO-ignore.md](todo-ignore.md)
+- [TODO-future.md](todo-future.md)
+- [.TODO/config.json](config.json)
 
 ## Completed
 
-- **Deployment guides** — Railway and Vercel now have dedicated host guides for CLI commands,
-  settings, runtime behavior, and troubleshooting.
-- **Railway Corepack build fix** — Railway generated-output builds now refresh Corepack on Node 22
-  and use a Node-compatible pnpm release to avoid signature and engine failures.
-- **Railway pnpm config fix** — Generated runtime packages no longer mix conflicting pnpm
-  build-approval settings.
-- **Railway lockfile tolerance** — Runtime installs now tolerate generated deployment packages without
-  a committed lockfile.
-- **Railway migration tooling** — Generated runtime packages now include the tooling needed for the
-  pre-deploy schema step.
-- **Railway Next build restore** — Generated deployments now restore the Next.js build output during
-  runtime start for hosts that omit dot-directories.
-- **Railway health binding fix** — Generated starts now force the public host binding so platform
-  health checks can reach the app.
-- **Railway predeploy schema sync** — Generated deploys now use an idempotent additive schema sync so
-  existing databases with empty migration history do not block startup.
-- **Package and TODO docs** — Package scripts and developer docs now separate manual dependency
-  freshness checks from pre-commit validation.
-- **Repository text formatting** — Git and editor rules now normalize tracked text files to UTF-8
-  with LF endings.
-- **Settings and notices hardening** — Payment provider settings and super-admin dashboard pages now
-  require super-admin access from direct URLs, and notice dismissal now targets the selected notice
-  reliably.
-- **Dashboard notices and activity** — Topbar notices now persist in an inbox with recent product
-  activity, user activity history, and super-admin total activity.
-- **Dist history visibility** — Dist publish keeps the previous deployment commit visible and reduces
-  workflow log output.
-- **Dist config placement** — Dist branch host config stays only in `/server-config`, and pnpm
-  workspace metadata is removed from deployment output.
-- **Railway Nixpacks install** — Generated deployment output now carries a Nixpacks plan that installs
-  production dependencies with Corepack pnpm instead of default npm.
-- **GitHub Actions workflow steps** — Renamed steps in branch-maintenance.yml to descriptive names.
-- **Railway lockfile generation** — Publish workflow now generates matching pnpm-lock.yaml from dist package.json for deterministic installs.
-- **Railway build fix** — Removed --frozen-lockfile since dist package.json has fewer deps than root.
-- **Super-admin credit rule settings** — Referral credit rules can be configured from Credit Rules,
-  including referrals needed per credit and whether referral credits are enabled.
-- **Super-admin customer dashboard** — Super-admins can review customer totals, plans, signup dates,
-  referral source, login count, and dataset count from one admin page.
-- **Editable customer levels** — Super-admins can define customer tiers with interaction, page visit,
-  upload, credit-use, login, and reward thresholds.
-- **Discount management** — Super-admins can manage free, percentage, referral, and stacking discount
-  rules from the admin area.
-- **Free trial route fix** — Pricing now sends free-trial users to sign-up instead of paid checkout.
-- **Hybrid AI popup fix** — Hybrid AI uses the shared modal behavior for scroll lock, Escape, and
-  backdrop handling.
-- **Home/affiliate design rollout** — Dashboard and settings pages now use the updated quick-action,
-  icon, and CTA styling.
-- **Sidebar navigation** — Super-admin links for Customers, Customer Levels, and Discount Rules are
-  visible in the sidebar.
-- **Dist branch deployment cleanup** — Source branches stay source-only while GitHub Actions publishes
-  generated output to `dist:/dist`.
-- **Railway runtime install fix** — Generated output includes Railway config and pnpm build approvals
-  so production dependencies install without manual approval.
-- **Shared local production env** — Local production starts can load shared env values from the parent
-  checkout folder while allowing checkout-local overrides.
-- **Husky commit hooks** — Local Git hooks now run from `.husky/`, commit messages are checked with
-  commitlint through pnpm, and generated dist commits may use short `PR:` titles.
-- **Repo-wide lint cleanup** — ESLint now reports zero warnings after import cleanup, unused binding
-  cleanup, and catch-parameter cleanup across source files.
-- **Business KPI mapping fix** — Multi-currency CSV analysis now reads normalized monetary columns
-  from the processor result and no longer mistakes `country` for the quantity column.
-- **Deployment strategy notes** — GitHub workflow docs now compare the current dist branch flow with
-  Railway source builds, Docker image deployment, and GitHub Actions artifact options.
-- **Public auth and contact polish** — Login errors stay inline, public contact requests can be
-  submitted without sign-in, and legal links are visible from public/auth page footers.
-- **Generated runtime target split** — Local generated-output starts use localhost auth defaults,
-  while Railway and Vercel have explicit named server targets.
-- **Vercel deployment settings** — Vercel now has a source-branch deploy template synced to root
-  `vercel.json`, while Railway remains on generated `dist:/dist` output.
-- **Operational persistence** — Support tickets, referral stats, referral events, and billing
-  settings now use database-backed storage when a database is configured, with local file fallback.
-- **Referral reward guards** — Referral signup and paid events now support idempotency keys and block
-  self-referral rewards.
-- **Production readiness checklist** — Deployment, account, access, data, AI, and billing operations
-  checks are documented in one release checklist.
-- **CSV edge-case tests** — Empty uploads, malformed rows, and mixed currency/time-zone samples now
-  run in the project test suite.
-- **Dist root config guard** — The publish workflow now fails if Railway config is missing from
-  `/dist` or appears at the deployment branch root.
-- **Dist publish source guard** — The publish workflow now validates types, generated config, and
-  lint before building deployment output.
-- **Waitlist fallback** — Landing page product-update signups now succeed locally even when the
-  production database is not available.
-- **Shared page headers** — Public legal, FAQ, pricing, contact, and security pages now use one
-  shared title section.
-- **Dashboard help access** — Support tickets, dashboard FAQ, and admin FAQ now live under the
-  topbar Help menu, with a responsive sidebar reserved for primary navigation.
-- **Support chat and ticket forms** — Dashboard users can search FAQ answers from a floating help
-  chat, send fallback support requests, and open tickets directly from the FAQ page.
-- **Admin management tables** — Customer level and discount rule management now use horizontal row
-  inputs for faster scanning and editing.
+- T-126. Admin customer, customer level, and discount pages now use shared read-first tables with focused row edit pages.
+- T-204. Dashboard sidebar footer now includes coming-soon mobile app buttons, social placeholders, the user panel, and Terms access.
+- T-205. Dashboard now opens directly to datasets, Hybrid AI and subscription changes use checkout review, paid download access includes Business and super-admin users, and dashboard FAQ uses filtered expandable answers.
+- T-206. The App Router shell owns document markup, production builds fail on TypeScript errors, and public FAQ highlighting renders through React instead of injected HTML.
+- T-207. Dist deployment succeeded and active dist migration tasks were folded into the regular TODO queues.
+- T-208. Project audit work was converted into regular TODO tasks plus auditor and testing guide documents.
+- T-209. TODO management now uses `T-` task numbers and `todo-next.md` as the only active queue.
+- T-244. Dist and audit TODO files were retired into the regular next, done, future, and ignored
+  queues.
+- T-245. Project audit and testing guides were added for repeatable start-to-finish review.
+- T-258. Railway deploys from the `dist` branch with `/dist` as the root directory.
+- T-259. Railway runtime secrets remain in Railway environment variables.
+- T-260. The older source-branch Railway deployment path is no longer the active deploy target.
+- T-261. A successful publish confirmed fresh generated `/dist` output on the dist branch.
+- T-262. Dist branch publish scope is limited to generated `/dist` output and `/server-config`.
+- T-263. TODO management docs document how retired audit and dist tasks moved into the regular queues.
+- T-264. Dashboard topbar onboarding, shared activity popup behavior, TODO retirement guidance, and
+  GitHub issue/project/release guidance were added.
+- T-283. Dashboard onboarding now uses database-backed progress and seen state, social login buttons
+  create local user/profile records when providers are configured, and onboarding/activity actions
+  save to the activity feed.
+- T-265. Small-screen dashboard users can reopen onboarding from the topbar Process button.
+- T-267. The topbar notices and activity popup now shows loading and error states when recent
+  activity cannot be fetched.
+- T-210. Technical guides moved into developer documentation.
+- T-211. Flowcharts moved into developer guide folders.
+- T-212. User-facing documentation moved into user guide folders.
+- T-213. Project requirements moved into developer-facing documentation where appropriate.
+- T-214. Troubleshooting guidance was replaced with a developer testing guide.
+- T-215. Flowcharts were split into user-facing, production technical, and deployment charts.
+- T-216. TODO and future recommendation documents moved into `.TODO/`.
+- T-217. Documentation links were updated after folder changes.
+- T-218. Mermaid editor guidance was added for project diagrams.
+- T-219. Static files moved into `src/assets/` and are served through `/assets/...`.
+- T-220. Railway debug endpoint for homepage HTML was removed.
+- T-221. Runtime target moved off the old Node.js baseline.
+- T-222. npm and pnpm dependencies were updated for the current app baseline.
+- T-223. Original system flowchart was created.
+- T-224. Docs landing page and onboarding docs were refreshed.
+- T-225. Railway and Vercel deployment guides now own host-specific commands, settings, and troubleshooting notes.
+- T-226. Railway generated-output builds refresh Corepack and use a Node-compatible pnpm release.
+- T-227. Generated runtime packages avoid conflicting pnpm build-approval settings.
+- T-228. Runtime installs tolerate generated deployment packages without a committed lockfile.
+- T-229. Generated runtime packages include migration tooling required by pre-deploy schema steps.
+- T-230. Generated deployments restore the Next.js build output when host snapshots omit dot-directories.
+- T-231. Repository text files are normalized with UTF-8 and LF rules.
+- T-232. Payment provider settings and super-admin dashboard pages require super-admin access from direct URLs.
+- T-233. Dashboard notices live in a topbar inbox with recent product activity, user activity history, super-admin total activity, and subscription-focused credit access.
+- T-234. Dist publish history keeps the previous deployment commit visible while reducing workflow log output.
+- T-235. Dist deployment config stays under `/server-config`, and generated deployment output runs from `/dist`.
+- T-236. Railway generated-output builds use a generated Nixpacks plan so installs run through Corepack pnpm.
+- T-237. Railway runtime builds use Nixpacks with explicit Corepack pnpm activation.
+- T-238. PDF export browser dependencies are explicit production dependencies.
+- T-239. Auto-merged release pull requests dispatch branch maintenance after merge.
+- T-240. Local pre-commit validation runs the production publish build.
+- T-241. Public login errors stay inline, public contact requests can be submitted without sign-in, and legal links are visible from public/auth footers.
+- T-242. Generated production starts are split by local, Railway, and Vercel server targets.
+- T-243. Operational storage, referral reward guards, production readiness checks, and CSV edge-case tests were added.
+- T-290. Service layer extraction created lib/services/reportService.ts for report generation orchestration.
+- T-291. Service layer extraction created lib/services/datasetService.ts for dataset analysis orchestration.
+- T-292. Configuration centralization created lib/config/index.ts with Zod validation for runtime envs.
+- T-293. Dashboard language feature implemented with language selector in topbar, LanguageProvider context, and Google Translation service with caching.

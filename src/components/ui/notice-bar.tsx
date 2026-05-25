@@ -1,169 +1,195 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 
-type NoticeType = "error" | "success" | "info"
+type NoticeType = "error" | "success" | "info";
 
 type Notice = {
-  id: number
-  type: NoticeType
-  title: string
-  message?: string
-}
+  id: number;
+  type: NoticeType;
+  title: string;
+  message?: string;
+};
 
-type NoticeInput = Omit<Notice, "id">
+type NoticeInput = Omit<Notice, "id">;
 
 type NoticeContextValue = {
-  notice: Notice | null
-  notices: Notice[]
-  showNotice: (notice: NoticeInput) => void
-  clearNotice: (id?: number) => void
-  clearAllNotices: () => void
-}
+  notice: Notice | null;
+  notices: Notice[];
+  showNotice: (notice: NoticeInput) => void;
+  clearNotice: (id?: number) => void;
+  clearAllNotices: () => void;
+};
 
-const NoticeContext = React.createContext<NoticeContextValue | null>(null)
+const NoticeContext = React.createContext<NoticeContextValue | null>(null);
 
-const noticeEventName = "useclevr:notice"
-let noticeIdCounter = 0
+const noticeEventName = "useclevr:notice";
+let noticeIdCounter = 0;
 
 const getFailedInteractionMessage = (status: number) => {
   if (status === 401 || status === 403) {
-    return "Your session may have expired. Sign in again and retry."
+    return "Your session may have expired. Sign in again and retry.";
   }
 
   if (status === 429) {
-    return "The service is busy or rate limited. Wait a moment, then retry."
+    return "The service is busy or rate limited. Wait a moment, then retry.";
   }
 
   if (status >= 500) {
-    return "The server did not complete the request. Please try again in a moment."
+    return "The server did not complete the request. Please try again in a moment.";
   }
 
-  return "The app could not complete that action. Check the form and try again."
-}
+  return "The app could not complete that action. Check the form and try again.";
+};
 
 const getFetchUrl = (input: Parameters<typeof window.fetch>[0]) => {
-  if (typeof input === "string") return input
-  if (input instanceof URL) return input.toString()
-  return input.url
-}
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+};
+
+const getFetchMethod = (input: Parameters<typeof window.fetch>[0], init?: RequestInit) => {
+  if (init?.method) return init.method.toUpperCase();
+  if (typeof input !== "string" && !(input instanceof URL) && input.method) {
+    return input.method.toUpperCase();
+  }
+  return "GET";
+};
 
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
-  const [notices, setNotices] = React.useState<Notice[]>([])
-  const [isMutedPath, setIsMutedPath] = React.useState(false)
-  const notice = notices[0] ?? null
+  const [notices, setNotices] = React.useState<Notice[]>([]);
+  const [isMutedPath, setIsMutedPath] = React.useState(false);
+  const notice = notices[0] ?? null;
 
   React.useEffect(() => {
-    setIsMutedPath(window.location.pathname.startsWith("/login"))
-  }, [])
+    setIsMutedPath(window.location.pathname.startsWith("/login"));
+  }, []);
 
   const clearNotice = React.useCallback((id?: number) => {
     setNotices((current) => {
-      if (id === undefined) return current.slice(1)
-      return current.filter((item) => item.id !== id)
-    })
-  }, [])
+      if (id === undefined) return current.slice(1);
+      return current.filter((item) => item.id !== id);
+    });
+  }, []);
 
-  const showNotice = React.useCallback((input: NoticeInput) => {
-    if (isMutedPath) return
+  const showNotice = React.useCallback(
+    (input: NoticeInput) => {
+      if (isMutedPath) return;
 
-    const nextNotice = {
-      ...input,
-      id: Date.now() + noticeIdCounter++,
-    }
-    setNotices((current) => [nextNotice, ...current].slice(0, 20))
-  }, [isMutedPath])
+      const nextNotice = {
+        ...input,
+        id: Date.now() + noticeIdCounter++,
+      };
+      setNotices((current) => {
+        const duplicate = current.some(
+          (item) =>
+            item.type === input.type &&
+            item.title === input.title &&
+            item.message === input.message,
+        );
+        if (duplicate) return current;
+        return [nextNotice, ...current].slice(0, 5);
+      });
+    },
+    [isMutedPath],
+  );
 
   const clearAllNotices = React.useCallback(() => {
-    setNotices([])
-  }, [])
+    setNotices([]);
+  }, []);
 
   React.useEffect(() => {
     const handleNotice = (event: Event) => {
-      const detail = (event as CustomEvent<NoticeInput>).detail
+      const detail = (event as CustomEvent<NoticeInput>).detail;
       if (detail?.title) {
-        showNotice(detail)
+        showNotice(detail);
       }
-    }
+    };
 
     const handleError = () => {
       showNotice({
         type: "error",
         title: "Something went wrong.",
         message: "Refresh the page or try again in a moment.",
-      })
-    }
+      });
+    };
 
     const handleRejection = () => {
       showNotice({
         type: "error",
         title: "A request failed.",
         message: "Check your connection and try again.",
-      })
-    }
+      });
+    };
 
-    window.addEventListener(noticeEventName, handleNotice)
-    window.addEventListener("error", handleError)
-    window.addEventListener("unhandledrejection", handleRejection)
+    window.addEventListener(noticeEventName, handleNotice);
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
 
     return () => {
-      window.removeEventListener(noticeEventName, handleNotice)
-      window.removeEventListener("error", handleError)
-      window.removeEventListener("unhandledrejection", handleRejection)
-    }
-  }, [showNotice])
+      window.removeEventListener(noticeEventName, handleNotice);
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
+  }, [showNotice]);
 
   React.useEffect(() => {
-    const originalFetch = window.fetch
+    const originalFetch = window.fetch;
 
     window.fetch = async (...args) => {
       try {
-        const response = await originalFetch(...args)
-        const requestUrl = getFetchUrl(args[0])
-        const isAuthRequest = requestUrl.includes("/api/auth/")
+        const response = await originalFetch(...args);
+        const requestUrl = getFetchUrl(args[0]);
+        const requestMethod = getFetchMethod(args[0], args[1]);
+        const isAuthRequest = requestUrl.includes("/api/auth/");
+        const shouldSurfaceFailure =
+          !response.ok &&
+          !isAuthRequest &&
+          !isMutedPath &&
+          (requestMethod !== "GET" || response.status === 401 || response.status === 403);
 
-        if (!response.ok && !isAuthRequest && !isMutedPath) {
+        if (shouldSurfaceFailure) {
           showNotice({
             type: "error",
             title: "Action failed.",
             message: getFailedInteractionMessage(response.status),
-          })
+          });
         }
 
-        return response
+        return response;
       } catch (error) {
-        if (!isMutedPath) {
+        if (!isMutedPath && !(error instanceof DOMException && error.name === "AbortError")) {
           showNotice({
             type: "error",
             title: "Connection failed.",
             message: "Check your connection and try again.",
-          })
+          });
         }
-        throw error
+        throw error;
       }
-    }
+    };
 
     return () => {
-      window.fetch = originalFetch
-    }
-   }, [isMutedPath, showNotice])
+      window.fetch = originalFetch;
+    };
+  }, [isMutedPath, showNotice]);
 
-   return (
+  return (
     <NoticeContext.Provider value={{ notice, notices, showNotice, clearNotice, clearAllNotices }}>
       {children}
     </NoticeContext.Provider>
-  )
+  );
 }
 
 export function useNotice() {
-  const context = React.useContext(NoticeContext)
+  const context = React.useContext(NoticeContext);
   if (!context) {
-    throw new Error("useNotice must be used inside NoticeProvider")
+    throw new Error("useNotice must be used inside NoticeProvider");
   }
-  return context
+  return context;
 }
 
 export function showGlobalNotice(notice: NoticeInput) {
-  if (typeof window === "undefined") return
-  window.dispatchEvent(new CustomEvent(noticeEventName, { detail: notice }))
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(noticeEventName, { detail: notice }));
 }

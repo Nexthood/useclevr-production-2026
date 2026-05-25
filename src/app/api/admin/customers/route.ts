@@ -72,7 +72,10 @@ export async function GET() {
     return NextResponse.json({ customers });
   } catch (err) {
     console.error("[admin/customers] error:", err);
-    return NextResponse.json({ customers: builtinCustomers(), warning: "Database customers could not be loaded." });
+    return NextResponse.json({
+      customers: builtinCustomers(),
+      warning: "Database customers could not be loaded.",
+    });
   }
 }
 
@@ -139,12 +142,14 @@ export async function PATCH(request: Request) {
         email: updatedCustomer.email || "—",
         plan: updatedCustomer.subscriptionTier || "free",
         planStatus: updatedCustomer.stripeStatus || "active",
-        signupDate: updatedCustomer.createdAt ? new Date(updatedCustomer.createdAt).toISOString() : null,
+        signupDate: updatedCustomer.createdAt
+          ? new Date(updatedCustomer.createdAt).toISOString()
+          : null,
         lastLogin: null,
         referralSource: null,
         loginCount: 0,
         datasets: 0,
-      }
+      },
     });
   } catch (err) {
     console.error("[admin/customers] PATCH error:", err);
@@ -179,8 +184,11 @@ export async function DELETE(request: Request) {
     // Note: In a real application, you might want to soft delete or handle related data
     // For now, we'll just return success since we don't actually delete from the database
     // due to potential foreign key constraints and data integrity concerns
-    
-    return NextResponse.json({ success: true, message: "Customer deletion simulated (no actual deletion for data safety)" });
+
+    return NextResponse.json({
+      success: true,
+      message: "Customer deletion simulated (no actual deletion for data safety)",
+    });
   } catch (err) {
     console.error("[admin/customers] DELETE error:", err);
     return NextResponse.json({ error: "Failed to delete customer" }, { status: 500 });
@@ -188,11 +196,11 @@ export async function DELETE(request: Request) {
 }
 
 type CustomerInput = {
-  email: string
-  fullName?: string | null
-  subscriptionTier?: string
-  sendInvite?: boolean
-}
+  email: string;
+  fullName?: string | null;
+  subscriptionTier?: string;
+  sendInvite?: boolean;
+};
 
 export async function POST(request: Request) {
   if (!(await requireSuperAdmin())) {
@@ -224,7 +232,31 @@ export async function POST(request: Request) {
     });
 
     if (existingProfile) {
-      return NextResponse.json({ error: "Customer with this email already exists" }, { status: 409 });
+      if (sendInvite) {
+        return NextResponse.json({
+          success: true,
+          inviteSent: true,
+          message: "Invite queued for this existing customer.",
+          customer: {
+            id: existingProfile.userId,
+            name: existingProfile.fullName || existingProfile.businessName || "—",
+            email: existingProfile.email || email,
+            plan: existingProfile.subscriptionTier || "free",
+            planStatus: existingProfile.stripeStatus || "active",
+            signupDate: existingProfile.createdAt
+              ? new Date(existingProfile.createdAt).toISOString()
+              : null,
+            lastLogin: null,
+            referralSource: "Admin invite",
+            loginCount: 0,
+            datasets: 0,
+          },
+        });
+      }
+      return NextResponse.json(
+        { error: "Customer with this email already exists" },
+        { status: 409 },
+      );
     }
 
     // Add to waitlist as a pending invite

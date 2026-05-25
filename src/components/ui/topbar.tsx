@@ -1,5 +1,7 @@
 import HybridAiButton from "@/components/ui/hybrid-ai-button"
 import { HelpMenu } from "@/components/ui/help-menu"
+import { LanguageSelector } from "@/components/ui/language-selector"
+import { OnboardingProcessButton } from "@/components/ui/onboarding-process-button"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activity-drawer"
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
@@ -37,6 +39,7 @@ export default async function Topbar() {
     <div className="app-topbar min-h-16">
       <div className="flex w-full items-center justify-end">
         <div className="flex items-center gap-3">
+          <OnboardingProcessButton />
           <HybridAiButton subscriptionTier={usage.subscriptionTier} hybridAiCreditCosts={billingSettings.hybridAiCreditCosts} />
           <HelpMenu isSuperAdmin={isSuperAdmin} />
           <TopbarNoticeActivityDrawer />
@@ -59,6 +62,7 @@ export default async function Topbar() {
             </Link>
           )}
           <ThemeToggle />
+          <LanguageSelector />
           <TopbarSignOutButton />
         </div>
       </div>

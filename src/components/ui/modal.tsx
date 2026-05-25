@@ -16,6 +16,8 @@ type ModalProps = {
   className?: string
   /** When `false` the close button in the header is hidden (default: `true`). */
   showCloseButton?: boolean
+  /** Shared modal layout. */
+  variant?: "dialog" | "fullscreen" | "sidebar"
   children: React.ReactNode
 }
 
@@ -27,6 +29,7 @@ export function Modal({
   container,
   className,
   showCloseButton = true,
+  variant = "dialog",
   children,
 }: ModalProps) {
   // Shared ref — stable across renders
@@ -72,10 +75,23 @@ export function Modal({
   if (!mounted || !open || !overlayRef.current) return null
 
   const containerEl = container ?? document.body
+  const shellClassName = {
+    dialog:
+      "relative max-h-[calc(100vh-4rem)] w-full max-w-2xl overflow-auto rounded-xl border border-border bg-card shadow-2xl animate-in fade-in duration-200 sm:max-w-4xl",
+    fullscreen:
+      "relative flex h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-6xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in fade-in duration-200",
+    sidebar:
+      "relative ml-auto flex h-full w-full max-w-xl flex-col overflow-hidden border-l border-border bg-card shadow-2xl animate-in slide-in-from-right duration-200",
+  }[variant]
+  const bodyClassName = variant === "dialog" ? "p-5" : "flex-1 overflow-auto p-5"
+  const overlayClassName =
+    variant === "sidebar"
+      ? "fixed inset-0 z-[1000] flex justify-end"
+      : "fixed inset-0 z-[1000] flex items-center justify-center p-4"
 
   return createPortal(
     <div
-      className={["fixed inset-0 z-[1000] flex items-center justify-center", className]
+      className={[overlayClassName, className]
         .filter(Boolean)
         .join(" ")}
       style={{
@@ -92,7 +108,7 @@ export function Modal({
       }}
     >
       <div
-        className="relative max-h-[calc(100vh-4rem)] w-full max-w-2xl overflow-auto rounded-xl border border-border bg-card shadow-2xl animate-in fade-in duration-200 sm:max-w-4xl"
+        className={shellClassName}
         style={{ pointerEvents: "auto" }}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-card px-5 py-4">
@@ -115,7 +131,7 @@ export function Modal({
             </button>
           )}
         </div>
-        <div className="p-5">{children}</div>
+        <div className={bodyClassName}>{children}</div>
       </div>
     </div>,
     containerEl

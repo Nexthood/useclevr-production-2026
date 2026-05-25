@@ -30,10 +30,15 @@ flowchart LR
 | Build           | `pnpm build`, `pnpm prod:build`, `pnpm preview`           | Build source or generated deployment output. |
 | Validation      | `pnpm validate`, `pnpm validate:precommit`, `pnpm health` | Run local and CI gates.                      |
 | Deploy config   | `pnpm deploy:railway:check`, `pnpm deploy:vercel:check`   | Validate host config templates.              |
-| Lint and format | `pnpm lint`, `pnpm lint:fix`, `pnpm format:check`         | Check source quality and formatting.         |
+| Lint and format | `pnpm lint`, `pnpm lint:fix`, `pnpm format:check`         | Check source, package, TODO, and formatting. |
 | Database        | `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`     | Manage Drizzle schema changes.               |
 
 ## Dependency Checks
+
+`pnpm lint` runs package metadata checks, TODO metadata checks, and ESLint.
+
+`pnpm lint:docs`, `pnpm lint:changelog`, `pnpm lint:commits`, and `pnpm link:docs` are separate
+targeted checks so developers can run only the surface they changed.
 
 `pnpm lint:deps` runs `pnpm outdated`. It is intentionally not part of `validate:precommit` because it
 checks external release availability and can fail or change independently of the local code change.
@@ -43,6 +48,7 @@ Use `pnpm lint:all` when you want source lint plus dependency freshness in one m
 ## Package Rules
 
 - Keep `packageManager` aligned with Corepack usage in deployment docs.
+- Keep `lint:deps` manual and outside `validate:precommit`.
 - Keep runtime export dependencies in `dependencies`; generated Railway output installs production
   dependencies only.
 - Keep build, lint, docs, and release tooling in `devDependencies`.

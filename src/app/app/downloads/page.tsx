@@ -71,7 +71,7 @@ export default function DownloadsPage() {
       
       // Update usage state
       setCreditsUsed(usageData.analysisCount || 0)
-      setIsPro(usageData.subscriptionTier === 'pro')
+      setIsPro(["pro", "business", "superadmin"].includes(usageData.subscriptionTier))
       
       // Fetch reports
       try {
@@ -147,11 +147,11 @@ export default function DownloadsPage() {
           const url = window.URL.createObjectURL(blob)
           const a = document.createElement("a")
           a.href = url
-          a.download = `${item.name}.${downloadFormat}`
+          a.download = `${sanitizeFilename(item.name)}.${downloadFormat}`
           document.body.appendChild(a)
           a.click()
-          window.URL.revokeObjectURL(url)
           document.body.removeChild(a)
+          window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
           
           // Increment download count for non-pro
           setDownloadCount(prev => prev + 1)
@@ -439,4 +439,14 @@ export default function DownloadsPage() {
       </Modal>
     </div>
   )
+}
+
+function sanitizeFilename(value: string) {
+  const safe = value
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "-")
+    .replace(/\s+/g, " ")
+    .slice(0, 120)
+
+  return safe || "analysis-report"
 }

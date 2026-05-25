@@ -40,7 +40,9 @@ const serverCandidates = [
 const serverPath = serverCandidates.find((candidate) => fs.existsSync(candidate));
 
 if (!serverPath) {
-  console.error("Could not find a generated Next standalone server. Run the production build first.");
+  console.error(
+    "Could not find a generated Next standalone server. Run the production build first.",
+  );
   process.exit(1);
 }
 
