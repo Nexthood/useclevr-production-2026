@@ -1,5 +1,3 @@
-import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
-
 /**
  * Analysis API Route
  *
@@ -19,6 +17,7 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
  * - Never crashes the UI
  */
 
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";

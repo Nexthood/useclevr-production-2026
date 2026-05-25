@@ -43,6 +43,25 @@ export async function recordActivity(input: RecordActivityInput): Promise<void> 
   if (!db) return;
 
   try {
+    // De-duplicate: skip if same type + feature occurred within 1 hour
+    const recent = await db.query.userActivities.findFirst({
+      where: and(
+        eq(userActivities.userId, input.userId),
+        eq(userActivities.type, input.type),
+        eq(userActivities.feature, input.feature),
+        // Using GT for createdAt comparison would require datetime operations
+      ),
+      orderBy: [desc(userActivities.createdAt)],
+    });
+
+    if (recent) {
+      const timeDiff = Date.now() - new Date(recent.createdAt).getTime();
+      if (timeDiff < 60 * 60 * 1000) {
+        // Skip duplicate within 1 hour
+        return;
+      }
+    }
+
     await db.insert(userActivities).values({
       id: `act_${Date.now()}_${uuidv4().slice(0, 8)}`,
       userId: input.userId,

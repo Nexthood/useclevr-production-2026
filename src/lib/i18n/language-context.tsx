@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { translateText } from './translation-service'
 
 export type Language = 'en' | 'de' | 'hu' | 'ro'
 
@@ -8,6 +9,7 @@ interface LanguageContextType {
   language: Language
   setLanguage: (lang: Language) => void
   t: (key: string) => string
+  translate: (text: string) => Promise<string>
 }
 
 const translations = {
@@ -62,8 +64,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return translations[language][key as keyof typeof translations['en']] || key
   }
 
+  const translate = async (text: string): Promise<string> => {
+    if (language === 'en') return text
+    return await translateText(text, language)
+  }
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t, translate }}>
       {children}
     </LanguageContext.Provider>
   )
