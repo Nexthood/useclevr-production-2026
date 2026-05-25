@@ -14,7 +14,7 @@ import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Spa
 import { getProviders, signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { FaGithub } from "react-icons/fa6"
+import { FaLinkedin } from "react-icons/fa6"
 import { Suspense, useEffect, useState } from "react"
 
 function SignupForm() {
@@ -122,7 +122,7 @@ function SignupForm() {
     setIsLoading(false)
   }
 
-  const handleSocialSignup = async (provider: "google" | "github") => {
+  const handleSocialSignup = async (provider: "google" | "linkedin") => {
     if (!availableProviders[provider]) {
       showSignupError(
         "Social registration is not configured.",
@@ -158,16 +158,13 @@ function SignupForm() {
 
         <main className="flex-1 flex items-center justify-center p-4 lg:p-8">
           <Card className="w-full max-w-md border-0 shadow-xl bg-card/50 backdrop-blur-sm">
-            <CardHeader className="space-y-1 pb-6">
-              <div className="flex items-center justify-center mb-2">
+            <CardHeader className="space-y-2 pb-6">
+              <div className="flex items-center justify-center gap-3 mb-2">
                 <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center">
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
+                <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
               </div>
-              <CardTitle className="text-2xl font-bold text-center">Create your account</CardTitle>
-              <CardDescription className="text-center">
-                Get started with UseClevr today
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -288,7 +285,7 @@ function SignupForm() {
                 </span>
               </Button>
 
-              <div className="mt-3 grid gap-2">
+<div className="mt-3 grid gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -325,14 +322,14 @@ function SignupForm() {
                   variant="outline"
                   className="w-full"
                   disabled={isLoading || socialLoading !== null}
-                  onClick={() => handleSocialSignup("github")}
+                  onClick={() => handleSocialSignup("linkedin")}
                 >
-                  {socialLoading === "github" ? (
+                  {socialLoading === "linkedin" ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <FaGithub className="mr-2 h-4 w-4" />
+                    <FaLinkedin className="mr-2 h-4 w-4" />
                   )}
-                  Sign up with GitHub
+                  Sign up with LinkedIn
                 </Button>
               </div>
 

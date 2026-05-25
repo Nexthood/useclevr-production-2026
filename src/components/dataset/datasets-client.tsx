@@ -4,6 +4,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header"
 import { DatasetModal } from "@/components/modals/dataset-modal"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { BarChart3, Calendar, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -58,6 +59,83 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
     )
   }
 
+  const totalRows = datasets.reduce((sum, d) => sum + (d.rowCount || 0), 0)
+  const totalColumns = datasets.reduce((sum, d) => sum + (d.columnCount || 0), 0)
+
+  const datasetColumns: DataTableColumn<Record<string, unknown>>[] = [
+    {
+      key: "name",
+      header: "Name",
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+            <FileSpreadsheet className="h-4 w-4 text-white" />
+          </div>
+          <span className="font-medium text-foreground">{String(row.name)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "fileName",
+      header: "File",
+      render: (row) => (
+        <span className="text-sm text-muted-foreground">{String(row.fileName)}</span>
+      ),
+    },
+    {
+      key: "rowCount",
+      header: "Rows",
+      render: (row) => (
+        <span className="text-sm text-muted-foreground">
+          {(row.rowCount as number)?.toLocaleString() || 0}
+        </span>
+      ),
+    },
+    {
+      key: "columnCount",
+      header: "Columns",
+      render: (row) => (
+        <span className="text-sm text-muted-foreground">{row.columnCount as number || 0}</span>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Created",
+      render: (row) => (
+        <span className="text-sm text-muted-foreground">
+          {formatDate(new Date(row.createdAt as string))}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => getStatusBadge(row.status as string),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex justify-end gap-2">
+          <Link href={`/app/datasets/${row.id}/analyze`}>
+            <Button variant="outline" size="sm" className="bg-transparent">
+              View
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            onClick={() => setSelectedDataset(row as unknown as Dataset)}
+            className="bg-gradient-primary hover:opacity-90"
+          >
+            <BarChart3 className="h-4 w-4 mr-1" />
+            Analyze
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-background">
       <AppPageHeader
@@ -67,14 +145,14 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           { label: "Dashboard", href: "/app" },
           { label: "Datasets" },
         ]}
-        actions={(
+        actions={
           <Link href="/app/upload">
             <Button size="sm">
               <Upload className="mr-2 h-4 w-4" />
               Upload
             </Button>
           </Link>
-        )}
+        }
       />
 
       <main className="flex-1 p-6">
@@ -100,64 +178,50 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
               </div>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {datasets.map((dataset) => (
-                <Card
-                  key={dataset.id}
-                  className="p-5 bg-card border-border hover:border-primary/50 transition-all duration-300 group cursor-pointer"
-                  onClick={() => setSelectedDataset(dataset)}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center">
-                      <FileSpreadsheet className="h-6 w-6 text-white" />
+            <>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="p-5 bg-card border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                      <Database className="h-6 w-6 text-cyan-800 dark:text-cyan-100" />
                     </div>
-                    {getStatusBadge(dataset.status)}
-                  </div>
-
-                  <h3 className="font-semibold text-lg text-foreground mb-2 truncate">{dataset.name}</h3>
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {formatDate(dataset.createdAt)}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2 text-sm text-muted-foreground mb-4">
-                    <span>{dataset.rowCount?.toLocaleString() || 0} rows</span>
-                    <span>•</span>
-                    <span>{dataset.columnCount || 0} columns</span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Link href={`/app/datasets/${dataset.id}/analyze`} className="flex-1">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full border-border text-foreground hover:bg-muted"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                        }}
-                      >
-                        View
-                      </Button>
-                    </Link>
-                    <Link href={`/app/datasets/${dataset.id}/analyze`} className="flex-1">
-                      <Button 
-                        size="sm" 
-                        className="w-full bg-gradient-primary hover:opacity-90"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                        }}
-                      >
-                        <BarChart3 className="h-4 w-4 mr-1" />
-                        Analyze
-                      </Button>
-                    </Link>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{datasets.length}</p>
+                      <p className="text-sm text-muted-foreground">Datasets</p>
+                    </div>
                   </div>
                 </Card>
-              ))}
-            </div>
+                <Card className="p-5 bg-card border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                      <BarChart3 className="h-6 w-6 text-primary dark:text-cyan-100" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{totalRows.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Total rows</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 bg-card border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <FileSpreadsheet className="h-6 w-6 text-emerald-800 dark:text-emerald-100" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{totalColumns}</p>
+                      <p className="text-sm text-muted-foreground">Total columns</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <DataTable
+                rows={datasets as unknown as Record<string, unknown>[]}
+                columns={datasetColumns}
+                rowKey={(row) => String(row.id)}
+                minWidth="min-w-[900px]"
+              />
+            </>
           )}
         </div>
       </main>

@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans";
-import { Check, ChevronRight, CreditCard, FileText, Lock } from "lucide-react";
+import type { DiscountRule } from "@/app/app/admin/discounts/page";
+import { Check, ChevronRight, CreditCard, FileText, Lock, Tag } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -23,11 +24,32 @@ function CheckoutClient() {
   const [step, setStep] = React.useState<CheckoutStep>("review");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [isGoing, setIsGoing] = React.useState(false);
+  const [availableDiscounts, setAvailableDiscounts] = React.useState<DiscountRule[]>([]);
 
   // When the URL changes (back/forward), keep state in sync.
   React.useEffect(() => {
     setPlan(getBillingPlan(searchParams.get("plan")));
   }, [searchParams]);
+
+  // Fetch available discounts and filter by plan target
+  React.useEffect(() => {
+    const loadDiscounts = async () => {
+      try {
+        const res = await fetch("/api/admin/discounts", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const allDiscounts = data.discountRules || [];
+        // Filter discounts by plan target - only show applicable ones
+        const applicableDiscounts = allDiscounts.filter((d: DiscountRule) =>
+          d.enabled && (d.planTarget === "all" || d.planTarget === plan.tier)
+        );
+        setAvailableDiscounts(applicableDiscounts);
+      } catch {
+        // Ignore errors - discounts are optional
+      }
+    };
+    loadDiscounts();
+  }, [plan.tier]);
 
   const tscUrl = "https://useclevr.com/terms";
   const canReview = !!plan.stripePriceId;
@@ -100,13 +122,19 @@ function CheckoutClient() {
 
               {/* — discount banner — */}
               <div className="mt-5 space-y-2">
-                {discount && plan.discountLabel ? (
-                  <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-foreground">
-                    {plan.discountLabel}
-                  </div>
+                {availableDiscounts.length > 0 ? (
+                  availableDiscounts.map((d) => (
+                    <div key={d.id} className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2 font-medium text-foreground">
+                        <Tag className="h-4 w-4" />
+                        <span>{d.name}: {d.percent}% off</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{d.description}</p>
+                    </div>
+                  ))
                 ) : (
-                  <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-foreground">
-                    Automatic discount checked and applied where available.
+                  <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                    No discounts available for {plan.tier} plan.
                   </div>
                 )}
               </div>

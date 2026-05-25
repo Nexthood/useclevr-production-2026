@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
+import { datasets, profiles } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"
-import { BarChart3, Database, FileText, TrendingUp } from "lucide-react"
+import { BarChart3, Database, FileText, Settings, ShoppingCart, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
@@ -13,21 +13,27 @@ export const metadata = {
 
 async function getStats(userId: string | null) {
   if (!userId) {
-    return { datasets: 0, analyses: 0, reports: 0 }
+    return { datasets: 0, analyses: 0, reports: 0, hasProfile: false, hasBusiness: false }
   }
 
   try {
-    const [datasetCount] = await Promise.all([
+    const [datasetCount, profile] = await Promise.all([
       db.select({ value: count() }).from(datasets).where(eq(datasets.userId, userId)),
+      db.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+        columns: { id: true, businessName: true },
+      }),
     ])
 
     return {
       datasets: datasetCount[0]?.value || 0,
       analyses: datasetCount[0]?.value || 0,
       reports: 0,
+      hasProfile: !!profile,
+      hasBusiness: !!profile?.businessName,
     }
   } catch {
-    return { datasets: 0, analyses: 0, reports: 0 }
+    return { datasets: 0, analyses: 0, reports: 0, hasProfile: false, hasBusiness: false }
   }
 }
 
@@ -83,6 +89,50 @@ export default async function AppDashboard() {
                   <div>
                     <p className="text-2xl font-bold text-foreground">{stats.reports}</p>
                     <p className="text-sm text-muted-foreground">Reports</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Link href="/app/settings/profile">
+              <Card className="p-5 bg-card border-border hover:border-primary/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-blue-800 dark:text-blue-100" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Profile</p>
+                    <p className="font-semibold">{stats.hasProfile ? "Complete" : "Incomplete"}</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            <Link href="/app/settings/business">
+              <Card className="p-5 bg-card border-border hover:border-primary/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                    <Settings className="h-5 w-5 text-indigo-800 dark:text-indigo-100" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Business Profile</p>
+                    <p className="font-semibold">{stats.hasBusiness ? "Complete" : "Incomplete"}</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            <Link href="/app/settings/subscription">
+              <Card className="p-5 bg-card border-border hover:border-primary/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <ShoppingCart className="h-5 w-5 text-amber-800 dark:text-amber-100" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Subscription</p>
+                    <p className="font-semibold">Manage plan</p>
                   </div>
                 </div>
               </Card>

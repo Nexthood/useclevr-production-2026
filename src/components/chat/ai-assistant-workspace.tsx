@@ -192,6 +192,9 @@ export function AiAssistantWorkspace() {
     setError(null)
     setIsAsking(true)
 
+    // Add thinking delay (2-5 seconds)
+    await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000))
+
     const userMessage: AssistantMessage = {
       id: `user-${Date.now()}`,
       role: "user",

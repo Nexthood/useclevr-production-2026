@@ -17,6 +17,7 @@ export type DiscountRule = {
   percent?: number;
   description: string;
   enabled: boolean;
+  planTarget?: "all" | "free" | "pro" | "business";
 };
 
 const DEFAULT_RULES: DiscountRule[] = [
@@ -240,6 +241,18 @@ function discountColumns(
       header: "Percent",
       align: "right",
       render: (row) => `${Number(row.percent ?? 0).toLocaleString()}%`,
+    },
+    {
+      key: "planTarget",
+      header: "Plan Target",
+      render: (row) => {
+        const target = String(row.planTarget || "all")
+        return (
+          <span className="text-xs capitalize">
+            {target === "all" ? "All plans" : `${target} plan`}
+          </span>
+        )
+      },
     },
     {
       key: "enabled",

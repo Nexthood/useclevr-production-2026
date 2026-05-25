@@ -126,7 +126,8 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
     setInputValue("")
     setIsLoading(true)
 
-    // Simulate AI response
+    // Add thinking delay (2-5 seconds)
+    const delay = 2000 + Math.random() * 3000
     setTimeout(() => {
       const responses = [
         "I can help you analyze this data. What specific insights are you looking for?",
@@ -142,7 +143,7 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
       }
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-    }, 1000)
+    }, delay)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
