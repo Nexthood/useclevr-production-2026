@@ -255,42 +255,45 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
                     </div>
                   </div>
 
-                  {ticket.adminNote && (
-                    <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 text-sm">
-                      <p className="font-medium text-foreground">Support note</p>
-                      <p className="mt-1 text-muted-foreground">{ticket.adminNote}</p>
-                    </div>
-                  )}
+{ticket.adminNote && (
+                     <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 text-sm">
+                       <p className="font-medium text-foreground">Support note {ticket.adminName && `- ${ticket.adminName}`}</p>
+                       <p className="mt-1 text-xs text-muted-foreground">
+                         {ticket.adminNoteUpdatedAt && new Date(ticket.adminNoteUpdatedAt).toLocaleString()}
+                       </p>
+                       <p className="mt-1 text-muted-foreground">{ticket.adminNote}</p>
+                     </div>
+                   )}
 
-                  {isSuperAdmin ? (
-                    <div className="mt-4 space-y-3 border-t border-border pt-4">
-                      <textarea
-                        value={adminNotes[ticket.id] || ""}
-                        onChange={(event) =>
-                          setAdminNotes((current) => ({ ...current, [ticket.id]: event.target.value }))
-                        }
-                        placeholder="Resolution note for the customer"
-                        className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "open")}>
-                          Mark open
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "in_progress")}>
-                          In progress
-                        </Button>
-                        <Button size="sm" onClick={() => handleUpdateTicket(ticket.id, "resolved")}>
-                          Resolve
-                        </Button>
-                      </div>
-                    </div>
-                  ) : ticket.status !== "resolved" ? (
-                    <div className="mt-4 border-t border-border pt-4">
-                      <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "resolved")}>
-                        Mark resolved
-                      </Button>
-                    </div>
-                  ) : null}
+                   {isSuperAdmin ? (
+                     <div className="mt-4 space-y-3 border-t border-border pt-4">
+                       <Input
+                         value={adminNotes[ticket.id] || ""}
+                         onChange={(event) =>
+                           setAdminNotes((current) => ({ ...current, [ticket.id]: event.target.value }))
+                         }
+                         placeholder="Type a reply to the customer..."
+                         className="w-full"
+                       />
+                       <div className="flex flex-wrap gap-2">
+                         <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "open")}>
+                           Mark open
+                         </Button>
+                         <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "in_progress")}>
+                           In progress
+                         </Button>
+                         <Button size="sm" onClick={() => handleUpdateTicket(ticket.id, "resolved")}>
+                           Resolve
+                         </Button>
+                       </div>
+                     </div>
+                   ) : ticket.status !== "resolved" ? (
+                     <div className="mt-4 border-t border-border pt-4">
+                       <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "resolved")}>
+                         Mark resolved
+                       </Button>
+                     </div>
+                   ) : null}
                 </div>
               )
             })

@@ -106,14 +106,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
-            Social
-          </p>
+<div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <SocialLink icon={FaXTwitter} label="X" href="https://www.x.com/UseClevr" />
-            <SocialLink icon={FaLinkedin} label="LinkedIn" href="https://www.linkedin.com/company/useclevr" />
-            <SocialLink icon={FaGithub} label="GitHub" href="https://github.com/Nexthood/Useclever-2026" />
+            <SocialLink icon={FaXTwitter} label="X" href="https://twitter.com/useclevr" />
+            <SocialLink icon={FaLinkedin} label="LinkedIn" href="https://linkedin.com/company/useclevr" />
+            <SocialLink icon={FaGithub} label="GitHub" href="https://github.com/useclevr" />
           </div>
         </div>
 
@@ -178,6 +175,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <Globe className="h-3.5 w-3.5" />
           Terms & Conditions
         </Link>
+
+        <div className="flex items-center justify-center px-3 py-2 text-xs text-sidebar-foreground/50">
+          <span>UseClevr v1.0.0</span>
+        </div>
       </div>
     </>
   )

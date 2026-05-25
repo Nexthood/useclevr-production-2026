@@ -1,3 +1,4 @@
+import { CookieBar } from "@/components/ui/cookie-bar"
 import { NoticeProvider } from "@/components/ui/notice-bar"
 import { ThemeProvider } from "@/components/ui/theme-provider"
 import { LanguageProvider } from "@/lib/i18n/language-context"
@@ -60,7 +61,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <NoticeProvider>{children}</NoticeProvider>
+            <NoticeProvider>
+              {children}
+              <CookieBar />
+            </NoticeProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

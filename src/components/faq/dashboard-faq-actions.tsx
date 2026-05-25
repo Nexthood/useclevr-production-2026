@@ -29,7 +29,7 @@ export function DashboardFaqActions() {
     <div className="grid gap-3 md:grid-cols-3">
       {actions.map((action) => {
         const Icon = action.icon
-        const className = "flex min-h-24 items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-accent/35"
+        const className = "flex min-h-24 items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-accent/50"
         const content = (
           <>
             <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />

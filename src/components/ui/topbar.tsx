@@ -31,10 +31,10 @@ export default async function Topbar() {
     <div className="app-topbar min-h-16">
       <div className="flex w-full items-center justify-end">
         <div className="flex items-center gap-3">
-          <OnboardingProcessButton />
           <HybridAiButton subscriptionTier={usage.subscriptionTier} hybridAiCreditCosts={billingSettings.hybridAiCreditCosts} />
-          <HelpMenu isSuperAdmin={isSuperAdmin} />
+          <OnboardingProcessButton />
           <TopbarNoticeActivityDrawer />
+          <HelpMenu isSuperAdmin={isSuperAdmin} />
           <CreditPanel remainingCredits={remainingCredits} totalCredits={totalCredits} />
           <ThemeToggle />
           <LanguageSelector />

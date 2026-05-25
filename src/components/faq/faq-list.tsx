@@ -17,6 +17,7 @@ export function FaqList({
   const [selectedCategory, setSelectedCategory] = useState(
     categoryLabels.includes(initialCategory) ? initialCategory : "All",
   )
+  const [allOpen, setAllOpen] = useState(true)
   const visibleCategories =
     selectedCategory === "All"
       ? categories
@@ -24,22 +25,32 @@ export function FaqList({
 
   return (
     <div className="space-y-6">
-      {showFilter && (
-        <div className="flex flex-wrap gap-2">
-          {categoryLabels.map((category) => (
-            <Button
-              key={category}
-              type="button"
-              size="sm"
-              variant={selectedCategory === category ? "default" : "outline"}
-              className={selectedCategory === category ? "" : "bg-transparent"}
-              onClick={() => setSelectedCategory(category)}
-            >
-              {category}
-            </Button>
-          ))}
+      <div className="flex items-center justify-between">
+        {showFilter && (
+          <div className="flex flex-wrap gap-2">
+            {categoryLabels.map((category) => (
+              <Button
+                key={category}
+                type="button"
+                size="sm"
+                variant={selectedCategory === category ? "default" : "outline"}
+                className={selectedCategory === category ? "" : "bg-transparent"}
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setAllOpen(true)}>
+            Open all
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setAllOpen(false)}>
+            Close all
+          </Button>
         </div>
-      )}
+      </div>
 
       {visibleCategories.map((category) => (
         <section key={category.category} className="space-y-3">
@@ -51,6 +62,7 @@ export function FaqList({
             {category.items.map((item) => (
               <details
                 key={item.q}
+                open={allOpen}
                 className="rounded-lg border border-border bg-card px-4 py-3"
               >
                 <summary className="cursor-pointer text-sm font-medium text-foreground">
