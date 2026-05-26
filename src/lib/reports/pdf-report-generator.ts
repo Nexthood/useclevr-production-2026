@@ -496,7 +496,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
   doc.text(footerRight, pageWidth - margin, y, { align: 'right' });
   
   // Brand footer
-  doc.text('UseClevr - Executive Business Intelligence', margin, y + 5);
+  doc.text('UseClevr', margin, y + 5);
   doc.text('useclevr.com', pageWidth - margin, y + 5, { align: 'right' });
   
   // ===== SAVE PDF =====

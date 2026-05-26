@@ -1,6 +1,7 @@
 # TODO
 
-Use `.TODO/config.json` before adding tasks. Every task must use the `T-` prefix.
+Use `.TODO/config.json` before adding tasks. Every task must use the `T-` prefix, keep its number
+when it moves between states, and use direct present-action wording.
 
 ## Links
 

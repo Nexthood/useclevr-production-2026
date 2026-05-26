@@ -9,7 +9,6 @@ const srcAssetsDir = path.join(rootDir, "src", "assets");
 const publicDir = path.join(rootDir, "public");
 const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
 const runtimeScriptsDir = path.join(rootDir, "scripts", "runtime");
-const distNixpacksTemplate = path.join(rootDir, "dist-root", "server-config", "nixpacks.toml");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
@@ -98,7 +97,7 @@ delete distEngines.pnpm;
 fs.writeFileSync(
   path.join(distDir, "README.md"),
   [
-    "# UseClevr Production Outputs",
+    "# UseClevr",
     "",
     "This folder contains the standalone Next.js production bundle and assets for Railway deployment.",
     "- `server.js`: The entry point for the Node.js server.",
@@ -155,11 +154,6 @@ fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
 );
-
-// Copy nixpacks.toml to dist if present (Railpack does not require it)
-if (fs.existsSync(distNixpacksTemplate)) {
-  fs.cpSync(distNixpacksTemplate, path.join(distDir, "nixpacks.toml"));
-}
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {

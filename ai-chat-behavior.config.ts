@@ -55,7 +55,6 @@ export const aiChatBehaviorConfig = {
       distRootRailway: "server-config/railway.json",
       distRootVercel: "server-config/vercel.json",
       distPackage: "dist/package.json",
-      distRailway: "dist/nixpacks.toml",
       distPnpmWorkspace: "dist/pnpm-workspace.yaml",
       migrationDecision:
         "Keep database migrations in Railway preDeployCommand until isolation is needed.",

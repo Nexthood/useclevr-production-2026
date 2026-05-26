@@ -20,21 +20,26 @@ jobs:
   sync-beta:
     name: Sync beta with main
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout beta
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: beta
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Merge main into beta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch origin main beta
           git merge origin/main --no-edit -m "chore: sync main into beta [skip ci]" || git pull origin main --strategy=recursive --strategy-option=theirs
-          git push origin beta
+          git push origin HEAD:beta
 
   publish-dist:
     name: Publish dist deployment folder
@@ -49,19 +54,20 @@ jobs:
           fi
 
       - name: Checkout main source for build
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
 
-      - uses: pnpm/action-setup@v5
-        with:
-          version: 11.1.2
+      - name: Activate pnpm through Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
 
       - name: Install dependencies
         run: |
@@ -114,7 +120,7 @@ jobs:
 
       - name: Prepare dist commit title from PR
         id: dist-title
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const shortSha = context.sha.slice(0, 7);

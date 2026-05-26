@@ -65,7 +65,7 @@
     "lint": "pnpm lint:package && pnpm lint:todos && eslint . --ext .ts,.tsx,.mjs",
     "lint:fix": "eslint . --ext .ts,.tsx,.mjs --fix",
     "lint:all": "pnpm lint && pnpm lint:deps",
-    "lint:changelog": "node ./scripts/check-unreleased.js",
+    "lint:changelog": "node ./scripts/check-unreleased.js && node ./scripts/check-changelog.js",
     "lint:commits": "pnpm exec commitlint --from HEAD~10 --to HEAD --verbose",
     "lint:deps": "node ./scripts/check-latest-deps.js",
     "lint:docs": "markdownlint --config .markdownlint.json \"docs/**/*.md\" \"README.md\" \"CHANGELOG.md\" \"*.md\"",

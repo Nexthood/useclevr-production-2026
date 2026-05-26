@@ -8,7 +8,7 @@ import "./../assets/styles/globals.css"
 
 export const metadata: Metadata = {
   title: {
-    default: "UseClevr - AI-Powered Business Intelligence",
+    default: "UseClevr",
     template: "%s | UseClevr",
   },
   description:
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://useclevr.com",
     siteName: "UseClevr",
-    title: "UseClevr - AI-Powered Business Intelligence",
+    title: "UseClevr",
     description: "AI-powered business intelligence without the complexity.",
   },
   twitter: {
