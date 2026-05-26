@@ -8,11 +8,11 @@ import { Brain, Building2, Check, Cpu, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
-  title: "Pricing Plans - UseClevr | Free & Pro Tiers",
+  title: "Pricing Plans | UseClevr",
   description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial. No credit card required. Scale as you grow.",
   keywords: ["pricing", "plans", "billing", "subscription", "data analysis"],
   openGraph: {
-    title: "Pricing Plans - UseClevr",
+    title: "Pricing Plans | UseClevr",
     description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial.",
     url: "https://useclevr.com/pricing",
     siteName: "UseClevr",
@@ -21,7 +21,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pricing Plans - UseClevr",
+    title: "Pricing Plans | UseClevr",
     description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial.",
   },
   robots: {

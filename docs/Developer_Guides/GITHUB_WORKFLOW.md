@@ -166,6 +166,21 @@ Concurrency control prevents duplicate workflow runs: only one `branch-maintenan
 `dist-root/` stores deployment-branch root files, not the CI workflow itself. Host config templates
 live at `dist-root/server-config/railway.json` and `dist-root/server-config/vercel.json`.
 
+### Action Version Policy
+
+Workflow actions use reviewed GitHub-owned major tags:
+
+- `actions/checkout@v6`
+- `actions/setup-node@v6`
+- `actions/github-script@v9`
+
+The workflow guard rejects unapproved action names and refs. This keeps accidental action renames,
+third-party replacements, and stale copied examples out of CI until a maintainer reviews them.
+
+Do not use `pnpm/action-setup`. CI activates pnpm through Corepack with the package manager version
+declared by the repository, which avoids depending on the pnpm action name, tag availability, or
+download path.
+
 ### Host Deployment Guides
 
 Railway runtime behavior lives in [`RAILWAY_DEPLOYMENT.md`](RAILWAY_DEPLOYMENT.md). Vercel

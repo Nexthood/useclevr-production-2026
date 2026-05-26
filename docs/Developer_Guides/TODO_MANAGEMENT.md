@@ -1,16 +1,5 @@
 # TODO Management
 
-## Table Of Contents
-
-- [Flow](#flow)
-- [Files](#files)
-- [Task Numbering](#task-numbering)
-- [How To Add Work](#how-to-add-work)
-- [Completion Rules](#completion-rules)
-- [Retirement And Temporary Branches](#retirement-and-temporary-branches)
-- [Migration Record](#migration-record)
-- [Validation](#validation)
-
 This repository tracks work in `.TODO/`. `.TODO/config.json` owns task numbering, tracked TODO file
 paths, and validation metadata.
 
@@ -19,25 +8,37 @@ paths, and validation metadata.
 ```mermaid
 flowchart TD
   Config[.TODO/config.json] --> Next[.TODO/todo-next.md]
-  Next --> Done[.TODO/todo-done.md]
+  Next --> Work[Implement task]
+  Work --> Done[.TODO/todo-done.md]
   Next --> Future[.TODO/todo-future.md]
   Next --> Ignore[.TODO/todo-ignore.md]
   Done --> Requirements[requirements.md]
   Done --> Changelog[CHANGELOG.md]
 ```
 
+## Two States
+
+TODO files have two repository states:
+
+- Active state: `.TODO/todo-next.md` is the only active queue for confirmed implementation work.
+- Retired states: `.TODO/todo-done.md`, `.TODO/todo-future.md`, and `.TODO/todo-ignore.md` store
+  completed, deferred, or deliberate no-fix decisions.
+
+Keep one task in only one state. Moving a task from active to any retired state removes it from the
+active queue and keeps the original `T-` number unchanged.
+
 ## Files
 
-| File                   | Purpose                                                        |
-| ---------------------- | -------------------------------------------------------------- |
-| `.TODO/config.json`    | Task numbering, tracked TODO file paths, and agent rules.      |
-| `.TODO/todo-next.md`   | The only active queue for confirmed work.                      |
-| `.TODO/todo-done.md`   | Durable completed work history.                                |
-| `.TODO/todo-future.md` | Valid work that should wait.                                   |
-| `.TODO/todo-ignore.md` | Intentionally excluded work with rationale.                    |
+| File                   | Purpose                                                     |
+| ---------------------- | ----------------------------------------------------------- |
+| `.TODO/config.json`    | Task numbering, tracked TODO file paths, and agent rules.   |
+| `.TODO/todo-next.md`   | The only active queue for confirmed work.                   |
+| `.TODO/todo-done.md`   | Completed work history.                                     |
+| `.TODO/todo-future.md` | Valid work that should wait.                                |
+| `.TODO/todo-ignore.md` | Intentionally excluded work with rationale.                 |
 
-Dist and audit-specific TODO files are retired. Dist follow-ups and audit findings now live in the
-regular TODO files.
+Dist and audit-specific TODO files are retired. Dist follow-ups, audit findings, and migration
+records live in the regular TODO files and project guides.
 
 ## Task Numbering
 
@@ -48,6 +49,7 @@ Use `.TODO/config.json` before adding tasks:
 3. Increase `nextTaskNumber` only when adding a new numbered task.
 4. Do not reuse or renumber existing task IDs unless correcting a clear error.
 5. Every task in the TODO files must have a `T-` number.
+6. Write task descriptions as direct present-action statements, not retrospective changelog copy.
 
 ## How To Add Work
 
@@ -59,12 +61,38 @@ place when editing.
 
 ## Completion Rules
 
-Move completed work to `.TODO/todo-done.md`. User-observable changes also update `requirements.md`;
-release-facing changes update `CHANGELOG.md` under `## [Unreleased]`.
+Move completed work from `.TODO/todo-next.md` to `.TODO/todo-done.md`. User-observable completed
+work also updates `requirements.md`; release-facing changes update `CHANGELOG.md` under
+`## [Unreleased]`.
 
 Developer-only changes belong in the changelog `### Dev` section.
 
-## Retirement And Temporary Branches
+## Migration Record
+
+The retired TODO files were:
+
+- `.TODO/todo.md`
+- `.TODO/todo-audit.md`
+- `.TODO/todo-next-audit.md`
+- `.TODO/todo-dist.md`
+- `.TODO/todo-dist-done.md`
+- `.TODO/todo-dist-future.md`
+- `.TODO/todo-dist-no-fix.md`
+
+Most old audit tasks moved into:
+
+- `.TODO/todo-done.md` for completed documentation, static asset, dependency, flowchart, and setup
+  work.
+- `.TODO/todo-next.md` for active audit work covering API docs, security, production stability, code
+  quality, performance, monitoring, billing, dependency drift, and test coverage.
+- `docs/Developer_Guides/PROJECT_AUDIT_GUIDE.md` for repeatable auditor workflow.
+- `docs/Developer_Guides/PROJECT_TESTING_GUIDE.md` for repeatable start-to-finish product testing.
+
+The dist deployment succeeded, so completed deployment confirmations moved to `.TODO/todo-done.md`.
+Remaining dist ideas moved to `.TODO/todo-future.md`, and deliberate no-fix decisions moved to
+`.TODO/todo-ignore.md`.
+
+## Retirement And Temporary TODOs
 
 Temporary TODO branches are allowed only while a focused migration or audit is actively being
 processed. They must be short-lived and folded back into the four regular TODO files before the work
@@ -81,30 +109,6 @@ Examples:
 Retired TODO branches should not remain in `.TODO/config.json`. Keep the regular queues as the only
 validated TODO files.
 
-## Migration Record
-
-The retired TODO files were:
-
-- `.TODO/todo.md`
-- `.TODO/todo-audit.md`
-- `.TODO/todo-next-audit.md`
-- `.TODO/todo-dist.md`
-- `.TODO/todo-dist-done.md`
-- `.TODO/todo-dist-future.md`
-- `.TODO/todo-dist-no-fix.md`
-
-Most old `todo-audit` tasks were retired into:
-
-- `.TODO/todo-done.md` for completed documentation, static asset, dependency, flowchart, and setup work.
-- `.TODO/todo-next.md` for active audit work covering API docs, security, production stability, code
-  quality, performance, monitoring, billing, dependency drift, and test coverage.
-- `PROJECT_AUDIT_GUIDE.md` for repeatable auditor workflow.
-- `PROJECT_TESTING_GUIDE.md` for repeatable start-to-finish product testing.
-
-The dist deployment succeeded, so completed deployment confirmations moved to `.TODO/todo-done.md`.
-Remaining dist ideas moved to `.TODO/todo-future.md`, and deliberate no-fix decisions moved to
-`.TODO/todo-ignore.md`.
-
 ## Validation
 
 ```bash
@@ -112,4 +116,5 @@ pnpm lint:todos
 ```
 
 The TODO checker validates `.TODO/config.json`, confirms configured files exist, checks task ID
-format, and prevents duplicate task IDs across configured TODO files.
+format, prevents duplicate task IDs across configured TODO files, and reports active versus retired
+task counts.

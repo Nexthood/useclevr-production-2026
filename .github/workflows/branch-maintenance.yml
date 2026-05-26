@@ -23,7 +23,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout beta
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: beta
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -54,13 +54,13 @@ jobs:
           fi
 
       - name: Checkout main source for build
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
 
@@ -120,7 +120,7 @@ jobs:
 
       - name: Prepare dist commit title from PR
         id: dist-title
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const shortSha = context.sha.slice(0, 7);

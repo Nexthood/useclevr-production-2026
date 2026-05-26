@@ -1,20 +1,29 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from "node:fs"
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const packageJson = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
-const licensePath = path.join(root, "LICENSE");
+import { licensePath, packagePath } from "./lib/app-config.js"
 
-if (!packageJson.private && !packageJson.license) {
-  console.error("package.json must declare a license for public packages.");
-  process.exit(1);
+const packageJson = JSON.parse(readFileSync(packagePath, "utf8"))
+
+if (packageJson.private && !packageJson.license) {
+  console.log("License metadata is valid for a private package.")
+  process.exit(0)
 }
 
-if (packageJson.license && !existsSync(licensePath)) {
-  console.error("package.json declares a license, but LICENSE is missing.");
-  process.exit(1);
+if (!packageJson.license) {
+  console.error("package.json must declare a license for public packages.")
+  process.exit(1)
 }
 
-console.log("License metadata is valid.");
+if (!existsSync(licensePath)) {
+  console.error("package.json declares a license, but LICENSE is missing.")
+  process.exit(1)
+}
+
+const licenseText = readFileSync(licensePath, "utf8").trim()
+if (!licenseText) {
+  console.error("LICENSE must not be empty.")
+  process.exit(1)
+}
+
+console.log("License metadata is valid.")

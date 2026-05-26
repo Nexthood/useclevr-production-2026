@@ -13,7 +13,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Migrated Railway deployment from Nixpacks to Railpack builder for improved build control and smaller images.
+- Railway deployment uses the Railpack builder for improved build control and smaller images.
 
 ### Dev
 
@@ -21,159 +21,163 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Translation service with 24-hour caching layer to minimize API calls to Google Translation.
 - Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
   questions from one workspace.
-- Business Profile now shows profile sections, completion metrics, and review flags that explain
+- Business Profile shows profile sections, completion metrics, and review flags that explain
   which company details improve AI confidence.
-- Business now opens as a top-level workspace with a businesses listing table and profile, location,
+- Business opens as a top-level workspace with a businesses listing table and profile, location,
   tax, financial, and review subpages.
-- Business records now use dedicated storage for business profiles, operating entities, archived
+- Business records use dedicated storage for business profiles, operating entities, archived
   status, subscription-tier limits, and cached country tax context.
-- Setup progress now counts profile fields, business profile fields, first data actions, and key
+- Setup progress counts profile fields, business profile fields, first data actions, and key
   dashboard pages visited at least once.
-- The setup progress panel now includes a guided tour through incomplete setup items.
-- Dashboard FAQ now starts with quick actions for feedback, chat support, and support tickets.
-- Dashboard tickets now use a table-first queue with separate pages for new tickets and row-level
+- The setup progress panel includes a guided tour through incomplete setup items.
+- Dashboard FAQ starts with quick actions for feedback, chat support, and support tickets.
+- Dashboard tickets use a table-first queue with separate pages for new tickets and row-level
   ticket editing.
 
 ### Changed
 
-- The dashboard sidebar app panel now uses App Store and Google Play icons, and social links open
+- The dashboard sidebar app panel uses App Store and Google Play icons, and social links open
   the current external pages in a new tab.
-- Dashboard onboarding now tracks setup progress from account data, routes users to the relevant
+- Dashboard onboarding tracks setup progress from account data, routes users to the relevant
   setup pages, and keeps reopening for accounts below 25% completion.
-- Business setup links now open the Business workspace instead of sending users through Settings.
-- Social login buttons now start configured Google and GitHub sign-in or registration flows.
-- The dashboard sidebar now includes coming-soon mobile app buttons, social placeholders, a user
+- Business setup links open the Business workspace instead of sending users through Settings.
+- Social login buttons start configured Google and GitHub sign-in or registration flows.
+- The dashboard sidebar includes coming-soon mobile app buttons, social placeholders, a user
   panel stack, and a bottom Terms link.
-- The dashboard now opens directly on datasets, while admin customer, level, and discount lists use
+- The dashboard opens directly on datasets, while admin customer, level, and discount lists use
   read-first rows with focused row edit pages.
-- Dashboard FAQ now uses expandable answers and lets super-admins filter customer help and operator
+- Dashboard FAQ uses expandable answers and lets super-admins filter customer help and operator
   notes from one page.
-- Hybrid AI and subscription plan buttons now go through checkout review before any payment action.
-- Dashboard notices now live in a topbar inbox with a persistent count and recent product activity.
-- Dashboard notices and activity now focus on rare, useful events instead of frequent background
+- Hybrid AI and subscription plan buttons go through checkout review before any payment action.
+- Dashboard notices live in a topbar inbox with a persistent count and recent product activity.
+- Dashboard notices and activity focus on rare, useful events instead of frequent background
   interactions.
-- Billing and payment settings now use more customer-operations language and list-style history
+- Billing and payment settings use more customer-operations language and list-style history
   layouts.
-- The topbar credits button now opens subscription settings instead of sending users to public plans.
-- Public pricing and FAQ copy now describes Hybrid AI access without exposing runtime download sizes.
-- Public pages outside the homepage now share one title section design.
-- Dashboard help links now live under the topbar Help menu, while the sidebar focuses on primary
+- The topbar credits button opens subscription settings instead of sending users to public plans.
+- Public pricing and FAQ copy describes Hybrid AI access without exposing runtime download sizes.
+- Public pages outside the homepage share one title section design.
+- Dashboard help links live under the topbar Help menu, while the sidebar focuses on primary
   app areas.
-- Customer level and discount rule management now uses horizontal table rows for faster editing.
+- Customer level and discount rule management uses horizontal table rows for faster editing.
 
 ### Fixed
 
-- Mistyped dashboard settings links now redirect to Profile settings.
-- Business and super-admin accounts now keep paid download access instead of falling back to the free
+- Mistyped dashboard settings links redirect to Profile settings.
+- Business and super-admin accounts keep paid download access instead of falling back to the free
   download limit.
-- Checkout action labels now render plain text instead of encoded HTML entities.
-- The dashboard activity popup now uses the shared overlay and shows clear loading or unavailable
+- Checkout action labels render plain text instead of encoded HTML entities.
+- The dashboard activity popup uses the shared overlay and shows clear loading or unavailable
   states for recent activity.
-- Payment provider settings now require super-admin access even when opened by direct URL.
-- Super-admin dashboard pages now require super-admin access even when opened by direct URL.
-- Dashboard notices now dismiss the selected notice reliably when multiple notices arrive together.
-- Contact visitors can now submit demo and sales requests from the Contact page.
-- Product-update waitlist signup now succeeds during local development when the production database
+- Payment provider settings require super-admin access even when opened by direct URL.
+- Super-admin dashboard pages require super-admin access even when opened by direct URL.
+- Dashboard notices dismiss the selected notice reliably when multiple notices arrive together.
+- Contact visitors can submit demo and sales requests from the Contact page.
+- Product-update waitlist signup succeeds during local development when the production database
   is unavailable.
-- The Hybrid AI popup now opens reliably from the dashboard topbar.
-- Dashboard FAQ now includes an inline ticket form.
-- Super-admin customer lists now show built-in demo and super-admin accounts even when database
+- The Hybrid AI popup opens reliably from the dashboard topbar.
+- Dashboard FAQ includes an inline ticket form.
+- Super-admin customer lists show built-in demo and super-admin accounts even when database
   customer rows cannot load.
-- Local generated-output starts now use localhost for authentication while Railway keeps its server
+- Local generated-output starts use localhost for authentication while Railway keeps its server
   binding.
-- Login errors now stay inside the login page instead of appearing as a global notice.
-- Public legal pages and authentication screens now expose Terms and Privacy links consistently.
-- Mobile public navigation now opens as a compact menu while keeping mode and theme controls visible.
-- Referral signup and paid events now support idempotency keys and block self-referral rewards.
+- Login errors stay inside the login page instead of appearing as a global notice.
+- Public legal pages and authentication screens expose Terms and Privacy links consistently.
+- Mobile public navigation opens as a compact menu while keeping mode and theme controls visible.
+- Referral signup and paid events support idempotency keys and block self-referral rewards.
 
 ### Dev
 
-- Pre-commit validation now checks GitHub workflow syntax, approved action refs, and Corepack pnpm
+- Pre-commit validation checks GitHub workflow syntax, approved action refs, and Corepack pnpm
   activation before changes are committed.
-- GitHub workflows now activate pnpm through Corepack instead of downloading the third-party pnpm
+- GitHub workflows use current reviewed GitHub-owned action major tags while pnpm stays activated
+  through Corepack.
+- GitHub workflows activate pnpm through Corepack instead of downloading the third-party pnpm
   setup action.
-- Beta sync now uses an explicit authenticated remote and no longer blocks dist publishing when
+- Beta sync uses an explicit authenticated remote and no longer blocks dist publishing when
   branch permissions prevent the sync push.
-- TODO management now uses `T-` task numbers, a single active queue, retired dist/audit queues, and
+- TODO validation reports active and retired queue states while preserving existing task metadata.
+- Changelog linting checks Unreleased entries for active-change wording.
+- Maintenance scripts share repository path and package-manager settings from one script config.
+- TODO management uses stable task numbers, a single active queue, retired dist/audit queues, and
   dedicated project audit and testing guides.
-- TODO management docs now document how retired audit and dist tasks moved into the regular queues.
-- GitHub workflow docs now cover issues, projects, versioning, releases, and workflow artifacts.
-- Developer docs now include a GitHub issue template, release artifact checklist, git command
+- TODO management docs document migration records, retirement rules, and temporary TODO handling.
+- GitHub workflow docs cover issues, projects, versioning, releases, and workflow artifacts.
+- Developer docs include a GitHub issue template, release artifact checklist, git command
   patterns, long-running command handling, common prompt templates, and AI collaboration guides.
-- Dist migration tracking now has no active unresolved items; future publish confirmations moved to
-  the dist future queue.
-- Admin management lists now share one table pattern before row-level editing.
-- Production builds now fail on TypeScript errors, and the App Router shell no longer carries legacy
+- Dist migration tracking has no active unresolved items, and future publish confirmations move to
+  the future queue.
+- Admin management lists share one table pattern before row-level editing.
+- Production builds fail on TypeScript errors, and the App Router shell no longer carries legacy
   document configuration.
-- Public FAQ answers now render highlighted values through React instead of injected HTML.
-- Local lint scripts now split package metadata, TODO metadata, docs, changelog, commit, link, and
+- Public FAQ answers render highlighted values through React instead of injected HTML.
+- Local lint scripts split package metadata, TODO metadata, docs, changelog, commit, link, and
   dependency freshness checks.
-- Package scripts are grouped by workflow, with manual dependency freshness checks kept out of the
+- Package scripts are grouped by workflow, and dependency freshness checks run manually outside the
   pre-commit gate.
-- Developer docs now include package-script usage and TODO workflow references.
-- Railway predeploy now uses an idempotent schema sync so existing databases with empty migration
+- Developer docs include package-script usage and TODO workflow references.
+- Railway predeploy uses an idempotent schema sync so existing databases with empty migration
   history do not block startup.
-- Railway and Vercel deployment docs now own their host-specific commands, settings, and
+- Railway and Vercel deployment docs own their host-specific commands, settings, and
   troubleshooting notes.
-- Railway generated-output builds now use Railpack for improved build control and smaller images.
+- Railway generated-output builds use Railpack for improved build control and smaller images.
 - Railway generated-output packages no longer mix explicit build approvals with the runtime install
   flag that allows dependency build scripts.
-- Railway runtime installs now tolerate generated deployment packages without a committed lockfile.
-- Railway generated-output packages now include migration tooling required by the pre-deploy schema
+- Railway runtime installs tolerate generated deployment packages without a committed lockfile.
+- Railway generated-output packages include migration tooling required by the pre-deploy schema
   step.
-- Railway generated-output deploys now restore the Next.js build directory at runtime when the host
+- Railway generated-output deploys restore the Next.js build directory at runtime when the host
   snapshot omits dot-directories.
-- Repository text formatting is now normalized with UTF-8 and LF rules for local and CI consistency.
-- Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
-- Dist deployments now keep host config files in the deployment config folder only, preventing
+- Repository text formatting is normalized with UTF-8 and LF rules for local and CI consistency.
+- Dist publishing keeps the previous deployment commit visible while reducing workflow log noise.
+- Dist deployments keep host config files in the deployment config folder only, preventing
   Railway from building the branch root by mistake.
-- Railway generated-output builds now use a generated Railpack plan for deployment installs.
-- PDF export browser dependencies are now explicit production dependencies so publish builds with
+- Railway generated-output builds use a generated Railpack plan for deployment installs.
+- PDF export browser dependencies are explicit production dependencies so publish builds with
   optional installs disabled do not miss bundler-required modules.
-- Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
+- Auto-merged release pull requests dispatch branch maintenance after merge so beta sync and dist
   publish do not depend on suppressed token-generated events.
-- Dist publishing now syncs deployment config files from the source branch while keeping generated
+- Dist publishing syncs deployment config files from the source branch while keeping generated
   app output inside `/dist`.
-- Local pre-commit validation now runs the production publish build so missing bundle dependencies
+- Local pre-commit validation runs the production publish build so missing bundle dependencies
   fail before deployment.
-- Restructured Migrate to Payload.md for clear AI implementation steps.
-- Added GitHub Action to auto-merge PRs from beta → main.
-- Updated branch-maintenance workflow to include PR number in dist commit messages (e.g., PR-28:).
-- Fixed workflow YAML indentation and added cache cleanup before size check to prevent false positives.
-- Updated todo files to reflect completed work and current in-progress items.
-- Cleaned repo-wide ESLint warnings so `pnpm lint` now runs with zero warnings.
-- Verified TypeScript validation after the lint cleanup.
-- Fixed CSV business KPI analysis so multi-currency normalization no longer reads a missing
-  `monetaryColumns` field or maps `country` as `quantity`.
-- Hardened Railway pre-deploy by routing migrations through a generated pnpm-backed
-  `railway:predeploy` script and documenting that old dashboard npm overrides must be cleared.
-- Added GitHub deployment strategy notes covering dist branch limits, Railway source builds, Docker
+- Payload migration planning uses clearer AI implementation steps.
+- GitHub automation can auto-merge pull requests from beta into main.
+- Branch maintenance includes the pull request number in dist commit messages.
+- Workflow formatting and cache cleanup prevent false-positive size check failures.
+- TODO files reflect completed work and current in-progress items.
+- Repo-wide lint warnings are cleared so local lint runs with zero warnings.
+- TypeScript validation passes after the lint cleanup.
+- CSV business KPI analysis handles multi-currency normalization without reading missing monetary
+  fields or mapping `country` as `quantity`.
+- Railway pre-deploy routes migrations through a generated pnpm-backed script and documents that old
+  dashboard npm overrides must be cleared.
+- GitHub deployment strategy notes cover dist branch limits, Railway source builds, Docker
   image deployment, and GitHub Actions artifacts.
-- Optimized CI triggers so beta pushes do not duplicate the pull request validation workflow.
-- Fixed source validation so beta-to-main pull requests and the resulting main-branch merge both run
-  the required CI check, while beta pushes stay quiet.
-- Added a dist publish guard so host config stays in the deployment config folder and never lands at
+- CI triggers avoid duplicate pull request validation runs on beta pushes.
+- Source validation runs for beta-to-main pull requests and the resulting main-branch merge, while
+  beta pushes stay quiet.
+- Dist publishing guards host config so it stays in the deployment config folder and never lands at
   the deployment branch root.
-- Added source validation inside the dist publish workflow so generated deployment output is not
+- Source validation runs inside dist publishing so generated deployment output is not
   published from a dirty type or lint baseline.
-- Fixed the auto-merge workflow trigger so beta-to-main pull requests are matched by base branch
+- Auto-merge workflow triggers match beta-to-main pull requests by base branch
   `main` and filtered by head branch `beta`.
-- Replaced the auto-merge helper action with an explicit `gh pr merge <PR number> --auto` command so
-  the workflow does not depend on local branch detection.
-- Optimized dist publishing so lockfile generation runs before final cleanup and the GitHub size gate
-  checks staged deployment files instead of leftover build workspace files.
-- Cleaned root-level build workspace leftovers after orphan checkout so untracked `.next/cache` and
+- Auto-merge uses an explicit CLI command so the workflow does not depend on local branch detection.
+- Dist publishing runs lockfile generation before final cleanup and checks staged deployment files
+  instead of leftover build workspace files.
+- Root-level build workspace leftovers are cleaned after orphan checkout so untracked cache and
   `node_modules` files cannot fail dist publishing.
-- Disabled optional dependency installs for the generated Railway runtime package so Next.js SWC
-  compiler binaries are kept in the source build phase only.
-- Aligned deployment template paths with the current deployment settings folder and added a Vercel
+- Generated Railway runtime packages skip optional dependency installs so Next.js SWC compiler
+  binaries remain in the source build phase only.
+- Deployment template paths align with the current deployment settings folder and include a Vercel
   target placeholder for future host-specific settings.
-- Added Vercel source-branch deployment settings alongside the Railway generated-output target.
-- Added database-backed operational storage for support tickets, referral events, and billing
+- Vercel source-branch deployment settings sit alongside the Railway generated-output target.
+- Database-backed operational storage supports tickets, referral events, and billing
   settings with local file fallback.
-- Added a generated deployment manifest and a dist server smoke test before publishing Railway output.
-- Added CSV edge-case coverage for empty uploads, malformed rows, mixed currencies, and time zones.
-- Added a production readiness checklist for deployment, accounts, access, data, AI, and billing
+- Generated deployment manifests and dist server smoke tests run before Railway output publishes.
+- CSV edge-case coverage checks empty uploads, malformed rows, mixed currencies, and time zones.
+- Production readiness checks cover deployment, accounts, access, data, AI, and billing
   operations.
 
 ## [7.2.0] - 2026-05-20

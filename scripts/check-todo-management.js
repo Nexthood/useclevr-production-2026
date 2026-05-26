@@ -1,78 +1,126 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
+import { existsSync, readFileSync } from "node:fs"
 
-const configPath = path.join(".TODO", "config.json");
+import { repoRelative, resolveRepoPath, todoConfigPath } from "./lib/app-config.js"
+
+const queueStates = {
+  next: "active",
+  done: "retired",
+  future: "retired",
+  ignore: "retired",
+}
 
 function fail(message) {
-  console.error(`TODO management check failed: ${message}`);
-  process.exitCode = 1;
+  console.error(`TODO management check failed: ${message}`)
+  process.exitCode = 1
 }
 
 function readJson(filePath) {
   try {
-    return JSON.parse(readFileSync(filePath, "utf8"));
+    return JSON.parse(readFileSync(filePath, "utf8"))
   } catch (error) {
-    fail(`cannot parse ${filePath}: ${error.message}`);
-    return null;
+    fail(`cannot parse ${repoRelative(filePath)}: ${error.message}`)
+    return null
   }
 }
 
 function readText(filePath) {
   try {
-    return readFileSync(filePath, "utf8");
+    return readFileSync(filePath, "utf8")
   } catch (error) {
-    fail(`cannot read ${filePath}: ${error.message}`);
-    return "";
+    fail(`cannot read ${repoRelative(filePath)}: ${error.message}`)
+    return ""
   }
 }
 
-const config = readJson(configPath);
+function hasLinksSection(text, linksHeader) {
+  const escapedHeader = linksHeader.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return new RegExp(`^##\\s+${escapedHeader}\\s*$`, "m").test(text)
+}
+
+function validateTaskLanguage(filePath, text) {
+  const invalidLines = []
+  const lines = text.split(/\r?\n/)
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim()
+    const match = line.match(/^[-*]\s+T-\d+\.\s*(.+)$/i)
+    if (!match) continue
+
+    if (/^now\b/i.test(match[1].trim())) {
+      invalidLines.push(index + 1)
+    }
+  }
+
+  if (invalidLines.length > 0) {
+    fail(`${repoRelative(filePath)} task descriptions should not start with "now"; lines: ${invalidLines.join(", ")}`)
+  }
+}
+
+const config = readJson(todoConfigPath)
 if (!config) {
-  process.exit(1);
+  process.exit(1)
 }
 
-const requiredFields = ["currentTaskPrefix", "nextTaskNumber", "todoFiles", "linksHeader"];
-for (const field of requiredFields) {
+for (const field of ["currentTaskPrefix", "nextTaskNumber", "todoFiles", "linksHeader"]) {
   if (!(field in config)) {
-    fail(`${configPath} is missing "${field}".`);
+    fail(`${repoRelative(todoConfigPath)} is missing "${field}".`)
   }
 }
 
-const todoFiles = config.todoFiles || {};
-for (const [name, filePath] of Object.entries(todoFiles)) {
-  if (typeof filePath !== "string") {
-    fail(`todoFiles.${name} must be a string path.`);
-    continue;
+const todoFiles = config.todoFiles || {}
+const requiredQueues = Object.keys(queueStates)
+
+for (const queueName of requiredQueues) {
+  if (typeof todoFiles[queueName] !== "string") {
+    fail(`todoFiles.${queueName} must be a string path.`)
   }
+}
+
+const taskPattern = new RegExp(config.taskIdPattern || `^${config.currentTaskPrefix}\\d{2,}$`)
+const ids = new Map()
+let maxTaskNumber = 0
+const stateCounts = { active: 0, retired: 0 }
+
+for (const queueName of requiredQueues) {
+  const filePath = resolveRepoPath(todoFiles[queueName])
+  const state = queueStates[queueName]
+
   if (!existsSync(filePath)) {
-    fail(`${filePath} listed in todoFiles.${name} does not exist.`);
+    fail(`${repoRelative(filePath)} listed in todoFiles.${queueName} does not exist.`)
+    continue
   }
-}
 
-const taskPattern = new RegExp(config.taskIdPattern || `^${config.currentTaskPrefix}\\d{2,}$`);
-const ids = new Map();
-let maxTaskNumber = 0;
+  const text = readText(filePath)
+  validateTaskLanguage(filePath, text)
 
-for (const filePath of Object.values(todoFiles)) {
-  if (typeof filePath !== "string" || !existsSync(filePath)) continue;
-  const text = readText(filePath);
-  const matches = text.matchAll(new RegExp(`\\b(${config.currentTaskPrefix}\\d{2,})\\b`, "g"));
+  if (!hasLinksSection(text, config.linksHeader)) {
+    fail(`${repoRelative(filePath)} must include a "## ${config.linksHeader}" section.`)
+  }
+
+  const matches = text.matchAll(new RegExp(`\\b(${config.currentTaskPrefix}\\d{2,})\\b`, "g"))
   for (const match of matches) {
-    const id = match[1];
+    const id = match[1]
     if (!taskPattern.test(id)) {
-      fail(`${filePath} contains invalid task id "${id}".`);
+      fail(`${repoRelative(filePath)} contains invalid task id "${id}".`)
     }
     if (ids.has(id)) {
-      fail(`${id} appears in both ${ids.get(id)} and ${filePath}.`);
+      fail(`${id} appears in both ${ids.get(id)} and ${repoRelative(filePath)}.`)
     }
-    ids.set(id, filePath);
-    maxTaskNumber = Math.max(maxTaskNumber, Number(id.slice(config.currentTaskPrefix.length)));
+    ids.set(id, repoRelative(filePath))
+    stateCounts[state] += 1
+    maxTaskNumber = Math.max(maxTaskNumber, Number(id.slice(config.currentTaskPrefix.length)))
   }
 }
 
 if (!Number.isInteger(config.nextTaskNumber) || config.nextTaskNumber <= maxTaskNumber) {
-  fail(`nextTaskNumber must be greater than ${config.currentTaskPrefix}${maxTaskNumber}.`);
+  fail(`nextTaskNumber must be greater than ${config.currentTaskPrefix}${maxTaskNumber}.`)
 }
 
-process.exit(process.exitCode || 0);
+if (!process.exitCode) {
+  console.log(
+    `TODO management is valid. Active state: ${stateCounts.active} queued task(s). Retired states: ${stateCounts.retired} completed, future, or ignored task(s).`,
+  )
+}
+
+process.exit(process.exitCode || 0)

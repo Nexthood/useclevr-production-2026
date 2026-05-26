@@ -1,4 +1,4 @@
-# UseClevr Documentation
+# Documentation
 
 - Developer guides: [Developer_Guides/README.md](Developer_Guides/README.md)
 - User guides: [User_Guides/README.md](User_Guides/README.md)

@@ -84,7 +84,7 @@ export default function ReferralCenter() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join UseClevr - AI Business Intelligence",
+          title: "Join UseClevr",
           text: "Get instant insights from your CSV data with UseClevr. Sign up with my referral link!",
           url: referralLink,
         })

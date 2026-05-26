@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 
 import { readdirSync, readFileSync } from "node:fs"
-import path from "node:path"
 import process from "node:process"
 import yaml from "js-yaml"
 
-const root = process.cwd()
-const workflowsDir = path.join(root, ".github", "workflows")
+import { requiredPackageManager, resolveRepoPath, workflowsDir } from "./lib/app-config.js"
+
 const allowedActions = new Map([
-  ["actions/checkout", new Set(["v5"])],
-  ["actions/setup-node", new Set(["v5"])],
-  ["actions/github-script", new Set(["v8"])],
+  ["actions/checkout", new Set(["v6"])],
+  ["actions/setup-node", new Set(["v6"])],
+  ["actions/github-script", new Set(["v9"])],
 ])
 const errors = []
 
@@ -27,7 +26,7 @@ function walk(value, visitor) {
 }
 
 for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.test(file))) {
-  const filePath = path.join(workflowsDir, fileName)
+  const filePath = resolveRepoPath(".github", "workflows", fileName)
   const source = readFileSync(filePath, "utf-8")
   let workflow
 
@@ -51,7 +50,9 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
 
     const allowedRefs = allowedActions.get(action)
     if (!allowedRefs) {
-      errors.push(`${fileName}: unapproved action ${actionRef}; add it to the workflow allowlist after review`)
+      errors.push(
+        `${fileName}: unapproved action ${actionRef}; use approved GitHub-owned actions or add it to the workflow allowlist after review`,
+      )
       return
     }
 
@@ -60,8 +61,11 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
     }
   })
 
-  if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate")) {
-    errors.push(`${fileName}: pnpm install requires Corepack activation for pnpm@11.1.2`)
+  if (
+    source.includes("pnpm install") &&
+    !source.includes(`corepack prepare ${requiredPackageManager} --activate`)
+  ) {
+    errors.push(`${fileName}: pnpm install requires Corepack activation for ${requiredPackageManager}`)
   }
 
   if (workflow.jobs) {

@@ -9,10 +9,12 @@
   },
   "linksHeader": "Links",
   "taskIdPattern": "^T-\\d{2,}$",
-  "instructions": "Get T-number (task number) from .TODO/config.json before adding new numbered tasks. Assign a T- prefixed task number to every task in todo-next.md, todo-done.md, todo-future.md, and todo-ignore.md. Keep todo-next.md as the only active queue. Move completed tasks to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Do not duplicate tasks that already exist in todo-next.md.",
+  "instructions": "Get the T-number from .TODO/config.json before adding new numbered tasks. Assign a stable T- prefixed task number to every task in todo-next.md, todo-done.md, todo-future.md, and todo-ignore.md, and keep that number unchanged when moving the task between states. Keep todo-next.md as the only active queue. Move completed tasks to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Keep one task per bullet, include a Links section for related references, and store TODO metadata in .TODO/config.json. Write task descriptions as direct present-action statements and avoid retrospective phrasing such as 'now ...'. Do not duplicate tasks that already exist in todo-next.md.",
   "suggestions": [
     "Keep TODO-next focused on important developer and end-user work.",
     "Use shared config under data-config/frontend_shared.json and data-config/server.json for the date/alias rule source.",
-    "Document relative date calculation rules and deterministic overwriteToday behaviour."
+    "Document relative date calculation rules and deterministic overwriteToday behaviour.",
+    "Write task bullets as stable present-action statements, not retrospectives.",
+    "Avoid task wording that begins with 'now', 'now also', 'now removed', 'now always', or similar changelog-style phrasing."
   ]
 }
