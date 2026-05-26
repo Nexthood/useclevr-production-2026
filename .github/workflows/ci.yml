@@ -19,6 +19,7 @@ jobs:
           node-version: "26.x"
 
       - run: npm install -g pnpm@11.1.2
+      - run: echo "~/.npm-global/bin" >> $GITHUB_PATH
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
       - run: pnpm validate:dist
@@ -39,5 +40,6 @@ jobs:
           node-version: "26.x"
 
       - run: npm install -g pnpm@11.1.2
+      - run: echo "~/.npm-global/bin" >> $GITHUB_PATH
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

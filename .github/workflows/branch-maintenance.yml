@@ -62,6 +62,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install -g pnpm@11.1.2
+          echo "~/.npm-global/bin" >> $GITHUB_PATH
           pnpm install --frozen-lockfile --no-optional
           pnpm dedupe --no-optional
 
