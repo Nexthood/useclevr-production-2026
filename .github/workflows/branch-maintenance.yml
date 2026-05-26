@@ -62,7 +62,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          corepack prepare pnpm@11.1.2 --activate
+          npm install -g pnpm@11.1.2
           pnpm install --frozen-lockfile --no-optional
           pnpm dedupe --no-optional
 

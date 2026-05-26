@@ -60,8 +60,8 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
     }
   })
 
-  if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate")) {
-    errors.push(`${fileName}: pnpm install requires a preceding Corepack activation step`)
+  if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate") && !source.includes("npm install -g pnpm@11.1.2")) {
+    errors.push(`${fileName}: pnpm install requires a preceding pnpm activation step (corepack or npm install -g)`)
   }
 
   if (workflow.jobs) {

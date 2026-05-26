@@ -17,7 +17,7 @@ jobs:
           node-version: "26.x"
           cache: pnpm
 
-      - run: corepack prepare pnpm@11.1.2 --activate
+      - run: npm install -g pnpm@11.1.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
       - run: pnpm validate:dist
@@ -38,6 +38,6 @@ jobs:
           node-version: "26.x"
           cache: pnpm
 
-      - run: corepack prepare pnpm@11.1.2 --activate
+      - run: npm install -g pnpm@11.1.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
