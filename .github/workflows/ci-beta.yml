@@ -15,7 +15,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
-          cache: pnpm
 
       - run: npm install -g pnpm@11.1.2
       - run: pnpm install --frozen-lockfile
@@ -36,7 +35,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
-          cache: pnpm
 
       - run: npm install -g pnpm@11.1.2
       - run: pnpm install --frozen-lockfile
