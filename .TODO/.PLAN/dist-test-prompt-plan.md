@@ -1,174 +1,370 @@
-# Dist-Test Branch Prompt Plan
+# Dist-Test Deployment Plan
 
-Status: planning only. Do not create branches, publish generated output, change Railway services, or
-touch DNS until this plan is explicitly approved for execution.
+Status: planning only. Do not create branches, publish generated output, change Railway services, or touch DNS until this plan is explicitly approved for execution.
 
-## Prompt for Agent
+---
 
-Set up and validate deployment to `test.useclevr.com` using a Railway link to the `dist-test` branch.
+# Goal
 
-**Tasks:**
+Create a safe test deployment environment for UseClevr using:
 
-1. Review source-of-truth deployment files and document required changes before editing.
-2. Add a test publish path that builds from `beta` or manual dispatch and publishes generated output
-   to `dist-test` under `/dist`.
-3. Keep the production publish path unchanged: `main` publishes generated output only to `dist`.
-4. Validate shared deployment config with `node ./scripts/server/railway/sync-config.cjs --check`.
-5. Generate `dist/` locally with `pnpm prod:build` before any branch publish attempt.
-6. Verify Railway test service settings: branch `dist-test`, root directory `/dist`, domain
-   `test.useclevr.com`, and test-specific environment variables.
-7. Validate core test endpoints after deploy: `/api/health`, auth entry points, dataset list/upload,
-   dashboard shell, and report generation.
-8. Report deployment status, DNS state, environment differences, and any follow-up config changes.
+* `dist-test` generated deployment branch
+* dedicated Railway test service
+* `test.useclevr.com`
+* isolated deployment flow from production
 
-## Execution Phases
+Production deployment must remain stable and unchanged.
 
-### Phase 0 - Planning Gate
+---
 
-- Confirm this plan is approved for execution.
-- Confirm whether `dist-test` should use a dedicated GitHub Actions workflow or a parameterized
-  existing publish workflow.
-- Confirm Railway has a separate test service before adding branch publish automation.
-- Confirm test service environment variables exist outside the repository.
+# Current Architecture
 
-### Phase 1 - Source Workflow Changes
+* `beta` = active development branch
+* `main` = stable source branch
+* `dist` = generated production deployment branch
+* Railway production deploys from:
 
-- Add the test publish flow without changing production publish behavior.
-- Guard production publish so only `main` can publish `dist`.
-- Guard test publish so only `beta` or manual dispatch can publish `dist-test`.
-- Add pre-push size and ignore checks for generated deployment output.
+  * Branch: `dist`
+  * Root Directory: `/dist`
+* Generated deploy output lives inside `/dist`
+* `dist-root` contains permanent root-level deployment branch files
 
-### Phase 2 - Generated Branch Rules
+---
 
-- Treat `dist` and `dist-test` as generated deployment branches only.
-- Keep permanent branch-root files sourced from `dist-root`.
-- Publish app runtime files inside `/dist`.
-- Do not commit `.env`, `node_modules`, `.next/cache`, or oversized files.
+# Required New Setup
 
-### Phase 3 - Railway And Domain Validation
+Add support for:
 
-- Configure Railway test service to branch `dist-test` and root `/dist`.
-- Add `test.useclevr.com` as a Railway custom domain and create the provider DNS record Railway
-  supplies.
-- Keep production domain and production Railway service untouched.
-- Verify test service uses test-safe provider keys, especially billing keys.
+* `dist-test` generated deployment branch
+* dedicated Railway test deployment
+* `test.useclevr.com`
 
-### Phase 4 - Smoke Test
+Production must continue using:
 
-- Check `/api/health`.
-- Check sign-in and protected dashboard access.
-- Upload a small dataset and load the datasets table.
-- Run analysis and open Reports & Downloads.
-- Review Railway logs for test-service errors.
+* Branch: `dist`
+* Root Directory: `/dist`
 
-[additional]
+Test deployment must use:
 
-Create a safe test deployment setup for UseClevr using Railway and a new GitHub deployment branch.
+* Branch: `dist-test`
+* Root Directory: `/dist`
 
-Goal:
-Set up a separate test deployment at test.useclevr.com using a new generated deployment branch called dist-test.
+Do not break production deployment behavior.
 
-Current architecture:
-- beta = active development branch
-- main = stable source branch
-- dist = production generated deployment branch
-- Railway production deploys from dist branch, /dist folder
-- Generated deploy output lives inside /dist on the deployment branch
-- dist-root contains permanent root files copied into deployment branches
+Do not change app UI or application logic.
 
-Required new setup:
-- Add support for dist-test branch
-- test.useclevr.com should point to Railway test service
-- Railway test service should deploy from:
-  Branch: dist-test
-  Root Directory: /dist
-- Production should continue using:
-  Branch: dist
-  Root Directory: /dist
-- Do not break production dist publishing
-- Do not change app UI or app logic
+---
 
-Workflow requirements:
-1. Keep existing production publish flow:
-   main → build → publish generated output to dist branch /dist folder
+# Deployment Philosophy
 
-2. Add test publish flow:
-   beta or manual workflow trigger → build → publish generated output to dist-test branch /dist folder
+Use generated deployment branches only:
 
-3. The dist-test branch must be generated like dist:
-   - clean generated history if possible
-   - app files copied into /dist
-   - branch root keeps permanent files from dist-root
-   - no secrets or .env files committed
-   - no node_modules committed
-   - no .next/cache committed
-   - no pnpm-workspace.yaml committed if it breaks Railway pnpm install
-   - large files over GitHub limit must fail the workflow before push
+* `dist`
+* `dist-test`
 
-4. dist-root must support both deployment branches:
-   - production dist
-   - test dist-test
-   It should contain reusable root-level files such as:
-   - .gitignore
-   - README.md
-   - optional Railway notes
-   Do not hardcode production-only text if it is also used by dist-test.
-   Update README text so it says the branch may be generated for production or test deployment.
+Source branches remain:
 
-5. Railway config:
-   - Ensure generated /dist contains railway.json
-   - railway.json must work for both production and test service
-   - Start command should remain compatible with standalone Next.js:
-     node .next/standalone/server.js
-   - If pnpm is required in Railway build/predeploy, use Corepack:
-     corepack enable && corepack prepare pnpm@11.1.2 --activate
-   - Do not rely on local disk for persistent media/uploads.
+* `main`
+* `beta`
 
-6. Domain:
-   - test.useclevr.com will be configured in Railway as custom domain on the test service.
-   - DNS should be added at the domain provider as CNAME or the exact record Railway gives.
-   - Do not change nameservers unless explicitly required.
-   - Do not change production domain config.
+Generated branches must never be merged back into source branches.
 
-7. Environment variables:
-   - Do not commit env files.
-   - Test Railway service should have its own env vars copied/adjusted from production.
-   - NEXT_PUBLIC_SERVER_URL or equivalent should point to https://test.useclevr.com for test service.
-   - Stripe test/live keys must not be mixed accidentally.
-   - If Stripe is used in test service, prefer Stripe test mode keys.
+---
 
-8. Safety:
-   - dist-test must never be merged into main.
-   - dist and dist-test are generated deployment branches only.
-   - main and beta remain source branches.
-   - GitHub Actions should guard production publish so it only publishes to dist from main.
-   - GitHub Actions should guard test publish so it only publishes to dist-test from beta or manual workflow dispatch.
-   - Do not publish production dist from beta.
-   - Do not publish test dist from main unless explicitly manual.
+# Workflow Requirements
 
-9. Documentation:
-   Update or create a short doc explaining:
-   - main → dist = production deploy
-   - beta/manual → dist-test = test deploy
-   - Railway production uses dist /dist
-   - Railway test uses dist-test /dist
-   - test.useclevr.com DNS setup
-   - dist-root shared purpose
-   - dist and dist-test should never be merged back into source branches
+## Production Flow
 
-Acceptance criteria:
-- Production dist workflow still works
-- New dist-test workflow works
-- dist-test branch contains /dist deploy folder
-- dist-test branch root contains shared dist-root files
-- No node_modules, .next/cache, .env, or invalid pnpm-workspace.yaml are published
-- Railway test service can deploy from dist-test /dist
-- test.useclevr.com can be connected as Railway custom domain
-- No unrelated refactor or UI change
+```text
+main
+→ validate
+→ publish generated output
+→ dist branch
+→ Railway production
+```
 
-## Non-Goals
+Only `main` may publish production deployment output.
 
-- Do not execute the deploy during plan review.
-- Do not merge `dist-test` into `main`, `beta`, or `dist`.
-- Do not change production Railway service settings.
-- Do not add app UI changes as part of the dist-test setup.
+---
+
+## Test Flow
+
+```text
+beta
+→ validate
+→ publish generated output
+→ dist-test branch
+→ Railway test service
+```
+
+Test deploys may also be manually triggered using:
+
+```yaml
+workflow_dispatch
+```
+
+---
+
+# Workflow Safety Rules
+
+## Production Guard
+
+Production deployment publishing:
+
+* allowed only from `main`
+* publishes only to `dist`
+
+Beta must never publish production deployment output.
+
+---
+
+## Test Guard
+
+Test deployment publishing:
+
+* allowed from `beta`
+* or manual dispatch
+* publishes only to `dist-test`
+
+Main must never automatically publish to `dist-test`.
+
+---
+
+# Generated Branch Rules
+
+## Shared Rules
+
+Both generated deployment branches:
+
+* `dist`
+* `dist-test`
+
+must:
+
+* contain generated app runtime inside `/dist`
+* contain reusable branch-root files from `dist-root`
+* support force-push/orphan history cleanup
+* preserve maximum 1–2 commits where practical
+
+---
+
+## Forbidden Files
+
+Never commit:
+
+* `.env`
+* `.env.*`
+* `node_modules`
+* `.next/cache`
+* `.cache`
+* `.turbo`
+* `.vercel`
+* invalid `pnpm-workspace.yaml`
+* oversized GitHub files
+
+---
+
+# Required Generated Runtime Contract
+
+Generated `/dist` must contain:
+
+* `package.json`
+* `pnpm-lock.yaml`
+* `railway.json`
+* `.next/standalone`
+* `.next/static`
+* `public`
+
+Generated `/dist` must NOT contain:
+
+* `node_modules`
+* `.next/cache`
+* source repository files
+* invalid workspace files
+
+---
+
+# Large File Protection
+
+Before publish:
+
+* remove caches
+* remove dependencies
+* scan for large files
+* fail workflow before push if GitHub size limits are exceeded
+
+---
+
+# dist-root Requirements
+
+`dist-root` must support both:
+
+* production deployment
+* test deployment
+
+It should contain reusable root-level files such as:
+
+* `.gitignore`
+* `README.md`
+* optional Railway notes
+
+Do not hardcode production-only wording.
+
+README should describe generated deployment branch behavior generically.
+
+---
+
+# Railway Requirements
+
+## Production
+
+Production Railway service:
+
+* branch: `dist`
+* root directory: `/dist`
+
+---
+
+## Test
+
+Test Railway service:
+
+* branch: `dist-test`
+* root directory: `/dist`
+
+---
+
+# Railway Runtime Mode
+
+Railway should deploy prebuilt standalone Next.js output.
+
+Railway must NOT rebuild the full application from source during deployment.
+
+Preferred runtime:
+
+```text
+node .next/standalone/server.js
+```
+
+If pnpm is required:
+
+```bash
+corepack enable
+corepack prepare pnpm@11.1.2 --activate
+```
+
+Avoid runtime dependency installation unless explicitly required.
+
+---
+
+# Domain Setup
+
+Test deployment domain:
+
+```text
+test.useclevr.com
+```
+
+DNS should use:
+
+* CNAME
+* or Railway-provided DNS target
+
+Do not change nameservers unless explicitly required.
+
+Do not modify production domain configuration.
+
+---
+
+# Environment Variable Rules
+
+Environment variables must remain outside the repository.
+
+Test Railway service should use separate test-safe variables.
+
+Important:
+
+* test URLs must point to `https://test.useclevr.com`
+* Stripe test/live keys must never mix
+* use Stripe test mode for test deployment
+
+---
+
+# Validation Requirements
+
+Before publish:
+
+```bash
+node ./scripts/server/railway/sync-config.cjs --check
+```
+
+Before branch publish:
+
+```bash
+pnpm prod:build
+```
+
+---
+
+# Smoke Test Requirements
+
+After deployment:
+
+* check `/api/health`
+* verify sign-in flow
+* verify protected dashboard access
+* upload small dataset
+* verify datasets table
+* verify analysis flow
+* verify Reports & Downloads
+* review Railway logs
+
+---
+
+# Rollback Safety
+
+Test deployment failures must never block:
+
+* production deployment
+* production dist publishing
+
+Production and test deployment flows must remain isolated.
+
+---
+
+# Documentation Requirements
+
+Document:
+
+* `main → dist = production`
+* `beta/manual → dist-test = test`
+* Railway production uses `dist /dist`
+* Railway test uses `dist-test /dist`
+* DNS setup for `test.useclevr.com`
+* purpose of `dist-root`
+* generated branch restrictions
+
+---
+
+# Non-Goals
+
+Do not:
+
+* deploy during plan review
+* merge generated branches into source branches
+* modify production Railway service
+* introduce UI refactors
+* introduce unrelated architectural changes
+
+---
+
+# Acceptance Criteria
+
+* production dist workflow still works
+* test dist-test workflow works
+* generated branches contain valid `/dist`
+* shared root files are preserved
+* forbidden files are excluded
+* Railway test service deploys successfully
+* `test.useclevr.com` connects successfully
+* no unrelated app changes occur

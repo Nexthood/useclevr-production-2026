@@ -14,6 +14,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Railway deployment uses the Railpack builder for improved build control and smaller images.
+ - Sign-out now redirects properly to login page for reliable navigation.
 
 ### Dev
 

@@ -47,7 +47,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
-    window.location.assign("/login")
+    window.location.href = "/login"
   }
 
   const userName = user.name || user.email?.split("@")[0] || "User"
