@@ -7,7 +7,11 @@ import yaml from "js-yaml"
 
 const root = process.cwd()
 const workflowsDir = path.join(root, ".github", "workflows")
-const allowedPnpmSetupRefs = new Set(["v6"])
+const allowedActions = new Map([
+  ["actions/checkout", new Set(["v5"])],
+  ["actions/setup-node", new Set(["v5"])],
+  ["actions/github-script", new Set(["v8"])],
+])
 const errors = []
 
 function walk(value, visitor) {
@@ -40,10 +44,25 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
     const actionRef = node.uses.trim()
     const [action, ref = ""] = actionRef.split("@")
 
-    if (action === "pnpm/action-setup" && !allowedPnpmSetupRefs.has(ref)) {
-      errors.push(`${fileName}: use pnpm/action-setup@v6, found ${actionRef}`)
+    if (action === "pnpm/action-setup") {
+      errors.push(`${fileName}: do not use ${actionRef}; activate pnpm with Corepack instead`)
+      return
+    }
+
+    const allowedRefs = allowedActions.get(action)
+    if (!allowedRefs) {
+      errors.push(`${fileName}: unapproved action ${actionRef}; add it to the workflow allowlist after review`)
+      return
+    }
+
+    if (!allowedRefs.has(ref)) {
+      errors.push(`${fileName}: unapproved ${action} ref ${ref || "(missing)"}; allowed refs: ${[...allowedRefs].join(", ")}`)
     }
   })
+
+  if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate")) {
+    errors.push(`${fileName}: pnpm install requires a preceding Corepack activation step`)
+  }
 }
 
 if (errors.length > 0) {
