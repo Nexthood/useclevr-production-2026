@@ -59,10 +59,12 @@ jobs:
         with:
           node-version: "26.x"
 
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 11.1.2
+
       - name: Install dependencies
         run: |
-          npm install -g pnpm@11.1.2
-          echo "~/.npm-global/bin" >> $GITHUB_PATH
           pnpm install --frozen-lockfile --no-optional
           pnpm dedupe --no-optional
 
