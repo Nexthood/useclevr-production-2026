@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["nodejs_22", "npm-9_x"]
-
-[phases.install]
-cmds = ["npm install -g pnpm@9 && pnpm install --no-frozen-lockfile --prod --no-optional --config.dangerouslyAllowAllBuilds=true"]
-
-[phases.build]
-cmds = ["if [ -d next-build ] && [ ! -d .next ]; then cp -a next-build .next; fi"]
