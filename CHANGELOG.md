@@ -14,12 +14,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Translation service with 24-hour caching layer to minimize API calls to Google Translation.
 - Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
   questions from one workspace.
-- Business settings now show profile sections, completion metrics, and review flags that explain
+- Business Profile now shows profile sections, completion metrics, and review flags that explain
   which company details improve AI confidence.
+- Business now opens as a top-level workspace with a businesses listing table and profile, location,
+  tax, financial, and review subpages.
 - Setup progress now counts profile fields, business profile fields, first data actions, and key
   dashboard pages visited at least once.
 - The setup progress panel now includes a guided tour through incomplete setup items.
 - Dashboard FAQ now starts with quick actions for feedback, chat support, and support tickets.
+- Dashboard tickets now use a table-first queue with separate pages for new tickets and row-level
+  ticket editing.
 
 ### Changed
 
@@ -27,6 +31,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the current external pages in a new tab.
 - Dashboard onboarding now tracks setup progress from account data, routes users to the relevant
   setup pages, and keeps reopening for accounts below 25% completion.
+- Business setup links now open the Business workspace instead of sending users through Settings.
 - Social login buttons now start configured Google and GitHub sign-in or registration flows.
 - The dashboard sidebar now includes coming-soon mobile app buttons, social placeholders, a user
   panel stack, and a bottom Terms link.

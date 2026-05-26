@@ -5,7 +5,7 @@ import { DatasetModal } from "@/components/modals/dataset-modal"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { BarChart3, Calendar, Database, FileSpreadsheet, Upload } from "lucide-react"
+import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -71,7 +71,9 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
             <FileSpreadsheet className="h-4 w-4 text-white" />
           </div>
-          <span className="font-medium text-foreground">{String(row.name)}</span>
+          <Link href={`/app/datasets/${row.id}/analyze`} className="font-medium text-foreground hover:text-primary transition-colors">
+            {String(row.name)}
+          </Link>
         </div>
       ),
     },

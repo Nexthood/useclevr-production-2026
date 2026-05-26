@@ -13,6 +13,10 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Completed
 
+- T-313. Dashboard tickets now use a table-first queue with row edit pages and a separate new
+  ticket page.
+- T-311. Business Profile was promoted from settings into a top-level Business workspace with a
+  listing table, workspace subpages, updated setup progress links, and aligned planning notes.
 - T-298. Business profile review, setup progress tracking, the setup tour, sidebar links, dashboard
   FAQ actions, plan suggestions, and TODO retirement updates were completed.
 - T-269. A GitHub issue template now links promoted issues back to local task IDs and release

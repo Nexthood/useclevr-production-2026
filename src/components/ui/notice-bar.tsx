@@ -188,6 +188,8 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
             title: "Action failed.",
             message: getFailedInteractionMessage(response.status),
           });
+          // Auto-open notice sidebar for error notices
+          document.dispatchEvent(new CustomEvent("useclevr:open-notice-sidebar"));
         }
 
         return response;

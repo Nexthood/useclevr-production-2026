@@ -13,7 +13,10 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Active
 
-No active implementation task is currently in progress.
+- T-314. Execute dist-test branch prompt plan for test.useclevr.com Railway deployment.
+
+- T-312. Add dedicated Business, BusinessEntity, and tax profile storage with true multi-business
+  listing rows, archive and restore flow, and subscription-tier business limits.
 
 ## Next
 

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 function getUser(session: any) {
   const userId = session?.user?.id
   const userEmail = session?.user?.email || ""
+  const userName = session?.user?.name || userEmail
 
   if (!userId || !userEmail) {
     return null
@@ -14,6 +15,7 @@ function getUser(session: any) {
   return {
     id: userId,
     email: userEmail,
+    name: userName,
     isSuperAdmin: session.user.role === "superadmin",
   }
 }
@@ -73,6 +75,7 @@ export async function PATCH(request: NextRequest) {
       id: body.id,
       status: body.status,
       adminNote: body.adminNote,
+      adminName: user.name,
       userId: user.id,
       isSuperAdmin: user.isSuperAdmin,
     })

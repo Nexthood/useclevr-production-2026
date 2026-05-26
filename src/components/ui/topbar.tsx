@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activity-drawer"
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
 import { CreditPanel } from "@/components/ui/credit-panel"
+import { Search } from "@/components/ui/search-popup"
 import { TourGuideButton } from "@/components/ui/tour-guide-button"
 import { UserLevelLink } from "@/components/ui/user-level-link"
 import { auth } from "@/lib/auth"
@@ -34,6 +35,7 @@ export default async function Topbar() {
       <div className="flex w-full items-center justify-end">
         <div className="flex items-center gap-3">
           <HybridAiButton subscriptionTier={usage.subscriptionTier} hybridAiCreditCosts={billingSettings.hybridAiCreditCosts} />
+          <Search />
           <TourGuideButton />
           <OnboardingProcessButton />
           <TopbarNoticeActivityDrawer />

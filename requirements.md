@@ -45,12 +45,15 @@
   and analysis actions, and key dashboard pages visited at least once.
 - Dashboard users can open a setup progress panel from the topbar and start a guided tour through
   incomplete setup items.
-- Users fill in company name, industry, location, website, and description in Settings.
-- Business settings show identity, contact, and operations sections with review flags that explain
+- Dashboard users open Business as a top-level workspace with a businesses listing table before
+  editing profile, location, tax, financial, or review details.
+- Users fill in company name, industry, location, website, and description in Business Profile.
+- Business Profile shows identity, contact, and operations sections with review flags that explain
   which missing details lower AI confidence.
 - A live completion percentage is shown in the topbar so users can see how complete their
   business profile is.
-- Incomplete business profile fields are surfaced in the topbar with a direct link to Settings.
+- Incomplete business profile fields are surfaced in the topbar with a direct link to Business
+  Profile.
 - Dashboard users can switch between English, German, Hungarian, and Romanian languages from
   the language selector in the topbar.
 - Language preference persists across sessions and page reloads.
@@ -70,6 +73,8 @@
 - Dashboard activity surfaces saved product actions including profile, business, upload, analysis,
   deletion, registration, and subscription events.
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
+- Dashboard tickets use a row-first table with separate pages for creating a ticket and editing each
+  ticket.
 - Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
   and marking tickets resolved.
