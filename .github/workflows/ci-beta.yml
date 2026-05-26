@@ -1,0 +1,42 @@
+name: Validate Beta
+
+on:
+  push:
+    branches: [beta]
+
+jobs:
+  Validate source and production build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "26.x"
+          cache: pnpm
+
+      - run: corepack prepare pnpm@11.1.2 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm validate:types
+      - run: pnpm validate:dist
+      - run: pnpm lint
+      - run: pnpm test:all
+      - run: pnpm build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "26.x"
+          cache: pnpm
+
+      - run: corepack prepare pnpm@11.1.2 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:check
