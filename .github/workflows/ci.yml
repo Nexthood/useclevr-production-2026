@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  Validate source and production build:
+  validate-source-and-build:
+    name: Validate source and production build
     runs-on: ubuntu-latest
 
     steps:
