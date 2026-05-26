@@ -17,9 +17,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
-- Pre-commit validation now checks GitHub workflow syntax, approved action refs, and Corepack pnpm
-   activation before changes are committed.
-- Create-dist script now copies nixpacks.toml only if present, supporting Railpack migration.
 - Language preference persists in localStorage and applies across the application.
 - Translation service with 24-hour caching layer to minimize API calls to Google Translation.
 - Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
@@ -95,6 +92,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   activation before changes are committed.
 - GitHub workflows now activate pnpm through Corepack instead of downloading the third-party pnpm
   setup action.
+- Beta sync now uses an explicit authenticated remote and no longer blocks dist publishing when
+  branch permissions prevent the sync push.
 - TODO management now uses `T-` task numbers, a single active queue, retired dist/audit queues, and
   dedicated project audit and testing guides.
 - TODO management docs now document how retired audit and dist tasks moved into the regular queues.

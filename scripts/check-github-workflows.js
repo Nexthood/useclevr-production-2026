@@ -11,7 +11,6 @@ const allowedActions = new Map([
   ["actions/checkout", new Set(["v5"])],
   ["actions/setup-node", new Set(["v5"])],
   ["actions/github-script", new Set(["v8"])],
-  ["pnpm/action-setup", new Set(["v5"])],
 ])
 const errors = []
 
@@ -45,6 +44,11 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
     const actionRef = node.uses.trim()
     const [action, ref = ""] = actionRef.split("@")
 
+    if (action === "pnpm/action-setup") {
+      errors.push(`${fileName}: do not use ${actionRef}; activate pnpm with Corepack in a run step`)
+      return
+    }
+
     const allowedRefs = allowedActions.get(action)
     if (!allowedRefs) {
       errors.push(`${fileName}: unapproved action ${actionRef}; add it to the workflow allowlist after review`)
@@ -56,8 +60,8 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
     }
   })
 
-  if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate") && !source.includes("npm install -g pnpm@11.1.2") && !source.includes("pnpm/action-setup")) {
-    errors.push(`${fileName}: pnpm install requires a preceding pnpm activation step (corepack or pnpm/action-setup)`)
+  if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate")) {
+    errors.push(`${fileName}: pnpm install requires Corepack activation for pnpm@11.1.2`)
   }
 
   if (workflow.jobs) {
