@@ -1,0 +1,243 @@
+name: Publish Dist-Test from Beta
+
+on:
+  push:
+    branches: [beta]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Confirm publish to dist-test"
+        required: true
+        default: "no"
+
+permissions:
+  contents: write
+
+env:
+  NO_COLOR: "1"
+  FORCE_COLOR: "0"
+  TERM: dumb
+
+concurrency:
+  group: beta-maintenance
+  cancel-in-progress: true
+
+jobs:
+  publish-dist-test:
+    name: Publish dist-test deployment folder
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Guard beta or dispatch only
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/beta" ]; then
+            if [ "${{ inputs.confirm }}" != "yes" ]; then
+              echo "Dist-test publish requires checkbox confirmation or beta branch push."
+              exit 1
+            fi
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref == 'refs/heads/beta' && 'beta' || 'main' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "26.x"
+
+      - name: Activate pnpm through Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile --no-optional
+          pnpm dedupe --no-optional
+
+      - name: Build production artifacts
+        run: pnpm prod:build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Smoke test generated server
+        working-directory: dist
+        run: |
+          PORT=8090 node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs > /tmp/useclevr-dist-smoke.log 2>&1 &
+          pid=$!
+
+          sleep 5
+
+          curl -fsS http://127.0.0.1:8090/api/health
+          kill "$pid" >/dev/null 2>&1 || true
+
+      - name: Clean build output before publish
+        run: |
+          cd dist
+          pnpm install --lockfile-only --no-optional
+          rm -f pnpm-workspace.yaml
+          cd ..
+
+          rm -f pnpm-workspace.yaml
+          rm -f dist/pnpm-workspace.yaml
+          rm -rf dist/.next/cache
+          rm -rf dist/node_modules
+          rm -rf dist/node_modules/.pnpm/@next+swc-*
+          rm -rf dist/node_modules/@next/swc-*
+          rm -rf dist/.cache
+          rm -rf dist/cache
+          rm -rf dist/.turbo
+          rm -rf dist/.vercel
+          rm -rf dist/.next/cache/webpack
+          large_source_file="$(find dist -type f -size +95M -print -quit)"
+          if [ -n "$large_source_file" ]; then
+            echo "Error: generated dist contains a file larger than GitHub limit."
+            exit 1
+          fi
+
+      - name: Stage generated output
+        run: |
+          mv dist /tmp/useclevr-dist-output
+          cp -a dist-root /tmp/useclevr-dist-root
+
+      - name: Prepare dist-test commit title from PR
+        id: dist-title
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const shortSha = context.sha.slice(0, 7);
+            let prTitle = `beta-${shortSha}`;
+
+            if (context.payload.head_commit?.message) {
+              prTitle = context.payload.head_commit.message.split('\n')[0]?.trim() || prTitle;
+            }
+
+            prTitle = prTitle.replace(/^PR-\d+:\s*/i, '');
+            prTitle = prTitle.replace(/^PR:\s*/i, '');
+            prTitle = prTitle.replace(/\s+/g, ' ').slice(0, 70).trim();
+            prTitle = `Beta: ${prTitle}`;
+
+            core.setOutput('title', prTitle);
+
+      - name: Publish generated folder to clean dist-test branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          previous_dist_parent=""
+          if git fetch --depth=1 origin dist-test:dist-test 2>/dev/null && git rev-parse --verify dist-test >/dev/null 2>&1; then
+            previous_tree="$(git rev-parse dist-test^{tree})"
+            previous_title="$(git log -1 --format=%s dist-test)"
+            previous_dist_parent="$(git commit-tree "$previous_tree" -m "$previous_title")"
+          fi
+
+          git checkout --orphan new-dist-test
+          git rm -rf . || true
+          rm -rf .next
+          rm -rf node_modules
+          rm -rf .cache
+          rm -rf cache
+          rm -rf .turbo
+          rm -rf .vercel
+
+          mkdir -p dist
+          cp -a /tmp/useclevr-dist-output/. dist/
+
+          rm -rf dist/.next/cache
+          rm -rf dist/node_modules
+          rm -rf dist/.cache
+          rm -rf dist/cache
+          rm -rf dist/.turbo
+          rm -rf dist/.vercel
+
+          if [ -d "/tmp/useclevr-dist-root" ]; then
+            cp -a /tmp/useclevr-dist-root/. .
+          fi
+
+          rm -f pnpm-workspace.yaml
+          rm -f dist/pnpm-workspace.yaml
+
+          if [ ! -f "server-config/railway.json" ]; then
+            echo "Error: server-config/railway.json is missing from dist-root."
+            exit 1
+          fi
+
+          if [ ! -f "server-config/vercel.json" ]; then
+            echo "Error: server-config/vercel.json is missing from dist-root."
+            exit 1
+          fi
+
+          if [ ! -f ".gitignore" ]; then
+            cat > .gitignore <<'EOF'
+          .env
+          .env.*
+          node_modules
+          .next/cache
+          .cache
+          cache
+          .turbo
+          .vercel
+          *.log
+          EOF
+          fi
+
+          if [ ! -f "README.md" ]; then
+            cat > README.md <<'EOF'
+          # Generated deployment branch (test)
+
+          This branch is generated automatically from `beta` by GitHub Actions.
+
+          Do not edit this branch manually.
+          Do not open pull requests from this branch into `beta`.
+          Do not merge this branch into `main`.
+
+          Railway deploys from the `/dist` folder in this branch.
+          Railway config is stored at `/server-config/railway.json`.
+          Source code lives in `beta` or `main`.
+          EOF
+          fi
+
+          if [ -f "railway.json" ]; then
+            echo "Error: railway.json must stay in server-config, not the dist branch root."
+            exit 1
+          fi
+
+          if [ -f "vercel.json" ]; then
+            echo "Error: vercel.json must stay in server-config, not the dist branch root."
+            exit 1
+          fi
+
+          if [ -f "dist/railway.json" ] || [ -f "dist/vercel.json" ]; then
+            echo "Error: host config files must not be published inside dist/."
+            exit 1
+          fi
+
+          node -e "JSON.parse(require('fs').readFileSync('server-config/railway.json', 'utf8')); JSON.parse(require('fs').readFileSync('server-config/vercel.json', 'utf8'))"
+
+          large_dist_file="$(find dist -type f -size +95M -print -quit)"
+          if [ -n "$large_dist_file" ]; then
+            echo "Error: files larger than GitHub limit still exist."
+            exit 1
+          fi
+
+          git add -A
+          if git ls-files -s | awk '{print $4}' | while read -r file; do
+            if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 99614720 ]; then
+              printf '%s\n' "$file"
+            fi
+          done | grep .; then
+            echo "Error: staged files larger than GitHub limit still exist."
+            exit 1
+          fi
+
+          tree_sha="$(git write-tree)"
+          if [ -n "$previous_dist_parent" ]; then
+            commit_sha="$(git commit-tree "$tree_sha" -p "$previous_dist_parent" -m "${{ steps.dist-title.outputs.title }}")"
+          else
+            commit_sha="$(git commit-tree "$tree_sha" -m "${{ steps.dist-title.outputs.title }}")"
+          fi
+          git update-ref refs/heads/new-dist-test "$commit_sha"
+          git push origin new-dist-test:dist-test --force
