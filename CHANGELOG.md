@@ -10,6 +10,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Dashboard language selector with four options: English, German, Hungarian, and Romanian.
+
+### Changed
+
+- Migrated Railway deployment from Nixpacks to Railpack builder for improved build control and smaller images.
+
+### Dev
+
+- Pre-commit validation now checks GitHub workflow syntax, approved action refs, and Corepack pnpm
+  activation before changes are committed.
 - Language preference persists in localStorage and applies across the application.
 - Translation service with 24-hour caching layer to minimize API calls to Google Translation.
 - Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
@@ -106,8 +115,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   history do not block startup.
 - Railway and Vercel deployment docs now own their host-specific commands, settings, and
   troubleshooting notes.
-- Railway generated-output builds now refresh Corepack on Node 22 and use a Node-compatible pnpm
-  release so Nixpacks does not fail on stale package-manager signatures or Node engine checks.
+- Railway generated-output builds now use Railpack for improved build control and smaller images.
 - Railway generated-output packages no longer mix explicit build approvals with the runtime install
   flag that allows dependency build scripts.
 - Railway runtime installs now tolerate generated deployment packages without a committed lockfile.
@@ -119,10 +127,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Dist publishing now keeps the previous deployment commit visible while reducing workflow log noise.
 - Dist deployments now keep host config files in the deployment config folder only, preventing
   Railway from building the branch root by mistake.
-- Railway generated-output builds now use a generated Nixpacks plan so deployment installs run
-  through Corepack pnpm instead of defaulting to npm.
-- Railway runtime builds now use Nixpacks with explicit Corepack pnpm activation to avoid Railpack
-  `mise install` failures.
+- Railway generated-output builds now use a generated Railpack plan for deployment installs.
 - PDF export browser dependencies are now explicit production dependencies so publish builds with
   optional installs disabled do not miss bundler-required modules.
 - Auto-merged release pull requests now dispatch branch maintenance after merge so beta sync and dist
