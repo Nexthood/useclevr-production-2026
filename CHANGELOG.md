@@ -81,6 +81,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Pre-commit validation now checks GitHub workflow syntax, approved action refs, and Corepack pnpm
+  activation before changes are committed.
+- GitHub workflows now activate pnpm through Corepack instead of downloading the third-party pnpm
+  setup action.
 - TODO management now uses `T-` task numbers, a single active queue, retired dist/audit queues, and
   dedicated project audit and testing guides.
 - TODO management docs now document how retired audit and dist tasks moved into the regular queues.

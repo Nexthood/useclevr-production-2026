@@ -71,6 +71,7 @@
     "lint:docs": "markdownlint --config .markdownlint.json \"docs/**/*.md\" \"README.md\" \"CHANGELOG.md\" \"*.md\"",
     "lint:package": "node ./scripts/check-package-json.js",
     "lint:todos": "node ./scripts/check-todo-management.js",
+    "lint:workflows": "node ./scripts/check-github-workflows.js",
     "link:docs": "node ./scripts/check-docs-links.js",
     "format": "prettier --write \"scripts/**/*.{js,cjs,mjs,ts,md}\" \"docs/**/*.md\" \"*.{json,md,mjs,ts}\" \".TODO/**/*.md\"",
     "format:check": "prettier --check \"scripts/**/*.{js,cjs,mjs,ts,md}\" \"docs/**/*.md\" \"*.{json,md,mjs,ts}\" \".TODO/**/*.md\"",
