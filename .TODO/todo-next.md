@@ -18,6 +18,7 @@ No active implementation task is currently in progress.
 ## Next
 
 - T-314. Execute dist-test branch prompt plan (see `.TODO/.PLAN/dist-test-prompt-plan.md`) for test.useclevr.com Railway deployment.
+- T-315. Migrate to Railway Railpack (only after nixpacks works successfully, see `.TODO/.PLAN/todo-railway-railpack-migrate.md`).
 - T-130. Document API endpoints and request/response contracts.
 - T-131. Create a user-facing product guide.
 - T-132. Review and remove production-facing debug logs.
