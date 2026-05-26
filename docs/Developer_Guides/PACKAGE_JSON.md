@@ -6,6 +6,7 @@
 - [Script Groups](#script-groups)
 - [Dependency Checks](#dependency-checks)
 - [Package Rules](#package-rules)
+- [Script Modules](#script-modules)
 - [Related Docs](#related-docs)
 
 This project uses `pnpm` through Corepack. Use `pnpm` for local development, CI parity, and generated
@@ -54,6 +55,15 @@ Use `pnpm lint:all` when you want source lint plus dependency freshness in one m
 - Keep build, lint, docs, and release tooling in `devDependencies`.
 - Update [TECH_DEPENDENCIES.md](TECH_DEPENDENCIES.md) when dependency versions or usage categories
   change.
+
+## Script Modules
+
+Source-side maintenance scripts use ESM because the repository package is `type: module`. Runtime
+preload/start helpers and CommonJS-only tooling entrypoints keep `.cjs` so Node can load them through
+`node -r` and generated deployment packages can start predictably.
+
+Use `scripts/lib/app-config.js` from ESM scripts and `scripts/lib/app-config.cjs` from CommonJS
+scripts when a script needs repository paths or the pinned package-manager setting.
 
 ## Related Docs
 

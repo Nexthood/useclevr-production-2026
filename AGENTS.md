@@ -71,6 +71,14 @@ pnpm health                             # validate + tests + docs + audit
 
 Strip sensitive data from AI context helpers before sending responses to openai/cloud vendors.
 
+## Script Module Rules
+
+- Use ESM for source-side maintenance scripts because the repository package is `type: module`.
+- Keep CommonJS for runtime preload/start scripts, generated deployment helpers, and tooling entry
+  points that must run through `node -r` or CommonJS-only consumers.
+- Use `scripts/lib/app-config.js` from ESM scripts and `scripts/lib/app-config.cjs` from CommonJS
+  scripts so path and package-manager policy stay aligned.
+
 ## AI Kilo / Other AI Instructions
 
 ### Kilo (this CLI)
