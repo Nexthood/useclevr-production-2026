@@ -60,7 +60,7 @@ export const dashboardFaqCategories: FaqCategory[] = [
       },
       {
         q: "How do I update business details?",
-        a: "Go to Settings → Business to update your business name, industry, location, website, and description.",
+        a: "Go to Business → Profile to update your business name, industry, location, website, and description.",
       },
       {
         q: "How do I contact support?",

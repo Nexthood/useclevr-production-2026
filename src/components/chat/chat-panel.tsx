@@ -21,12 +21,15 @@ interface ChatPanelProps {
   onColumnClick?: (columnName: string) => void
 }
 
+const MIN_MESSAGE_LENGTH = 3
+
 export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick }: ChatPanelProps) {
   const [isExpanded, setIsExpanded] = React.useState(false)
   const [messages, setMessages] = React.useState<Message[]>([])
   const [inputValue, setInputValue] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const [suggestions, setSuggestions] = React.useState<string[]>([])
+  const [inputError, setInputError] = React.useState<string | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
 
   // Fetch suggestions when dataset changes
@@ -53,6 +56,12 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
     const messageText = text || inputValue.trim()
     if (!messageText || isLoading) return
 
+    if (messageText.length < MIN_MESSAGE_LENGTH) {
+      setInputError(`Message must be at least ${MIN_MESSAGE_LENGTH} characters`)
+      return
+    }
+
+    setInputError(null)
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -62,8 +71,12 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
 
     setMessages((prev) => [...prev, userMessage])
     setInputValue("")
-    setIsLoading(true)
     setIsExpanded(true)
+
+    // Add thinking delay (2-5 seconds)
+    await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000))
+
+    setIsLoading(true)
 
     try {
       const response = await fetch("/api/chat", {
@@ -217,6 +230,11 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
                   {suggestion.length > 40 ? suggestion.slice(0, 40) + '...' : suggestion}
                 </button>
               ))}
+            </div>
+          )}
+          {inputError && (
+            <div className="mb-2 text-xs text-amber-600 dark:text-amber-400">
+              {inputError}
             </div>
           )}
           <div className="relative">

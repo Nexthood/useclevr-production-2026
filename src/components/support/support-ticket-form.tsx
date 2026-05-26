@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, Send } from "lucide-react"
+import { useRouter } from "next/navigation"
 import type { FormEvent } from "react"
 import { useState } from "react"
 
@@ -11,9 +12,11 @@ const categories = ["Billing", "Dataset upload", "AI analysis", "Reports", "Acco
 type SupportTicketFormProps = {
   compact?: boolean
   onCreated?: () => void
+  redirectTo?: string
 }
 
-export function SupportTicketForm({ compact = false, onCreated }: SupportTicketFormProps) {
+export function SupportTicketForm({ compact = false, onCreated, redirectTo }: SupportTicketFormProps) {
+  const router = useRouter()
   const [subject, setSubject] = useState("")
   const [message, setMessage] = useState("")
   const [category, setCategory] = useState(categories[0])
@@ -44,6 +47,9 @@ export function SupportTicketForm({ compact = false, onCreated }: SupportTicketF
       setPriority("normal")
       setStatus("Ticket created.")
       onCreated?.()
+      if (redirectTo) {
+        router.push(redirectTo)
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not create ticket.")
     } finally {

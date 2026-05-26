@@ -93,7 +93,7 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
   ]
   const requiredPageVisits = [
     { id: "visit-profile", title: "Visit profile settings", href: "/app/settings/profile" },
-    { id: "visit-business", title: "Visit business settings", href: "/app/settings/business" },
+    { id: "visit-business", title: "Visit business workspace", href: "/app/business" },
     { id: "visit-datasets", title: "Visit datasets", href: "/app/datasets" },
     { id: "visit-assistant", title: "Visit AI Assistant", href: "/app/assistant" },
     { id: "visit-downloads", title: "Visit reports and downloads", href: "/app/downloads" },
@@ -115,7 +115,7 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
       id: field.id,
       title: field.title,
       description: "Complete the business profile fields that tailor analysis and reports.",
-      href: "/app/settings/business",
+      href: "/app/business/profile",
       complete: field.complete,
       group: "Business profile",
     })),

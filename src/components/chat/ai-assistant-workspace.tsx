@@ -416,39 +416,39 @@ export function AiAssistantWorkspace() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="border-t border-border bg-background p-4">
-          <div className="mx-auto flex max-w-4xl gap-2">
-            <textarea
-              value={inputValue}
-              onChange={(event) => setInputValue(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault()
-                  askAssistant(inputValue)
-                }
-              }}
-              placeholder={selectedDatasetId ? "Ask a question about the selected dataset..." : "Select a dataset first..."}
-              disabled={!selectedDatasetId || isAsking}
-              className="min-h-11 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-offset-background transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              rows={1}
-            />
-            <Button type="submit" size="icon" disabled={!inputValue.trim() || !canAsk} aria-label="Send question">
-              {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              aria-label="Clear assistant chat"
-              onClick={() => {
-                setMessages([])
-                setInputValue("")
-              }}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+<form onSubmit={handleSubmit} className="border-t border-border bg-background p-4 sticky bottom-0">
+           <div className="mx-auto flex max-w-4xl gap-2">
+             <textarea
+               value={inputValue}
+               onChange={(event) => setInputValue(event.target.value)}
+               onKeyDown={(event) => {
+                 if (event.key === "Enter" && !event.shiftKey) {
+                   event.preventDefault()
+                   askAssistant(inputValue)
+                 }
+               }}
+               placeholder={selectedDatasetId ? "Ask a question about the selected dataset..." : "Select a dataset first..."}
+               disabled={!selectedDatasetId || isAsking}
+               className="min-h-11 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-offset-background transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+               rows={1}
+             />
+             <Button type="submit" size="icon" disabled={!inputValue.trim() || !canAsk} aria-label="Send question">
+               {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+             </Button>
+             <Button
+               type="button"
+               size="icon"
+               variant="outline"
+               aria-label="Clear assistant chat"
+               onClick={() => {
+                 setMessages([])
+                 setInputValue("")
+               }}
+             >
+               <RefreshCw className="h-4 w-4" />
+             </Button>
+           </div>
+         </form>
       </section>
     </div>
   )

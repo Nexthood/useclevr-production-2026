@@ -13,6 +13,7 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Future
 
+
 - T-299. Review restore candidates for legacy report PDF generation and cloud live-data refresh
   behavior before deciding whether they should return to the product.
 

@@ -2,17 +2,15 @@
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import type { SupportTicket, TicketPriority, TicketStatus } from "@/lib/support/ticket-store"
-import { AlertCircle, CheckCircle2, Clock, Loader2, MessageSquare, Send } from "lucide-react"
-import type { FormEvent } from "react"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import type { SupportTicket, TicketStatus } from "@/lib/support/ticket-store"
+import { AlertCircle, CheckCircle2, Clock, Edit, Loader2, RefreshCw, Ticket, Zap } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
 type TicketsClientProps = {
   isSuperAdmin: boolean
 }
-
-const categories = ["Billing", "Dataset upload", "AI analysis", "Reports", "Account", "General"]
 
 function statusLabel(status: TicketStatus) {
   if (status === "in_progress") return "In progress"
@@ -34,272 +32,175 @@ function statusIcon(status: TicketStatus) {
 
 export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
   const [tickets, setTickets] = useState<SupportTicket[]>([])
-  const [subject, setSubject] = useState("")
-  const [message, setMessage] = useState("")
-  const [category, setCategory] = useState(categories[0])
-  const [priority, setPriority] = useState<TicketPriority>("normal")
-  const [adminNotes, setAdminNotes] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
-  const openCount = useMemo(
-    () => tickets.filter((ticket) => ticket.status !== "resolved").length,
-    [tickets]
+  const totals = useMemo(
+    () => ({
+      total: tickets.length,
+      open: tickets.filter((ticket) => ticket.status === "open").length,
+      inProgress: tickets.filter((ticket) => ticket.status === "in_progress").length,
+      urgent: tickets.filter((ticket) => ticket.priority === "urgent" && ticket.status !== "resolved").length,
+    }),
+    [tickets],
   )
 
   async function loadTickets() {
     setError("")
-    const response = await fetch("/api/tickets", { cache: "no-store" })
-    const data = await response.json()
+    setIsLoading(true)
 
-    if (!response.ok) {
-      throw new Error(data.error || "Could not load tickets.")
+    try {
+      const response = await fetch("/api/tickets", { cache: "no-store" })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not load tickets.")
+      }
+
+      setTickets(data.tickets || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load tickets.")
+    } finally {
+      setIsLoading(false)
     }
-
-    setTickets(data.tickets || [])
-    setAdminNotes(
-      Object.fromEntries((data.tickets || []).map((ticket: SupportTicket) => [ticket.id, ticket.adminNote || ""]))
-    )
   }
 
   useEffect(() => {
-    loadTickets()
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load tickets."))
-      .finally(() => setIsLoading(false))
+    void loadTickets()
   }, [])
 
-  async function handleCreateTicket(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setIsSubmitting(true)
-    setError("")
-
-    try {
-      const response = await fetch("/api/tickets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, message, category, priority }),
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Could not create ticket.")
-      }
-
-      setTickets((current) => [data.ticket, ...current])
-      setSubject("")
-      setMessage("")
-      setCategory(categories[0])
-      setPriority("normal")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create ticket.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  async function handleUpdateTicket(id: string, status: TicketStatus) {
-    setError("")
-
-    try {
-      const response = await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status, adminNote: adminNotes[id] || "" }),
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Could not update ticket.")
-      }
-
-      setTickets((current) => current.map((ticket) => (ticket.id === id ? data.ticket : ticket)))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update ticket.")
-    }
-  }
-
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-      {!isSuperAdmin && (
-        <Card className="p-5">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            New ticket
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Send a support request for billing, uploads, reports, or account access.
-          </p>
-
-          <form className="mt-5 space-y-4" onSubmit={handleCreateTicket}>
-            <div>
-              <label className="text-sm font-medium text-foreground" htmlFor="ticket-subject">
-                Subject
-              </label>
-              <Input
-                id="ticket-subject"
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                placeholder="Short summary"
-                required
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="ticket-category">
-                  Category
-                </label>
-                <select
-                  id="ticket-category"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  className="mt-1 flex h-12 w-full rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground"
-                >
-                  {categories.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[
+          { label: "Total tickets", value: totals.total, icon: Ticket, color: "text-cyan-800 dark:text-cyan-100", bg: "bg-cyan-500/10" },
+          { label: "Open", value: totals.open, icon: AlertCircle, color: "text-blue-800 dark:text-blue-100", bg: "bg-blue-500/10" },
+          { label: "In progress", value: totals.inProgress, icon: Clock, color: "text-amber-800 dark:text-amber-100", bg: "bg-amber-500/10" },
+          { label: "Urgent", value: totals.urgent, icon: Zap, color: "text-red-800 dark:text-red-100", bg: "bg-red-500/10" },
+        ].map((stat) => (
+          <Card key={stat.label} className="border-border bg-card p-4">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bg}`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="ticket-priority">
-                  Priority
-                </label>
-                <select
-                  id="ticket-priority"
-                  value={priority}
-                  onChange={(event) => setPriority(event.target.value as TicketPriority)}
-                  className="mt-1 flex h-12 w-full rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground"
-                >
-                  <option value="normal">Normal</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-xl font-bold text-foreground">{stat.value}</p>
               </div>
             </div>
+          </Card>
+        ))}
+      </div>
 
-            <div>
-              <label className="text-sm font-medium text-foreground" htmlFor="ticket-message">
-                Details
-              </label>
-              <textarea
-                id="ticket-message"
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                placeholder="What happened? Add invoice IDs, dataset names, or screenshots details if useful."
-                required
-                className="mt-1 min-h-32 w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground"
-              />
-            </div>
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => loadTickets()} disabled={isLoading} className="gap-2">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh
+        </Button>
+      </div>
 
-            <Button type="submit" className="gap-2" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Submit ticket
-            </Button>
-          </form>
+      {error ? (
+        <Card className="border-border bg-card p-8 text-center text-sm text-red-600 dark:text-red-400">
+          {error}
         </Card>
+      ) : isLoading ? (
+        <Card className="border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          Loading tickets...
+        </Card>
+      ) : (
+        <DataTable
+          title={isSuperAdmin ? "Support queue" : "Your tickets"}
+          description={isSuperAdmin ? "Customer, category, priority, status, and latest update." : "Category, priority, status, and latest support update."}
+          emptyMessage="No tickets yet."
+          rows={tickets as unknown as Record<string, unknown>[]}
+          columns={ticketColumns(isSuperAdmin)}
+          rowKey={(row) => String(row.id)}
+          minWidth="min-w-[980px]"
+        />
       )}
-
-      <Card className={`p-5 ${isSuperAdmin ? "lg:col-span-2" : ""}`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">{isSuperAdmin ? "Support queue" : "Your tickets"}</h2>
-            <p className="text-sm text-muted-foreground">
-              {openCount} active {openCount === 1 ? "ticket" : "tickets"}
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => loadTickets()} disabled={isLoading}>
-            Refresh
-          </Button>
-        </div>
-
-        {error && (
-          <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-100">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-5 space-y-3">
-          {isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading tickets
-            </div>
-          ) : tickets.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No tickets yet.
-            </div>
-          ) : (
-            tickets.map((ticket) => {
-              const Icon = statusIcon(ticket.status)
-
-              return (
-                <div key={ticket.id} className="rounded-lg border border-border bg-background p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-semibold text-foreground">{ticket.subject}</h3>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusClassName(ticket.status)}`}>
-                          <Icon className="h-3 w-3" />
-                          {statusLabel(ticket.status)}
-                        </span>
-                        {ticket.priority === "urgent" && (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-950 dark:bg-red-950 dark:text-red-100">
-                            Urgent
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {ticket.category} · {ticket.userEmail} · {new Date(ticket.createdAt).toLocaleString()}
-                      </p>
-                      <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/90">{ticket.message}</p>
-                    </div>
-                  </div>
-
-{ticket.adminNote && (
-                     <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 text-sm">
-                       <p className="font-medium text-foreground">Support note {ticket.adminName && `- ${ticket.adminName}`}</p>
-                       <p className="mt-1 text-xs text-muted-foreground">
-                         {ticket.adminNoteUpdatedAt && new Date(ticket.adminNoteUpdatedAt).toLocaleString()}
-                       </p>
-                       <p className="mt-1 text-muted-foreground">{ticket.adminNote}</p>
-                     </div>
-                   )}
-
-                   {isSuperAdmin ? (
-                     <div className="mt-4 space-y-3 border-t border-border pt-4">
-                       <Input
-                         value={adminNotes[ticket.id] || ""}
-                         onChange={(event) =>
-                           setAdminNotes((current) => ({ ...current, [ticket.id]: event.target.value }))
-                         }
-                         placeholder="Type a reply to the customer..."
-                         className="w-full"
-                       />
-                       <div className="flex flex-wrap gap-2">
-                         <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "open")}>
-                           Mark open
-                         </Button>
-                         <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "in_progress")}>
-                           In progress
-                         </Button>
-                         <Button size="sm" onClick={() => handleUpdateTicket(ticket.id, "resolved")}>
-                           Resolve
-                         </Button>
-                       </div>
-                     </div>
-                   ) : ticket.status !== "resolved" ? (
-                     <div className="mt-4 border-t border-border pt-4">
-                       <Button size="sm" variant="outline" onClick={() => handleUpdateTicket(ticket.id, "resolved")}>
-                         Mark resolved
-                       </Button>
-                     </div>
-                   ) : null}
-                </div>
-              )
-            })
-          )}
-        </div>
-      </Card>
     </div>
   )
+}
+
+function ticketColumns(isSuperAdmin: boolean): DataTableColumn<Record<string, unknown>>[] {
+  return [
+    {
+      key: "subject",
+      header: "Ticket",
+      render: (row) => (
+        <div className="max-w-md">
+          <p className="font-medium text-foreground">{String(row.subject || "-")}</p>
+          <p className="truncate text-xs text-muted-foreground">{String(row.message || "-")}</p>
+        </div>
+      ),
+    },
+    ...(isSuperAdmin
+      ? [
+          {
+            key: "customer",
+            header: "Customer",
+            render: (row: Record<string, unknown>) => <span className="text-muted-foreground">{String(row.userEmail || "-")}</span>,
+          },
+        ]
+      : []),
+    {
+      key: "category",
+      header: "Category",
+      render: (row) => <span className="text-muted-foreground">{String(row.category || "General")}</span>,
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      render: (row) => (
+        <span
+          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+            row.priority === "urgent"
+              ? "bg-red-100 text-red-950 dark:bg-red-950 dark:text-red-100"
+              : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          }`}
+        >
+          {String(row.priority || "normal")}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => {
+        const status = String(row.status || "open") as TicketStatus
+        const Icon = statusIcon(status)
+
+        return (
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusClassName(status)}`}>
+            <Icon className="h-3 w-3" />
+            {statusLabel(status)}
+          </span>
+        )
+      },
+    },
+    {
+      key: "updatedAt",
+      header: "Updated",
+      render: (row) => (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          {row.updatedAt ? new Date(String(row.updatedAt)).toLocaleString() : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <Link
+          href={`/app/tickets/${encodeURIComponent(String(row.id))}`}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+          aria-label={`Edit ticket ${String(row.subject || row.id || "")}`}
+        >
+          <Edit className="h-4 w-4" />
+        </Link>
+      ),
+    },
+  ]
 }

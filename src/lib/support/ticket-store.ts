@@ -176,6 +176,7 @@ export async function updateTicket(input: {
   id: unknown
   status: unknown
   adminNote?: unknown
+  adminName?: unknown
   userId: string
   isSuperAdmin: boolean
 }) {
@@ -199,9 +200,12 @@ export async function updateTicket(input: {
           ? "resolved"
           : existing.status
       const now = new Date()
+      const nextAdminNote = input.isSuperAdmin ? cleanText(input.adminNote) : existing.adminNote
       const [row] = await db.update(supportTickets).set({
         status: nextStatus,
-        adminNote: input.isSuperAdmin ? cleanText(input.adminNote) : existing.adminNote,
+        adminNote: nextAdminNote,
+        adminName: input.isSuperAdmin ? cleanText(input.adminName) : existing.adminName,
+        adminNoteUpdatedAt: input.isSuperAdmin && nextAdminNote ? now : existing.adminNoteUpdatedAt,
         resolvedAt: nextStatus === "resolved" ? now : null,
         updatedAt: now,
       }).where(eq(supportTickets.id, id)).returning()
@@ -229,6 +233,8 @@ export async function updateTicket(input: {
   if (input.isSuperAdmin) {
     ticket.status = normalizeStatus(input.status)
     ticket.adminNote = cleanText(input.adminNote)
+    ticket.adminName = cleanText(input.adminName)
+    ticket.adminNoteUpdatedAt = ticket.adminNote ? new Date().toISOString() : ticket.adminNoteUpdatedAt
   } else if (input.status === "resolved") {
     ticket.status = "resolved"
   }

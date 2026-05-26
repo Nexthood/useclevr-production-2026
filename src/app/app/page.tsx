@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"
-import { BarChart3, Database, FileText, Settings, ShoppingCart, TrendingUp, Users } from "lucide-react"
+import { BarChart3, Building2, Database, FileText, ShoppingCart, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
@@ -110,11 +110,11 @@ export default async function AppDashboard() {
               </Card>
             </Link>
 
-            <Link href="/app/settings/business">
+            <Link href="/app/business">
               <Card className="p-5 bg-card border-border hover:border-primary/40 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                    <Settings className="h-5 w-5 text-indigo-800 dark:text-indigo-100" />
+                    <Building2 className="h-5 w-5 text-indigo-800 dark:text-indigo-100" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Business Profile</p>
@@ -160,7 +160,7 @@ export default async function AppDashboard() {
                 <Link href="/app/datasets" className="block text-sm text-primary hover:underline">
                   Upload new dataset →
                 </Link>
-                <Link href="/app/settings/business" className="block text-sm text-primary hover:underline">
+                <Link href="/app/business/profile" className="block text-sm text-primary hover:underline">
                   Complete business profile →
                 </Link>
                 <Link href="/app/settings/subscription" className="block text-sm text-primary hover:underline">

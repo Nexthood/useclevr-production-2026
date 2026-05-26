@@ -15,6 +15,9 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 No active implementation task is currently in progress.
 
+- T-312. Add dedicated Business, BusinessEntity, and tax profile storage with true multi-business
+  listing rows, archive and restore flow, and subscription-tier business limits.
+
 ## Next
 
 - T-130. Document API endpoints and request/response contracts.

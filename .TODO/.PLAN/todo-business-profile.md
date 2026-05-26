@@ -1,4 +1,4 @@
-# Business Profile Settings Implementation Plan
+# Business Profile Workspace Implementation Plan
 
 ## P-1 Core Architecture Principle
 
@@ -18,16 +18,22 @@ Avoid building one giant business-management system early. Keep modules separate
 ### S-1 Dashboard Navigation Flow
 ```mermaid
 flowchart TD
-    A[Settings Dashboard] --> B[Click Business Profiles]
-    B --> C[Listing Page]
-    C --> D[Click Business Row]
-    D --> E[Business Workspace - View Mode]
-    E --> F[Edit inline or Autosave]
-    F --> G[Review Screen]
-    G --> H[Continue to Analysis]
-    E --> I[Click Entities Tab]
-    E --> J[Click Tax Tab]
+    A[Dashboard Sidebar] --> B[Click Business]
+    B --> C[Business Top Page /app/business]
+    C --> D[Businesses Listing Table]
+    D --> E[Click Business Row or Profile Action]
+    E --> F[Business Workspace Subpages]
+    F --> G[Profile]
+    F --> H[Locations & Operations]
+    F --> I[Tax & VAT]
+    F --> J[Financial Settings]
+    F --> K[Review & Validation]
+    K --> L[Continue to Analysis]
 ```
+
+Business is a first-class dashboard area. It must not be owned by the Settings profile menu sidebar.
+The old settings URL may redirect for compatibility, but the canonical user flow starts at
+`/app/business`, shows the businesses listing table first, and then opens business-specific subpages.
 
 ### S-2 Profile Completion Engine Flow
 ```mermaid
@@ -170,7 +176,10 @@ erDiagram
 
 ### S-2 Business Workspace Layout
 ```text
-[Company Logo]
+[Business top page]
+Businesses listing table
+
+[Business workspace subpages]
 Business Name - Completion % - AI Confidence %
 
 • Overview         • Locations & Operations
@@ -751,3 +760,15 @@ T-307: Add business profile custom field support
 T-308: Implement business profile search and filtering
 T-309: Add business profile bulk edit capabilities
 T-310: Create business profile public profile page option
+
+## [suggestions - 2026-05-26 workspace review]
+
+- Keep `/app/business` as the canonical Business entry point and keep the listing table as the first
+  screen, even while V1 only has one profile-backed primary business.
+- Treat `/app/business/profile`, `/app/business/locations`, `/app/business/tax`,
+  `/app/business/financial`, and `/app/business/review` as the Business workspace subpages.
+- Keep Settings focused on account, preferences, subscription, and admin configuration; do not add
+  Business back to the Settings profile menu sidebar.
+- Use the existing profile-backed business fields for the current release, then add dedicated
+  Business and BusinessEntity tables before enabling true multi-business rows, archive/restore, and
+  subscription-tier business limits.

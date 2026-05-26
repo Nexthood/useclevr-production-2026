@@ -1,5 +1,7 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { auth } from "@/lib/auth"
+import { Plus } from "lucide-react"
+import Link from "next/link"
 import { TicketsClient } from "./tickets-client"
 
 export default async function TicketsPage() {
@@ -19,6 +21,15 @@ export default async function TicketsPage() {
           { label: "Dashboard", href: "/app" },
           { label: "Tickets" },
         ]}
+        actions={
+          <Link
+            href="/app/tickets/new"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            New ticket
+          </Link>
+        }
       />
 
       <main className="px-5 py-5">

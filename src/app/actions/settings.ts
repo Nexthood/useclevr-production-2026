@@ -92,7 +92,7 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
     userId,
     userEmail: email,
     type: "profile_updated",
-    feature: "settings",
+    feature: "business",
     title: "Profile updated",
     description: "Account profile details were saved.",
   })
@@ -180,6 +180,9 @@ export async function updateBusinessDetails(formData: FormData): Promise<UpdateB
   revalidatePath("/app")
   revalidatePath("/app/settings")
   revalidatePath("/app/settings/business")
+  revalidatePath("/app/business")
+  revalidatePath("/app/business/profile")
+  revalidatePath("/app/business/review")
 
   return { success: true, message: "Business details saved." }
 }

@@ -1,0 +1,43 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { auth } from "@/lib/auth"
+import { getDb } from "@/lib/db"
+import { profiles } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+import { MapPin } from "lucide-react"
+
+export const metadata = {
+  title: "Business Locations - UseClevr",
+}
+
+export default async function BusinessLocationsPage() {
+  const session = await auth()
+  const db = getDb()
+  const profile = session?.user?.id && db
+    ? await db.query.profiles.findFirst({
+        where: eq(profiles.userId, session.user.id),
+        columns: { businessName: true, location: true },
+      })
+    : null
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle>Locations & operations</CardTitle>
+        <CardDescription>Review the primary operating location used for regional assumptions.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-lg border border-border bg-background p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{profile?.businessName || "Primary business profile"}</p>
+              <p className="text-sm text-muted-foreground">{profile?.location || "No operating location saved yet."}</p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

@@ -15,7 +15,7 @@ const navigation = [
   { name: "Datasets", href: "/app/datasets", icon: Database },
   { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
-  { name: "Business", href: "/app/settings/business", icon: Building2 },
+  { name: "Business", href: "/app/business", icon: Building2 },
   { name: "Referral", href: "/app/referral", icon: Gift },
 ]
 
@@ -107,12 +107,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </div>
         </div>
 
-<div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
-               <div className="mt-3 grid grid-cols-2 gap-2">
-                 <SocialLink icon={FaXTwitter} label="X" href="https://twitter.com/useclevr" />
-                 <SocialLink icon={FaLinkedin} label="LinkedIn" href="https://linkedin.com/company/useclevr" />
-               </div>
-             </div>
+        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-3">
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <SocialLink icon={FaXTwitter} label="X" href="https://twitter.com/useclevr" />
+            <SocialLink icon={FaLinkedin} label="LinkedIn" href="https://linkedin.com/company/useclevr" />
+          </div>
+        </div>
 
         <div className="relative">
           <button
@@ -140,7 +140,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
-                <Link href="/app/settings/business" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent">
+                <Link href="/app/business/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent">
                   <Building2 className="h-4 w-4" />
                   Business
                 </Link>
