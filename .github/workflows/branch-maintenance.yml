@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout beta
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: beta
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -49,18 +49,18 @@ jobs:
           fi
 
       - name: Checkout main source for build
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
         with:
           version: latest
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
           cache: pnpm
