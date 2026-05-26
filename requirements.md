@@ -149,11 +149,12 @@
 - Developers can test source changes on a beta branch before opening a pull request into the stable
   branch.
 - Platform operators receive deployments from generated production output without requiring local
-  build files to be committed to source branches.
+   build files to be committed to source branches.
 - The hosting platform deploys from generated output while keeping runtime secrets in the hosting
-  environment.
+   environment.
 - Production deployments use a generated deployment folder with its own runtime package,
-  hosting config, and dependency build approvals.
+   hosting config, and dependency build approvals.
+- Production deployments use Railpack builder for improved build control and smaller images.
 - Production deployments include a manifest with source commit, build timestamp, runtime version,
   and healthcheck path.
 - Developers can use documented package scripts and TODO workflows to keep local checks, deployment
@@ -191,10 +192,8 @@
   applied in the target environment before the new web process starts.
 - Hosting pre-deploy and runtime commands use pnpm-backed generated scripts, and old dashboard-level
   npm command overrides are not part of the supported deployment path.
-- Railway runtime builds use Corepack-managed pnpm through Nixpacks so deployment no longer depends
-  on Railpack `mise install`.
-- Railway runtime builds use a current Corepack setup and a Node-compatible pnpm release so
-  package-manager signature updates and Node engine checks do not block deploys.
+- Railway runtime builds use Railpack with Mise for version resolution and BuildKit-based
+   image construction.
 - Railway runtime packages avoid conflicting pnpm build-approval settings during generated-output
   installation.
 - Railway runtime installs can run from generated deployment packages without a committed lockfile.
