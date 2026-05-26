@@ -156,8 +156,10 @@ fs.writeFileSync(
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
 );
 
-assertExists(distNixpacksTemplate, "Nixpacks dist template");
-fs.cpSync(distNixpacksTemplate, path.join(distDir, "nixpacks.toml"));
+// Copy nixpacks.toml to dist if present (Railpack does not require it)
+if (fs.existsSync(distNixpacksTemplate)) {
+  fs.cpSync(distNixpacksTemplate, path.join(distDir, "nixpacks.toml"));
+}
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {
