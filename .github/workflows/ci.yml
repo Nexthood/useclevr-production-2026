@@ -13,15 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: pnpm/action-setup@v5
+        with:
+          version: latest
+
       - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
-
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
@@ -38,15 +37,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: pnpm/action-setup@v5
+        with:
+          version: latest
+
       - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
-
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

@@ -55,16 +55,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - name: Setup Node.js runtime
-        uses: actions/setup-node@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v5
         with:
           node-version: "26.x"
           cache: pnpm
-
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
 
       - name: Install dependencies
         run: |
