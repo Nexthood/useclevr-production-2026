@@ -63,6 +63,16 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
   if (source.includes("pnpm install") && !source.includes("corepack prepare pnpm@11.1.2 --activate")) {
     errors.push(`${fileName}: pnpm install requires a preceding Corepack activation step`)
   }
+
+  if (workflow.jobs) {
+    for (const jobId of Object.keys(workflow.jobs)) {
+      if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(jobId) || jobId.length > 100) {
+        errors.push(
+          `${fileName}: invalid job ID '${jobId}'; must start with letter/underscore and contain only alphanumeric/_/- characters`,
+        )
+      }
+    }
+  }
 }
 
 if (errors.length > 0) {
