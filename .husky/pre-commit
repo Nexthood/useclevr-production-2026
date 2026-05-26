@@ -3,10 +3,5 @@
 # TypeScript, deploy config, lint, and production publish build checks
 pnpm validate:precommit
 
-# YAML syntax check for GitHub workflow files
-for f in .github/workflows/*.yml; do
-  if ! node -e "require('js-yaml').load(require('fs').readFileSync('$f','utf8'))" 2>/dev/null; then
-    echo "YAML syntax error in $f"
-    exit 1
-  fi
-done
+# YAML syntax and action policy check for GitHub workflow files
+pnpm lint:workflows
