@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm"
 
+import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { datasets, profiles, userActivities } from "@/lib/db/schema"
 
@@ -33,7 +34,7 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
     return emptyStatus(false)
   }
 
-  const [profile, firstDataset, analyzedActivity, seenActivity, pageVisitActivities] = await Promise.all([
+  const [profile, businessDetails, firstDataset, analyzedActivity, seenActivity, pageVisitActivities] = await Promise.all([
     db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
       columns: {
@@ -47,6 +48,7 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
         businessDescription: true,
       },
     }),
+    getPrimaryBusinessDetails(userId),
     db.query.datasets.findFirst({
       where: eq(datasets.userId, userId),
       columns: { id: true },
@@ -84,12 +86,12 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
     { id: "profile-email", title: "Confirm account email", complete: Boolean(profile?.email) },
   ]
   const businessFields = [
-    { id: "business-name", title: "Add company name", complete: Boolean(profile?.businessName) },
-    { id: "business-email", title: "Add company email", complete: Boolean(profile?.businessEmail) },
-    { id: "business-industry", title: "Add industry", complete: Boolean(profile?.industry) },
-    { id: "business-location", title: "Add location", complete: Boolean(profile?.location) },
-    { id: "business-website", title: "Add website", complete: Boolean(profile?.website) },
-    { id: "business-description", title: "Add business description", complete: Boolean(profile?.businessDescription) },
+    { id: "business-name", title: "Add company name", complete: Boolean(businessDetails.businessName) },
+    { id: "business-email", title: "Add company email", complete: Boolean(businessDetails.businessEmail) },
+    { id: "business-industry", title: "Add industry", complete: Boolean(businessDetails.industry) },
+    { id: "business-location", title: "Add location", complete: Boolean(businessDetails.location) },
+    { id: "business-website", title: "Add website", complete: Boolean(businessDetails.website) },
+    { id: "business-description", title: "Add business description", complete: Boolean(businessDetails.businessDescription) },
   ]
   const requiredPageVisits = [
     { id: "visit-profile", title: "Visit profile settings", href: "/app/settings/profile" },

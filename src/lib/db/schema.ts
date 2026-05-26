@@ -135,6 +135,77 @@ export const profiles = pgTable(
   })
 )
 
+export const businesses = pgTable(
+  'Business',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull(),
+    name: text('name').notNull(),
+    companyNumber: text('companyNumber'),
+    address: text('address'),
+    email: text('email'),
+    industry: text('industry'),
+    website: text('website'),
+    description: text('description'),
+    status: varchar('status', { length: 30 }).default('draft').notNull(),
+    isPrimary: boolean('isPrimary').default(false).notNull(),
+    localeSettings: jsonb('localeSettings').$type<{
+      timezone?: string
+      currency?: string
+      locale?: string
+      invoicePrefix?: string
+    }>().default({}).notNull(),
+    invoiceSettings: jsonb('invoiceSettings').$type<Record<string, unknown>>().default({}).notNull(),
+    archivedAt: timestamp('archivedAt'),
+    archiveExpiresAt: timestamp('archiveExpiresAt'),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: 'Business_userId_fkey',
+    }).onDelete('cascade'),
+  })
+)
+
+export const businessEntities = pgTable(
+  'BusinessEntity',
+  {
+    id: text('id').primaryKey(),
+    businessId: text('businessId').notNull(),
+    name: text('name').notNull(),
+    country: text('country'),
+    address: text('address'),
+    vatRegistered: boolean('vatRegistered').default(false).notNull(),
+    vatNumber: text('vatNumber'),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    businessIdFk: foreignKey({
+      columns: [table.businessId],
+      foreignColumns: [businesses.id],
+      name: 'BusinessEntity_businessId_fkey',
+    }).onDelete('cascade'),
+  })
+)
+
+export const countryTaxProfiles = pgTable(
+  'CountryTaxProfile',
+  {
+    countryCode: varchar('countryCode', { length: 32 }).primaryKey(),
+    countryName: text('countryName').notNull(),
+    vatRates: jsonb('vatRates').$type<Record<string, unknown>>().default({}).notNull(),
+    corporateTaxRates: jsonb('corporateTaxRates').$type<Record<string, unknown>>().default({}).notNull(),
+    filingDeadlines: jsonb('filingDeadlines').$type<Record<string, unknown>>().default({}).notNull(),
+    requirements: jsonb('requirements').$type<Record<string, unknown>>().default({}).notNull(),
+    lastUpdated: timestamp('lastUpdated'),
+    cachedAt: timestamp('cachedAt').defaultNow().notNull(),
+  }
+)
+
 // Dataset table - custom table
 export const datasets = pgTable(
   'Dataset',

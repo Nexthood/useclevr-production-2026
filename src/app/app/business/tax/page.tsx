@@ -1,8 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
-import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { Landmark } from "lucide-react"
 import type React from "react"
 
@@ -12,13 +10,7 @@ export const metadata = {
 
 export default async function BusinessTaxPage() {
   const session = await auth()
-  const db = getDb()
-  const profile = session?.user?.id && db
-    ? await db.query.profiles.findFirst({
-        where: eq(profiles.userId, session.user.id),
-        columns: { location: true, industry: true },
-      })
-    : null
+  const details = await getPrimaryBusinessDetails(session?.user?.id)
 
   return (
     <Card className="border-border bg-card">
@@ -28,8 +20,8 @@ export default async function BusinessTaxPage() {
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-2">
-          <ContextItem icon={Landmark} label="Tax region" value={profile?.location || "Needs location"} />
-          <ContextItem icon={Landmark} label="Business activity" value={profile?.industry || "Needs industry"} />
+          <ContextItem icon={Landmark} label="Tax region" value={details.location || "Needs location"} />
+          <ContextItem icon={Landmark} label="Business activity" value={details.industry || "Needs industry"} />
         </div>
       </CardContent>
     </Card>

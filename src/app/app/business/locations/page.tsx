@@ -1,8 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
-import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { MapPin } from "lucide-react"
 
 export const metadata = {
@@ -11,13 +9,7 @@ export const metadata = {
 
 export default async function BusinessLocationsPage() {
   const session = await auth()
-  const db = getDb()
-  const profile = session?.user?.id && db
-    ? await db.query.profiles.findFirst({
-        where: eq(profiles.userId, session.user.id),
-        columns: { businessName: true, location: true },
-      })
-    : null
+  const details = await getPrimaryBusinessDetails(session?.user?.id)
 
   return (
     <Card className="border-border bg-card">
@@ -32,8 +24,8 @@ export default async function BusinessLocationsPage() {
               <MapPin className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-medium text-foreground">{profile?.businessName || "Primary business profile"}</p>
-              <p className="text-sm text-muted-foreground">{profile?.location || "No operating location saved yet."}</p>
+              <p className="font-medium text-foreground">{details.businessName || "Primary business profile"}</p>
+              <p className="text-sm text-muted-foreground">{details.location || "No operating location saved yet."}</p>
             </div>
           </div>
         </div>

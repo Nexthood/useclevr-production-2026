@@ -13,13 +13,11 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Active
 
-- T-314. Execute dist-test branch prompt plan for test.useclevr.com Railway deployment.
-
-- T-312. Add dedicated Business, BusinessEntity, and tax profile storage with true multi-business
-  listing rows, archive and restore flow, and subscription-tier business limits.
+No active implementation task is currently in progress.
 
 ## Next
 
+- T-314. Execute dist-test branch prompt plan (see `.TODO/.PLAN/dist-test-prompt-plan.md`) for test.useclevr.com Railway deployment.
 - T-130. Document API endpoints and request/response contracts.
 - T-131. Create a user-facing product guide.
 - T-132. Review and remove production-facing debug logs.
@@ -59,7 +57,6 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 - T-166. Decide whether the annual Pro plan appears in subscription settings or the footer copy changes.
 - T-167. Add a Stripe customer portal route for invoice downloads, plan swaps, and cancellation.
 - T-168. Track checkout funnel events.
-- T-169. Add a `.nvmrc` that matches the supported Node runtime.
 - T-170. Add production database connection probes for cold-start visibility.
 - T-171. Run dependency drift checks and lock stable majors where appropriate.
 - T-172. Add audit coverage to CI if the current validation gate does not catch advisories.
@@ -72,7 +69,6 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 - T-179. Review Railway runtime memory settings after the successful dist deployment.
 - T-246. Deduplicate homepage and public FAQ accordion behavior into one shared component.
 - T-247. Replace the homepage FAQ count approximation with a computed FAQ item count.
-- T-248. Add a canonical redirect from `/app/app/settings` to `/app/settings/profile`.
 - T-249. Add a shared billing hook or helper for topbar, subscription, and checkout billing state.
 - T-250. Add a payment price lookup index or document why price-based billing reports are unsupported.
 - T-251. Strip direct payment secret references from files that may be included in AI context.

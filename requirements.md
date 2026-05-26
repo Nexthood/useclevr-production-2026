@@ -36,6 +36,7 @@
 - Users can manage their subscription, view usage, and downgrade or cancel without leaving the app.
 - Free tier users receive a limited analyst-credit allowance and are prompted to subscribe when it
   is exhausted.
+- Mistyped dashboard settings links should land on Profile settings instead of a missing page.
 
 ### Business Profile
 
@@ -47,6 +48,8 @@
   incomplete setup items.
 - Dashboard users open Business as a top-level workspace with a businesses listing table before
   editing profile, location, tax, financial, or review details.
+- Business records support subscription-tier limits, primary profile storage, archive and restore
+  states, operating entities, and cached country tax profiles.
 - Users fill in company name, industry, location, website, and description in Business Profile.
 - Business Profile shows identity, contact, and operations sections with review flags that explain
   which missing details lower AI confidence.
