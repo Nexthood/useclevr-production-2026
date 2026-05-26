@@ -13,6 +13,10 @@ Get T-number (task number) from `.TODO/config.json` before adding new tasks.
 
 ## Completed
 
+- T-248. The legacy `/app/app/settings` path now redirects to Profile settings.
+- T-169. The repository already includes a `.nvmrc` for the supported Node runtime.
+- T-312. Dedicated business, business entity, and country tax profile storage now supports
+  multi-business listing rows, archive and restore state, and subscription-tier business limits.
 - T-313. Dashboard tickets now use a table-first queue with row edit pages and a separate new
   ticket page.
 - T-311. Business Profile was promoted from settings into a top-level Business workspace with a

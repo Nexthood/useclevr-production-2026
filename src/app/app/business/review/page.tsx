@@ -1,9 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getBusinessReviewFlags, type BusinessDetails } from "@/lib/business/business-profile"
+import { getBusinessReviewFlags } from "@/lib/business/business-profile"
+import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { auth } from "@/lib/auth"
-import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 
 export const metadata = {
@@ -12,28 +10,7 @@ export const metadata = {
 
 export default async function BusinessReviewPage() {
   const session = await auth()
-  const db = getDb()
-  const profile = session?.user?.id && db
-    ? await db.query.profiles.findFirst({
-        where: eq(profiles.userId, session.user.id),
-        columns: {
-          businessName: true,
-          businessEmail: true,
-          industry: true,
-          location: true,
-          website: true,
-          businessDescription: true,
-        },
-      })
-    : null
-  const details: BusinessDetails = {
-    businessName: profile?.businessName ?? "",
-    businessEmail: profile?.businessEmail ?? "",
-    industry: profile?.industry ?? "",
-    location: profile?.location ?? "",
-    website: profile?.website ?? "",
-    businessDescription: profile?.businessDescription ?? "",
-  }
+  const details = await getPrimaryBusinessDetails(session?.user?.id)
   const flags = getBusinessReviewFlags(details)
 
   return (

@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { recordActivity } from "@/lib/activity/activity-store"
+import { upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -92,7 +93,7 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
     userId,
     userEmail: email,
     type: "profile_updated",
-    feature: "business",
+    feature: "settings",
     title: "Profile updated",
     description: "Account profile details were saved.",
   })
@@ -167,6 +168,15 @@ export async function updateBusinessDetails(formData: FormData): Promise<UpdateB
       businessDescription,
     })
   }
+
+  await upsertPrimaryBusinessDetails(userId, {
+    businessName,
+    businessEmail,
+    industry: industry || "",
+    location: location || "",
+    website: website || "",
+    businessDescription: businessDescription || "",
+  })
 
   await recordActivity({
     userId,

@@ -18,6 +18,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   which company details improve AI confidence.
 - Business now opens as a top-level workspace with a businesses listing table and profile, location,
   tax, financial, and review subpages.
+- Business records now use dedicated storage for business profiles, operating entities, archived
+  status, subscription-tier limits, and cached country tax context.
 - Setup progress now counts profile fields, business profile fields, first data actions, and key
   dashboard pages visited at least once.
 - The setup progress panel now includes a guided tour through incomplete setup items.
@@ -54,6 +56,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Mistyped dashboard settings links now redirect to Profile settings.
 - Business and super-admin accounts now keep paid download access instead of falling back to the free
   download limit.
 - Checkout action labels now render plain text instead of encoded HTML entities.
