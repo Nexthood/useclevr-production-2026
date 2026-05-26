@@ -99,6 +99,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - TODO validation reports active and retired queue states while preserving existing task metadata.
 - Changelog linting checks Unreleased entries for active-change wording.
 - Maintenance scripts share repository path and package-manager settings from one script config.
+- CommonJS tooling uses the same repository settings as ESM maintenance scripts while runtime helpers
+  keep their deployment-safe format.
 - TODO management uses stable task numbers, a single active queue, retired dist/audit queues, and
   dedicated project audit and testing guides.
 - TODO management docs document migration records, retirement rules, and temporary TODO handling.

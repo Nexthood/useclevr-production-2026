@@ -1,11 +1,12 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "RAILPACK"
+    "builder": "RAILPACK",
+    "buildCommand": "echo prebuilt"
   },
   "deploy": {
-    "preDeployCommand": "pnpm run railway:predeploy",
-    "startCommand": "pnpm run start:railway",
+    "preDeployCommand": "node ./scripts/runtime/railway-predeploy.cjs",
+    "startCommand": "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",

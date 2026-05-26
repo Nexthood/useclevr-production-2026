@@ -71,6 +71,14 @@ pnpm health                             # validate + tests + docs + audit
 
 Strip sensitive data from AI context helpers before sending responses to openai/cloud vendors.
 
+## Script Module Rules
+
+- Use ESM for source-side maintenance scripts because the repository package is `type: module`.
+- Keep CommonJS for runtime preload/start scripts, generated deployment helpers, and tooling entry
+  points that must run through `node -r` or CommonJS-only consumers.
+- Use `scripts/lib/app-config.js` from ESM scripts and `scripts/lib/app-config.cjs` from CommonJS
+  scripts so path and package-manager policy stay aligned.
+
 ## AI Kilo / Other AI Instructions
 
 ### Kilo (this CLI)
@@ -154,19 +162,19 @@ available, with a short fallback title only when no PR title exists.
 
 ### Build pipeline
 
-```text
-CI / local (repo root)              Railway (dist branch, /dist root)
-─────────────────                   ──────────────────────
-pnpm prod:build                     (build phase - one-shot)
-   └ next build --webpack            pnpm install via Railway config
-   └ create-dist.cjs                 pnpm exec drizzle-kit push
-      → .next/standalone + static     node server.js
-      → dist/server.js
-      → dist/package.json             (no full source build here)
-      → dist/src/lib/db/ (schema)
-      → server-config/railway.json
-      → server-config/vercel.json
-```
+ ```text
+ CI / local (repo root)              Railway (dist branch, /dist root)
+ ─────────────────                   ──────────────────────
+ pnpm prod:build                     (build phase - one-shot)
+    └ next build --webpack            echo prebuilt (Railpack detects prebuilt output)
+    └ create-dist.cjs                 pnpm exec drizzle-kit push (preDeploy)
+       → .next/standalone + static     node server.js (start)
+       → dist/server.js
+       → dist/package.json             (no full source build here)
+       → dist/src/lib/db/ (schema)
+       → server-config/railway.json
+       → server-config/vercel.json
+ ```
 
 ### Source-of-truth files
 

@@ -1,8 +1,8 @@
 const fs = require("node:fs");
-const path = require("node:path");
 
-const root = process.cwd();
-const from = path.join(root, "dist-root", "server-config", "railway.json");
+const { resolveRepoPath } = require("../../lib/app-config.cjs");
+
+const from = resolveRepoPath("dist-root", "server-config", "railway.json");
 const checkOnly = process.argv.includes("--check");
 
 if (!fs.existsSync(from)) {

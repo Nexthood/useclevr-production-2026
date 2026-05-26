@@ -1,7 +1,9 @@
 const { readFileSync } = require("node:fs");
 const { execFileSync } = require("node:child_process");
 
-const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+const { packagePath } = require("../lib/app-config.cjs");
+
+const pkg = JSON.parse(readFileSync(packagePath, "utf8"));
 const version = pkg.version;
 const tag = `v${version}`;
 

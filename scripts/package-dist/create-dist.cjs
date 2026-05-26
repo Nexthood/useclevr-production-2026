@@ -1,19 +1,20 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const rootDir = process.cwd();
-const distDir = path.join(rootDir, "dist");
-const standaloneDir = path.join(rootDir, ".next", "standalone");
-const nextStaticDir = path.join(rootDir, ".next", "static");
-const srcAssetsDir = path.join(rootDir, "src", "assets");
-const publicDir = path.join(rootDir, "public");
-const dbSchemaDir = path.join(rootDir, "src", "lib", "db");
-const runtimeScriptsDir = path.join(rootDir, "scripts", "runtime");
+const { packagePath, repoRelative, resolveRepoPath, rootDir } = require("../lib/app-config.cjs");
+
+const distDir = resolveRepoPath("dist");
+const standaloneDir = resolveRepoPath(".next", "standalone");
+const nextStaticDir = resolveRepoPath(".next", "static");
+const srcAssetsDir = resolveRepoPath("src", "assets");
+const publicDir = resolveRepoPath("public");
+const dbSchemaDir = resolveRepoPath("src", "lib", "db");
+const runtimeScriptsDir = resolveRepoPath("scripts", "runtime");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
     throw new Error(
-      `${label} not found at ${path.relative(rootDir, target)}. Run pnpm build first.`,
+      `${label} not found at ${repoRelative(target)}. Run pnpm build first.`,
     );
   }
 }
@@ -69,7 +70,7 @@ if (fs.existsSync(dbSchemaDir)) {
   fs.mkdirSync(destDbDir, { recursive: true });
   fs.cpSync(dbSchemaDir, destDbDir, { recursive: true });
 }
-fs.cpSync(path.join(rootDir, "drizzle.config.ts"), path.join(distDir, "drizzle.config.ts"));
+fs.cpSync(resolveRepoPath("drizzle.config.ts"), path.join(distDir, "drizzle.config.ts"));
 
 // Copy runtime start helpers used by local, Railway, and future server targets.
 copyDir(runtimeScriptsDir, path.join(distDir, "scripts", "runtime"));
@@ -89,7 +90,7 @@ if (fs.existsSync(publicDir)) {
 }
 
 // Load root package.json for syncing
-const rootPkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf-8"));
+const rootPkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
 const distEngines = { ...rootPkg.engines };
 delete distEngines.pnpm;
 
