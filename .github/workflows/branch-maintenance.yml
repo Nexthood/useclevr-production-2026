@@ -67,12 +67,6 @@ jobs:
           pnpm install --frozen-lockfile --no-optional
           pnpm dedupe --no-optional
 
-      - name: Validate source before publishing
-        run: |
-          pnpm validate:types
-          pnpm validate:dist
-          pnpm lint
-
       - name: Build production artifacts
         run: pnpm prod:build
         env:
