@@ -35,7 +35,8 @@ flowchart LR
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
 branch, and publishes Railway config to `/server-config/railway.json`.
 
-`dist-root/server-config/railway.json` controls install via `preDeployCommand` and `startCommand`.
+`dist-root/server-config/railway.json` controls deploy with a prebuilt `/dist`. The build command
+outputs `"echo prebuilt"` since GitHub Actions publishes generated output directly to `/dist`.
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
@@ -45,8 +46,8 @@ The generated output intentionally does not include `pnpm-workspace.yaml`, `rail
 Railway config uses:
 
 ```bash
-pnpm run railway:predeploy
-pnpm run start:railway
+node ./scripts/runtime/railway-predeploy.cjs
+node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs
 ```
 
 The predeploy command runs an idempotent additive schema sync for generated deployments. The start

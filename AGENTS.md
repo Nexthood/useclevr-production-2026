@@ -162,19 +162,19 @@ available, with a short fallback title only when no PR title exists.
 
 ### Build pipeline
 
-```text
-CI / local (repo root)              Railway (dist branch, /dist root)
-─────────────────                   ──────────────────────
-pnpm prod:build                     (build phase - one-shot)
-   └ next build --webpack            pnpm install via Railway config
-   └ create-dist.cjs                 pnpm exec drizzle-kit push
-      → .next/standalone + static     node server.js
-      → dist/server.js
-      → dist/package.json             (no full source build here)
-      → dist/src/lib/db/ (schema)
-      → server-config/railway.json
-      → server-config/vercel.json
-```
+ ```text
+ CI / local (repo root)              Railway (dist branch, /dist root)
+ ─────────────────                   ──────────────────────
+ pnpm prod:build                     (build phase - one-shot)
+    └ next build --webpack            echo prebuilt (Railpack detects prebuilt output)
+    └ create-dist.cjs                 pnpm exec drizzle-kit push (preDeploy)
+       → .next/standalone + static     node server.js (start)
+       → dist/server.js
+       → dist/package.json             (no full source build here)
+       → dist/src/lib/db/ (schema)
+       → server-config/railway.json
+       → server-config/vercel.json
+ ```
 
 ### Source-of-truth files
 

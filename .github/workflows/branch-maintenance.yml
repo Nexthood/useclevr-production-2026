@@ -80,8 +80,9 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
       - name: Smoke test generated server
+        working-directory: dist
         run: |
-          PORT=8090 npm --prefix dist run start > /tmp/useclevr-dist-smoke.log 2>&1 &
+          PORT=8090 node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs > /tmp/useclevr-dist-smoke.log 2>&1 &
           pid=$!
 
           sleep 5
