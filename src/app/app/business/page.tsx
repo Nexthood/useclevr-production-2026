@@ -1,11 +1,12 @@
 import { archiveBusinessAction, restoreBusinessAction } from "@/app/actions/business"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { getBusinessLimit, listUserBusinesses, type BusinessListRow } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { Archive, Building2, CheckCircle2, CircleDashed, MapPin, Pencil, Plus, RotateCcw, ShieldCheck } from "lucide-react"
+import { Building2, CheckCircle2, CircleDashed, MapPin, Plus } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
@@ -42,6 +43,9 @@ export default async function BusinessPage() {
             Your business list is the entry point for profile, location, tax, and review settings. {businesses.length}/{businessLimit} slots used.
           </p>
         </div>
+      </div>
+
+      <PageActionRow description="Add or update the primary business details used by reports, tax settings, and account progress.">
         <Link
           href="/app/business/profile"
           aria-disabled={!canAddBusiness}
@@ -54,110 +58,115 @@ export default async function BusinessPage() {
           <Plus className="h-4 w-4" />
           Add details
         </Link>
-      </div>
+      </PageActionRow>
 
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle>Business listing</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="py-3 pr-4 font-medium">Business</th>
-                  <th className="py-3 pr-4 font-medium">Industry</th>
-                  <th className="py-3 pr-4 font-medium">Location</th>
-                  <th className="py-3 pr-4 font-medium">Status</th>
-                  <th className="py-3 pr-4 font-medium">Completion</th>
-                  <th className="py-3 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {businesses.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                      No businesses yet. Add details to create the primary business profile.
-                    </td>
-                  </tr>
-                ) : (
-                  businesses.map((business) => <BusinessTableRow key={business.id} business={business} />)
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <DataTable
+        title="Business listing"
+        description="Profile, location, status, and completion for each business slot."
+        emptyMessage="No businesses yet. Add details to create the primary business profile."
+        rows={businesses as unknown as Record<string, unknown>[]}
+        columns={businessColumns}
+        rowKey={(row) => String(row.id)}
+        minWidth="min-w-[880px]"
+      />
     </div>
   )
 }
 
-function BusinessTableRow({ business }: { business: BusinessListRow }) {
-  const StatusIcon = business.status === "active" ? CheckCircle2 : CircleDashed
-  const statusLabel = business.status.charAt(0).toUpperCase() + business.status.slice(1)
-
-  return (
-    <tr className="border-b border-border/70">
-      <td className="py-4 pr-4">
+const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
+  {
+    key: "name",
+    header: "Business",
+    render: (row) => (
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-medium text-foreground">{business.name}</p>
-            <p className="text-xs text-muted-foreground">{business.email}</p>
+            <Link href="/app/business/profile" className="font-medium text-foreground transition-colors hover:text-primary">
+              {String(row.name)}
+            </Link>
+            <div>
+              <Link href="/app/business/profile" className="text-xs text-primary hover:underline">
+                Edit profile
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground">{String(row.email)}</p>
           </div>
         </div>
-      </td>
-      <td className="py-4 pr-4 text-muted-foreground">{business.industry}</td>
-      <td className="py-4 pr-4 text-muted-foreground">
+    ),
+  },
+  {
+    key: "industry",
+    header: "Industry",
+    render: (row) => <span className="text-muted-foreground">{String(row.industry)}</span>,
+  },
+  {
+    key: "location",
+    header: "Location",
+    render: (row) => (
         <span className="inline-flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
-          {business.location}
+          {String(row.location)}
         </span>
-      </td>
-      <td className="py-4 pr-4">
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (row) => {
+      const status = String(row.status || "draft") as BusinessListRow["status"]
+      const StatusIcon = status === "active" ? CheckCircle2 : CircleDashed
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1)
+
+      return (
         <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground">
           <StatusIcon className="h-3.5 w-3.5" />
           {statusLabel}
         </span>
-      </td>
-      <td className="py-4 pr-4">
+      )
+    },
+  },
+  {
+    key: "completion",
+    header: "Completion",
+    render: (row) => {
+      const completion = Number(row.completion || 0)
+
+      return (
         <div className="flex min-w-32 items-center gap-2">
           <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${business.completion}%` }} />
+            <div className="h-full rounded-full bg-primary" style={{ width: `${completion}%` }} />
           </div>
-          <span className="text-xs font-medium text-muted-foreground">{business.completion}%</span>
+          <span className="text-xs font-medium text-muted-foreground">{completion}%</span>
         </div>
-      </td>
-      <td className="py-4 text-right">
-        <div className="flex justify-end gap-2">
-          <Link
-            href="/app/business/profile"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+      )
+    },
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    align: "right",
+    render: (row) => {
+      const status = String(row.status || "draft")
+      const action = status === "archived" ? restoreBusinessAction : archiveBusinessAction
+      const label = status === "archived" ? "Restore" : "Archive"
+
+      if (row.canArchive === false) {
+        return <span className="text-sm text-muted-foreground">Profile source</span>
+      }
+
+      return (
+        <form action={action}>
+          <input type="hidden" name="id" value={String(row.id)} />
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
           >
-            <Pencil className="h-4 w-4" />
-            Profile
-          </Link>
-          <Link
-            href="/app/business/review"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground transition hover:bg-secondary/80"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Review
-          </Link>
-          <form action={business.status === "archived" ? restoreBusinessAction : archiveBusinessAction}>
-            <input type="hidden" name="id" value={business.id} />
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
-            >
-              {business.status === "archived" ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-              {business.status === "archived" ? "Restore" : "Archive"}
-            </button>
-          </form>
-        </div>
-      </td>
-    </tr>
-  )
-}
+            {label}
+          </button>
+        </form>
+      )
+    },
+  },
+]

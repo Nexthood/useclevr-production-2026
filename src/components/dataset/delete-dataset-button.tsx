@@ -2,10 +2,9 @@
 
 import { deleteDataset } from "@/app/actions/datasets"
 import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-export function DeleteDatasetButton({ datasetId }: { datasetId: string }) {
+export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; label?: string }) {
   const router = useRouter()
 
   const handleDelete = async () => {
@@ -23,11 +22,12 @@ export function DeleteDatasetButton({ datasetId }: { datasetId: string }) {
   return (
     <Button
       variant="ghost"
-      size="icon"
+      size={label ? "sm" : "icon"}
       onClick={handleDelete}
-      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+      className={label ? "text-muted-foreground hover:text-destructive" : "h-8 w-8 text-muted-foreground hover:text-destructive"}
+      aria-label="Delete dataset"
     >
-      <Trash2 className="h-4 w-4" />
+      {label || "Delete"}
     </Button>
   )
 }

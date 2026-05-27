@@ -14,7 +14,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Railway deployment uses the Railpack builder for improved build control and smaller images.
- - Sign-out now redirects properly to login page for reliable navigation.
+- Sign-out now redirects properly to login page for reliable navigation.
+- Dataset, business, and ticket listings use consistent title links, supporting edit links, and
+  row-end actions.
+- AI Assistant keeps dataset selection, suggested questions, and the chat input visible while
+  messages scroll.
+- Dashboard FAQ separates user help and operator help with a clear section bar.
 
 ### Dev
 
@@ -64,6 +69,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Business workspace loads saved profile details even when dedicated business records are not ready.
+- Dashboard notices identify the failed request or page error more directly.
 - Mistyped dashboard settings links redirect to Profile settings.
 - Business and super-admin accounts keep paid download access instead of falling back to the free
   download limit.

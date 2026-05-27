@@ -1,5 +1,6 @@
 import { FaqList } from "@/components/faq/faq-list"
 import { DashboardFaqActions } from "@/components/faq/dashboard-faq-actions"
+import { FaqScopeNav } from "@/components/faq/faq-scope-nav"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { SupportTicketForm } from "@/components/support/support-ticket-form"
 import { Card } from "@/components/ui/card"
@@ -14,10 +15,9 @@ export default async function DashboardFaqPage({
 }) {
   const [session, params] = await Promise.all([auth(), searchParams])
   const isSuperAdmin = session?.user?.role === "superadmin"
-  const categories = isSuperAdmin
-    ? [...dashboardFaqCategories, ...superAdminFaqCategories]
-    : dashboardFaqCategories
-  const initialCategory = params.scope === "operator" ? "Super-admin tools" : "All"
+  const activeScope = isSuperAdmin && params.scope === "operator" ? "operator" : "user"
+  const categories = activeScope === "operator" ? superAdminFaqCategories : dashboardFaqCategories
+  const initialCategory = activeScope === "operator" ? "Super-admin tools" : "All"
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,6 +33,8 @@ export default async function DashboardFaqPage({
           { label: "FAQ" },
         ]}
       />
+
+      <FaqScopeNav activeScope={activeScope} showOperator={isSuperAdmin} />
 
       <main className="px-5 py-5">
         <div className="mx-auto max-w-4xl space-y-5">

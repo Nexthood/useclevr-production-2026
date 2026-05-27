@@ -10,9 +10,13 @@
 
 - Users can upload CSV or Excel files and receive instant AI-generated analysis.
 - Uploaded datasets render in a structured data table with row-count metadata.
+- Dataset rows use title links, an edit/open link under the title, and row-end actions for analysis
+  or deletion.
 - Users can ask AI questions about their uploaded dataset and get structured answers.
 - Dashboard users can open the AI Assistant from the sidebar, select one of their datasets, and ask
   business questions without leaving the assistant workspace.
+- The AI Assistant keeps dataset selection, suggested questions, and the chat input visible while
+  the conversation scrolls.
 - AI analysis uses a two-pass discovery + query pipeline so questions stay within data scope.
 - Business KPI analysis maps quantity, product, country/region, and revenue columns by explicit
   semantic matches so country values are not counted as quantities.
@@ -48,6 +52,8 @@
   incomplete setup items.
 - Dashboard users open Business as a top-level workspace with a businesses listing table before
   editing profile, location, tax, financial, or review details.
+- The Business workspace can show saved profile details when dedicated business records are not
+  available yet.
 - Business records support subscription-tier limits, primary profile storage, archive and restore
   states, operating entities, and cached country tax profiles.
 - Users fill in company name, industry, location, website, and description in Business Profile.
@@ -71,6 +77,7 @@
   current external pages in a new tab.
 - Dashboard notices appear in a topbar inbox with a persistent count so users can review and clear
   notices when they are ready.
+- Dashboard notices describe the failed page script, background request, or API request directly.
 - Dashboard notices and activity feeds show high-value account, billing, and dataset events without
   recording routine page changes, clicks, or repeated login noise.
 - Dashboard activity surfaces saved product actions including profile, business, upload, analysis,
@@ -78,6 +85,8 @@
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
 - Dashboard tickets use a row-first table with separate pages for creating a ticket and editing each
   ticket.
+- Ticket rows use the subject as the edit link, show an edit link under the subject, and keep the
+  row action at the end of the table.
 - Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
   and marking tickets resolved.
@@ -92,6 +101,7 @@
   support request without leaving the FAQ page.
 - Dashboard FAQ offers one-line actions for feedback, chat support, and ticket creation before the
   FAQ list.
+- Dashboard FAQ separates user help from operator help with a section bar for authorised operators.
 - Super-admins can filter operator notes from the same dashboard FAQ page instead of opening a
   separate FAQ page.
 - Product-update waitlist signup remains usable during local development even when production

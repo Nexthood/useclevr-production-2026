@@ -1,4 +1,5 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { Plus } from "lucide-react"
 import Link from "next/link"
@@ -21,16 +22,17 @@ export default async function TicketsPage() {
           { label: "Dashboard", href: "/app" },
           { label: "Tickets" },
         ]}
-        actions={
-          <Link
-            href="/app/tickets/new"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            New ticket
-          </Link>
-        }
       />
+
+      <PageActionRow description="Create a ticket when support needs details, billing context, or account access information.">
+        <Link
+          href="/app/tickets/new"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          New ticket
+        </Link>
+      </PageActionRow>
 
       <main className="px-5 py-5">
         <TicketsClient isSuperAdmin={isSuperAdmin} />

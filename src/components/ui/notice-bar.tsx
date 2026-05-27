@@ -76,6 +76,15 @@ const getFailedInteractionMessage = (status: number) => {
   return "The app could not complete that action. Check the form and try again.";
 };
 
+const formatRequestLabel = (method: string, url: string) => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return `${method} ${parsed.pathname}`;
+  } catch {
+    return `${method} request`;
+  }
+};
+
 const getFetchUrl = (input: Parameters<typeof window.fetch>[0]) => {
   if (typeof input === "string") return input;
   if (input instanceof URL) return input.toString();
@@ -143,16 +152,16 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
     const handleError = () => {
       showNotice({
         type: "error",
-        title: "Something went wrong.",
-        message: "Refresh the page or try again in a moment.",
+        title: "Page script error.",
+        message: "Refresh the page. If it repeats, contact support with the current page name.",
       });
     };
 
     const handleRejection = () => {
       showNotice({
         type: "error",
-        title: "A request failed.",
-        message: "Check your connection and try again.",
+        title: "Background request failed.",
+        message: "The app could not finish an automatic request. Retry the action or refresh the page.",
       });
     };
 
@@ -175,6 +184,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
         const response = await originalFetch(...args);
         const requestUrl = getFetchUrl(args[0]);
         const requestMethod = getFetchMethod(args[0], args[1]);
+        const requestLabel = formatRequestLabel(requestMethod, requestUrl);
         const isAuthRequest = requestUrl.includes("/api/auth/");
         const shouldSurfaceFailure =
           !response.ok &&
@@ -185,7 +195,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
         if (shouldSurfaceFailure) {
           showNotice({
             type: "error",
-            title: "Action failed.",
+            title: `${requestLabel} failed (${response.status}).`,
             message: getFailedInteractionMessage(response.status),
           });
           // Auto-open notice sidebar for error notices
@@ -197,8 +207,8 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
         if (!isMutedPath && !(error instanceof DOMException && error.name === "AbortError")) {
           showNotice({
             type: "error",
-            title: "Connection failed.",
-            message: "Check your connection and try again.",
+            title: `${formatRequestLabel(getFetchMethod(args[0], args[1]), getFetchUrl(args[0]))} could not connect.`,
+            message: "Check your connection, then retry the action.",
           });
         }
         throw error;

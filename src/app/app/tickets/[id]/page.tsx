@@ -1,5 +1,7 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
+import Link from "next/link"
 import { TicketEditClient } from "./ticket-edit-client"
 
 export const metadata = {
@@ -21,6 +23,15 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
           { label: "Edit ticket" },
         ]}
       />
+
+      <PageActionRow description="Update the ticket status, notes, and resolution details.">
+        <Link
+          href="/app/tickets"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+        >
+          Back to tickets
+        </Link>
+      </PageActionRow>
 
       <main className="px-5 py-5">
         <div className="mx-auto max-w-6xl">

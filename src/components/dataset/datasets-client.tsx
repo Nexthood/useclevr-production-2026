@@ -1,10 +1,12 @@
 "use client"
 
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { DeleteDatasetButton } from "@/components/dataset/delete-dataset-button"
 import { DatasetModal } from "@/components/modals/dataset-modal"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { PageActionRow } from "@/components/ui/page-action-row"
 import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -71,9 +73,16 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
             <FileSpreadsheet className="h-4 w-4 text-white" />
           </div>
-          <Link href={`/app/datasets/${row.id}/analyze`} className="font-medium text-foreground hover:text-primary transition-colors">
-            {String(row.name)}
-          </Link>
+          <div className="min-w-0">
+            <Link href={`/app/datasets/${row.id}`} className="font-medium text-foreground transition-colors hover:text-primary">
+              {String(row.name)}
+            </Link>
+            <div>
+              <Link href={`/app/datasets/${row.id}`} className="text-xs text-primary hover:underline">
+                Edit dataset
+              </Link>
+            </div>
+          </div>
         </div>
       ),
     },
@@ -120,19 +129,14 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       align: "right",
       render: (row) => (
         <div className="flex justify-end gap-2">
-          <Link href={`/app/datasets/${row.id}/analyze`}>
-            <Button variant="outline" size="sm" className="bg-transparent">
-              View
-            </Button>
-          </Link>
           <Button
             size="sm"
             onClick={() => setSelectedDataset(row as unknown as Dataset)}
-            className="bg-gradient-primary hover:opacity-90"
+            variant="outline"
           >
-            <BarChart3 className="h-4 w-4 mr-1" />
             Analyze
           </Button>
+          <DeleteDatasetButton datasetId={String(row.id)} label="Delete" />
         </div>
       ),
     },
@@ -147,15 +151,16 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           { label: "Dashboard", href: "/app" },
           { label: "Datasets" },
         ]}
-        actions={
-          <Link href="/app/upload">
-            <Button size="sm">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload
-            </Button>
-          </Link>
-        }
       />
+
+      <PageActionRow description="Upload CSV files before analysis, reports, or assistant questions.">
+        <Link href="/app/upload">
+          <Button size="sm">
+            <Upload className="mr-2 h-4 w-4" />
+            Upload dataset
+          </Button>
+        </Link>
+      </PageActionRow>
 
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto space-y-6 pt-6">

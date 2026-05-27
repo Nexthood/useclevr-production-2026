@@ -192,9 +192,6 @@ export function AiAssistantWorkspace() {
     setError(null)
     setIsAsking(true)
 
-    // Add thinking delay (2-5 seconds)
-    await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000))
-
     const userMessage: AssistantMessage = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -204,6 +201,9 @@ export function AiAssistantWorkspace() {
     setMessages((current) => [...current, userMessage])
 
     try {
+      // Add thinking delay (2-5 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000))
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -253,14 +253,19 @@ export function AiAssistantWorkspace() {
     askAssistant(inputValue)
   }
 
+  function handleSuggestedQuestion(question: string) {
+    setInputValue(question)
+    void askAssistant(question)
+  }
+
   const columns = selectedDataset?.columns || selectedDataset?.dataset.columns || []
   const rowCount = selectedDataset?.totalRows || selectedDataset?.dataset.rowCount || 0
   const selectedDatasetName = selectedDataset?.dataset.name || datasets.find((dataset) => dataset.id === selectedDatasetId)?.name
   const canAsk = Boolean(selectedDatasetId) && !loadingDataset && !isAsking
 
   return (
-    <div className="grid min-h-[calc(100vh-136px)] grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <aside className="border-b border-border bg-muted/20 p-4 lg:border-b-0 lg:border-r">
+    <div className="grid h-[calc(100vh-136px)] min-h-[560px] grid-cols-1 overflow-hidden lg:grid-cols-[300px_minmax(0,1fr)_280px]">
+      <aside className="min-h-0 overflow-y-auto border-b border-border bg-muted/20 p-4 lg:border-b-0 lg:border-r">
         <div className="space-y-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Dataset</h2>
@@ -351,25 +356,8 @@ export function AiAssistantWorkspace() {
         </div>
       </aside>
 
-      <section className="flex min-h-[calc(100vh-136px)] flex-col">
-        <div className="border-b border-border p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {suggestedQuestions.map((question) => (
-              <button
-                key={question}
-                type="button"
-                onClick={() => askAssistant(question)}
-                disabled={!canAsk}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:border-primary/60 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {question}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
+      <section className="flex min-h-0 flex-col">
+        <div className="flex-1 overflow-y-auto p-4 pb-24">
           <div className="mx-auto max-w-4xl space-y-4">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -416,40 +404,63 @@ export function AiAssistantWorkspace() {
           </div>
         </div>
 
-<form onSubmit={handleSubmit} className="border-t border-border bg-background p-4 sticky bottom-0">
-           <div className="mx-auto flex max-w-4xl gap-2">
-             <textarea
-               value={inputValue}
-               onChange={(event) => setInputValue(event.target.value)}
-               onKeyDown={(event) => {
-                 if (event.key === "Enter" && !event.shiftKey) {
-                   event.preventDefault()
-                   askAssistant(inputValue)
-                 }
-               }}
-               placeholder={selectedDatasetId ? "Ask a question about the selected dataset..." : "Select a dataset first..."}
-               disabled={!selectedDatasetId || isAsking}
-               className="min-h-11 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-offset-background transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-               rows={1}
-             />
-             <Button type="submit" size="icon" disabled={!inputValue.trim() || !canAsk} aria-label="Send question">
-               {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-             </Button>
-             <Button
-               type="button"
-               size="icon"
-               variant="outline"
-               aria-label="Clear assistant chat"
-               onClick={() => {
-                 setMessages([])
-                 setInputValue("")
-               }}
-             >
-               <RefreshCw className="h-4 w-4" />
-             </Button>
-           </div>
-         </form>
+        <form onSubmit={handleSubmit} className="sticky bottom-0 border-t border-border bg-background p-4">
+          <div className="mx-auto flex max-w-4xl gap-2">
+            <textarea
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault()
+                  askAssistant(inputValue)
+                }
+              }}
+              placeholder={selectedDatasetId ? "Ask a question about the selected dataset..." : "Select a dataset first..."}
+              disabled={!selectedDatasetId || isAsking}
+              className="min-h-11 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-offset-background transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              rows={1}
+            />
+            <Button type="submit" size="icon" disabled={!inputValue.trim() || !canAsk} aria-label="Send question">
+              {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label="Clear assistant chat"
+              onClick={() => {
+                setMessages([])
+                setInputValue("")
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </form>
       </section>
+
+      <aside className="min-h-0 overflow-y-auto border-t border-border bg-muted/20 p-4 lg:border-l lg:border-t-0">
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Suggested questions</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Clicking a question sends it to the chat.</p>
+          </div>
+          <div className="space-y-2">
+            {suggestedQuestions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => handleSuggestedQuestion(question)}
+                disabled={!canAsk}
+                className="flex w-full items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground transition hover:border-primary/60 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+              >
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span>{question}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
     </div>
   )
 }

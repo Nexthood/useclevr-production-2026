@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm"
 
 import { getDb } from "@/lib/db"
 import { businesses, profiles } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import type { BusinessDetails } from "./business-profile"
 
 export type BusinessStatus = "draft" | "active" | "archived"
@@ -21,6 +22,7 @@ export type BusinessListRow = {
   archivedAt: string | null
   archiveExpiresAt: string | null
   updatedAt: string
+  canArchive?: boolean
 }
 
 const emptyDetails: BusinessDetails = {
@@ -88,68 +90,13 @@ function toListRow(row: typeof businesses.$inferSelect): BusinessListRow {
     archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
     archiveExpiresAt: row.archiveExpiresAt ? row.archiveExpiresAt.toISOString() : null,
     updatedAt: row.updatedAt.toISOString(),
+    canArchive: true,
   }
 }
 
-export async function listUserBusinesses(userId: string | null | undefined) {
-  if (!userId) return []
-
-  const db = getDb()
-  if (!db) return []
-
-  const rows = await db
-    .select()
-    .from(businesses)
-    .where(eq(businesses.userId, userId))
-    .orderBy(desc(businesses.isPrimary), desc(businesses.updatedAt))
-
-  if (rows.length > 0) return rows.map(toListRow)
-
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-    columns: {
-      businessName: true,
-      businessEmail: true,
-      industry: true,
-      location: true,
-      website: true,
-      businessDescription: true,
-      preferredCurrency: true,
-    },
-  })
-
-  if (!profile?.businessName) return []
-
-  const [row] = await db.insert(businesses).values({
-    id: businessId(),
-    userId,
-    name: profile.businessName,
-    email: profile.businessEmail || null,
-    industry: profile.industry || null,
-    address: profile.location || null,
-    website: profile.website || null,
-    description: profile.businessDescription || null,
-    status: "active",
-    isPrimary: true,
-    localeSettings: { currency: profile.preferredCurrency || "EUR" },
-  }).returning()
-
-  return [toListRow(row)]
-}
-
-export async function getPrimaryBusinessDetails(userId: string | null | undefined): Promise<BusinessDetails> {
-  if (!userId) return emptyDetails
-
+async function getProfileBusinessDetails(userId: string): Promise<BusinessDetails> {
   const db = getDb()
   if (!db) return emptyDetails
-
-  const [business] = await db
-    .select()
-    .from(businesses)
-    .where(and(eq(businesses.userId, userId), eq(businesses.isPrimary, true)))
-    .limit(1)
-
-  if (business) return toDetails(business)
 
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
@@ -173,17 +120,130 @@ export async function getPrimaryBusinessDetails(userId: string | null | undefine
   }
 }
 
+async function getProfileBusinessListRow(userId: string): Promise<BusinessListRow[]> {
+  const details = await getProfileBusinessDetails(userId)
+  if (!details.businessName) return []
+
+  return [
+    {
+      id: "profile-primary",
+      name: details.businessName,
+      email: details.businessEmail || "Not set",
+      industry: details.industry || "Not set",
+      location: details.location || "Not set",
+      website: details.website,
+      description: details.businessDescription,
+      status: businessCompletion(details) === 100 ? "active" : "draft",
+      isPrimary: true,
+      completion: businessCompletion(details),
+      archivedAt: null,
+      archiveExpiresAt: null,
+      updatedAt: new Date().toISOString(),
+      canArchive: false,
+    },
+  ]
+}
+
+export async function listUserBusinesses(userId: string | null | undefined) {
+  if (!userId) return []
+
+  const db = getDb()
+  if (!db) return []
+
+  let rows: (typeof businesses.$inferSelect)[] = []
+
+  try {
+    rows = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.userId, userId))
+      .orderBy(desc(businesses.isPrimary), desc(businesses.updatedAt))
+  } catch (error) {
+    debugError("[BUSINESS] Business table unavailable, using profile fallback:", error)
+    return getProfileBusinessListRow(userId)
+  }
+
+  if (rows.length > 0) return rows.map(toListRow)
+
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    columns: {
+      businessName: true,
+      businessEmail: true,
+      industry: true,
+      location: true,
+      website: true,
+      businessDescription: true,
+      preferredCurrency: true,
+    },
+  })
+
+  if (!profile?.businessName) return []
+
+  try {
+    const [row] = await db.insert(businesses).values({
+      id: businessId(),
+      userId,
+      name: profile.businessName,
+      email: profile.businessEmail || null,
+      industry: profile.industry || null,
+      address: profile.location || null,
+      website: profile.website || null,
+      description: profile.businessDescription || null,
+      status: "active",
+      isPrimary: true,
+      localeSettings: { currency: profile.preferredCurrency || "EUR" },
+    }).returning()
+
+    return [toListRow(row)]
+  } catch (error) {
+    debugError("[BUSINESS] Profile migration into business table failed:", error)
+    return getProfileBusinessListRow(userId)
+  }
+}
+
+export async function getPrimaryBusinessDetails(userId: string | null | undefined): Promise<BusinessDetails> {
+  if (!userId) return emptyDetails
+
+  const db = getDb()
+  if (!db) return emptyDetails
+
+  let business: typeof businesses.$inferSelect | undefined
+
+  try {
+    ;[business] = await db
+      .select()
+      .from(businesses)
+      .where(and(eq(businesses.userId, userId), eq(businesses.isPrimary, true)))
+      .limit(1)
+  } catch (error) {
+    debugError("[BUSINESS] Primary business lookup failed, using profile fallback:", error)
+    return getProfileBusinessDetails(userId)
+  }
+
+  if (business) return toDetails(business)
+
+  return getProfileBusinessDetails(userId)
+}
+
 export async function upsertPrimaryBusinessDetails(userId: string, details: BusinessDetails) {
   const db = getDb()
   if (!db) throw new Error("Database connection is unavailable.")
 
   const now = new Date()
   const status = businessCompletion(details) === 100 ? "active" : "draft"
-  const [existing] = await db
-    .select({ id: businesses.id })
-    .from(businesses)
-    .where(and(eq(businesses.userId, userId), eq(businesses.isPrimary, true)))
-    .limit(1)
+  let existing: { id: string } | undefined
+
+  try {
+    ;[existing] = await db
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(and(eq(businesses.userId, userId), eq(businesses.isPrimary, true)))
+      .limit(1)
+  } catch (error) {
+    debugError("[BUSINESS] Business table unavailable during profile save:", error)
+    return "profile-primary"
+  }
 
   const values = {
     name: details.businessName || "Primary business profile",
@@ -204,15 +264,20 @@ export async function upsertPrimaryBusinessDetails(userId: string, details: Busi
   }
 
   const id = businessId()
-  await db.insert(businesses).values({
-    id,
-    userId,
-    ...values,
-    isPrimary: true,
-    localeSettings: {},
-    invoiceSettings: {},
-    createdAt: now,
-  })
+  try {
+    await db.insert(businesses).values({
+      id,
+      userId,
+      ...values,
+      isPrimary: true,
+      localeSettings: {},
+      invoiceSettings: {},
+      createdAt: now,
+    })
+  } catch (error) {
+    debugError("[BUSINESS] Business table insert failed after profile save:", error)
+    return "profile-primary"
+  }
   return id
 }
 
@@ -221,22 +286,30 @@ export async function archiveBusiness(userId: string, id: string) {
   if (!db) throw new Error("Database connection is unavailable.")
 
   const now = new Date()
-  await db.update(businesses).set({
-    status: "archived",
-    archivedAt: now,
-    archiveExpiresAt: addMonths(now, 3),
-    updatedAt: now,
-  }).where(and(eq(businesses.userId, userId), eq(businesses.id, id)))
+  try {
+    await db.update(businesses).set({
+      status: "archived",
+      archivedAt: now,
+      archiveExpiresAt: addMonths(now, 3),
+      updatedAt: now,
+    }).where(and(eq(businesses.userId, userId), eq(businesses.id, id)))
+  } catch (error) {
+    debugError("[BUSINESS] Business archive failed:", error)
+  }
 }
 
 export async function restoreBusiness(userId: string, id: string) {
   const db = getDb()
   if (!db) throw new Error("Database connection is unavailable.")
 
-  await db.update(businesses).set({
-    status: "draft",
-    archivedAt: null,
-    archiveExpiresAt: null,
-    updatedAt: new Date(),
-  }).where(and(eq(businesses.userId, userId), eq(businesses.id, id)))
+  try {
+    await db.update(businesses).set({
+      status: "draft",
+      archivedAt: null,
+      archiveExpiresAt: null,
+      updatedAt: new Date(),
+    }).where(and(eq(businesses.userId, userId), eq(businesses.id, id)))
+  } catch (error) {
+    debugError("[BUSINESS] Business restore failed:", error)
+  }
 }

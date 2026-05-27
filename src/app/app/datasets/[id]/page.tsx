@@ -1,6 +1,7 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
@@ -62,15 +63,16 @@ export default async function DatasetDetailPage({
           { label: "Datasets", href: "/app/datasets" },
           { label: (dataset as { name: string }).name },
         ]}
-        actions={(
-          <Link href={`/app/datasets/${id}/analyze`}>
-            <Button size="sm" variant="outline">
-              <Sparkles className="mr-2 h-4 w-4" />
-              View Analysis
-            </Button>
-          </Link>
-        )}
       />
+
+      <PageActionRow description="Review the uploaded rows and continue to analysis when the dataset is ready.">
+        <Link href={`/app/datasets/${id}/analyze`}>
+          <Button size="sm" variant="outline">
+            <Sparkles className="mr-2 h-4 w-4" />
+            View analysis
+          </Button>
+        </Link>
+      </PageActionRow>
 
       <main className="flex-1 p-4 sm:p-6">
         <div className="max-w-full mx-auto">

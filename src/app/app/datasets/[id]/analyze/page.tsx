@@ -3,6 +3,7 @@ import { debugLog } from "@/lib/utils/debug"
 import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
+import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
@@ -74,15 +75,16 @@ export default async function AnalyzePage({
           { label: (dataset as { name: string }).name, href: `/app/datasets/${id}` },
           { label: "Analyze" },
         ]}
-        actions={(
-          <Link href={`/app/datasets/${id}`}>
-            <Button size="sm" variant="outline">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Dataset
-            </Button>
-          </Link>
-        )}
       />
+
+      <PageActionRow description="Use analysis tools here, or return to the dataset rows for review.">
+        <Link href={`/app/datasets/${id}`}>
+          <Button size="sm" variant="outline">
+            <Sparkles className="mr-2 h-4 w-4" />
+            Dataset
+          </Button>
+        </Link>
+      </PageActionRow>
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6">
         <DatasetAnalyzer

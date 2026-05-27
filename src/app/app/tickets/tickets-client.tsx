@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import type { SupportTicket, TicketStatus } from "@/lib/support/ticket-store"
-import { AlertCircle, CheckCircle2, Clock, Edit, Loader2, RefreshCw, Ticket, Zap } from "lucide-react"
+import { AlertCircle, CheckCircle2, Clock, Loader2, RefreshCw, Ticket, Zap } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
@@ -129,7 +129,17 @@ function ticketColumns(isSuperAdmin: boolean): DataTableColumn<Record<string, un
       header: "Ticket",
       render: (row) => (
         <div className="max-w-md">
-          <p className="font-medium text-foreground">{String(row.subject || "-")}</p>
+          <Link
+            href={`/app/tickets/${encodeURIComponent(String(row.id))}`}
+            className="font-medium text-foreground transition-colors hover:text-primary"
+          >
+            {String(row.subject || "-")}
+          </Link>
+          <div>
+            <Link href={`/app/tickets/${encodeURIComponent(String(row.id))}`} className="text-xs text-primary hover:underline">
+              Edit ticket
+            </Link>
+          </div>
           <p className="truncate text-xs text-muted-foreground">{String(row.message || "-")}</p>
         </div>
       ),
@@ -195,10 +205,10 @@ function ticketColumns(isSuperAdmin: boolean): DataTableColumn<Record<string, un
       render: (row) => (
         <Link
           href={`/app/tickets/${encodeURIComponent(String(row.id))}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
           aria-label={`Edit ticket ${String(row.subject || row.id || "")}`}
         >
-          <Edit className="h-4 w-4" />
+          Open
         </Link>
       ),
     },
