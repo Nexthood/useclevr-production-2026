@@ -173,13 +173,21 @@ export async function POST(request: Request) {
 
     debugLog('[ANALYZE] Question:', question);
     debugLog('[ANALYZE] Dataset ID:', datasetId);
-    debugLog('[ANALYZE] Data rows:', data?.length || 0);
-    debugLog('[ANALYZE] Columns:', columns?.length || 0);
-    debugLog('[ANALYZE] Precomputed analysis:', precomputedAnalysis ? 'YES - using unified KPIs' : 'NO - will compute');
 
-    currentDataset = [];
-    currentColumns = [];
-    datasetLoaded = false;
+    // STRICT: Require datasetId for any question - no generic fallback
+    if (!datasetId) {
+      debugLog('[ANALYZE] REJECTED: No datasetId provided');
+      return Response.json({
+        success: false,
+        error: "No dataset selected",
+        answer: "Please upload a dataset first.",
+        insight: "No dataset",
+        explanation: "The assistant needs CSV data to answer questions.",
+        recommendation: "Upload a file before asking the assistant.",
+        data: [],
+        chartType: "table",
+      });
+    }
 
     // ============================================================================
     // USAGE LIMIT CHECK - Check for free tier limits

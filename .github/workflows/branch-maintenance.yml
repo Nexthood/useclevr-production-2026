@@ -125,34 +125,57 @@ jobs:
         with:
           script: |
             const shortSha = context.sha.slice(0, 7);
+            const msg = context.payload.head_commit?.message || "";
             let prNumber = null;
-            let title =
-              context.payload.head_commit?.message?.split('\n')[0]?.trim() ||
-              `Update dist ${shortSha}`;
+            let title = msg.split('\n')[0]?.trim() || `Update dist ${shortSha}`;
 
-            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-            });
+            const mergeMatch = msg.match(/Merge pull request #(\d+)/i);
 
-            if (prs.data.length > 0) {
-              prNumber = prs.data[0].number;
-              title = prs.data[0].title?.trim() || title;
+            if (mergeMatch) {
+              prNumber = Number(mergeMatch[1]);
+
+              try {
+                const pr = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                });
+
+                title = pr.data.title?.trim() || title;
+              } catch (error) {
+                core.warning(`Could not fetch PR-${prNumber}: ${error.message}`);
+              }
+            }
+
+            if (!prNumber) {
+              try {
+                const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  commit_sha: context.sha,
+                });
+
+                if (prs.data.length > 0) {
+                  prNumber = prs.data[0].number;
+                  title = prs.data[0].title?.trim() || title;
+                }
+              } catch (error) {
+                core.warning(`Could not resolve PR from commit ${shortSha}: ${error.message}`);
+              }
             }
 
             title = title.replace(/^PR-\d+:\s*/i, '');
             title = title.replace(/^PR:\s*/i, '');
+            title = title.replace(/^Merge pull request #\d+.*$/i, '');
             title = title.replace(/\s+/g, ' ').slice(0, 70).trim();
 
             if (prNumber) {
-              title = `PR-${prNumber}: ${title}`;
+              title = `PR-${prNumber}: ${title || `Update dist ${shortSha}`}`;
             } else {
-              title = `Main: ${title}`;
+              title = `Main: ${title || `Update dist ${shortSha}`}`;
             }
 
             core.setOutput('title', title);
-
       - name: Publish generated folder to clean dist branch
         run: |
           git config --global user.name "github-actions[bot]"

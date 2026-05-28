@@ -50,6 +50,8 @@ const suggestedQuestions = [
   "Where are the biggest risks or anomalies?",
 ]
 
+const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
+
 function formatDate(value?: string | null) {
   if (!value) return "Recent"
   const date = new Date(value)
@@ -79,7 +81,12 @@ function compactValue(value: unknown) {
 
 export function AiAssistantWorkspace() {
   const [datasets, setDatasets] = React.useState<DatasetOption[]>([])
-  const [selectedDatasetId, setSelectedDatasetId] = React.useState("")
+  const [selectedDatasetId, setSelectedDatasetId] = React.useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(ACTIVE_DATASET_ID_KEY) || ""
+    }
+    return ""
+  })
   const [selectedDataset, setSelectedDataset] = React.useState<DatasetDetail | null>(null)
   const [messages, setMessages] = React.useState<AssistantMessage[]>([
     {
@@ -97,6 +104,11 @@ export function AiAssistantWorkspace() {
   const [isAsking, setIsAsking] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+
+  function setSelectedDatasetIdWithPersist(datasetId: string) {
+    sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, datasetId)
+    setSelectedDatasetId(datasetId)
+  }
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -121,13 +133,16 @@ export function AiAssistantWorkspace() {
         if (cancelled) return
 
         setDatasets(nextDatasets)
-        if (nextDatasets[0]?.id) {
-          setSelectedDatasetId(nextDatasets[0].id)
+        if (nextDatasets.length === 0) {
+          sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
+        } else if (nextDatasets[0]?.id) {
+          const storedId = sessionStorage.getItem(ACTIVE_DATASET_ID_KEY)
+          const idToSelect = storedId && nextDatasets.find((d: DatasetOption) => d.id === storedId) ? storedId : nextDatasets[0].id
+          setSelectedDatasetId(idToSelect)
         }
       } catch (loadError) {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Datasets could not be loaded.")
-        }
+        if (cancelled) return
+        setError(loadError instanceof Error ? loadError.message : "Datasets could not be loaded.")
       } finally {
         if (!cancelled) {
           setLoadingDatasets(false)
@@ -184,7 +199,7 @@ export function AiAssistantWorkspace() {
     }
   }, [selectedDatasetId])
 
-async function askAssistant(question: string) {
+  async function askAssistant(question: string) {
     const trimmed = question.trim()
     if (!trimmed || isAsking) return
 
@@ -298,7 +313,7 @@ async function askAssistant(question: string) {
                   <button
                     key={dataset.id}
                     type="button"
-                    onClick={() => setSelectedDatasetId(dataset.id)}
+                    onClick={() => setSelectedDatasetIdWithPersist(dataset.id)}
                     className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
                       active
                         ? "border-primary bg-primary/10 text-foreground"
