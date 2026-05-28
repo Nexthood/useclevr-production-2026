@@ -10,6 +10,7 @@
     --workspace-bg: #F1F5F9;
     --workspace-card: #FFFFFF;
     --workspace-border: #E2E8F0;
+    --app-sidebar-width: 220px;
 
     /* UseClevr brand colors: high-contrast cyan with restrained neon violet. */
     --brand-cyan: 188 95% 39%;
@@ -330,13 +331,12 @@
 
   /* New Topbar for global info and actions */
   .app-topbar {
-    @apply fixed top-0 right-0 z-[110] border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60;
+    @apply fixed top-0 right-0 z-[110] border-b bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75;
     height: 64px;
-    left: 220px;
+    left: 0;
     display: flex;
     align-items: center;
-    padding: 0 1rem;
-    /* Add styles for account name, links, buttons */
+    padding: 0;
   }
 
   @media (max-width: 767px) {

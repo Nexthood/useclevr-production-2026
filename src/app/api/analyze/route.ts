@@ -181,21 +181,33 @@ export async function POST(request: Request) {
     currentColumns = [];
     datasetLoaded = false;
 
-    // Initialize MCP context if precomputed analysis is available
-    if (precomputedAnalysis && datasetId) {
-      try {
-        initializeMCPContext(datasetId, precomputedAnalysis as unknown as PrecomputedMetrics);
-        debugLog('[ANALYZE] MCP context initialized for dataset:', datasetId);
-      } catch (mcpError) {
-        debugLog('[ANALYZE] MCP initialization skipped:', mcpError);
-      }
-    }
-
     // ============================================================================
     // USAGE LIMIT CHECK - Check for free tier limits
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
+
+    // If datasetId provided but no precomputedAnalysis/data, fetch from DB
+    let analysisToUse = precomputedAnalysis;
+    if (datasetId && !data && !precomputedAnalysis) {
+      const storedDataset = await db.query.datasets.findFirst({
+        where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId || '')),
+      });
+      if (storedDataset) {
+        analysisToUse = storedDataset.analysis as Record<string, unknown> | null;
+        debugLog('[ANALYZE] Loaded precomputedAnalysis from DB');
+      }
+    }
+
+    // Initialize MCP context if precomputed analysis is available
+    if (analysisToUse && datasetId) {
+      try {
+        initializeMCPContext(datasetId, analysisToUse as unknown as PrecomputedMetrics);
+        debugLog('[ANALYZE] MCP context initialized for dataset:', datasetId);
+      } catch (mcpError) {
+        debugLog('[ANALYZE] MCP initialization skipped:', mcpError);
+      }
+    }
 
     // Only check limits for persisted customer users
     if (userId && !isBuiltinUserId(userId)) {
@@ -261,6 +273,10 @@ export async function POST(request: Request) {
           });
         }
 
+        // Pass precomputed metrics to frontend for unified KPI context
+        const precomputedMetrics = (storedDataset as any).precomputedMetrics;
+        const precomputedAnalysis = (storedDataset as any).analysis;
+        
         let storedData = (storedDataset.data as Record<string, unknown>[]) || [];
 
         if (storedData.length === 0) {
@@ -277,6 +293,15 @@ export async function POST(request: Request) {
           currentDataset = storedData;
           currentColumns = (storedDataset.columns as string[]) || Object.keys(storedData[0] || {});
           datasetLoaded = true;
+          // Initialize MCP context with precomputed metrics
+          if (precomputedAnalysis && precomputedMetrics) {
+            try {
+              initializeMCPContext(datasetId, precomputedMetrics as unknown as PrecomputedMetrics);
+              debugLog('[ANALYZE] MCP context initialized with precomputed metrics');
+            } catch (mcpErr) {
+              debugLog('[ANALYZE] MCP context init skipped:', mcpErr);
+            }
+          }
           debugLog('[ANALYZE] Stored dataset loaded:', getDatasetInfo());
         }
       } catch (loadError) {
@@ -500,7 +525,7 @@ export async function POST(request: Request) {
       debugLog('[ANALYZE] Using fallback response (LLM unavailable or failed)');
 
       // Try MCP-based analysis first if dataset is available
-      if (datasetId && precomputedAnalysis) {
+      if (datasetId && analysisToUse) {
         try {
           const mcpResult = await analyzeWithMCP(
             question,
@@ -526,8 +551,8 @@ export async function POST(request: Request) {
       }
 
       // If still no answer, use precomputed KPIs
-      if (!answer && precomputedAnalysis && precomputedAnalysis.kpis) {
-        const kpis = precomputedAnalysis.kpis;
+      if (!answer && analysisToUse && (analysisToUse as any).kpis) {
+        const kpis = (analysisToUse as any).kpis;
 
         // Generate insights based on unified KPIs
         const totalRevenue = kpis.totalRevenue ?? 0;
@@ -542,6 +567,12 @@ export async function POST(request: Request) {
           ? `Focus on ${topRegion.name} while developing strategies for other regions.`
           : 'Review all segments for growth opportunities.';
         answer = `INSIGHT\n${insight}\n\nKEY TAKEAWAYS\n${explanation}\n\nRECOMMENDATION\n${recommendation}`;
+      } else if (!answer && datasetId && !datasetLoaded) {
+        // No dataset loaded but datasetId was provided
+        answer = "The requested information is not available in this dataset.";
+        insight = "Data unavailable";
+        explanation = "I could not load the dataset for analysis.";
+        recommendation = "Select a valid dataset or check your connection.";
       } else {
         // Fallback to query-based analysis
         const insights = generateBusinessInsights(result, question);

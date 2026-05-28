@@ -50,6 +50,8 @@
   and analysis actions, and key dashboard pages visited at least once.
 - Dashboard users can open a setup progress panel from the topbar and start a guided tour through
   incomplete setup items.
+- Setup progress includes business profile, location, tax, financial, and review page visits in the
+  completion checklist.
 - Dashboard users open Business as a top-level workspace with a businesses listing table before
   editing profile, location, tax, financial, or review details.
 - The Business workspace can show saved profile details when dedicated business records are not
@@ -71,10 +73,15 @@
 
 - Social login and registration create usable local account and profile records before users enter
   the dashboard.
-- Dashboard users can reach coming-soon mobile app buttons, social placeholders, account controls,
-  and Terms from the sidebar footer.
-- Dashboard sidebar app buttons use App Store and Google Play icons, and social buttons open the
-  current external pages in a new tab.
+- Dashboard users can reach coming-soon mobile app badges, social links, account controls, and
+  Terms from global dashboard chrome.
+- Dashboard users see logo, Hybrid AI, search, setup progress, help, credits, display controls,
+  profile settings, sign-out, and notices in a global topbar above the sidebar and page body.
+- Dashboard users can collapse the desktop sidebar while keeping primary navigation available.
+- Dashboard users see Terms, Privacy, copyright, social links, and coming-soon app badges in one
+  global footer row.
+- Dashboard app badges use App Store and Google Play icons, and social links open the current
+  external pages in a new tab.
 - Dashboard notices appear in a topbar inbox with a persistent count so users can review and clear
   notices when they are ready.
 - Dashboard notices describe the failed page script, background request, or API request directly.
@@ -97,6 +104,7 @@
   and incident handling for authorised platform staff only.
 - Dashboard users can search FAQ answers from a floating help chat, then send a support request
   when no answer matches their question.
+- Floating help chat stays clear of the footer and uses high-contrast message bubbles.
 - Dashboard FAQ uses expandable answers and includes an inline ticket form so users can open a
   support request without leaving the FAQ page.
 - Dashboard FAQ offers one-line actions for feedback, chat support, and ticket creation before the

@@ -29,7 +29,7 @@ export function UserLevelLink({ subscriptionTier }: { subscriptionTier: string |
         <Button
           variant="ghost"
           size="sm"
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground h-7 px-2"
+          className="hidden h-auto px-0 py-0 text-sm font-medium text-primary hover:bg-transparent hover:text-primary/80 sm:inline-flex"
         >
           <span className={color}>{label}</span>
           <Info className="h-3 w-3" />

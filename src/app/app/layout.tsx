@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
+import { DashboardGlobalFooter } from "@/components/layout/dashboard-global-footer"
 import { HelpChatbox } from "@/components/ui/help-chatbox"
 import { PageVisitTracker } from "@/components/ui/page-visit-tracker"
 import Topbar from "@/components/ui/topbar"
@@ -22,11 +23,12 @@ export default async function AppLayout({
     <FormattingProvider>
       <div className="min-h-screen bg-background">
         <AppSidebar user={session.user} />
-        <div className="min-h-screen md:ml-[220px]">
+        <div className="min-h-screen transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
           <Topbar />
           <main className="min-h-screen pt-16">
             {children}
           </main>
+          <DashboardGlobalFooter />
           <HelpChatbox />
           <PageVisitTracker />
         </div>

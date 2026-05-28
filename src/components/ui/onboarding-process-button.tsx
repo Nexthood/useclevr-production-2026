@@ -270,7 +270,7 @@ function OnboardingStepCard({
     <Link
       href={step.href}
       onClick={onNavigate}
-      className="rounded-lg border border-border bg-background p-4 transition hover:border-primary/40 hover:bg-accent/40"
+      className="rounded-lg border border-border bg-background p-4 transition hover:border-primary/40 hover:bg-muted"
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

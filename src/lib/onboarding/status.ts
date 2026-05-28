@@ -96,6 +96,11 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
   const requiredPageVisits = [
     { id: "visit-profile", title: "Visit profile settings", href: "/app/settings/profile" },
     { id: "visit-business", title: "Visit business workspace", href: "/app/business" },
+    { id: "visit-business-profile", title: "Visit business profile", href: "/app/business/profile" },
+    { id: "visit-business-locations", title: "Visit business locations", href: "/app/business/locations" },
+    { id: "visit-business-tax", title: "Visit business tax settings", href: "/app/business/tax" },
+    { id: "visit-business-financial", title: "Visit business financial settings", href: "/app/business/financial" },
+    { id: "visit-business-review", title: "Visit business review", href: "/app/business/review" },
     { id: "visit-datasets", title: "Visit datasets", href: "/app/datasets" },
     { id: "visit-assistant", title: "Visit AI Assistant", href: "/app/assistant" },
     { id: "visit-downloads", title: "Visit reports and downloads", href: "/app/downloads" },

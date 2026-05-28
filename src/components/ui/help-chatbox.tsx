@@ -106,7 +106,7 @@ export function HelpChatbox() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[120]">
+    <div className="fixed bottom-12 right-4 z-[120]">
       {open && (
         <div className="mb-3 w-[min(calc(100vw-2rem),380px)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -131,7 +131,7 @@ export function HelpChatbox() {
                 className={`rounded-lg px-3 py-2 text-sm ${
                   message.role === "user"
                     ? "ml-8 bg-primary text-primary-foreground"
-                    : "mr-8 whitespace-pre-line bg-muted text-foreground"
+                    : "mr-8 whitespace-pre-line border border-border bg-background text-foreground"
                 }`}
               >
                 {message.text}
@@ -171,7 +171,11 @@ export function HelpChatbox() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={`inline-flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+          open
+            ? "border border-border bg-background text-foreground hover:bg-muted"
+            : "bg-primary text-primary-foreground hover:bg-primary/90"
+        }`}
         aria-label={open ? "Close help chat" : "Open help chat"}
         aria-expanded={open}
       >

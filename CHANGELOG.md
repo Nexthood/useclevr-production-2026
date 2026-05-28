@@ -20,6 +20,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - AI Assistant keeps dataset selection, suggested questions, and the chat input visible while
   messages scroll.
 - Dashboard FAQ separates user help and operator help with a clear section bar.
+- Dashboard navigation uses a global topbar above the sidebar and page body, with profile settings,
+  sign-out, and notices grouped into hover panels.
+- Dashboard sidebar focuses on primary navigation and supports desktop collapse.
+- Dashboard footer links, social links, and coming-soon app badges appear in one global footer row.
 
 ### Dev
 
@@ -71,6 +75,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Business workspace loads saved profile details even when dedicated business records are not ready.
 - Dashboard notices identify the failed request or page error more directly.
+- AI Assistant can answer from stored dataset analysis context when a selected dataset has saved
+  metrics.
+- Help chat stays clear of the footer and uses stronger message contrast.
+- Setup progress includes business subpage visits in the completion checklist.
 - Mistyped dashboard settings links redirect to Profile settings.
 - Business and super-admin accounts keep paid download access instead of falling back to the free
   download limit.

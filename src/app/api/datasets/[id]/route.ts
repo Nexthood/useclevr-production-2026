@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get dataset
+    // Get dataset with precomputed metrics
     const dataset = await db.query.datasets.findFirst({
       where: and(
         eq(datasets.id, id),
@@ -29,6 +29,8 @@ export async function GET(
         createdAt: true,
         columns: true,
         rowCount: true,
+        precomputedMetrics: true,
+        analysis: true,
       },
     })
 
@@ -46,12 +48,16 @@ export async function GET(
 
     const data = rows.map((r) => r.data)
     const columns = (dataset.columns as string[]) || []
+    const precomputedMetrics = (dataset.precomputedMetrics as Record<string, unknown>) || null
+    const precomputedAnalysis = (dataset.analysis as Record<string, unknown>) || null
 
     return NextResponse.json({ 
       dataset,
       rows: data,
       columns,
       totalRows: dataset.rowCount,
+      precomputedMetrics,
+      precomputedAnalysis,
     })
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

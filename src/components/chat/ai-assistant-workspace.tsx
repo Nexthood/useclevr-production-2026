@@ -184,9 +184,25 @@ export function AiAssistantWorkspace() {
     }
   }, [selectedDatasetId])
 
-  async function askAssistant(question: string) {
+async function askAssistant(question: string) {
     const trimmed = question.trim()
-    if (!trimmed || isAsking || !selectedDatasetId) return
+    if (!trimmed || isAsking) return
+
+    // If no dataset, show message
+    if (!selectedDatasetId) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: `assistant-error-${Date.now()}`,
+          role: "assistant",
+          content: "Please upload a dataset first.",
+          insight: "No dataset",
+          explanation: "The assistant needs CSV data to answer questions.",
+          recommendation: "Upload a file before asking the assistant.",
+        },
+      ])
+      return
+    }
 
     setInputValue("")
     setError(null)
@@ -201,9 +217,6 @@ export function AiAssistantWorkspace() {
     setMessages((current) => [...current, userMessage])
 
     try {
-      // Add thinking delay (2-5 seconds)
-      await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000))
-
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
