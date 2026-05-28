@@ -1,18 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import {
-  AlertCircle,
   BarChart3,
-  CheckCircle2,
-  Database,
   Loader2,
   RefreshCw,
   Send,
   Sparkles,
 } from "lucide-react"
-import Link from "next/link"
 import * as React from "react"
 
 type DatasetOption = {
@@ -46,22 +41,22 @@ type AssistantMessage = {
 const suggestedQuestions = [
   "What are the key insights in this dataset?",
   "Which segment performs best?",
-  "Show me revenue trends",
+  "Show me revenue trends over time",
   "Where are the biggest risks or anomalies?",
+  "What are the top 5 categories by value?",
+  "How does this data distribute across regions?",
+  "What patterns exist in the monthly trends?",
+  "Which metrics have the highest variance?",
+  "Can you identify outliers in the data?",
+  "What correlations exist between columns?",
+  "Summarize the data quality issues",
+  "Which time periods show growth?",
+  "Compare performance across segments",
+  "What metrics should I track weekly?",
+  "Are there seasonal patterns visible?",
 ]
 
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
-
-function formatDate(value?: string | null) {
-  if (!value) return "Recent"
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "Recent"
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
 
 function responseText(data: Record<string, unknown>) {
   return String(data.answer || data.response || data.content || "I could not generate an answer for that question.")
@@ -80,14 +75,14 @@ function compactValue(value: unknown) {
 }
 
 export function AiAssistantWorkspace() {
-  const [datasets, setDatasets] = React.useState<DatasetOption[]>([])
-  const [selectedDatasetId, setSelectedDatasetId] = React.useState<string>(() => {
+  const [_datasets, setDatasets] = React.useState<DatasetOption[]>([])
+  const [selectedDatasetId, _setSelectedDatasetId] = React.useState<string>(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem(ACTIVE_DATASET_ID_KEY) || ""
     }
     return ""
   })
-  const [selectedDataset, setSelectedDataset] = React.useState<DatasetDetail | null>(null)
+  const [_selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
   const [messages, setMessages] = React.useState<AssistantMessage[]>([
     {
       id: "welcome",
@@ -99,16 +94,11 @@ export function AiAssistantWorkspace() {
     },
   ])
   const [inputValue, setInputValue] = React.useState("")
-  const [loadingDatasets, setLoadingDatasets] = React.useState(true)
-  const [loadingDataset, setLoadingDataset] = React.useState(false)
+  const [_loadingDatasets, setLoadingDatasets] = React.useState(true)
+  const [_loadingDataset, setLoadingDataset] = React.useState(false)
   const [isAsking, setIsAsking] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const [_error, setError] = React.useState<string | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
-
-  function setSelectedDatasetIdWithPersist(datasetId: string) {
-    sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, datasetId)
-    setSelectedDatasetId(datasetId)
-  }
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -136,9 +126,8 @@ export function AiAssistantWorkspace() {
         if (nextDatasets.length === 0) {
           sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
         } else if (nextDatasets[0]?.id) {
-          const storedId = sessionStorage.getItem(ACTIVE_DATASET_ID_KEY)
-          const idToSelect = storedId && nextDatasets.find((d: DatasetOption) => d.id === storedId) ? storedId : nextDatasets[0].id
-          setSelectedDatasetId(idToSelect)
+          const idToSelect = nextDatasets[0].id
+          _setSelectedDatasetId(idToSelect)
         }
       } catch (loadError) {
         if (cancelled) return
@@ -159,7 +148,7 @@ export function AiAssistantWorkspace() {
 
   React.useEffect(() => {
     if (!selectedDatasetId) {
-      setSelectedDataset(null)
+      _setSelectedDataset(null)
       return
     }
 
@@ -178,11 +167,11 @@ export function AiAssistantWorkspace() {
         }
 
         if (!cancelled) {
-          setSelectedDataset(body)
+          _setSelectedDataset(body)
         }
       } catch (loadError) {
         if (!cancelled) {
-          setSelectedDataset(null)
+          _setSelectedDataset(null)
           setError(loadError instanceof Error ? loadError.message : "Dataset could not be loaded.")
         }
       } finally {
@@ -286,105 +275,11 @@ export function AiAssistantWorkspace() {
     void askAssistant(question)
   }
 
-  const columns = selectedDataset?.columns || selectedDataset?.dataset.columns || []
-  const rowCount = selectedDataset?.totalRows || selectedDataset?.dataset.rowCount || 0
-  const selectedDatasetName = selectedDataset?.dataset.name || datasets.find((dataset) => dataset.id === selectedDatasetId)?.name
-  const canAsk = Boolean(selectedDatasetId) && !loadingDataset && !isAsking
+  const canAsk = Boolean(selectedDatasetId) && !isAsking
 
   return (
-    <div className="grid h-[calc(100vh-136px)] min-h-[560px] grid-cols-1 overflow-hidden lg:grid-cols-[300px_minmax(0,1fr)_280px]">
-      <aside className="min-h-0 overflow-y-auto border-b border-border bg-muted/20 p-4 lg:border-b-0 lg:border-r">
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Dataset</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Answers use the selected dataset.</p>
-          </div>
-
-          {loadingDatasets ? (
-            <div className="flex items-center gap-2 rounded-lg border bg-card p-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading datasets
-            </div>
-          ) : datasets.length > 0 ? (
-            <div className="space-y-2">
-              {datasets.map((dataset) => {
-                const active = dataset.id === selectedDatasetId
-                return (
-                  <button
-                    key={dataset.id}
-                    type="button"
-                    onClick={() => setSelectedDatasetIdWithPersist(dataset.id)}
-                    className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
-                      active
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border bg-card text-foreground hover:border-primary/50"
-                    }`}
-                  >
-                    <Database className={`mt-0.5 h-4 w-4 flex-shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{dataset.name}</span>
-                      <span className="block text-xs text-muted-foreground">{formatDate(dataset.createdAt)}</span>
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          ) : (
-            <Card className="p-4 text-sm">
-              <p className="font-medium text-foreground">No datasets yet</p>
-              <p className="mt-1 text-muted-foreground">Upload a CSV file before asking the assistant.</p>
-              <Link href="/app/upload" className="mt-3 inline-flex">
-                <Button size="sm">Upload dataset</Button>
-              </Link>
-            </Card>
-          )}
-
-          {selectedDatasetId && (
-            <Card className="space-y-3 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{selectedDatasetName || "Selected dataset"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {loadingDataset ? "Loading metadata" : `${rowCount.toLocaleString()} rows`}
-                  </p>
-                </div>
-                {loadingDataset ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                )}
-              </div>
-
-              {columns.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Columns</p>
-                  <div className="flex max-h-32 flex-wrap gap-1 overflow-y-auto">
-                    {columns.slice(0, 18).map((column) => (
-                      <span key={column} className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground">
-                        {column}
-                      </span>
-                    ))}
-                    {columns.length > 18 && (
-                      <span className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground">
-                        +{columns.length - 18}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </Card>
-          )}
-
-          {error && (
-            <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      <section className="flex min-h-0 flex-col">
+    <div className="flex flex-col h-full min-h-[600px] overflow-hidden">
+      <section className="flex flex-col flex-1 min-h-0 overflow-y-auto">
         <div className="flex-1 overflow-y-auto p-4 pb-24">
           <div className="mx-auto max-w-4xl space-y-4">
             {messages.map((message) => (
