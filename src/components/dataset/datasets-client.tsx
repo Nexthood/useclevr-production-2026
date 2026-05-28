@@ -2,7 +2,6 @@
 
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { DeleteDatasetButton } from "@/components/dataset/delete-dataset-button"
-import { DatasetModal } from "@/components/modals/dataset-modal"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
@@ -28,7 +27,6 @@ interface DatasetsClientProps {
 
 export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   const [datasets] = React.useState<Dataset[]>(initialDatasets)
-  const [selectedDataset, setSelectedDataset] = React.useState<Dataset | null>(null)
 
   const formatDate = (date: Date | null) => {
     if (!date) return "Unknown"
@@ -124,18 +122,22 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       render: (row) => getStatusBadge(row.status as string),
     },
     {
+      key: "analyze",
+      header: "Analyze",
+      render: (row) => (
+        <div>
+          <Link href={`/app/datasets/${row.id}/analyze`} className="text-xs text-primary hover:underline">
+            Analyze dataset
+          </Link>
+        </div>
+      ),
+    },
+    {
       key: "actions",
       header: "Actions",
       align: "right",
       render: (row) => (
         <div className="flex justify-end gap-2">
-          <Button
-            size="sm"
-            onClick={() => setSelectedDataset(row as unknown as Dataset)}
-            variant="outline"
-          >
-            Analyze
-          </Button>
           <DeleteDatasetButton datasetId={String(row.id)} label="Delete" />
         </div>
       ),
@@ -232,12 +234,6 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           )}
         </div>
       </main>
-
-      <DatasetModal
-        isOpen={!!selectedDataset}
-        onClose={() => setSelectedDataset(null)}
-        dataset={selectedDataset}
-      />
     </div>
   )
 }
