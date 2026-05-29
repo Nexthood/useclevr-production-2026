@@ -59,8 +59,7 @@ export default async function BillingSettingsPage() {
               <div>
                 <p className="font-medium">Payment provider not connected</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Plan selection, checkout review, and automatic discount logic are available. Card
-                  collection and invoices activate once the payment provider is configured.
+                  Contact sales to enable Stripe integration and activate card collection, invoices, and subscription billing.
                 </p>
               </div>
             </div>
