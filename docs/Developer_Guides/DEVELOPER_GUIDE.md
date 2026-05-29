@@ -15,7 +15,7 @@ pnpm dev
 | Git                      | Source control                                           | No                           | Install locally and configure your name and email.                             |
 | GitHub                   | Repository hosting, pull requests, rulesets, and Actions | Yes                          | Developers need repository access before they can push branches or review PRs. |
 | Node.js 26.x             | Local development, CI, and Railway runtime               | No                           | Use the version declared by the project.                                       |
-| pnpm 11.1.2 or newer     | Dependency install and project scripts                   | No                           | Enable through Corepack or install locally.                                    |
+| pnpm 11.5.0 or newer     | Dependency install and project scripts                   | No                           | Enable through Corepack or install locally.                                    |
 | Railway                  | Production hosting from the `dist` branch `/dist` folder | Yes                          | Holds deployment settings and runtime environment variables.                   |
 | Vercel                   | Source-branch production or preview hosting from `main`  | Yes                          | Uses root `vercel.json` synced from the Vercel server-config template.         |
 | Neon PostgreSQL          | Application database                                     | Yes                          | Required for persisted app data and Drizzle schema operations.                 |

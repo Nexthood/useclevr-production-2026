@@ -16,8 +16,17 @@ moving work between states.
 
 ## Completed
 
-- T-248. Redirect the legacy `/app/app/settings` path to Profile settings.
-- T-169. Keep `.nvmrc` in place for the supported Node runtime.
+- T-325. Fix corepack pnpm for Railway build - use pnpm@11.5.0 version matching package.json engines.
+- T-326. Topbar menu simplified - single icon items without subpanels, spread layout, clean navigation.
+- T-324. Add contact sales button to billing page (sales@useclevr.com).
+- T-323. Fix Stripe integration message in billing page.
+- T-327. Search popup fixed - added submit button, proper width, non-blocking modal.
+- T-329. Dataset table unified - action bar header with business-related stat panels (total datasets, avg revenue, ready count) instead of row/column counts.
+- T-330. Business menu pages fixed - overview panels for business metrics, auto-start add business flow when empty, sidebar selection persistence.
+- T-331. Accountancy sidebar menu added with Receipt icon and database-connected main page with overview panels.
+- T-332. AI assistant page layout rewritten - left-right sidebar structure, sticky footer, generate suggestions button, dataset selection in left sidebar.
+
+(Existing tasks below)
 - T-312. Support dedicated business, business entity, and country tax profile storage with
   multi-business listing rows, archive and restore state, and subscription-tier business limits.
 - T-313. Use a table-first dashboard ticket queue with row edit pages and a separate new ticket page.

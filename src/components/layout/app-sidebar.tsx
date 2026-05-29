@@ -2,7 +2,7 @@
 
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor, useUsage } from "@/components/ui/usage-monitor"
-import { Award, BarChart3, Building2, ChevronLeft, ChevronRight, Database, FileText, Gift, Menu, Sparkles, Tag, Users, X } from "lucide-react"
+import { Award, BarChart3, Building2, ChevronLeft, ChevronRight, Database, FileText, Gift, Menu, Sparkles, Tag, Users, X, Receipt } from "lucide-react"
 import type { Session } from "next-auth"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -14,6 +14,7 @@ const navigation = [
   { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Business", href: "/app/business", icon: Building2 },
+  { name: "Accountancy", href: "/app/accountancy", icon: Receipt },
   { name: "Referral", href: "/app/referral", icon: Gift },
 ]
 

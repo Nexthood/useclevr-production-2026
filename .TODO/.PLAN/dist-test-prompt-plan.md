@@ -250,7 +250,7 @@ If pnpm is required:
 
 ```bash
 corepack enable
-corepack prepare pnpm@11.1.2 --activate
+corepack prepare pnpm@11.5.0 --activate
 ```
 
 Avoid runtime dependency installation unless explicitly required.
