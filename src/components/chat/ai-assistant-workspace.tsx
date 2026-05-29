@@ -73,7 +73,7 @@ export function AiAssistantWorkspace() {
     }
     return ""
   })
-  const [selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
+  const [_selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
   const [messages, setMessages] = React.useState<AssistantMessage[]>([
     {
       id: "welcome",
