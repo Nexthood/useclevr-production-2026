@@ -8,6 +8,7 @@ import { useState } from "react"
 
 export function Search() {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
 
   return (
     <>
@@ -22,15 +23,22 @@ export function Search() {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Search</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Search datasets, reports, and more..."
+            placeholder="Search datasets, reports, business data..."
             className="h-10"
             autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
+          <div className="flex-1 overflow-y-auto mt-4">
+            <p className="text-sm text-muted-foreground">
+              Search functionality coming soon. Query: "{query}"
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     </>
