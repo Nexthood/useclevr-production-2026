@@ -75,6 +75,11 @@ export default async function BillingSettingsPage() {
                 Preview checkout
               </Button>
             </Link>
+            <a href="mailto:sales@useclevr.com">
+              <Button variant="outline" className="bg-transparent">
+                Contact sales
+              </Button>
+            </a>
           </div>
         </CardContent>
       </Card>
