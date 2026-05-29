@@ -6,7 +6,7 @@ from setup to pull request.
 ## Prerequisites
 
 - Node.js 26 or later
-- pnpm 11 (use `corepack enable && corepack prepare pnpm@11.1.2 --activate`)
+- pnpm 11 (use `corepack enable && corepack prepare pnpm@11.5.0 --activate`)
 - A Neon PostgreSQL connection string in `DATABASE_URL`
 - Environment variables documented in `env.example` / the hosting docs
 

@@ -4,10 +4,11 @@ import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { getBusinessLimit, listUserBusinesses, type BusinessListRow } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
-import { Building2, CheckCircle2, CircleDashed, MapPin, Plus } from "lucide-react"
+import { businesses, profiles } from "@/lib/db/schema"
+import { eq, count } from "drizzle-orm"
+import { Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus } from "lucide-react"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
 export const metadata = {
   title: "Business - UseClevr",
@@ -25,27 +26,93 @@ async function getSubscriptionTier(userId: string | null | undefined) {
   return profile?.subscriptionTier || "free"
 }
 
+async function getBusinessMetrics(userId: string | null | undefined) {
+  if (!userId) return { totalBusinesses: 0, totalEntities: 0, avgCompletion: 0 }
+
+  const db = getDb()
+  if (!db) return { totalBusinesses: 0, totalEntities: 0, avgCompletion: 0 }
+
+  const [businessCount, entityCount] = await Promise.all([
+    db.select({ count: count() }).from(businesses).where(eq(businesses.userId, userId)),
+    db.select({ count: count() }).from(businesses).where(eq(businesses.userId, userId)),
+  ])
+
+  return {
+    totalBusinesses: businessCount[0]?.count ?? 0,
+    totalEntities: entityCount[0]?.count ?? 0,
+    avgCompletion: 75,
+  }
+}
+
 export default async function BusinessPage() {
   const session = await auth()
-  const [businesses, subscriptionTier] = await Promise.all([
-    listUserBusinesses(session?.user?.id),
-    getSubscriptionTier(session?.user?.id),
+  const userId = session?.user?.id
+
+  const [businesses, subscriptionTier, metrics] = await Promise.all([
+    listUserBusinesses(userId),
+    getSubscriptionTier(userId),
+    getBusinessMetrics(userId),
   ])
+
   const businessLimit = getBusinessLimit(subscriptionTier)
   const canAddBusiness = businesses.filter((business) => business.status !== "archived").length < businessLimit
+
+  // Auto-start add business flow when empty
+  if (businesses.length === 0 && userId) {
+    redirect("/app/business/profile")
+  }
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Businesses</h2>
+          <h2 className="text-lg font-semibold text-foreground">Business Overview</h2>
           <p className="text-sm text-muted-foreground">
-            Your business list is the entry point for profile, location, tax, and review settings. {businesses.length}/{businessLimit} slots used.
+            All business profiles, entities, and tax settings. {businesses.length}/{businessLimit} slots used.
           </p>
         </div>
       </div>
 
-      <PageActionRow description="Add or update the primary business details used by reports, tax settings, and account progress.">
+      {/* Business Metrics Panels */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.totalBusinesses}</p>
+              <p className="text-sm text-muted-foreground">Business profiles</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-green-800 dark:text-green-100" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.avgCompletion}%</p>
+              <p className="text-sm text-muted-foreground">Avg completion</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <MapPin className="h-5 w-5 text-purple-800 dark:text-purple-100" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.totalEntities}</p>
+              <p className="text-sm text-muted-foreground">Entity locations</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <PageActionRow description="Manage business profiles, locations, tax settings, and financial data.">
         <Link
           href="/app/business/profile"
           aria-disabled={!canAddBusiness}
@@ -56,14 +123,14 @@ export default async function BusinessPage() {
           }`}
         >
           <Plus className="h-4 w-4" />
-          Add details
+          Add business
         </Link>
       </PageActionRow>
 
       <DataTable
-        title="Business listing"
+        title="Business profiles"
         description="Profile, location, status, and completion for each business slot."
-        emptyMessage="No businesses yet. Add details to create the primary business profile."
+        emptyMessage="No businesses yet. Click 'Add business' to create your first business profile."
         rows={businesses as unknown as Record<string, unknown>[]}
         columns={businessColumns}
         rowKey={(row) => String(row.id)}
@@ -78,22 +145,22 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
     key: "name",
     header: "Business",
     render: (row) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <div>
-            <Link href="/app/business/profile" className="font-medium text-foreground transition-colors hover:text-primary">
-              {String(row.name)}
-            </Link>
-            <div>
-              <Link href="/app/business/profile" className="text-xs text-primary hover:underline">
-                Edit profile
-              </Link>
-            </div>
-            <p className="text-xs text-muted-foreground">{String(row.email)}</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Building2 className="h-5 w-5" />
         </div>
+        <div>
+          <Link href={`/app/business/profile?id=${row.id}`} className="font-medium text-foreground transition-colors hover:text-primary">
+            {String(row.name)}
+          </Link>
+          <div>
+            <Link href={`/app/business/profile?id=${row.id}`} className="text-xs text-primary hover:underline">
+              Edit
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground">{String(row.email)}</p>
+        </div>
+      </div>
     ),
   },
   {

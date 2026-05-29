@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button"
 import {
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   RefreshCw,
   Send,
@@ -38,24 +40,6 @@ type AssistantMessage = {
   chartType?: string
 }
 
-const suggestedQuestions = [
-  "What are the key insights in this dataset?",
-  "Which segment performs best?",
-  "Show me revenue trends over time",
-  "Where are the biggest risks or anomalies?",
-  "What are the top 5 categories by value?",
-  "How does this data distribute across regions?",
-  "What patterns exist in the monthly trends?",
-  "Which metrics have the highest variance?",
-  "Can you identify outliers in the data?",
-  "What correlations exist between columns?",
-  "Summarize the data quality issues",
-  "Which time periods show growth?",
-  "Compare performance across segments",
-  "What metrics should I track weekly?",
-  "Are there seasonal patterns visible?",
-]
-
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
 
 function responseText(data: Record<string, unknown>) {
@@ -74,31 +58,42 @@ function compactValue(value: unknown) {
   return String(value)
 }
 
+// Database-persisted suggestions
+type SavedSuggestion = {
+  id: string
+  text: string
+  createdAt: string
+}
+
 export function AiAssistantWorkspace() {
-  const [_datasets, setDatasets] = React.useState<DatasetOption[]>([])
-  const [selectedDatasetId, _setSelectedDatasetId] = React.useState<string>(() => {
+  const [datasets, setDatasets] = React.useState<DatasetOption[]>([])
+  const [selectedDatasetId, setSelectedDatasetId] = React.useState<string>(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem(ACTIVE_DATASET_ID_KEY) || ""
     }
     return ""
   })
-  const [_selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
+  const [selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
   const [messages, setMessages] = React.useState<AssistantMessage[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: "Select a dataset, then ask a business question. I will answer from the selected data.",
+      content: "Select a dataset from the sidebar, then ask a business question. I will answer from your data.",
       insight: "AI assistant ready",
-      explanation: "Use the suggested questions or write your own prompt once a dataset is selected.",
-      recommendation: "Start with a broad question, then narrow into segments, trends, or risks.",
+      explanation: "Choose a dataset and use the suggested questions or write your own prompt.",
+      recommendation: "Start with a broad question to understand your data structure.",
     },
   ])
   const [inputValue, setInputValue] = React.useState("")
-  const [_loadingDatasets, setLoadingDatasets] = React.useState(true)
+  const [loadingDatasets, setLoadingDatasets] = React.useState(true)
   const [_loadingDataset, setLoadingDataset] = React.useState(false)
   const [isAsking, setIsAsking] = React.useState(false)
   const [_error, setError] = React.useState<string | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+  const [savedSuggestions, setSavedSuggestions] = React.useState<SavedSuggestion[]>([])
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = React.useState(false)
+  const [leftSidebarOpen, setLeftSidebarOpen] = React.useState(true)
+  const [rightSidebarOpen, setRightSidebarOpen] = React.useState(true)
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -125,22 +120,38 @@ export function AiAssistantWorkspace() {
         setDatasets(nextDatasets)
         if (nextDatasets.length === 0) {
           sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
-        } else if (nextDatasets[0]?.id) {
-          const idToSelect = nextDatasets[0].id
-          _setSelectedDatasetId(idToSelect)
         }
-      } catch (loadError) {
-        if (cancelled) return
-        setError(loadError instanceof Error ? loadError.message : "Datasets could not be loaded.")
+      } catch {
+        if (!cancelled) setDatasets([])
       } finally {
-        if (!cancelled) {
-          setLoadingDatasets(false)
-        }
+        if (!cancelled) setLoadingDatasets(false)
       }
     }
 
     loadDatasets()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function loadSuggestions() {
+      try {
+        const response = await fetch("/api/suggestions")
+        if (response.ok) {
+          const body = await response.json()
+          if (!cancelled) {
+            setSavedSuggestions(Array.isArray(body.suggestions) ? body.suggestions : [])
+          }
+        }
+      } catch {
+        // Keep empty suggestions
+      }
+    }
+
+    loadSuggestions()
     return () => {
       cancelled = true
     }
@@ -169,20 +180,14 @@ export function AiAssistantWorkspace() {
         if (!cancelled) {
           _setSelectedDataset(body)
         }
-      } catch (loadError) {
-        if (!cancelled) {
-          _setSelectedDataset(null)
-          setError(loadError instanceof Error ? loadError.message : "Dataset could not be loaded.")
-        }
+      } catch {
+        if (!cancelled) _setSelectedDataset(null)
       } finally {
-        if (!cancelled) {
-          setLoadingDataset(false)
-        }
+        if (!cancelled) setLoadingDataset(false)
       }
     }
 
     loadDataset()
-
     return () => {
       cancelled = true
     }
@@ -192,7 +197,6 @@ export function AiAssistantWorkspace() {
     const trimmed = question.trim()
     if (!trimmed || isAsking) return
 
-    // If no dataset, show message
     if (!selectedDatasetId) {
       setMessages((current) => [
         ...current,
@@ -265,6 +269,30 @@ export function AiAssistantWorkspace() {
     }
   }
 
+  async function generateSuggestions() {
+    if (!selectedDatasetId || isGeneratingSuggestions) return
+
+    setIsGeneratingSuggestions(true)
+    try {
+      const response = await fetch("/api/suggestions/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ datasetId: selectedDatasetId }),
+      })
+
+      if (response.ok) {
+        const body = await response.json()
+        if (Array.isArray(body.suggestions)) {
+          setSavedSuggestions(body.suggestions)
+        }
+      }
+    } catch {
+      // Keep existing suggestions
+    } finally {
+      setIsGeneratingSuggestions(false)
+    }
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     askAssistant(inputValue)
@@ -276,16 +304,71 @@ export function AiAssistantWorkspace() {
   }
 
   const canAsk = Boolean(selectedDatasetId) && !isAsking
+  const allSuggestions = [...new Set([...savedSuggestions.map((s) => s.text), ...messages.map((m) => m.content).filter((c) => c.startsWith("?"))])]
 
   return (
-    <div className="flex flex-col h-full min-h-[600px] overflow-hidden">
-      <section className="flex flex-col flex-1 min-h-0 overflow-y-auto">
-        <div className="flex-1 overflow-y-auto p-4 pb-24">
-          <div className="mx-auto max-w-4xl space-y-4">
+    <div className="flex h-[calc(100vh-8rem)] min-h-0 flex-col lg:flex-row">
+      {/* Left Sidebar - Datasets */}
+      <aside
+        className={`flex-shrink-0 border-r border-border bg-card transition-all duration-200 ${
+          leftSidebarOpen ? "w-64" : "w-12"
+        } hidden lg:block`}
+      >
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex items-center justify-between border-b border-border p-3">
+            <h2 className={`text-sm font-semibold text-foreground ${leftSidebarOpen ? "" : "hidden"}`}>Datasets</h2>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+              aria-label={leftSidebarOpen ? "Collapse datasets sidebar" : "Expand datasets sidebar"}
+            >
+              {leftSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+          </div>
+          {leftSidebarOpen && (
+            <div className="flex-1 overflow-y-auto p-2">
+              {loadingDatasets ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : datasets.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-muted-foreground">No datasets uploaded</p>
+              ) : (
+                <div className="space-y-1">
+                  {datasets.map((dataset) => (
+                    <button
+                      key={dataset.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDatasetId(dataset.id)
+                        sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, dataset.id)
+                      }}
+                      className={`w-full truncate rounded-md px-3 py-2 text-left text-sm transition ${
+                        selectedDatasetId === dataset.id
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-accent"
+                      }`}
+                    >
+                      {dataset.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Chat Area */}
+      <main className="flex flex-1 flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="mx-auto max-w-3xl space-y-4">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[86%] rounded-lg border p-4 shadow-sm ${
+                  className={`max-w-[85%] rounded-lg border p-4 shadow-sm ${
                     message.role === "user"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-card text-card-foreground"
@@ -294,7 +377,7 @@ export function AiAssistantWorkspace() {
                   {message.role === "assistant" && (
                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      AI assistant
+                      AI Analyst
                     </div>
                   )}
                   <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
@@ -328,7 +411,7 @@ export function AiAssistantWorkspace() {
         </div>
 
         <form onSubmit={handleSubmit} className="sticky bottom-0 border-t border-border bg-background p-4">
-          <div className="mx-auto flex max-w-4xl gap-2">
+          <div className="mx-auto flex max-w-3xl gap-2">
             <textarea
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
@@ -346,42 +429,71 @@ export function AiAssistantWorkspace() {
             <Button type="submit" size="icon" disabled={!inputValue.trim() || !canAsk} aria-label="Send question">
               {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              aria-label="Clear assistant chat"
-              onClick={() => {
-                setMessages([])
-                setInputValue("")
-              }}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
           </div>
         </form>
-      </section>
+      </main>
 
-      <aside className="min-h-0 overflow-y-auto border-t border-border bg-muted/20 p-4 lg:border-l lg:border-t-0">
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Suggested questions</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Clicking a question sends it to the chat.</p>
-          </div>
-          <div className="space-y-2">
-            {suggestedQuestions.map((question) => (
-              <button
-                key={question}
+      {/* Right Sidebar - Suggestions */}
+      <aside
+        className={`flex-shrink-0 border-l border-border bg-card transition-all duration-200 ${
+          rightSidebarOpen ? "w-72" : "w-12"
+        } hidden lg:block`}
+      >
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex items-center justify-between border-b border-border p-3">
+            <h2 className={`text-sm font-semibold text-foreground ${rightSidebarOpen ? "" : "hidden"}`}>Suggestions</h2>
+            <div className="flex items-center gap-1">
+              {rightSidebarOpen && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={generateSuggestions}
+                  disabled={!selectedDatasetId || isGeneratingSuggestions}
+                  aria-label="Generate more suggestions"
+                >
+                  {isGeneratingSuggestions ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
+              <Button
                 type="button"
-                onClick={() => handleSuggestedQuestion(question)}
-                disabled={!canAsk}
-                className="flex w-full items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground transition hover:border-primary/60 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+                variant="ghost"
+                size="sm"
+                onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+                aria-label={rightSidebarOpen ? "Collapse suggestions sidebar" : "Expand suggestions sidebar"}
               >
-                <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                <span>{question}</span>
-              </button>
-            ))}
+                {rightSidebarOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
+          {rightSidebarOpen && (
+            <div className="flex-1 overflow-y-auto p-2">
+              <div className="space-y-2">
+                {allSuggestions.length === 0 ? (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                    {selectedDatasetId ? "No suggestions available" : "Select a dataset to see suggestions"}
+                  </p>
+                ) : (
+                  allSuggestions.map((question, index) => (
+                    <button
+                      key={`${question}-${index}`}
+                      type="button"
+                      onClick={() => handleSuggestedQuestion(question)}
+                      disabled={!canAsk}
+                      className="flex w-full items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground transition hover:border-primary/60 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="line-clamp-2">{question}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </div>

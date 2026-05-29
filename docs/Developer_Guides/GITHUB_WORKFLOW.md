@@ -150,7 +150,7 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
   - Commit message includes `[skip ci]` to prevent CI duplication
 
 - **publish-dist**: Triggers on push to `main` and `workflow_dispatch`
-- Uses same Node.js (`26.x`) and pnpm (`11.1.2`) setup as `ci.yml`
+- Uses same Node.js (`26.x`) and pnpm (`11.5.0`) setup as `ci.yml`
 - Runs type validation, dist config validation, and lint before publishing generated output
 - Runs `pnpm prod:build` to create the dist output
 - Starts the generated server and checks `/api/health` before publishing

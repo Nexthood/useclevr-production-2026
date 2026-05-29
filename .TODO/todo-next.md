@@ -19,76 +19,8 @@ No active implementation task is currently in progress.
 
 ## Next
 
-- T-314. Execute dist-test branch prompt plan (see `.TODO/.PLAN/dist-test-prompt-plan.md`) for test.useclevr.com Railway deployment.
-- T-130. Document API endpoints and request/response contracts.
-- T-131. Create a user-facing product guide.
-- T-132. Remove production-facing debug logs after confirming they are not needed for support.
-- T-133. Audit source and docs for exposed API keys, secrets, or real connection strings.
-- T-134. Verify Railway environment variables after dist deployment succeeds.
-- T-135. Validate authentication flow and protected route behavior.
-- T-136. Validate rate limiter behavior in the deployed environment.
-- T-137. Verify security headers in the deployed app.
-- T-138. Test authentication bypass scenarios.
-- T-139. Validate CORS and trusted-host configuration.
-- T-140. Audit database queries for injection risks.
-- T-141. Verify upload validation, including MIME type and file size handling.
-- T-142. Verify Railway deployment reaches the app shell.
-- T-143. Verify `/api/health` returns quickly.
-- T-144. Check Neon connection pooling and direct connection settings.
-- T-145. Measure Railway runtime memory usage.
-- T-146. Test cold-start performance.
-- T-147. Remove unused imports and dependencies.
-- T-148. Clean up dead code paths and old backup files.
-- T-149. Add error boundaries to high-value React routes.
-- T-150. Improve TypeScript types around analysis, forecasts, and reports.
-- T-151. Add consistent loading and error states to async UI.
-- T-152. Optimize database query patterns for expensive dashboard and report flows.
-- T-153. Add safe caching where data can be reused.
-- T-154. Optimize image and static asset loading.
-- T-155. Lazy-load heavy dashboard and report components where useful.
-- T-156. Analyze production bundle size and remove avoidable weight.
-- T-157. Add application error tracking.
-- T-158. Define structured server logging conventions.
-- T-159. Configure production health checks.
-- T-160. Add basic performance metrics for upload, analysis, and report generation.
-- T-161. Guard Stripe checkout and webhook call sites so missing secrets return structured HTTP errors.
-- T-162. Replace the Stripe checkout success stub with real checkout session retrieval.
-- T-163. Run an end-to-end Stripe test on staging.
-- T-164. Add a unique index for customer payment provider IDs.
-- T-165. Fix subscription deletion handling so billing expiry is cleared when access ends.
-- T-166. Resolve whether the annual Pro plan appears in subscription settings or the footer copy changes.
-- T-167. Add a Stripe customer portal route for invoice downloads, plan swaps, and cancellation.
-- T-168. Track checkout funnel events.
-- T-170. Add production database connection probes for cold-start visibility.
-- T-171. Run dependency drift checks and lock stable majors where appropriate.
-- T-172. Add audit coverage to CI if the current validation gate does not catch advisories.
-- T-173. Resolve whether `uuid` remains needed at runtime.
-- T-174. Centralize Stripe secret reads in an environment guard helper.
-- T-175. Add unit coverage for checkout session creation.
-- T-176. Add unit coverage for subscription webhook handling.
-- T-177. Add integration coverage for the checkout review flow.
-- T-178. Add a payment-provider health endpoint that reports configured status without leaking secrets.
-- T-179. Verify Railway runtime memory settings after dist deployment succeeds.
-- T-246. Deduplicate homepage and public FAQ accordion behavior into one shared component.
-- T-247. Replace the homepage FAQ count approximation with a computed FAQ item count.
-- T-249. Add a shared billing hook or helper for topbar, subscription, and checkout billing state.
-- T-250. Add a payment price lookup index or document why billing reports cannot use price-based lookups.
-- T-251. Strip direct payment secret references from files that may be included in AI context.
-- T-252. Add route-level rate limiting to the payment webhook endpoint.
-- T-253. Verify the running Railway container Node version after dist deployment succeeds.
-- T-266. Add tests for the onboarding popup first-run state, database-backed seen state, under-25%
-  repeat-open behavior, and step navigation links.
-- T-268. Add keyboard and screen-reader coverage for the shared modal use in onboarding and activity
-  panels.
-- T-271. Break Company Calculation Context into separate type file for cleaner imports.
-- T-272. Create test script to verify each layer builds successfully.
-- T-273. Add dist packaging validation for stripped layers.
-- T-274. Document migration path from useclevr-2026 base to _ai-base-project.
-- T-275. Add TypeScript validation for Mermaid diagrams in pre-commit.
-- T-276. Create draft PR template for plan review process.
-- T-279. Expand analysis to include file-based interaction patterns.
-- T-284. Audit dashboard interactions across topbar, sidebar, settings, dataset, checkout, admin, FAQ,
-  ticket, and download flows.
-- T-285. Add an authenticated end-to-end smoke test that clicks each dashboard button and verifies
-   expected navigation, modal, form, or API behavior.
-- T-286. Verify Google and GitHub OAuth login and registration in staging with configured provider credentials and callback URLs.
+- T-328. Fix AI assistant page layout - sticky footer, left-right sidebar structure, varied AI responses, generate suggestions button saving to database.
+- T-334. Create API endpoints for search and suggestions to support frontend functionality.
+- T-335. Fix progress system - single line display, page-based steps instead of field-based, activity integration.
+
+(Existing tasks below)

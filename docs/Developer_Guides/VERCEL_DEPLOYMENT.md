@@ -30,7 +30,7 @@ The root `vercel.json` is synced from `dist-root/server-config/vercel.json`.
 The Vercel template uses Corepack pnpm:
 
 ```bash
-corepack enable && corepack prepare pnpm@11.1.2 --activate && pnpm install --frozen-lockfile
+corepack enable && corepack prepare pnpm@11.5.0 --activate && pnpm install --frozen-lockfile
 pnpm build
 pnpm dev
 ```

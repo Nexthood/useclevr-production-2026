@@ -7,7 +7,7 @@ const packagePath = path.join(rootDir, "package.json");
 const licensePath = path.join(rootDir, "LICENSE");
 const todoConfigPath = path.join(rootDir, ".TODO", "config.json");
 const workflowsDir = path.join(rootDir, ".github", "workflows");
-const requiredPackageManager = "pnpm@11.1.2";
+const requiredPackageManager = "pnpm@11.5.0";
 
 function resolveRepoPath(...segments) {
   return path.join(rootDir, ...segments);

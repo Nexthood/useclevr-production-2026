@@ -3,11 +3,7 @@
   "version": "7.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.1.2",
-  "engines": {
-    "node": "26.x",
-    "pnpm": ">=11.1.2"
-  },
+  "packageManager": "pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1",
   "homepage": "https://useclevr.com",
   "keywords": [
     "business-intelligence",
@@ -28,7 +24,7 @@
     "build:preview": "pnpm prod:build && pnpm start:dist",
     "start": "pnpm prod:start",
     "start:next": "next start --hostname 0.0.0.0 --port ${PORT:-8080}",
-    "prod:install": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --frozen-lockfile",
+    "prod:install": "corepack enable && corepack prepare pnpm@11.5.0 --activate && pnpm install --frozen-lockfile",
     "prod:build": "NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/package-dist/create-dist.cjs",
     "build:prod": "node ./scripts/package-dist/create-dist.cjs",
     "prod:start": "pnpm start:dist",
@@ -91,11 +87,11 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
-    "@aws-sdk/client-s3": "^3.1055.0",
+    "@aws-sdk/client-s3": "^3.1056.0",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.13",
     "@types/papaparse": "^5.5.2",
-    "ai": "^6.0.191",
+    "ai": "^6.0.192",
     "bcryptjs": "^3.0.3",
     "canvg": "3.0.11",
     "clsx": "2.1.1",
@@ -104,7 +100,7 @@
     "html2canvas": "1.4.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
-    "lucide-react": "^1.16.0",
+    "lucide-react": "^1.17.0",
     "next": "16.2.4",
     "next-auth": "5.0.0-beta.31",
     "next-themes": "^0.4.6",
@@ -144,7 +140,7 @@
     "prettier": "^3.8.3",
     "tailwindcss": "3.4.17",
     "tsx": "^4.22.3",
-    "turbo": "^2.9.15",
+    "turbo": "^2.9.16",
     "typescript": "6.0.3"
   },
   "enginesStrict": true

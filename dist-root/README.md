@@ -1,1 +1,1 @@
-# UseClevr
+# UseClevr distribution for deployment (eg. RailWay)
