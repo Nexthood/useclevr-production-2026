@@ -130,6 +130,7 @@ const rootDistPackage = {
   version: rootPkg.version,
   private: true,
   type: "module",
+  packageManager: rootPkg.packageManager,
   scripts: {
     start: "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:local":

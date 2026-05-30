@@ -27,6 +27,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Railway builds activate and locate pnpm via Corepack by including the package manager definition in the generated package manifest.
 - Language preference persists in localStorage and applies across the application.
 - Translation service with 24-hour caching layer to minimize API calls to Google Translation.
 - Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up

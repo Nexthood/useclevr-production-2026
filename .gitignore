@@ -17,6 +17,7 @@ build/
 # Production
 .env.production
 
+
 # Logs
 logs/
 *.log
@@ -49,6 +50,7 @@ Thumbs.db
 !**/assets/generated/README.md
 
 # AI local
+.antigravitycli/*
 .kilo/*
 !.kilo/agent/
 !.kilo/agent/*.md
