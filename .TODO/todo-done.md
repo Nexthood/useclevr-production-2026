@@ -16,15 +16,18 @@ moving work between states.
 
 ## Completed
 
+- T-337. Create accountancy-nav.tsx subpages bar component with Overview, Reporting, Tax, and Compliance links.
+- T-339. Move review and info panels from business profile to business main page (profile summary and review sections).
 - T-325. Fix corepack pnpm for Railway build - use pnpm@11.5.0 version matching package.json engines.
 - T-326. Topbar menu simplified - single icon items without subpanels, spread layout, clean navigation.
 - T-324. Add contact sales button to billing page (sales@useclevr.com).
 - T-323. Fix Stripe integration message in billing page.
 - T-327. Search popup fixed - added submit button, proper width, non-blocking modal.
+- T-328. AI assistant page layout rewritten - left-right sidebar structure, sticky footer, generate suggestions button, dataset selection in left sidebar.
 - T-329. Dataset table unified - action bar header with business-related stat panels (total datasets, avg revenue, ready count) instead of row/column counts.
 - T-330. Business menu pages fixed - overview panels for business metrics, auto-start add business flow when empty, sidebar selection persistence.
 - T-331. Accountancy sidebar menu added with Receipt icon and database-connected main page with overview panels.
-- T-332. AI assistant page layout rewritten - left-right sidebar structure, sticky footer, generate suggestions button, dataset selection in left sidebar.
+- T-332. Topbar sidebar secondary menu - Account moved to secondary panel above credits, profile combined with settings as Account.
 
 (Existing tasks below)
 - T-312. Support dedicated business, business entity, and country tax profile storage with

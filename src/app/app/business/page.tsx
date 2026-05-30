@@ -2,13 +2,15 @@ import { archiveBusinessAction, restoreBusinessAction } from "@/app/actions/busi
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
-import { getBusinessLimit, listUserBusinesses, type BusinessListRow } from "@/lib/business/business-store"
+import { getBusinessLimit, listUserBusinesses, getPrimaryBusinessDetails, type BusinessListRow } from "@/lib/business/business-store"
+import { BUSINESS_FIELDS, getBusinessCompletionPercent, getBusinessReviewFlags } from "@/lib/business/business-profile"
 import { getDb } from "@/lib/db"
 import { businesses, profiles } from "@/lib/db/schema"
 import { eq, count } from "drizzle-orm"
-import { Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus } from "lucide-react"
+import { AlertCircle, Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus, Percent, Mail } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import type React from "react"
 
 export const metadata = {
   title: "Business - UseClevr",
@@ -48,19 +50,24 @@ export default async function BusinessPage() {
   const session = await auth()
   const userId = session?.user?.id
 
-  const [businesses, subscriptionTier, metrics] = await Promise.all([
+  const [businessesList, subscriptionTier, metrics] = await Promise.all([
     listUserBusinesses(userId),
     getSubscriptionTier(userId),
     getBusinessMetrics(userId),
   ])
 
   const businessLimit = getBusinessLimit(subscriptionTier)
-  const canAddBusiness = businesses.filter((business) => business.status !== "archived").length < businessLimit
+  const canAddBusiness = businessesList.filter((business) => business.status !== "archived").length < businessLimit
 
   // Auto-start add business flow when empty
-  if (businesses.length === 0 && userId) {
+  if (businessesList.length === 0 && userId) {
     redirect("/app/business/profile")
   }
+
+  // Get primary business details for review panel
+  const primaryDetails = await getPrimaryBusinessDetails(userId)
+  const pct = getBusinessCompletionPercent(primaryDetails as any)
+  const flags = getBusinessReviewFlags(primaryDetails as any)
 
   return (
     <div className="space-y-5">
@@ -68,7 +75,7 @@ export default async function BusinessPage() {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Business Overview</h2>
           <p className="text-sm text-muted-foreground">
-            All business profiles, entities, and tax settings. {businesses.length}/{businessLimit} slots used.
+            All business profiles, entities, and tax settings. {businessesList.length}/{businessLimit} slots used.
           </p>
         </div>
       </div>
@@ -112,6 +119,55 @@ export default async function BusinessPage() {
         </div>
       </div>
 
+      {/* Profile & Review Panels */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card lg:col-span-2">
+          <div className="p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Profile summary</h3>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ProfileMetric icon={Building2} label="Identity" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Identity" && primaryDetails[field.id as keyof typeof primaryDetails]).length}/3`} />
+              <ProfileMetric icon={Mail} label="Contact" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Contact" && primaryDetails[field.id as keyof typeof primaryDetails]).length}/2`} />
+              <ProfileMetric icon={MapPin} label="Operations" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Operations" && primaryDetails[field.id as keyof typeof primaryDetails]).length}/1`} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card">
+          <div className="p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Review</h3>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Percent className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Profile completion</p>
+                <p className="text-lg font-semibold">{pct === 0 ? "0% - not started" : `${pct}%`}</p>
+              </div>
+              <div className="ml-auto max-w-xs flex-1">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {flags.map((flag) => (
+                <div key={flag.label} className="flex gap-2 text-sm">
+                  {flag.complete ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
+                  ) : (
+                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                  )}
+                  <div>
+                    <p className="font-medium text-foreground">{flag.label}</p>
+                    <p className="text-muted-foreground">{flag.complete ? "Ready" : flag.help}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <PageActionRow description="Manage business profiles, locations, tax settings, and financial data.">
         <Link
           href="/app/business/profile"
@@ -131,11 +187,31 @@ export default async function BusinessPage() {
         title="Business profiles"
         description="Profile, location, status, and completion for each business slot."
         emptyMessage="No businesses yet. Click 'Add business' to create your first business profile."
-        rows={businesses as unknown as Record<string, unknown>[]}
+        rows={businessesList as unknown as Record<string, unknown>[]}
         columns={businessColumns}
         rowKey={(row) => String(row.id)}
         minWidth="min-w-[880px]"
       />
+    </div>
+  )
+}
+
+function ProfileMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background p-3">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-primary" />
+        <p className="text-sm font-medium text-foreground">{label}</p>
+      </div>
+      <p className="mt-2 text-2xl font-semibold text-primary">{value}</p>
     </div>
   )
 }

@@ -2,13 +2,30 @@
 
 import { Logo } from "@/components/layout/logo"
 import { UsageMonitor, useUsage } from "@/components/ui/usage-monitor"
-import { Award, BarChart3, Building2, ChevronLeft, ChevronRight, Database, FileText, Gift, Menu, Sparkles, Tag, Users, X, Receipt } from "lucide-react"
+import {
+  Award,
+  BarChart3,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Database,
+  FileText,
+  Gift,
+  Menu,
+  Receipt,
+  Settings,
+  Sparkles,
+  Tag,
+  Users,
+  X,
+} from "lucide-react"
 import type { Session } from "next-auth"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
-const navigation = [
+const primaryNavigation = [
   { name: "Dashboard", href: "/app", icon: BarChart3 },
   { name: "Datasets", href: "/app/datasets", icon: Database },
   { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
@@ -16,6 +33,11 @@ const navigation = [
   { name: "Business", href: "/app/business", icon: Building2 },
   { name: "Accountancy", href: "/app/accountancy", icon: Receipt },
   { name: "Referral", href: "/app/referral", icon: Gift },
+]
+
+const secondaryNavigation = [
+  { name: "Account", href: "/app/settings/profile", icon: Settings },
+  { name: "Credits", href: "/app/settings/credits", icon: CreditCard },
 ]
 
 type AppSidebarProps = {
@@ -37,16 +59,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
     return () => document.documentElement.style.setProperty("--app-sidebar-width", "220px")
   }, [isCollapsed])
 
-  const navItems = [
-    ...navigation,
-    ...(user.role === "superadmin"
+  const adminNavItems =
+    user.role === "superadmin"
       ? [
           { name: "Customers", href: "/app/admin/customers", icon: Users },
           { name: "Customer Levels", href: "/app/admin/levels", icon: Award },
           { name: "Discount Rules", href: "/app/admin/discounts", icon: Tag },
         ]
-      : []),
-  ]
+      : []
 
   const sidebarContent = (
     <>
@@ -69,7 +89,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        {navItems.map((item) => {
+        {primaryNavigation.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link
@@ -89,10 +109,51 @@ export function AppSidebar({ user }: AppSidebarProps) {
         })}
       </nav>
 
+      <div className="border-t border-sidebar-border p-3">
+        {!isCollapsed && (
+          <nav className="space-y-1">
+            {secondaryNavigation.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  }`}
+                >
+                  <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`} />
+                  <span className="truncate">{item.name}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        )}
+      </div>
+
       <div className="space-y-3 border-t border-sidebar-border p-4">
         {!isLoading && !isCollapsed && (
           <UsageMonitor used={usage} total={total} isPro={isPro} />
         )}
+        {adminNavItems.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              }`}
+            >
+              <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`} />
+              {!isCollapsed && <span className="truncate">{item.name}</span>}
+            </Link>
+          )
+        })}
       </div>
     </>
   )
