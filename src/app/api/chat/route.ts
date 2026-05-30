@@ -1,3 +1,4 @@
+import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
 import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/chat/route.ts
@@ -670,13 +671,8 @@ export async function POST(request: Request) {
         row_count: validation.dataset?.rowCount
       }, lastMessage);
 
-      const explanationResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`,
-        },
-        body: JSON.stringify({
+      try {
+        const rawExplanation = await generateAntigravityCompletion({
           model: 'gemini-2.5-flash',
           messages: [
             { role: 'system', content: EXPLANATION_SYSTEM_PROMPT },
@@ -684,18 +680,27 @@ export async function POST(request: Request) {
           ],
           temperature: 0.3,
           max_tokens: 500,
-        }),
-      });
-
-      if (explanationResponse.ok) {
-        const explanationData = await explanationResponse.json();
-        const rawExplanation = explanationData.choices?.[0]?.message?.content || '';
+        });
         // Apply formatter to guarantee correct number formatting
         const explanation = formatAIResponse(rawExplanation);
 
         return NextResponse.json({
           success: true,
           content: explanation,
+          role: 'assistant',
+          verified: true,
+          computation: {
+            operation: sqlResult.result.operation,
+            sql: sqlResult.sql,
+            result: sqlResult.result
+          },
+        });
+      } catch (antigravityError) {
+        debugError('[ANTIGRAVITY] Error generating explanation:', antigravityError);
+        // Return the raw result as fallback
+        return NextResponse.json({
+          success: true,
+          content: `Result: ${JSON.stringify(sqlResult.result)}`,
           role: 'assistant',
           verified: true,
           computation: {
@@ -909,7 +914,7 @@ No dataset is currently loaded. Ask the user to upload a CSV file first.`;
 
 Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
 
-    debugLog('[GEMINI] API Key present:', !!process.env.GEMINI_API_KEY);
+    debugLog('[ANTIGRAVITY] API Key present:', !!process.env.GEMINI_API_KEY);
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
@@ -918,13 +923,9 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
       });
     }
 
-    const deepSeekResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`,
-      },
-      body: JSON.stringify({
+    let content = '';
+    try {
+      content = await generateAntigravityCompletion({
         model: 'gemini-2.5-flash',
         messages: [
           {
@@ -935,28 +936,20 @@ Remember: Respond with TEXT ONLY. Do not execute any commands or tools.`;
         ],
         temperature: 0.3,
         max_tokens: 1500,
-      }),
-    });
+      });
 
-    debugLog('[GEMINI] Status:', deepSeekResponse.status);
-
-    if (!deepSeekResponse.ok) {
-      const errorText = await deepSeekResponse.text();
-      debugError('[GEMINI ERROR]', deepSeekResponse.status, errorText);
+      debugLog('[ANTIGRAVITY] Response received:', content.slice(0, 100));
+    } catch (antigravityError) {
+      debugError('[ANTIGRAVITY ERROR]', antigravityError);
 
       return NextResponse.json(
         {
           success: false,
-          error: `AI service error: ${deepSeekResponse.status}`,
+          error: `AI service error: ${antigravityError instanceof Error ? antigravityError.message : 'Unknown error'}`,
         },
-        { status: deepSeekResponse.status }
+        { status: 500 }
       );
     }
-
-    const data = await deepSeekResponse.json();
-    const content = data.choices?.[0]?.message?.content || '';
-
-    debugLog('[GEMINI] Response received:', content.slice(0, 100));
 
     // ============================================================================
     // AI CALL COMPLETE - Log execution

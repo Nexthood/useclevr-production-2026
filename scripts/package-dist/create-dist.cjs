@@ -131,7 +131,7 @@ const rootDistPackage = {
   private: true,
   type: "module",
   scripts: {
-    start: "npm run start:local",
+    start: "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:local":
       "USECLEVR_SERVER_TARGET=local node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:railway":
@@ -139,8 +139,8 @@ const rootDistPackage = {
     "start:vercel":
       "USECLEVR_SERVER_TARGET=vercel node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "railway:predeploy": "node ./scripts/runtime/railway-predeploy.cjs",
-    "db:push": "pnpm exec drizzle-kit push",
-    "db:migrate": "pnpm exec drizzle-kit migrate",
+    "db:push": "node ./node_modules/drizzle-kit/bin.cjs push",
+    "db:migrate": "node ./node_modules/drizzle-kit/bin.cjs migrate",
   },
   dependencies: {
     ...rootPkg.dependencies,

@@ -1,17 +1,19 @@
+import { checkAntigravityAvailability } from "@/lib/ai/antigravity-client"
 import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 
 /**
  * Hybrid AI Router
- * 
- * Provides intelligent failover between Local AI and Cloud AI.
- * Priority: Local AI (preferred) > Cloud Gemini Flash 2.5 (fallback)
- * 
+ *
+ * Provides intelligent failover between Local AI and Cloud AI (Antigravity).
+ * Priority: Antigravity Server (local proxy) > Local AI (offline) > Cloud Gemini (fallback)
+ *
  * Routing Logic:
- * 1. If Local AI is available → use Local AI (offline mode active)
- * 2. If Local AI is unavailable → use Cloud AI (Gemini Flash 2.5 default)
- * 
- * Never selects Local when Local is unavailable.
+ * 1. If Antigravity Server is available → use Antigravity (low latency)
+ * 2. If Local AI is available → use Local AI (offline mode active)
+ * 3. If both unavailable → use Cloud AI (Gemini Flash 2.5 fallback)
+ *
+ * Never selects Local when better alternatives are available.
  */
 
 import { google } from "@ai-sdk/google"
@@ -23,14 +25,29 @@ const LOCAL_HEALTH_TIMEOUT_MS = 5000 // 5 seconds timeout for health check
 const RETRY_INTERVAL_MS = 60000 // Retry cloud every 60 seconds
 
 // Provider type
-export type AIProvider = "local" | "cloud"
+export type AIProvider = "antigravity" | "local" | "cloud"
 export type CloudProvider = "gemini"
 
 // State tracking
 let lastCloudSuccess = Date.now()
 let isCloudAvailable = true
-let currentProvider: AIProvider = "local"
+let currentProvider: AIProvider = "cloud"
 let localAIAvailable: boolean | null = null // null = not checked yet
+let antigravityAvailable: boolean | null = null // null = not checked yet
+
+// Check if Antigravity server is available via health endpoint
+export async function checkAntigravityServerAvailability(): Promise<boolean> {
+  try {
+    const available = await checkAntigravityAvailability()
+    antigravityAvailable = available
+    debugLog("[AI-ROUTER] Antigravity:", available ? "AVAILABLE ✓" : "NOT AVAILABLE")
+    return available
+  } catch {
+    antigravityAvailable = false
+    debugLog("[AI-ROUTER] Antigravity: NOT AVAILABLE (network error)")
+    return false
+  }
+}
 
 // Check if local AI is available via health endpoint
 export async function checkLocalAIAvailability(): Promise<boolean> {
@@ -109,18 +126,34 @@ export function isCloudAIAvailable(): boolean {
 }
 
 // Get the appropriate AI provider
-// Priority: Local (preferred) > Cloud (fallback)
+// Priority: Antigravity (preferred) > Local > Cloud (fallback)
 export function getAIProvider(): { provider: LanguageModel; type: AIProvider; providerName: string; modelName: string } {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-  
+
+  const antigravityIsAvailable = antigravityAvailable === true
   const localIsAvailable = localAIAvailable === true
   const cloudKey = GEMINI_API_KEY
-  
-  // Priority 1: LOCAL AI - use if available (offline/hybrid mode)
+
+  // Priority 1: ANTIGRAVITY SERVER - use if available (low latency, supports multiple models)
+  if (antigravityIsAvailable) {
+    debugLog("[AI-ROUTER] ═══ SELECTED ═══")
+    debugLog("[AI-ROUTER] Provider: ANTIGRAVITY SERVER (local proxy)")
+    debugLog("[AI-ROUTER] Reason: Antigravity server is available")
+    currentProvider = "antigravity"
+    return {
+      provider: google("gemini-2.5-flash") as LanguageModel,
+      type: "antigravity",
+      providerName: "Antigravity Server",
+      modelName: "gemini-2.5-flash"
+    }
+  }
+
+  // Priority 2: LOCAL AI - use if available (offline/hybrid mode)
   if (localIsAvailable) {
     debugLog("[AI-ROUTER] ═══ SELECTED ═══")
     debugLog("[AI-ROUTER] Provider: LOCAL AI (offline/hybrid)")
-    debugLog("[AI-ROUTER] Reason: Local AI is available")
+    debugLog("[AI-ROUTER] Reason: Antigravity unavailable → using local AI")
+    currentProvider = "local"
     return {
       provider: google("gemini-2.5-flash") as LanguageModel,
       type: "local",
@@ -128,13 +161,14 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
       modelName: "ollama-local"
     }
   }
-  
-  // Priority 2: CLOUD AI - fallback when Local unavailable
+
+  // Priority 3: CLOUD AI - fallback when Local and Antigravity unavailable
   // Use Gemini only
   if (cloudKey) {
     debugLog("[AI-ROUTER] ═══ SELECTED ═══")
     debugLog("[AI-ROUTER] Provider: CLOUD (Gemini Flash 2.5)")
-    debugLog("[AI-ROUTER] Reason: Local unavailable → using cloud fallback")
+    debugLog("[AI-ROUTER] Reason: Antigravity and Local unavailable → using cloud fallback")
+    currentProvider = "cloud"
     return {
       provider: google("gemini-2.5-flash"),
       type: "cloud",
@@ -142,13 +176,14 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
       modelName: "gemini-2.5-flash"
     }
   }
-  
-  // Priority 3: ERROR - no providers available
+
+  // Priority 4: ERROR - no providers available
   debugLog("[AI-ROUTER] ═══ ERROR ═══")
   debugLog("[AI-ROUTER] No AI provider available!")
+  debugLog("[AI-ROUTER] Antigravity: NOT AVAILABLE")
   debugLog("[AI-ROUTER] Local: NOT AVAILABLE")
   debugLog("[AI-ROUTER] Cloud: NOT CONFIGURED")
-  throw new Error("No AI provider. Configure GEMINI_API_KEY in .env.local or start Local AI server.")
+  throw new Error("No AI provider. Start Antigravity server (http://127.0.0.1:8317), Local AI, or configure GEMINI_API_KEY in .env.local.")
 }
 
 // Mark cloud AI as successful
@@ -163,7 +198,12 @@ export function markCloudSuccess(): void {
 
 // Mark cloud AI as failed
 export function markCloudFailed(): void {
-  if (localAIAvailable === true) {
+  if (antigravityAvailable === true) {
+    debugLog("[AI-ROUTER] Cloud failed - Antigravity fallback available")
+    isCloudAvailable = false
+    currentProvider = "antigravity"
+    lastCloudSuccess = Date.now()
+  } else if (localAIAvailable === true) {
     debugLog("[AI-ROUTER] Cloud failed - Local fallback available")
     isCloudAvailable = false
     currentProvider = "local"
@@ -175,10 +215,11 @@ export function markCloudFailed(): void {
 }
 
 // Get current provider status
-export function getProviderStatus(): { current: AIProvider; cloudAvailable: boolean; localAIAvailable: boolean | null; lastSuccess: number } {
+export function getProviderStatus(): { current: AIProvider; cloudAvailable: boolean; antigravityAvailable: boolean | null; localAIAvailable: boolean | null; lastSuccess: number } {
   return {
     current: currentProvider,
     cloudAvailable: isCloudAvailable,
+    antigravityAvailable: antigravityAvailable,
     localAIAvailable: localAIAvailable,
     lastSuccess: lastCloudSuccess
   }
@@ -198,13 +239,13 @@ export async function withAIFallback<T>(
       debugError("[AI-ROUTER] Local AI failed:", localError)
     }
   }
-  
+
   // Try cloud as fallback
   if (isCloudAIAvailable()) {
     try {
       const result = await Promise.race([
         cloudCall(),
-        new Promise<never>((_, reject) => 
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Cloud timeout")), CLOUD_TIMEOUT_MS)
         )
       ])
@@ -215,6 +256,6 @@ export async function withAIFallback<T>(
       markCloudFailed()
     }
   }
-  
+
   throw new Error("All AI providers failed")
 }
