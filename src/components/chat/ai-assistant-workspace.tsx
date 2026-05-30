@@ -73,7 +73,7 @@ export function AiAssistantWorkspace() {
     }
     return ""
   })
-  const [selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
+  const [_selectedDataset, _setSelectedDataset] = React.useState<DatasetDetail | null>(null)
   const [messages, setMessages] = React.useState<AssistantMessage[]>([
     {
       id: "welcome",
@@ -303,8 +303,16 @@ export function AiAssistantWorkspace() {
     void askAssistant(question)
   }
 
+  const INITIAL_SUGGESTIONS = [
+    "What is the total revenue?",
+    "Which segment generates the most revenue?",
+    "What are the trends over time?",
+    "Show me the top 5 values by amount.",
+  ]
+  const allSuggestionsCombined = selectedDatasetId
+    ? [...new Set([...savedSuggestions.map((s) => s.text), ...messages.map((m) => m.content).filter((c) => c.startsWith("?"))])]
+    : INITIAL_SUGGESTIONS
   const canAsk = Boolean(selectedDatasetId) && !isAsking
-  const allSuggestions = [...new Set([...savedSuggestions.map((s) => s.text), ...messages.map((m) => m.content).filter((c) => c.startsWith("?"))])]
 
   return (
     <div className="flex h-[calc(100vh-8rem)] min-h-0 flex-col lg:flex-row">
@@ -473,24 +481,24 @@ export function AiAssistantWorkspace() {
           {rightSidebarOpen && (
             <div className="flex-1 overflow-y-auto p-2">
               <div className="space-y-2">
-                {allSuggestions.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-muted-foreground">
-                    {selectedDatasetId ? "No suggestions available" : "Select a dataset to see suggestions"}
-                  </p>
-                ) : (
-                  allSuggestions.map((question, index) => (
-                    <button
-                      key={`${question}-${index}`}
-                      type="button"
-                      onClick={() => handleSuggestedQuestion(question)}
-                      disabled={!canAsk}
-                      className="flex w-full items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground transition hover:border-primary/60 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="line-clamp-2">{question}</span>
-                    </button>
-                  ))
-                )}
+{allSuggestionsCombined.length === 0 ? (
+                   <p className="px-3 py-2 text-sm text-muted-foreground">
+                     {selectedDatasetId ? "No suggestions available" : "Select a dataset to see suggestions"}
+                   </p>
+                 ) : (
+                   allSuggestionsCombined.map((question, index) => (
+                     <button
+                       key={`${question}-${index}`}
+                       type="button"
+                       onClick={() => handleSuggestedQuestion(question)}
+                       disabled={!canAsk}
+                       className="flex w-full items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground transition hover:border-primary/60 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+                     >
+                       <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                       <span className="line-clamp-2">{question}</span>
+                     </button>
+                   ))
+                 )}
               </div>
             </div>
           )}
@@ -501,9 +509,12 @@ export function AiAssistantWorkspace() {
 }
 
 function ResponseSection({ title, text }: { title: string; text: string }) {
+  const normalizedTitle = title.toLowerCase()
+  const displayTitle = normalizedTitle === "takeaway" ? "Takeaway" : normalizedTitle === "next move" ? "Next" : "Insight"
+
   return (
     <div>
-      <p className="text-xs font-medium uppercase text-muted-foreground">{title}</p>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{displayTitle}</p>
       <p className="mt-1 text-sm leading-5 text-foreground">{text}</p>
     </div>
   )

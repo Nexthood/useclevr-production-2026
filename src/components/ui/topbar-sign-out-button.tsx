@@ -7,7 +7,7 @@ export function TopbarSignOutButton() {
   return (
     <button
       type="button"
-      onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
+      onClick={() => signOut({ callbackUrl: "login", redirect: true })}
       className="inline-flex items-center gap-2 text-sm font-medium text-destructive transition hover:text-destructive/80"
       aria-label="Log out"
     >

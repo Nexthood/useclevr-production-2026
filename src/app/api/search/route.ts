@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
-import { count, ilike, or } from "drizzle-orm"
-import { NextRequest } from "next/server"
+import { ilike, or } from "drizzle-orm"
+import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
