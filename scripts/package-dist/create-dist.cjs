@@ -170,4 +170,10 @@ for (const targetDir of [distDir]) {
   }
 }
 
+// Write pnpm-workspace.yaml for pnpm to recognize this as a workspace
+fs.writeFileSync(
+  path.join(distDir, "pnpm-workspace.yaml"),
+  "packages:\n  - .\n"
+);
+
 console.log(`Created distribution in ${distDir}`);
