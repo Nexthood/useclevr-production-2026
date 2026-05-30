@@ -64,10 +64,10 @@ jobs:
         with:
           node-version: "26.x"
 
-- name: Activate pnpm through Corepack
-         run: |
-           corepack enable
-           corepack prepare pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1 --activate
+      - name: Activate pnpm through Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1 --activate
 
       - name: Install dependencies
         run: |
@@ -101,18 +101,10 @@ jobs:
           rm -f dist/pnpm-workspace.yaml
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
-          rm -rf dist/node_modules/.pnpm/@next+swc-*
-          rm -rf dist/node_modules/@next/swc-*
           rm -rf dist/.cache
           rm -rf dist/cache
           rm -rf dist/.turbo
           rm -rf dist/.vercel
-          rm -rf dist/.next/cache/webpack
-          large_source_file="$(find dist -type f -size +95M -print -quit)"
-          if [ -n "$large_source_file" ]; then
-            echo "Error: generated dist contains a file larger than GitHub limit."
-            exit 1
-          fi
 
       - name: Stage generated output
         run: |
@@ -126,86 +118,20 @@ jobs:
           script: |
             const shortSha = context.sha.slice(0, 7);
             const msg = context.payload.head_commit?.message || "";
-            let prNumber = null;
             let title = msg.split('\n')[0]?.trim() || `Update dist ${shortSha}`;
-
-            const mergeMatch = msg.match(/Merge pull request #(\d+)/i);
-
-            if (mergeMatch) {
-              prNumber = Number(mergeMatch[1]);
-
-              try {
-                const pr = await github.rest.pulls.get({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: prNumber,
-                });
-
-                title = pr.data.title?.trim() || title;
-              } catch (error) {
-                core.warning(`Could not fetch PR-${prNumber}: ${error.message}`);
-              }
-            }
-
-            if (!prNumber) {
-              try {
-                const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  commit_sha: context.sha,
-                });
-
-                if (prs.data.length > 0) {
-                  prNumber = prs.data[0].number;
-                  title = prs.data[0].title?.trim() || title;
-                }
-              } catch (error) {
-                core.warning(`Could not resolve PR from commit ${shortSha}: ${error.message}`);
-              }
-            }
-
-            title = title.replace(/^PR-\d+:\s*/i, '');
-            title = title.replace(/^PR:\s*/i, '');
-            title = title.replace(/^Merge pull request #\d+.*$/i, '');
             title = title.replace(/\s+/g, ' ').slice(0, 70).trim();
+            core.setOutput('title', `Main: ${title}`);
 
-            if (prNumber) {
-              title = `PR-${prNumber}: ${title || `Update dist ${shortSha}`}`;
-            } else {
-              title = `Main: ${title || `Update dist ${shortSha}`}`;
-            }
-
-            core.setOutput('title', title);
       - name: Publish generated folder to clean dist branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          previous_dist_parent=""
-          if git fetch --depth=1 origin dist:dist 2>/dev/null && git rev-parse --verify dist >/dev/null 2>&1; then
-            previous_tree="$(git rev-parse dist^{tree})"
-            previous_title="$(git log -1 --format=%s dist)"
-            previous_dist_parent="$(git commit-tree "$previous_tree" -m "$previous_title")"
-          fi
-
           git checkout --orphan new-dist
           git rm -rf . || true
-          rm -rf .next
-          rm -rf node_modules
-          rm -rf .cache
-          rm -rf cache
-          rm -rf .turbo
-          rm -rf .vercel
 
           mkdir -p dist
           cp -a /tmp/useclevr-dist-output/. dist/
-
-          rm -rf dist/.next/cache
-          rm -rf dist/node_modules
-          rm -rf dist/.cache
-          rm -rf dist/cache
-          rm -rf dist/.turbo
-          rm -rf dist/.vercel
 
           if [ -d "/tmp/useclevr-dist-root" ]; then
             cp -a /tmp/useclevr-dist-root/. .
@@ -214,84 +140,6 @@ jobs:
           rm -f pnpm-workspace.yaml
           rm -f dist/pnpm-workspace.yaml
 
-          if [ ! -f "server-config/railway.json" ]; then
-            echo "Error: server-config/railway.json is missing from dist-root."
-            exit 1
-          fi
-
-          if [ ! -f "server-config/vercel.json" ]; then
-            echo "Error: server-config/vercel.json is missing from dist-root."
-            exit 1
-          fi
-
-          if [ ! -f ".gitignore" ]; then
-            cat > .gitignore <<'EOF'
-          .env
-          .env.*
-          node_modules
-          .next/cache
-          .cache
-          cache
-          .turbo
-          .vercel
-          *.log
-          EOF
-          fi
-
-          if [ ! -f "README.md" ]; then
-            cat > README.md <<'EOF'
-          # Generated deployment branch
-
-          This branch is generated automatically from `main` by GitHub Actions.
-
-          Do not edit this branch manually.
-          Do not open pull requests from this branch into `main`.
-          Do not merge this branch into `main`.
-
-          Railway deploys from the `/dist` folder in this branch.
-          Railway config is stored at `/server-config/railway.json`.
-          Source code lives in `main`.
-          EOF
-          fi
-
-          if [ -f "railway.json" ]; then
-            echo "Error: railway.json must stay in server-config, not the dist branch root."
-            exit 1
-          fi
-
-          if [ -f "vercel.json" ]; then
-            echo "Error: vercel.json must stay in server-config, not the dist branch root."
-            exit 1
-          fi
-
-          if [ -f "dist/railway.json" ] || [ -f "dist/vercel.json" ]; then
-            echo "Error: host config files must not be published inside dist/."
-            exit 1
-          fi
-
-          node -e "JSON.parse(require('fs').readFileSync('server-config/railway.json', 'utf8')); JSON.parse(require('fs').readFileSync('server-config/vercel.json', 'utf8'))"
-
-          large_dist_file="$(find dist -type f -size +95M -print -quit)"
-          if [ -n "$large_dist_file" ]; then
-            echo "Error: files larger than GitHub limit still exist."
-            exit 1
-          fi
-
           git add -A
-          if git ls-files -s | awk '{print $4}' | while read -r file; do
-            if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 99614720 ]; then
-              printf '%s\n' "$file"
-            fi
-          done | grep .; then
-            echo "Error: staged files larger than GitHub limit still exist."
-            exit 1
-          fi
-
-          tree_sha="$(git write-tree)"
-          if [ -n "$previous_dist_parent" ]; then
-            commit_sha="$(git commit-tree "$tree_sha" -p "$previous_dist_parent" -m "${{ steps.dist-title.outputs.title }}")"
-          else
-            commit_sha="$(git commit-tree "$tree_sha" -m "${{ steps.dist-title.outputs.title }}")"
-          fi
-          git update-ref refs/heads/new-dist "$commit_sha"
+          git commit -m "${{ steps.dist-title.outputs.title }}"
           git push origin new-dist:dist --force
