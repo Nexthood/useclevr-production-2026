@@ -13,7 +13,6 @@ import { AlertCircle, CheckCircle2, Cloud, Cpu, FileSpreadsheet, Loader2, Wifi, 
 import * as React from "react"
 
 const UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
-const LEGACY_UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
 
 interface _CsvRow {
   [key: string]: string | number | boolean | null | undefined
@@ -72,20 +71,15 @@ export function CsvUpload() {
     return () => window.removeEventListener('online', handleOnline)
   }, [])
 
-  // Process offline queue when back online
+  // Notify user about queued uploads when back online
   async function processOfflineQueue() {
-    const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
+    const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || '[]')
     if (queue.length > 0) {
-      toast({ title: 'Connection restored', description: `Processing ${queue.length} queued uploads...` })
-      for (const item of queue) {
-        try {
-          // Create a minimal file-like object for retry
-          await uploadFile(new File([], item.file.name, { type: 'text/csv' }))
-        } catch (e) {
-          debugError('Failed to process queued upload:', e)
-        }
-      }
-      localStorage.setItem(UPLOAD_QUEUE_KEY, '[]'); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
+      toast({
+        title: 'Connection restored',
+        description: `${queue.length} queued upload(s) need to be re-uploaded – file contents were not saved offline.`,
+      })
+      localStorage.removeItem(UPLOAD_QUEUE_KEY)
     }
   }
 
@@ -110,22 +104,6 @@ export function CsvUpload() {
   }
 
   const uploadFile = async (file: File) => {
-    // Check if offline (API unreachable AND no local AI)
-    if (isOffline) {
-      // Store in local queue for offline mode
-      setUploadStatus("offline")
-      const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
-      queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
-      localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue)); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
-      toast({ 
-        title: "Offline mode active", 
-        description: "No internet detected – Install UseClevr AI MEGA",
-        variant: "default"
-      })
-      setUploading(false)
-      return
-    }
-
     if (!file.name.endsWith(".csv")) {
       setErrorMessage("Please upload a CSV file")
       return
@@ -244,9 +222,9 @@ export function CsvUpload() {
         // Only queue if truly offline (API unreachable and no local AI)
         if (isOffline) {
           setUploadStatus("offline")
-          const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
+          const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || '[]')
           queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
-          localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue)); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
+          localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue))
           toast({ 
             title: "Offline mode active", 
             description: "No internet detected – Install UseClevr AI MEGA",
@@ -272,9 +250,9 @@ export function CsvUpload() {
       // Only queue if truly offline (API unreachable and no local AI)
       if (isOffline) {
         setUploadStatus("offline")
-        const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || localStorage.getItem(LEGACY_UPLOAD_QUEUE_KEY) || '[]')
+        const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || '[]')
         queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
-        localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue)); localStorage.removeItem(LEGACY_UPLOAD_QUEUE_KEY)
+        localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue))
         toast({ 
           title: "Offline mode active", 
           description: "No internet detected – Install UseClevr AI MEGA",

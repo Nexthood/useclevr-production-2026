@@ -1,6 +1,7 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
+import { Ticket } from "lucide-react"
 import Link from "next/link"
 import { TicketEditClient } from "./ticket-edit-client"
 
@@ -22,6 +23,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
           { label: "Tickets", href: "/app/tickets" },
           { label: "Edit ticket" },
         ]}
+        icon={Ticket}
       />
 
       <PageActionRow description="Update the ticket status, notes, and resolution details.">

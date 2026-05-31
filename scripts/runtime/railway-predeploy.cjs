@@ -184,6 +184,45 @@ const constraints = [
   }
 ];
 
+// Tables that have an updatedAt column requiring an auto-update trigger
+const updateTriggerTables = [
+  "Profile",
+  "Business",
+  "BusinessEntity",
+  "Dataset",
+  "SupportTicket",
+  "Workspace",
+  "ReferralStats",
+  "AppSetting",
+];
+
+// Idempotent trigger function that sets updatedAt to the current timestamp on every row update
+const updateTriggerFn = `
+  CREATE OR REPLACE FUNCTION update_updatedat_column()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    NEW."updatedAt" = NOW();
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`;
+
+async function functionExists(client, fnName) {
+  const result = await client.query(
+    `SELECT 1 FROM pg_proc WHERE proname = $1 LIMIT 1`,
+    [fnName]
+  );
+  return result.rowCount > 0;
+}
+
+async function triggerExists(client, triggerName, tableName) {
+  const result = await client.query(
+    `SELECT 1 FROM pg_trigger WHERE tgname = $1 AND tgrelid = to_regclass($2) LIMIT 1`,
+    [triggerName, `public."${tableName}"`]
+  );
+  return result.rowCount > 0;
+}
+
 async function tableExists(client, tableName) {
   const result = await client.query(
     `SELECT to_regclass($1) AS exists`,
@@ -229,6 +268,31 @@ async function main() {
 
       if (sourceTableExists && userTableExists && !alreadyExists) {
         await client.query(constraint.sql);
+      }
+    }
+
+    // Apply auto-updatedAt triggers
+    {
+      const fnName = "update_updatedat_column";
+      const fnExists = await functionExists(client, fnName);
+
+      if (!fnExists) {
+        await client.query(updateTriggerFn);
+        console.log(`Created function ${fnName}`);
+      }
+
+      for (const tableName of updateTriggerTables) {
+        const tName = tableName;
+        const triggerName = `trg_${tName}_updatedat`;
+        const tblExists = await tableExists(client, tName);
+        const trgExists = await triggerExists(client, triggerName, tName);
+
+        if (tblExists && !trgExists) {
+          await client.query(
+            `CREATE TRIGGER "${triggerName}" BEFORE UPDATE ON "public"."${tName}" FOR EACH ROW EXECUTE FUNCTION update_updatedat_column()`
+          );
+          console.log(`Created trigger ${triggerName} on ${tName}`);
+        }
       }
     }
 

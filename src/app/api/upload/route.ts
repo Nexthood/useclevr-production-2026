@@ -8,7 +8,7 @@ import { consumeAnalystCredit, requireAnalystCredit } from '@/lib/usage/analyst-
 import { eq } from 'drizzle-orm'
 import { promises as fs } from 'fs'
 import { NextResponse } from 'next/server'
-import { parse } from 'papaparse'
+import { parseUploadForm, UploadFormError } from '@/lib/data/parse-upload-form'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -132,26 +132,6 @@ function logExecution(action: string, details: Record<string, any>) {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Detect CSV delimiter by analyzing first few lines
- */
-function detectDelimiter(text: string): string {
-  const firstLines = text.split('\n').slice(0, 5).join('\n')
-
-  const delimiters = [',', ';', '\t', '|']
-  const counts = delimiters.map(d => ({
-    delimiter: d,
-    count: (firstLines.match(new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
-  }))
-
-  const best = counts.reduce((a, b) => a.count > b.count ? a : b)
-
-  debugLog('[DELIMITER] Delimiter counts:', counts.map(c => `${c.delimiter}: ${c.count}`).join(', '))
-  debugLog('[DELIMITER] Selected:', best.delimiter === '\t' ? 'tab' : best.delimiter)
-
-  return best.delimiter
-}
 
 /**
  * Clean a value - trim whitespace
@@ -395,54 +375,9 @@ export async function POST(request: Request) {
       }, { status: 402 })
     }
 
-    // Get file
-    const formData = await request.formData()
-    const file = formData.get('file') as File | null
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-    }
-
-    if (!file.name.endsWith('.csv')) {
-      return NextResponse.json({ error: 'Only CSV files allowed' }, { status: 400 })
-    }
-
-    debugLog('[UPLOAD] Parsing CSV')
-
-    // Read file
-    const fileBuffer = await file.arrayBuffer()
-    const fileText = Buffer.from(fileBuffer).toString('utf-8')
-
-    debugLog('[UPLOAD] File size:', file.size, 'bytes')
-    debugLog('[UPLOAD] File text length:', fileText.length, 'chars')
-    debugLog('[UPLOAD] First 200 chars:', fileText.slice(0, 200))
-
-    // Detect delimiter
-    const delimiter = detectDelimiter(fileText)
-
-    // Parse CSV with robust options for handling messy files
-    const parseResult = parse<any>(fileText, {
-      header: true,
-      skipEmptyLines: 'greedy',
-      dynamicTyping: true,
-      transformHeader: (h: string) => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-      delimiter: delimiter,
-    });
-
-    debugLog('Parsed rows:', parseResult.data.length, 'First row:', parseResult.data[0]);
-    debugLog('[PARSER] Headers detected:', parseResult.meta.fields?.length || 0);
-
-    const rawRows = parseResult.data as any[]
-    const headers = parseResult.meta.fields || []
-
-    // Validate
-    if (rawRows.length === 0) {
-      return NextResponse.json({ error: 'CSV has no data rows' }, { status: 400 })
-    }
-
-    if (headers.length === 0) {
-      return NextResponse.json({ error: 'CSV has no headers detected' }, { status: 400 })
-    }
+    // Parse upload form
+    const parsed = await parseUploadForm(request)
+    const { file, fileText, headers, rawRows } = parsed
 
     // Process rows with type detection
     const { processed, columnTypes } = processRows(rawRows, headers)
@@ -648,6 +583,9 @@ export async function POST(request: Request) {
     })
 
   } catch (error: any) {
+    if (error instanceof UploadFormError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     debugError('[UPLOAD] Error:', error)
     return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 })
   }

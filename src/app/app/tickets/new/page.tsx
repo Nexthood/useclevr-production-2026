@@ -2,6 +2,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Card } from "@/components/ui/card"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { SupportTicketForm } from "@/components/support/support-ticket-form"
+import { Ticket } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
@@ -19,6 +20,7 @@ export default function NewTicketPage() {
           { label: "Tickets", href: "/app/tickets" },
           { label: "New ticket" },
         ]}
+        icon={Ticket}
       />
 
       <PageActionRow description="Start a support request with the issue, category, and priority.">

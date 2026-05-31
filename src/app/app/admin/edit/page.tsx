@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Settings } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
@@ -237,6 +237,7 @@ export default function AdminEditPage() {
             </Button>
           </Link>
         }
+        icon={Settings}
       />
 
       <main className="px-5 py-5">

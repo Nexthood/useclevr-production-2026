@@ -4,18 +4,25 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
+import { datasets, datasetRows } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { Sparkles } from "lucide-react"
+import { ChevronLeft, ChevronRight, Database, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 
+const PAGE_SIZE = 100
+
 export default async function DatasetDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ page?: string }>
 }) {
   const { id } = await params
+  const { page: pageStr } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageStr ?? "1", 10) || 1)
+  const offset = (currentPage - 1) * PAGE_SIZE
 
   const session = await auth()
   const userId = (session?.user as { id?: string })?.id
@@ -24,7 +31,6 @@ export default async function DatasetDetailPage({
     notFound()
   }
 
-  // Get dataset using Drizzle - single source of truth
   const dataset = await db.query.datasets.findFirst({
     where: eq(datasets.id, id),
   })
@@ -33,22 +39,23 @@ export default async function DatasetDetailPage({
     notFound()
   }
 
-  // Check if dataset has been analyzed - if not, redirect to analysis page
-  // This creates a unified flow: upload → auto-analyze
   const hasAnalysis = dataset.analysis && typeof dataset.analysis === 'object' && Object.keys(dataset.analysis as object).length > 0
-  
-  // If not analyzed, redirect to analysis page for unified workflow
   if (!hasAnalysis) {
     redirect(`/app/datasets/${id}/analyze`)
   }
 
-  // Read data directly from dataset.data column (single source of truth)
-  const allData = (dataset as any).data || []
   const columns = (dataset as any).columns || []
   const rowCount = dataset.rowCount || 0
-  
-  // Preview first 100 rows
-  const data = allData.slice(0, 100) as Record<string, unknown>[]
+  const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE))
+
+  const resultRows = await db.query.datasetRows.findMany({
+    where: eq(datasetRows.datasetId, id),
+    orderBy: (tbl, { asc }) => [asc(tbl.rowIndex)],
+    offset,
+    limit: PAGE_SIZE,
+  })
+  const data = resultRows.map((r) => r.data) as Record<string, unknown>[]
+
   const previewColumns: DataTableColumn<Record<string, unknown>>[] = columns.map((column: string) => ({
     key: column,
     header: column,
@@ -62,8 +69,57 @@ export default async function DatasetDetailPage({
     },
   }))
 
-  // Get column types from dataset record (stored during upload)
-  const _columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
+  function Pagination() {
+    if (totalPages <= 1) return null
+
+    const pages: React.ReactNode[] = []
+    const startPage = Math.max(1, currentPage - 2)
+    const endPage = Math.min(totalPages, currentPage + 2)
+
+    if (currentPage > 1) {
+      pages.push(
+        <Link
+          key="prev"
+          href={`/app/datasets/${id}?page=${currentPage - 1}`}
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-md border border-border hover:bg-muted"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Previous
+        </Link>
+      )
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <Link
+          key={i}
+          href={`/app/datasets/${id}?page=${i}`}
+          className={`inline-flex items-center px-3 py-1.5 text-xs rounded-md border ${
+            i === currentPage
+              ? "border-primary bg-primary/10 text-primary font-semibold"
+              : "border-border hover:bg-muted"
+          }`}
+        >
+          {i}
+        </Link>
+      )
+    }
+
+    if (currentPage < totalPages) {
+      pages.push(
+        <Link
+          key="next"
+          href={`/app/datasets/${id}?page=${currentPage + 1}`}
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-md border border-border hover:bg-muted"
+        >
+          Next
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      )
+    }
+
+    return <div className="flex items-center justify-center gap-1.5 mt-4">{pages}</div>
+  }
 
   return (
     <div className="flex flex-col flex-1">
@@ -75,6 +131,7 @@ export default async function DatasetDetailPage({
           { label: "Datasets", href: "/app/datasets" },
           { label: (dataset as { name: string }).name },
         ]}
+        icon={Database}
       />
 
       <PageActionRow description="Review the uploaded rows and continue to analysis when the dataset is ready.">
@@ -90,18 +147,14 @@ export default async function DatasetDetailPage({
         <div className="max-w-full mx-auto">
           <DataTable
             title="Dataset rows"
-            description="Preview of the uploaded table using the shared dashboard table layout."
+            description={`Page ${currentPage} of ${totalPages} — ${rowCount.toLocaleString()} total rows`}
             emptyMessage="No data available."
             rows={data}
             columns={previewColumns}
             rowKey={(_row, index) => index}
             minWidth="min-w-[980px]"
           />
-          {rowCount >= 100 && (
-            <p className="text-sm text-muted-foreground mt-4 text-center">
-              Showing first 100 rows of {rowCount.toLocaleString()} total
-            </p>
-          )}
+          <Pagination />
         </div>
       </main>
     </div>

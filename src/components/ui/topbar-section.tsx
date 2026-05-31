@@ -11,6 +11,7 @@ export function TopbarSection({
   description,
   children,
   align = "left",
+  noBorder = false,
 }: {
   icon: React.ReactNode
   label: string
@@ -19,13 +20,13 @@ export function TopbarSection({
   description: string
   children?: React.ReactNode
   align?: "left" | "right"
+  noBorder?: boolean
 }) {
   return (
     <div className="group relative h-full">
       <div
         tabIndex={0}
-        className="flex h-full min-w-12 items-center gap-2 border-l border-border/70 px-3 text-sm text-foreground outline-none transition hover:bg-muted/70 focus-visible:bg-muted/70"
-      >
+        className={`flex h-full min-w-12 items-center gap-2 px-3 text-sm text-foreground outline-none transition hover:bg-muted/70 focus-visible:bg-muted/70 ${noBorder ? "" : "border-l border-border/70"}`}>
         <span className="text-primary">{icon}</span>
         <span className="hidden min-w-0 lg:block">
           <span className="block truncate text-xs font-semibold leading-4">{label}</span>

@@ -4,7 +4,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
-import { Edit, Plus, Trash2, Zap } from "lucide-react";
+import { Award, Edit, Plus, Trash2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -175,6 +175,7 @@ export default function AdminLevelsPage() {
         title="Customer Levels"
         description="Define customer tiers and the activity thresholds that unlock each level."
         breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customer Levels" }]}
+        icon={Award}
         actions={
           <div className="flex gap-2">
             <Button

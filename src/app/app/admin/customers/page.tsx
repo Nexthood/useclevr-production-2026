@@ -240,6 +240,7 @@ export default function AdminCustomersPage() {
         title="Customers"
         description="Review registered customers, static demo accounts, plans, and account activity."
         breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customers" }]}
+        icon={Users}
         actions={
           <Button onClick={() => setShowAddDialog(true)} className="gap-2">
             <Plus className="h-4 w-4" />

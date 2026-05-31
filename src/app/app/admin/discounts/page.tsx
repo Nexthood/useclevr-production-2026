@@ -4,7 +4,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
-import { Edit, Plus, Trash2, Zap } from "lucide-react";
+import { Edit, Plus, Tag, Trash2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -134,6 +134,7 @@ export default function AdminDiscountsPage() {
         title="Discount Rules"
         description="Manage free, percentage, referral, and stacking discounts across checkout."
         breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Discount Rules" }]}
+        icon={Tag}
         actions={
           <div className="flex gap-2">
             <Button

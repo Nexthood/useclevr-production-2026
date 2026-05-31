@@ -22,6 +22,21 @@ export function Search() {
     { href: "/app/faq", label: "FAQ", description: "Search dashboard help.", icon: HelpCircle },
     { href: "/app/settings/profile", label: "Settings", description: "Manage account and profile.", icon: Settings },
   ]
+  const [activeResultIndex, setActiveResultIndex] = useState(-1)
+  const resultListRef = useRef<HTMLDivElement>(null)
+
+  // Cmd+K / Ctrl+K to open search
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault()
+        setOpen(true)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Handle opening the search
   useEffect(() => {
@@ -88,6 +103,34 @@ export function Search() {
     }
   }, [open])
 
+  // Reset active result index when results change
+  useEffect(() => {
+    setActiveResultIndex(-1)
+  }, [results])
+
+  // Arrow key navigation for results
+  useEffect(() => {
+    if (!open || results.length === 0) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setActiveResultIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0))
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setActiveResultIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1))
+      } else if (event.key === 'Enter' && activeResultIndex >= 0) {
+        const result = results[activeResultIndex]
+        if (result?.href) {
+          window.location.href = result.href
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open, results, activeResultIndex])
+
   async function handleSearch() {
     if (!query.trim() || isSearching) return
     setIsSearching(true)
@@ -111,9 +154,13 @@ export function Search() {
         size="icon"
         onClick={() => setOpen(true)}
         aria-label="Search"
-        className="h-full min-w-12 rounded-none px-0"
+        className="h-full min-w-12 gap-1 rounded-none px-2"
+        title="Search (Cmd+K)"
       >
         <SearchIcon className="h-4 w-4" />
+        <kbd className="hidden text-[10px] text-muted-foreground/50 lg:inline-flex items-center gap-0.5 rounded border border-border/50 px-1 font-mono">
+          <span>⌘</span>K
+        </kbd>
       </Button>
 
       {open && (
@@ -157,13 +204,15 @@ export function Search() {
 
             <div className="min-h-0 flex-1 overflow-y-auto py-4">
               {results.length > 0 ? (
-                <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                  {results.map((result) => (
+                <div ref={resultListRef} className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                  {results.map((result, index) => (
                     <Link
                       key={result.id}
                       href={result.href}
                       onClick={() => setOpen(false)}
-                      className="flex items-center justify-between gap-4 p-4 text-left transition hover:bg-accent"
+                      className={`flex items-center justify-between gap-4 p-4 text-left transition ${
+                        index === activeResultIndex ? "bg-accent" : "hover:bg-accent"
+                      }`}
                     >
                       <span className="min-w-0">
                         <span className="flex items-center gap-2">

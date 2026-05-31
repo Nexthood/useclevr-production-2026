@@ -79,32 +79,40 @@ export async function getDatasetById(datasetId: string) {
   }
 }
 
-export async function getDatasetRows(datasetId: string) {
+export async function getDatasetRows(
+  datasetId: string,
+  options?: { offset?: number; limit?: number }
+) {
   const session = await auth()
   if (!session?.user?.id) {
-    return []
+    return { rows: [], total: 0 }
   }
 
   try {
-    // First, verify the dataset belongs to the user
     const dataset = await db.query.datasets.findFirst({
       where: and(
         eq(datasets.id, datasetId),
         eq(datasets.userId, session.user.id)
       ),
+      columns: { id: true, rowCount: true },
     })
 
     if (!dataset) {
-      return []
+      return { rows: [], total: 0 }
     }
+
+    const offset = options?.offset ?? 0
+    const limit = options?.limit ?? 100
 
     const rows = await db.query.datasetRows.findMany({
       where: eq(datasetRows.datasetId, datasetId),
-      limit: 100,
+      orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+      offset,
+      limit,
     })
-    return rows
+    return { rows, total: dataset.rowCount ?? 0 }
   } catch (error) {
     debugError("Error fetching dataset rows:", error)
-    return []
+    return { rows: [], total: 0 }
   }
 }
