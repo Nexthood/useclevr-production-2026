@@ -12,10 +12,12 @@ export default function HybridAiButton({
   subscriptionTier = "free",
   hybridAiCreditCosts = { lite: 5, standard: 12, mega: 35 },
   mode = "button",
+  className = "",
 }: {
   subscriptionTier?: string
   hybridAiCreditCosts?: HybridAiCreditCosts
   mode?: "button" | "link"
+  className?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
@@ -34,9 +36,12 @@ export default function HybridAiButton({
         type="button"
         onClick={() => setOpen(true)}
         className={
-          mode === "link"
-            ? "inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary/80"
-            : "inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          [
+            mode === "link"
+              ? "inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary/80"
+              : "inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            className,
+          ].filter(Boolean).join(" ")
         }
       >
         <Brain className="h-3.5 w-3.5" />

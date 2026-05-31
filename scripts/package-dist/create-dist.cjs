@@ -130,6 +130,7 @@ const rootDistPackage = {
   version: rootPkg.version,
   private: true,
   type: "module",
+  packageManager: rootPkg.packageManager,
   scripts: {
     start: "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:local":
@@ -173,7 +174,16 @@ for (const targetDir of [distDir]) {
 // Write pnpm-workspace.yaml for pnpm to recognize this as a workspace
 fs.writeFileSync(
   path.join(distDir, "pnpm-workspace.yaml"),
-  "packages:\n  - .\n"
+  [
+    "packages:",
+    "  - .",
+    "",
+    "allowBuilds:",
+    "  core-js: true",
+    "  esbuild: true",
+    "  sharp: true",
+    "",
+  ].join("\n")
 );
 
 console.log(`Created distribution in ${distDir}`);

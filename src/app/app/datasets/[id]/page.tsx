@@ -1,6 +1,6 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -48,7 +48,19 @@ export default async function DatasetDetailPage({
   const rowCount = dataset.rowCount || 0
   
   // Preview first 100 rows
-  const data = allData.slice(0, 100)
+  const data = allData.slice(0, 100) as Record<string, unknown>[]
+  const previewColumns: DataTableColumn<Record<string, unknown>>[] = columns.map((column: string) => ({
+    key: column,
+    header: column,
+    render: (row: Record<string, unknown>) => {
+      const value = row[column]
+      return (
+        <span className="whitespace-nowrap">
+          {value !== null && value !== undefined && value !== "" ? String(value) : "-"}
+        </span>
+      )
+    },
+  }))
 
   // Get column types from dataset record (stored during upload)
   const _columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
@@ -76,38 +88,15 @@ export default async function DatasetDetailPage({
 
       <main className="flex-1 p-4 sm:p-6">
         <div className="max-w-full mx-auto">
-          <Card className="overflow-hidden">
-            {data.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/30 border-b border-border">
-                    <tr>
-                      {columns.map((col: string) => (
-                        <th key={col} className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wider text-[10px]">
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {data.map((row: Record<string, unknown>, idx: number) => (
-                      <tr key={idx} className="hover:bg-muted/20 transition-colors">
-                        {columns.map((col: string) => (
-                          <td key={col} className="px-3 py-1.5 align-middle whitespace-nowrap">
-                            {row[col] !== null && row[col] !== undefined ? String(row[col]) : "-"}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                No data available
-              </div>
-            )}
-          </Card>
+          <DataTable
+            title="Dataset rows"
+            description="Preview of the uploaded table using the shared dashboard table layout."
+            emptyMessage="No data available."
+            rows={data}
+            columns={previewColumns}
+            rowKey={(_row, index) => index}
+            minWidth="min-w-[980px]"
+          />
           {rowCount >= 100 && (
             <p className="text-sm text-muted-foreground mt-4 text-center">
               Showing first 100 rows of {rowCount.toLocaleString()} total

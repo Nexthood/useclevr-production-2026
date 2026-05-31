@@ -32,7 +32,9 @@ function statusIcon(status: TicketStatus) {
 
 export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
   const [tickets, setTickets] = useState<SupportTicket[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState("")
 
   const totals = useMemo(
@@ -58,6 +60,7 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
       }
 
       setTickets(data.tickets || [])
+      setSelectedIds(new Set())
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load tickets.")
     } finally {
@@ -68,6 +71,53 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
   useEffect(() => {
     void loadTickets()
   }, [])
+
+  const allSelected = tickets.length > 0 && tickets.every((ticket) => selectedIds.has(ticket.id))
+
+  function toggleAll(checked: boolean) {
+    setSelectedIds(checked ? new Set(tickets.map((ticket) => ticket.id)) : new Set())
+  }
+
+  function toggleTicket(id: string, checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (checked) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  async function resolveSelected() {
+    if (selectedIds.size === 0 || isUpdating) return
+    const confirmed = window.confirm(`Mark ${selectedIds.size} selected ticket${selectedIds.size === 1 ? "" : "s"} as resolved?`)
+    if (!confirmed) return
+
+    setIsUpdating(true)
+    setError("")
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(async (id) => {
+          const response = await fetch("/api/tickets", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, status: "resolved" }),
+          })
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}))
+            throw new Error(body.error || "Could not update selected tickets.")
+          }
+        }),
+      )
+      await loadTickets()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update selected tickets.")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -92,11 +142,29 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
         ))}
       </div>
 
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => loadTickets()} disabled={isLoading} className="gap-2">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Refresh
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">{isSuperAdmin ? "Support queue" : "Your tickets"}</h2>
+          <p className="text-xs text-muted-foreground">
+            {isSuperAdmin ? "Customer tickets with status, priority, and latest update." : "Your support requests with status and latest update."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={resolveSelected} disabled={selectedIds.size === 0 || isUpdating} className="gap-2">
+            {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            Resolve selected
+          </Button>
+          <Button variant="outline" onClick={() => loadTickets()} disabled={isLoading} className="gap-2">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Link
+            href="/app/tickets/new"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            New ticket
+          </Link>
+        </div>
       </div>
 
       {error ? (
@@ -109,11 +177,15 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
         </Card>
       ) : (
         <DataTable
-          title={isSuperAdmin ? "Support queue" : "Your tickets"}
-          description={isSuperAdmin ? "Customer, category, priority, status, and latest update." : "Category, priority, status, and latest support update."}
           emptyMessage="No tickets yet."
           rows={tickets as unknown as Record<string, unknown>[]}
-          columns={ticketColumns(isSuperAdmin)}
+          columns={ticketColumns({
+            isSuperAdmin,
+            allSelected,
+            selectedIds,
+            toggleAll,
+            toggleTicket,
+          })}
           rowKey={(row) => String(row.id)}
           minWidth="min-w-[980px]"
         />
@@ -122,8 +194,64 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
   )
 }
 
-function ticketColumns(isSuperAdmin: boolean): DataTableColumn<Record<string, unknown>>[] {
+function ticketColumns({
+  isSuperAdmin,
+  allSelected,
+  selectedIds,
+  toggleAll,
+  toggleTicket,
+}: {
+  isSuperAdmin: boolean
+  allSelected: boolean
+  selectedIds: Set<string>
+  toggleAll: (checked: boolean) => void
+  toggleTicket: (id: string, checked: boolean) => void
+}): DataTableColumn<Record<string, unknown>>[] {
   return [
+    {
+      key: "select",
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={(event) => toggleAll(event.target.checked)}
+          aria-label="Select all tickets"
+          className="h-4 w-4 rounded border-border accent-primary"
+        />
+      ),
+      render: (row) => {
+        const id = String(row.id)
+        return (
+          <input
+            type="checkbox"
+            checked={selectedIds.has(id)}
+            onChange={(event) => toggleTicket(id, event.target.checked)}
+            aria-label={`Select ticket ${id}`}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+        )
+      },
+    },
+    {
+      key: "id",
+      header: "ID",
+      render: (row) => <span className="font-mono text-xs text-muted-foreground">{String(row.id).slice(0, 8)}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => {
+        const status = String(row.status || "open") as TicketStatus
+        const Icon = statusIcon(status)
+
+        return (
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusClassName(status)}`}>
+            <Icon className="h-3 w-3" />
+            {statusLabel(status)}
+          </span>
+        )
+      },
+    },
     {
       key: "subject",
       header: "Ticket",
@@ -174,21 +302,6 @@ function ticketColumns(isSuperAdmin: boolean): DataTableColumn<Record<string, un
       ),
     },
     {
-      key: "status",
-      header: "Status",
-      render: (row) => {
-        const status = String(row.status || "open") as TicketStatus
-        const Icon = statusIcon(status)
-
-        return (
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusClassName(status)}`}>
-            <Icon className="h-3 w-3" />
-            {statusLabel(status)}
-          </span>
-        )
-      },
-    },
-    {
       key: "updatedAt",
       header: "Updated",
       render: (row) => (
@@ -196,20 +309,6 @@ function ticketColumns(isSuperAdmin: boolean): DataTableColumn<Record<string, un
           <Clock className="h-3 w-3" />
           {row.updatedAt ? new Date(String(row.updatedAt)).toLocaleString() : "-"}
         </span>
-      ),
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      align: "right",
-      render: (row) => (
-        <Link
-          href={`/app/tickets/${encodeURIComponent(String(row.id))}`}
-          className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
-          aria-label={`Edit ticket ${String(row.subject || row.id || "")}`}
-        >
-          Open
-        </Link>
       ),
     },
   ]

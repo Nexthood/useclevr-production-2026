@@ -10,19 +10,18 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   return (
     <div className="min-h-screen bg-background">
       <AppPageHeader
-        title="Settings"
-        description="Manage profile, preferences, and subscription details."
+        title="Account"
+        description="Manage profile, preferences, subscription, billing, and activity."
         breadcrumbs={[
           { label: "Dashboard", href: "/app" },
           { label: "Settings" },
         ]}
       />
 
+      <SettingsNav showAdmin={isSuperAdmin} />
+
       <main className="px-5 py-5">
-        <div className="flex w-full flex-col gap-5 md:flex-row">
-          <SettingsNav showAdmin={isSuperAdmin} />
-          <section className="min-w-0 flex-1">{children}</section>
-        </div>
+        <section className="min-w-0">{children}</section>
       </main>
     </div>
   )

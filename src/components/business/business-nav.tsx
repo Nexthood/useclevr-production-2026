@@ -13,7 +13,6 @@ const secondaryItems = [
   { label: "Locations", href: "/app/business/locations" },
   { label: "Tax & VAT", href: "/app/business/tax" },
   { label: "Financial", href: "/app/business/financial" },
-  { label: "Review", href: "/app/business/review" },
 ]
 
 export function BusinessNav() {

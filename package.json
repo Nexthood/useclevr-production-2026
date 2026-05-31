@@ -143,5 +143,8 @@
     "turbo": "^2.9.16",
     "typescript": "6.0.3"
   },
+  "engines": {
+    "node": ">=26.1.0"
+  },
   "enginesStrict": true
 }

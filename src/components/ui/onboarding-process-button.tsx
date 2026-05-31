@@ -65,33 +65,41 @@ export function OnboardingProcessButton() {
     fetch("/api/onboarding", { method: "POST" }).catch(() => undefined)
   }, [open])
 
-  const steps = status?.steps ?? []
-  const incompleteSteps = steps.filter((step) => !step.complete)
-  const activeTourStep = incompleteSteps[tourIndex] ?? incompleteSteps[0]
-  const completionPercent = status?.completionPercent ?? 0
+   const steps = status?.steps ?? []
+   const incompleteSteps = steps.filter((step) => !step.complete)
+   const activeTourStep = incompleteSteps[tourIndex] ?? incompleteSteps[0]
+   const completionPercent = status?.completionPercent ?? 0
+   const completedCount = status?.completedCount ?? 0
+   const totalCount = status?.totalCount ?? steps.length
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15 dark:text-cyan-100"
-        title="Open setup progress"
-      >
-        <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="hidden sm:inline">Setup</span>
-        <span>{completionPercent}%</span>
-      </button>
+       <button
+         type="button"
+         onClick={() => setOpen(true)}
+         className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15 dark:text-cyan-100"
+         title="Open setup progress"
+       >
+         <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
+         <span className="hidden sm:inline">Setup</span>
+         <span className="hidden sm:inline">{completionPercent}%</span>
+         {completionPercent > 0 && totalCount > 0 && (
+           <>
+             <span className="hidden sm:inline"> • </span>
+             <span className="hidden sm:inline">{completedCount}/{totalCount} steps</span>
+           </>
+         )}
+       </button>
 
       <Modal
         open={open}
         onOpenChange={setOpen}
         title="Setup progress"
-        description={
-          status
-            ? `${status.completedCount} of ${status.totalCount} items complete`
-            : "Follow the main workflow from setup to analysis."
-        }
+         description={
+           status
+             ? `${status.completedCount} of ${status.totalCount} setup steps complete`
+             : "Follow the main workflow from setup to analysis."
+         }
         variant="fullscreen"
       >
         <div className="space-y-6">
@@ -102,9 +110,9 @@ export function OnboardingProcessButton() {
                 style={{ width: `${completionPercent}%` }}
               />
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Progress includes filled profile fields, business profile fields, first data actions, and key dashboard pages visited at least once.
-            </p>
+             <p className="mt-2 text-sm text-muted-foreground">
+               Progress includes completing profile setup, business profile, uploading data, running analysis, and visiting key dashboard pages.
+             </p>
           </div>
 
           {!status ? (

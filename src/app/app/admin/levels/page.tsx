@@ -246,6 +246,8 @@ export default function AdminLevelsPage() {
             </p>
           )}
           <DataTable
+            title="Customer levels"
+            description="Interaction, visit, upload, credit, login, and reward thresholds."
             rows={levels as unknown as Record<string, unknown>[]}
             columns={levelColumns(removeLevel)}
             rowKey={(row) => String(row.id)}

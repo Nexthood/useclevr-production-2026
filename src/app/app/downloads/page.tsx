@@ -7,9 +7,10 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
-import { AlertCircle, CheckCircle, Download, File, FileInput, FileSpreadsheet, FileText, Image, Loader2, Presentation, RefreshCw, Search, Trash2 } from "lucide-react"
+import { AlertCircle, Download, Loader2, RefreshCw, Search } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 interface DownloadItem {
@@ -24,17 +25,6 @@ interface DownloadItem {
   error?: string
   timezone?: string | null
   createdAt?: string
-}
-
-const typeIcons: Record<string, typeof FileText> = {
-  pdf: FileText,
-  csv: FileSpreadsheet,
-  png: Image,
-  jpg: Image,
-  pptx: Presentation,
-  docx: FileInput,
-  xlsx: FileSpreadsheet,
-  default: File,
 }
 
 export default function DownloadsPage() {
@@ -220,6 +210,86 @@ export default function DownloadsPage() {
     : downloads
   ).filter((d) => (filterStatus === 'all' ? true : d.status === filterStatus))
 
+  const downloadColumns: DataTableColumn<Record<string, unknown>>[] = [
+    {
+      key: "id",
+      header: "ID",
+      render: (row) => <span className="font-mono text-xs text-muted-foreground">{String(row.id).slice(-8)}</span>,
+    },
+    {
+      key: "name",
+      header: "Title",
+      render: (row) => <span className="font-medium text-foreground">{String(row.name)}</span>,
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (row) => <span className="uppercase text-muted-foreground">{String(row.type)}</span>,
+    },
+    {
+      key: "source",
+      header: "Source",
+      render: (row) => <span className="text-muted-foreground">{String(row.source)}</span>,
+    },
+    {
+      key: "date",
+      header: "Created",
+      render: (row) => (
+        <span className="text-muted-foreground">
+          {String(row.date)}
+          {row.timezone ? ` (${String(row.timezone)})` : ""}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => {
+        const statusDisplay = getStatusDisplay(row.status as DownloadItem["status"])
+
+        return (
+          <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusDisplay.className}`}>
+            {statusDisplay.label}
+          </span>
+        )
+      },
+    },
+    {
+      key: "download",
+      header: "Download",
+      render: (row) => {
+        const item = row as unknown as DownloadItem
+        const isDownloading = downloadingId === item.id
+
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-border"
+            disabled={item.status !== "ready" || isDownloading}
+            onClick={() => handleDownload(item)}
+          >
+            {isDownloading ? "Downloading..." : "Download"}
+          </Button>
+        )
+      },
+    },
+    {
+      key: "delete",
+      header: "Delete",
+      render: (row) => (
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-red-900/40 text-red-400 hover:bg-red-900/10"
+          onClick={() => handleDelete(row as unknown as DownloadItem)}
+        >
+          Delete
+        </Button>
+      ),
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-background">
       <AppPageHeader
@@ -229,6 +299,7 @@ export default function DownloadsPage() {
           { label: "Dashboard", href: "/app" },
           { label: "Downloads" },
         ]}
+        icon={Download}
         actions={(
             <Button 
               variant="outline" 
@@ -301,10 +372,12 @@ export default function DownloadsPage() {
             </div>
           )}
 
-          {/* Downloads List */}
-          <Card className="p-6 bg-card border-border">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Your Downloads</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Your Downloads</h2>
+                <p className="text-sm text-muted-foreground">Generated reports and export files.</p>
+              </div>
               <div className="flex items-center gap-2">
                 <div className="relative w-full sm:w-auto">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -319,93 +392,21 @@ export default function DownloadsPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <Card className="flex items-center justify-center border-border bg-card py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : downloads.length === 0 ? (
-              <div className="text-center py-12">
-                <Download className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                <p className="text-muted-foreground mt-4">No downloads yet</p>
-                <p className="text-sm text-muted-foreground/70 mt-1">
-                  Analyze a dataset and generate reports to see them here
-                </p>
-              </div>
+              </Card>
             ) : (
-              <div className="space-y-3">
-                {filteredDownloads.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No downloads found</p>
-                ) : (
-                filteredDownloads.map((file) => {
-                  const Icon = typeIcons[file.type] || typeIcons.default
-                  const statusDisplay = getStatusDisplay(file.status)
-                  const isDownloading = downloadingId === file.id
-                  
-                  return (
-                    <div 
-                      key={file.id}
-                      className="flex flex-col gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent/50 lg:flex-row lg:items-center lg:justify-between"
-                    >
-                      <div className="flex min-w-0 items-start gap-4">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Icon className="h-5 w-5 text-primary dark:text-cyan-100" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="break-words font-medium text-foreground">{file.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {file.type.toUpperCase()} • {file.source}
-                          </p>
-                          {file.timezone ? (
-                            <p className="text-xs text-muted-foreground/70 mt-1">
-                              Generated on {file.date} ({file.timezone})
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground/70 mt-1">
-                              {file.date}
-                            </p>
-                          )}
-                          {file.error && (
-                            <p className="text-xs text-red-400 mt-1">{file.error}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                        <span className={`text-xs px-2 py-1 rounded-full ${statusDisplay.className}`}>
-                          {statusDisplay.label === "Ready" && <CheckCircle className="h-3 w-3 inline mr-1" />}
-                          {statusDisplay.label === "Generating" && <Loader2 className="h-3 w-3 inline mr-1 animate-spin" />}
-                          {statusDisplay.label === "Failed" && <AlertCircle className="h-3 w-3 inline mr-1" />}
-                          {statusDisplay.label}
-                        </span>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-border"
-                          disabled={file.status !== "ready" || isDownloading}
-                          onClick={() => handleDownload(file)}
-                        >
-                          {isDownloading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4 mr-2" />
-                          )}
-                          {isDownloading ? "Downloading..." : "Download"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-red-900/40 text-red-400 hover:bg-red-900/10"
-                          onClick={() => handleDelete(file)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })
-                )}
-              </div>
+              <DataTable
+                title="Downloads"
+                description="Reports are listed with separated download and delete actions."
+                emptyMessage={downloads.length === 0 ? "No downloads yet. Analyze a dataset and generate reports to see them here." : "No downloads found."}
+                rows={filteredDownloads as unknown as Record<string, unknown>[]}
+                columns={downloadColumns}
+                rowKey={(row) => String(row.id)}
+                minWidth="min-w-[900px]"
+              />
             )}
-          </Card>
+          </div>
 
           {/* Upgrade CTA for free users */}
           {!isPro && (

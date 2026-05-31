@@ -13,6 +13,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Login combines sign-in and sign-up in tabs with the built-in demo account plus configured Google
+  and LinkedIn sign-in options.
+- Business review readiness appears inside the Business overview instead of a separate review page.
+- Dataset and downloads lists use separated table action columns for clearer row management.
+- Account settings use a horizontal subpage bar so profile, preferences, subscription, billing, and activity stay in one account workspace.
+- Dashboard topbar controls use full-height click and hover targets.
+- Dataset preview, customer level, and discount rule tables use the shared dashboard table shell.
+- Dashboard search opens as a full-page overlay with direct links to pages, datasets, reports, and role-appropriate FAQ results.
 - Railway deployment uses the Railpack builder for improved build control and smaller images.
 - Sign-out now redirects properly to login page for reliable navigation.
 - Dataset, business, and ticket listings use consistent title links, supporting edit links, and
@@ -27,6 +35,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- GitHub validation and dist publish jobs reuse the pnpm store cache, while generated Railway output keeps the install metadata needed for faster dependency layers.
+- Generated deployment packages include pnpm build-script approvals so local and Railway installs can run required native dependency setup.
+- Developer documentation includes a Mermaid sitemap for dashboard routes.
+- Railway builds activate and locate pnpm via Corepack by including the package manager definition in the generated package manifest.
 - Language preference persists in localStorage and applies across the application.
 - Translation service with 24-hour caching layer to minimize API calls to Google Translation.
 - Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
@@ -51,7 +63,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Dashboard onboarding tracks setup progress from account data, routes users to the relevant
   setup pages, and keeps reopening for accounts below 25% completion.
 - Business setup links open the Business workspace instead of sending users through Settings.
-- Social login buttons start configured Google and GitHub sign-in or registration flows.
+- Social login buttons start configured Google and LinkedIn sign-in or registration flows.
 - The dashboard sidebar includes coming-soon mobile app buttons, social placeholders, a user
   panel stack, and a bottom Terms link.
 - The dashboard opens directly on datasets, while admin customer, level, and discount lists use
@@ -73,6 +85,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Business overview stays available when no business profile exists, with the add-business action visible from the top-level workspace.
+- Chat can use dashboard search context to point users toward relevant pages and FAQ answers.
+- Ticket tables use selectable rows, title edit links, and bulk resolution controls.
+- Sign-out redirects to the app login page instead of a stale host URL.
+- Checkout opens the secure payment step after terms acceptance and activates subscriptions from provider confirmations.
 - Business workspace loads saved profile details even when dedicated business records are not ready.
 - Dashboard notices identify the failed request or page error more directly.
 - AI Assistant can answer from stored dataset analysis context when a selected dataset has saved

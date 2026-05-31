@@ -32,6 +32,16 @@ export async function createStripeCheckoutSession({
   const session = await stripe.checkout.sessions.create({
     customer_email: userEmail,
     client_reference_id: userId,
+    metadata: {
+      userId,
+      userEmail,
+    },
+    subscription_data: {
+      metadata: {
+        userId,
+        userEmail,
+      },
+    },
     line_items: [{ price: priceId, quantity: 1 }],
     mode: "subscription",
     success_url: successUrl,

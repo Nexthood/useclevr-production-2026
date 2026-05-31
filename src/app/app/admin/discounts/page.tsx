@@ -205,6 +205,8 @@ export default function AdminDiscountsPage() {
             </p>
           )}
           <DataTable
+            title="Discount rules"
+            description="Active discount, referral, and stacking rules."
             rows={rules as unknown as Record<string, unknown>[]}
             columns={discountColumns(removeRule)}
             rowKey={(row) => String(row.id)}

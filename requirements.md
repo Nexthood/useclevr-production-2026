@@ -34,6 +34,8 @@
 
 - Users can view available plans (Free, Pro Monthly, Pro Annual, Business Monthly) and upgrade directly.
 - A two-step checkout flow requires plan review before terms acceptance before any payment is taken.
+- Terms acceptance starts the secure payment flow and returns clear checkout errors when payment
+  cannot start.
 - Annual Pro subscriptions receive an automatic discount at checkout.
 - Subscriptions stay in sync with the payment provider so plan access and billing status update
   immediately after any payment-event change.
@@ -50,10 +52,12 @@
   and analysis actions, and key dashboard pages visited at least once.
 - Dashboard users can open a setup progress panel from the topbar and start a guided tour through
   incomplete setup items.
-- Setup progress includes business profile, location, tax, financial, and review page visits in the
-  completion checklist.
+- Setup progress includes business profile, location, tax, financial, and business overview review
+  visits in the completion checklist.
 - Dashboard users open Business as a top-level workspace with a businesses listing table before
-  editing profile, location, tax, financial, or review details.
+  editing profile, location, tax, or financial details.
+- Business overview shows review readiness panels directly in the top-level workspace instead of
+  requiring a separate review page.
 - The Business workspace can show saved profile details when dedicated business records are not
   available yet.
 - Business records support subscription-tier limits, primary profile storage, archive and restore
@@ -73,10 +77,20 @@
 
 - Social login and registration create usable local account and profile records before users enter
   the dashboard.
+- The login page combines sign-in and sign-up in tabs, with a built-in demo account and configured
+  Google or LinkedIn sign-in options.
 - Dashboard users can reach coming-soon mobile app badges, social links, account controls, and
   Terms from global dashboard chrome.
 - Dashboard users see logo, Hybrid AI, search, setup progress, help, credits, display controls,
   profile settings, sign-out, and notices in a global topbar above the sidebar and page body.
+- Dashboard topbar actions expose full-height hover and click targets for easier navigation.
+- Account pages use a horizontal subpage bar for profile, preferences, subscription, billing, and
+  activity sections.
+- Dataset and downloads pages use shared table layouts with separated row actions for viewing,
+  analyzing, reporting, downloading, or deleting records.
+- Dashboard search covers app pages, datasets, reports, and FAQ answers with operator-only results
+  limited to super-admin accounts.
+- Chat can use the same search index to help users find the right dashboard page or FAQ answer.
 - Dashboard users can collapse the desktop sidebar while keeping primary navigation available.
 - Dashboard users see Terms, Privacy, copyright, social links, and coming-soon app badges in one
   global footer row.
@@ -92,8 +106,11 @@
 - Dashboard users can submit support tickets and track their resolution status from the Tickets page.
 - Dashboard tickets use a row-first table with separate pages for creating a ticket and editing each
   ticket.
+- Ticket rows support selection and bulk resolution from the table action bar.
 - Ticket rows use the subject as the edit link, show an edit link under the subject, and keep the
   row action at the end of the table.
+- Dashboard tables use a consistent bordered table shell, header area, and row styling across
+  dataset previews, admin lists, business lists, and support queues.
 - Public visitors can request a demo or contact the team from the Contact page without signing in.
 - Super-admins have a ticket queue for reviewing customer issues, adding support notes,
   and marking tickets resolved.

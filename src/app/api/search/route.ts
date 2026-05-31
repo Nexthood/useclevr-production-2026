@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth"
-import { getDb } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
-import { ilike, or } from "drizzle-orm"
+import { searchApp } from "@/lib/search/app-search"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
+
+export const runtime = "nodejs"
 
 export async function GET(request: NextRequest) {
   const session = await auth()
@@ -18,27 +18,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] })
   }
 
-  const db = getDb()
-  if (!db) {
-    return NextResponse.json({ error: "Database unavailable" }, { status: 500 })
-  }
-
-  const results = await db
-    .select({ id: datasets.id, name: datasets.name })
-    .from(datasets)
-    .where(
-      or(
-        ilike(datasets.name, `%${query}%`),
-        ilike(datasets.fileName, `%${query}%`)
-      )
-    )
-    .limit(20)
-
-  return NextResponse.json({
-    results: results.map((r) => ({
-      id: r.id,
-      type: "dataset",
-      title: r.name,
-    })),
+  const results = await searchApp({
+    query,
+    userId: session.user.id,
+    role: session.user.role,
   })
+
+  return NextResponse.json({ results })
 }

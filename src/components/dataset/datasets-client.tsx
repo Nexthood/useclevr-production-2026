@@ -61,7 +61,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   const datasetColumns: DataTableColumn<Record<string, unknown>>[] = [
     {
       key: "select",
-      header: "",
+      header: "Select",
       align: "center",
       render: (row) => (
         <input
@@ -96,21 +96,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       key: "name",
       header: "Title",
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <FileSpreadsheet className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <Link href={`/app/datasets/${row.id}`} className="font-medium text-foreground transition-colors hover:text-primary">
-              {String(row.name)}
-            </Link>
-            <div>
-              <Link href={`/app/datasets/${row.id}`} className="text-xs text-primary hover:underline">
-                View
-              </Link>
-            </div>
-          </div>
-        </div>
+        <span className="font-medium text-foreground">{String(row.name)}</span>
       ),
     },
     {
@@ -121,17 +107,30 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       ),
     },
     {
-      key: "actions",
-      header: "Actions",
+      key: "viewTable",
+      header: "View table",
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <Link href={`/app/datasets/${row.id}/analyze`} className="text-xs text-primary hover:underline">
-            Analyze
-          </Link>
-          <Link href={`/api/reports/download?datasetId=${row.id}&format=pdf`} className="text-xs text-primary hover:underline">
-            Report
-          </Link>
-        </div>
+        <Link href={`/app/datasets/${row.id}`} className="text-sm font-medium text-primary hover:underline">
+          View
+        </Link>
+      ),
+    },
+    {
+      key: "analyze",
+      header: "Analyze",
+      render: (row) => (
+        <Link href={`/app/datasets/${row.id}/analyze`} className="text-sm font-medium text-primary hover:underline">
+          Analyze
+        </Link>
+      ),
+    },
+    {
+      key: "report",
+      header: "Report",
+      render: (row) => (
+        <Link href={`/app/datasets/${row.id}/analyze?panel=report`} className="text-sm font-medium text-primary hover:underline">
+          Report
+        </Link>
       ),
     },
   ]
@@ -149,6 +148,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           { label: "Dashboard", href: "/app" },
           { label: "Datasets" },
         ]}
+        icon={Database}
       />
 
       <PageActionRow description="Upload CSV files before analysis, reports, or assistant questions.">

@@ -14,6 +14,7 @@
 | **[TECH_DEPENDENCIES.md](TECH_DEPENDENCIES.md)**         | Runtime and tooling dependency inventory             |
 | **[PACKAGE_JSON.md](PACKAGE_JSON.md)**                   | pnpm scripts, package usage, and dependency checks   |
 | **[TODO_MANAGEMENT.md](TODO_MANAGEMENT.md)**             | TODO file workflow and completion rules              |
+| **[DASHBOARD_SITEMAP.md](DASHBOARD_SITEMAP.md)**         | Mermaid sitemap for dashboard routes                 |
 | **[PROJECT_AUDIT_GUIDE.md](PROJECT_AUDIT_GUIDE.md)**     | Start-to-finish project audit workflow               |
 | **[PROJECT_TESTING_GUIDE.md](PROJECT_TESTING_GUIDE.md)** | Start-to-finish project testing workflow             |
 

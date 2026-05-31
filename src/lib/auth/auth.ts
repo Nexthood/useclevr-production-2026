@@ -139,12 +139,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-          };
+           return {
+             id: user.id,
+             email: user.email,
+             name: user.name,
+             image: user.image,
+             role: "user",
+           };
         } catch (error) {
           debugError("Auth error:", error);
           return null;

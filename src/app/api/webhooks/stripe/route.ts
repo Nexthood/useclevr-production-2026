@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+export const runtime = "nodejs";
+
 function getRawBody(request: NextRequest): Promise<Uint8Array> {
   return request.arrayBuffer().then((buf) => new Uint8Array(buf));
 }
@@ -23,16 +25,22 @@ export async function POST(request: NextRequest) {
 
   const stripe = new Stripe(stripeSecretKey);
 
+  const rawBody = await getRawBody(request);
+  const signature = request.headers.get("stripe-signature");
+
+  if (!signature) {
+    return NextResponse.json({ error: "Missing stripe-signature header." }, { status: 400 });
+  }
+
+  let event: Stripe.Event;
   try {
-    const rawBody = await getRawBody(request);
-    const signature = request.headers.get("stripe-signature");
+    event = stripe.webhooks.constructEvent(Buffer.from(rawBody), signature, webhookSecret);
+  } catch (err) {
+    console.error("[stripe-webhook] signature verification failed:", err);
+    return NextResponse.json({ error: "Webhook signature verification failed." }, { status: 400 });
+  }
 
-    if (!signature) {
-      return NextResponse.json({ error: "Missing stripe-signature header." }, { status: 400 });
-    }
-
-    const event = stripe.webhooks.constructEvent(Buffer.from(rawBody), signature, webhookSecret);
-
+  try {
     const result = await handleSubscriptionEvent(event);
 
     return NextResponse.json({
@@ -42,7 +50,7 @@ export async function POST(request: NextRequest) {
       ...(result.reason ? { reason: result.reason } : {}),
     });
   } catch (err) {
-    console.error("[stripe-webhook] error:", err);
-    return NextResponse.json({ error: "Webhook signature verification failed." }, { status: 400 });
+    console.error("[stripe-webhook] handler error:", err);
+    return NextResponse.json({ error: "Webhook handler failed." }, { status: 500 });
   }
 }
