@@ -15,7 +15,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
-          package-manager-cache: false
 
       - name: Activate pnpm through Corepack
         run: |
@@ -40,7 +39,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
-          package-manager-cache: false
 
       - name: Activate pnpm through Corepack
         run: |
