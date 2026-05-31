@@ -1,5 +1,6 @@
 import { AccountancyNav } from "@/components/accountancy/accountancy-nav"
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Receipt } from "lucide-react"
 import type React from "react"
 
 export default function AccountancyLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function AccountancyLayout({ children }: { children: React.ReactN
           { label: "Dashboard", href: "/app" },
           { label: "Accountancy" },
         ]}
+        icon={Receipt}
       />
       <AccountancyNav />
       <main className="px-5 py-5">

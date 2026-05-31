@@ -1,6 +1,4 @@
-// app/api/health/route.ts
-// Simple health check endpoint
-
+import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
@@ -15,7 +13,7 @@ export async function GET() {
   }
 
   try {
-    await db.query.datasets.findFirst();
+    await db.execute(sql`SELECT 1`);
   } catch {
     return NextResponse.json({
       status: 'error',

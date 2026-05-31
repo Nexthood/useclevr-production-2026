@@ -146,6 +146,9 @@ const rootDistPackage = {
   engines: distEngines,
 };
 
+// Explicitly remove packageManager so Railpack never detects pnpm
+delete rootDistPackage.packageManager;
+
 fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
@@ -162,11 +165,16 @@ for (const targetDir of [distDir]) {
     if (file.startsWith(".env.")) {
       fs.rmSync(path.join(targetDir, file), { force: true });
     }
+    if (file === ".npmrc") {
+      fs.rmSync(path.join(targetDir, file), { force: true });
+    }
   }
 }
 
-// Remove pnpm indicators so Railpack skips dependency installation
-const pnpmFiles = ["pnpm-lock.yaml", "pnpm-workspace.yaml"];
+// Remove pnpm indicators so Railpack skips dependency installation.
+// Railpack detects pnpm from pnpm-lock.yaml, pnpm-workspace.yaml, .npmrc,
+// and the packageManager field in package.json.
+const pnpmFiles = ["pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc"];
 for (const f of pnpmFiles) {
   const fp = path.join(distDir, f);
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });

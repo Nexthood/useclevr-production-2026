@@ -1,4 +1,5 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Building2 } from "lucide-react"
 import type React from "react"
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
           { label: "Settings", href: "/app/settings" },
           { label: "Business" },
         ]}
+        icon={Building2}
       />
 
       <main className="px-5 py-5">

@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { BriefcaseBusiness, CreditCard, HelpCircle, UserCircle } from "lucide-react"
 import Link from "next/link"
+import pkg from "../../../package.json"
 
 export default async function Topbar() {
   const session = await auth()
@@ -27,8 +28,9 @@ export default async function Topbar() {
   return (
     <div className="app-topbar min-h-16 border-b border-border bg-background">
       <div className="flex h-full min-w-0 flex-1 items-center justify-between">
-        <Link href="/app" className="flex h-full shrink-0 items-center">
+        <Link href="/app" className="flex h-full shrink-0 items-center gap-2">
           <Logo className="h-12 w-auto" />
+          <span className="hidden self-start pt-1 text-[10px] text-muted-foreground/60 sm:inline">v{pkg.version}</span>
         </Link>
 
          <nav className="flex h-full min-w-0 flex-1 items-stretch justify-end overflow-x-auto">
@@ -79,13 +81,14 @@ export default async function Topbar() {
            </TopbarSection>
 
            <TopbarSection
-             icon={<UserCircle className="h-4 w-4" />}
-             label={session?.user?.name || "Profile"}
-             value={levelLabel}
-             header="Account"
-             description="Open profile settings, preferences, and activity."
-             align="right"
-           >
+              icon={<UserCircle className="h-4 w-4" />}
+              label={session?.user?.name || "Profile"}
+              value={levelLabel}
+              header="Account"
+              description="Open profile settings, preferences, and activity."
+              align="right"
+              noBorder
+            >
              <TopbarPanelLink href="/app/settings/profile">Profile settings</TopbarPanelLink>
              <TopbarPanelLink href="/app/settings/preferences">Preferences</TopbarPanelLink>
              <TopbarPanelLink href="/app/settings/activity">Activity</TopbarPanelLink>

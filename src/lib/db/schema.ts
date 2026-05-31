@@ -1,6 +1,7 @@
 import {
     boolean,
     foreignKey,
+    index,
     integer,
     jsonb,
     pgTable,
@@ -279,6 +280,8 @@ export const datasetRows = pgTable(
       foreignColumns: [datasets.id],
       name: 'DatasetRow_datasetId_fkey',
     }).onDelete('cascade'),
+    datasetIdIdx: index('DatasetRow_datasetId_idx').on(table.datasetId),
+    rowIndexIdx: index('DatasetRow_datasetId_rowIndex_idx').on(table.datasetId, table.rowIndex),
   })
 )
 

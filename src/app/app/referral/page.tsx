@@ -106,6 +106,7 @@ export default function ReferralCenter() {
           { label: "Dashboard", href: "/app" },
           { label: "Referral" },
         ]}
+        icon={Gift}
       />
       <main className="px-5 py-5">
         <div className="max-w-4xl mx-auto space-y-8">

@@ -75,6 +75,7 @@ export default async function AnalyzePage({
           { label: (dataset as { name: string }).name, href: `/app/datasets/${id}` },
           { label: "Analyze" },
         ]}
+        icon={Sparkles}
       />
 
       <PageActionRow description="Use analysis tools here, or return to the dataset rows for review.">

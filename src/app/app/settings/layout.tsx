@@ -1,5 +1,6 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { auth } from "@/lib/auth"
+import { Settings } from "lucide-react"
 import type React from "react"
 import { SettingsNav } from "./settings-nav"
 
@@ -16,6 +17,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           { label: "Dashboard", href: "/app" },
           { label: "Settings" },
         ]}
+        icon={Settings}
       />
 
       <SettingsNav showAdmin={isSuperAdmin} />

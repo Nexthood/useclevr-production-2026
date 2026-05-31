@@ -1,5 +1,6 @@
 import { AssistantNav } from "@/components/assistant/assistant-nav"
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Sparkles } from "lucide-react"
 import type React from "react"
 
 export default function AssistantLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function AssistantLayout({ children }: { children: React.ReactNod
           { label: "Dashboard", href: "/app" },
           { label: "AI Analyst" },
         ]}
+        icon={Sparkles}
       />
       <AssistantNav />
       {children}

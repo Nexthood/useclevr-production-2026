@@ -102,27 +102,31 @@ export function AppSidebar({ user }: AppSidebarProps) {
         })}
       </nav>
 
+      {adminNavItems.length > 0 && (
+        <div className="space-y-3 border-t border-sidebar-border p-4 pb-2">
+          {adminNavItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                    : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                }`}
+              >
+                <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`} />
+                {!isCollapsed && <span className="truncate">{item.name}</span>}
+              </Link>
+            )
+          })}
+        </div>
+      )}
       <div className="space-y-3 border-t border-sidebar-border p-4">
         {!isLoading && !isCollapsed && (
           <UsageMonitor used={usage} total={total} isPro={isPro} />
         )}
-        {adminNavItems.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`} />
-              {!isCollapsed && <span className="truncate">{item.name}</span>}
-            </Link>
-          )
-        })}
       </div>
     </>
   )

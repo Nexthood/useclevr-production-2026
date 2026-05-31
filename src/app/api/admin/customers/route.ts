@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/require-session";
 import { BUILTIN_USERS } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
 import { profiles, waitlist } from "@/lib/db/schema";
@@ -6,11 +6,6 @@ import { debugError } from "@/lib/utils/debug";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-
-async function requireSuperAdmin() {
-  const session = await auth();
-  return session?.user?.role === "superadmin";
-}
 
 function builtinCustomers() {
   return BUILTIN_USERS.map((user) => ({
@@ -28,9 +23,8 @@ function builtinCustomers() {
 }
 
 export async function GET() {
-  if (!(await requireSuperAdmin())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireSuperAdmin();
+  if (!auth.success) return auth.error;
 
   try {
     const db = getDb();
@@ -81,9 +75,8 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  if (!(await requireSuperAdmin())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireSuperAdmin();
+  if (!auth.success) return auth.error;
 
   try {
     const db = getDb();
@@ -159,9 +152,8 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!(await requireSuperAdmin())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireSuperAdmin();
+  if (!auth.success) return auth.error;
 
   try {
     const db = getDb();
@@ -204,9 +196,8 @@ type CustomerInput = {
 };
 
 export async function POST(request: Request) {
-  if (!(await requireSuperAdmin())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireSuperAdmin();
+  if (!auth.success) return auth.error;
 
   try {
     const body = await request.json();

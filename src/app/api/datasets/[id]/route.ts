@@ -38,16 +38,24 @@ export async function GET(
       return NextResponse.json({ error: "Dataset not found" }, { status: 404 })
     }
 
-    // Get first 100 rows for preview
+    // Parse pagination from query params
+    const url = new URL(request.url)
+    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1)
+    const pageSize = Math.min(1000, Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "100", 10) || 100))
+    const offset = (page - 1) * pageSize
+
     const rows = await db.query.datasetRows.findMany({
       where: eq(datasetRows.datasetId, id),
       columns: { data: true },
       orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
-      limit: 100,
+      offset,
+      limit: pageSize,
     })
 
     const data = rows.map((r) => r.data)
     const columns = (dataset.columns as string[]) || []
+    const totalRows = dataset.rowCount ?? 0
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize))
     const precomputedMetrics = (dataset.precomputedMetrics as Record<string, unknown>) || null
     const precomputedAnalysis = (dataset.analysis as Record<string, unknown>) || null
 
@@ -55,7 +63,10 @@ export async function GET(
       dataset,
       rows: data,
       columns,
-      totalRows: dataset.rowCount,
+      totalRows,
+      page,
+      pageSize,
+      totalPages,
       precomputedMetrics,
       precomputedAnalysis,
     })

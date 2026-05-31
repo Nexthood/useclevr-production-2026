@@ -1,25 +1,18 @@
-import { auth } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/require-session";
 import { getBillingSettings, saveBillingSettings } from "@/lib/billing/settings-store";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-async function requireSuperAdmin() {
-  const session = await auth()
-  return session?.user?.role === "superadmin"
-}
-
 export async function GET() {
-  if (!(await requireSuperAdmin())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const auth = await requireSuperAdmin()
+  if (!auth.success) return auth.error
 
   return NextResponse.json(await getBillingSettings())
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await requireSuperAdmin())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const auth = await requireSuperAdmin()
+  if (!auth.success) return auth.error
 
   const body = await request.json().catch(() => null)
   if (!body) {
