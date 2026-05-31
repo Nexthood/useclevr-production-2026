@@ -45,31 +45,23 @@ function fixWorkflow(source, fileName) {
     const job = workflow.jobs[jobId]
     if (!job?.steps || !Array.isArray(job.steps)) continue
 
-    let setupNodeIdx = -1
-    let corepackIdx = -1
-
     for (let i = 0; i < job.steps.length; i++) {
       const step = job.steps[i]
       if (typeof step.uses === "string" && step.uses.trim() === "actions/setup-node@v6") {
-        setupNodeIdx = i
-        if (!step.with) {
-          step.with = {}
-          modified = true
+        if (step.with) {
+          const keysToRemove = ["cache", "cache-dependency-path", "package-manager", "package-manager-cache"]
+          let stepModified = false
+          for (const key of keysToRemove) {
+            if (key in step.with) {
+              delete step.with[key]
+              stepModified = true
+            }
+          }
+          if (stepModified) {
+            modified = true
+            fixesApplied.push(`${fileName} (job ${jobId}): removed extraneous setup-node keys`)
+          }
         }
-        if (step.with["cache"] && step.with["package-manager-cache"] === undefined) {
-          step.with["package-manager-cache"] = false
-          modified = true
-          fixesApplied.push(`${fileName} (job ${jobId}): set package-manager-cache to false alongside explicit cache`)
-        }
-      }
-      const name = typeof step.name === "string" ? step.name.toLowerCase() : ""
-      const run = typeof step.run === "string" ? step.run.toLowerCase() : ""
-      if (
-        name.includes("corepack") ||
-        run.includes("corepack enable") ||
-        run.includes("corepack prepare")
-      ) {
-        corepackIdx = i
       }
     }
   }
