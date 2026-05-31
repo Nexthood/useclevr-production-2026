@@ -47,6 +47,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Activate pnpm through Corepack
         run: |
@@ -82,7 +84,6 @@ jobs:
           cd ..
 
           rm -f pnpm-workspace.yaml
-          rm -f dist/pnpm-workspace.yaml
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/node_modules/.pnpm/@next+swc-*
@@ -158,7 +159,6 @@ jobs:
           fi
 
           rm -f pnpm-workspace.yaml
-          rm -f dist/pnpm-workspace.yaml
 
           if [ ! -f "server-config/railway.json" ]; then
             echo "Error: server-config/railway.json is missing from dist-root."

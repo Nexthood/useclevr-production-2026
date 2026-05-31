@@ -16,6 +16,15 @@ moving work between states.
 
 ## Completed
 
+- T-350. Combine sign-in and sign-up into one tabbed authentication page.
+- T-349. Restore demo and social sign-in actions on the login page.
+- T-348. Normalize dashboard business overview, dataset library, and downloads table flows.
+- T-347. Add GitHub pnpm cache and keep Railway dist install metadata.
+- T-346. Fix generated dist pnpm build-script approvals for local and Railway installs.
+- T-345. Improve dashboard sitemap guide with clickable site-plan wireframe.
+- T-344. Add dashboard sitemap docs, account subpage bar, table consistency, and full-height topbar targets.
+- T-342. Fix dashboard search overlay, role-filtered results, links, and chat search context.
+- T-341. Fix Stripe checkout and webhook subscription activation.
 - T-337. Create accountancy-nav.tsx subpages bar component with Overview, Reporting, Tax, and Compliance links.
 - T-339. Move review and info panels from business profile to business main page (profile summary and review sections).
 - T-325. Fix corepack pnpm for Railway build - use pnpm@11.5.0 version matching package.json engines.
@@ -132,3 +141,6 @@ moving work between states.
 - T-308. Hover color contrast improved in dashboard FAQ actions (hover:bg-accent/50).
 - T-309. Language context enhanced with `translate` function using Google Translation API.
 - T-310. Cookie consent bar added with accept button.
+- T-338. Fix progress system - single line display, page-based steps instead of field-based, activity integration.
+- T-340. Add API endpoint for bulk dataset deletion.
+

@@ -24,6 +24,7 @@ function CheckoutClient() {
   const [step, setStep] = React.useState<CheckoutStep>("review");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [isGoing, setIsGoing] = React.useState(false);
+  const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
   const [availableDiscounts, setAvailableDiscounts] = React.useState<DiscountRule[]>([]);
 
   // When the URL changes (back/forward), keep state in sync.
@@ -53,13 +54,39 @@ function CheckoutClient() {
 
   const tscUrl = "https://useclevr.com/terms";
   const canReview = !!plan.stripePriceId;
+  const submitLabel = canReview ? "Continue to secure payment" : "Save checkout review";
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!termsAccepted) return;
     setIsGoing(true);
-    router.push(
-      `/app/settings/checkout?form=review-accepted&plan=${planId}${discount ? "&discount=auto" : ""}`,
-    );
+    setCheckoutError(null);
+
+    try {
+      const response = await fetch("/api/checkout/confirm?form=review-accepted", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setCheckoutError(result.error || "Checkout could not be started.");
+        setIsGoing(false);
+        return;
+      }
+
+      if (result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+
+      router.push(
+        `/app/settings/checkout?success=1&plan=${planId}${discount ? "&discount=auto" : ""}`,
+      );
+    } catch {
+      setCheckoutError("Checkout could not be started. Please try again.");
+      setIsGoing(false);
+    }
   };
 
   const goTerms = (e: React.MouseEvent) => {
@@ -260,11 +287,16 @@ function CheckoutClient() {
               <div className="mt-4 space-y-3">
                 <Button onClick={onSubmit} disabled={!termsAccepted || isGoing} className="w-full">
                   {isGoing
-                    ? "Saving..."
+                    ? canReview
+                      ? "Opening payment..."
+                      : "Saving review..."
                     : termsAccepted
-                      ? "Save review and continue"
+                      ? submitLabel
                       : "Accept terms and conditions to continue"}
                 </Button>
+                {checkoutError && (
+                  <p className="text-sm text-destructive">{checkoutError}</p>
+                )}
                 <Button variant="outline" className="w-full bg-transparent" onClick={goBack}>
                   Back to plan review
                 </Button>

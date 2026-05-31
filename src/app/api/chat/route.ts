@@ -14,6 +14,7 @@ import {
     EXPLANATION_SYSTEM_PROMPT,
     generateExplanationPrompt
 } from '@/lib/query/intent-prompt';
+import { searchApp } from '@/lib/search/app-search';
 import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -540,6 +541,14 @@ export async function POST(request: Request) {
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
+    const appSearchResults = userId
+      ? await searchApp({
+          query: lastMessage,
+          userId,
+          role: session?.user?.role,
+          limit: 6,
+        })
+      : [];
 
     // Only check limits for persisted customer users
     if (userId && !isBuiltinUserId(userId)) {
@@ -908,6 +917,14 @@ Use these rankings to answer questions directly.`;
       systemContent += `
 
 No dataset is currently loaded. Ask the user to upload a CSV file first.`;
+    }
+
+    if (appSearchResults.length > 0) {
+      systemContent += `
+
+APP SEARCH CONTEXT:
+Use these app results when the user asks where to find a page, FAQ answer, report, dataset, support area, or account setting. Mention only results visible to this user's role.
+${appSearchResults.map((result, index) => `${index + 1}. ${result.title} (${result.type}) - ${result.href}${result.description ? ` - ${result.description}` : ""}`).join('\n')}`;
     }
 
     systemContent += `

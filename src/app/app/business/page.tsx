@@ -5,11 +5,10 @@ import { auth } from "@/lib/auth"
 import { getBusinessLimit, listUserBusinesses, getPrimaryBusinessDetails, type BusinessListRow } from "@/lib/business/business-store"
 import { BUSINESS_FIELDS, getBusinessCompletionPercent, getBusinessReviewFlags } from "@/lib/business/business-profile"
 import { getDb } from "@/lib/db"
-import { businesses, profiles } from "@/lib/db/schema"
-import { eq, count } from "drizzle-orm"
+import { businesses, businessEntities, profiles } from "@/lib/db/schema"
+import { eq, count, inArray } from "drizzle-orm"
 import { AlertCircle, Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus, Percent, Mail } from "lucide-react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
 import type React from "react"
 
 export const metadata = {
@@ -29,20 +28,24 @@ async function getSubscriptionTier(userId: string | null | undefined) {
 }
 
 async function getBusinessMetrics(userId: string | null | undefined) {
-  if (!userId) return { totalBusinesses: 0, totalEntities: 0, avgCompletion: 0 }
+  if (!userId) return { totalBusinesses: 0, totalEntities: 0 }
 
   const db = getDb()
-  if (!db) return { totalBusinesses: 0, totalEntities: 0, avgCompletion: 0 }
+  if (!db) return { totalBusinesses: 0, totalEntities: 0 }
 
-  const [businessCount, entityCount] = await Promise.all([
-    db.select({ count: count() }).from(businesses).where(eq(businesses.userId, userId)),
-    db.select({ count: count() }).from(businesses).where(eq(businesses.userId, userId)),
-  ])
+  const userBusinesses = await db
+    .select({ id: businesses.id })
+    .from(businesses)
+    .where(eq(businesses.userId, userId))
+
+  const businessIds = userBusinesses.map((business) => business.id)
+  const entityCount = businessIds.length
+    ? await db.select({ count: count() }).from(businessEntities).where(inArray(businessEntities.businessId, businessIds))
+    : [{ count: 0 }]
 
   return {
-    totalBusinesses: businessCount[0]?.count ?? 0,
+    totalBusinesses: userBusinesses.length,
     totalEntities: entityCount[0]?.count ?? 0,
-    avgCompletion: 75,
   }
 }
 
@@ -58,11 +61,6 @@ export default async function BusinessPage() {
 
   const businessLimit = getBusinessLimit(subscriptionTier)
   const canAddBusiness = businessesList.filter((business) => business.status !== "archived").length < businessLimit
-
-  // Auto-start add business flow when empty
-  if (businessesList.length === 0 && userId) {
-    redirect("/app/business/profile")
-  }
 
   // Get primary business details for review panel
   const primaryDetails = await getPrimaryBusinessDetails(userId)
@@ -100,8 +98,8 @@ export default async function BusinessPage() {
               <FileText className="h-5 w-5 text-green-800 dark:text-green-100" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{metrics.avgCompletion}%</p>
-              <p className="text-sm text-muted-foreground">Avg completion</p>
+              <p className="text-2xl font-bold text-foreground">{pct}%</p>
+              <p className="text-sm text-muted-foreground">Profile completion</p>
             </div>
           </div>
         </div>

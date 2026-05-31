@@ -5,8 +5,10 @@ import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
-import { eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { NextResponse } from "next/server"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
@@ -101,7 +103,7 @@ export async function POST(request: Request) {
         columnCount: columns?.length || 0,
       },
     })
-
+ 
     return NextResponse.json({
       dataset: {
         id: datasetId,
@@ -112,6 +114,68 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     debugError("Error creating dataset:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth()
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { datasetIds } = body
+    
+    if (!Array.isArray(datasetIds) || datasetIds.length === 0) {
+      return NextResponse.json({ error: "Dataset IDs array is required" }, { status: 400 })
+    }
+
+    // Verify all datasets belong to the user before deleting
+    const datasetsToDelete = await db
+      .select({ id: datasets.id })
+      .from(datasets)
+      .where(
+        and(
+          eq(datasets.userId, session.user.id),
+          inArray(datasets.id, datasetIds)
+        )
+      )
+
+    if (datasetsToDelete.length === 0) {
+      return NextResponse.json({ error: "No datasets found or access denied" }, { status: 404 })
+    }
+
+    // Delete datasets (rows will be deleted due to cascade)
+    await db.delete(datasets).where(
+      and(
+        eq(datasets.userId, session.user.id),
+        inArray(datasets.id, datasetIds)
+      )
+    )
+
+    // Record activity for bulk deletion
+    await recordActivity({
+      userId: session.user.id,
+      userEmail: session.user.email,
+      type: "dataset_deleted",
+      feature: "datasets",
+      title: "Bulk dataset deletion",
+      description: `${datasetsToDelete.length} datasets were removed.`,
+      metadata: {
+        datasetIds: datasetsToDelete.map(d => d.id),
+        count: datasetsToDelete.length,
+      },
+    })
+
+    return NextResponse.json({ 
+      success: true, 
+      deletedCount: datasetsToDelete.length 
+    })
+  } catch (error) {
+    debugError("Error bulk deleting datasets:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

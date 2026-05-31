@@ -5,7 +5,7 @@
     "buildCommand": "echo prebuilt"
   },
   "deploy": {
-    "preDeployCommand": "corepack enable && corepack prepare pnpm@11.5.0 --activate && node ./scripts/runtime/railway-predeploy.cjs",
+    "preDeployCommand": "node ./scripts/runtime/railway-predeploy.cjs",
     "startCommand": "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,

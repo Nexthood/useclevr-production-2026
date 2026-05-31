@@ -63,6 +63,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Activate pnpm through Corepack
         run: |
@@ -98,7 +100,6 @@ jobs:
           cd ..
 
           rm -f pnpm-workspace.yaml
-          rm -f dist/pnpm-workspace.yaml
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/.cache
@@ -138,7 +139,6 @@ jobs:
           fi
 
           rm -f pnpm-workspace.yaml
-          rm -f dist/pnpm-workspace.yaml
 
           git add -A
           git commit -m "${{ steps.dist-title.outputs.title }}"

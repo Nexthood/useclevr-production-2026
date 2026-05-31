@@ -15,11 +15,6 @@ moving work between states.
 
 ## Active
 
-No active implementation task is currently in progress.
+- T-343. Review remaining topbar, ticket table, account navigation
 
 ## Next
-
-- T-338. Fix progress system - single line display, page-based steps instead of field-based, activity integration.
-- T-340. Add API endpoint for bulk dataset deletion.
-
-(Existing tasks below)

@@ -2,17 +2,20 @@
 
 import type React from "react"
 
+import { signup } from "@/app/actions/auth"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Sparkles } from "lucide-react"
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
+import { FaGoogle, FaLinkedin } from "react-icons/fa6"
 
 export default function LoginPage() {
   return (
@@ -24,24 +27,68 @@ export default function LoginPage() {
 
 function LoginForm() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const searchParams = useSearchParams()
+  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin"
+  const [signInEmail, setSignInEmail] = useState("")
+  const [signInPassword, setSignInPassword] = useState("")
+  const [signUpName, setSignUpName] = useState("")
+  const [signUpEmail, setSignUpEmail] = useState("")
+  const [signUpPassword, setSignUpPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   const goToDashboard = () => {
     router.replace("/app")
     router.refresh()
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
+    setIsLoading(true)
+    setAuthAction(provider)
+    setAuthError(null)
+
+    try {
+      if (provider === "demo") {
+        const result = await signIn("demo", {
+          redirect: false,
+          callbackUrl: "/app",
+        })
+
+        const signInSucceeded = Boolean(result && !result.error && result.status !== 401 && result.status !== 403)
+        if (!signInSucceeded) {
+          setAuthError("Demo sign-in failed. Please try again.")
+          return
+        }
+
+        goToDashboard()
+        return
+      }
+
+      await signIn(provider, {
+        callbackUrl: "/app",
+        redirect: true,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ""
+      setAuthError(message || "Social sign-in failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+      setAuthAction(null)
+    }
+  }
+
+  const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setAuthAction("signin")
+    setAuthError(null)
 
     try {
       const result = await signIn("credentials", {
-        email,
-        password,
+        email: signInEmail,
+        password: signInPassword,
         redirect: false,
         callbackUrl: "/app",
       })
@@ -53,7 +100,7 @@ function LoginForm() {
       const signInSucceeded = Boolean(result && !result.error && !blockedStatus && !returnedToLogin)
 
       if (!signInSucceeded) {
-        window.location.href = `/login?error=${encodeURIComponent(result?.error || "CredentialsSignin")}`
+        setAuthError("Sign-in failed. Check your email and password.")
         return
       }
 
@@ -61,16 +108,117 @@ function LoginForm() {
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
       if (message.toLowerCase().includes("configuration")) {
-        window.location.href = "/login?error=Configuration"
+        setAuthError("Authentication is not configured correctly.")
       } else if (message.toLowerCase().includes("network")) {
-        window.location.href = "/login?error=Network"
+        setAuthError("Network error during sign-in. Please try again.")
       } else {
-        window.location.href = "/login?error=Unknown"
+        setAuthError("Sign-in failed. Please try again.")
       }
     } finally {
       setIsLoading(false)
+      setAuthAction(null)
     }
   }
+
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setAuthAction("signup")
+    setAuthError(null)
+
+    if (signUpPassword.length < 8) {
+      setAuthError("Use at least 8 characters for your password.")
+      setIsLoading(false)
+      setAuthAction(null)
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("name", signUpName)
+    formData.append("email", signUpEmail)
+    formData.append("password", signUpPassword)
+
+    try {
+      const result = await signup(formData)
+
+      if (result.error) {
+        setAuthError(result.error)
+        return
+      }
+
+      const signInResult = await signIn("credentials", {
+        email: signUpEmail,
+        password: signUpPassword,
+        redirect: false,
+        callbackUrl: "/app",
+      })
+
+      if (signInResult?.error) {
+        setAuthError("Account created, but automatic sign-in failed. Please use the Sign in tab.")
+        return
+      }
+
+      goToDashboard()
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Account creation failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+      setAuthAction(null)
+    }
+  }
+
+  const providerButtons = (
+    <div className="space-y-3">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full border-primary/40 bg-background text-foreground hover:bg-primary/10"
+        disabled={isLoading}
+        onClick={() => startProviderSignIn("demo")}
+      >
+        {authAction === "demo" ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Rocket className="mr-2 h-4 w-4" />
+        )}
+        Demo account
+        <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary dark:text-cyan-100">
+          Free
+        </span>
+      </Button>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={isLoading}
+          onClick={() => startProviderSignIn("google")}
+        >
+          {authAction === "google" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FaGoogle className="mr-2 h-4 w-4" />
+          )}
+          Google
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={isLoading}
+          onClick={() => startProviderSignIn("linkedin")}
+        >
+          {authAction === "linkedin" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FaLinkedin className="mr-2 h-4 w-4" />
+          )}
+          LinkedIn
+        </Button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -90,77 +238,173 @@ function LoginForm() {
               <div className="h-10 w-10 rounded-lg bg-gradient-primary flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+              <CardTitle className="text-2xl font-bold">Access UseClevr</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
+            <Tabs defaultValue={defaultTab} className="space-y-5">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="signin">Sign in</TabsTrigger>
+                <TabsTrigger value="signup">Sign up</TabsTrigger>
+              </TabsList>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </Link>
+              {authError && (
+                <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+                  {authError}
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-11"
-                    required
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
+              )}
+
+              <TabsContent value="signin" className="mt-0">
+                <form onSubmit={handleSignInSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signin-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <Link href="#" className="text-sm text-primary hover:underline">
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signin-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        className="pl-10 pr-11"
+                        required
+                        autoComplete="current-password"
+                      />
+                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && authAction === "signin" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <>
+                        Sign in
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
                     )}
-                  </button>
-                </div>
-              </div>
+                  </Button>
+                </form>
+              </TabsContent>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign in
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
+              <TabsContent value="signup" className="mt-0">
+                <form onSubmit={handleSignUpSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Full name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={signUpName}
+                        onChange={(e) => setSignUpName(e.target.value)}
+                        className="pl-10"
+                        required
+                        autoComplete="name"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="At least 8 characters"
+                        value={signUpPassword}
+                        onChange={(e) => setSignUpPassword(e.target.value)}
+                        className="pl-10 pr-11"
+                        required
+                        autoComplete="new-password"
+                      />
+                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && authAction === "signup" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      <>
+                        Create account
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+
+                  <p className="text-center text-xs text-muted-foreground">
+                    By signing up, you agree to our{" "}
+                    <Link href="/terms" className="text-primary hover:underline">
+                      Terms
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" className="text-primary hover:underline">
+                      Privacy
+                    </Link>
+                    .
+                  </p>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            {providerButtons}
           </CardContent>
         </Card>
       </main>
@@ -181,5 +425,29 @@ function LoginForm() {
         </div>
       </footer>
     </div>
+  )
+}
+
+function PasswordToggle({
+  showPassword,
+  setShowPassword,
+}: {
+  showPassword: boolean
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => setShowPassword((visible) => !visible)}
+      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label={showPassword ? "Hide password" : "Show password"}
+      aria-pressed={showPassword}
+    >
+      {showPassword ? (
+        <EyeOff className="h-4 w-4" />
+      ) : (
+        <Eye className="h-4 w-4" />
+      )}
+    </button>
   )
 }

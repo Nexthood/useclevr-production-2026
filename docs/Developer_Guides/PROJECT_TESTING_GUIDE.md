@@ -29,13 +29,15 @@ pnpm dev
 ## 3. Dataset Flow
 
 - Upload a valid CSV.
-- Confirm row count, columns, and dataset table render.
+- Confirm the dataset library renders as a table with Select, ID, Status, Title, File, View table,
+  Analyze, and Report columns.
 - Ask a natural-language question about the dataset.
 - Confirm the answer uses available columns and deterministic values.
 - Generate and download a report.
 
 ## 4. Download Flow
 
+- Confirm downloads render as a table with separate Download and Delete action columns.
 - Confirm Pro, Business, and super-admin accounts can download without free-limit blocking.
 - Confirm free users see the upgrade flow after hitting the configured limit.
 - Confirm filenames download safely on the target browser and operating system.

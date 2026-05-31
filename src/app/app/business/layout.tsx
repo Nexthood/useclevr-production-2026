@@ -1,5 +1,6 @@
 import { BusinessNav } from "@/components/business/business-nav"
 import { AppPageHeader } from "@/components/layout/app-page-header"
+import { Building2 } from "lucide-react"
 import type React from "react"
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
           { label: "Dashboard", href: "/app" },
           { label: "Business" },
         ]}
+        icon={Building2}
       />
       <BusinessNav />
 
