@@ -3,6 +3,7 @@ name: Validate Beta
 on:
   push:
     branches: [beta]
+  workflow_dispatch:
 
 jobs:
   validate-source-and-build:
