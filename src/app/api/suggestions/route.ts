@@ -22,7 +22,7 @@ export async function GET() {
     const [setting] = await db
       .select()
       .from(appSettings)
-      .where(eq(appSettings.key, `suggestions_${session.user.id}`))
+      .where(eq(appSettings.key, "suggestions_global"))
 
     const suggestions = Array.isArray(setting?.value) ? setting.value : []
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     await db
       .insert(appSettings)
       .values({
-        key: `suggestions_${session.user.id}`,
+        key: "suggestions_global",
         value: savedSuggestions,
       })
       .onConflictDoUpdate({

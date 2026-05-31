@@ -66,7 +66,7 @@ export default async function DatasetDetailPage({
   const _columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col flex-1">
       <AppPageHeader
         title={(dataset as { name: string }).name}
         description={`${rowCount.toLocaleString()} rows - ${columns.length} columns`}

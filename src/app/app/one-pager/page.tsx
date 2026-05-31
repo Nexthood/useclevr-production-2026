@@ -12,7 +12,7 @@ export default function OnePagerPage() {
   // BusinessOnePager already encapsulates form inputs, capabilities gating, preview and PDF export.
   // We render it full-width with a generous canvas wrapper for a page experience instead of a modal.
   return (
-    <div className="min-h-screen">
+    <div className="flex-1">
       <main className="p-6">
         <div className="max-w-[1400px] mx-auto">
           <div className="mb-6">
@@ -21,7 +21,7 @@ export default function OnePagerPage() {
           </div>
           {/* Render One-Pager inline as a full page (no modal) */}
           <BusinessOnePager
-            analysis={undefined as any}
+            analysis={null}
             datasetName={datasetName}
             rowCount={0}
             columns={[]}

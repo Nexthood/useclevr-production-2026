@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function NewTicketPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="New ticket"
         description="Create a support request for billing, uploads, reports, or account access."

@@ -13,7 +13,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
   const isSuperAdmin = session?.user?.role === "superadmin"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="Edit ticket"
         description={isSuperAdmin ? "Update status and support notes for a customer ticket." : "Review your support request and mark it resolved when complete."}

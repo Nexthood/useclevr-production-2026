@@ -29,6 +29,7 @@ import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 
 // Generate business insights from query results without LLM
@@ -434,66 +435,25 @@ export async function POST(request: Request) {
     };
 
     try {
-      debugLog('[ANALYZE] Checking AI availability...');
+      debugLog('[ANALYZE] Calling Google AI (Gemini) for response...');
 
-      // Import the new AI router that supports hybrid cloud + local
-      const { getAIProvider, checkLocalAIAvailability, isCloudAIAvailable, askLocalAI, overrideLocalAvailability } = await import('@/lib/ai/ai-router');
+      const model = google("gemini-2.5-flash");
 
-      // Check both cloud and local availability
-      // Gate local only if user opted into Hybrid and verified model
-      const hybridCookie = (request.headers.get('cookie') || '').includes('useclevr_hybrid=verified')
-      const localAvailable = hybridCookie ? await checkLocalAIAvailability() : false;
-      // Ensure router state reflects per-request hybrid gate
-      overrideLocalAvailability(localAvailable)
-      const cloudAvailable = isCloudAIAvailable();
-
-      debugLog('[ANALYZE] AI Status - Cloud:', cloudAvailable, '| Local:', localAvailable);
-
-      // Get the appropriate provider
-      const { provider, type: providerType, providerName, modelName } = getAIProvider();
-
-      debugLog('[ANALYZE] Using AI Provider:', providerName, '(', providerType, ') | Model:', modelName || 'N/A');
-
-      // Build MCP tools prompt if dataset is available
       let mcpToolsPrompt = '';
       if (datasetId && precomputedAnalysis) {
         mcpToolsPrompt = buildMCPToolsPrompt(datasetId);
       }
 
-      // Generate prompt with precomputed analysis context and MCP tools
       const prompt = generateAnalysisPrompt(question, result, availableColumns, precomputedAnalysis) + mcpToolsPrompt;
 
       try {
-        // Minimal hybrid gate: if router selected 'local', execute via askLocalAI
-        if (hybridCookie && providerType === 'local') {
-          try {
-            const localRes = await askLocalAI({ prompt })
-            answer = localRes.response
-            debugLog('[ANALYZE] LLM response received from: Local (Ollama)')
-          } catch {
-            debugWarn('[ANALYZE] Local path failed at runtime, attempting safe cloud fallback')
-            // Disable local for this decision and get a cloud provider
-            overrideLocalAvailability(false)
-            try {
-              const { provider: cloudProvider, providerName: cloudName } = getAIProvider()
-              const { text } = await generateText({ model: cloudProvider, prompt })
-              answer = text
-              debugLog('[ANALYZE] LLM response received from (fallback):', cloudName)
-            } catch (cloudErr) {
-              throw cloudErr
-            }
-          }
-        } else {
-          // Use AI SDK to call the provider (cloud)
-          const { text } = await generateText({
-            model: provider,
-            prompt: prompt,
-          });
-          answer = text;
-          debugLog('[ANALYZE] LLM response received from:', providerName);
-        }
+        const { text } = await generateText({
+          model,
+          prompt,
+        });
+        answer = text;
+        debugLog('[ANALYZE] Gemini response received');
 
-        // Parse structured response
         const parts = answer.split('\n\n');
         for (const part of parts) {
           if (part.startsWith('INSIGHT')) {
@@ -505,26 +465,22 @@ export async function POST(request: Request) {
           }
         }
 
-        // Clean the output
         insight = cleanInsight(insight);
         explanation = cleanInsight(explanation);
         recommendation = cleanInsight(recommendation);
 
-        // If parsing failed, use default
         if (!insight) insight = formatDataAnswer();
         if (!explanation) explanation = 'Based on the query results.';
         if (!recommendation) recommendation = 'Review the data for actionable insights.';
       } catch (llmRunError: any) {
-        llmError = llmRunError?.message || 'LLM execution failed';
-        debugError('[ANALYZE] LLM execution failed:', llmError);
+        llmError = llmRunError?.message || 'Gemini execution failed';
+        debugWarn('[ANALYZE] Gemini failed:', llmError);
         debugLog('[ANALYZE] Falling back to data-based analysis');
-        // Will fall through to fallback
       }
     } catch (llmCheckError: any) {
       llmError = llmCheckError?.message || 'AI check failed';
       debugError('[ANALYZE] AI check failed:', llmError);
       debugLog('[ANALYZE] Falling back to data-based analysis');
-      // Will fall through to fallback
     }
 
     // If LLM failed or not available, generate business insights from the data

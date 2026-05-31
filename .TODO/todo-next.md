@@ -15,6 +15,8 @@ moving work between states.
 
 ## Active
 
-- T-343. Review remaining topbar, ticket table, account navigation
+_No active tasks._
 
 ## Next
+
+_No pending tasks._

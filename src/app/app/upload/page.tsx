@@ -16,7 +16,7 @@ export default function UploadPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="Upload Dataset"
         description="Add a CSV file and prepare it for analysis."

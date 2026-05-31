@@ -23,9 +23,9 @@ export default async function AppLayout({
     <FormattingProvider>
       <div className="min-h-screen bg-background">
         <AppSidebar user={session.user} />
-        <div className="min-h-screen transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
+        <div className="transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
           <Topbar />
-          <main className="min-h-screen pt-16">
+          <main className="flex min-h-[calc(100vh-4rem)] flex-col">
             {children}
           </main>
           <DashboardGlobalFooter />

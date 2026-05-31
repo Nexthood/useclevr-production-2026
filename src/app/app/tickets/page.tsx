@@ -10,7 +10,7 @@ export default async function TicketsPage() {
   const isSuperAdmin = session?.user?.role === "superadmin"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title={isSuperAdmin ? "Tickets & Issues" : "Support Tickets"}
         description={

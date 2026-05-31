@@ -8,13 +8,11 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
   Database,
   FileText,
   Gift,
   Menu,
   Receipt,
-  Settings,
   Sparkles,
   Tag,
   Users,
@@ -33,11 +31,6 @@ const primaryNavigation = [
   { name: "Business", href: "/app/business", icon: Building2 },
   { name: "Accountancy", href: "/app/accountancy", icon: Receipt },
   { name: "Referral", href: "/app/referral", icon: Gift },
-]
-
-const secondaryNavigation = [
-  { name: "Account", href: "/app/settings/profile", icon: Settings },
-  { name: "Credits", href: "/app/settings/credits", icon: CreditCard },
 ]
 
 type AppSidebarProps = {
@@ -108,30 +101,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
           )
         })}
       </nav>
-
-      <div className="border-t border-sidebar-border p-3">
-        {!isCollapsed && (
-          <nav className="space-y-1">
-            {secondaryNavigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`} />
-                  <span className="truncate">{item.name}</span>
-                </Link>
-              )
-            })}
-          </nav>
-        )}
-      </div>
 
       <div className="space-y-3 border-t border-sidebar-border p-4">
         {!isLoading && !isCollapsed && (

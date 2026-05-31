@@ -1,7 +1,9 @@
-import { ActivityList } from "@/app/app/settings/activity/activity-list"
+import { ActivityList } from "./activity-list"
 import { auth } from "@/lib/auth"
 import { listUserActivities } from "@/lib/activity/activity-store"
 import { redirect } from "next/navigation"
+
+export const metadata = { title: "Activity — Useclever" }
 
 export default async function ActivityPage() {
   const session = await auth()

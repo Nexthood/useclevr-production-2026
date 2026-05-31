@@ -3,7 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans";
-import type { DiscountRule } from "@/app/app/admin/discounts/page";
+
+type DiscountRule = {
+  id: string;
+  type: "free" | "percentage" | "referral" | "stacking";
+  name: string;
+  code: string;
+  percent?: number;
+  description: string;
+  enabled: boolean;
+  planTarget?: "all" | "free" | "pro" | "business";
+};
 import { Check, ChevronRight, CreditCard, FileText, Lock, Tag } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";

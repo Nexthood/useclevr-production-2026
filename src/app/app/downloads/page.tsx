@@ -291,7 +291,7 @@ export default function DownloadsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="Downloads"
         description="Manage your exported files."

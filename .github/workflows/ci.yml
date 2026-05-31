@@ -26,13 +26,13 @@ jobs:
            corepack prepare pnpm@11.5.0 --activate
 
        - run: pnpm install --frozen-lockfile
-      - run: pnpm validate:types
-      - run: pnpm validate:dist
-      - run: pnpm lint:package
-      - run: pnpm test:all
-      - run: pnpm build
-        env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+       - run: pnpm validate:types
+       - run: pnpm validate:dist
+       - run: pnpm lint:package
+       - run: pnpm test:all
+       - run: pnpm build
+         env:
+           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
    docs:
      runs-on: ubuntu-latest
@@ -52,4 +52,4 @@ jobs:
            corepack prepare pnpm@11.5.0 --activate
 
        - run: pnpm install --frozen-lockfile
-      - run: pnpm docs:check
+       - run: pnpm docs:check

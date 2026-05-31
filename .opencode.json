@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "eslint": {
+      "command": ["node_modules/.bin/vscode-eslint-language-server"],
+      "extensions": ["js", "jsx", "ts", "tsx", "mjs", "cjs"]
+    },
+    "tailwindcss": {
+      "command": ["node_modules/.bin/tailwindcss-language-server"],
+      "extensions": ["css", "tsx", "jsx"]
+    }
+  },
+  "formatter": true,
+  "instructions": ["AGENTS.md"]
+}
