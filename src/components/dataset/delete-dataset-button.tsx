@@ -15,7 +15,7 @@ export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; l
     if (result.success) {
       router.refresh()
     } else {
-      alert(result.error || "Failed to delete dataset")
+      alert(result.error)
     }
   }
 

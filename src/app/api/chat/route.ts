@@ -14,7 +14,7 @@ import {
     formatPercentValue,
     normalizeCurrencyValue,
     requiresComputation,
-} from '@/lib/query/engine';
+} from '../../../lib/query/engine';
 import {
     EXPLANATION_SYSTEM_PROMPT,
     generateExplanationPrompt

@@ -71,7 +71,7 @@ export function Search() {
   useEffect(() => {
     if (!open) return
 
-    const overlay = document.querySelector('.fixed inset-0 z-[220] bg-background') as HTMLElement | null
+    const overlay = document.querySelector('.fixed.inset-0.z-[220].bg-background') as HTMLElement | null
     if (!overlay) return
 
     // Get all focusable elements within the overlay

@@ -7,13 +7,14 @@ import { debugError } from "@/lib/utils/debug"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
+import { failure, type Result, success } from "@/lib/result"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
-export async function deleteDataset(datasetId: string) {
+export async function deleteDataset(datasetId: string): Promise<Result<true>> {
   const session = await auth()
   if (!session?.user?.id) {
-    return { error: "Unauthorized" }
+    return failure("Unauthorized")
   }
 
   try {
@@ -24,17 +25,17 @@ export async function deleteDataset(datasetId: string) {
       )
     )
     revalidatePath("/app/datasets")
-    return { success: true }
+    return success(true)
   } catch (error) {
     debugError("Error deleting dataset:", error)
-    return { error: "Failed to delete dataset" }
+    return failure("Failed to delete dataset")
   }
 }
 
-export async function getUserDatasets() {
+export async function getUserDatasets(): Promise<Result<Array<Record<string, unknown>>>> {
   const session = await auth()
   if (!session?.user?.id) {
-    return []
+    return failure("Unauthorized")
   }
 
   try {
@@ -46,23 +47,24 @@ export async function getUserDatasets() {
       },
     })
 
-    // Map to include count like Prisma did
-    return userDatasets.map(ds => ({
+    const mapped = userDatasets.map(ds => ({
       ...ds,
       _count: {
         rows: typeof ds.rowCount === 'number' ? ds.rowCount : 0,
       },
     }))
+
+    return success(mapped)
   } catch (error) {
     debugError("Error fetching datasets:", error)
-    return []
+    return failure("Failed to fetch datasets")
   }
 }
 
-export async function getDatasetById(datasetId: string) {
+export async function getDatasetById(datasetId: string): Promise<Result<unknown>> {
   const session = await auth()
   if (!session?.user?.id) {
-    return null
+    return failure("Unauthorized")
   }
 
   try {
@@ -72,20 +74,25 @@ export async function getDatasetById(datasetId: string) {
         eq(datasets.userId, session.user.id)
       ),
     })
-    return dataset
+
+    if (!dataset) {
+      return failure("Dataset not found")
+    }
+
+    return success(dataset)
   } catch (error) {
     debugError("Error fetching dataset:", error)
-    return null
+    return failure("Failed to fetch dataset")
   }
 }
 
 export async function getDatasetRows(
   datasetId: string,
   options?: { offset?: number; limit?: number }
-) {
+): Promise<Result<{ rows: unknown[]; total: number }>> {
   const session = await auth()
   if (!session?.user?.id) {
-    return { rows: [], total: 0 }
+    return failure("Unauthorized")
   }
 
   try {
@@ -98,7 +105,7 @@ export async function getDatasetRows(
     })
 
     if (!dataset) {
-      return { rows: [], total: 0 }
+      return failure("Dataset not found")
     }
 
     const offset = options?.offset ?? 0
@@ -110,9 +117,9 @@ export async function getDatasetRows(
       offset,
       limit,
     })
-    return { rows, total: dataset.rowCount ?? 0 }
+    return success({ rows, total: dataset.rowCount ?? 0 })
   } catch (error) {
     debugError("Error fetching dataset rows:", error)
-    return { rows: [], total: 0 }
+    return failure("Failed to fetch dataset rows")
   }
 }

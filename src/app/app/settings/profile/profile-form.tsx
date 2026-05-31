@@ -38,7 +38,7 @@ export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormP
 
     const result = await updateProfile(new FormData(event.currentTarget))
 
-    if (result.error) {
+    if (!result.success) {
       showNotice({
         type: "error",
         title: "Profile was not saved.",
@@ -47,7 +47,7 @@ export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormP
     } else {
       showNotice({
         type: isDemo ? "info" : "success",
-        title: result.message || "Profile saved.",
+        title: result.data.message || "Profile saved.",
       })
       router.refresh()
     }

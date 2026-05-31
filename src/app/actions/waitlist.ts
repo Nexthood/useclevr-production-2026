@@ -5,6 +5,7 @@ import { mkdir, readFile, rename, writeFile } from "fs/promises"
 import path from "path"
 import { getDb } from "@/lib/db"
 import { waitlist } from "@/lib/db/schema"
+import { failure, type Result, success } from "@/lib/result"
 import { eq } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 
@@ -44,21 +45,18 @@ async function joinFallbackWaitlist(email: string, source: string) {
   }
 }
 
-export async function joinWaitlist(email: string, source: string = "landing_page"): Promise<{
-  success: boolean
-  error?: string
-}> {
+export async function joinWaitlist(email: string, source: string = "landing_page"): Promise<Result<void>> {
   try {
     // Validate email
     if (!email || !email.includes("@")) {
-      return { success: false, error: "Please enter a valid email address" }
+      return failure("Please enter a valid email address")
     }
 
     const normalizedEmail = email.toLowerCase().trim()
     const db = getDb()
     if (!db) {
       await joinFallbackWaitlist(normalizedEmail, source)
-      return { success: true }
+      return success(undefined)
     }
 
     // Check if already on waitlist
@@ -68,7 +66,7 @@ export async function joinWaitlist(email: string, source: string = "landing_page
 
     if (existing) {
       // Already on waitlist - still return success
-      return { success: true }
+      return success(undefined)
     }
 
     // Add to waitlist
@@ -82,15 +80,15 @@ export async function joinWaitlist(email: string, source: string = "landing_page
 
     debugLog("[WAITLIST] New signup:", normalizedEmail, "from:", source)
 
-    return { success: true }
+    return success(undefined)
   } catch (error) {
     debugError("[WAITLIST] Error:", error)
     try {
       await joinFallbackWaitlist(email.toLowerCase().trim(), source)
-      return { success: true }
+      return success(undefined)
     } catch (fallbackError) {
       debugError("[WAITLIST] Fallback error:", fallbackError)
-      return { success: false, error: "Failed to join waitlist. Please try again." }
+      return failure("Failed to join waitlist. Please try again.")
     }
   }
 }

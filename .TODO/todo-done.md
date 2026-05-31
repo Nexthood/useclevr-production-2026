@@ -16,6 +16,14 @@ moving work between states.
 
 ## Completed
 
+- T-390. Server action responses typed as a discriminated `Result<T, E>` union so every handler returns a consistent `{ success, data }` / `{ success: false, error }` shape.
+- T-389. Popover dropdown shadow and z-index values align with the shared `Modal` backdrop layer to prevent overlay gaps.
+- T-388. Client-side data fetching wraps in a shared `useApi` hook that handles loading, error, and abort-controller cleanup for every page.
+- T-387. Upload route form-data parsing extracts into a dedicated `parseUploadForm` utility to reduce the 640-line route file.
+- T-386. API routes use a shared `requireSession` helper that extracts auth, checks expiry, and returns a consistent 401 shape instead of inline session checks.
+- T-385. `updatedAt` timestamps use a Drizzle `onUpdate` trigger or middleware so all update queries set it automatically without manual inclusion.
+- T-384. Health endpoint verifies database connectivity before returning a healthy status.
+- T-383. Dataset detail page paginates through the `datasetRows` table instead of loading all rows from the JSONB column.
 - T-400. dashboard: topbar - dedup credit number in topbar and show wording
 - T-399. dashboard: topbar - logo bigger without margin and border
 - T-366. `updatedAt` timestamps include on every write operation across all database update queries (verified already present).

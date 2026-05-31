@@ -6,9 +6,10 @@ import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activi
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button"
 import { OnboardingProcessButton } from "@/components/ui/onboarding-process-button"
 import { TopbarPanelLink, TopbarSection } from "@/components/ui/topbar-section"
+import { TopbarSidebarToggle } from "@/components/ui/topbar-sidebar-toggle"
 import { auth } from "@/lib/auth"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
-import { BriefcaseBusiness, CreditCard, HelpCircle, UserCircle } from "lucide-react"
+import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react"
 import Link from "next/link"
 import pkg from "../../../package.json"
 
@@ -68,9 +69,23 @@ export default async function Topbar() {
              <TopbarPanelLink href="/app/business/review">Review readiness</TopbarPanelLink>
            </TopbarSection>
 
-           <TopbarSection
-             icon={<CreditCard className="h-4 w-4" />}
-             label="Credits"
+           {session?.user?.role === "superadmin" && (
+              <TopbarSection
+                icon={<Shield className="h-4 w-4" />}
+                label="Admin"
+                header="Admin panel"
+                description="Manage customers, levels, discounts, and billing settings."
+              >
+                <TopbarPanelLink href="/app/admin/customers">Customers</TopbarPanelLink>
+                <TopbarPanelLink href="/app/admin/levels">Customer Levels</TopbarPanelLink>
+                <TopbarPanelLink href="/app/admin/discounts">Discount Rules</TopbarPanelLink>
+                <TopbarPanelLink href="/app/admin/billing-settings">Billing Settings</TopbarPanelLink>
+              </TopbarSection>
+            )}
+
+            <TopbarSection
+              icon={<CreditCard className="h-4 w-4" />}
+              label="Credits"
              value={`${remainingCredits} ${levelLabel}`}
              header="Credits and billing"
              description="Review analyst credits, subscription settings, and billing details."
@@ -79,6 +94,8 @@ export default async function Topbar() {
              <TopbarPanelLink href="/app/settings/billing">Billing</TopbarPanelLink>
              <TopbarPanelLink href="/app/settings/credits">Credit rules</TopbarPanelLink>
            </TopbarSection>
+
+           <TopbarSidebarToggle />
 
            <TopbarSection
               icon={<UserCircle className="h-4 w-4" />}

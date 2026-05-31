@@ -1,6 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { DataTable } from "@/components/ui/data-table"
+import type { DataTableColumn } from "@/components/ui/data-table"
 import {
   BarChart3,
   ChevronLeft,
@@ -44,18 +46,6 @@ const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
 
 function responseText(data: Record<string, unknown>) {
   return String(data.answer || data.response || data.content || "I could not generate an answer for that question.")
-}
-
-function compactValue(value: unknown) {
-  if (typeof value === "number") {
-    return value.toLocaleString("en-US", { maximumFractionDigits: 2 })
-  }
-
-  if (value === null || value === undefined || value === "") {
-    return "-"
-  }
-
-  return String(value)
 }
 
 // Database-persisted suggestions
@@ -533,6 +523,11 @@ function ResultPreview({ data, chartType }: { data: Record<string, unknown>[]; c
 
   if (rows.length === 0 || columns.length === 0) return null
 
+  const tableColumns: DataTableColumn<Record<string, unknown>>[] = columns.map((col) => ({
+    key: col,
+    header: col,
+  }))
+
   return (
     <div className="mt-4 rounded-lg border border-border bg-background">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -542,30 +537,7 @@ function ResultPreview({ data, chartType }: { data: Record<string, unknown>[]; c
         </div>
         {chartType && <span className="text-xs text-muted-foreground">{chartType}</span>}
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-muted/40 text-muted-foreground">
-            <tr>
-              {columns.map((column) => (
-                <th key={column} className="px-3 py-2 font-medium">
-                  {column}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((row, index) => (
-              <tr key={index}>
-                {columns.map((column) => (
-                  <td key={column} className="px-3 py-2 text-foreground">
-                    {compactValue(row[column])}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable columns={tableColumns} rows={rows} />
     </div>
   )
 }
