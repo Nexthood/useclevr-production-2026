@@ -45,17 +45,13 @@ jobs:
           fetch-depth: 1
 
       - uses: actions/setup-node@v6
-         with:
-           node-version: "26.x"
-           cache: "pnpm"
-           cache-dependency-path: pnpm-lock.yaml
+        with:
+          node-version: "26.x"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+          package-manager: pnpm@11.5.0
 
-      - name: Activate pnpm through Corepack
-         run: |
-           corepack enable
-           corepack prepare pnpm@11.5.0 --activate
-
-       - name: Install dependencies
+      - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile --no-optional
           pnpm dedupe --no-optional
