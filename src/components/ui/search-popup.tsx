@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowRight, FileQuestion, SearchIcon, Send, X } from "lucide-react"
+import { ArrowRight, BarChart3, Database, FileQuestion, HelpCircle, SearchIcon, Send, Settings, Ticket, X } from "lucide-react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 
@@ -14,6 +14,14 @@ export function Search() {
   const [hasSearched, setHasSearched] = useState(false)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const quickLinks = [
+    { href: "/app/datasets", label: "Datasets", description: "Open uploaded files and tables.", icon: Database },
+    { href: "/app/upload", label: "Upload", description: "Add a CSV dataset.", icon: BarChart3 },
+    { href: "/app/assistant", label: "AI Assistant", description: "Ask questions about a dataset.", icon: SearchIcon },
+    { href: "/app/tickets", label: "Tickets", description: "Create or review support requests.", icon: Ticket },
+    { href: "/app/faq", label: "FAQ", description: "Search dashboard help.", icon: HelpCircle },
+    { href: "/app/settings/profile", label: "Settings", description: "Manage account and profile.", icon: Settings },
+  ]
 
   // Handle opening the search
   useEffect(() => {
@@ -181,8 +189,26 @@ export function Search() {
                   <p className="mt-1 text-sm text-muted-foreground">Try a dashboard page, dataset name, report topic, or FAQ question.</p>
                 </div>
               ) : (
-                <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-                  Search dashboard pages, datasets, reports, support tickets, and FAQ answers. Operator-only results only appear for super-admin accounts.
+                <div className="grid gap-4">
+                  <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                    Search dashboard pages, datasets, reports, support tickets, and FAQ answers. Operator-only results only appear for super-admin accounts.
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {quickLinks.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 transition hover:border-primary/50 hover:bg-muted"
+                      >
+                        <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span>
+                          <span className="block text-sm font-semibold text-foreground">{item.label}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

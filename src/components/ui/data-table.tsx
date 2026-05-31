@@ -34,15 +34,15 @@ export function DataTable<T extends Record<string, unknown>>({
   minWidth = "min-w-full",
 }: DataTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
+    <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
       {(title || description) && (
-        <div className="border-b border-border px-5 py-4">
-          {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
+        <div className="border-b border-border px-4 py-3">
+          {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
           {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className={`w-full ${minWidth} text-sm`}>
+        <table className={`w-full ${minWidth} text-xs`}>
           <thead className="bg-muted/60 text-muted-foreground">
             <tr>
               {columns.map((column) => (
@@ -50,7 +50,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   key={String(column.key)}
                   scope="col"
                   className={[
-                    "px-4 py-3 font-medium",
+                    "px-3 py-2 font-medium",
                     column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left",
                   ].join(" ")}
                 >
@@ -73,7 +73,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     <td
                       key={String(column.key)}
                       className={[
-                        "px-4 py-3 text-foreground",
+                        "px-3 py-2.5 align-middle text-foreground",
                         column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left",
                       ].join(" ")}
                     >

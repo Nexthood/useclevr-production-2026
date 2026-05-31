@@ -26,16 +26,16 @@ const actions = [
 
 export function DashboardFaqActions() {
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-2 md:grid-cols-3">
       {actions.map((action) => {
         const Icon = action.icon
-        const className = "flex min-h-24 items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-accent/50"
+        const className = "flex min-h-12 items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-left transition hover:border-primary/50 hover:bg-muted"
         const content = (
           <>
             <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
             <span>
               <span className="block text-sm font-semibold text-foreground">{action.label}</span>
-              <span className="mt-1 block text-sm text-muted-foreground">{action.description}</span>
+              <span className="block text-xs text-muted-foreground">{action.description}</span>
             </span>
           </>
         )

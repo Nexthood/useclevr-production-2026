@@ -15,7 +15,11 @@ moving work between states.
 
 ## Active
 
-_No active tasks._
+- T-399. dashboard: topbar - logo bigger without margin and border
+- T-400. dashboard: topbar - dedup credit number in topbar and show wording
+- T-401. dashboard: topbar - sidebar after credit panel without border
+- T-402. dashboard: topbar - show app version from package.json
+- T-403. dashboard: topbar - superadmin menu is before the credit panel
 
 ## Next
 

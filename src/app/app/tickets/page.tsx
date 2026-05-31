@@ -1,7 +1,7 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth"
-import { Plus } from "lucide-react"
+import { Plus, Ticket } from "lucide-react"
 import Link from "next/link"
 import { TicketsClient } from "./tickets-client"
 
@@ -22,6 +22,7 @@ export default async function TicketsPage() {
           { label: "Dashboard", href: "/app" },
           { label: "Tickets" },
         ]}
+        icon={Ticket}
       />
 
       <PageActionRow description="Create a ticket when support needs details, billing context, or account access information.">

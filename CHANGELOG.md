@@ -32,6 +32,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sign-out, and notices grouped into hover panels.
 - Dashboard sidebar focuses on primary navigation and supports desktop collapse.
 - Dashboard footer links, social links, and coming-soon app badges appear in one global footer row.
+- Display settings offer light, dark, system, high-contrast, and larger-text modes from the
+  dashboard topbar.
 
 ### Dev
 
@@ -72,6 +74,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   read-first rows with focused row edit pages.
 - Dashboard FAQ uses expandable answers and lets super-admins filter customer help and operator
   notes from one page.
+- Dashboard tables and page headers use a denser shared layout with title icons and clearer row
+  actions.
 - Hybrid AI and subscription plan buttons go through checkout review before any payment action.
 - Dashboard notices live in a topbar inbox with a persistent count and recent product activity.
 - Dashboard notices and activity focus on rare, useful events instead of frequent background
@@ -88,6 +92,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Business overview stays available when no business profile exists, with the add-business action visible from the top-level workspace.
+- Dataset uploads use a valid persisted demo account path and clearer file-size handling.
+- Business overview metrics remain available when business storage tables are unavailable.
+- Dashboard notifications open from the topbar notices sidebar again.
+- The project favicon resolves from the app route and broken duplicate favicon assets are removed.
 - Login keeps local and live redirects on the active app host instead of reusing a stale deployment
   URL.
 - Stripe checkout returns users through a verifiable checkout session and can reopen the billing

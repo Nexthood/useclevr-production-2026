@@ -9,6 +9,7 @@ import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { db } from "@/lib/db"
 import { datasets, users } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
 
@@ -161,7 +162,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     let effectiveUserId = session?.user?.id
     debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
 
-    if (effectiveUserId && isBuiltinUserId(effectiveUserId) && effectiveUserId !== 'demo-user-id') {
+    if (effectiveUserId && isBuiltinUserId(effectiveUserId)) {
       const builtinUser = BUILTIN_USERS.find((user) => user.id === effectiveUserId)
 
       if (builtinUser) {
@@ -176,61 +177,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // HARD GUARD: If session user is "demo-user-id", this is NOT a real user
     // We must NOT insert with this fake ID - either find real demo user or use non-persistent mode
     if (effectiveUserId === 'demo-user-id') {
-      debugLog("[UPLOAD] WARNING: session.userId is 'demo-user-id' - this is NOT a real user!")
-      debugLog("[UPLOAD] Searching for REAL demo user in DB...")
-      
-      try {
-        const demoUser = await (db as any).query.users.findFirst({
-          where: (users as any).email === 'demo@useclevr.app',
-        })
-        
-        if (demoUser) {
-          effectiveUserId = demoUser.id
-          debugLog("[UPLOAD] SUCCESS: Found REAL demo user, using:", effectiveUserId)
-          debugLog("[UPLOAD] CHOSEN PATH: real-db-insert")
-        } else {
-          // No real demo user - must use non-persistent mode
-          debugLog("[UPLOAD] ERROR: No demo user in DB!")
-          debugLog("[UPLOAD] CHOSEN PATH: demo-non-persistent")
-          
-          // Parse file for preview
-          const file = formData.get("file") as File | null
-          let preview = null
-          
-          if (file) {
-            try {
-              const text = await file.text()
-              const lines = text.trim().split("\n")
-              if (lines.length > 0) {
-                const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''))
-                const previewRows = lines.slice(1, 6).map(line => {
-                  const values = line.split(",")
-                  const row: Record<string, string> = {}
-                  headers.forEach((h, i) => { row[h] = values[i]?.trim() || '' })
-                  return row
-                })
-                preview = { headers, rows: previewRows }
-              }
-            } catch (e) {
-              debugLog("[UPLOAD] Could not parse preview:", e)
-            }
-          }
-          
-          return {
-            success: true,
-            datasetId: `demo_${Date.now()}`,
-            redirectTo: `/app/datasets/demo_${Date.now()}`,
-            fileName: file?.name || 'unknown.csv',
-            preview: preview || undefined
-          }
-        }
-      } catch (e) {
-        debugLog("[UPLOAD] Error finding demo user:", e)
-        return { 
-          success: false, 
-          error: "Unable to create dataset. Please try again or sign in." 
-        }
-      }
+      debugLog("[UPLOAD] Using persisted built-in demo user for standard upload")
     }
 
     // For standard uploads, if no user is logged in, we MUST find a real demo user from DB
@@ -238,8 +185,8 @@ export async function uploadCSV(formData: FormData): Promise<{
     if (!effectiveUserId) {
       debugLog("[UPLOAD] No user session - searching for real demo user in DB...")
       try {
-        const demoUser = await (db as any).query.users.findFirst({
-          where: (users as any).email === 'demo@useclevr.app',
+        const demoUser = await db.query.users.findFirst({
+          where: eq(users.email, 'demo@useclevr.app'),
         })
         
         if (demoUser) {

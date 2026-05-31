@@ -3,7 +3,7 @@
 import { CsvUpload } from "@/components/forms/csv-upload"
 import { ProfitabilityUpload } from "@/components/forms/profitability-upload"
 import { AppPageHeader } from "@/components/layout/app-page-header"
-import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp } from "lucide-react"
+import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp, Upload } from "lucide-react"
 import * as React from "react"
 
 export default function UploadPage() {
@@ -25,6 +25,7 @@ export default function UploadPage() {
           { label: "Datasets", href: "/app/datasets" },
           { label: "Upload" },
         ]}
+        icon={Upload}
       />
 
       <main className="flex-1">

@@ -81,10 +81,20 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       ),
     },
     {
-      key: "id",
-      header: "ID",
+      key: "name",
+      header: "Dataset",
       render: (row) => (
-        <span className="font-mono text-xs text-muted-foreground">{String(row.id).slice(-8)}</span>
+        <div>
+          <Link href={`/app/datasets/${row.id}`} className="font-medium text-foreground transition hover:text-primary">
+            {String(row.name)}
+          </Link>
+          <div>
+            <Link href={`/app/datasets/${row.id}`} className="text-xs text-primary hover:underline">
+              Edit dataset
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground">{String(row.fileName)}</p>
+        </div>
       ),
     },
     {
@@ -93,44 +103,25 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       render: (row) => getStatusBadge(row.status as string),
     },
     {
-      key: "name",
-      header: "Title",
+      key: "shape",
+      header: "Rows / columns",
       render: (row) => (
-        <span className="font-medium text-foreground">{String(row.name)}</span>
-      ),
-    },
-    {
-      key: "fileName",
-      header: "File",
-      render: (row) => (
-        <span className="text-sm text-muted-foreground">{String(row.fileName)}</span>
+        <span className="text-muted-foreground">{Number(row.rowCount || 0).toLocaleString()} / {Number(row.columnCount || 0).toLocaleString()}</span>
       ),
     },
     {
       key: "viewTable",
-      header: "View table",
+      header: "Actions",
+      align: "right",
       render: (row) => (
-        <Link href={`/app/datasets/${row.id}`} className="text-sm font-medium text-primary hover:underline">
-          View
-        </Link>
-      ),
-    },
-    {
-      key: "analyze",
-      header: "Analyze",
-      render: (row) => (
-        <Link href={`/app/datasets/${row.id}/analyze`} className="text-sm font-medium text-primary hover:underline">
-          Analyze
-        </Link>
-      ),
-    },
-    {
-      key: "report",
-      header: "Report",
-      render: (row) => (
-        <Link href={`/app/datasets/${row.id}/analyze?panel=report`} className="text-sm font-medium text-primary hover:underline">
-          Report
-        </Link>
+        <div className="flex justify-end gap-3">
+          <Link href={`/app/datasets/${row.id}/analyze`} className="text-xs font-medium text-primary hover:underline">
+            Analyze
+          </Link>
+          <Link href={`/app/datasets/${row.id}/analyze?panel=report`} className="text-xs font-medium text-primary hover:underline">
+            Report
+          </Link>
+        </div>
       ),
     },
   ]
@@ -166,8 +157,8 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
         )}
       </PageActionRow>
 
-      <main className="flex-1 p-6">
-        <div className="max-w-6xl mx-auto space-y-6 pt-6">
+      <main className="flex-1 p-5">
+        <div className="max-w-6xl mx-auto space-y-5">
           {datasets.length === 0 ? (
             <Card className="p-12 bg-card border-border">
               <div className="text-center space-y-4">
@@ -191,36 +182,36 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           ) : (
             <>
               <div className="grid gap-4 md:grid-cols-3">
-                <Card className="p-5 bg-card border-border">
+                <Card className="p-4 bg-card border-border">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-                      <Database className="h-6 w-6 text-cyan-800 dark:text-cyan-100" />
+                    <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                      <Database className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-foreground">{datasets.length}</p>
-                      <p className="text-sm text-muted-foreground">Total datasets</p>
+                      <p className="text-xl font-bold text-foreground">{datasets.length}</p>
+                      <p className="text-xs text-muted-foreground">Total datasets</p>
                     </div>
                   </div>
                 </Card>
-                <Card className="p-5 bg-card border-border">
+                <Card className="p-4 bg-card border-border">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                      <BarChart3 className="h-6 w-6 text-primary dark:text-cyan-100" />
+                    <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                      <BarChart3 className="h-5 w-5 text-primary dark:text-cyan-100" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-foreground">€{Math.round(averageRevenue).toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">Avg monthly revenue</p>
+                      <p className="text-xl font-bold text-foreground">€{Math.round(averageRevenue).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Avg monthly revenue</p>
                     </div>
                   </div>
                 </Card>
-                <Card className="p-5 bg-card border-border">
+                <Card className="p-4 bg-card border-border">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <FileSpreadsheet className="h-6 w-6 text-emerald-800 dark:text-emerald-100" />
+                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <FileSpreadsheet className="h-5 w-5 text-emerald-800 dark:text-emerald-100" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-foreground">{readyCount} / {datasets.length}</p>
-                      <p className="text-sm text-muted-foreground">Ready for analysis</p>
+                      <p className="text-xl font-bold text-foreground">{readyCount} / {datasets.length}</p>
+                      <p className="text-xs text-muted-foreground">Ready for analysis</p>
                     </div>
                   </div>
                 </Card>

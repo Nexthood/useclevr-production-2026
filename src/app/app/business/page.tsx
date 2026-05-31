@@ -33,19 +33,23 @@ async function getBusinessMetrics(userId: string | null | undefined) {
   const db = getDb()
   if (!db) return { totalBusinesses: 0, totalEntities: 0 }
 
-  const userBusinesses = await db
-    .select({ id: businesses.id })
-    .from(businesses)
-    .where(eq(businesses.userId, userId))
+  try {
+    const userBusinesses = await db
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(eq(businesses.userId, userId))
 
-  const businessIds = userBusinesses.map((business) => business.id)
-  const entityCount = businessIds.length
-    ? await db.select({ count: count() }).from(businessEntities).where(inArray(businessEntities.businessId, businessIds))
-    : [{ count: 0 }]
+    const businessIds = userBusinesses.map((business) => business.id)
+    const entityCount = businessIds.length
+      ? await db.select({ count: count() }).from(businessEntities).where(inArray(businessEntities.businessId, businessIds))
+      : [{ count: 0 }]
 
-  return {
-    totalBusinesses: userBusinesses.length,
-    totalEntities: entityCount[0]?.count ?? 0,
+    return {
+      totalBusinesses: userBusinesses.length,
+      totalEntities: entityCount[0]?.count ?? 0,
+    }
+  } catch {
+    return { totalBusinesses: 0, totalEntities: 0 }
   }
 }
 
