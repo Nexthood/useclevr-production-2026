@@ -130,7 +130,7 @@ const rootDistPackage = {
   version: rootPkg.version,
   private: true,
   type: "module",
-  packageManager: rootPkg.packageManager,
+  // packageManager intentionally omitted — dist runs via node directly, no pnpm needed
   scripts: {
     start: "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:local":
