@@ -16,8 +16,6 @@ const errors = []
 const fixesApplied = []
 const isFix = process.argv.includes("--fix")
 
-const PACKAGE_MANAGER = "pnpm@11.5.0"
-
 function walk(value, visitor) {
   if (Array.isArray(value)) {
     value.forEach((item) => walk(item, visitor))
@@ -26,17 +24,6 @@ function walk(value, visitor) {
   if (!value || typeof value !== "object") return
   visitor(value)
   Object.values(value).forEach((item) => walk(item, visitor))
-}
-
-function hasPackageManager(workflow) {
-  let found = false
-  walk(workflow, (node) => {
-    if (typeof node.uses !== "string") return
-    if (node.uses.trim() === "actions/setup-node@v6" && node.with?.["package-manager"]) {
-      found = true
-    }
-  })
-  return found
 }
 
 function fixWorkflow(source, fileName) {
@@ -68,11 +55,6 @@ function fixWorkflow(source, fileName) {
         if (!step.with) {
           step.with = {}
           modified = true
-        }
-        if (!step.with["package-manager"]) {
-          step.with["package-manager"] = PACKAGE_MANAGER
-          modified = true
-          fixesApplied.push(`${fileName} (job ${jobId}): added package-manager to setup-node`)
         }
         if (step.with["cache"] && step.with["package-manager-cache"] === undefined) {
           step.with["package-manager-cache"] = false
