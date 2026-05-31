@@ -170,7 +170,7 @@ export default function AdminLevelsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="Customer Levels"
         description="Define customer tiers and the activity thresholds that unlock each level."

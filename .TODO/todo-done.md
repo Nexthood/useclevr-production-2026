@@ -16,6 +16,10 @@ moving work between states.
 
 ## Completed
 
+- T-356. AI assistant generates data-aware suggestions through the right sidebar Generate button, stored globally in the database via `appSettings` key `suggestions_global`, and all chat responses route through Google AI (Gemini) for unique per-request answers.
+- T-355. Dashboard page layout uses consistent flex-based heights across settings, business, accountancy, datasets, admin, and all sub-pages - `min-h-screen` replaced with `flex-1` in 20+ page wrappers. Navigation lives only in the left sidebar and horizontal sub-page bars.
+- T-352. AI assistant page layout replaced cascading `min-h-screen` with a proper flex height chain: app layout main uses `flex min-h-[calc(100vh-4rem)] flex-col`, assistant layout and workspace use `flex flex-1` to fill the viewport accounting for the fixed topbar height.
+
 - T-350. Combine sign-in and sign-up into one tabbed authentication page.
 - T-349. Restore demo and social sign-in actions on the login page.
 - T-348. Normalize dashboard business overview, dataset library, and downloads table flows.

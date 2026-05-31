@@ -220,7 +220,7 @@ export default function AdminEditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title={pageTitle}
         description={description}

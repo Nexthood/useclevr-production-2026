@@ -1,9 +1,6 @@
 "use client"
 
 import { debugError } from "@/lib/utils/debug"
-
-
-
 import { Button } from "@/components/ui/button"
 import { useNotice } from "@/components/ui/notice-bar"
 import { useEffect } from "react"
@@ -27,7 +24,7 @@ export default function AppError({
   }, [error, showNotice])
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 ml-64">
+    <div className="flex flex-1 items-center justify-center p-4 ml-[var(--app-sidebar-width)]">
       <div className="max-w-md w-full text-center space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Something went wrong</h1>

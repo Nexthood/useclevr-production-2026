@@ -8,7 +8,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   const isSuperAdmin = session?.user?.role === "superadmin"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-1 flex-col bg-background">
       <AppPageHeader
         title="Account"
         description="Manage profile, preferences, subscription, billing, and activity."
@@ -20,7 +20,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 
       <SettingsNav showAdmin={isSuperAdmin} />
 
-      <main className="px-5 py-5">
+      <main className="flex-1 px-5 py-5">
         <section className="min-w-0">{children}</section>
       </main>
     </div>

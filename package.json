@@ -58,7 +58,7 @@
     "clean:generated": "node ./scripts/build/clean-generated.cjs --generated",
     "clean:all": "node ./scripts/build/clean-generated.cjs --all",
     "clean": "pnpm clean:all && rm -rf dist .next",
-    "lint": "pnpm lint:package && pnpm lint:todos && eslint . --ext .ts,.tsx,.mjs",
+    "lint": "pnpm lint:package && pnpm lint:todos && pnpm lint:workflows && eslint . --ext .ts,.tsx,.mjs",
     "lint:fix": "eslint . --ext .ts,.tsx,.mjs --fix",
     "lint:all": "pnpm lint && pnpm lint:deps",
     "lint:changelog": "node ./scripts/check-unreleased.js && node ./scripts/check-changelog.js",
@@ -68,6 +68,7 @@
     "lint:package": "node ./scripts/check-package-json.js",
     "lint:todos": "node ./scripts/check-todo-management.js",
     "lint:workflows": "node ./scripts/check-github-workflows.js",
+    "lint:workflows:fix": "node ./scripts/check-github-workflows.js --fix",
     "link:docs": "node ./scripts/check-docs-links.js",
     "format": "prettier --write \"scripts/**/*.{js,cjs,mjs,ts,md}\" \"docs/**/*.md\" \"*.{json,md,mjs,ts}\" \".TODO/**/*.md\"",
     "format:check": "prettier --check \"scripts/**/*.{js,cjs,mjs,ts,md}\" \"docs/**/*.md\" \"*.{json,md,mjs,ts}\" \".TODO/**/*.md\"",
@@ -122,6 +123,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
+    "@tailwindcss/language-server": "^0.14.29",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
     "@types/qrcode": "^1.5.6",
@@ -141,7 +143,8 @@
     "tailwindcss": "3.4.17",
     "tsx": "^4.22.3",
     "turbo": "^2.9.16",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vscode-langservers-extracted": "^4.10.0"
   },
   "engines": {
     "node": ">=26.1.0"

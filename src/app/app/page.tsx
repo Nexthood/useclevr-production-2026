@@ -43,7 +43,7 @@ export default async function AppDashboard() {
   const stats = await getStats(userId)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <div className="px-5 py-5">
         <div className="max-w-6xl mx-auto space-y-6">
           <div>

@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth"
 import { listAllActivities } from "@/lib/activity/activity-store"
 import { redirect } from "next/navigation"
 
+export const metadata = { title: "Total Activity — Useclever" }
+
 export default async function TotalActivityPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")

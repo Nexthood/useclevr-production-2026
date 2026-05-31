@@ -235,7 +235,7 @@ export default function AdminCustomersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="Customers"
         description="Review registered customers, static demo accounts, plans, and account activity."

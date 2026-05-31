@@ -20,7 +20,7 @@ export default async function DashboardFaqPage({
   const initialCategory = activeScope === "operator" ? "Super-admin tools" : "All"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="FAQ"
         description={

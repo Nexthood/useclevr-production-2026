@@ -3,5 +3,5 @@
 # TypeScript, deploy config, lint, and production publish build checks
 pnpm validate:precommit
 
-# YAML syntax and action policy check for GitHub workflow files
-pnpm lint:workflows
+# Self-heal and validate GitHub workflow YAML files
+pnpm lint:workflows:fix

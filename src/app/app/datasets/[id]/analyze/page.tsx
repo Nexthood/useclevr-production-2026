@@ -65,7 +65,7 @@ export default async function AnalyzePage({
   })
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col flex-1">
       <AppPageHeader
         title={`Analyze: ${(dataset as { name: string }).name}`}
         description={hasAnalysis ? "View insights and ask questions" : "Analyze your dataset with AI"}

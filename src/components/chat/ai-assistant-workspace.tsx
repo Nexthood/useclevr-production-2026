@@ -315,7 +315,7 @@ export function AiAssistantWorkspace() {
   const canAsk = Boolean(selectedDatasetId) && !isAsking
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-0 flex-col lg:flex-row">
+    <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
       {/* Left Sidebar - Datasets */}
       <aside
         className={`flex-shrink-0 border-r border-border bg-card transition-all duration-200 ${
@@ -454,16 +454,23 @@ export function AiAssistantWorkspace() {
               {rightSidebarOpen && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={generateSuggestions}
                   disabled={!selectedDatasetId || isGeneratingSuggestions}
                   aria-label="Generate more suggestions"
+                  className="gap-1.5 text-xs"
                 >
                   {isGeneratingSuggestions ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generating
+                    </>
                   ) : (
-                    <RefreshCw className="h-3 w-3" />
+                    <>
+                      <RefreshCw className="h-3 w-3" />
+                      Generate
+                    </>
                   )}
                 </Button>
               )}

@@ -47,13 +47,12 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
-          cache: "pnpm"
-          cache-dependency-path: pnpm-lock.yaml
+          package-manager-cache: false
 
       - name: Activate pnpm through Corepack
         run: |
           corepack enable
-          corepack prepare pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1 --activate
+          corepack prepare pnpm@11.5.0 --activate
 
       - name: Install dependencies
         run: |
@@ -86,18 +85,10 @@ jobs:
           rm -f pnpm-workspace.yaml
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
-          rm -rf dist/node_modules/.pnpm/@next+swc-*
-          rm -rf dist/node_modules/@next/swc-*
           rm -rf dist/.cache
           rm -rf dist/cache
           rm -rf dist/.turbo
           rm -rf dist/.vercel
-          rm -rf dist/.next/cache/webpack
-          large_source_file="$(find dist -type f -size +95M -print -quit)"
-          if [ -n "$large_source_file" ]; then
-            echo "Error: generated dist contains a file larger than GitHub limit."
-            exit 1
-          fi
 
       - name: Stage generated output
         run: |

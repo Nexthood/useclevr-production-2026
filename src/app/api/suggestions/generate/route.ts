@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     await db
       .insert(appSettings)
       .values({
-        key: `suggestions_${session.user.id}`,
+        key: "suggestions_global",
         value: savedSuggestions,
       })
       .onConflictDoUpdate({

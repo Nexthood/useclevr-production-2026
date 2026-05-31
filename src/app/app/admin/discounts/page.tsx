@@ -129,7 +129,7 @@ export default function AdminDiscountsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <AppPageHeader
         title="Discount Rules"
         description="Manage free, percentage, referral, and stacking discounts across checkout."
