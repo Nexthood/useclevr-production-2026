@@ -332,6 +332,70 @@ export type WhitelistedOperation =
 /** Lightweight intent type placeholder for callers that import the type only */
 export type QueryIntent = unknown;
 
+export function findColumn(columns: string[], keywords: string[]): string | null {
+  const lowerKeywords = keywords.map(k => k.toLowerCase())
+  return columns.find(col => {
+    const colLower = col.toLowerCase()
+    return lowerKeywords.some(kw => colLower.includes(kw) || kw.includes(colLower))
+  }) || null
+}
+
+export function normalizeCurrencyValue(value: string | number | null | undefined): number {
+  if (value === null || value === undefined || value === '') return 0
+  if (typeof value === 'number') return value
+
+  let cleaned = String(value)
+    .replace(/[€$¥£C$A₹CHF₽]/g, '')
+    .replace(/\s/g, '')
+
+  const lastDot = cleaned.lastIndexOf('.')
+  const lastComma = cleaned.lastIndexOf(',')
+
+  if (lastComma > lastDot) {
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.')
+  } else if (lastDot > lastComma && lastComma !== -1) {
+    cleaned = cleaned.replace(/,/g, '')
+  } else if (lastComma !== -1 && lastDot === -1) {
+    cleaned = cleaned.replace(',', '.')
+  } else {
+    cleaned = cleaned.replace(/,/g, '')
+  }
+
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? 0 : num
+}
+
+export function formatCurrencyValue(value: number): string {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`
+  if (value >= 1000) return `${(value / 1000).toFixed(2)}K`
+  return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
+export function formatPercentValue(value: number): string {
+  return `${value.toFixed(2)}%`
+}
+
+export function aggregateData(
+  data: any[],
+  groupByColumn: string,
+  valueColumn: string,
+  sortDescending: boolean = true,
+): { name: string; value: number; pct: number }[] {
+  const aggregation: Record<string, number> = {}
+  let totalVal = 0
+
+  for (const row of data) {
+    const key = row[groupByColumn] || 'Unknown'
+    const val = normalizeCurrencyValue(row[valueColumn])
+    aggregation[key] = (aggregation[key] || 0) + val
+    totalVal += val
+  }
+
+  return Object.entries(aggregation)
+    .map(([name, value]) => ({ name, value, pct: totalVal > 0 ? (value / totalVal) * 100 : 0 }))
+    .sort((a, b) => sortDescending ? b.value - a.value : a.value - b.value)
+}
+
 /**
  * Heuristic to decide if a question requires computation.
  * Mirrors keyword logic used at call sites; safe, side-effect free.

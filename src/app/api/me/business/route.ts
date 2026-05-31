@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
+import { debugError } from "@/lib/utils/debug"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ details: includeNulls ? details : details })
   } catch (error) {
-    console.error("[api/me/business] load failed:", error)
+    debugError("[api/me/business] load failed:", error)
     return NextResponse.json(
       { error: "Failed to load business details." },
       { status: 500 }

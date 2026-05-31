@@ -4,6 +4,8 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import { processQuestion } from '@/lib/ai/ai-query-generator';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
+import { aggregateData, findColumn } from '@/lib/query/engine';
+import { queryRequestSchema, validateOrError } from '@/lib/validation';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -12,19 +14,15 @@ export async function POST(request: Request) {
   
   try {
     const body = await request.json();
-    const { datasetId, question } = body;
+    const validation = validateOrError(queryRequestSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const { datasetId, question } = validation.data;
 
     debugLog('Query:', question);
     debugLog('DatasetID:', datasetId);
-
-    // 1. Validate datasetId - reject if missing
-    if (!datasetId) {
-      debugLog('ERROR: No datasetId provided');
-      return NextResponse.json(
-        { error: "No active dataset selected" },
-        { status: 400 }
-      );
-    }
 
     // 2. Get dataset
     const dataset = await db.query.datasets.findFirst({
@@ -59,15 +57,6 @@ export async function POST(request: Request) {
     let result: any = null;
     let content = '';
 
-    // Helper to find column by keyword (case insensitive)
-    const findColumn = (keywords: string[]) => {
-      const lowerKeywords = keywords.map(k => k.toLowerCase());
-      return columns.find(col => {
-        const colLower = col.toLowerCase();
-        return lowerKeywords.some(kw => colLower.includes(kw) || kw.includes(colLower));
-      });
-    };
-
     try {
       // COUNT ROWS
       if (q.includes('how many') || q.includes('count row') || q.includes('number of row')) {
@@ -78,7 +67,7 @@ export async function POST(request: Request) {
       }
       // TOTAL / SUM (revenue, sales, etc)
       else if (q.includes('total') || q.includes('sum') || q.includes('revenue') || q.includes('sales') || q.includes('profit')) {
-        const valueCol = findColumn(['revenue', 'sales', 'amount', 'total', 'price', 'cost', 'profit']);
+        const valueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'total', 'price', 'cost', 'profit']);
         if (valueCol) {
           const total = data.reduce((sum, row) => sum + (parseFloat(String(row[valueCol]).replace(/[^0-9.-]/g, '')) || 0), 0);
           generatedSql = `SELECT SUM(${valueCol}) as total FROM dataset`;
@@ -94,19 +83,19 @@ export async function POST(request: Request) {
       else if (q.includes('profit') || q.includes('loss') || q.includes('profitable') || q.includes('profitability')) {
         // Try to find columns for profit calculation
         // Keywords match actual dataset columns (case insensitive)
-        const revenueCol = findColumn(['revenue', 'sales', 'amount', 'order_total', 'total', 'order_value']);
-        const costCol = findColumn(['cost', 'unit_cost', 'cogs', 'cost_of_goods']);
-        const discountCol = findColumn(['discount', 'discount_amount', 'discount_percent', 'discount_rate']);
-        const shippingCol = findColumn(['shipping', 'shipping_cost', 'delivery_cost']);
-        const taxCol = findColumn(['tax', 'taxes', 'tax_amount', 'tax_percent', 'tax_rate', 'vat']);
-        const unitsCol = findColumn(['units', 'quantity', 'qty', 'units_sold', 'order_quantity']);
-        const priceCol = findColumn(['price', 'unit_price', 'sale_price', 'item_price']);
-        const refundCol = findColumn(['refund', 'refund_amount', 'returns']);
+        const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'order_total', 'total', 'order_value']);
+        const costCol = findColumn(columns, ['cost', 'unit_cost', 'cogs', 'cost_of_goods']);
+        const discountCol = findColumn(columns, ['discount', 'discount_amount', 'discount_percent', 'discount_rate']);
+        const shippingCol = findColumn(columns, ['shipping', 'shipping_cost', 'delivery_cost']);
+        const taxCol = findColumn(columns, ['tax', 'taxes', 'tax_amount', 'tax_percent', 'tax_rate', 'vat']);
+        const unitsCol = findColumn(columns, ['units', 'quantity', 'qty', 'units_sold', 'order_quantity']);
+        const priceCol = findColumn(columns, ['price', 'unit_price', 'sale_price', 'item_price']);
+        const refundCol = findColumn(columns, ['refund', 'refund_amount', 'returns']);
         
         debugLog('Profit calculation - found columns:', { revenueCol, costCol, discountCol, shippingCol, taxCol, unitsCol, priceCol, refundCol });
         
         // Get grouping column
-        const groupCol = findColumn(['product', 'product_id', 'product_name', 'region', 'country', 'category', 'segment', 'channel', 'customer_segment']);
+        const groupCol = findColumn(columns, ['product', 'product_id', 'product_name', 'region', 'country', 'category', 'segment', 'channel', 'customer_segment']);
         
 // Calculate profit for each row
          if (groupCol) {
@@ -213,7 +202,7 @@ export async function POST(request: Request) {
       }
       // AVERAGE
       else if (q.includes('average') || q.includes('avg') || q.includes('mean') || q.includes('spend')) {
-        const valueCol = findColumn(['revenue', 'sales', 'amount', 'price', 'cost', 'profit', 'spend']);
+        const valueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'price', 'cost', 'profit', 'spend']);
         if (valueCol) {
           const values = data.map(r => parseFloat(String(r[valueCol]).replace(/[^0-9.-]/g, '')) || 0);
           const avg = values.reduce((a, b) => a + b, 0) / values.length;
@@ -245,40 +234,25 @@ export async function POST(request: Request) {
       if (q.includes('region') || q.includes('country') || q.includes('product') || q.includes('category') ||
                q.includes('highest') || q.includes('lowest') || q.includes('most') || q.includes('top') || q.includes('best')) {
         // Determine grouping column based on USER INTENT, not fixed priority
-        let groupCol = findColumn(['region', 'country', 'product', 'category', 'segment', 'channel']);
+        let groupCol = findColumn(columns, ['region', 'country', 'product', 'category', 'segment', 'channel']);
         
         // If user specifically asked about country, prioritize country column
         if (hasCountry) {
-          const countryCol = findColumn(['country', 'nation']);
+          const countryCol = findColumn(columns, ['country', 'nation']);
           if (countryCol) groupCol = countryCol;
           debugLog('DEBUG: User asked for country, using column:', groupCol);
         }
         // If user specifically asked about region, prioritize region column  
         if (hasRegion) {
-          const regionCol = findColumn(['region', 'area', 'zone']);
+          const regionCol = findColumn(columns, ['region', 'area', 'zone']);
           if (regionCol) groupCol = regionCol;
           debugLog('DEBUG: User asked for region, using column:', groupCol);
         }
-        const valueCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'total']);
+        const valueCol = findColumn(columns, ['revenue', 'sales', 'profit', 'amount', 'total']);
         
         if (groupCol && valueCol) {
-          const agg: Record<string, number> = {};
-          let totalVal = 0;
-          for (const row of data) {
-            const key = row[groupCol] || 'Unknown';
-            const val = parseFloat(String(row[valueCol]).replace(/[^0-9.-]/g, '')) || 0;
-            agg[key] = (agg[key] || 0) + val;
-            totalVal += val;
-          }
-          const grouped = Object.entries(agg)
-            .map(([name, value]) => ({ name, value, pct: totalVal > 0 ? (value/totalVal)*100 : 0 }))
-            // Handle sorting direction based on user intent
-            .sort((a, b) => {
-              if (hasLowest || q.includes('lowest') || q.includes('worst') || q.includes('bottom') || q.includes('least')) {
-                return a.value - b.value; // Ascending for lowest/worst
-              }
-              return b.value - a.value; // Descending for highest/top
-            });
+          const sortDescending = !(hasLowest || q.includes('lowest') || q.includes('worst') || q.includes('bottom') || q.includes('least'));
+          const grouped = aggregateData(data, groupCol, valueCol, sortDescending);
           
           // DEBUG: Log the sorted results
           debugLog('DEBUG: Sorted grouped results (first 5):', grouped.slice(0, 5).map((g: any) => `${g.name}: ${g.value}`));
@@ -320,7 +294,7 @@ export async function POST(request: Request) {
       }
       // MIN/MAX
       else if (q.includes('minimum') || q.includes('maximum') || q.includes('lowest') || q.includes('highest')) {
-        const minMaxCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'price', 'cost', 'quantity', 'units']);
+        const minMaxCol = findColumn(columns, ['revenue', 'sales', 'profit', 'amount', 'price', 'cost', 'quantity', 'units']);
         if (minMaxCol) {
           const values = data.map(r => parseFloat(String(r[minMaxCol]).replace(/[^0-9.-]/g, '')) || 0);
           const minVal = Math.min(...values);
@@ -337,14 +311,14 @@ export async function POST(request: Request) {
       }
       // PROFIT MARGIN - with fallback for missing cost column
       else if ((q.includes('profit') || q.includes('margin')) && (q.includes('percent') || q.includes('%'))) {
-        const revenueCol = findColumn(['revenue', 'sales', 'amount', 'order_total', 'total', 'order_value', 'net_revenue']);
-        const costCol = findColumn(['cost', 'unit_cost', 'cogs', 'cost_of_goods']);
-        const discountCol = findColumn(['discount', 'discount_amount', 'discount_percent']);
-        const shippingCol = findColumn(['shipping', 'shipping_cost']);
-        const taxCol = findColumn(['tax', 'tax_amount', 'taxes', 'vat']);
-        const refundCol = findColumn(['refund', 'refund_amount', 'returns']);
-        const unitsCol = findColumn(['quantity', 'qty', 'units']);
-        const priceCol = findColumn(['price', 'unit_price', 'sale_price']);
+        const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'order_total', 'total', 'order_value', 'net_revenue']);
+        const costCol = findColumn(columns, ['cost', 'unit_cost', 'cogs', 'cost_of_goods']);
+        const discountCol = findColumn(columns, ['discount', 'discount_amount', 'discount_percent']);
+        const shippingCol = findColumn(columns, ['shipping', 'shipping_cost']);
+        const taxCol = findColumn(columns, ['tax', 'tax_amount', 'taxes', 'vat']);
+        const refundCol = findColumn(columns, ['refund', 'refund_amount', 'returns']);
+        const unitsCol = findColumn(columns, ['quantity', 'qty', 'units']);
+        const priceCol = findColumn(columns, ['price', 'unit_price', 'sale_price']);
         
         if (revenueCol) {
           let totalRevenue = 0;
@@ -406,9 +380,9 @@ export async function POST(request: Request) {
       }
       // ROAS CALCULATION - with fallback for missing cost
       else if (q.includes('ROAS') || q.includes('roas') || q.includes('return on ad spend')) {
-        const revenueCol = findColumn(['revenue', 'sales', 'amount', 'order_total']);
-        const channelCol = findColumn(['channel', 'utm_source', 'source', 'medium', 'campaign', 'traffic_source']);
-        const costCol = findColumn(['ad_spend', 'advertising_cost', 'marketing_cost', 'spend']);
+        const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'order_total']);
+        const channelCol = findColumn(columns, ['channel', 'utm_source', 'source', 'medium', 'campaign', 'traffic_source']);
+        const costCol = findColumn(columns, ['ad_spend', 'advertising_cost', 'marketing_cost', 'spend']);
         
         if (revenueCol && channelCol) {
           // Group by channel and calculate ROAS

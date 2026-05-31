@@ -35,6 +35,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Generated Railway deployment packages remove pnpm metadata before publishing so Railpack can use
+  npm from the deployment bundle.
 - GitHub validation and dist publish jobs reuse the pnpm store cache, while generated Railway output keeps the install metadata needed for faster dependency layers.
 - Generated deployment packages include pnpm build-script approvals so local and Railway installs can run required native dependency setup.
 - Developer documentation includes a Mermaid sitemap for dashboard routes.
@@ -86,6 +88,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Business overview stays available when no business profile exists, with the add-business action visible from the top-level workspace.
+- Login keeps local and live redirects on the active app host instead of reusing a stale deployment
+  URL.
+- Stripe checkout returns users through a verifiable checkout session and can reopen the billing
+  portal for linked customers.
 - Chat can use dashboard search context to point users toward relevant pages and FAQ answers.
 - Ticket tables use selectable rows, title edit links, and bulk resolution controls.
 - Sign-out redirects to the app login page instead of a stale host URL.

@@ -5,6 +5,7 @@
  * and automatic sync when back online.
  */
 
+import { debugWarn } from "@/lib/utils/debug"
 import { useCallback, useEffect, useState } from 'react';
 
 interface QueuedQuestion {
@@ -141,7 +142,7 @@ export async function cacheDataset(dataset: CachedDataset): Promise<void> {
       store.put(dataset);
     };
   } catch (error) {
-    console.warn('[OFFLINE] Failed to cache dataset:', error);
+    debugWarn('[OFFLINE] Failed to cache dataset:', error);
   }
 }
 
@@ -156,7 +157,7 @@ export async function getCachedDataset(datasetId: string): Promise<CachedDataset
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.warn('[OFFLINE] Failed to get cached dataset:', error);
+    debugWarn('[OFFLINE] Failed to get cached dataset:', error);
     return null;
   }
 }
@@ -202,7 +203,7 @@ export function useOfflineQueue(): OfflineQueueResult {
       const questions = await getQueuedQuestions();
       setPendingCount(questions.filter(q => !q.synced).length);
     } catch (error) {
-      console.warn('[OFFLINE] Failed to load pending count:', error);
+      debugWarn('[OFFLINE] Failed to load pending count:', error);
     }
   }
 
@@ -231,13 +232,13 @@ export function useOfflineQueue(): OfflineQueueResult {
             await removeFromQueue(q.id);
           }
         } catch {
-          console.warn('[OFFLINE] Failed to sync question:', q.id);
+          debugWarn('[OFFLINE] Failed to sync question:', q.id);
         }
       }
       
       await loadPendingCount();
     } catch (error) {
-      console.warn('[OFFLINE] Sync failed:', error);
+      debugWarn('[OFFLINE] Sync failed:', error);
     } finally {
       setIsSyncing(false);
     }

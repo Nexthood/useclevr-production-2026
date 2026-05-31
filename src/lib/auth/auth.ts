@@ -53,6 +53,8 @@ const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_
 const linkedinClientId = process.env.AUTH_LINKEDIN_ID || process.env.LINKEDIN_ID || process.env.LINKEDIN_CLIENT_ID;
 const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET || process.env.LINKEDIN_SECRET || process.env.LINKEDIN_CLIENT_SECRET;
 
+normalizeLocalAuthUrlEnv();
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   // Use a simple JWT adapter-like configuration without PrismaAdapter
@@ -275,10 +277,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      */
     async redirect({ url, baseUrl }) {
       try {
-        // Allows relative URLs
         if (url.startsWith("/")) return `${baseUrl}${url}`;
-        // Allows URLs on the same origin
-        if (new URL(url).origin === baseUrl) return url;
+
+        const targetUrl = new URL(url);
+        if (targetUrl.origin === baseUrl || isLocalAuthOrigin(targetUrl)) {
+          return targetUrl.toString();
+        }
+
+        debugWarn("[Auth] Blocked cross-origin redirect:", {
+          targetOrigin: targetUrl.origin,
+          baseUrl,
+        });
       } catch (error) {
         debugWarn("[Auth] Ignoring invalid redirect URL:", error);
       }
@@ -328,6 +337,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
    */
   trustHost: true,
 });
+
+function normalizeLocalAuthUrlEnv() {
+  if (process.env.NODE_ENV === "production") return;
+
+  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+  if (!configuredUrl || isLocalAuthUrl(configuredUrl)) return;
+
+  debugWarn("[Auth] Ignoring non-local auth URL during local development.");
+  delete process.env.AUTH_URL;
+  delete process.env.NEXTAUTH_URL;
+  process.env.AUTH_TRUST_HOST ||= "true";
+}
+
+function isLocalAuthUrl(value: string) {
+  try {
+    return isLocalAuthOrigin(new URL(value));
+  } catch {
+    return false;
+  }
+}
+
+function isLocalAuthOrigin(url: URL) {
+  return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname);
+}
 
 async function ensureOAuthUserRecord({
   user,

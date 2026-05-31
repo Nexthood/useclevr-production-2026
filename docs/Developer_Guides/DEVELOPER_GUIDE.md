@@ -154,7 +154,7 @@ All commands are run from `pnpm`.
 
 | Command               | Description                               |
 | --------------------- | ----------------------------------------- |
-| `pnpm lint`           | Package metadata + TODO metadata + ESLint |
+| `pnpm lint`           | Package, TODO, workflows metadata + ESLint |
 | `pnpm lint:fix`       | ESLint with `--fix`                       |
 | `pnpm lint:docs`      | Markdownlint for docs and root markdown   |
 | `pnpm lint:changelog` | Ensure changelog has unreleased entries   |

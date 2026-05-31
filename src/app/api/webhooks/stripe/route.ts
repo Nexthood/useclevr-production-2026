@@ -1,3 +1,4 @@
+import { debugError } from "@/lib/utils/debug";
 import { handleSubscriptionEvent } from "@/services/stripe/webhook";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(Buffer.from(rawBody), signature, webhookSecret);
   } catch (err) {
-    console.error("[stripe-webhook] signature verification failed:", err);
+    debugError("[stripe-webhook] signature verification failed:", err);
     return NextResponse.json({ error: "Webhook signature verification failed." }, { status: 400 });
   }
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       ...(result.reason ? { reason: result.reason } : {}),
     });
   } catch (err) {
-    console.error("[stripe-webhook] handler error:", err);
+    debugError("[stripe-webhook] handler error:", err);
     return NextResponse.json({ error: "Webhook handler failed." }, { status: 500 });
   }
 }

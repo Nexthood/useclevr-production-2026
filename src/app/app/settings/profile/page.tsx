@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import { eq } from "drizzle-orm"
 import { User } from "lucide-react"
 import { ProfileForm } from "./profile-form"
@@ -24,7 +25,7 @@ export default async function ProfileSettingsPage() {
         },
       }) ?? null
     } catch (error) {
-      console.error("[Settings] Profile load failed:", error)
+      debugError("[Settings] Profile load failed:", error)
       loadError = "Some profile details could not be loaded. You can still view and update the account fields below."
     }
   }

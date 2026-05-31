@@ -8,7 +8,12 @@ import type { DatasetRecord } from '@/lib/data/csv-analyzer';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import {
-    requiresComputation
+    aggregateData,
+    findColumn,
+    formatCurrencyValue,
+    formatPercentValue,
+    normalizeCurrencyValue,
+    requiresComputation,
 } from '@/lib/query/engine';
 import {
     EXPLANATION_SYSTEM_PROMPT,
@@ -16,6 +21,7 @@ import {
 } from '@/lib/query/intent-prompt';
 import { searchApp } from '@/lib/search/app-search';
 import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
+import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -107,10 +113,6 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
   let sql = '';
   let result: any = null;
 
-  // Helper to find column
-  const findColumn = (keywords: string[]) =>
-    columns.find(c => keywords.some(kw => c.toLowerCase().includes(kw)));
-
   try {
     // COUNT ROWS
     if (q.includes('how many row') || q.includes('count row') || q.includes('number of row')) {
@@ -119,7 +121,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     }
     // TOTAL / SUM
     else if (q.includes('total') || q.includes('sum') || q.includes('revenue') || q.includes('sales')) {
-      const valueCol = findColumn(['revenue', 'sales', 'amount', 'total', 'price', 'cost']);
+      const valueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'total', 'price', 'cost']);
       if (valueCol) {
         const total = data.reduce((sum, row) => sum + (parseFloat(row[valueCol]) || 0), 0);
         sql = `SELECT SUM(${valueCol}) as total FROM dataset`;
@@ -128,7 +130,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     }
     // AVERAGE
     else if (q.includes('average') || q.includes('avg') || q.includes('mean')) {
-      const valueCol = findColumn(['revenue', 'sales', 'amount', 'price', 'cost', 'profit']);
+      const valueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'price', 'cost', 'profit']);
       if (valueCol) {
         const values = data.map(r => parseFloat(r[valueCol]) || 0);
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
@@ -144,23 +146,13 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
              q.includes('best') || q.includes('worst') || q.includes('least') ||
              q.includes('brings') || q.includes('generates') || q.includes('produces')) {
       // Find grouping column - check multiple patterns to handle variations
-      let groupCol = findColumn(['region', 'country', 'product', 'category', 'segment', 'channel', 'source', 'medium', 'campaign', 'customer', 'industry', 'area', 'zone']);
-      const valueCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'total', 'value', 'income']);
+      let groupCol = findColumn(columns, ['region', 'country', 'product', 'category', 'segment', 'channel', 'source', 'medium', 'campaign', 'customer', 'industry', 'area', 'zone']);
+      const valueCol = findColumn(columns, ['revenue', 'sales', 'profit', 'amount', 'total', 'value', 'income']);
 
       debugLog('[STRICT_SQL] GROUP BY - groupCol:', groupCol, 'valueCol:', valueCol);
 
       if (groupCol && valueCol) {
-        const agg: Record<string, number> = {};
-        let totalVal = 0;
-        for (const row of data) {
-          const key = row[groupCol] || 'Unknown';
-          const val = parseFloat(row[valueCol]) || 0;
-          agg[key] = (agg[key] || 0) + val;
-          totalVal += val;
-        }
-        const grouped = Object.entries(agg)
-          .map(([name, value]) => ({ name, value, pct: totalVal > 0 ? (value/totalVal)*100 : 0 }))
-          .sort((a, b) => b.value - a.value);
+        const grouped = aggregateData(data, groupCol, valueCol);
         sql = `SELECT ${groupCol}, SUM(${valueCol}) as total FROM dataset GROUP BY ${groupCol}`;
         result = {
           type: 'group_by',
@@ -173,7 +165,7 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     }
     // MIN/MAX
     else if (q.includes('minimum') || q.includes('maximum') || q.includes('lowest') || q.includes('highest')) {
-      const valueCol = findColumn(['revenue', 'sales', 'profit', 'amount', 'price', 'cost', 'quantity', 'units']);
+      const valueCol = findColumn(columns, ['revenue', 'sales', 'profit', 'amount', 'price', 'cost', 'quantity', 'units']);
       if (valueCol) {
         const values = data.map(r => parseFloat(r[valueCol]) || 0);
         const min = Math.min(...values);
@@ -189,8 +181,8 @@ async function executeStrictSQL(datasetId: string, question: string): Promise<{
     }
     // PROFIT MARGIN
     else if (q.includes('profit') && (q.includes('margin') || q.includes('percentage'))) {
-      const revenueCol = findColumn(['revenue', 'sales', 'amount']);
-      const costCol = findColumn(['cost', 'unit_cost']);
+      const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount']);
+      const costCol = findColumn(columns, ['cost', 'unit_cost']);
       if (revenueCol && costCol) {
         let totalRevenue = 0;
         let totalCost = 0;
@@ -333,146 +325,54 @@ function logChatExecution(
 // DATA AGGREGATION HELPERS - Compute answers directly
 // ============================================================================
 
-function detectColumn(columns: string[], type: 'country' | 'region' | 'product' | 'channel' | 'category' | 'revenue' | 'quantity'): string | null {
-  const patterns: Record<typeof type, RegExp[]> = {
-    country: [/country/i, /nation/i, /market/i],
-    region: [/region/i, /continent/i, /area/i, /zone/i],
-    product: [/product/i, /item/i, /sku/i, /goods/i, /merchandise/i],
-    channel: [/channel/i, /source/i, /medium/i, /platform/i],
-    category: [/category/i, /type/i, /segment/i, /industry/i],
-    revenue: [/revenue/i, /sales/i, /amount/i, /total/i, /income/i, /value/i],
-    quantity: [/quantity/i, /qty/i, /units/i, /count/i, /orders/i],
-  };
-
-  for (const pattern of patterns[type]) {
-    const found = columns.find(col => pattern.test(col));
-    if (found) return found;
-  }
-  return null;
-}
-
-function aggregateData(data: any[], groupByColumn: string, valueColumn: string): { name: string; value: number }[] {
-  const aggregation: Record<string, number> = {};
-
-  for (const row of data) {
-    const key = row[groupByColumn] || 'Unknown';
-    const value = normalizeCurrencyValue(row[valueColumn]);
-    aggregation[key] = (aggregation[key] || 0) + value;
-  }
-
-  return Object.entries(aggregation)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
-}
-
-function formatCurrencyValue(value: number): string {
-  if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(2)}K`;
-  return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
-}
-
-function formatPercentValue(value: number): string {
-  return `${value.toFixed(2)}%`;
-}
-
 function generateAggregatedContext(data: any[], columns: string[]): string {
   const context: string[] = [];
 
-  // Detect key columns
-  const countryCol = detectColumn(columns, 'country');
-  const regionCol = detectColumn(columns, 'region');
-  const productCol = detectColumn(columns, 'product');
-  const channelCol = detectColumn(columns, 'channel');
-  const revenueCol = detectColumn(columns, 'revenue');
+  const countryCol = findColumn(columns, ['country', 'nation', 'market']);
+  const regionCol = findColumn(columns, ['region', 'continent', 'area', 'zone']);
+  const productCol = findColumn(columns, ['product', 'item', 'sku', 'goods']);
+  const channelCol = findColumn(columns, ['channel', 'source', 'medium', 'platform']);
+  const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'total', 'income', 'value']);
 
   if (!revenueCol) return '';
 
-  // Generate Top by Country
   if (countryCol) {
     const byCountry = aggregateData(data, countryCol, revenueCol);
     if (byCountry.length > 0) {
       const total = byCountry.reduce((sum, r) => sum + r.value, 0);
       const top = byCountry[0];
-      context.push(`TOP COUNTRY: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.value / total * 100)} of total)`);
+      context.push(`TOP COUNTRY: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
       context.push(`Country rankings: ${byCountry.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
 
-  // Generate Top by Region
   if (regionCol) {
     const byRegion = aggregateData(data, regionCol, revenueCol);
     if (byRegion.length > 0) {
-      const total = byRegion.reduce((sum, r) => sum + r.value, 0);
       const top = byRegion[0];
-      context.push(`TOP REGION: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.value / total * 100)} of total)`);
+      context.push(`TOP REGION: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
       context.push(`Region rankings: ${byRegion.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
 
-  // Generate Top Products
   if (productCol) {
     const byProduct = aggregateData(data, productCol, revenueCol);
     if (byProduct.length > 0) {
-      const total = byProduct.reduce((sum, r) => sum + r.value, 0);
       const top = byProduct[0];
-      context.push(`TOP PRODUCT: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.value / total * 100)} of total)`);
+      context.push(`TOP PRODUCT: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
       context.push(`Product rankings: ${byProduct.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
 
-  // Generate Top Channel
   if (channelCol) {
     const byChannel = aggregateData(data, channelCol, revenueCol);
     if (byChannel.length > 0) {
-      const total = byChannel.reduce((sum, r) => sum + r.value, 0);
       const top = byChannel[0];
-      context.push(`TOP CHANNEL: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.value / total * 100)} of total)`);
+      context.push(`TOP CHANNEL: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
     }
   }
 
   return context.join('\n');
-}
-
-// ============================================================================
-// Currency Normalization Helper
-// ============================================================================
-
-function normalizeCurrencyValue(value: string | number | null | undefined): number {
-  if (value === null || value === undefined || value === '') {
-    return 0;
-  }
-
-  if (typeof value === 'number') {
-    return value;
-  }
-
-  // Remove currency symbols and thousand separators
-  let cleaned = String(value)
-    .replace(/[€$¥£C$A₹CHF₽]/g, '')
-    .replace(/\s/g, '');
-
-  // Handle European format: 1.234,56 -> 1234.56
-  // Handle US format: 1,234.56 -> 1234.56
-  const lastDot = cleaned.lastIndexOf('.');
-  const lastComma = cleaned.lastIndexOf(',');
-
-  if (lastComma > lastDot) {
-    // European format: 1.234,56 or 1,234
-    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-  } else if (lastDot > lastComma && lastComma !== -1) {
-    // US format with thousand commas: 1,234.56
-    cleaned = cleaned.replace(/,/g, '');
-  } else if (lastComma !== -1 && lastDot === -1) {
-    // Just comma as decimal: 1234,56
-    cleaned = cleaned.replace(',', '.');
-  } else {
-    // US format: 1,234.56
-    cleaned = cleaned.replace(/,/g, '');
-  }
-
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
 }
 
 function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
@@ -508,14 +408,15 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { messages, datasetId, processedData } = body;
-
-    if (!messages || !Array.isArray(messages)) {
+    const validation = validateOrError(chatRequestSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request: messages array required' },
+        { success: false, error: validation.error },
         { status: 400 }
       );
     }
+
+    const { messages, datasetId, processedData } = validation.data;
 
     // ============================================================================
     // STRICT DATASET BINDING - Required for ALL analytical queries

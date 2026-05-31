@@ -1,15 +1,11 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import type { OnboardingStatus, OnboardingStep } from "@/lib/onboarding/status"
 import {
   BarChart3,
   Building2,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  HelpCircle,
   Loader2,
   Map,
   PlayCircle,
@@ -32,10 +28,10 @@ const iconByStepId = {
   "dataset-analyzed": BarChart3,
 } as const
 
+const AUTO_SHOWN_KEY = "useclevr_progress_auto_shown"
+
 export function OnboardingProcessButton() {
   const [open, setOpen] = React.useState(false)
-  const [tourOpen, setTourOpen] = React.useState(false)
-  const [tourIndex, setTourIndex] = React.useState(0)
   const [status, setStatus] = React.useState<OnboardingStatus | null>(null)
   const seenRecordedRef = React.useRef(false)
 
@@ -48,7 +44,11 @@ export function OnboardingProcessButton() {
         const payload = (await response.json()) as OnboardingStatus
         if (cancelled) return
         setStatus(payload)
-        if (payload.autoOpen) setOpen(true)
+        const alreadyShown = typeof window !== "undefined" && localStorage.getItem(AUTO_SHOWN_KEY)
+        if (payload.autoOpen && !alreadyShown) {
+          localStorage.setItem(AUTO_SHOWN_KEY, "true")
+          setOpen(true)
+        }
       } catch {
         if (!cancelled) setStatus(null)
       }
@@ -66,8 +66,6 @@ export function OnboardingProcessButton() {
   }, [open])
 
    const steps = status?.steps ?? []
-   const incompleteSteps = steps.filter((step) => !step.complete)
-   const activeTourStep = incompleteSteps[tourIndex] ?? incompleteSteps[0]
    const completionPercent = status?.completionPercent ?? 0
    const completedCount = status?.completedCount ?? 0
    const totalCount = status?.totalCount ?? steps.length
@@ -127,32 +125,6 @@ export function OnboardingProcessButton() {
                 <ProgressSummary title="Workflow" steps={steps.filter((step) => step.group !== "Profile" && step.group !== "Business profile")} />
               </div>
 
-              {incompleteSteps.length > 0 && (
-                <div className="rounded-lg border border-border bg-muted/35 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3">
-                      <Map className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">Tour guide</p>
-                        <p className="text-sm text-muted-foreground">
-                          Walk through the missing setup items one page at a time.
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        setTourIndex(0)
-                        setTourOpen(true)
-                      }}
-                    >
-                      Start tour
-                    </Button>
-                  </div>
-                </div>
-              )}
-
               <div className="grid gap-3 lg:grid-cols-2">
                 {steps.map((step, index) => (
                   <OnboardingStepCard
@@ -165,83 +137,7 @@ export function OnboardingProcessButton() {
               </div>
             </div>
           )}
-
-          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/35 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <HelpCircle className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Need help while processing?</p>
-                <p className="text-sm text-muted-foreground">
-                  Open the dashboard FAQ or create a support ticket from the Help menu.
-                </p>
-              </div>
-            </div>
-            <Link href="/app/faq" onClick={() => setOpen(false)}>
-              <Button variant="outline" size="sm" className="w-full bg-transparent sm:w-auto">
-                Open FAQ
-              </Button>
-            </Link>
-          </div>
         </div>
-      </Modal>
-
-      <Modal
-        open={tourOpen}
-        onOpenChange={setTourOpen}
-        title="Setup tour"
-        description={
-          activeTourStep
-            ? `${tourIndex + 1} of ${incompleteSteps.length}: ${activeTourStep.group ?? "Setup"}`
-            : "All setup items are complete."
-        }
-      >
-        {activeTourStep ? (
-          <div className="space-y-5">
-            <div className="rounded-lg border border-border bg-muted/35 p-4">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">{activeTourStep.group ?? "Setup"}</p>
-              <h3 className="mt-2 text-lg font-semibold text-foreground">{activeTourStep.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{activeTourStep.description}</p>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={tourIndex === 0}
-                  onClick={() => setTourIndex((value) => Math.max(0, value - 1))}
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={tourIndex >= incompleteSteps.length - 1}
-                  onClick={() => setTourIndex((value) => Math.min(incompleteSteps.length - 1, value + 1))}
-                >
-                  Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              <Link
-                href={activeTourStep.href}
-                onClick={() => {
-                  setTourOpen(false)
-                  setOpen(false)
-                }}
-              >
-                <Button size="sm" className="w-full sm:w-auto">
-                  Open page
-                </Button>
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">All setup items are complete.</p>
-        )}
       </Modal>
     </>
   )

@@ -5,6 +5,7 @@ import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
+import { datasetCreateSchema, validateOrError } from "@/lib/validation"
 import { and, eq, inArray } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
@@ -51,7 +52,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, fileName, fileSize, columns, rows } = body
+    const validation = validateOrError(datasetCreateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    const { name, fileName, fileSize, columns, rows } = validation.data
 
     const currentUsage = await requireAnalystCredit(session.user.id)
     if (!currentUsage.canAnalyze) {

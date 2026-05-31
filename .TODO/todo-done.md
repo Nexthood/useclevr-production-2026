@@ -16,6 +16,16 @@ moving work between states.
 
 ## Completed
 
+- T-366. `updatedAt` timestamps include on every write operation across all database update queries (verified already present).
+- T-365. ESLint configuration expanded with `no-console`, `@typescript-eslint/no-explicit-any`, and unused-disable-directive reporting.
+- T-364. Barrel re-export files removed from `src/lib/` root after confirming zero imports reference them.
+- T-363. Per-page loading and error states added for datasets, settings, business, assistant, tickets, accountancy, and admin sections.
+- T-362. `Content-Security-Policy` header added to the security headers in `next.config.mjs`.
+- T-361. Shared data aggregation and column detection functions extracted into `src/lib/data/queryEngine.ts` — `findColumn`, `normalizeCurrencyValue`, `formatCurrencyValue`, `formatPercentValue`, `aggregateData` — and used by both `chat/route.ts` and `query/route.ts`.
+- T-360. Dataset upload stores parsed rows in the dedicated `datasetRows` table via batched inserts instead of the single JSONB column.
+- T-359. POST API routes for chat, analyze, query, datasets, and tickets validate request bodies with Zod schemas using a shared `validateOrError` helper in `src/lib/validation.ts`.
+- T-358. All bare `console.error` and `console.warn` calls across API routes and hooks replaced with gated `debugError`/`debugWarn` helpers.
+- T-357. Free-tier analyst credit consumption increments the usage counter (`consumeAnalystCredit`), and `requireAnalystCredit` enforces the limit by throwing.
 - T-356. AI assistant generates data-aware suggestions through the right sidebar Generate button, stored globally in the database via `appSettings` key `suggestions_global`, and all chat responses route through Google AI (Gemini) for unique per-request answers.
 - T-355. Dashboard page layout uses consistent flex-based heights across settings, business, accountancy, datasets, admin, and all sub-pages - `min-h-screen` replaced with `flex-1` in 20+ page wrappers. Navigation lives only in the left sidebar and horizontal sub-page bars.
 - T-352. AI assistant page layout replaced cascading `min-h-screen` with a proper flex height chain: app layout main uses `flex min-h-[calc(100vh-4rem)] flex-col`, assistant layout and workspace use `flex flex-1` to fill the viewport accounting for the fixed topbar height.

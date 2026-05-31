@@ -89,7 +89,7 @@ export async function consumeAnalystCredit(userId?: string | null): Promise<Anal
   try {
     await db.update(profiles)
       .set({
-        analysisCount: usage.analysisCount,
+        analysisCount: usage.analysisCount + 1,
         updatedAt: new Date(),
       })
       .where(eq(profiles.userId, userId))
@@ -103,5 +103,8 @@ export async function consumeAnalystCredit(userId?: string | null): Promise<Anal
 
 export async function requireAnalystCredit(userId?: string | null): Promise<AnalystCreditUsage> {
   const usage = await getAnalystCreditUsage(userId)
+  if (usage.limitReached) {
+    throw new Error('Analyst credit limit reached')
+  }
   return usage
 }

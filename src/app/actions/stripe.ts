@@ -2,7 +2,10 @@
 
 import { PRODUCTS, type ProductId } from "@/lib/business/products"
 import { auth } from "@/lib/auth"
-import { createStripeCheckoutSession } from "@/services/stripe/checkout"
+import { getDb } from "@/lib/db"
+import { profiles } from "@/lib/db/schema"
+import { createStripeCheckoutSession, retrieveStripeCheckoutSession } from "@/services/stripe/checkout"
+import { eq } from "drizzle-orm"
 
 export async function createCheckoutSession(productId: ProductId, returnUrl?: string) {
   const session = await auth()
@@ -20,28 +23,54 @@ export async function createCheckoutSession(productId: ProductId, returnUrl?: st
     throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY environment variable.")
   }
 
-  const priceId = process.env.STRIPE_PRICE_PRO_MONTHLY || process.env.STRIPE_PRICE_PRO_ANNUAL
+  const priceId =
+    productId === "pro_yearly"
+      ? process.env.STRIPE_PRICE_PRO_ANNUAL || process.env.STRIPE_PRICE_PRO_MONTHLY
+      : process.env.STRIPE_PRICE_PRO_MONTHLY || process.env.STRIPE_PRICE_PRO_ANNUAL
   if (!priceId) {
     throw new Error("Stripe price ID not configured. Set STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_PRO_ANNUAL.")
   }
 
-  const successUrl = returnUrl || `${process.env.NEXTAUTH_URL || process.env.AUTH_URL || process.env.VERCEL_URL || "http://localhost:3000"}/checkout/success`
-  const cancelUrl = `${process.env.NEXTAUTH_URL || process.env.AUTH_URL || process.env.VERCEL_URL || "http://localhost:3000"}/app/settings/checkout`
+  const baseUrl = getBaseUrl()
+  const successUrl = returnUrl || `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`
+  const cancelUrl = `${baseUrl}/app/settings/checkout?plan=${productId === "pro_yearly" ? "pro_annual" : productId}`
+  const db = getDb()
+  const profile = db
+    ? await db.query.profiles.findFirst({
+        where: eq(profiles.userId, session.user.id),
+        columns: { stripeCustomerId: true },
+      })
+    : null
 
   return createStripeCheckoutSession({
     userId: session.user.id,
     userEmail: session.user.email,
+    customerId: profile?.stripeCustomerId ?? null,
     priceId,
     successUrl,
     cancelUrl,
   })
 }
 
-export async function getCheckoutSession(_sessionId: string) {
+export async function getCheckoutSession(sessionId: string) {
   const session = await auth()
   if (!session?.user?.id) {
     return null
   }
 
-  return null
+  const checkoutSession = await retrieveStripeCheckoutSession(sessionId)
+  const checkoutUserId = checkoutSession.client_reference_id || checkoutSession.metadata?.userId
+
+  if (checkoutUserId !== session.user.id) {
+    return null
+  }
+
+  return checkoutSession
+}
+
+function getBaseUrl() {
+  const configured = process.env.NEXTAUTH_URL || process.env.AUTH_URL
+  if (configured) return configured
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return "http://localhost:3000"
 }

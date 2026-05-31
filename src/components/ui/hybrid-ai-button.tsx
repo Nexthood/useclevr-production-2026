@@ -97,6 +97,7 @@ export default function HybridAiButton({
                 price="€40/month"
                 description="Includes Hybrid AI Lite, unlimited datasets, and report downloads."
                 productId="pro_monthly"
+                onNavigate={() => setOpen(false)}
               />
               <PlanOption
                 title="Business"
@@ -104,6 +105,7 @@ export default function HybridAiButton({
                 description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
                 productId="business_monthly"
                 secondary
+                onNavigate={() => setOpen(false)}
               />
             </div>
           )}
@@ -133,12 +135,14 @@ function PlanOption({
   description,
   productId,
   secondary = false,
+  onNavigate,
 }: {
   title: string
   price: string
   description: string
   productId: string
   secondary?: boolean
+  onNavigate?: () => void
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -149,7 +153,7 @@ function PlanOption({
         </div>
         <p className="shrink-0 text-sm font-semibold">{price}</p>
       </div>
-      <Link href={`/app/settings/checkout?plan=${productId}`} className="block">
+      <Link href={`/app/settings/checkout?plan=${productId}`} className="block" onClick={onNavigate}>
         <Button
           size="sm"
           variant={secondary ? "outline" : "default"}

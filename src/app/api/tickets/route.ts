@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { createTicket, listTickets, updateTicket } from "@/lib/support/ticket-store";
+import { ticketCreateSchema, ticketUpdateSchema, validateOrError } from "@/lib/validation";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -44,13 +45,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const validation = validateOrError(ticketCreateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
     const ticket = await createTicket({
       userId: user.id,
       userEmail: user.email,
-      subject: body.subject,
-      message: body.message,
-      category: body.category,
-      priority: body.priority,
+      subject: validation.data.subject,
+      message: validation.data.message,
+      category: validation.data.category,
+      priority: validation.data.priority,
     })
 
     return NextResponse.json({ ticket }, { status: 201 })
@@ -71,10 +77,15 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const validation = validateOrError(ticketUpdateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
     const ticket = await updateTicket({
-      id: body.id,
-      status: body.status,
-      adminNote: body.adminNote,
+      id: validation.data.id,
+      status: validation.data.status,
+      adminNote: validation.data.adminNote,
       adminName: user.name,
       userId: user.id,
       isSuperAdmin: user.isSuperAdmin,
