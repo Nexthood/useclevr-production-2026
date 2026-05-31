@@ -86,10 +86,19 @@ jobs:
           PORT=8090 node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs > /tmp/useclevr-dist-smoke.log 2>&1 &
           pid=$!
 
-          sleep 5
+          # Wait for server to be ready with retries
+          for i in {1..15}; do
+            if curl -fsS http://127.0.0.1:8090/api/health >/dev/null 2>&1; then
+              echo "Server is healthy!"
+              break
+            fi
+            echo "Waiting for server to start... (attempt $i/15)"
+            sleep 2
+          done
 
-          curl -fsS http://127.0.0.1:8090/api/health
           kill "$pid" >/dev/null 2>&1 || true
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
       - name: Clean build output before publish
         run: |
