@@ -16,6 +16,8 @@ moving work between states.
 
 ## Completed
 
+- T-400. dashboard: topbar - dedup credit number in topbar and show wording
+- T-399. dashboard: topbar - logo bigger without margin and border
 - T-366. `updatedAt` timestamps include on every write operation across all database update queries (verified already present).
 - T-365. ESLint configuration expanded with `no-console`, `@typescript-eslint/no-explicit-any`, and unused-disable-directive reporting.
 - T-364. Barrel re-export files removed from `src/lib/` root after confirming zero imports reference them.

@@ -1,7 +1,7 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
     "source.fixAll.eslint": "explicit",
     "source.organizeImports": "explicit"
   },
@@ -12,24 +12,43 @@
   "editor.fontSize": 14,
   "editor.fontFamily": "'Fira Code', 'Courier New', monospace",
   "editor.inlineSuggest.enabled": true,
+
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.formatOnSave": true
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.formatOnSave": true
+  },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.json-language-features"
   },
   "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.css-language-features"
   },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "prisma.prisma"
+  },
+
+  "yaml.format.enable": true,
+  "yaml.validate": true,
+
   "files.exclude": {
     "**/.git": true,
     "**/.DS_Store": true,
@@ -54,12 +73,11 @@
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
+
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.importModuleSpecifierFormat": "relative",
-  "[prisma]": {
-    "editor.defaultFormatter": "prisma.prisma"
-  },
+
   "eslint.validate": [
     "javascript",
     "javascriptreact",
@@ -67,34 +85,40 @@
     "typescriptreact"
   ],
   "eslint.format.enable": true,
+
   "git.ignoreLimitWarning": true,
   "extensions.ignoreRecommendations": true,
+
   "emmet.includeLanguages": {
     "javascript": "javascriptreact",
     "typescript": "typescriptreact"
   },
   "emmet.triggerExpansionOnTab": true,
-  "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
+
   "tailwindCSS.experimental.classRegex": [
     ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
+
   "search.followSymlinks": false,
   "npm.exclude": "**/node_modules/**",
   "npm.runSilent": true,
+
   "workbench.editorAssociations": {
     "*.pdf": "default"
   },
-   "github.copilot.enable": {
-     "*": true,
-     "plaintext": false,
-     "markdown": false
-   },
-   "actions.refreshInterval": 5,
-   "actions.loggingLevel": "info",
-   "actions.showWorkflowRunButtons": true,
-   "kilo-code.new.autoApprove.enabled": true,
+
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": false
+  },
+
+  "actions.refreshInterval": 5,
+  "actions.loggingLevel": "info",
+  "actions.showWorkflowRunButtons": true,
+
+  "kilo-code.new.autoApprove.enabled": true,
+
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.profiles.linux": {
     "bash": {
