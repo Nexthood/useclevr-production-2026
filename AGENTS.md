@@ -167,8 +167,8 @@ available, with a short fallback title only when no PR title exists.
  ─────────────────                   ──────────────────────
  pnpm prod:build                     (build phase - one-shot)
     └ next build --webpack            echo prebuilt (Railpack detects prebuilt output)
-    └ create-dist.cjs                 pnpm exec drizzle-kit push (preDeploy)
-       → .next/standalone + static     node server.js (start)
+    └ create-dist.cjs                 node scripts/runtime/railway-predeploy.cjs (preDeploy)
+       → .next/standalone + static     bash start.sh -> node start-dist.cjs (start)
        → dist/server.js
        → dist/package.json             (no full source build here)
        → dist/src/lib/db/ (schema)
