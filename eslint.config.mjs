@@ -45,7 +45,12 @@ export default [
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true },
       ],
       "@typescript-eslint/consistent-type-imports": "warn",
+      "@typescript-eslint/no-explicit-any": ["warn", { ignoreRestArgs: true }],
       "@typescript-eslint/explicit-module-boundary-types": "off",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: "warn",
     },
   },
 ];

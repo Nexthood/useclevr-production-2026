@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { BUILTIN_USERS } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
 import { profiles, waitlist } from "@/lib/db/schema";
+import { debugError } from "@/lib/utils/debug";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
@@ -71,7 +72,7 @@ export async function GET() {
 
     return NextResponse.json({ customers });
   } catch (err) {
-    console.error("[admin/customers] error:", err);
+    debugError("[admin/customers] error:", err);
     return NextResponse.json({
       customers: builtinCustomers(),
       warning: "Database customers could not be loaded.",
@@ -152,7 +153,7 @@ export async function PATCH(request: Request) {
       },
     });
   } catch (err) {
-    console.error("[admin/customers] PATCH error:", err);
+    debugError("[admin/customers] PATCH error:", err);
     return NextResponse.json({ error: "Failed to update customer" }, { status: 500 });
   }
 }
@@ -190,7 +191,7 @@ export async function DELETE(request: Request) {
       message: "Customer deletion simulated (no actual deletion for data safety)",
     });
   } catch (err) {
-    console.error("[admin/customers] DELETE error:", err);
+    debugError("[admin/customers] DELETE error:", err);
     return NextResponse.json({ error: "Failed to delete customer" }, { status: 500 });
   }
 }
@@ -305,7 +306,7 @@ export async function POST(request: Request) {
         : "Customer added to system. Invite ready to send.",
     });
   } catch (err) {
-    console.error("[admin/customers] POST error:", err);
+    debugError("[admin/customers] POST error:", err);
     return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
   }
 }

@@ -1,6 +1,10 @@
 import { auth } from "@/lib/auth";
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
+import { getDb } from "@/lib/db";
+import { profiles } from "@/lib/db/schema";
+import { debugError } from "@/lib/utils/debug";
 import { createStripeCheckoutSession } from "@/services/stripe/checkout";
+import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -25,13 +29,22 @@ export async function POST(request: NextRequest) {
     }
 
     const origin = request.nextUrl.origin;
-    const successUrl = `${origin}/app/settings/checkout?success=1`;
-    const cancelUrl = `${origin}/app/settings/checkout?cancel=1`;
+    const successUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}`;
 
     try {
+      const db = getDb();
+      const profile = db
+        ? await db.query.profiles.findFirst({
+            where: eq(profiles.userId, user.id),
+            columns: { stripeCustomerId: true },
+          })
+        : null;
+
       const checkout = await createStripeCheckoutSession({
         userId: user.id,
         userEmail: user.email,
+        customerId: profile?.stripeCustomerId ?? null,
         priceId: plan.stripePriceId,
         successUrl,
         cancelUrl,
@@ -53,9 +66,10 @@ export async function POST(request: NextRequest) {
         message: "Redirecting to payment…",
       });
     } catch (err) {
-      console.error("[checkout/confirm] Stripe error:", err);
+      debugError("[checkout/confirm] Stripe error:", err);
+      const message = err instanceof Error ? err.message : "Payment provider error. Please try again.";
       return NextResponse.json(
-        { error: "Payment provider error. Please try again." },
+        { error: message },
         { status: 500 },
       );
     }

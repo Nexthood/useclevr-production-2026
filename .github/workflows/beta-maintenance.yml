@@ -78,6 +78,7 @@ jobs:
         run: |
           cd dist
           rm -f pnpm-workspace.yaml pnpm-lock.yaml
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); delete p.packageManager; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
           npm install --package-lock-only --no-optional --no-audit --no-fund
           cd ..
 

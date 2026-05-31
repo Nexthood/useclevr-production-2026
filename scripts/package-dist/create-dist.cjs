@@ -151,6 +151,7 @@ const rootDistPackage = {
   devDependencies: {},
   engines: distEngines,
 };
+delete rootDistPackage.packageManager;
 
 fs.writeFileSync(
   path.join(distDir, "package.json"),

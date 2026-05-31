@@ -48,3 +48,19 @@ moving work between states.
 - T-256. Add a dist branch smoke-check workflow only if Railway needs to wait for a GitHub status check before deploying.
 - T-257. Track Railway builder support status and re-test deployment installs when Railway changes
   builder behavior.
+- T-391. Add regression tests for login redirect and auth-host handling across local, Railway, and
+  Vercel-style origins.
+- T-392. Add a deployment smoke check that fails when the generated Railway package manifest asks
+  the host to use pnpm.
+- T-393. Add a billing smoke test that verifies checkout session ownership, customer reuse, and
+  billing portal fallback states with mocked Stripe responses.
+- T-394. Add a dashboard table consistency audit that checks list pages use title links, supporting
+  edit links, and row-end actions before new list pages ship.
+- T-395. Add a setup progress audit that verifies every business profile field and required setup
+  action contributes to the topbar completion panel.
+- T-396. Add an AI Assistant layout smoke test that confirms fixed sidebars, scrollable messages,
+  and the fixed chat footer stay usable on desktop and mobile widths.
+- T-397. Add a documentation cleanup pass that removes stale dist-test setup notes after the Railway
+  workflow stabilizes.
+- T-398. Add a security audit that confirms user-uploaded files, prompt text, and generated exports
+  stay outside AI context and public static paths.

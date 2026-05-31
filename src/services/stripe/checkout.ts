@@ -15,6 +15,7 @@ function getStripe(): Stripe {
 export interface CreateStripeCheckoutOptions {
   userId: string;
   userEmail: string;
+  customerId?: string | null;
   priceId: string;
   successUrl: string;
   cancelUrl: string;
@@ -23,6 +24,7 @@ export interface CreateStripeCheckoutOptions {
 export async function createStripeCheckoutSession({
   userId,
   userEmail,
+  customerId,
   priceId,
   successUrl,
   cancelUrl,
@@ -30,7 +32,7 @@ export async function createStripeCheckoutSession({
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
-    customer_email: userEmail,
+    ...(customerId ? { customer: customerId } : { customer_email: userEmail }),
     client_reference_id: userId,
     metadata: {
       userId,
@@ -54,4 +56,25 @@ export async function createStripeCheckoutSession({
   }
 
   return session;
+}
+
+export async function retrieveStripeCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
+  const stripe = getStripe();
+  return stripe.checkout.sessions.retrieve(sessionId, {
+    expand: ["subscription", "customer"],
+  });
+}
+
+export async function createStripeBillingPortalSession({
+  customerId,
+  returnUrl,
+}: {
+  customerId: string;
+  returnUrl: string;
+}): Promise<Stripe.BillingPortal.Session> {
+  const stripe = getStripe();
+  return stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
 }

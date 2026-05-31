@@ -44,6 +44,8 @@ function LoginForm() {
     router.refresh()
   }
 
+  const dashboardCallbackUrl = () => new URL("/app", window.location.origin).toString()
+
   const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
     setIsLoading(true)
     setAuthAction(provider)
@@ -53,7 +55,7 @@ function LoginForm() {
       if (provider === "demo") {
         const result = await signIn("demo", {
           redirect: false,
-          callbackUrl: "/app",
+          callbackUrl: dashboardCallbackUrl(),
         })
 
         const signInSucceeded = Boolean(result && !result.error && result.status !== 401 && result.status !== 403)
@@ -67,7 +69,7 @@ function LoginForm() {
       }
 
       await signIn(provider, {
-        callbackUrl: "/app",
+        callbackUrl: dashboardCallbackUrl(),
         redirect: true,
       })
     } catch (err) {
@@ -90,7 +92,7 @@ function LoginForm() {
         email: signInEmail,
         password: signInPassword,
         redirect: false,
-        callbackUrl: "/app",
+        callbackUrl: dashboardCallbackUrl(),
       })
 
       const returnedToLogin =
@@ -150,7 +152,7 @@ function LoginForm() {
         email: signUpEmail,
         password: signUpPassword,
         redirect: false,
-        callbackUrl: "/app",
+        callbackUrl: dashboardCallbackUrl(),
       })
 
       if (signInResult?.error) {

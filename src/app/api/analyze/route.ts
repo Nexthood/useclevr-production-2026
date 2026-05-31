@@ -27,6 +27,7 @@ import { datasetRows, datasets } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { analyzeRequestSchema, validateOrError } from "@/lib/validation";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
@@ -152,7 +153,6 @@ export async function POST(request: Request) {
   debugLog('\n========== ANALYZE REQUEST ==========');
 
   try {
-    // Parse request
     let body;
     try {
       body = await request.json();
@@ -170,17 +170,11 @@ export async function POST(request: Request) {
       });
     }
 
-    const { question, datasetId, data, columns, analysis: precomputedAnalysis } = body;
-
-    debugLog('[ANALYZE] Question:', question);
-    debugLog('[ANALYZE] Dataset ID:', datasetId);
-
-    // STRICT: Require datasetId for any question - no generic fallback
-    if (!datasetId) {
-      debugLog('[ANALYZE] REJECTED: No datasetId provided');
+    const parseResult = validateOrError(analyzeRequestSchema, body);
+    if (!parseResult.success) {
       return Response.json({
         success: false,
-        error: "No dataset selected",
+        error: parseResult.error,
         answer: "Please upload a dataset first.",
         insight: "No dataset",
         explanation: "The assistant needs CSV data to answer questions.",
@@ -189,6 +183,11 @@ export async function POST(request: Request) {
         chartType: "table",
       });
     }
+
+    const { question, datasetId, data, columns, analysis: precomputedAnalysis } = parseResult.data;
+
+    debugLog('[ANALYZE] Question:', question);
+    debugLog('[ANALYZE] Dataset ID:', datasetId);
 
     // ============================================================================
     // USAGE LIMIT CHECK - Check for free tier limits

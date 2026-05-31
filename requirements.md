@@ -36,9 +36,12 @@
 - A two-step checkout flow requires plan review before terms acceptance before any payment is taken.
 - Terms acceptance starts the secure payment flow and returns clear checkout errors when payment
   cannot start.
+- Successful Stripe checkout returns through a verifiable checkout session so the app can confirm
+  the payment belongs to the signed-in user.
 - Annual Pro subscriptions receive an automatic discount at checkout.
 - Subscriptions stay in sync with the payment provider so plan access and billing status update
   immediately after any payment-event change.
+- Users with a linked Stripe customer can open the hosted billing portal from account billing.
 - Users can manage their subscription, view usage, and downgrade or cancel without leaving the app.
 - Free tier users receive a limited analyst-credit allowance and are prompted to subscribe when it
   is exhausted.
@@ -79,6 +82,7 @@
   the dashboard.
 - The login page combines sign-in and sign-up in tabs, with a built-in demo account and configured
   Google or LinkedIn sign-in options.
+- Login and sign-out redirects keep users on the active local or live app host.
 - Dashboard users can reach coming-soon mobile app badges, social links, account controls, and
   Terms from global dashboard chrome.
 - Dashboard users see logo, Hybrid AI, search, setup progress, help, credits, display controls,

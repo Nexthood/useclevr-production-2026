@@ -8,7 +8,7 @@ import { z } from 'zod'
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(1),
-  NEXTAUTH_URL: z.string().url(),
+  NEXTAUTH_URL: z.string().url().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 })
@@ -19,5 +19,5 @@ export type Config = z.infer<typeof envSchema>
 
 // Public config (safe for client)
 export const publicConfig = {
-  NEXTAUTH_URL: config.NEXTAUTH_URL,
+  NEXTAUTH_URL: config.NEXTAUTH_URL || "",
 }

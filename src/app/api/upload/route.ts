@@ -3,7 +3,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 import { recordActivity } from '@/lib/activity/activity-store'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { datasets, users } from '@/lib/db/schema'
+import { datasetRows, datasets, users } from '@/lib/db/schema'
 import { consumeAnalystCredit, requireAnalystCredit } from '@/lib/usage/analyst-credits'
 import { eq } from 'drizzle-orm'
 import { promises as fs } from 'fs'
@@ -495,7 +495,7 @@ export async function POST(request: Request) {
     // Insert dataset - metadata only (no data column, no datasetRows)
     const now = new Date()
 
-    // Build dataset values - includes full data
+    // Build dataset values - metadata only, rows stored in datasetRows table
     const datasetValues: Record<string, any> = {
       id: datasetId,
       userId,
@@ -506,7 +506,6 @@ export async function POST(request: Request) {
       columnCount: headers.length,
       columns: headers,
       columnTypes: columnTypes,
-      data: processed, // Store full data in database
       status: 'ready',
       analysis: {},
       createdAt: now,
@@ -514,9 +513,8 @@ export async function POST(request: Request) {
     }
 
     debugLog('[UPLOAD] =============================================')
-    debugLog('[UPLOAD] Saving METADATA only (no data column)')
+    debugLog('[UPLOAD] Saving metadata (rows stored in datasetRows table)')
     debugLog('[UPLOAD] Payload keys:', Object.keys(datasetValues))
-    debugLog('[UPLOAD] NOTE: Data processed in-memory, not stored in DB')
     debugLog('[UPLOAD] =============================================')
 
     // Insert with detailed error handling
@@ -562,15 +560,31 @@ export async function POST(request: Request) {
       // Don't fail the upload if file save fails, but log it
     }
 
-    // SKIP: datasetRows insertion - data is processed in-memory with DuckDB
-    // Analysis will be done separately via /api/datasets/[id]/analyze
-    debugLog('[UPLOAD] Skipping datasetRows insertion - data processed in-memory')
+    // Insert rows into dedicated datasetRows table
+    try {
+      const BATCH_SIZE = 500
+      const rowValues = processed.map((row: any, index: number) => ({
+        id: `${datasetId}_row_${index}`,
+        datasetId,
+        rowIndex: index,
+        data: row,
+      }))
+
+      for (let i = 0; i < rowValues.length; i += BATCH_SIZE) {
+        const batch = rowValues.slice(i, i + BATCH_SIZE)
+        await executeWithRetry(
+          () => (db as any).insert(datasetRows).values(batch),
+          `Insert datasetRows batch ${Math.floor(i / BATCH_SIZE) + 1}`
+        )
+      }
+      debugLog('[UPLOAD] Inserted rows into datasetRows table:', processed.length)
+    } catch (rowInsertError) {
+      debugError('[UPLOAD] Failed to insert dataset rows:', rowInsertError)
+      // Metadata is already saved; log but don't fail the upload
+    }
 
     // ============================================================================
-    // UPLOAD COMPLETE - Metadata stored, data processed in-memory
-    // ============================================================================
-    // Data is processed with DuckDB for analysis
-    // User must explicitly request analysis via /api/datasets/[id]/analyze
+    // UPLOAD COMPLETE - Metadata stored, rows stored in datasetRows table
     // ============================================================================
 
     logExecution('UPLOAD_SUCCESS', {
@@ -588,7 +602,7 @@ export async function POST(request: Request) {
     debugLog('[UPLOAD] UPLOAD COMPLETE - Dataset stored successfully')
     debugLog('[UPLOAD] Dataset ID:', datasetId)
     debugLog('[UPLOAD] Parsed rows:', processed.length)
-    debugLog('[UPLOAD] Inserted rows: 0 (metadata only)')
+    debugLog('[UPLOAD] Inserted rows:', processed.length)
     debugLog('[UPLOAD] Columns:', headers.length)
     debugLog('[UPLOAD] Numeric columns:', numericCount)
     debugLog('[UPLOAD] Date columns:', dateCount)
@@ -630,7 +644,7 @@ export async function POST(request: Request) {
         categoricalColumns: categoricalCount
       },
       usage,
-      message: 'Upload successful - Dataset stored in database. Use /api/datasets/[id]/analyze to analyze.',
+      message: 'Upload successful - Dataset stored with rows in database.',
     })
 
   } catch (error: any) {
