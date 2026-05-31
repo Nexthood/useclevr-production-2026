@@ -130,7 +130,7 @@ const rootDistPackage = {
   version: rootPkg.version,
   private: true,
   type: "module",
-  packageManager: rootPkg.packageManager,
+  // packageManager intentionally omitted — dist runs via node directly, no pnpm needed
   scripts: {
     start: "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:local":
@@ -171,20 +171,12 @@ for (const targetDir of [distDir]) {
   }
 }
 
-// Write pnpm-workspace.yaml for pnpm to recognize this as a workspace
-fs.writeFileSync(
-  path.join(distDir, "pnpm-workspace.yaml"),
-  [
-    "packages:",
-    "  - .",
-    "",
-    "allowBuilds:",
-    "  core-js: true",
-    "  esbuild: true",
-    "  sharp: true",
-    "",
-  ].join("\n")
-);
+// Remove pnpm indicators so Railpack skips dependency installation
+const pnpmFiles = ["pnpm-lock.yaml", "pnpm-workspace.yaml"];
+for (const f of pnpmFiles) {
+  const fp = path.join(distDir, f);
+  if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
+}
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/bash
