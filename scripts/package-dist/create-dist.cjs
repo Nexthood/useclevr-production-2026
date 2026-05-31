@@ -124,13 +124,14 @@ fs.writeFileSync(
   )}\n`,
 );
 
-// Write package.json for hosts configured to deploy `dist` as the project root.
+// Dependencies are intentionally omitted — the standalone Next.js bundle already includes
+// all production node_modules. Railway (RAILPACK) must not attempt dependency installation
+// because pnpm is not available in the build environment and no lockfile is provided.
 const rootDistPackage = {
   name: "useclevr-2026-dist",
   version: rootPkg.version,
   private: true,
   type: "module",
-  // packageManager intentionally omitted — dist runs via node directly, no pnpm needed
   scripts: {
     start: "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "start:local":
@@ -140,18 +141,10 @@ const rootDistPackage = {
     "start:vercel":
       "USECLEVR_SERVER_TARGET=vercel node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "railway:predeploy": "node ./scripts/runtime/railway-predeploy.cjs",
-    "db:push": "node ./node_modules/drizzle-kit/bin.cjs push",
-    "db:migrate": "node ./node_modules/drizzle-kit/bin.cjs migrate",
   },
-  dependencies: {
-    ...rootPkg.dependencies,
-    "drizzle-kit": rootPkg.devDependencies["drizzle-kit"],
-    tsx: rootPkg.devDependencies.tsx,
-  },
-  devDependencies: {},
+  dependencies: {},
   engines: distEngines,
 };
-delete rootDistPackage.packageManager;
 
 fs.writeFileSync(
   path.join(distDir, "package.json"),
