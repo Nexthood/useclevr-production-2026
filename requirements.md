@@ -87,6 +87,7 @@
   Terms from global dashboard chrome.
 - Dashboard users see logo, Hybrid AI, search, setup progress, help, credits, display controls,
   profile settings, sign-out, and notices in a global topbar above the sidebar and page body.
+- Display controls support light, dark, system, high-contrast, and larger-text modes.
 - Dashboard topbar actions expose full-height hover and click targets for easier navigation.
 - Account pages use a horizontal subpage bar for profile, preferences, subscription, billing, and
   activity sections.
@@ -126,8 +127,7 @@
 - Dashboard users can search FAQ answers from a floating help chat, then send a support request
   when no answer matches their question.
 - Floating help chat stays clear of the footer and uses high-contrast message bubbles.
-- Dashboard FAQ uses expandable answers and includes an inline ticket form so users can open a
-  support request without leaving the FAQ page.
+- Dashboard FAQ uses expandable answers and routes ticket creation to the Tickets page.
 - Dashboard FAQ offers one-line actions for feedback, chat support, and ticket creation before the
   FAQ list.
 - Dashboard FAQ separates user help from operator help with a section bar for authorised operators.

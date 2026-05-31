@@ -21,7 +21,7 @@ const noticeIcon = {
   info: Info,
 }
 
-export function TopbarNoticeActivityDrawer() {
+export function TopbarNoticeActivityDrawer({ className = "" }: { className?: string }) {
   const { notices, clearNotice, clearAllNotices } = useNotice()
   const [open, setOpen] = React.useState(false)
   const [activities, setActivities] = React.useState<ActivityItem[]>([])
@@ -57,7 +57,7 @@ export function TopbarNoticeActivityDrawer() {
     <>
       <button
         type="button"
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
+        className={["relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-foreground transition hover:bg-muted", className].filter(Boolean).join(" ")}
         aria-label="Open notices"
         title="Notices"
         onClick={() => setOpen(true)}

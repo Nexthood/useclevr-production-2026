@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import type React from "react"
 
 export function TopbarSection({
@@ -57,8 +58,8 @@ export function TopbarPanelLink({
   children: React.ReactNode
 }) {
   return (
-    <a href={href} className="block text-sm font-medium text-primary transition hover:text-primary/80">
+    <Link href={href} className="block text-sm font-medium text-primary transition hover:text-primary/80">
       {children}
-    </a>
+    </Link>
   )
 }

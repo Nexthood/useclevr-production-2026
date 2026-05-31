@@ -132,12 +132,12 @@ export function CsvUpload() {
     }
 
     // File tier detection
-    const maxSize = 100 * 1024 * 1024 // 100MB for large datasets
+    const maxSize = 50 * 1024 * 1024 // 50MB for standard uploads
     const isLargeFile = file.size > 10 * 1024 * 1024 // > 10MB
     const isMediumFile = file.size > 2 * 1024 * 1024 // > 2MB
 
     if (file.size > maxSize) {
-      setErrorMessage("File size must be less than 100MB. For datasets over 100MB, please split into smaller files.")
+      setErrorMessage("File size must be less than 50MB. For larger datasets, please split the file before uploading.")
       return
     }
 
@@ -447,7 +447,7 @@ export function CsvUpload() {
                 {/* File limit - refined */}
                 <div className="mt-3 border-t border-border/40 pt-3">
                   <p className="text-xs text-muted-foreground/80">
-                    <span className="font-medium text-foreground">CSV</span> files up to 100MB
+                    <span className="font-medium text-foreground">CSV</span> files up to 50MB
                   </p>
                 </div>
               </>

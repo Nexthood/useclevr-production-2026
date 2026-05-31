@@ -158,12 +158,6 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          <Link
-            href="/app/tickets/new"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-          >
-            New ticket
-          </Link>
         </div>
       </div>
 

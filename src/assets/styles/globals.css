@@ -163,8 +163,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: 12.5px;
+    line-height: 1.5;
     overflow-x: hidden;
     background:
       linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(var(--background)) 38rem);
@@ -175,6 +175,36 @@
       radial-gradient(circle at 18% 12%, hsl(var(--primary) / 0.12), transparent 32rem),
       radial-gradient(circle at 88% 0%, hsl(var(--secondary) / 0.10), transparent 30rem),
       hsl(var(--background));
+  }
+
+  .contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 197 100% 23%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 263 85% 34%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 12%;
+    --accent: 197 100% 23%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 197 100% 23%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 20%;
+  }
+
+  .large body {
+    font-size: 14px;
+    line-height: 1.62;
   }
 }
 
