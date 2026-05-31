@@ -15,7 +15,15 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
           package-manager: pnpm@11.5.0
+          package-manager-cache: false
+
+      - name: Activate pnpm through Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.0 --activate
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate:types
@@ -35,7 +43,15 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
           package-manager: pnpm@11.5.0
+          package-manager-cache: false
+
+      - name: Activate pnpm through Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.0 --activate
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

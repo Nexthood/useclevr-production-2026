@@ -74,6 +74,11 @@ function fixWorkflow(source, fileName) {
           modified = true
           fixesApplied.push(`${fileName} (job ${jobId}): added package-manager to setup-node`)
         }
+        if (step.with["cache"] && step.with["package-manager-cache"] === undefined) {
+          step.with["package-manager-cache"] = false
+          modified = true
+          fixesApplied.push(`${fileName} (job ${jobId}): set package-manager-cache to false alongside explicit cache`)
+        }
       }
       const name = typeof step.name === "string" ? step.name.toLowerCase() : ""
       const run = typeof step.run === "string" ? step.run.toLowerCase() : ""
@@ -84,12 +89,6 @@ function fixWorkflow(source, fileName) {
       ) {
         corepackIdx = i
       }
-    }
-
-    if (setupNodeIdx >= 0 && corepackIdx >= 0 && hasPackageManager(workflow)) {
-      job.steps.splice(corepackIdx, 1)
-      modified = true
-      fixesApplied.push(`${fileName} (job ${jobId}): removed stale Corepack activation step`)
     }
   }
 
@@ -160,12 +159,10 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
     }
   })
 
-  const hasPkgMgr = hasPackageManager(workflow)
-  if (sourceToCheck.includes("pnpm install") && !hasPkgMgr) {
-    if (!sourceToCheck.includes(`corepack prepare ${requiredPackageManager} --activate`)) {
-      errors.push(
-        `${fileName}: pnpm install found without package-manager on setup-node or Corepack activation`,
-      )
+  if (sourceToCheck.includes("pnpm install")) {
+    const hasCorepack = sourceToCheck.includes(`corepack prepare pnpm@11.5.0 --activate`)
+    if (!hasCorepack) {
+      errors.push(`${fileName}: pnpm install requires Corepack activation for pnpm@11.5.0`)
     }
   }
 
