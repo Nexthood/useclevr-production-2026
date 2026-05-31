@@ -94,8 +94,8 @@ jobs:
       - name: Clean build output before publish
         run: |
           cd dist
-          pnpm install --lockfile-only --no-optional
-          rm -f pnpm-workspace.yaml
+          rm -f pnpm-workspace.yaml pnpm-lock.yaml
+          npm install --package-lock-only --no-optional --no-audit --no-fund
           cd ..
 
           rm -f pnpm-workspace.yaml
