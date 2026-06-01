@@ -1,10 +1,10 @@
+import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { count, eq, sum } from "drizzle-orm"
 import { BarChart3, Calendar, DollarSign } from "lucide-react"
-import type React from "react"
 
 export const metadata = {
   title: "Accountancy Reporting - UseClevr",
@@ -51,9 +51,9 @@ export default async function AccountancyReportingPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-3">
-          <ReportMetric icon={BarChart3} label="Datasets" value={metrics.totalDatasets.toString()} />
-          <ReportMetric icon={DollarSign} label="Total rows" value={metrics.totalRevenue.toLocaleString()} />
-          <ReportMetric icon={Calendar} label="Ready for analysis" value={metrics.analysisReady.toString()} />
+          <StatCard icon={BarChart3} label="Datasets" value={metrics.totalDatasets.toString()} variant="large" />
+          <StatCard icon={DollarSign} label="Total rows" value={metrics.totalRevenue.toLocaleString()} variant="large" />
+          <StatCard icon={Calendar} label="Ready for analysis" value={metrics.analysisReady.toString()} variant="large" />
         </div>
         <p className="text-sm text-muted-foreground">
           Reports are generated automatically when datasets have valid financial data. Visit the datasets page to upload profit/loss statements or accounting exports.
@@ -63,22 +63,3 @@ export default async function AccountancyReportingPage() {
   )
 }
 
-function ReportMetric({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: string
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-background p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <Icon className="h-4 w-4 text-primary" />
-        {label}
-      </div>
-      <p className="mt-2 text-2xl font-semibold text-primary">{value}</p>
-    </div>
-  )
-}

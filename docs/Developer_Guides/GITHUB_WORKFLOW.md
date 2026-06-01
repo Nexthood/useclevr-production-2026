@@ -194,7 +194,7 @@ Generated `dist/package.json` keeps local and server starts separate:
 
 ```bash
 npm run start          # local default, AUTH_URL=http://localhost:8080
-npm run start:railway  # Railway target, HOSTNAME=0.0.0.0
+npm run start:railway  # Railway target, HOSTNAME=0.0.0.0, request-host auth
 npm run start:vercel   # Vercel target placeholder
 ```
 
@@ -233,17 +233,16 @@ The current workflow already removes unnecessary cache folders such as:
 
 ```text
 .next/cache
-node_modules
 .turbo
 .vercel
 ```
 
-The publish workflow also generates `dist/pnpm-lock.yaml` before final cleanup. `pnpm install
---lockfile-only` can create local dependency links, so the workflow removes `dist/node_modules` and
-`dist/pnpm-workspace.yaml` again before staging and checks only files that will be committed. After
-switching to the orphan `dist` branch workspace, the workflow also deletes root-level build leftovers
-such as `.next/` and `node_modules/`; those are untracked workspace files from the build job, not
-deployment files.
+The publish workflow keeps generated `dist/node_modules/` because Railpack uses it for the source
+graph and the standalone server uses it at runtime. The generated package keeps a minimal
+`package-lock.json` for npm detection and excludes pnpm workspace metadata before staging. After
+switching to the orphan deployment branch workspace, the workflow deletes root-level build leftovers
+such as `.next/` and source checkout `node_modules/`; those are untracked workspace files from the
+build job, not deployment files.
 
 The workflow also removes `.next/cache/webpack` which contains large webpack pack files that are
 not needed for the standalone build. These are excluded during `create-dist.cjs` copy and cleaned

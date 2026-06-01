@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db/index";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { billingPlans } from "@/lib/billing/plans";
@@ -106,7 +107,7 @@ async function syncCheckoutSession(
     }
 
     await activeDb.insert(profiles).values({
-      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: `profile_${uuidv4()}`,
       userId,
       email: userEmail || user.email,
       fullName: user.name,

@@ -12,6 +12,15 @@ import { notFound, redirect } from "next/navigation"
 
 const PAGE_SIZE = 100
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const dataset = await db.query.datasets.findFirst({
+    where: eq(datasets.id, id),
+    columns: { name: true },
+  })
+  return { title: dataset?.name ?? "Dataset" }
+}
+
 export default async function DatasetDetailPage({
   params,
   searchParams,
@@ -48,13 +57,18 @@ export default async function DatasetDetailPage({
   const rowCount = dataset.rowCount || 0
   const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE))
 
-  const resultRows = await db.query.datasetRows.findMany({
-    where: eq(datasetRows.datasetId, id),
-    orderBy: (tbl, { asc }) => [asc(tbl.rowIndex)],
-    offset,
-    limit: PAGE_SIZE,
-  })
-  const data = resultRows.map((r) => r.data) as Record<string, unknown>[]
+  let data: Record<string, unknown>[] = []
+  try {
+    const resultRows = await db.query.datasetRows.findMany({
+      where: eq(datasetRows.datasetId, id),
+      orderBy: (tbl, { asc }) => [asc(tbl.rowIndex)],
+      offset,
+      limit: PAGE_SIZE,
+    })
+    data = resultRows.map((r) => r.data) as Record<string, unknown>[]
+  } catch {
+    data = []
+  }
 
   const previewColumns: DataTableColumn<Record<string, unknown>>[] = columns.map((column: string) => ({
     key: column,

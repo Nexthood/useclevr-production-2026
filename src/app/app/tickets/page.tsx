@@ -2,8 +2,13 @@ import { AppPageHeader } from "@/components/layout/app-page-header"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
 import { Plus, Ticket } from "lucide-react"
+import type { Metadata } from "next"
 import Link from "next/link"
 import { TicketsClient } from "./tickets-client"
+
+export const metadata: Metadata = {
+  title: "Support Tickets",
+}
 
 export default async function TicketsPage() {
   const session = await auth()

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { v4 as uuidv4 } from "uuid"
 import {
     BarChart3, FileQuestion, Loader2, Send, Sparkles, TrendingUp, Upload, X
 } from "lucide-react"
@@ -179,7 +180,7 @@ export function ClevrChat({
 
   const addMessage = (role: "user" | "assistant", content: string, suggestedActions?: string[]) => {
     const message: Message = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: uuidv4(),
       role,
       content,
       timestamp: new Date(),

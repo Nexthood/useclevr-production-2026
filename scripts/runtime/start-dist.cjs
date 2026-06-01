@@ -11,7 +11,12 @@ process.env.AUTH_TRUST_HOST ||= "true";
 process.env.PORT = port;
 
 if (process.env.RAILWAY_ENVIRONMENT_ID || serverTarget === "railway") {
-  process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || "";
+  if (process.env.USECLEVR_AUTH_URL_STRICT !== "true") {
+    delete process.env.AUTH_URL;
+    delete process.env.NEXTAUTH_URL;
+  } else {
+    process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || "";
+  }
   process.env.HOSTNAME = "0.0.0.0";
 } else if (process.env.VERCEL || serverTarget === "vercel") {
   if (!process.env.AUTH_URL && !process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {

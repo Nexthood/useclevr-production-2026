@@ -31,17 +31,9 @@ moving work between states.
 - T-197. Resolve whether Vercel remains a live deployment target or only a documented fallback.
 - T-198. Resolve whether dist branch history should keep exactly two commits or use tags/releases for longer deployment audit history.
 - T-254. Preserve selected settings tab state in the URL or a shared settings context if settings pages need cross-navigation tab continuity.
-- T-255. Add a generated deployment manifest with source commit, build timestamp, Node version, pnpm version, and healthcheck path.
 - T-256. Add a dist branch smoke-check workflow only if Railway needs to wait for a GitHub status check before deploying.
-- T-392. Add a deployment smoke check that fails when the generated Railway package manifest asks the host to use pnpm.
 - T-394. Add a dashboard table consistency audit that checks list pages use title links, supporting edit links, and row-end actions before new list pages ship.
 - T-395. Add a setup progress audit that verifies every business profile field and required setup action contributes to the topbar completion panel.
-
-## Future Next
-
-- T-441. Consolidate 6+ duplicate metric display components (ProfileMetric, ContextItem, FinancialItem, TaxItem, ReportMetric, etc.) into a shared StatCard component.
-- T-442. Error page template duplicated in 7 feature sections — extract shared ErrorScreen component.
-- T-443. Loading page template duplicated in 7 feature sections — extract shared LoadingScreen component.
 
 ## Future Security
 
@@ -60,8 +52,11 @@ moving work between states.
 
 - T-446. Consolidate heavy client dependencies (canvg, html2canvas, qrcode, jspdf) — lazy-load or move PDF generation server-side.
 
-## Future Test
+## Future Skip: Test
 
+## Skipped
+
+- T-439. Configure test framework (Vitest, Playwright) and add unit tests for `src/lib/` modules.
 - T-185. Add unit tests for pure utilities and data transforms.
 - T-186. Add integration tests for high-value API routes.
 - T-187. Add E2E tests for upload, analyze, and report flows.

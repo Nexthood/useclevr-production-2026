@@ -1,7 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth/auth";
 import { CheckCircle2, CreditCard, ShieldAlert, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Payment Settings" };
 
 export default async function PaymentSettingsPage() {
   const session = await auth();

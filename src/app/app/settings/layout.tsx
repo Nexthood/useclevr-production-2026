@@ -1,7 +1,6 @@
-import { AppPageHeader } from "@/components/layout/app-page-header"
 import { auth } from "@/lib/auth/auth"
-import { Settings } from "lucide-react"
 import type React from "react"
+import { SettingsHeader } from "./settings-header"
 import { SettingsNav } from "./settings-nav"
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -10,15 +9,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <AppPageHeader
-        title="Account"
-        description="Manage profile, preferences, subscription, billing, and activity."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/app" },
-          { label: "Settings" },
-        ]}
-        icon={Settings}
-      />
+      <SettingsHeader />
 
       <SettingsNav showAdmin={isSuperAdmin} />
 

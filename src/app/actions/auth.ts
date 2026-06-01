@@ -1,5 +1,6 @@
 "use server"
 
+import { v4 as uuidv4 } from "uuid"
 import { debugError } from "@/lib/utils/debug"
 
 import { recordActivity } from "@/lib/activity/activity-store"
@@ -50,7 +51,7 @@ export async function signup(formData: FormData) {
   let user
   try {
     const result = await db.insert(users).values({
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `user_${uuidv4()}`,
       name,
       email,
       password: hashedPassword,
@@ -64,7 +65,7 @@ export async function signup(formData: FormData) {
   // Create profile for the user
   try {
     await db.insert(profiles).values({
-      id: `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `profile_${uuidv4()}`,
       userId: user.id,
       email: user.email,
       fullName: name,

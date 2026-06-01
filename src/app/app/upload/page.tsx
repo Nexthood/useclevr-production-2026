@@ -22,7 +22,6 @@ export default function UploadPage() {
         description="Add a CSV file and prepare it for analysis."
         breadcrumbs={[
           { label: "Dashboard", href: "/app" },
-          { label: "Datasets", href: "/app/datasets" },
           { label: "Upload" },
         ]}
         icon={Upload}

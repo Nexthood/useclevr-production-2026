@@ -8,6 +8,11 @@ This file states the current product requirements in direct, present-state langu
 - Use ephemeral PostgreSQL containers for local and CI validation.
 - Manage database schema with Drizzle ORM migrations.
 - Keep production and preview deployments connected to the configured Neon database.
+- Return liveness health checks even while database readiness is reported as unavailable or degraded.
+- Keep Railway authentication on the active request host unless a strict fixed auth URL is enabled.
+- Keep edge route guards free of Node-only authentication and database modules.
+- Normalize generated Edge route guard manifests during production packaging.
+- Clean generated build output before production packaging.
 
 ## Upload & Analysis
 

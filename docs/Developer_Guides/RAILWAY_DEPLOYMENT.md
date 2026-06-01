@@ -31,15 +31,20 @@ flowchart LR
   Main[main branch] --> Build[pnpm prod:build]
   Build --> DistBranch[dist branch /dist]
   Config[dist-root/server-config/railway.json] --> ServerConfig[dist branch /server-config]
+  Railpack[dist-root/railpack.json] --> RailpackRoot[dist branch root]
   DistBranch --> Railway[Railway service root /dist]
   ServerConfig --> Railway
+  RailpackRoot --> Railway
 ```
 
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
-branch, and publishes Railway config to `/server-config/railway.json`.
+branch, and publishes Railway config to `/server-config/railway.json` on the same branch.
 
 `dist-root/server-config/railway.json` controls deploy with a prebuilt `/dist`. The build command
 outputs `"echo prebuilt"` since GitHub Actions publishes generated output directly to `/dist`.
+
+`dist-root/railpack.json` declares the Node.js provider and skips dependency installation — the
+standalone bundle includes all production modules in `dist/node_modules/`.
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
@@ -54,8 +59,8 @@ node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs
 ```
 
 The predeploy command runs an idempotent additive schema sync for generated deployments. The start
-command binds to Railway `$PORT` and forces `0.0.0.0` through the runtime helper, even when the host
-injects its own `HOSTNAME` value.
+command binds to Railway `$PORT`, forces `0.0.0.0` through the runtime helper, and lets Auth.js infer
+the active public host from Railway proxy headers.
 
 ## Railway CLI
 
@@ -83,6 +88,40 @@ railway up
 Use `pnpm dlx @railway/cli <command>` when Railway is not installed globally. CLI access requires a
 browser login or `RAILWAY_TOKEN` in the shell environment.
 
+## Railpack Configuration
+
+Railpack uses `railpack.json` at the deployment root (the `dist` branch root, not inside `/dist`).
+The config declares only the Node.js provider — no custom install/build steps:
+
+```json
+{
+  "provider": "node"
+}
+```
+
+- `provider` must be a singular string (`"node"`), not a plural array (`["node"]`) — the plural form
+  is silently ignored by Railpack.
+- Custom `install`/`build` steps were removed because they prevent Railpack from setting up the
+  Node.js runtime, causing `node: command not found` at deploy time.
+- Railpack's default npm install is instant because `dist/package.json` has empty `dependencies: {}`.
+  The real production modules are bundled in `dist/node_modules/` from `.next/standalone`.
+
+## Node Modules in Dist Output
+
+`dist/node_modules/` (33MB, pnpm symlink structure via `.pnpm/`) is committed to the `dist` branch.
+Railpack needs `node_modules` present in the source for its build graph checksum calculation.
+Without it, Railway fails with:
+
+```
+failed to calculate checksum of ref ...: "/app/node_modules": not found
+```
+
+Key requirements:
+- `node_modules/` must NOT appear in any `.gitignore` that applies to the `dist` branch.
+- The symlink structure must be relative, not absolute. Use `cp -a` (not `fs.cpSync`) when copying
+  the standalone output — Node.js `fs.cpSync` resolves relative symlinks to absolute paths, which
+  breaks the pnpm structure on Railway.
+
 ## Local Checks
 
 ```bash
@@ -90,12 +129,16 @@ pnpm validate:dist
 pnpm prod:build
 test ! -f dist/pnpm-workspace.yaml
 test ! -f dist/pnpm-lock.yaml
-test ! -f dist/package-lock.json
+test -f dist/package-lock.json  # minimal lockfile for Railpack npm detection
 test ! -f dist/railway.json
 test ! -f dist/vercel.json
+test -f dist/node_modules/.pnpm  # node_modules must be present
+test -f dist/railpack.json
 ```
 
 ## Troubleshooting
+
+### Build Phase Failures
 
 If Railway logs show `RUN npm i`, Railpack did not activate pnpm from the generated deployment
 package or Railway is building the wrong root directory. Confirm Railway uses branch `dist`, root
@@ -108,12 +151,37 @@ If logs show pnpm requiring a newer Node release, keep the deployment package on
 matches Railway's current Node runtime until Railway moves past the requirement.
 
 If Railpack starts a dependency install for the test deploy, confirm the `dist-test` branch contains
-no package-manager lockfiles inside `/dist`. The standalone bundle includes production modules, so
-the generated deployment package must not ask Railpack to install dependencies.
+only the minimal npm lockfile inside `/dist`. The standalone bundle includes production modules, and
+the generated deployment package must not include pnpm workspace metadata.
 
 If logs show `ERR_PNPM_NO_LOCKFILE`, keep Railway runtime installs on `--no-frozen-lockfile` because
 the generated deployment package is smaller than the source workspace and Railway installs from
 generated output only.
+
+If logs show `failed to calculate checksum of ref ... "/app/node_modules": not found`:
+- `node_modules/` is missing from the deployed branch.
+- Check `.gitignore` on the deployment branch — `node_modules/` must not be ignored.
+- Check the publish workflow — cleanup steps must not `rm -rf node_modules`.
+- Regenerate dist output with `pnpm prod:build` and republish.
+
+### Runtime Errors (502 / Healthcheck Failures)
+
+If Railway deploys successfully but the app returns 502:
+1. Check Railway logs for server startup errors or crash traces.
+2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
+3. Confirm the database is reachable — Railway Postgres may require SSL:
+   - The `pg` Pool in `src/lib/db/index.ts` uses `{ connectionString: url, max: 10 }` without SSL.
+   - Add `ssl: { rejectUnauthorized: false }` when the hostname contains `railway.app` or `neon.tech`.
+4. Check `/api/health` JSON for `database: "ready"` after startup:
+   - Railway receives HTTP 200 from the liveness healthcheck while database readiness is reported in
+     the response body.
+   - Use `POST /api/health` for a strict readiness check that returns 503 while the database is not
+     ready.
+
+If the test app redirects to the live app host, remove fixed auth host variables from the Railway
+test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed callback host is
+required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
+service.
 
 If runtime logs show `Could not find a production build in the './.next' directory`, keep the
 generated `next-build` folder and the runtime restore step. Railway can omit dot-directories from the

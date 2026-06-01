@@ -8,8 +8,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- Railway health checks keep the test app deployable while database readiness is reported separately.
+- Dashboard route guards avoid Edge runtime crashes by keeping full authentication checks in server code.
+- Railway packaged output points Edge route guard manifests at the generated middleware bundle.
+- Railway test login stays on the active test host instead of using a fixed live-app host.
+- Production package builds run the full standalone build before packaging.
+- Production package builds clean generated output before rebuilding standalone artifacts.
 - Railway test deployment builds without attempting dependency install on prebuilt standalone bundle.
 - Railpack config uses documented `provider` field format and custom install/build steps.
+- Railway deploy resolves `"/app/node_modules": not found` — `node_modules/` with pnpm symlink structure
+  committed to deployment branch, `cp -a` preserves relative symlinks, `.gitignore` allows
+  `node_modules/` on deployment branches.
+- Railway deploy resolves `node: command not found` — remove custom install/build steps from
+  `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
+
+### Dev
+- Publish `dist/node_modules/` in deployment branch output for Railpack build graph checksum.
+- Use `cp -a` instead of `fs.cpSync` for standalone copy to preserve relative pnpm symlinks.
+- Remove `node_modules/` cleanup from all publish workflows and `.gitignore` on deployment branches.
+- Add Next.js middleware for centralized auth and route protection.
+- Add null guards for missing business details in locations and tax pages.
+- Add error handling for dataset rows query failure in dataset detail page.
+- Add metadata exports (page titles) to settings, tickets, FAQ, and dataset pages.
 
 ### Added
 - Select dashboard language in English, German, Hungarian, or Romanian.
@@ -115,7 +135,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   through Corepack.
 - Activate pnpm through Corepack in GitHub workflows.
 - Treat beta sync branch-permission failures as non-blocking during dist publishing.
-- Publish dist-test Railway output without package-manager lockfiles so Railpack uses the prebuilt bundle.
+- Publish dist-test Railway output without pnpm workspace metadata so Railpack uses the prebuilt bundle.
 - TODO validation reports active and retired queue states while preserving existing task metadata.
 - Changelog linting checks Unreleased entries for active-change wording.
 - Maintenance scripts share repository path and package-manager settings from one script config.

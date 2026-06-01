@@ -30,13 +30,25 @@ requested page behavior, update requirements and changelog, retire the TODO task
 validation.
 ```
 
-## Railway Test Deploy Review
+## Railway Deploy Review
 
 ```text
-Review only beta and dist-test for the Railway test deploy.
-Do not inspect main, dist, or the live app.
-Check generated deployment config, Railpack package-manager detection, branch publish workflow, and
-latest test deployment logs if credentials work.
+Review Railway deploy for the given source and deployment branch pair.
+For test: beta source, dist-test deployment.
+For production: main source, dist deployment.
+Check generated deployment config (railpack.json, railway.json), node_modules presence in dist,
+Railpack provider format (singular "node", not array), symlink preservation (cp -a vs fs.cpSync),
+and deployment logs.
+```
+
+## Railway Deploy Troubleshooting
+
+```text
+Diagnose Railway deploy failure.
+Check whether the build phase or runtime phase fails.
+For build: check railpack.json provider format, node_modules/ in source, lockfile detection.
+For runtime (502): check startup logs, database connectivity (SSL), cold-start timeout,
+missing env vars (DATABASE_URL, AUTH_SECRET), and healthcheck response.
 ```
 
 ## Bookkeeping Feature Work
