@@ -3,7 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { CreditCard, FileText, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "Billing" };
 
 export default async function BillingSettingsPage() {
   const session = await auth();

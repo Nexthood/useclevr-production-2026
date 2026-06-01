@@ -7,6 +7,7 @@ import { BUSINESS_FIELDS, getBusinessCompletionPercent, getBusinessReviewFlags }
 import { getDb } from "@/lib/db"
 import { businesses, businessEntities, profiles } from "@/lib/db/schema"
 import { eq, count, inArray } from "drizzle-orm"
+import { StatCard } from "@/components/ui/stat-card"
 import { AlertCircle, Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus, Percent, Mail } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
@@ -128,9 +129,9 @@ export default async function BusinessPage() {
           <div className="p-5">
             <h3 className="text-lg font-semibold text-foreground mb-4">Profile summary</h3>
             <div className="grid gap-3 sm:grid-cols-3">
-              <ProfileMetric icon={Building2} label="Identity" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Identity" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/3`} />
-              <ProfileMetric icon={Mail} label="Contact" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Contact" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/2`} />
-              <ProfileMetric icon={MapPin} label="Operations" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Operations" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/1`} />
+              <StatCard icon={Building2} label="Identity" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Identity" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/3`} variant="large" />
+              <StatCard icon={Mail} label="Contact" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Contact" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/2`} variant="large" />
+              <StatCard icon={MapPin} label="Operations" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Operations" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/1`} variant="large" />
             </div>
           </div>
         </div>
@@ -195,26 +196,6 @@ export default async function BusinessPage() {
         rowKey={(row) => String(row.id)}
         minWidth="min-w-[880px]"
       />
-    </div>
-  )
-}
-
-function ProfileMetric({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: string
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-background p-3">
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-primary" />
-        <p className="text-sm font-medium text-foreground">{label}</p>
-      </div>
-      <p className="mt-2 text-2xl font-semibold text-primary">{value}</p>
     </div>
   )
 }

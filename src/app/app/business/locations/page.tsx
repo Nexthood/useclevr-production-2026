@@ -10,6 +10,7 @@ export const metadata = {
 export default async function BusinessLocationsPage() {
   const session = await auth()
   const details = await getPrimaryBusinessDetails(session?.user?.id)
+  const safe = details ?? {}
 
   return (
     <Card className="border-border bg-card">
@@ -24,8 +25,8 @@ export default async function BusinessLocationsPage() {
               <MapPin className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-medium text-foreground">{details.businessName || "Primary business profile"}</p>
-              <p className="text-sm text-muted-foreground">{details.location || "No operating location saved yet."}</p>
+              <p className="font-medium text-foreground">{safe.businessName || "Primary business profile"}</p>
+              <p className="text-sm text-muted-foreground">{safe.location || "No operating location saved yet."}</p>
             </div>
           </div>
         </div>

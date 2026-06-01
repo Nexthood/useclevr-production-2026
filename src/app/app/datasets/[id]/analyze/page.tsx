@@ -15,6 +15,15 @@ import { notFound } from "next/navigation"
 // Type for analysis result (simplified for props)
 type AnalysisResult = Record<string, unknown>
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const dataset = await db.query.datasets.findFirst({
+    where: eq(datasets.id, id),
+    columns: { name: true },
+  })
+  return { title: dataset ? `Analyze: ${dataset.name}` : "Analyze" }
+}
+
 export default async function AnalyzePage({
   params,
 }: {

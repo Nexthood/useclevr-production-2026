@@ -6,6 +6,11 @@ import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { dashboardFaqCategories, superAdminFaqCategories } from "@/lib/content/dashboard-faq"
 import { HelpCircle, MessageSquare } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Dashboard FAQ",
+}
 
 export default async function DashboardFaqPage({
   searchParams,

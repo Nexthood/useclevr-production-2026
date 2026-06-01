@@ -10,6 +10,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 - Railway test deployment builds without attempting dependency install on prebuilt standalone bundle.
 - Railpack config uses documented `provider` field format and custom install/build steps.
+- Railway deploy resolves `"/app/node_modules": not found` — `node_modules/` with pnpm symlink structure
+  committed to deployment branch, `cp -a` preserves relative symlinks, `.gitignore` allows
+  `node_modules/` on deployment branches.
+- Railway deploy resolves `node: command not found` — remove custom install/build steps from
+  `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
+
+### Dev
+- Publish `dist/node_modules/` in deployment branch output for Railpack build graph checksum.
+- Use `cp -a` instead of `fs.cpSync` for standalone copy to preserve relative pnpm symlinks.
+- Remove `node_modules/` cleanup from all publish workflows and `.gitignore` on deployment branches.
+- Add Next.js middleware for centralized auth and route protection.
+- Add null guards for missing business details in locations and tax pages.
+- Add error handling for dataset rows query failure in dataset detail page.
+- Add metadata exports (page titles) to settings, tickets, FAQ, and dataset pages.
 
 ### Added
 - Select dashboard language in English, German, Hungarian, or Romanian.

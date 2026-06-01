@@ -198,18 +198,10 @@ for (const f of packageManagerFiles) {
 // node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
 
 // Write railpack.json to declare the Node.js provider explicitly.
-const railpackConfig = {
-  provider: "node",
-  steps: {
-    install: {
-      commands: ["echo 'dependencies pre-installed in standalone bundle'"],
-    },
-    build: {
-      inputs: [{ step: "install" }],
-      commands: ["echo prebuilt"],
-    },
-  },
-};
+// No custom install/build steps — Railpack's default npm install is instant
+// because dist/package.json has empty dependencies. The real production
+// node_modules are bundled from .next/standalone.
+const railpackConfig = { provider: "node" };
 fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
 
 // Write a minimal package-lock.json so Railpack detects npm (not pnpm)

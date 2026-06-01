@@ -5,7 +5,10 @@ import { formatPlanPrice } from "@/lib/billing/plans";
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "Subscription" };
 
 export default async function SubscriptionSettingsPage() {
   const session = await auth();

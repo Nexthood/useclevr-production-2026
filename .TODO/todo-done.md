@@ -16,8 +16,22 @@ moving work between states.
 
 ## Completed
 
+- T-441. Consolidated 5 duplicate metric display components (ProfileMetric, ContextItem, FinancialItem, TaxItem, ReportMetric) into shared StatCard component.
+- T-442. Extracted shared ErrorScreen component — replaced 7 duplicate error pages with a single reusable component.
+- T-443. Extracted shared LoadingScreen component — replaced 7 duplicate loading pages with a single reusable component.
 - T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist.
 - T-417. Consolidate `ci-beta.yml` into `ci.yml` — removes one workflow file and prevents duplicate CI runs on beta pushes.
+- T-438. Add Next.js middleware for centralized auth and route protection — guards dashboard pages, API
+  routes (401 JSON), and superadmin pages; public routes pass through.
+- T-440. Fix dashboard consistency issues: remove double AppPageHeader from settings/business layout, fix
+  upload breadcrumbs to show `Dashboard > Upload` (not "Datasets"), add sub-page labels to settings
+  breadcrumbs via SettingsHeader client component, add metadata titles to 8 server-component pages, add
+  null guards to business/locations and business/tax pages, and add error handling to dataset rows query.
+- Railway: Fix `"/app/node_modules": not found` on Railway deploy — keep `node_modules/` in dist output,
+  remove from `.gitignore` on deployment branches, use `cp -a` to preserve relative pnpm symlinks.
+- Railway: Fix Railpack config — use `"provider": "node"` (singular string) with custom install/build
+  steps, generate `railpack.json` and minimal `package-lock.json` in dist output.
+- CI: Remove `node_modules/` cleanup from all publish workflows and composite action setup.
 - T-418. Replace barrel re-export files with direct imports across all consuming modules.
 - T-419. Deployment manifest generation already present in `create-dist.cjs`.
 - T-420. Add Neon WebSocket connection pooling to `src/lib/db/index.ts`.

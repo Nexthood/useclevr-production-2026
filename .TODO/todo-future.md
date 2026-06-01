@@ -37,12 +37,6 @@ moving work between states.
 - T-394. Add a dashboard table consistency audit that checks list pages use title links, supporting edit links, and row-end actions before new list pages ship.
 - T-395. Add a setup progress audit that verifies every business profile field and required setup action contributes to the topbar completion panel.
 
-## Future Next
-
-- T-441. Consolidate 6+ duplicate metric display components (ProfileMetric, ContextItem, FinancialItem, TaxItem, ReportMetric, etc.) into a shared StatCard component.
-- T-442. Error page template duplicated in 7 feature sections — extract shared ErrorScreen component.
-- T-443. Loading page template duplicated in 7 feature sections — extract shared LoadingScreen component.
-
 ## Future Security
 
 - T-398. Add a security audit that confirms user-uploaded files, prompt text, and generated exports stay outside AI context and public static paths.
@@ -60,8 +54,11 @@ moving work between states.
 
 - T-446. Consolidate heavy client dependencies (canvg, html2canvas, qrcode, jspdf) — lazy-load or move PDF generation server-side.
 
-## Future Test
+## Future Skip: Test
 
+## Skipped
+
+- T-439. Configure test framework (Vitest, Playwright) and add unit tests for `src/lib/` modules.
 - T-185. Add unit tests for pure utilities and data transforms.
 - T-186. Add integration tests for high-value API routes.
 - T-187. Add E2E tests for upload, analyze, and report flows.

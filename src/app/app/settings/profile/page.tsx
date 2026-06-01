@@ -6,7 +6,10 @@ import { profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
 import { eq } from "drizzle-orm"
 import { User } from "lucide-react"
+import type { Metadata } from "next"
 import { ProfileForm } from "./profile-form"
+
+export const metadata: Metadata = { title: "Profile Settings" }
 
 export default async function ProfileSettingsPage() {
   const session = await auth()

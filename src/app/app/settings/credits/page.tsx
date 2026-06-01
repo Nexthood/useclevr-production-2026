@@ -6,7 +6,10 @@ import { auth } from "@/lib/auth/auth"
 import { getBillingSettings } from "@/lib/billing/settings-store"
 import { FREE_ANALYST_CREDITS } from "@/lib/usage/analyst-credits"
 import { Settings2, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react"
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
+
+export const metadata: Metadata = { title: "Credit Rules" }
 
 const roleLimits = [
   { role: "Free customer", totalCredits: FREE_ANALYST_CREDITS },
