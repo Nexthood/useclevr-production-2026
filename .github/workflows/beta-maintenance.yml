@@ -171,7 +171,6 @@ jobs:
           cp -a /tmp/useclevr-dist-output/. dist/
 
           rm -rf dist/.next/cache
-          rm -rf dist/node_modules
           rm -rf dist/.cache
           rm -rf dist/cache
           rm -rf dist/.turbo
@@ -238,7 +237,7 @@ jobs:
             exit 1
           fi
 
-          if [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ] || [ -d "dist/node_modules/.pnpm" ]; then
+          if [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ]; then
             echo "Error: generated dist-test output must not publish pnpm or yarn lockfiles."
             exit 1
           fi

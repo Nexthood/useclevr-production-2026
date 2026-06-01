@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { execSync } = require("node:child_process");
 
 const { packagePath, repoRelative, resolveRepoPath, rootDir } = require("../lib/app-config.cjs");
 
@@ -53,7 +54,13 @@ fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
 
 // Copy Node.js bundle (standalone) directly to dist root
-copyDir(standaloneDir, distDir, { excludeRootDirs: ["dist"] });
+// Use shell cp -a to preserve relative symlinks (fs.cpSync resolves them to absolute paths)
+execSync(`cp -a "${standaloneDir}/." "${distDir}/"`, { stdio: "inherit" });
+// Remove standalone's own dist/ directory if it was copied (excludeRootDirs equivalent)
+const standaloneDistInDist = path.join(distDir, "dist");
+if (fs.existsSync(standaloneDistInDist)) {
+  fs.rmSync(standaloneDistInDist, { recursive: true, force: true });
+}
 
 // Copy Next.js static assets
 if (fs.existsSync(nextStaticDir)) {
@@ -186,12 +193,9 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Remove .pnpm directory from node_modules — Railpack detects pnpm from its presence
-// even when a package-lock.json is present and no other pnpm indicators exist.
-const pnpmDir = path.join(distDir, "node_modules", ".pnpm");
-if (fs.existsSync(pnpmDir)) {
-  fs.rmSync(pnpmDir, { recursive: true, force: true });
-}
+// Keep .pnpm directory in node_modules — Railway Railpack needs node_modules present
+// in the source for its build graph checksum calculation. The dist branch commits
+// node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
 
 // Write railpack.json to declare the Node.js provider explicitly.
 const railpackConfig = {

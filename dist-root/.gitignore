@@ -1,10 +1,6 @@
-# Dependencies
-node_modules/
-
-# Note: pnpm-lock.yaml is explicitly NOT ignored so it gets committed to the dist branch
-# for deterministic Railway installs
-
-# Next.js local dev/build cache. Created by `pnpm dev` and `pnpm build`.
+# Next.js build artifacts. node_modules is intentionally NOT ignored — Railway needs
+# node_modules in the source for Railpack build graph checksum calculation.
+.next/
 .next/
 next-env.d.ts
 out/
