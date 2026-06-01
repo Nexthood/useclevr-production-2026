@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 import {
@@ -397,7 +398,7 @@ async function ensureOAuthUserRecord({
     columns: { id: true },
   });
 
-  const userId = existingUser?.id || `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const userId = existingUser?.id || uuidv4();
   user.id = userId;
 
   if (existingUser) {
@@ -428,7 +429,7 @@ async function ensureOAuthUserRecord({
 
   await dbClient.insert(accounts)
     .values({
-      id: `account_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: uuidv4(),
       userId,
       type: accountType || "oauth",
       provider,
@@ -471,7 +472,7 @@ async function ensureOAuthUserRecord({
       .where(eq(profiles.userId, userId));
   } else {
     await dbClient.insert(profiles).values({
-      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: uuidv4(),
       userId,
       email,
       fullName: user.name || null,

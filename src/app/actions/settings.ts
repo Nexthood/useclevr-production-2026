@@ -1,5 +1,6 @@
 "use server"
 
+import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { recordActivity } from "@/lib/activity/activity-store"
@@ -76,7 +77,7 @@ export async function updateProfile(formData: FormData): Promise<Result<ProfileD
       .where(eq(profiles.userId, userId))
   } else {
     await db.insert(profiles).values({
-      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: `profile_${uuidv4()}`,
       userId,
       email,
       fullName,
@@ -146,7 +147,7 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
       .where(eq(profiles.userId, userId))
   } else {
     await db.insert(profiles).values({
-      id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: `profile_${uuidv4()}`,
       userId,
       businessName,
       businessEmail,

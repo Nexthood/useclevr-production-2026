@@ -16,6 +16,9 @@ moving work between states.
 
 ## Completed
 
+- T-462. Railway health checks return liveness separately from database readiness, Railway auth uses the active request host by default, edge route guards avoid Node-only auth modules, production packaging starts from clean generated output, and generated middleware manifests point to the bundled route guard entry.
+- T-392. Deployment smoke checks fail when generated Railway output includes pnpm workspace metadata or omits required runtime bundle files.
+- T-255. Generated deployment manifests include source commit, source branch, build timestamp, Node version, and healthcheck path.
 - T-441. Consolidated 5 duplicate metric display components (ProfileMetric, ContextItem, FinancialItem, TaxItem, ReportMetric) into shared StatCard component.
 - T-442. Extracted shared ErrorScreen component — replaced 7 duplicate error pages with a single reusable component.
 - T-443. Extracted shared LoadingScreen component — replaced 7 duplicate loading pages with a single reusable component.
@@ -46,7 +49,7 @@ moving work between states.
 - T-430. Add dedicated `/api/mcp/` endpoint stub for future MCP tool execution.
 - T-431. Add cross-dataset comparison MCP tool with tool registry.
 - T-428. Add streaming responses to `/api/chat` using `ReadableStream` and `TextEncoder` for incremental display and abort support.
-- T-434. Railway dist-test publishing omits package-manager lockfiles and guards generated output before test deployment.
+- T-434. Railway dist-test publishing omits pnpm and yarn lockfiles while keeping minimal npm detection metadata and guarding generated output before test deployment.
 - T-433. AI interaction docs separate user guidance, AI-agent guidance, prompt collection, and bookkeeping user/developer guides.
 - T-432. AI instructions require AI-interaction docs updates after durable instruction changes and scope Railway test deploy reviews to beta and dist-test.
 - T-416. Accountancy overview shows bookkeeping cards, a bookkeeping queue, monthly close readiness, and direct accounting action links.

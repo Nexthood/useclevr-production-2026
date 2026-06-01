@@ -1,5 +1,6 @@
 import { debugError } from "@/lib/utils/debug"
 
+import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     // Create dataset record
-    const datasetId = `ds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const datasetId = `ds_${uuidv4()}`
     
     await db.insert(datasets).values({
       id: datasetId,
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
     if (rows?.length > 0) {
       await db.insert(datasetRows).values(
         rows.map((row: Record<string, unknown>, index: number) => ({
-          id: `row_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `row_${uuidv4()}`,
           datasetId,
           rowIndex: index,
           data: row,

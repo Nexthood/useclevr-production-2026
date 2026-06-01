@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { datasets, appSettings } from "@/lib/db/schema"
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const newSuggestions = generateSuggestions(intelligence)
 
     const savedSuggestions = newSuggestions.map((s) => ({
-      id: `sug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: `sug_${uuidv4()}`,
       text: s,
       createdAt: new Date().toISOString(),
     }))

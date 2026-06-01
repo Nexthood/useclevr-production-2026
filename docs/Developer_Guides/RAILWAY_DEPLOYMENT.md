@@ -59,8 +59,8 @@ node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs
 ```
 
 The predeploy command runs an idempotent additive schema sync for generated deployments. The start
-command binds to Railway `$PORT` and forces `0.0.0.0` through the runtime helper, even when the host
-injects its own `HOSTNAME` value.
+command binds to Railway `$PORT`, forces `0.0.0.0` through the runtime helper, and lets Auth.js infer
+the active public host from Railway proxy headers.
 
 ## Railway CLI
 
@@ -151,8 +151,8 @@ If logs show pnpm requiring a newer Node release, keep the deployment package on
 matches Railway's current Node runtime until Railway moves past the requirement.
 
 If Railpack starts a dependency install for the test deploy, confirm the `dist-test` branch contains
-no package-manager lockfiles inside `/dist`. The standalone bundle includes production modules, so
-the generated deployment package must not ask Railpack to install dependencies.
+only the minimal npm lockfile inside `/dist`. The standalone bundle includes production modules, and
+the generated deployment package must not include pnpm workspace metadata.
 
 If logs show `ERR_PNPM_NO_LOCKFILE`, keep Railway runtime installs on `--no-frozen-lockfile` because
 the generated deployment package is smaller than the source workspace and Railway installs from
@@ -172,9 +172,16 @@ If Railway deploys successfully but the app returns 502:
 3. Confirm the database is reachable — Railway Postgres may require SSL:
    - The `pg` Pool in `src/lib/db/index.ts` uses `{ connectionString: url, max: 10 }` without SSL.
    - Add `ssl: { rejectUnauthorized: false }` when the hostname contains `railway.app` or `neon.tech`.
-4. Check if the health endpoint returns 503 (database unavailable) during cold-start:
-   - Neon serverless Postgres may need several seconds to wake from idle.
-   - Railway healthcheck timeout is 300s (configurable in `railway.json`).
+4. Check `/api/health` JSON for `database: "ready"` after startup:
+   - Railway receives HTTP 200 from the liveness healthcheck while database readiness is reported in
+     the response body.
+   - Use `POST /api/health` for a strict readiness check that returns 503 while the database is not
+     ready.
+
+If the test app redirects to the live app host, remove fixed auth host variables from the Railway
+test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed callback host is
+required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
+service.
 
 If runtime logs show `Could not find a production build in the './.next' directory`, keep the
 generated `next-build` folder and the runtime restore step. Railway can omit dot-directories from the

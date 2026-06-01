@@ -244,12 +244,11 @@ export function getReport(reportId: string): Report | null {
     return null;
   }
   
-  // Check visibility
   if (report.visibility === 'private') {
-    // In production, check authentication
+    // TODO: check requesting user owns the report once auth context is threaded in
     return report;
   }
-  
+
   return report;
 }
 

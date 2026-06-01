@@ -8,6 +8,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- Railway health checks keep the test app deployable while database readiness is reported separately.
+- Dashboard route guards avoid Edge runtime crashes by keeping full authentication checks in server code.
+- Railway packaged output points Edge route guard manifests at the generated middleware bundle.
+- Railway test login stays on the active test host instead of using a fixed live-app host.
+- Production package builds run the full standalone build before packaging.
+- Production package builds clean generated output before rebuilding standalone artifacts.
 - Railway test deployment builds without attempting dependency install on prebuilt standalone bundle.
 - Railpack config uses documented `provider` field format and custom install/build steps.
 - Railway deploy resolves `"/app/node_modules": not found` — `node_modules/` with pnpm symlink structure
@@ -129,7 +135,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   through Corepack.
 - Activate pnpm through Corepack in GitHub workflows.
 - Treat beta sync branch-permission failures as non-blocking during dist publishing.
-- Publish dist-test Railway output without package-manager lockfiles so Railpack uses the prebuilt bundle.
+- Publish dist-test Railway output without pnpm workspace metadata so Railpack uses the prebuilt bundle.
 - TODO validation reports active and retired queue states while preserving existing task metadata.
 - Changelog linting checks Unreleased entries for active-change wording.
 - Maintenance scripts share repository path and package-manager settings from one script config.

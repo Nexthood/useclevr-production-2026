@@ -44,6 +44,32 @@ function copyDir(from, to, options = {}) {
   });
 }
 
+function normalizeMiddlewareManifest(nextDir) {
+  const manifestPath = path.join(nextDir, "server", "middleware-manifest.json");
+  if (!fs.existsSync(manifestPath)) return;
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  let modified = false;
+
+  for (const entry of Object.values(manifest.middleware || {})) {
+    if (!entry || typeof entry !== "object") continue;
+    if (typeof entry.entrypoint !== "string") continue;
+
+    const normalizedName = entry.entrypoint
+      .replace(/^server\//, "")
+      .replace(/\.js$/, "");
+
+    if (entry.name !== normalizedName) {
+      entry.name = normalizedName;
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+}
+
 // Verify build exists
 assertExists(standaloneDir, "Next standalone build");
 assertExists(path.join(standaloneDir, "server.js"), "Standalone server");
@@ -70,6 +96,8 @@ if (fs.existsSync(nextStaticDir)) {
 // Railway's source snapshot can omit dot-directories from the service root. Keep a non-dot copy and
 // restore it inside the image before runtime starts.
 copyDir(path.join(distDir, ".next"), path.join(distDir, "next-build"));
+normalizeMiddlewareManifest(path.join(distDir, ".next"));
+normalizeMiddlewareManifest(path.join(distDir, "next-build"));
 
 // Copy database schema and migrations for production CLI tools (drizzle-kit)
 if (fs.existsSync(dbSchemaDir)) {

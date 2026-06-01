@@ -136,9 +136,9 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
   })
 
   if (sourceToCheck.includes("pnpm install")) {
-    const hasCorepack = sourceToCheck.includes(`corepack prepare pnpm@11.5.0 --activate`)
+    const hasCorepack = sourceToCheck.includes(`corepack prepare ${requiredPackageManager} --activate`)
     if (!hasCorepack) {
-      errors.push(`${fileName}: pnpm install requires Corepack activation for pnpm@11.5.0`)
+      errors.push(`${fileName}: pnpm install requires Corepack activation for ${requiredPackageManager}`)
     }
   }
 

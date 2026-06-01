@@ -5,6 +5,7 @@
  * and automatic sync when back online.
  */
 
+import { v4 as uuidv4 } from "uuid"
 import { debugWarn } from "@/lib/utils/debug"
 import { useCallback, useEffect, useState } from 'react';
 
@@ -247,7 +248,7 @@ export function useOfflineQueue(): OfflineQueueResult {
   // Add question to queue
   const queueQuestion = useCallback((datasetId: string, question: string) => {
     const queued: QueuedQuestion = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: uuidv4(),
       datasetId,
       question,
       timestamp: Date.now(),
