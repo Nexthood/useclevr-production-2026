@@ -59,7 +59,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.x
+
+      - name: Enable corepack and install pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.0 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        shell: bash
+        run: pnpm install --frozen-lockfile
 
       - name: Build production artifacts
         run: pnpm prod:build
