@@ -81,18 +81,18 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
       .filter((path): path is string => Boolean(path)),
   )
 
-  const profileFields = [
-    { id: "profile-name", title: "Add your name", complete: Boolean(profile?.fullName) },
-    { id: "profile-email", title: "Confirm account email", complete: Boolean(profile?.email) },
-  ]
-  const businessFields = [
-    { id: "business-name", title: "Add company name", complete: Boolean(businessDetails.businessName) },
-    { id: "business-email", title: "Add company email", complete: Boolean(businessDetails.businessEmail) },
-    { id: "business-industry", title: "Add industry", complete: Boolean(businessDetails.industry) },
-    { id: "business-location", title: "Add location", complete: Boolean(businessDetails.location) },
-    { id: "business-website", title: "Add website", complete: Boolean(businessDetails.website) },
-    { id: "business-description", title: "Add business description", complete: Boolean(businessDetails.businessDescription) },
-  ]
+   const _profileFields = [
+     { id: "profile-name", title: "Add your name", complete: Boolean(profile?.fullName) },
+     { id: "profile-email", title: "Confirm account email", complete: Boolean(profile?.email) },
+   ]
+   const _businessFields = [
+     { id: "business-name", title: "Add company name", complete: Boolean(businessDetails.businessName) },
+     { id: "business-email", title: "Add company email", complete: Boolean(businessDetails.businessEmail) },
+     { id: "business-industry", title: "Add industry", complete: Boolean(businessDetails.industry) },
+     { id: "business-location", title: "Add location", complete: Boolean(businessDetails.location) },
+     { id: "business-website", title: "Add website", complete: Boolean(businessDetails.website) },
+     { id: "business-description", title: "Add business description", complete: Boolean(businessDetails.businessDescription) },
+   ]
   const requiredPageVisits = [
     { id: "visit-profile", title: "Visit profile settings", href: "/app/settings/profile" },
     { id: "visit-business", title: "Visit business workspace", href: "/app/business" },

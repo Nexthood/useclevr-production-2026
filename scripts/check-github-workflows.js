@@ -49,7 +49,7 @@ function fixWorkflow(source, fileName) {
       const step = job.steps[i]
       if (typeof step.uses === "string" && step.uses.trim() === "actions/setup-node@v6") {
         if (step.with) {
-          const keysToRemove = ["cache", "cache-dependency-path", "package-manager", "package-manager-cache"]
+          const keysToRemove = ["package-manager", "package-manager-cache"]
           let stepModified = false
           for (const key of keysToRemove) {
             if (key in step.with) {

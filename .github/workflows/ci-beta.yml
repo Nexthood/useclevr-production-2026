@@ -3,12 +3,33 @@ name: Validate Beta
 on:
   push:
     branches: [beta]
+  pull_request:
+    branches: [beta]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-source-and-build:
     name: Validate source and production build
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v6
@@ -16,6 +37,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
+          cache: pnpm
 
       - name: Activate pnpm through Corepack
         run: |
@@ -28,8 +50,6 @@ jobs:
       - run: pnpm lint:package
       - run: pnpm test:all
       - run: pnpm build
-        env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
   docs:
     runs-on: ubuntu-latest
@@ -40,6 +60,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "26.x"
+          cache: pnpm
 
       - name: Activate pnpm through Corepack
         run: |
