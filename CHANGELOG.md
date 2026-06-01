@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Railway test deployment builds without attempting dependency install on prebuilt standalone bundle.
+- Railpack config uses documented `provider` field format and custom install/build steps.
+
 ### Added
 - Select dashboard language in English, German, Hungarian, or Romanian.
 - View bookkeeping cards, queue, and monthly close readiness in Accountancy overview.
