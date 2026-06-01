@@ -21,6 +21,11 @@ runs:
         corepack enable
         corepack prepare pnpm@11.5.0 --activate
 
-    - name: Install dependencies
+    - name: Add pnpm to PATH and install dependencies
       shell: bash
-      run: pnpm install --frozen-lockfile
+      run: |
+        PNPM_HOME="$(corepack env)"
+        echo "Corepack pnpm location: $PNPM_HOME"
+        echo "$PNPM_HOME" >> "$GITHUB_PATH"
+        export PATH="$PNPM_HOME:$PATH"
+        pnpm install --frozen-lockfile
