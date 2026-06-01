@@ -12,6 +12,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Dashboard route guards avoid Edge runtime crashes by keeping full authentication checks in server code.
 - Railway packaged output points Edge route guard manifests at the generated middleware bundle.
 - Railway test login stays on the active test host instead of using a fixed live-app host.
+- Railway test deploy starts through a portable shell entrypoint across Railpack runtime images.
 - Production package builds run the full standalone build before packaging.
 - Production package builds clean generated output before rebuilding standalone artifacts.
 - Railway test deployment builds without attempting dependency install on prebuilt standalone bundle.
@@ -23,6 +24,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Add local Railway CLI shortcuts for browserless login, linking, status, and logs.
 - Publish `dist/node_modules/` in deployment branch output for Railpack build graph checksum.
 - Use `cp -a` instead of `fs.cpSync` for standalone copy to preserve relative pnpm symlinks.
 - Remove `node_modules/` cleanup from all publish workflows and `.gitignore` on deployment branches.

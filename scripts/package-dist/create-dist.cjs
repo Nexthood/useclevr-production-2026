@@ -246,7 +246,7 @@ fs.writeFileSync(
 );
 
 // Create start.sh for Railway deploy
-const startSh = `#!/bin/bash
+const startSh = `#!/bin/sh
 set -e
 exec node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs "$@"
 `;

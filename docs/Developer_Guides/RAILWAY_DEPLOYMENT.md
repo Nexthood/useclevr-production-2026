@@ -55,22 +55,23 @@ Railway config uses:
 
 ```bash
 node ./scripts/runtime/railway-predeploy.cjs
-node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs
+sh start.sh
 ```
 
 The predeploy command runs an idempotent additive schema sync for generated deployments. The start
-command binds to Railway `$PORT`, forces `0.0.0.0` through the runtime helper, and lets Auth.js infer
-the active public host from Railway proxy headers.
+script uses POSIX `sh` and then runs `node -r ./scripts/runtime/load-env.cjs
+./scripts/runtime/start-dist.cjs`. The runtime helper binds to Railway `$PORT`, forces `0.0.0.0`,
+and lets Auth.js infer the active public host from Railway proxy headers.
 
 ## Railway CLI
 
-Fastest safe operator flow:
+Fastest safe local operator flow:
 
 ```bash
-railway login
-railway link
-railway status
-railway logs
+pnpm railway:login
+pnpm railway:link -- --project <project-id-or-name> --environment <environment-id-or-name> --service <service-id-or-name>
+pnpm railway:status
+pnpm railway:logs
 ```
 
 Trigger the latest deploy:
@@ -86,7 +87,16 @@ railway up
 ```
 
 Use `pnpm dlx @railway/cli <command>` when Railway is not installed globally. CLI access requires a
-browser login or `RAILWAY_TOKEN` in the shell environment.
+browser login, browserless login, or a token in the shell environment.
+
+`pnpm railway:login` uses `railway login --browserless`, which prints a pairing URL and code for
+machines where the browser login flow is unavailable. Token auth does not log the CLI in; it only
+authenticates the commands in the shell where the token is set.
+
+Use `RAILWAY_TOKEN` for project-scoped commands in one project and environment. Use
+`RAILWAY_API_TOKEN` for account or workspace-scoped commands such as listing projects or linking
+without an existing project token. Set only one of these variables in a shell. Keep tokens in the
+local shell or ignored env files, and never commit them.
 
 ## Railpack Configuration
 
@@ -169,10 +179,11 @@ If logs show `failed to calculate checksum of ref ... "/app/node_modules": not f
 If Railway deploys successfully but the app returns 502:
 1. Check Railway logs for server startup errors or crash traces.
 2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
-3. Confirm the database is reachable — Railway Postgres may require SSL:
+3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.
+4. Confirm the database is reachable — Railway Postgres may require SSL:
    - The `pg` Pool in `src/lib/db/index.ts` uses `{ connectionString: url, max: 10 }` without SSL.
    - Add `ssl: { rejectUnauthorized: false }` when the hostname contains `railway.app` or `neon.tech`.
-4. Check `/api/health` JSON for `database: "ready"` after startup:
+5. Check `/api/health` JSON for `database: "ready"` after startup:
    - Railway receives HTTP 200 from the liveness healthcheck while database readiness is reported in
      the response body.
    - Use `POST /api/health` for a strict readiness check that returns 503 while the database is not

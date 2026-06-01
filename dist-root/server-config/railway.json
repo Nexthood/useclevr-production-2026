@@ -6,7 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": "node ./scripts/runtime/railway-predeploy.cjs",
-    "startCommand": "bash start.sh",
+    "startCommand": "sh start.sh",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",

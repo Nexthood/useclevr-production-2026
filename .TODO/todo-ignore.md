@@ -23,3 +23,20 @@ moving work between states.
 - T-452. Retire `.TODO/todo-analysis.md` — detailed codebase analysis folded into regular TODO queue. Items already addressed by prior tasks; remaining findings moved to todo-next.md and todo-future.md.
 - T-453. Accept tsconfig `target: "ES6"` — Next.js handles transpilation internally; changing target has no practical effect on output.
 - T-454. Ensures reproducible builds for production and test builds.
+
+[additional test ]
+- T-473. Verify /api/health returns OK after every deploy.
+- T-474. Verify Railway production starts from a fresh deploy.
+- T-475. Check runtime logs after deploy, not only build logs.
+- T-476. Test Stripe checkout from pricing page and billing page.
+- T-477. Test Stripe webhook delivery and subscription status update.
+- T-478. Confirm all pages show the same pricing.
+- T-479. Test login, signup, logout, and session refresh.
+- T-480. Test dataset upload with normal CSV.
+- T-481. Test dataset upload with bad/dirty CSV.
+- T-482. Test AI chat using uploaded dataset context.
+- T-483. Test dataset generation after upload.
+- T-484. Test admin/superadmin access.
+- T-485. Test subscription access limits.
+- T-486. Test failed payment / unpaid subscription handling.
+- T-487. Run production smoke test before each main deploy.
