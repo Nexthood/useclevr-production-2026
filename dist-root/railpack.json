@@ -1,3 +1,12 @@
 {
-  "providers": ["node"]
+  "provider": "node",
+  "steps": {
+    "install": {
+      "commands": ["echo 'dependencies pre-installed in standalone bundle'"]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": ["echo prebuilt"]
+    }
+  }
 }

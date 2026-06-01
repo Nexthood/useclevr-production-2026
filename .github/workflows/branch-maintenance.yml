@@ -76,7 +76,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.x
+
+      - name: Enable corepack and install pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        shell: bash
+        run: pnpm install --frozen-lockfile
 
       - name: Build production artifacts
         run: pnpm prod:build
@@ -114,9 +127,8 @@ jobs:
       - name: Clean build output before publish
         run: |
           cd dist
-          rm -f pnpm-workspace.yaml pnpm-lock.yaml
+          rm -f pnpm-workspace.yaml pnpm-lock.yaml yarn.lock
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); delete p.packageManager; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
-          npm install --package-lock-only --no-optional --no-audit --no-fund
           cd ..
 
           rm -f pnpm-workspace.yaml

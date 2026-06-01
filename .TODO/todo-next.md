@@ -15,8 +15,7 @@ moving work between states.
 
 ## Active
 
-* T-436 Optimize CHANGELOG.md [Unreleased] section: reorder sections, optimize entries for present-action language and user benefit.
-
+*No active tasks — suggestions below are pending review.*
 ## Suggestions
 
 *No pending suggestions.*

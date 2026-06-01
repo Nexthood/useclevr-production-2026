@@ -186,12 +186,40 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Write railpack.json so Railpack uses instead of auto-detecting pnpm from
-// the dist-branch root files (packages.json / pnpm-lock.yaml at parent level).
+// Remove .pnpm directory from node_modules — Railpack detects pnpm from its presence
+// even when a package-lock.json is present and no other pnpm indicators exist.
+const pnpmDir = path.join(distDir, "node_modules", ".pnpm");
+if (fs.existsSync(pnpmDir)) {
+  fs.rmSync(pnpmDir, { recursive: true, force: true });
+}
+
+// Write railpack.json to declare the Node.js provider explicitly.
 const railpackConfig = {
-  providers: ["node"],
+  provider: "node",
+  steps: {
+    install: {
+      commands: ["echo 'dependencies pre-installed in standalone bundle'"],
+    },
+    build: {
+      inputs: [{ step: "install" }],
+      commands: ["echo prebuilt"],
+    },
+  },
 };
 fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
+
+// Write a minimal package-lock.json so Railpack detects npm (not pnpm)
+// as the package manager when no lockfile is present.
+const packageLock = {
+  name: "useclevr-2026-dist",
+  lockfileVersion: 3,
+  requires: true,
+  packages: {},
+};
+fs.writeFileSync(
+  path.join(distDir, "package-lock.json"),
+  JSON.stringify(packageLock, null, 2) + "\n",
+);
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/bash
