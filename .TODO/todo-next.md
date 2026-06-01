@@ -32,3 +32,9 @@ moving work between states.
 - T-449. Data processing flow uses external placeholder images — add fallback and alt text.
 - T-450. LLM client (antigravity-client.ts) uses raw fetch with no deduplication or timeout — use Next.js extended fetch or dedicated client.
 - T-451. Align build tooling: tsconfig target should be ES2022 (not ES6), and decide between Turbopack and webpack in next.config.mjs.
+- T-455. Add Zod request body validation to remaining POST API routes (auto-questions, checkout, compare, datasets, forecast, insight, query, referral, reports, suggestions, tickets, workspaces).
+- T-456. Add pagination controls to dataset detail page for browsing beyond the 100-row preview limit.
+- T-457. Replace in-memory Map in upload route retry helper with persistent retry tracking across serverless restarts.
+- T-459. Add database connection health check and cold-start detection to `/api/health` endpoint.
+- T-460. Add server-side PDF invoice generation to move heavy client dependencies (canvg, html2canvas, jspdf) out of browser bundle.
+- T-461. Add WebSocket-based real-time notifications for dataset upload completion, analysis results, and background job status.
