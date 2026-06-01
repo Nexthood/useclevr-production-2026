@@ -196,6 +196,15 @@ if (fs.existsSync(pnpmDir)) {
 // Write railpack.json to declare the Node.js provider explicitly.
 const railpackConfig = {
   provider: "node",
+  steps: {
+    install: {
+      commands: ["echo 'dependencies pre-installed in standalone bundle'"],
+    },
+    build: {
+      inputs: [{ step: "install" }],
+      commands: ["echo prebuilt"],
+    },
+  },
 };
 fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
 
