@@ -97,7 +97,7 @@ jobs:
       - name: Clean build output before publish
         run: |
           cd dist
-          rm -f pnpm-workspace.yaml pnpm-lock.yaml package-lock.json
+          rm -f pnpm-workspace.yaml pnpm-lock.yaml yarn.lock
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); delete p.packageManager; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
           cd ..
 
@@ -226,8 +226,8 @@ jobs:
             exit 1
           fi
 
-          if [ -f "dist/package-lock.json" ] || [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ]; then
-            echo "Error: generated dist-test output must not publish package-manager lockfiles."
+          if [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ]; then
+            echo "Error: generated dist-test output must not publish pnpm or yarn lockfiles."
             exit 1
           fi
 
