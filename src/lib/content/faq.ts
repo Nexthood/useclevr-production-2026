@@ -1,9 +1,16 @@
 // Shared FAQ content — single source of truth for both the homepage
 // inline accordion and the full /faq page.
-//
+// 
 // To migrate to a CMS: replace this file with a fetch() call to your
 // CMS REST endpoint (e.g. Contentful, Sanity, Strapi) and keep the
 // `FaqCategory` type as the wire format contract.
+
+import { billingPlans } from "@/lib/billing/plans"
+
+const _freePlan = billingPlans.find(p => p.id === "free")!;
+const _proMonthlyPlan = billingPlans.find(p => p.id === "pro_monthly")!;
+const _proAnnualPlan = billingPlans.find(p => p.id === "pro_annual")!;
+const _businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
 
 export interface FaqItem {
   q: string
@@ -98,14 +105,14 @@ export const allFaqCategories: FaqCategory[] = [
         q: "I see an unexpected charge. What now?",
         a: "Check your account and subscription details first, then contact support. Contact your card issuer if the charge looks unauthorized.",
       },
-      {
-        q: "What is the Pro Annual plan?",
-        a: "The Pro Annual plan charges €400 per year (€33/month equivalent) with an automatic yearly discount of €80 compared to monthly billing.",
-      },
-      {
-        q: "Can I get a custom business plan?",
-        a: "Yes. The Business / Custom plan starts at €420/month and scales with your needs. Contact sales@useclevr.com for custom pricing, private SLAs, or on-premise deployment.",
-      },
+       {
+         q: "What is the Pro Annual plan?",
+         a: `The Pro Annual plan charges €${_proAnnualPlan.price} per year (€${(_proAnnualPlan.price / 12).toFixed(0)}/month equivalent) with an automatic yearly discount of €${((_proMonthlyPlan.price * 12) - _proAnnualPlan.price).toFixed(0)} compared to monthly billing.`,
+       },
+       {
+         q: "Can I get a custom business plan?",
+         a: `Yes. The Business / Custom plan starts at €${_businessPlan.price}/month and scales with your needs. Contact sales@useclevr.com for custom pricing, private SLAs, or on-premise deployment.`,
+       },
       {
         q: "Will I be charged on my billing day?",
         a: "Yes. Subscriptions renew automatically on the scheduled billing date.",

@@ -1,10 +1,26 @@
 import { Card } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { PageActionRow } from "@/components/ui/page-action-row"
+import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"
-import { DollarSign, FileText, MapPin } from "lucide-react"
+import {
+  ArrowRight,
+  Banknote,
+  BookOpenCheck,
+  Calculator,
+  CheckCircle2,
+  DollarSign,
+  FileText,
+  Landmark,
+  MapPin,
+  ReceiptText,
+  Scale,
+  Upload,
+} from "lucide-react"
 import Link from "next/link"
+import type React from "react"
 
 export const metadata = {
   title: "Accountancy - UseClevr",
@@ -39,8 +55,54 @@ export default async function AccountancyPage() {
     }
   }
 
+  const readiness = Math.round((activeDatasets / Math.max(totalBusinesses, 1)) * 100)
+  const bookkeepingRows = [
+    {
+      id: "bank-reconciliation",
+      title: "Bank reconciliation",
+      description:
+        activeDatasets > 0
+          ? "Match imported statements against dataset totals."
+          : "Upload a bank export to start matching statement rows.",
+      status: activeDatasets > 0 ? "Ready" : "Needs data",
+      href: "/app/upload",
+    },
+    {
+      id: "expense-coding",
+      title: "Expense coding",
+      description: "Review uncategorised payments, supplier costs, and tax categories.",
+      status: activeDatasets > 0 ? "Available" : "Needs data",
+      href: "/app/accountancy/reporting",
+    },
+    {
+      id: "monthly-close",
+      title: "Monthly close",
+      description:
+        totalBusinesses > 0
+          ? "Track close steps for business profiles with connected records."
+          : "Add a business profile before closing monthly books.",
+      status: totalBusinesses > 0 ? "Ready" : "Needs profile",
+      href: totalBusinesses > 0 ? "/app/accountancy/compliance" : "/app/business",
+    },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <PageActionRow description="Keep bookkeeping records, tax checks, and monthly reporting in one accounting workspace.">
+        <Link href="/app/upload">
+          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
+            <Upload className="h-4 w-4" />
+            Upload statement
+          </span>
+        </Link>
+        <Link href="/app/accountancy/compliance">
+          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground">
+            <CheckCircle2 className="h-4 w-4" />
+            Review close
+          </span>
+        </Link>
+      </PageActionRow>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5 bg-card border-border">
           <div className="flex items-center gap-3">
@@ -72,18 +134,63 @@ export default async function AccountancyPage() {
               <MapPin className="h-6 w-6 text-purple-800 dark:text-purple-100" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{Math.round((activeDatasets / Math.max(totalBusinesses, 1)) * 100)}%</p>
+              <p className="text-2xl font-bold text-foreground">{readiness}%</p>
               <p className="text-sm text-muted-foreground">Ready for analysis</p>
             </div>
           </div>
         </Card>
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+        <Card className="border-border bg-card p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Bookkeeping workspace</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Track bank reconciliation, expense coding, monthly close, and tax-ready records.
+              </p>
+            </div>
+            <BookOpenCheck className="h-5 w-5 flex-shrink-0 text-primary" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <BookkeepingFeature icon={Banknote} title="Cash movement" text="Review bank, card, revenue, and expense imports." />
+            <BookkeepingFeature icon={ReceiptText} title="Receipts" text="Keep source documents tied to imported records." />
+            <BookkeepingFeature icon={Scale} title="Reconciliation" text="Compare statement totals with uploaded business data." />
+            <BookkeepingFeature icon={Calculator} title="Tax prep" text="Surface VAT, sales tax, and filing context from profile data." />
+          </div>
+        </Card>
+
+        <Card className="border-border bg-card p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Monthly close</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Current readiness for accounting review.</p>
+            </div>
+            <Landmark className="h-5 w-5 flex-shrink-0 text-primary" />
+          </div>
+          <div className="space-y-3">
+            <CloseStep label="Business profile" complete={totalBusinesses > 0} href="/app/business" />
+            <CloseStep label="Financial dataset" complete={activeDatasets > 0} href="/app/upload" />
+            <CloseStep label="Tax context" complete={totalBusinesses > 0} href="/app/accountancy/tax" />
+          </div>
+        </Card>
+      </div>
+
+      <DataTable
+        title="Bookkeeping queue"
+        description="Current bookkeeping work with direct links to the next action."
+        emptyMessage="No bookkeeping tasks available."
+        rows={bookkeepingRows}
+        columns={bookkeepingColumns}
+        rowKey={(row) => String(row.id)}
+        minWidth="min-w-[760px]"
+      />
+
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-6 bg-card border-border">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Financial Overview</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Connect financial data to enable automated tax calculations and reporting.
+        <Card className="p-5 bg-card border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Financial overview</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Connect financial data for bookkeeping, tax calculations, and reporting.
           </p>
           <div className="space-y-2">
             <Link
@@ -107,11 +214,11 @@ export default async function AccountancyPage() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-card border-border">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+        <Card className="p-5 bg-card border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Quick actions</h2>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Upload profit/loss statements or import accounting data for automated insights.
+              Upload profit/loss statements, bank exports, receipts, or accounting data for automated bookkeeping insights.
             </p>
             <Link
               href="/app/upload"
@@ -125,3 +232,77 @@ export default async function AccountancyPage() {
     </div>
   )
 }
+
+function BookkeepingFeature({
+  icon: Icon,
+  title,
+  text,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  text: string
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background p-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <Icon className="h-4 w-4 text-primary" />
+        {title}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">{text}</p>
+    </div>
+  )
+}
+
+function CloseStep({ label, complete, href }: { label: string; complete: boolean; href: string }) {
+  return (
+    <Link href={href} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3 transition hover:border-primary/50 hover:bg-muted">
+      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <CheckCircle2 className={`h-4 w-4 ${complete ? "text-green-500" : "text-amber-500"}`} />
+        {label}
+      </span>
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        {complete ? "Ready" : "Open"}
+        <ArrowRight className="h-3.5 w-3.5" />
+      </span>
+    </Link>
+  )
+}
+
+const bookkeepingColumns: DataTableColumn<Record<string, unknown>>[] = [
+  {
+    key: "title",
+    header: "Bookkeeping area",
+    render: (row) => (
+      <div>
+        <Link href={String(row.href)} className="font-medium text-foreground transition hover:text-primary">
+          {String(row.title)}
+        </Link>
+        <div>
+          <Link href={String(row.href)} className="text-xs text-primary hover:underline">
+            Open
+          </Link>
+        </div>
+        <p className="text-xs text-muted-foreground">{String(row.description)}</p>
+      </div>
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (row) => (
+      <span className="inline-flex rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+        {String(row.status)}
+      </span>
+    ),
+  },
+  {
+    key: "action",
+    header: "Action",
+    align: "right",
+    render: (row) => (
+      <Link href={String(row.href)} className="text-xs font-medium text-primary hover:underline">
+        Continue
+      </Link>
+    ),
+  },
+]

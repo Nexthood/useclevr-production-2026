@@ -63,11 +63,10 @@ export function BusinessProfileForm() {
 
     const result = await updateBusinessDetails(new FormData(event.currentTarget))
 
-    if (result.error) {
+    if (!result.success) {
       showNotice({ type: "error", title: "Not saved.", message: result.error })
     } else {
-      showNotice({ type: "success", title: result.message || "Business details saved." })
-      router.refresh()
+      showNotice({ type: "success", title: result.data.message || "Business details saved." })
     }
     setIsSaving(false)
   }

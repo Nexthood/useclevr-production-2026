@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { BillingSettings } from "@/lib/billing/settings-store"
-import { Loader2, Save } from "lucide-react"
+import { Loader2, RefreshCw, Save } from "lucide-react"
 import * as React from "react"
 
 export function BillingSettingsForm({ initialSettings }: { initialSettings: BillingSettings }) {
@@ -150,6 +150,8 @@ export function BillingSettingsForm({ initialSettings }: { initialSettings: Bill
         </Button>
         {status && <p className="text-sm text-muted-foreground">{status}</p>}
       </div>
+
+      <StripeEventReplay />
     </div>
   )
 }
@@ -161,6 +163,58 @@ function CreditInput({ label, value, onChange }: { label: string; value: number;
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} type="number" min={0} value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  )
+}
+
+function StripeEventReplay() {
+  const [eventId, setEventId] = React.useState("")
+  const [replaying, setReplaying] = React.useState(false)
+  const [result, setResult] = React.useState<string | null>(null)
+
+  const replay = async () => {
+    if (!eventId.trim()) return
+    setReplaying(true)
+    setResult(null)
+    try {
+      const response = await fetch("/api/admin/replay-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: eventId.trim() }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Replay failed")
+      setResult(`Replayed: ${data.type} — synced: ${data.synced}`)
+      setEventId("")
+    } catch (error) {
+      setResult(error instanceof Error ? error.message : "Replay failed")
+    } finally {
+      setReplaying(false)
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-4">
+      <p className="text-sm font-semibold text-foreground mb-3">Replay Stripe Event</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Re-fire a missed Stripe event (checkout, subscription update) for manual reconciliation after billing downtime.
+      </p>
+      <div className="flex gap-3 items-end">
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="replay-event-id">Stripe Event ID</Label>
+          <Input
+            id="replay-event-id"
+            placeholder="evt_..."
+            value={eventId}
+            onChange={(event) => setEventId(event.target.value)}
+          />
+        </div>
+        <Button onClick={replay} disabled={replaying || !eventId.trim()}>
+          {replaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          Replay
+        </Button>
+      </div>
+      {result && <p className="mt-3 text-sm text-muted-foreground">{result}</p>}
     </div>
   )
 }

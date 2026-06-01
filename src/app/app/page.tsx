@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"

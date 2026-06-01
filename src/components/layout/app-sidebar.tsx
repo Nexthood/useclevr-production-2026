@@ -6,8 +6,6 @@ import {
   Award,
   BarChart3,
   Building2,
-  ChevronLeft,
-  ChevronRight,
   Database,
   FileText,
   Gift,
@@ -48,8 +46,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
   }, [pathname])
 
   useEffect(() => {
+    const stored = localStorage.getItem("useclevr_sidebar_collapsed")
+    if (stored === "true") {
+      setIsCollapsed(true)
+    }
+
+    const handleToggle = (e: CustomEvent) => {
+      setIsCollapsed(e.detail.collapsed)
+    }
+    window.addEventListener("useclevr:sidebar-toggle", handleToggle as EventListener)
+    return () => window.removeEventListener("useclevr:sidebar-toggle", handleToggle as EventListener)
+  }, [])
+
+  useEffect(() => {
     document.documentElement.style.setProperty("--app-sidebar-width", isCollapsed ? "72px" : "220px")
-    return () => document.documentElement.style.setProperty("--app-sidebar-width", "220px")
   }, [isCollapsed])
 
   const adminNavItems =
@@ -63,18 +73,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   const sidebarContent = (
     <>
-      <div className="hidden border-b border-sidebar-border px-3 py-3 md:block">
-        <button
-          type="button"
-          onClick={() => setIsCollapsed((value) => !value)}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-sidebar-border bg-sidebar text-xs font-medium text-sidebar-foreground transition hover:bg-sidebar-accent"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          {!isCollapsed && <span>Collapse</span>}
-        </button>
-      </div>
-
       <div className="border-b border-sidebar-border px-4 py-3 md:hidden">
         <Link href="/" className="flex h-14 items-center">
           <Logo className="h-12 w-auto" />

@@ -1,7 +1,7 @@
 import { debugError } from "@/lib/utils/debug"
 
 import { DatasetsClient } from "@/components/dataset/datasets-client"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
 import { datasets, users } from "@/lib/db/schema"
 import { desc, eq } from "drizzle-orm"

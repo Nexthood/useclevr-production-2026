@@ -1,7 +1,7 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/reports/generate/route.ts
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';

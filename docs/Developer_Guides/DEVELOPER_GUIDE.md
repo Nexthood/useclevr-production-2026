@@ -342,9 +342,12 @@ pnpm dev
 
 ## CI / GitHub Actions
 
-Workflow file: `.github/workflows/ci.yml`
+Workflow file: `.github/workflows/ci.yml` (validates both `main` and `beta` branches)
 
-On every push to `main` and every PR, the required job runs:
+A PostgreSQL 17 service container runs alongside the build job so database-dependent steps (schema
+push, build with DB imports) can execute without a permanent database. Production and preview
+deployments connect to an external Neon PostgreSQL instance — the CI ephemeral Postgres is
+build-time only.
 
 | Job                                    | Runs    | Steps                                            |
 | -------------------------------------- | ------- | ------------------------------------------------ |

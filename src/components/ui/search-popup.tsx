@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, BarChart3, Database, FileQuestion, HelpCircle, SearchIcon, Send, Settings, Ticket, X } from "lucide-react"
 import Link from "next/link"
-import { useState, useRef, useEffect } from "react"
+import { useCallback, useState, useRef, useEffect } from "react"
 
 export function Search() {
   const [open, setOpen] = useState(false)
@@ -14,6 +14,8 @@ export function Search() {
   const [hasSearched, setHasSearched] = useState(false)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const previousBodyOverflowRef = useRef<string | null>(null)
   const quickLinks = [
     { href: "/app/datasets", label: "Datasets", description: "Open uploaded files and tables.", icon: Database },
     { href: "/app/upload", label: "Upload", description: "Add a CSV dataset.", icon: BarChart3 },
@@ -23,7 +25,12 @@ export function Search() {
     { href: "/app/settings/profile", label: "Settings", description: "Manage account and profile.", icon: Settings },
   ]
   const [activeResultIndex, setActiveResultIndex] = useState(-1)
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const resultListRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const resultTypes = ["page", "dataset", "report", "faq", "data"] as const
+  const filteredResults = typeFilter ? results.filter((r) => r.type === typeFilter) : results
 
   // Cmd+K / Ctrl+K to open search
   useEffect(() => {
@@ -41,15 +48,22 @@ export function Search() {
   // Handle opening the search
   useEffect(() => {
     if (open) {
-      // Focus the input when search opens
+      previousBodyOverflowRef.current = document.body.style.overflow
       searchInputRef.current?.focus()
-      // Prevent background scrolling
       document.body.style.overflow = 'hidden'
     } else {
-      // Return focus to the search button when closed
+      if (previousBodyOverflowRef.current !== null) {
+        document.body.style.overflow = previousBodyOverflowRef.current
+        previousBodyOverflowRef.current = null
+      }
       searchButtonRef.current?.focus()
-      // Re-enable background scrolling
-      document.body.style.overflow = ''
+    }
+
+    return () => {
+      if (previousBodyOverflowRef.current !== null) {
+        document.body.style.overflow = previousBodyOverflowRef.current
+        previousBodyOverflowRef.current = null
+      }
     }
   }, [open])
 
@@ -71,7 +85,7 @@ export function Search() {
   useEffect(() => {
     if (!open) return
 
-    const overlay = document.querySelector('.fixed inset-0 z-[220] bg-background') as HTMLElement | null
+    const overlay = overlayRef.current
     if (!overlay) return
 
     // Get all focusable elements within the overlay
@@ -131,12 +145,12 @@ export function Search() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, results, activeResultIndex])
 
-  async function handleSearch() {
-    if (!query.trim() || isSearching) return
+  const handleSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim() || isSearching) return
     setIsSearching(true)
     setHasSearched(true)
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
       const data = await response.json()
       setResults(Array.isArray(data.results) ? data.results : [])
     } catch {
@@ -144,27 +158,50 @@ export function Search() {
     } finally {
       setIsSearching(false)
     }
-  }
+  }, [isSearching])
+
+  // Debounced auto-search as user types
+  useEffect(() => {
+    if (!open || !query.trim()) {
+      setResults([])
+      setHasSearched(false)
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      handleSearch(query)
+    }, 300)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [query, open, handleSearch])
 
   return (
     <>
-      <Button
-        ref={searchButtonRef}
-        variant="ghost"
-        size="icon"
-        onClick={() => setOpen(true)}
-        aria-label="Search"
-        className="h-full min-w-12 gap-1 rounded-none px-2"
-        title="Search (Cmd+K)"
-      >
+  <Button
+    ref={searchButtonRef}
+    variant="ghost"
+    size="icon"
+    onClick={() => setOpen(!open)}
+    aria-label={open ? "Close search" : "Search"}
+    className="h-full min-w-12 gap-1 rounded-none px-2"
+    title="Search (Cmd+K)"
+  >
+    {open ? (
+      <X className="h-4 w-4" />
+    ) : (
+      <>
         <SearchIcon className="h-4 w-4" />
         <kbd className="hidden text-[10px] text-muted-foreground/50 lg:inline-flex items-center gap-0.5 rounded border border-border/50 px-1 font-mono">
           <span>⌘</span>K
         </kbd>
-      </Button>
+      </>
+    )}
+  </Button>
 
       {open && (
         <div
+          ref={overlayRef}
           className="fixed inset-0 z-[220] bg-background"
           role="dialog"
           aria-modal="true"
@@ -185,7 +222,7 @@ export function Search() {
               className="flex gap-2 border-b border-border py-4"
               onSubmit={(event) => {
                 event.preventDefault()
-                void handleSearch()
+                void handleSearch(query)
               }}
             >
               <Input
@@ -204,8 +241,32 @@ export function Search() {
 
             <div className="min-h-0 flex-1 overflow-y-auto py-4">
               {results.length > 0 ? (
-                <div ref={resultListRef} className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                  {results.map((result, index) => (
+                <>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTypeFilter(null)}
+                      className={`rounded-md px-3 py-1 text-xs font-medium transition ${typeFilter === null ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                    >
+                      All
+                    </button>
+                    {resultTypes.map((t) => {
+                      const count = results.filter((r) => r.type === t).length
+                      if (count === 0) return null
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setTypeFilter(t)}
+                          className={`rounded-md px-3 py-1 text-xs font-medium transition ${typeFilter === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                        >
+                          {t.charAt(0).toUpperCase() + t.slice(1)} ({count})
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div ref={resultListRef} className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                  {filteredResults.map((result, index) => (
                     <Link
                       key={result.id}
                       href={result.href}
@@ -231,6 +292,7 @@ export function Search() {
                     </Link>
                   ))}
                 </div>
+                </>
               ) : hasSearched ? (
                 <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
                   <FileQuestion className="h-8 w-8 text-muted-foreground" />

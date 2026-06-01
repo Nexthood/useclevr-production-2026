@@ -9,6 +9,10 @@
 This project keeps server-host config templates separate from GitHub Actions workflow files so hosts
 can be replaced without reshaping the CI pipeline.
 
+The database layer uses Neon PostgreSQL (external, cloud-hosted) in production and preview
+deployments. CI workflows use ephemeral PostgreSQL 17 service containers for build-time schema
+validation — the Neon instance is never accessed from CI.
+
 ## Ownership
 
 | Path                                    | Owner                            | Published location                                                                              |

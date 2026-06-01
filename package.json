@@ -58,7 +58,7 @@
     "clean:generated": "node ./scripts/build/clean-generated.cjs --generated",
     "clean:all": "node ./scripts/build/clean-generated.cjs --all",
     "clean": "pnpm clean:all && rm -rf dist .next",
-    "lint": "pnpm lint:package && pnpm lint:todos && pnpm lint:workflows && eslint . --ext .ts,.tsx,.mjs",
+    "lint": "pnpm lint:package && pnpm lint:todos && pnpm lint:workflows && node ./scripts/validate-pricing.js && eslint . --ext .ts,.tsx,.mjs",
     "lint:fix": "eslint . --ext .ts,.tsx,.mjs --fix",
     "lint:all": "pnpm lint && pnpm lint:deps",
     "lint:changelog": "node ./scripts/check-unreleased.js && node ./scripts/check-changelog.js",

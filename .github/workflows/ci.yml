@@ -2,36 +2,23 @@ name: Validate Source
 
 on:
   push:
-    branches: [main]
+    branches: [main, beta]
   pull_request:
-    branches: [main]
+    branches: [main, beta]
   workflow_dispatch:
 
 jobs:
   validate-source-and-build:
     name: Validate source and production build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "26.x"
-
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.5.0 --activate
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm validate:types
-      - run: pnpm validate:dist
-      - run: pnpm lint:package
-      - run: pnpm test:all
-      - run: pnpm build
-        env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    uses: ./.github/workflows/validate.yml
+    with:
+      run_command: |
+        pnpm validate:types
+        pnpm validate:dist
+        pnpm lint:package
+        pnpm test:all
+        pnpm build
+      needs_postgres: true
 
   docs:
     runs-on: ubuntu-latest
@@ -39,14 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "26.x"
+      - uses: ./.github/actions/setup
 
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.5.0 --activate
-
-      - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

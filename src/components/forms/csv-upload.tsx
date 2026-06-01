@@ -1,6 +1,5 @@
 "use client"
 
-import { uploadCSV } from "@/app/actions/upload"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
@@ -16,6 +15,20 @@ const UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
 
 interface _CsvRow {
   [key: string]: string | number | boolean | null | undefined
+}
+
+type UploadResponse = {
+  success?: boolean
+  error?: string
+  message?: string
+  datasetId?: string
+  redirectTo?: string
+  fileName?: string
+  usage?: {
+    limitReached?: boolean
+    analysisCount?: number
+    total?: number
+  }
 }
 
 export function CsvUpload() {
@@ -189,12 +202,16 @@ export function CsvUpload() {
 
     try {
       debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)
-      const result = await uploadCSV(formData)
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const result = (await response.json()) as UploadResponse
       debugLog('[CSV-UPLOAD] Result:', result)
       
       if (progressInterval) clearInterval(progressInterval)
 
-      if (result.success) {
+      if (response.ok && result.success) {
         debugLog('[CSV-UPLOAD] Success! Redirecting to:', result.redirectTo)
         setUploadProgress(100)
         setUploadStatus("success")
@@ -218,7 +235,8 @@ export function CsvUpload() {
           window.location.href = redirectPath
         }, 2000)
       } else {
-        debugLog('[CSV-UPLOAD] Failed:', result.error)
+        const uploadError = result.error || result.message || "Upload failed"
+        debugLog('[CSV-UPLOAD] Failed:', uploadError)
         // Only queue if truly offline (API unreachable and no local AI)
         if (isOffline) {
           setUploadStatus("offline")
@@ -232,7 +250,7 @@ export function CsvUpload() {
           })
         } else {
           setUploadStatus("error")
-          setErrorMessage(result.error || "Upload failed")
+          setErrorMessage(uploadError)
           setProcessingStep(0)
           if (result.usage?.limitReached) {
             showNotice({

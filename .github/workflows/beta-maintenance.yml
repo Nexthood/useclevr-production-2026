@@ -27,6 +27,21 @@ jobs:
     name: Publish dist-test deployment folder
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Guard beta or dispatch only
         run: |
@@ -44,24 +59,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "26.x"
-
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.5.0 --activate
-
-      - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile --no-optional
-          pnpm dedupe --no-optional
+      - uses: ./.github/actions/setup
 
       - name: Build production artifacts
         run: pnpm prod:build
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
       - name: Smoke test generated server
         working-directory: dist
@@ -70,9 +73,11 @@ jobs:
           pid=$!
 
           # Wait for server to be ready with retries
+          server_started=false
           for i in {1..15}; do
             if curl -fsS http://127.0.0.1:8090/api/health >/dev/null 2>&1; then
               echo "Server is healthy!"
+              server_started=true
               break
             fi
             echo "Waiting for server to start... (attempt $i/15)"
@@ -80,18 +85,24 @@ jobs:
           done
 
           kill "$pid" >/dev/null 2>&1 || true
+
+          if [ "$server_started" = false ]; then
+            echo "Server failed to start. Smoke test output:"
+            cat /tmp/useclevr-dist-smoke.log
+            exit 1
+          fi
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
       - name: Clean build output before publish
         run: |
           cd dist
-          rm -f pnpm-workspace.yaml pnpm-lock.yaml
+          rm -f pnpm-workspace.yaml pnpm-lock.yaml package-lock.json
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); delete p.packageManager; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
-          npm install --package-lock-only --no-optional --no-audit --no-fund
           cd ..
 
           rm -f pnpm-workspace.yaml
+          rm -f dist/package-lock.json
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/.cache
@@ -212,6 +223,11 @@ jobs:
 
           if [ -f "dist/railway.json" ] || [ -f "dist/vercel.json" ]; then
             echo "Error: host config files must not be published inside dist/."
+            exit 1
+          fi
+
+          if [ -f "dist/package-lock.json" ] || [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ]; then
+            echo "Error: generated dist-test output must not publish package-manager lockfiles."
             exit 1
           fi
 

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { debugError } from "@/lib/utils/debug"

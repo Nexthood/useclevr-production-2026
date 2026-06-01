@@ -76,12 +76,12 @@ export function PopoverContent({
       <button
         type="button"
         aria-label="Close popover"
-        className="fixed inset-0 z-40 cursor-default"
+        className="fixed inset-0 z-[1000] cursor-default"
         onClick={() => setOpen(false)}
       />
       <div
         className={[
-          "absolute top-full z-50 mt-2 rounded-lg border border-border bg-popover p-4 text-popover-foreground shadow-lg",
+          "absolute top-full z-[1010] mt-2 rounded-lg border border-border bg-popover p-4 text-popover-foreground shadow-2xl",
           alignClass,
           className,
         ].filter(Boolean).join(" ")}

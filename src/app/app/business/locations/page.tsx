@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { MapPin } from "lucide-react"
 

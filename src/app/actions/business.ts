@@ -1,7 +1,8 @@
 "use server"
 
 import { archiveBusiness, restoreBusiness } from "@/lib/business/business-store"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
+import { debugError } from "@/lib/utils/debug"
 import { revalidatePath } from "next/cache"
 
 export async function archiveBusinessAction(formData: FormData): Promise<void> {
@@ -11,8 +12,12 @@ export async function archiveBusinessAction(formData: FormData): Promise<void> {
 
   if (!userId || !id) return
 
-  await archiveBusiness(userId, id)
-  revalidatePath("/app/business")
+  try {
+    await archiveBusiness(userId, id)
+    revalidatePath("/app/business")
+  } catch (err) {
+    debugError("Failed to archive business:", err)
+  }
 }
 
 export async function restoreBusinessAction(formData: FormData): Promise<void> {
@@ -22,6 +27,10 @@ export async function restoreBusinessAction(formData: FormData): Promise<void> {
 
   if (!userId || !id) return
 
-  await restoreBusiness(userId, id)
-  revalidatePath("/app/business")
+  try {
+    await restoreBusiness(userId, id)
+    revalidatePath("/app/business")
+  } catch (err) {
+    debugError("Failed to restore business:", err)
+  }
 }

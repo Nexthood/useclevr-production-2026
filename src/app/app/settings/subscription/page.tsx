@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { formatPlanPrice } from "@/lib/billing/plans";
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";

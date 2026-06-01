@@ -1,9 +1,9 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { datasets, appSettings } from "@/lib/db/schema"
 import type { DatasetRecord } from "@/lib/data/dataset-intelligence"
 import { buildDatasetIntelligence, generateSuggestions } from "@/lib/data/dataset-intelligence"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
   try {
     const dataset = await db.query.datasets.findFirst({
-      where: eq(datasets.id, datasetId),
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, session.user.id)),
     })
 
     if (!dataset) {
@@ -41,17 +41,18 @@ export async function POST(request: Request) {
     const intelligence = buildDatasetIntelligence(data as DatasetRecord[])
     const newSuggestions = generateSuggestions(intelligence)
 
-    // Save to appSettings
     const savedSuggestions = newSuggestions.map((s) => ({
       id: `sug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       text: s,
       createdAt: new Date().toISOString(),
     }))
 
+    const userKey = `suggestions_${session.user.id}`
+
     await db
       .insert(appSettings)
       .values({
-        key: "suggestions_global",
+        key: userKey,
         value: savedSuggestions,
       })
       .onConflictDoUpdate({

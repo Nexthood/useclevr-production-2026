@@ -7,6 +7,10 @@ import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 import { Brain, Check, Download } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
+import { billingPlans } from "@/lib/billing/plans"
+
+const proPlan = billingPlans.find(p => p.id === "pro_monthly")!;
+const businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
 
 export default function HybridAiButton({
   subscriptionTier = "free",
@@ -92,21 +96,21 @@ export default function HybridAiButton({
             </div>
           ) : (
             <div className="space-y-3">
-              <PlanOption
-                title="Pro"
-                price="€40/month"
-                description="Includes Hybrid AI Lite, unlimited datasets, and report downloads."
-                productId="pro_monthly"
-                onNavigate={() => setOpen(false)}
-              />
-              <PlanOption
-                title="Business"
-                price="€420/month"
-                description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
-                productId="business_monthly"
-                secondary
-                onNavigate={() => setOpen(false)}
-              />
+               <PlanOption
+                 title="Pro"
+                 price={`€${proPlan.price}/month`}
+                 description="Includes Hybrid AI Lite, unlimited datasets, and report downloads."
+                 productId="pro_monthly"
+                 onNavigate={() => setOpen(false)}
+               />
+               <PlanOption
+                 title="Business"
+                 price={`€${businessPlan.price}/month`}
+                 description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
+                 productId="business_monthly"
+                 secondary
+                 onNavigate={() => setOpen(false)}
+               />
             </div>
           )}
         </div>

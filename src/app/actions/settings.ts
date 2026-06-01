@@ -1,50 +1,44 @@
 "use server"
 
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
+import { failure, type Result, success } from "@/lib/result"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
-type UpdateProfileResult = {
-  success?: boolean
-  error?: string
-  message?: string
-}
+type ProfileData = { message: string }
 
-export async function updateProfile(formData: FormData): Promise<UpdateProfileResult> {
+export async function updateProfile(formData: FormData): Promise<Result<ProfileData>> {
   const session = await auth()
   const userId = session?.user?.id
 
   if (!userId) {
-    return { error: "Please sign in again." }
+    return failure("Please sign in again.")
   }
 
   const fullName = String(formData.get("fullName") || "").trim()
   const email = String(formData.get("email") || "").trim().toLowerCase()
 
   if (!fullName) {
-    return { error: "Name is required." }
+    return failure("Name is required.")
   }
 
   if (!email || !email.includes("@")) {
-    return { error: "Use a valid email address." }
+    return failure("Use a valid email address.")
   }
 
   if (isBuiltinUserId(userId)) {
-    return {
-      success: true,
-      message: "Built-in account loaded. Changes are not saved for shared built-in accounts.",
-    }
+    return success({ message: "Built-in account loaded. Changes are not saved for shared built-in accounts." })
   }
 
   const db = getDb()
 
   if (!db) {
-    return { error: "Database connection is unavailable." }
+    return failure("Database connection is unavailable.")
   }
 
   const existingUser = await db.query.users.findFirst({
@@ -55,7 +49,7 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
   })
 
   if (existingUser && existingUser.id !== userId) {
-    return { error: "That email is already used by another account." }
+    return failure("That email is already used by another account.")
   }
 
   await db.update(users)
@@ -102,31 +96,25 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
   revalidatePath("/app/settings")
   revalidatePath("/app/settings/profile")
 
-  return { success: true, message: "Profile saved." }
+  return success({ message: "Profile saved." })
 }
 
 // ---------------------------------------------------------------------------
 // Business details
 // ---------------------------------------------------------------------------
 
-type UpdateBusinessResult = {
-  success?: boolean
-  error?: string
-  message?: string
-}
-
-export async function updateBusinessDetails(formData: FormData): Promise<UpdateBusinessResult> {
+export async function updateBusinessDetails(formData: FormData): Promise<Result<ProfileData>> {
   const session = await auth()
   const userId = session?.user?.id
 
-  if (!userId) return { error: "Please sign in again." }
+  if (!userId) return failure("Please sign in again.")
 
   if (isBuiltinUserId(userId)) {
-    return { success: true, message: "Built-in account loaded. Changes are not saved for shared built-in accounts." }
+    return success({ message: "Built-in account loaded. Changes are not saved for shared built-in accounts." })
   }
 
   const db = getDb()
-  if (!db) return { error: "Database connection is unavailable." }
+  if (!db) return failure("Database connection is unavailable.")
 
   const businessName        = String(formData.get("businessName") ?? "").trim()
   const businessEmail       = String(formData.get("businessEmail") ?? "").trim().toLowerCase()
@@ -194,5 +182,5 @@ export async function updateBusinessDetails(formData: FormData): Promise<UpdateB
   revalidatePath("/app/business/profile")
   revalidatePath("/app/business/review")
 
-  return { success: true, message: "Business details saved." }
+  return success({ message: "Business details saved." })
 }

@@ -1,15 +1,15 @@
 import { dashboardFaqCategories, superAdminFaqCategories } from "@/lib/content/dashboard-faq"
 import { allFaqCategories } from "@/lib/content/faq"
 import { getDb } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
+import { datasetRows, datasets } from "@/lib/db/schema"
 import { listAllReports } from "@/lib/reports/report-generator"
-import { and, ilike, or, eq } from "drizzle-orm"
+import { and, ilike, or, eq, asc } from "drizzle-orm"
 
 export type AppSearchRole = "user" | "demo" | "superadmin"
 
 export type AppSearchResult = {
   id: string
-  type: "page" | "dataset" | "report" | "faq"
+  type: "page" | "dataset" | "report" | "faq" | "data"
   title: string
   description?: string
   href: string
@@ -220,6 +220,33 @@ export async function searchApp({ query, userId, role, limit = 20 }: SearchInput
         href: `/app/datasets/${encodeURIComponent(dataset.id)}`,
       })),
     )
+
+    // Search dataset row content (configurable limit per dataset)
+    if (datasetMatches.length > 0) {
+      const MAX_ROWS_PER_DATASET = 1000
+      for (const ds of datasetMatches.slice(0, 5)) {
+        const rows = await db
+          .select({ data: datasetRows.data })
+          .from(datasetRows)
+          .where(and(eq(datasetRows.datasetId, ds.id), eq(datasetRows.datasetId, ds.id)))
+          .orderBy(asc(datasetRows.rowIndex))
+          .limit(MAX_ROWS_PER_DATASET)
+
+        for (const row of rows) {
+          const rowText = JSON.stringify(row.data).toLowerCase()
+          if (rowText.includes(normalizedQuery)) {
+            dynamicResults.push({
+              id: `data-${ds.id}-row`,
+              type: "data" as const,
+              title: `Data match in "${ds.name}"`,
+              description: `Row contains "${normalizedQuery}"`,
+              href: `/app/datasets/${encodeURIComponent(ds.id)}`,
+            })
+            break
+          }
+        }
+      }
+    }
   }
 
   try {
@@ -248,4 +275,27 @@ export async function searchApp({ query, userId, role, limit = 20 }: SearchInput
   }
 
   return Array.from(unique.values()).slice(0, limit)
+}
+
+export type AppSuggestResult = {
+  type: AppSearchResult["type"]
+  title: string
+  href: string
+}
+
+export async function searchSuggest(query: string, role: string | null | undefined): Promise<AppSuggestResult[]> {
+  const normalizedQuery = normalize(query)
+  if (!normalizedQuery || normalizedQuery.length < 2) return []
+
+  const isSuperAdmin = role === "superadmin"
+
+  return APP_PAGES
+    .filter((item) => roleCanSee(item.roles, role))
+    .filter((item) => matchesQuery(item, normalizedQuery))
+    .map(({ roles: _roles, keywords: _keywords, description: _desc, ...item }) => ({
+      type: item.type,
+      title: item.title,
+      href: item.href,
+    }))
+    .slice(0, 8)
 }

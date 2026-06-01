@@ -91,8 +91,6 @@ if (fs.existsSync(publicDir)) {
 
 // Load root package.json for syncing
 const rootPkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
-const distEngines = { ...rootPkg.engines };
-delete distEngines.pnpm;
 
 // Write main distribution README
 fs.writeFileSync(
@@ -143,7 +141,6 @@ const rootDistPackage = {
     "railway:predeploy": "node ./scripts/runtime/railway-predeploy.cjs",
   },
   dependencies: {},
-  engines: distEngines,
 };
 
 // Explicitly remove packageManager so Railpack never detects pnpm
@@ -171,14 +168,30 @@ for (const targetDir of [distDir]) {
   }
 }
 
-// Remove pnpm indicators so Railpack skips dependency installation.
-// Railpack detects pnpm from pnpm-lock.yaml, pnpm-workspace.yaml, .npmrc,
-// and the packageManager field in package.json.
-const pnpmFiles = ["pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc"];
-for (const f of pnpmFiles) {
+// Remove package-manager indicators so Railpack uses the prebuilt standalone bundle without
+// trying to install dependencies in the generated deployment folder.
+const packageManagerFiles = [
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "package-lock.json",
+  "yarn.lock",
+  "bun.lock",
+  "bun.lockb",
+  ".npmrc",
+  ".yarnrc.yml",
+  ".yarnrc.yaml",
+];
+for (const f of packageManagerFiles) {
   const fp = path.join(distDir, f);
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
+
+// Write railpack.json so Railpack uses instead of auto-detecting pnpm from
+// the dist-branch root files (packages.json / pnpm-lock.yaml at parent level).
+const railpackConfig = {
+  providers: ["node"],
+};
+fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/bash

@@ -19,7 +19,7 @@
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
 import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";
@@ -69,15 +69,14 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
     const top = sorted[0];
     const bottom = sorted[sorted.length - 1];
 
-    if (isRevenue || isRegion) {
-      const topPct = ((top[1].value / total) * 100).toFixed(1);
-      const second = sorted[1];
-      return {
-        insight: `${top[0]} generates the majority of revenue`,
-        explanation: `${top[0]} accounts for ${topPct}% of total revenue at ${top[1].value.toLocaleString()}. ${second ? second[0] + ' follows at ' + ((second[1].value / total) * 100).toFixed(1) + '%' : ''}.`,
-        recommendation: `Increase focus on ${top[0]} while developing growth strategies for other segments.`
-      };
-    }
+  if (isRevenue || isRegion) {
+    const topPct = ((top[1].value / total) * 100).toFixed(1);
+    return {
+      insight: `${top[0]} generates the majority of revenue`,
+      explanation: `${top[0]} accounts for ${topPct}% of total revenue.`,
+      recommendation: `Increase focus on ${top[0]} while developing growth strategies for other segments.`
+    };
+  }
 
     if (isTrend) {
       const firstVal = data[0] ? (data[0][numKey] || 0) : 0;

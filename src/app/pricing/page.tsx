@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { getPricingFaqs } from "@/lib/content/faq"
 import { Brain, Building2, Check, Cpu, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
+import { billingPlans } from "@/lib/billing/plans"
 
 export const metadata = {
   title: "Pricing Plans | UseClevr",
@@ -32,6 +33,11 @@ export const metadata = {
 }
 
 const pricingFaqs = getPricingFaqs()
+
+const freePlan = billingPlans.find(p => p.id === "free")!;
+const proMonthlyPlan = billingPlans.find(p => p.id === "pro_monthly")!;
+const proAnnualPlan = billingPlans.find(p => p.id === "pro_annual")!;
+const businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
 
 export default function PricingPage() {
   return (
@@ -68,10 +74,10 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold mb-1">Free</h3>
                     <p className="text-sm text-muted-foreground">Perfect for exploring</p>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight">€0</span>
-                    <span className="text-muted-foreground text-sm">/month</span>
-                  </div>
+                   <div className="flex items-baseline gap-1">
+                     <span className="text-4xl font-bold tracking-tight">€{freePlan.price}</span>
+                     <span className="text-muted-foreground text-sm">/month</span>
+                   </div>
                   <p className="text-sm text-muted-foreground">Forever free</p>
                 </div>
 
@@ -135,15 +141,15 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold mb-1">Pro</h3>
                     <p className="text-sm text-muted-foreground">For professionals & teams</p>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] bg-clip-text text-transparent">
-                      €40
-                    </span>
-                    <span className="text-muted-foreground text-sm">/month</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Billed monthly or €400/year <span className="font-medium text-cyan-800 dark:text-cyan-100">(save 17%)</span>
-                  </p>
+                   <div className="flex items-baseline gap-1">
+                     <span className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] bg-clip-text text-transparent">
+                       €{proMonthlyPlan.price}
+                     </span>
+                     <span className="text-muted-foreground text-sm">/month</span>
+                   </div>
+                   <p className="text-sm text-muted-foreground">
+                     Billed monthly or €{proAnnualPlan.price}/year <span className="font-medium text-cyan-800 dark:text-cyan-100">(save {Math.round(((proMonthlyPlan.price * 12) - proAnnualPlan.price) / (proMonthlyPlan.price * 12) * 100)}%)</span>
+                   </p>
                 </div>
 
                 <ul className="space-y-2">
@@ -245,10 +251,10 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold mb-1">Business / Custom</h3>
                     <p className="text-sm text-muted-foreground">For large organizations</p>
                   </div>
-                  <div className="flex flex-wrap items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight">€420</span>
-                    <span className="text-muted-foreground text-sm">/month</span>
-                  </div>
+                   <div className="flex flex-wrap items-baseline gap-1">
+                     <span className="text-4xl font-bold tracking-tight">€{businessPlan.price}</span>
+                     <span className="text-muted-foreground text-sm">/month</span>
+                   </div>
                   <p className="text-sm text-muted-foreground">Custom enterprise terms available</p>
                 </div>
 

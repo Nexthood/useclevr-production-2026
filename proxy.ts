@@ -1,7 +1,10 @@
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export default auth((request) => {
+type AuthenticatedRequest = NextRequest & { auth?: unknown };
+
+export default auth((request: AuthenticatedRequest) => {
   const isLoggedIn = !!request.auth;
   const pathname = request.nextUrl.pathname;
 

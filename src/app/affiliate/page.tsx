@@ -2,7 +2,7 @@ import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { ArrowRight, Check, Gift, Sparkles, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
 

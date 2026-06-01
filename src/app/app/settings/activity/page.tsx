@@ -1,5 +1,5 @@
 import { ActivityList } from "./activity-list"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { listUserActivities } from "@/lib/activity/activity-store"
 import { redirect } from "next/navigation"
 

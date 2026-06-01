@@ -16,6 +16,49 @@ moving work between states.
 
 ## Completed
 
+- T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist.
+- T-417. Consolidate `ci-beta.yml` into `ci.yml` — removes one workflow file and prevents duplicate CI runs on beta pushes.
+- T-418. Replace barrel re-export files with direct imports across all consuming modules.
+- T-419. Deployment manifest generation already present in `create-dist.cjs`.
+- T-420. Add Neon WebSocket connection pooling to `src/lib/db/index.ts`.
+- T-421. Extract duplicated CI job steps into shared reusable workflow and composite action.
+- T-422. Replace checkout URL session ID proof with server-issued one-time checkout token.
+- T-423. Add Stripe webhook event replay endpoint and admin panel component.
+- T-424. Store suggestions per-user instead of global key, with userId filter.
+- T-425. Add fire-and-forget suggestion refresh trigger after dataset upload.
+- T-426. Add full-text search across dataset row JSONB data in global search.
+- T-427. Add type-ahead search suggest endpoint with result-type filter buttons.
+- T-429. Split 906-line chat route into focused modules: validation, SQL executor, explanation, fallback, and utils.
+- T-430. Add dedicated `/api/mcp/` endpoint stub for future MCP tool execution.
+- T-431. Add cross-dataset comparison MCP tool with tool registry.
+- T-428. Add streaming responses to `/api/chat` using `ReadableStream` and `TextEncoder` for incremental display and abort support.
+- T-434. Railway dist-test publishing omits package-manager lockfiles and guards generated output before test deployment.
+- T-433. AI interaction docs separate user guidance, AI-agent guidance, prompt collection, and bookkeeping user/developer guides.
+- T-432. AI instructions require AI-interaction docs updates after durable instruction changes and scope Railway test deploy reviews to beta and dist-test.
+- T-416. Accountancy overview shows bookkeeping cards, a bookkeeping queue, monthly close readiness, and direct accounting action links.
+- T-415. Requirements and unreleased changelog text use direct current-state language for product behavior.
+- T-390. Server action responses typed as a discriminated `Result<T, E>` union so every handler returns a consistent `{ success, data }` / `{ success: false, error }` shape.
+- T-389. Popover dropdown shadow and z-index values align with the shared `Modal` backdrop layer to prevent overlay gaps.
+- T-388. Client-side data fetching wraps in a shared `useApi` hook that handles loading, error, and abort-controller cleanup for every page.
+- T-387. Upload route form-data parsing extracts into a dedicated `parseUploadForm` utility to reduce the 640-line route file.
+- T-386. API routes use a shared `requireSession` helper that extracts auth, checks expiry, and returns a consistent 401 shape instead of inline session checks.
+- T-385. `updatedAt` timestamps use a Drizzle `onUpdate` trigger or middleware so all update queries set it automatically without manual inclusion.
+- T-384. Health endpoint verifies database connectivity before returning a healthy status.
+- T-383. Dataset detail page paginates through the `datasetRows` table instead of loading all rows from the JSONB column.
+- T-414. Orphaned duplicate `src/assets/images/icon.svg` removed (asset duplication fix).
+- T-410. Business page verified functional — metrics, DataTable, profile/review panels, archive/restore all work with no type errors.
+- T-409. Upload server action now writes rows to `datasetRows` table so the dataset detail page displays paginated data instead of showing empty rows.
+- T-406. Theme toggle already provides multi-theme switcher (light/dark/system/high-contrast/larger-text) with accessibility icons.
+- T-405. Search popup enhanced with debounced auto-search as the user types and fixed body overflow save/restore.
+- T-404. Notification sidebar feature already present via `TopbarNoticeActivityDrawer` — bell icon in topbar opens a modal sidebar with notices and activity feed.
+- T-402. App version already shown in topbar next to logo (v{version}); changed from `hidden sm:inline` to always visible.
+- T-413. Project favicon resolves from the app route and broken duplicate favicon assets are removed.
+- T-412. Every page already passes a page-specific `icon` prop to `AppPageHeader` — no changes needed.
+- T-411. The last inline table in `ResultPreview` (`ai-assistant-workspace.tsx`) refactored to use the shared `DataTable` component.
+- T-408. FAQ page contains no inline issue form — only links to `/app/tickets` and `/contact`.
+- T-407. Font sizes reduced across the board in `tailwind.config.ts`: page-title 24→22, card-title 15→14, small-title 13→12, body 13→12, meta 11→10.5.
+- T-403. Superadmin `Admin` section added to topbar before Credits section, conditionally rendered via `session?.user?.role`.
+- T-401. Sidebar collapse toggle button added to topbar after Credits section (no border), synchronises state via custom event.
 - T-400. dashboard: topbar - dedup credit number in topbar and show wording
 - T-399. dashboard: topbar - logo bigger without margin and border
 - T-366. `updatedAt` timestamps include on every write operation across all database update queries (verified already present).
@@ -159,4 +202,4 @@ moving work between states.
 - T-310. Cookie consent bar added with accept button.
 - T-338. Fix progress system - single line display, page-based steps instead of field-based, activity integration.
 - T-340. Add API endpoint for bulk dataset deletion.
-
+- T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable.

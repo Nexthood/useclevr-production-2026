@@ -1,7 +1,9 @@
 # TODO
 
 Use `.TODO/config.json` before adding tasks. Every task must use the `T-` prefix, keep its number
-when it moves between states, and use direct present-action wording.
+when it moves between states, and use direct present-action wording. All text-file bullets describe
+current behavior and current rules. Past states, removed options, speculative possibilities, and
+future blockages appear only when the detail prevents risk.
 
 ## Links
 

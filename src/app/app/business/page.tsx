@@ -1,7 +1,7 @@
 import { archiveBusinessAction, restoreBusinessAction } from "@/app/actions/business"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getBusinessLimit, listUserBusinesses, getPrimaryBusinessDetails, type BusinessListRow } from "@/lib/business/business-store"
 import { BUSINESS_FIELDS, getBusinessCompletionPercent, getBusinessReviewFlags } from "@/lib/business/business-profile"
 import { getDb } from "@/lib/db"
@@ -68,8 +68,9 @@ export default async function BusinessPage() {
 
   // Get primary business details for review panel
   const primaryDetails = await getPrimaryBusinessDetails(userId)
-  const pct = getBusinessCompletionPercent(primaryDetails as any)
-  const flags = getBusinessReviewFlags(primaryDetails as any)
+  const safePrimaryDetails = primaryDetails ?? {}
+  const pct = getBusinessCompletionPercent(safePrimaryDetails as any)
+  const flags = getBusinessReviewFlags(safePrimaryDetails as any)
 
   return (
     <div className="space-y-5">
@@ -127,9 +128,9 @@ export default async function BusinessPage() {
           <div className="p-5">
             <h3 className="text-lg font-semibold text-foreground mb-4">Profile summary</h3>
             <div className="grid gap-3 sm:grid-cols-3">
-              <ProfileMetric icon={Building2} label="Identity" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Identity" && primaryDetails[field.id as keyof typeof primaryDetails]).length}/3`} />
-              <ProfileMetric icon={Mail} label="Contact" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Contact" && primaryDetails[field.id as keyof typeof primaryDetails]).length}/2`} />
-              <ProfileMetric icon={MapPin} label="Operations" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Operations" && primaryDetails[field.id as keyof typeof primaryDetails]).length}/1`} />
+              <ProfileMetric icon={Building2} label="Identity" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Identity" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/3`} />
+              <ProfileMetric icon={Mail} label="Contact" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Contact" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/2`} />
+              <ProfileMetric icon={MapPin} label="Operations" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Operations" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/1`} />
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { debugError } from "@/lib/utils/debug";
 // app/api/workspaces/[id]/members/route.ts
 // Workspace members management
 
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/auth';
 import type { WorkspaceRole } from '@/lib/db/schema';
 import { getWorkspaceMembers, hasWorkspacePermission, removeWorkspaceMember, updateMemberRole } from '@/lib/utils/workspace-permissions';
 import { NextResponse } from 'next/server';

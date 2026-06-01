@@ -110,17 +110,16 @@ pnpm prod:build
 
 ## GitHub Actions
 
-The main CI workflow is `.github/workflows/ci.yml`.
+The main CI workflow is `.github/workflows/ci.yml`. It runs on:
 
-It runs on:
-
-- Pushes to `main`
-
-It intentionally does not run on `beta` pushes. A direct push to `beta` is only a test branch update;
-it should not validate as a release candidate until it becomes a pull request into `main`. This also
-keeps the automatic `main` → `beta` sync commit from starting CI on `beta`.
+- Pushes to `main` and `beta`
+- Pull requests targeting `main` and `beta`
 
 CI is automatically skipped for commits containing `[skip ci]` in the commit message.
+
+All CI workflows use a PostgreSQL 17 ephemeral service container so database-dependent steps
+(schema push, build with DB imports) can execute without a permanent database. Production and
+preview deployments connect to the external Neon PostgreSQL instance.
 
 The required branch-rule check is:
 
@@ -128,7 +127,8 @@ The required branch-rule check is:
 
 This one check protects `main`, because `main` generates the production `dist` branch and can also
 deploy directly to Vercel. It installs dependencies, runs type validation, verifies Railway and
-Vercel config sync, runs lint and tests, then proves Next.js can compile the app.
+Vercel config sync, runs lint and tests with the Postgres service container, then proves Next.js
+can compile the app.
 
 ### Auto-Merge Workflow
 
@@ -150,10 +150,11 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
   - Commit message includes `[skip ci]` to prevent CI duplication
 
 - **publish-dist**: Triggers on push to `main` and `workflow_dispatch`
-- Uses same Node.js (`26.x`) and pnpm (`11.5.0`) setup as `ci.yml`
+- Uses same Node.js (`26.x`) and pnpm (`11.5.0`) setup as `ci.yml` with pnpm cache enabled
+- Includes a PostgreSQL 17 service container for the build step (production uses external Neon)
 - Runs type validation, dist config validation, and lint before publishing generated output
 - Runs `pnpm prod:build` to create the dist output
-- Starts the generated server and checks `/api/health` before publishing
+- Starts the generated server and checks `/api/health` before publishing; exits with code 1 if the server never starts
 - Checks out the existing `dist` branch after the build
 - Replaces only the generated `/dist` folder
 - Syncs `dist-root/` from `main` to the deployment branch root
@@ -358,8 +359,8 @@ The GitHub Actions workflows have been verified and are correct:
 
 **ci.yml:**
 
-- Validation runs on push to branches [main] ✓
-- Beta pushes do not run CI (prevents duplicate runs) ✓
+- Validation runs on push to branches [main, beta] ✓
+- No duplicate CI runs on beta pushes (single workflow covers both) ✓
 - Skips CI for commits containing [skip ci] ✓
 
 **branch-maintenance.yml:**

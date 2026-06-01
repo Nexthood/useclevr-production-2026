@@ -3,7 +3,7 @@ import { debugError } from "@/lib/utils/debug";
 // app/api/workspaces/[id]/invitations/route.ts
 // Workspace invitations management
 
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/auth';
 import { inviteToWorkspace } from '@/lib/utils/workspace-permissions';
 import { NextResponse } from 'next/server';
 

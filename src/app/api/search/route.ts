@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { searchApp } from "@/lib/search/app-search"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
