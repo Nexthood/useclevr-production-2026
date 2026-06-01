@@ -10,6 +10,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Select dashboard language in English, German, Hungarian, or Romanian.
 - View bookkeeping cards, queue, and monthly close readiness in Accountancy overview.
+- Open AI Assistant from sidebar, select dataset, and ask follow-up questions in one workspace.
+- View profile sections, completion metrics, and review flags in Business Profile.
+- Access Business workspace with listing table, profile, location, tax, financial, and review subpages.
+- Business records stored securely with profiles, entity details, archival status, limits, and tax context.
+- Track setup progress via profile fields, business profile fields, first data actions, and key dashboard pages visited.
+- View guided tour for incomplete setup items in setup progress panel.
+- Dashboard FAQ displays quick actions for feedback, chat, and support tickets.
+- Manage dashboard tickets with table-first queue, separate pages for new tickets and row-level editing.
 
 ### Changed
 - Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
@@ -31,100 +39,69 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Select light, dark, system, high-contrast, or larger-text display modes from dashboard topbar.
 
 ### Dev
-
-- Generated Railway deployment packages remove pnpm metadata before publishing so Railpack can use
-  npm from the deployment bundle.
-- GitHub validation and dist publish jobs reuse the pnpm store cache, while generated Railway output keeps the install metadata needed for faster dependency layers.
-- Generated deployment packages include pnpm build-script approvals so local and Railway installs can run required native dependency setup.
-- Developer documentation includes a Mermaid sitemap for dashboard routes.
-- Railway builds activate and locate pnpm via Corepack by including the package manager definition in the generated package manifest.
-- Language preference persists in localStorage and applies across the application.
-- Translation service with 24-hour caching layer to minimize API calls to Google Translation.
-- Dashboard users can open the AI Assistant from the sidebar, select a dataset, and ask follow-up
-  questions from one workspace.
-- Business Profile shows profile sections, completion metrics, and review flags that explain
-  which company details improve AI confidence.
-- Business opens as a top-level workspace with a businesses listing table and profile, location,
-  tax, financial, and review subpages.
-- Business records use dedicated storage for business profiles, operating entities, archived
-  status, subscription-tier limits, and cached country tax context.
-- Setup progress counts profile fields, business profile fields, first data actions, and key
-  dashboard pages visited at least once.
-- The setup progress panel includes a guided tour through incomplete setup items.
-- Dashboard FAQ starts with quick actions for feedback, chat support, and support tickets.
-- Dashboard tickets use a table-first queue with separate pages for new tickets and row-level
-  ticket editing.
+- Remove pnpm metadata from generated Railway deployment packages so Railpack can use npm.
+- Reuse pnpm store cache in GitHub validation and dist publish jobs. Retain install metadata in generated Railway output for faster dependency layers.
+- Include pnpm build-script approvals in generated deployment packages so local and Railway installs can run required native dependency setup.
+- Add Mermaid sitemap for dashboard routes to developer documentation.
+- Activate and locate pnpm via Corepack in Railway builds by including package manager definition in generated package manifest.
+- Persist language preference in localStorage and apply across application.
+- Add translation service with 24-hour caching layer to minimize API calls to Google Translation.
 
 ### Changed
-
-- The dashboard sidebar app panel uses App Store and Google Play icons, and social links open
-  the current external pages in a new tab.
-- Dashboard onboarding tracks setup progress from account data, routes users to the relevant
-  setup pages, and keeps reopening for accounts below 25% completion.
+- See App Store and Google Play icons in dashboard sidebar app panel; social links open external pages in new tab.
+- Track setup progress from account data, route to relevant setup pages, and reopen for accounts below 25% completion.
 - Open business setup links in the Business workspace.
-- Social login buttons start configured Google and LinkedIn sign-in or registration flows.
-- The dashboard sidebar includes coming-soon mobile app buttons, social placeholders, a user
-  panel stack, and a bottom Terms link.
-- The dashboard opens directly on datasets, while admin customer, level, and discount lists use
-  read-first rows with focused row edit pages.
-- Dashboard FAQ uses expandable answers and lets super-admins filter customer help and operator
-  notes from one page.
-- Dashboard tables and page headers use a denser shared layout with title icons and clearer row
-  actions.
-- Hybrid AI and subscription plan buttons go through checkout review before any payment action.
-- Dashboard notices live in a topbar inbox with a persistent count and recent product activity.
-- Dashboard notices and activity focus on rare, useful events instead of frequent background
-  interactions.
-- Billing and payment settings use more customer-operations language and list-style history
-  layouts.
-- Open subscription settings from the topbar credits button.
-- Public pricing and FAQ copy describes Hybrid AI access without exposing runtime download sizes.
-- Public pages outside the homepage share one title section design.
-- Dashboard help links live under the topbar Help menu, while the sidebar focuses on primary
-  app areas.
-- Customer level and discount rule management uses horizontal table rows for faster editing.
+- Social login buttons start with configured Google and LinkedIn sign-in or registration.
+- See dashboard sidebar with coming-soon mobile app buttons, social placeholders, user panel stack, and bottom Terms link.
+- Dashboard opens directly on datasets; admin customer, level, and discount lists use read-first rows with focused row edit.
+- Use expandable answers in Dashboard FAQ and let super-admins filter customer and operator notes from one page.
+- See dashboard tables and page headers with denser shared layout, title icons, and clearer row actions.
+- Hybrid AI and subscription plan buttons go through checkout review before payment.
+- See dashboard notices in topbar inbox with persistent count and recent product activity.
+- Focus dashboard notices and activity on rare, useful events instead of frequent background interactions.
+- See billing and payment settings with more customer-operations language and list-style history layouts.
+- Open subscription settings from topbar credits button.
+- See public pricing and FAQ copy describing Hybrid AI access without exposing runtime download sizes.
+- See public pages outside homepage sharing one title section design.
+- See dashboard help links under topbar Help menu; sidebar focuses on primary app areas.
+- See customer level and discount rule management using horizontal table rows for faster editing.
+
 
 ### Fixed
-
-- Business overview stays available when no business profile exists, with the add-business action visible from the top-level workspace.
-- Dataset uploads use a valid persisted demo account path and clearer file-size handling.
-- Business overview metrics remain available when business storage tables are unavailable.
-- Dashboard notifications open from the topbar notices sidebar again.
-- The project favicon resolves from the app route and broken duplicate favicon assets are removed.
-- Keep local and live login redirects on the active app host.
-- Stripe checkout returns users through a verifiable checkout session and can reopen the billing
-  portal for linked customers.
-- Chat can use dashboard search context to point users toward relevant pages and FAQ answers.
-- Ticket tables use selectable rows, title edit links, and bulk resolution controls.
-- Sign-out redirects to the app login page instead of a stale host URL.
-- Checkout opens the secure payment step after terms acceptance and activates subscriptions from provider confirmations.
-- Business workspace loads saved profile details even when dedicated business records are not ready.
-- Dashboard notices identify the failed request or page error more directly.
-- AI Assistant can answer from stored dataset analysis context when a selected dataset has saved
-  metrics.
-- Help chat stays clear of the footer and uses stronger message contrast.
-- Setup progress includes business subpage visits in the completion checklist.
-- Mistyped dashboard settings links redirect to Profile settings.
+- View business overview when no business profile exists, with add-business action visible in top-level workspace.
+- Upload datasets using valid persisted demo account path with clearer file-size handling.
+- View business overview metrics even when business storage tables are unavailable.
+- Open dashboard notifications from topbar notices sidebar.
+- See project favicon resolved from app route with broken duplicate favicon assets removed.
+- Keep local and live login redirects on active app host.
+- See Stripe checkout return users through verifiable checkout session to reopen billing portal for linked customers.
+- Use chat with dashboard search context to point users to relevant pages and FAQ answers.
+- See ticket tables with selectable rows, title edit links, and bulk resolution controls.
+- Sign out to app login page instead of stale host URL.
+- Open checkout to secure payment step after terms acceptance to activate subscriptions from provider confirmations.
+- Load business workspace with saved profile details even when dedicated business records are not ready.
+- See dashboard notices identify failed request or page error more directly.
+- See AI Assistant answer from stored dataset analysis context when selected dataset has saved metrics.
+- See help chat clear of footer with stronger message contrast.
+- See setup progress include business subpage visits in completion checklist.
+- See mistyped dashboard settings links redirect to Profile settings.
 - Keep paid download access for Business and super-admin accounts.
-- Checkout action labels render plain text instead of encoded HTML entities.
-- The dashboard activity popup uses the shared overlay and shows clear loading or unavailable
-  states for recent activity.
-- Payment provider settings require super-admin access even when opened by direct URL.
-- Super-admin dashboard pages require super-admin access even when opened by direct URL.
-- Dashboard notices dismiss the selected notice reliably when multiple notices arrive together.
-- Contact visitors can submit demo and sales requests from the Contact page.
-- Product-update waitlist signup succeeds during local development when the production database
-  is unavailable.
-- The Hybrid AI popup opens reliably from the dashboard topbar.
-- Show ticket creation on the Tickets page.
-- Super-admin customer lists show built-in demo and super-admin accounts even when database
-  customer rows cannot load.
-- Local generated-output starts use localhost for authentication while Railway keeps its server
-  binding.
-- Login errors stay inside the login page instead of appearing as a global notice.
-- Public legal pages and authentication screens expose Terms and Privacy links consistently.
-- Mobile public navigation opens as a compact menu while keeping mode and theme controls visible.
-- Referral signup and paid events support idempotency keys and block self-referral rewards.
+- See checkout action labels render plain text instead of encoded HTML entities.
+- See dashboard activity popup use shared overlay showing clear loading or unavailable states for recent activity.
+- See payment provider settings require super-admin access when opened by direct URL.
+- See super-admin dashboard pages require super-admin access when opened by direct URL.
+- See dashboard notices dismiss selected notice reliably when multiple notices arrive together.
+- See contact visitors submit demo and sales requests from Contact page.
+- See product-update waitlist signup succeed during local development when production database unavailable.
+- See Hybrid AI popup open reliably from dashboard topbar.
+- See ticket creation on Tickets page.
+- See super-admin customer lists show built-in demo and super-admin accounts when database customer rows cannot load.
+- See local generated-output start using localhost for authentication while Railway keeps server binding.
+- See login errors stay inside login page instead of appearing as global notice.
+- See public legal pages and authentication screens expose Terms and Privacy links consistently.
+- See mobile public navigation open as compact menu while keeping mode and theme controls visible.
+- See referral signup and paid events support idempotency keys and block self-referral rewards.
+
 
 ### Dev
 

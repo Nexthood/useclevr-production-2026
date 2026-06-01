@@ -186,10 +186,10 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Write railpack.json so Railpack uses npm instead of auto-detecting pnpm from
+// Write railpack.json so Railpack uses instead of auto-detecting pnpm from
 // the dist-branch root files (packages.json / pnpm-lock.yaml at parent level).
 const railpackConfig = {
-  provider: "node",
+  providers: ["node"],
 };
 fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
 
