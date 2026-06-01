@@ -12,6 +12,11 @@ every durable AI instruction change so agents and users read the same current ru
 - Mention past or future states only when the detail prevents a concrete risk.
 - Keep examples in [Prompt collection](prompt-collection.md).
 
+## Note
+
+Codebase analysis findings are tracked in `.TODO/` queue files, not in this folder. The previous
+`.TODO/todo-analysis.md` file is retired — its items are folded into the regular TODO queue.
+
 ## Guides
 
 - [User guide](user-guide.md)
