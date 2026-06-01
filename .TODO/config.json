@@ -1,6 +1,6 @@
 {
   "currentTaskPrefix": "T-",
-  "nextTaskNumber": 415,
+  "nextTaskNumber": 432,
   "todoFiles": {
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",
@@ -15,6 +15,7 @@
     "Use shared config under data-config/frontend_shared.json and data-config/server.json for the date/alias rule source.",
     "Document relative date calculation rules and deterministic overwriteToday behaviour.",
     "Write task bullets as stable present-action statements, not retrospectives.",
-    "Avoid task wording that begins with 'now', 'now also', 'now removed', 'now always', or similar changelog-style phrasing."
+    "Avoid task wording that begins with 'now', 'now also', 'now removed', 'now always', or similar changelog-style phrasing.",
+    "Write requirements and guide text as current-state behavior; mention past states or future blockers only for risk prevention."
   ]
 }

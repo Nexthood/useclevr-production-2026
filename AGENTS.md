@@ -1,28 +1,20 @@
 # Agent Guide
 
-This file gives AI agents (Codex, Kilo, OpenAI, Gemini, etc.) project-specific operating guidance.
-It is intentionally brief - expand each section only when a consistent rule is needed.
+This guide gives AI agents project-specific operating instructions.
 
-## Agent Startup
-
-Before making changes, agents should read:
-
-- `AGENTS.md` (this file)
+## Before Starting
+Read these first:
+- This file (AGENTS.md)
 - `ai-chat-behavior.config.ts`
 - `gemini-behavior.config.ts`
-- `kilo.json` when running through Kilo
-- `ai-chat-behavior.config.ts` is the shared behavior preset for Codex, Kilo, and other AI
-  chat/coding agents. Keep durable project behavior there so it survives moving to a new computer or
-  reinstalling local agent tooling.
+- `kilo.json` (when using Kilo)
+- Keep `ai-chat-behavior.config.ts` updated for shared agent behavior
 
-## Files to Add to `.aiignore`
+## Files to Ignore
+Add files with raw prompts, keys, CSV data, or sensitive user data to `.aiignore` so they're never sent to AI.
 
-Add any file or directory that contains raw prompt text, provider keys, uploaded CSVs, or sensitive
-user data so it is never sent to an AI context.
-
-Current `.aiignore` entries (already present):
-
-```text
+Current entries:
+```
 .next/
 dist/
 .git/
@@ -37,67 +29,56 @@ tmp/
 out/
 ```
 
-## Project Shape
+## What We Build
+- Next.js 16 app router, React 19, TypeScript 6, Tailwind CSS
+- Business intelligence for uploaded CSV/datasets
+- Cloud AI: Gemini via AI SDK
+- Local AI: same-origin app routes + local agent contract
+- Database: Drizzle with Neon PostgreSQL
 
-- Next.js 16 app router, React 19, TypeScript 6, Tailwind CSS.
-- Business intelligence app for uploaded CSV/business datasets.
-- Cloud AI uses Gemini through the AI SDK.
-- Local AI features use same-origin app routes and the local agent contract.
-- Database access uses Drizzle with Neon PostgreSQL.
-
-## Commands
-
+## Key Commands
 ```bash
-pnpm dev
-pnpm build
-pnpm start
-pnpm db:push
-pnpm db:studio
-pnpm exec tsc --noEmit --pretty false   # type-check only
-pnpm validate                           # full pre-PR gate
-pnpm health                             # validate + tests + docs + audit
+pnpm dev              # start dev server
+pnpm build            # build for production
+pnpm start            # start production server
+pnpm db:push          # push database changes
+pnpm db:studio        # open database GUI
+pnpm exec tsc --noEmit --pretty false   # type check only
+pnpm validate         # full pre-PR check
+pnpm health           # validate + tests + docs + audit
 ```
 
 ## Editing Rules
+- Focus on requested behavior only
+- Never read `dist/`, `.git/`, `.next/`, or `node_modules/` (saves tokens)
+- Never edit output in `.next/` or `dist/` unless making production bundle artifacts
+- Never reverse another agent's worktree changes
+- Use existing components/patterns before adding new abstractions
+- Keep UI accessible in light and dark themes
+- Use `src/assets/` for static assets; `src/app/assets/` is route handler
+- Remove sensitive data from AI context before sending to openai/cloud vendors
 
-- Keep changes focused on the requested behavior.
-- **Do not read `dist/`, `.git/`, `.next/`, or `node_modules/`** to save tokens.
-- Do not edit generated output in `.next/` or `dist/` unless the task explicitly asks for production
-  bundle artifacts.
-- Do not reverse worktree changes from another agent or commit.
-- Prefer existing components and patterns before adding new abstractions.
-- Keep UI contrast accessible in both light and dark themes.
-- Use `src/assets/` for static assets. `src/app/assets/` is the route handler.
+## Script Rules
+- ESM for source-side maintenance scripts (package is `type: module`)
+- CommonJS for runtime preload/start scripts, deployment helpers, tooling entry points (need `node -r`)
+- Use `scripts/lib/app-config.js` from ESM scripts and `scripts/lib/app-config.cjs` from CommonJS (aligned path/package policy)
 
-Strip sensitive data from AI context helpers before sending responses to openai/cloud vendors.
-
-## Script Module Rules
-
-- Use ESM for source-side maintenance scripts because the repository package is `type: module`.
-- Keep CommonJS for runtime preload/start scripts, generated deployment helpers, and tooling entry
-  points that must run through `node -r` or CommonJS-only consumers.
-- Use `scripts/lib/app-config.js` from ESM scripts and `scripts/lib/app-config.cjs` from CommonJS
-  scripts so path and package-manager policy stay aligned.
-
-## AI Kilo / Other AI Instructions
+## Agent-Specific
 
 ### Kilo (this CLI)
-
-- Use the `kilo.json` config at the repository root for agent, command, and permission settings.
-- New commands go in `.kilo/command/*.md`. New agents go in `.kilo/agent/*.md`.
-- Commands and agents are loaded automatically from those folders on startup.
-- Kilo ignores `.aiignore` entries (also reads `.codexignore` when present).
-- Kilo does **not** read `dist/`, `.git/`, `.next/`, or `node_modules/`.
+- Use `kilo.json` at repo root for agent, command, permissions
+- New commands: `.kilo/command/*.md`; new agents: `.kilo/agent/*.md`
+- Loaded automatically on startup
+- Ignores `.aiignore` (also reads `.codexignore` if present)
+- Never reads `dist/`, `.git/`, `.next/`, or `node_modules/`
 
 ### OpenAI Codex / Other Coding Agents
+- Follow `ai-chat-behavior.config.ts` for communication style and product voice
+- Respect `.aiignore` for sensitive/ignored paths
+- Respect `.gitignore` before reading source
+- Never read `dist/`, `.git/`, `.next/`, or `node_modules/`
 
-- Respect `ai-chat-behavior.config.ts` for the shared communication style and product voice.
-- Respect `.aiignore` for sensitive/ignored paths.
-- Respect `.gitignore` before reading source.
-- Do not read `dist/`, `.git/`, `.next/`, or `node_modules/`.
-
-## Key Files
-
+## Important Files
 - `src/app/api/chat/route.ts`
 - `src/app/api/query/route.ts`
 - `src/app/api/upload/route.ts`
@@ -109,172 +90,121 @@ Strip sensitive data from AI context helpers before sending responses to openai/
 - `src/lib/queryIntentPrompt.ts`
 - `ai-chat-behavior.config.ts`
 - `gemini-behavior.config.ts`
-- `AGENTS.md` (this file)
+- This file (AGENTS.md)
 - `.aiignore`
 - `CHANGELOG.md`
 
-## Changelog rules (AI agents must follow these)
+## Changelog Rules
+When editing `CHANGELOG.md`:
+- Add new entries to top `## [Unreleased]` section (create if missing)
+- Never add changes to already released versions; use `## [Unreleased]` or new version
+- Never modify dated release section unless fixing release notes
+- Every entry must describe an active change (added, fixed, changed, removed)
+- Never write about what was kept/preserved
+- Use present-action statements (e.g., "Add feature" not "Feature added")
+- Use plain user language: "Exports now include attachments" not "Attachment export support added"
+- Describe user benefit and why it matters (not implementation)
+- Never mention: function names, file names, internal IDs, routes, packages, env vars, CI files, source paths
+- Skip developer-only text unless in `### Dev` section (then describe practical benefit)
+- Use product language: "Support resolves dashboard tickets" not "Added ticket-store API route"
+- Skip: documentation edits, README updates, planning notes
+- `CI/test/tooling/refactor` with no user effect go under `### Dev` only
+- Section headers per release: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Dev` (use only if entries exist)
+- One sentence per change max; no repeated info; no function/file/internal IDs
 
-When writing or editing `CHANGELOG.md`:
+## Deployment
+Railway serves `dist/` from `dist` branch `/dist`; Vercel serves source from `main` using `vercel.json` synced from `dist-root/server-config/vercel.json`.
+Build: source check → generate Railway output.
 
-- Always add new entries to the `## [Unreleased]` section at the top of the file. If no
-  `[Unreleased]` section exists, create one immediately after the file header.
-- Never add new changes to a version that has already been committed or released. Put follow-up work
-  in `## [Unreleased]` or create a new version section.
-- Never modify a versioned section that already has a release date unless the user explicitly asks
-  for release-note correction.
-- Every entry must describe an **active change** - something added, fixed, changed, or removed in
-  that release. Never write entries that only describe what was retained, preserved, or left
-  unchanged.
-- Write entries as present-action release statements, not retrospective task notes.
-- Avoid entries that start with "now" or past-tense process words such as "Added", "Updated",
-  "Fixed", "Migrated", "Restructured", "Optimized", or "Verified".
-- Use plain, user-facing language. Active voice: "Exports now include attachments" not "Attachment
-  export support has been added".
-- Describe what the user observes or benefits from. Explain why the change matters, not how the code
-  is implemented.
-- Do not mention function names, file names, internal identifiers, route handler names, package
-  names, environment variable names, CI filenames, or source paths.
-- Avoid developer-only wording unless the section is `### Dev`; even there, describe the practical
-  maintenance or deployment benefit.
-- Use product and business language: "Support can resolve customer tickets from the dashboard"
-  instead of "Added ticket-store API route".
-- Documentation-only edits, README updates, and planning notes do not belong in the changelog.
-- CI, test tooling, and refactor changes with no user-visible effect belong under `### Dev` only.
-- Section headers per release: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Dev`.
-  Include only sections with entries.
-- Keep each entry as short as possible - one sentence per change. Do not repeat information across
-  entries. Avoid mentioning function names, file names, or internal identifiers.
+PR titles start with `PR:`; dist-publish commits use merged PR title (fallback if none).
 
-## CI / Deploy Target Dist Files
+`dist-root/server-config/` holds deployment configs copied to branch `/server-config`; host templates use `railway.json` and `vercel.json`; GitHub Actions in `.github/workflows/`.
 
-Railway deploys the generated `dist/` output from the `dist` branch `/dist` folder. Vercel deploys
-the source app from `main` using root `vercel.json`, which is synced from
-`dist-root/server-config/vercel.json`. Build is a two-target pipeline with one
-required source check before generated Railway output is published.
-
-Pull request titles should start with `PR:`. Dist publish commits should use the merged PR title when
-available, with a short fallback title only when no PR title exists.
-
-`dist-root/server-config/` stores deployment config files copied to the deployment branch
-`/server-config` folder. Host config templates keep the platform-native names `railway.json` and
-`vercel.json`. GitHub Actions workflows live in `.github/workflows/`.
-
-### Build pipeline
-
- ```text
- CI / local (repo root)              Railway (dist branch, /dist root)
- ─────────────────                   ──────────────────────
- pnpm prod:build                     (build phase - one-shot)
-    └ next build --webpack            echo prebuilt (Railpack detects prebuilt output)
-    └ create-dist.cjs                 node scripts/runtime/railway-predeploy.cjs (preDeploy)
-       → .next/standalone + static     bash start.sh -> node start-dist.cjs (start)
-       → dist/server.js
-       → dist/package.json             (no full source build here)
-       → dist/src/lib/db/ (schema)
-       → server-config/railway.json
-       → server-config/vercel.json
- ```
-
-### Source-of-truth files
-
-| File                                     | Role                                                                                                                                                                        |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dist-root/server-config/railway.json`   | Source-of-truth for the Railway deploy target. Published only to `/server-config/railway.json` on the dist branch.                                                          |
-| `dist-root/server-config/vercel.json`    | Source-of-truth for the Vercel source deploy target. Published only to `/server-config/vercel.json` on the dist branch and synced to root `vercel.json` on source branches. |
-| `scripts/package-dist/create-dist.cjs`   | Generates `dist/package.json`, copies schema, runtime scripts, and assets. Only place dist is assembled.                                                                    |
-| `scripts/server/railway/sync-config.cjs` | Validates `dist-root/server-config/railway.json`. It does not copy host config into `dist/`.                                                                                |
-| `scripts/server/vercel/sync-config.cjs`  | Copies `dist-root/server-config/vercel.json` -> `vercel.json`. Run it - not the opposite direction.                                                                         |
-
-Database migrations stay in Railway `preDeployCommand` while the deployment is a single web service.
-Do not add a separate migration job unless background work or migration risk requires isolation.
-
-### Dist validation gate (runs in CI source validation)
-
-```text
-pnpm validate:dist   ->  Railway and Vercel deploy config sync checks
+### Build Steps
+Local/CI → Railway (`dist` branch `/dist`)
+```
+pnpm prod:build
+  → next build --webpack
+  → create-dist.cjs
+    → .next/standalone + static
+    → start.sh → start-dist.cjs
+    → dist/server.js
+    → dist/package.json
+    → dist/src/lib/db/ (schema)
+    → server-config/railway.json
+    → server-config/vercel.json
 ```
 
-Checks Railway and Vercel deploy templates directly on source branches. Railway config must remain
-under `dist-root/server-config/`; Vercel source-branch root `vercel.json` must match the Vercel
-template.
+### Source-of-Truth
+| File                                         | Purpose                                                              |
+|----------------------------------------------|----------------------------------------------------------------------|
+| `dist-root/server-config/railway.json`       | Railway deploy target → `/server-config/railway.json` on dist branch |
+| `dist-root/server-config/vercel.json`        | Vercel source deploy → `/server-config/vercel.json` on dist branch + root `vercel.json` on source |
+| `scripts/package-dist/create-dist.cjs`       | Makes `dist/package.json`, copies schema/runtime/assets (only place) |
+| `scripts/server/railway/sync-config.cjs`     | Validates `dist-root/server-config/railway.json` (no host config copy) |
+| `scripts/server/vercel/sync-config.cjs`      | Copies `dist-root/server-config/vercel.json` → `vercel.json` (not reverse) |
 
-### Do / Do not
+Database migrations stay in Railway `preDeployCommand`; deployment = single web service (add migration job only if background work/risk needs isolation).
 
-- **Do** edit `dist-root/server-config/railway.json` for Railway target config changes, then run `node scripts/server/railway/sync-config.cjs --check`.
-- **Do** edit `dist-root/server-config/vercel.json` for Vercel target config changes, then run `node scripts/server/vercel/sync-config.cjs`.
-- **Do** regenerate local `dist/` with `pnpm prod:build` after any change that needs a deploy preview.
-- **Do** keep generated-output packaging scripts under `scripts/package-dist/`; `scripts/dist/` is
-  blocked by the `dist/` ignore rule.
-- **Do not** run `pnpm build` from inside `dist/`. The build command (`pnpm prod:build`) runs from the repo root - `dist/` has no `build` script and no parent `package.json`.
-- **Do** publish `railway.json` and `vercel.json` only under `/server-config` on the `dist` branch.
-- **Do** keep the Railway service root directory set to `/dist`; the config file path is `/server-config/railway.json`.
-- **Do not** publish `railway.json` or `vercel.json` at the `dist` branch root or inside `/dist`.
-- **Do not** move `dist-root/` under build scripts; it stores server-host templates.
-- **Do** keep server-specific helper scripts under `scripts/server/<host>/`; keep local/general
-  scripts in the existing non-server `scripts/` subfolders.
-- **Do** keep Vercel source-branch config in root `vercel.json`, synced from the Vercel template.
-- **Do not** hand-edit files in `dist/`. They are generated. Regenerate them.
-- **Do not** `git add dist/` when preparing a PR. `dist/` is `.gitignore`-ed on source branches; CI
-  regenerates it and publishes it to the deployment branch.
+### Validation Gate (CI)
+```
+pnpm validate:dist  →  Checks Railway/Vercel deploy config sync
+```
+Checks templates on source branches: Railway config under `dist-root/server-config/`; Vercel source `vercel.json` must match template.
 
-### Why `dist/` changes on every build regardless of source
+**Do**:
+- Edit `dist-root/server-config/railway.json` for Railway changes → run `node scripts/server/railway/sync-config.cjs --check`
+- Edit `dist-root/server-config/vercel.json` for Vercel changes → run `node scripts/server/vercel/sync-config.cjs`
+- Regenerate local `dist/` with `pnpm prod:build` after deploy-needed changes
+- Keep packaging scripts in `scripts/package-dist/` (`scripts/dist/` blocked by `dist/` ignore)
+- Publish `railway.json` and `vercel.json` only under `/server-config` on `dist` branch
+- Keep Railway service root at `/dist`; config at `/server-config/railway.json`
+- Keep server-specific helpers in `scripts/server/<host>/`; local/general in existing `scripts/` folders
+- Keep Vercel source-branch config in root `vercel.json` (synced from template)
 
-`next build --webpack` always produces a new compilation hash. `create-dist.cjs` wipes and rewrites
-`dist/` from scratch with no content hashing. This is expected; both `dist/` and `.next/` are
-`.gitignore`-ed and regenerated by CI on every push. CI activates pnpm through Corepack so installs
-do not depend on a third-party pnpm setup action.
+**Don't**:
+- Run `pnpm build` inside `dist/` (build from repo root; `dist/` has no script/package.json)
+- Publish `railway.json` or `vercel.json` at `dist` branch root or inside `/dist`
+- Move `dist-root/` under build scripts (it stores host templates)
+- Edit files in `dist/` (they're generated; regenerate instead)
+- `git add dist/` when preparing PR (`.gitignore`ed on source; CI regenerates → publishes to deployment branch)
 
-## Todo pipeline
+### Why `dist/` Changes Every Build
+`next build --webpack` makes new hash each time; `create-dist.cjs` rewrites `dist/` from scratch (no hashing). Expected: both `dist/` and `.next/` are `.gitignore`ed and regenerated by CI on push. CI uses Corepack for pnpm (no third-party setup action needed).
 
-AI agents must keep the regular `.TODO/` queue files in sync:
+## TODOs
+AI agents keep regular `.TODO/` queue files synced:
+- `.TODO/config.json`: owns metadata; read `nextTaskNumber` before adding; use `T-` prefix; increment after assigning
+- `.TODO/todo-next.md`: **only active queue**; add confirmed work here before start; one `T-` task per bullet
+- `.TODO/todo-done.md`: stores completed work; user-visible work must update `requirements.md`; release-facing changes update `CHANGELOG.md`
+- `.TODO/todo-future.md`: holds valid deferred work
+- `.TODO/todo-ignore.md`: holds deliberate no-fix decisions with rationale
+- Dist/audit-specific TODO files retired; follow-ups/findings go to regular next/done/future/ignore
+- Keep task numbers stable when moving work between active/retired
+- Write task descriptions as direct present-action (not retrospective changelog)
+- Fold temporary TODO files back to regular queues before considering migration/audit complete
+- Run `pnpm lint:todos` after TODO metadata changes
 
-- `.TODO/config.json` owns TODO metadata. Read `nextTaskNumber` before adding tasks, use the `T-`
-  prefix, and increment `nextTaskNumber` after assigning new task IDs.
-- `.TODO/todo-next.md` is the **only active queue**. Put confirmed work here before it starts and keep
-  one `T-` task per bullet.
-- `.TODO/todo-done.md` stores completed work. User-observable completed work must also update
-  `requirements.md`, and release-facing changes must update `CHANGELOG.md`.
-- `.TODO/todo-future.md` stores valid deferred work.
-- `.TODO/todo-ignore.md` stores deliberate no-fix decisions with rationale.
-- Dist and audit-specific TODO files are retired. Dist follow-ups and audit findings belong in the
-  regular next, done, future, or ignore files.
-- Keep task numbers stable when moving work between active and retired states.
-- Write task descriptions as direct present-action statements, not retrospective changelog phrasing.
-- Fold temporary TODO files back into the four regular queues before considering the migration or
-  audit complete.
-- Run `pnpm lint:todos` after TODO metadata changes.
+## Commits
+Uses conventional commits via commitlint/Husky. `PR:` and `PR-123:` also accepted for PR/dist-publish automation.
 
-## Commit Message Rules
-
-This repository uses conventional commits through commitlint and Husky. `PR:` and `PR-123:` titles
-are also accepted for pull request and dist-publish automation.
-
-- Format normal commits as `<type>(optional-scope): <subject>`.
-- Use standard types such as `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`,
-  `chore`, and `revert`.
-- Keep the subject lowercase with no trailing period.
-- Do not reference internal file names or function names in the subject unless the user explicitly
-  asks for a technical maintenance commit.
-- For breaking changes, add `!` after the type and describe the break in the commit body.
+Format: `<type>(optional-scope): <subject>`
+- Types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`, `revert`
+- Subject: lowercase, no period
+- Never reference internal files/functions in subject unless explicitly asked for technical maintenance
+- Breaking changes: add `!` after type; describe break in commit body
 
 Examples:
-
 - `feat: add customer ticket filters`
 - `fix(api): handle empty upload responses`
 - `docs: update deployment guide`
 - `PR: improve dashboard onboarding`
 
-### Per-dev commit messaging style
-
-<!-- Apply only to formalised output. Re-verify conciseness for each sentence. -->
-<!-- Source: captured working notes from the session, distilled 2026-05-18. -->
-
-- Keep the tone **analytical yet concise**, grounded in **engineering discipline and product-first thinking**.
-- Use **active voice**, minimise adjectives, and remove all boilerplate filler. Every sentence must contribute concrete information - no praise, no hedging, and no agendas beyond what's on the page.
-- Follow standard **subject-verb-object** order wherever possible; state **what is true and why** rather than **what could or might occur**.
-- When naming files or subsystems, use **bold** formatting inline and avoid ASCII tagging.
-- Prefer **`server-config/railway.json`** over plain path labels like `server-config/railway.json`
-  or `code/`.
-- Prefer **`dist/`** over plain labels like `dist/` or `code/`.
-- Prefer direct wording like "Yes", "gates deactivated", and "commit" over inflated phrasing.
+### Commit Style (Dev)
+- Tone: analytical yet concise (engineering discipline + product-first)
+- Voice: active; minimize adjectives; cut boilerplate; every sentence adds concrete info (no praise/hedging/agendas)
+- Order: subject-verb-object; state what's true and why (not what could/might occur)
+- File/subsystem names: **bold** inline; avoid ASCII tags
+- Prefer: **`server-config/railway.json`** over `server-config/railway.json` or `code/`
+- Prefer: **`dist/`** over `dist/` or `code/`
+- Prefer: direct words like "Yes", "gates deactivated", "commit" over inflated phrasing

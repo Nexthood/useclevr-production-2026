@@ -1,25 +1,22 @@
 # Contributing to UseClevr
 
-Thank you for considering a contribution to UseClevr. This guide covers the full developer workflow
-from setup to pull request.
+Thank you for considering a contribution to UseClevr. This guide covers the full developer workflow from setup to pull request.
 
 ## Prerequisites
-
 - Node.js 26 or later
 - pnpm 11 (use `corepack enable && corepack prepare pnpm@11.5.0 --activate`)
 - A Neon PostgreSQL connection string in `DATABASE_URL`
-- Environment variables documented in `env.example` / the hosting docs
+- Environment variables documented in `env.example` / hosting docs
 
 ## Local Development
-
 ```bash
 # clone and install
 pnpm install
 
-# start the dev server
+# start dev server
 pnpm dev
 
-# run the type checker
+# run type checker
 pnpm validate:types
 
 # run lints
@@ -33,7 +30,6 @@ pnpm validate
 ```
 
 ## Project Structure
-
 ```
 src/
   app/           Next.js App Router pages and API routes
@@ -45,10 +41,9 @@ docs/            Project documentation
 ```
 
 ## Commit Messages
+Use imperative mood ("Add / Fix / Refactor / Remove") and describe motivation in body for non-trivial changes.
 
-Use the imperative mood ("Add / Fix / Refactor / Remove") and describe the motivation in the body
-when the change is non-trivial.
-
+Format:
 ```
 <type>(<scope>): <short summary>
 
@@ -58,16 +53,12 @@ when the change is non-trivial.
 Examples: `Add(Billing): Stripe webhook handler`, `Fix(Checkout): missing T&C step`.
 
 ## Pull Requests
-
 1. Branch from `main`.
 2. Make focused, targeted changes.
-3. Update **`requirements.md`** — convert every planned / proposed / completed item into a product-facing
-   requirement entry (user perspective, not implementation detail).
-4. Update **`CHANGELOG.md`** under the `[Unreleased]` section (`Added` / `Changed` / `Fixed` / `### Dev`).
+3. Update **`requirements.md`** — convert every planned/proposed/completed item into product-facing requirement (user perspective, not implementation).
+4. Update **`CHANGELOG.md`** under `[Unreleased]` section (`Added`/`Changed`/`Fixed`/`### Dev`).
 5. Confirm `pnpm exec tsc --noEmit` is clean.
-6. Open a PR with a clear description of what, why, and how.
+6. Open PR with clear description of what, why, and how.
 
 ## Code of Conduct
-
-Be kind. Constructive discussion and shared curiosity are always welcome — do not tolerate
-harassment in any form.
+Be kind. Constructive discussion and shared curiosity are always welcome — do not tolerate harassment in any form.

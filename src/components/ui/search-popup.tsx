@@ -14,6 +14,8 @@ export function Search() {
   const [hasSearched, setHasSearched] = useState(false)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const previousBodyOverflowRef = useRef<string | null>(null)
   const quickLinks = [
     { href: "/app/datasets", label: "Datasets", description: "Open uploaded files and tables.", icon: Database },
     { href: "/app/upload", label: "Upload", description: "Add a CSV dataset.", icon: BarChart3 },
@@ -41,15 +43,24 @@ export function Search() {
 
   // Handle opening the search
   useEffect(() => {
-    const prev = document.body.style.overflow
     if (open) {
+      previousBodyOverflowRef.current = document.body.style.overflow
       searchInputRef.current?.focus()
       document.body.style.overflow = 'hidden'
     } else {
+      if (previousBodyOverflowRef.current !== null) {
+        document.body.style.overflow = previousBodyOverflowRef.current
+        previousBodyOverflowRef.current = null
+      }
       searchButtonRef.current?.focus()
-      document.body.style.overflow = prev
     }
-    return () => { document.body.style.overflow = prev }
+
+    return () => {
+      if (previousBodyOverflowRef.current !== null) {
+        document.body.style.overflow = previousBodyOverflowRef.current
+        previousBodyOverflowRef.current = null
+      }
+    }
   }, [open])
 
   // Handle ESC key to close search
@@ -70,7 +81,7 @@ export function Search() {
   useEffect(() => {
     if (!open) return
 
-    const overlay = document.querySelector('.fixed.inset-0.z-[220].bg-background') as HTMLElement | null
+    const overlay = overlayRef.current
     if (!overlay) return
 
     // Get all focusable elements within the overlay
@@ -186,6 +197,7 @@ export function Search() {
 
       {open && (
         <div
+          ref={overlayRef}
           className="fixed inset-0 z-[220] bg-background"
           role="dialog"
           aria-modal="true"

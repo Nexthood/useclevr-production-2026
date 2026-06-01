@@ -123,7 +123,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Product-update waitlist signup succeeds during local development when the production database
   is unavailable.
 - The Hybrid AI popup opens reliably from the dashboard topbar.
-- Dashboard FAQ includes an inline ticket form.
+- Dashboard FAQ keeps ticket creation on the Tickets page instead of showing an inline issue form.
 - Super-admin customer lists show built-in demo and super-admin accounts even when database
   customer rows cannot load.
 - Local generated-output starts use localhost for authentication while Railway keeps its server
