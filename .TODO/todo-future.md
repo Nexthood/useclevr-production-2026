@@ -66,3 +66,15 @@ moving work between states.
 - T-393. Add a billing smoke test that verifies checkout session ownership, customer reuse, and billing portal fallback states with mocked Stripe responses.
 - T-396. Add an AI Assistant layout smoke test that confirms fixed sidebars, scrollable messages, and the fixed chat footer stay usable on desktop and mobile widths.
 - T-397. Add a documentation cleanup pass that removes stale dist-test setup notes after the Railway workflow stabilizes.
+
+## Additional
+- T-463. Stabilize Railway main deploy first. Keep the deprecated middleware workaround if it is the only stable packaging path. Do not migrate middleware/proxy yet. Ensure dist branch contains all runtime files. Document exact deploy flow.
+- T-464. Create one central billing config for plan names, prices, Stripe Price IDs, intervals, and descriptions. Remove hardcoded prices from UI. Add customer portal, cancellation flow, invoice view, and payment failure handling.
+- T-465. Verify role handling for user, admin, and superadmin. Make sure protected routes are consistent. Fix onboarding/session edge cases only where needed.
+- T-466. Improve CSV parsing, dirty CSV handling, column detection, preview generation, file size limits, and clear error messages.
+- T-467. Improve dataset-aware answers. The AI must use uploaded dataset context, not generic answers. Improve chart suggestions, KPI detection, summaries, and follow-up questions.
+- T-468. Clean dashboard, upload flow, pricing page, billing page, empty states, loading states, and error messages. Keep changes minimal and consistent with current design.
+- T-469. Do not migrate now. Prepare notes only. Map current DB tables/models to future Payload collections. Avoid changes that make future Payload migration harder.
+- T-470. Prepare onepager, simple demo flow, LinkedIn launch post, outreach email, and investor/startup contact list.
+- T-471. Clean env usage, remove exposed secrets, add upload limits, add rate limits, review admin routes, and prepare basic GDPR/privacy notes.
+- T-472. Create beta feedback flow, bug board, launch checklist, and short public demo script.

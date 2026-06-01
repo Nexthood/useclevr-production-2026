@@ -54,3 +54,6 @@ Thumbs.db
 .kilo/*
 !.kilo/agent/
 !.kilo/agent/*.md
+
+# Railway local project link
+.railway/

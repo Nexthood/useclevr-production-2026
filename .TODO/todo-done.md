@@ -16,7 +16,8 @@ moving work between states.
 
 ## Completed
 
-- T-462. Railway health checks return liveness separately from database readiness, Railway auth uses the active request host by default, edge route guards avoid Node-only auth modules, production packaging starts from clean generated output, and generated middleware manifests point to the bundled route guard entry.
+- T-488. Local Railway CLI commands and token-safe login guidance support project deployment operations.
+- T-462. Railway health checks return liveness separately from database readiness, Railway auth uses the active request host by default, edge route guards avoid Node-only auth modules, production packaging starts from clean generated output, generated middleware manifests point to the bundled route guard entry, and generated Railway starts use a portable shell entrypoint.
 - T-392. Deployment smoke checks fail when generated Railway output includes pnpm workspace metadata or omits required runtime bundle files.
 - T-255. Generated deployment manifests include source commit, source branch, build timestamp, Node version, and healthcheck path.
 - T-441. Consolidated 5 duplicate metric display components (ProfileMetric, ContextItem, FinancialItem, TaxItem, ReportMetric) into shared StatCard component.

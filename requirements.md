@@ -10,6 +10,7 @@ This file states the current product requirements in direct, present-state langu
 - Keep production and preview deployments connected to the configured Neon database.
 - Return liveness health checks even while database readiness is reported as unavailable or degraded.
 - Keep Railway authentication on the active request host unless a strict fixed auth URL is enabled.
+- Start generated Railway output through a portable shell entrypoint.
 - Keep edge route guards free of Node-only authentication and database modules.
 - Normalize generated Edge route guard manifests during production packaging.
 - Clean generated build output before production packaging.
