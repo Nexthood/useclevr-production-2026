@@ -1,7 +1,7 @@
 "use server"
 
 import { archiveBusiness, restoreBusiness } from "@/lib/business/business-store"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { debugError } from "@/lib/utils/debug"
 import { revalidatePath } from "next/cache"
 

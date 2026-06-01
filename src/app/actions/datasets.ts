@@ -4,7 +4,7 @@ import { debugError } from "@/lib/utils/debug"
 
 
 
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { failure, type Result, success } from "@/lib/result"

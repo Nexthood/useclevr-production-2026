@@ -57,6 +57,9 @@ pnpm health           # validate + tests + docs + audit
 - Keep UI accessible in light and dark themes
 - Use `src/assets/` for static assets; `src/app/assets/` is route handler
 - Remove sensitive data from AI context before sending to openai/cloud vendors
+- Use direct current-state language in all text files. Describe current behavior and current rules,
+  not past states, removed options, speculative possibilities, or future blockages. Mention past or
+  future states only when the detail prevents a concrete risk.
 
 ## Script Rules
 - ESM for source-side maintenance scripts (package is `type: module`)
@@ -77,6 +80,8 @@ pnpm health           # validate + tests + docs + audit
 - Respect `.aiignore` for sensitive/ignored paths
 - Respect `.gitignore` before reading source
 - Never read `dist/`, `.git/`, `.next/`, or `node_modules/`
+- Update `docs/AI-interaction/` after every durable AI instruction change, including user guidance,
+  AI-agent guidance, prompt style, text-language rules, and bookkeeping guidance
 
 ## Important Files
 - `src/app/api/chat/route.ts`
@@ -102,6 +107,8 @@ When editing `CHANGELOG.md`:
 - Every entry must describe an active change (added, fixed, changed, removed)
 - Never write about what was kept/preserved
 - Use present-action statements (e.g., "Add feature" not "Feature added")
+- Prefer current-state product wording: "Show ticket creation on the Tickets page" instead of
+  comparing against past page placement or removed forms
 - Use plain user language: "Exports now include attachments" not "Attachment export support added"
 - Describe user benefit and why it matters (not implementation)
 - Never mention: function names, file names, internal IDs, routes, packages, env vars, CI files, source paths
@@ -115,6 +122,9 @@ When editing `CHANGELOG.md`:
 ## Deployment
 Railway serves `dist/` from `dist` branch `/dist`; Vercel serves source from `main` using `vercel.json` synced from `dist-root/server-config/vercel.json`.
 Build: source check → generate Railway output.
+
+Railway test deploy reviews use only `beta` and `dist-test`. Do not inspect or trigger `main`,
+`dist`, or the live app when the task names the test deploy.
 
 PR titles start with `PR:`; dist-publish commits use merged PR title (fallback if none).
 
@@ -182,6 +192,8 @@ AI agents keep regular `.TODO/` queue files synced:
 - Dist/audit-specific TODO files retired; follow-ups/findings go to regular next/done/future/ignore
 - Keep task numbers stable when moving work between active/retired
 - Write task descriptions as direct present-action (not retrospective changelog)
+- Write all text-file bullets as current-state behavior; mention past states, removed options,
+  speculative possibilities, or future blockages only for risk prevention
 - Fold temporary TODO files back to regular queues before considering migration/audit complete
 - Run `pnpm lint:todos` after TODO metadata changes
 

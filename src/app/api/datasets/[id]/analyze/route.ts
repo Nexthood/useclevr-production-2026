@@ -1,7 +1,7 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
 
 import { recordActivity } from "@/lib/activity/activity-store";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import type { CSVAnalysisResult, DatasetRecord } from "@/lib/data/csv-analyzer";
 import { analyzeCSV } from "@/lib/data/csv-analyzer";

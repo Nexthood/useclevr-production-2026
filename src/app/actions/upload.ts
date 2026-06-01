@@ -4,7 +4,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { db } from "@/lib/db"
 import { datasetRows, datasets, users } from "@/lib/db/schema"
@@ -484,6 +484,18 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Revalidate datasets page
     revalidatePath("/app/datasets")
+
+    // Fire suggestion regeneration (best-effort, non-blocking)
+    try {
+      const origin = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000"
+      fetch(`${origin}/api/suggestions/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ datasetId }),
+      }).catch(() => {})
+    } catch {
+      // Suggestion refresh is best-effort
+    }
 
     const usage = await consumeAnalystCredit(effectiveUserId)
 

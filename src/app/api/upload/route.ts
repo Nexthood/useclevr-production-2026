@@ -1,7 +1,7 @@
 import { debugError, debugLog } from "@/lib/utils/debug"
 
 import { recordActivity } from '@/lib/activity/activity-store'
-import { auth } from '@/lib/auth'
+import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db'
 import { datasetRows, datasets, users } from '@/lib/db/schema'
 import { consumeAnalystCredit, requireAnalystCredit } from '@/lib/usage/analyst-credits'

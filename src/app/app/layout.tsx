@@ -3,7 +3,7 @@ import { DashboardGlobalFooter } from "@/components/layout/dashboard-global-foot
 import { HelpChatbox } from "@/components/ui/help-chatbox"
 import { PageVisitTracker } from "@/components/ui/page-visit-tracker"
 import Topbar from "@/components/ui/topbar"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { FormattingProvider } from "@/lib/utils/formatting-context"
 import { redirect } from "next/navigation"
 import type React from "react"

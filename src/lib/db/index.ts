@@ -1,9 +1,10 @@
 import { debugError, debugLog } from "@/lib/utils/debug"
 
-import { neon } from '@neondatabase/serverless'
+import { neon, Pool as NeonPool } from '@neondatabase/serverless'
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http'
+import { drizzle as drizzleNeonServerless } from 'drizzle-orm/neon-serverless'
 import { drizzle as drizzlePostgres } from 'drizzle-orm/node-postgres'
-import { Pool } from 'pg'
+import { Pool as PgPool } from 'pg'
 import * as schema from './schema'
 
 const globalForDb = globalThis as unknown as {
@@ -15,9 +16,24 @@ function isServerlessUrl(url: string) {
   return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('neon://')
 }
 
+function isPoolerUrl(url: string) {
+  try {
+    const hostname = new URL(url).hostname
+    return hostname.includes('pooler')
+  } catch {
+    return false
+  }
+}
+
 function shouldUseServerless(): boolean {
   return process.env.NEON_USE_SERVERLESS === 'true'
 }
+
+function shouldUseWsPool(): boolean {
+  return process.env.NEON_USE_WS_POOL === 'true'
+}
+
+type QueryProbe = { query: (query: string) => Promise<unknown> }
 
 /** Drizzle Database Client singleton with retry logic for cold-start */
 function createDbClient() {
@@ -28,19 +44,26 @@ function createDbClient() {
   }
 
   const useServerless = shouldUseServerless() || isServerlessUrl(connectionUrl)
+  const useWsPool = shouldUseWsPool() || isPoolerUrl(connectionUrl)
 
-  let probe: { query: (query: string) => Promise<unknown> }
-  const db = useServerless
+  let probe: QueryProbe
+  const db = useWsPool
     ? (() => {
-      const sql = neon(connectionUrl)
-      probe = sql
-      return drizzleNeon(sql, { schema })
+      const pool = new NeonPool({ connectionString: connectionUrl, max: 5 })
+      probe = pool as QueryProbe
+      return drizzleNeonServerless(pool, { schema })
     })()
-    : (() => {
-      const pool = new Pool({ connectionString: connectionUrl })
-      probe = pool
-      return drizzlePostgres(pool, { schema })
-    })()
+    : useServerless
+      ? (() => {
+        const sql = neon(connectionUrl)
+        probe = sql as unknown as QueryProbe
+        return drizzleNeon(sql, { schema })
+      })()
+      : (() => {
+        const pool = new PgPool({ connectionString: connectionUrl, max: 10 })
+        probe = pool as QueryProbe
+        return drizzlePostgres(pool, { schema })
+      })()
 
   // Test connection in development with retry logic for cold-start
   if (process.env.NODE_ENV === 'development') {
@@ -55,7 +78,6 @@ function createDbClient() {
         debugError(`[DB] Failed to connect (attempt ${retries + 1}):`, String(err))
         retries++
         if (retries < maxRetries) {
-          // Exponential backoff
           const delay = Math.min(1000 * Math.pow(2, retries), 10000)
           debugLog(`[DB] Retrying in ${delay}ms...`)
           setTimeout(tryConnect, delay)
@@ -65,7 +87,6 @@ function createDbClient() {
       })
     }
 
-    // Start first connection attempt
     setTimeout(tryConnect, 1000)
   }
 

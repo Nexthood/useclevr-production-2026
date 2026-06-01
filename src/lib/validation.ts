@@ -7,6 +7,7 @@ export const chatRequestSchema = z.object({
   })).min(1, "messages array is required"),
   datasetId: z.string().optional(),
   processedData: z.any().optional(),
+  stream: z.boolean().optional().default(false),
 })
 
 export const analyzeRequestSchema = z.object({

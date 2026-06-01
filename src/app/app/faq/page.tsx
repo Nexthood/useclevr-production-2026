@@ -3,7 +3,7 @@ import { DashboardFaqActions } from "@/components/faq/dashboard-faq-actions"
 import { FaqScopeNav } from "@/components/faq/faq-scope-nav"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Card } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { dashboardFaqCategories, superAdminFaqCategories } from "@/lib/content/dashboard-faq"
 import { HelpCircle, MessageSquare } from "lucide-react"
 

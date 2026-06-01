@@ -10,19 +10,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Dashboard language selector with four options: English, German, Hungarian, and Romanian.
+- Accountancy overview includes bookkeeping cards, a bookkeeping queue, and monthly close readiness.
+- AI interaction docs include user guidance, AI-agent guidance, prompt examples, and instruction maintenance rules.
 
 ### Changed
 
 - Login combines sign-in and sign-up in tabs with the built-in demo account plus configured Google
   and LinkedIn sign-in options.
-- Business review readiness appears inside the Business overview instead of a separate review page.
+- Show business review readiness inside the Business overview.
 - Dataset and downloads lists use separated table action columns for clearer row management.
 - Account settings use a horizontal subpage bar so profile, preferences, subscription, billing, and activity stay in one account workspace.
 - Dashboard topbar controls use full-height click and hover targets.
 - Dataset preview, customer level, and discount rule tables use the shared dashboard table shell.
 - Dashboard search opens as a full-page overlay with direct links to pages, datasets, reports, and role-appropriate FAQ results.
 - Railway deployment uses the Railpack builder for improved build control and smaller images.
-- Sign-out now redirects properly to login page for reliable navigation.
+- Route sign-out to the login page for reliable navigation.
 - Dataset, business, and ticket listings use consistent title links, supporting edit links, and
   row-end actions.
 - AI Assistant keeps dataset selection, suggested questions, and the chat input visible while
@@ -66,7 +68,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the current external pages in a new tab.
 - Dashboard onboarding tracks setup progress from account data, routes users to the relevant
   setup pages, and keeps reopening for accounts below 25% completion.
-- Business setup links open the Business workspace instead of sending users through Settings.
+- Open business setup links in the Business workspace.
 - Social login buttons start configured Google and LinkedIn sign-in or registration flows.
 - The dashboard sidebar includes coming-soon mobile app buttons, social placeholders, a user
   panel stack, and a bottom Terms link.
@@ -82,7 +84,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   interactions.
 - Billing and payment settings use more customer-operations language and list-style history
   layouts.
-- The topbar credits button opens subscription settings instead of sending users to public plans.
+- Open subscription settings from the topbar credits button.
 - Public pricing and FAQ copy describes Hybrid AI access without exposing runtime download sizes.
 - Public pages outside the homepage share one title section design.
 - Dashboard help links live under the topbar Help menu, while the sidebar focuses on primary
@@ -96,8 +98,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Business overview metrics remain available when business storage tables are unavailable.
 - Dashboard notifications open from the topbar notices sidebar again.
 - The project favicon resolves from the app route and broken duplicate favicon assets are removed.
-- Login keeps local and live redirects on the active app host instead of reusing a stale deployment
-  URL.
+- Keep local and live login redirects on the active app host.
 - Stripe checkout returns users through a verifiable checkout session and can reopen the billing
   portal for linked customers.
 - Chat can use dashboard search context to point users toward relevant pages and FAQ answers.
@@ -111,8 +112,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Help chat stays clear of the footer and uses stronger message contrast.
 - Setup progress includes business subpage visits in the completion checklist.
 - Mistyped dashboard settings links redirect to Profile settings.
-- Business and super-admin accounts keep paid download access instead of falling back to the free
-  download limit.
+- Keep paid download access for Business and super-admin accounts.
 - Checkout action labels render plain text instead of encoded HTML entities.
 - The dashboard activity popup uses the shared overlay and shows clear loading or unavailable
   states for recent activity.
@@ -123,7 +123,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Product-update waitlist signup succeeds during local development when the production database
   is unavailable.
 - The Hybrid AI popup opens reliably from the dashboard topbar.
-- Dashboard FAQ keeps ticket creation on the Tickets page instead of showing an inline issue form.
+- Show ticket creation on the Tickets page.
 - Super-admin customer lists show built-in demo and super-admin accounts even when database
   customer rows cannot load.
 - Local generated-output starts use localhost for authentication while Railway keeps its server
@@ -139,10 +139,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   activation before changes are committed.
 - GitHub workflows use current reviewed GitHub-owned action major tags while pnpm stays activated
   through Corepack.
-- GitHub workflows activate pnpm through Corepack instead of downloading the third-party pnpm
-  setup action.
-- Beta sync uses an explicit authenticated remote and no longer blocks dist publishing when
-  branch permissions prevent the sync push.
+- Activate pnpm through Corepack in GitHub workflows.
+- Treat beta sync branch-permission failures as non-blocking during dist publishing.
+- Publish dist-test Railway output without package-manager lockfiles so Railpack uses the prebuilt bundle.
 - TODO validation reports active and retired queue states while preserving existing task metadata.
 - Changelog linting checks Unreleased entries for active-change wording.
 - Maintenance scripts share repository path and package-manager settings from one script config.

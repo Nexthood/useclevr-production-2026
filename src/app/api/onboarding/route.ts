@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { getOnboardingStatus } from "@/lib/onboarding/status"

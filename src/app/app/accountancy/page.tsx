@@ -1,11 +1,24 @@
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"
-import { ArrowRight, Banknote, BookOpenCheck, Calculator, CheckCircle2, DollarSign, FileText, Landmark, MapPin, ReceiptText, Scale, Upload } from "lucide-react"
+import {
+  ArrowRight,
+  Banknote,
+  BookOpenCheck,
+  Calculator,
+  CheckCircle2,
+  DollarSign,
+  FileText,
+  Landmark,
+  MapPin,
+  ReceiptText,
+  Scale,
+  Upload,
+} from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
@@ -47,7 +60,10 @@ export default async function AccountancyPage() {
     {
       id: "bank-reconciliation",
       title: "Bank reconciliation",
-      description: activeDatasets > 0 ? "Match imported statements against dataset totals." : "Upload a bank export to start matching statement rows.",
+      description:
+        activeDatasets > 0
+          ? "Match imported statements against dataset totals."
+          : "Upload a bank export to start matching statement rows.",
       status: activeDatasets > 0 ? "Ready" : "Needs data",
       href: "/app/upload",
     },
@@ -61,7 +77,10 @@ export default async function AccountancyPage() {
     {
       id: "monthly-close",
       title: "Monthly close",
-      description: totalBusinesses > 0 ? "Track close steps for business profiles with connected records." : "Add a business profile before closing monthly books.",
+      description:
+        totalBusinesses > 0
+          ? "Track close steps for business profiles with connected records."
+          : "Add a business profile before closing monthly books.",
       status: totalBusinesses > 0 ? "Ready" : "Needs profile",
       href: totalBusinesses > 0 ? "/app/accountancy/compliance" : "/app/business",
     },

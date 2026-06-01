@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { CreditCard, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";

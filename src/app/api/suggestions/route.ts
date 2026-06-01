@@ -1,11 +1,10 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
-import { appSettings } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { datasets, appSettings } from "@/lib/db/schema"
+import type { DatasetRecord } from "@/lib/data/dataset-intelligence"
+import { buildDatasetIntelligence, generateSuggestions } from "@/lib/data/dataset-intelligence"
+import { and, eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
-
-// In production, this would be a dedicated table
-// For now, we use appSettings as a simple store
 
 export async function GET() {
   const session = await auth()
@@ -19,10 +18,11 @@ export async function GET() {
   }
 
   try {
+    const userKey = `suggestions_${session.user.id}`
     const [setting] = await db
       .select()
       .from(appSettings)
-      .where(eq(appSettings.key, "suggestions_global"))
+      .where(eq(appSettings.key, userKey))
 
     const suggestions = Array.isArray(setting?.value) ? setting.value : []
 
@@ -58,10 +58,12 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     }))
 
+    const userKey = `suggestions_${session.user.id}`
+
     await db
       .insert(appSettings)
       .values({
-        key: "suggestions_global",
+        key: userKey,
         value: savedSuggestions,
       })
       .onConflictDoUpdate({

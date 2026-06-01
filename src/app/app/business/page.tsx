@@ -1,7 +1,7 @@
 import { archiveBusinessAction, restoreBusinessAction } from "@/app/actions/business"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getBusinessLimit, listUserBusinesses, getPrimaryBusinessDetails, type BusinessListRow } from "@/lib/business/business-store"
 import { BUSINESS_FIELDS, getBusinessCompletionPercent, getBusinessReviewFlags } from "@/lib/business/business-profile"
 import { getDb } from "@/lib/db"

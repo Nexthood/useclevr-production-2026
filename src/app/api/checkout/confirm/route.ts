@@ -1,7 +1,8 @@
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
 import { getDb } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
+import { issueCheckoutToken } from "@/lib/stripe/checkout-token";
 import { debugError } from "@/lib/utils/debug";
 import { createStripeCheckoutSession } from "@/services/stripe/checkout";
 import { eq } from "drizzle-orm";
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
     }
 
     const origin = request.nextUrl.origin;
-    const successUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    const checkoutToken = issueCheckoutToken(null, user.id);
+    const successUrl = `${origin}/checkout/success?t=${checkoutToken}&s={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}`;
 
     try {

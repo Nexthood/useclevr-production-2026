@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import type { Session } from "next-auth"
 import { NextResponse } from "next/server"
 

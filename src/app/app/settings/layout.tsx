@@ -1,5 +1,5 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { Settings } from "lucide-react"
 import type React from "react"
 import { SettingsNav } from "./settings-nav"

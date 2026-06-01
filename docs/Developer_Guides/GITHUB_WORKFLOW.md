@@ -110,16 +110,11 @@ pnpm prod:build
 
 ## GitHub Actions
 
-The main CI workflow is `.github/workflows/ci.yml`. A secondary workflow
-`.github/workflows/ci-beta.yml` mirrors the same checks for `beta`.
+The main CI workflow is `.github/workflows/ci.yml`. It runs on:
 
-Both workflows run on:
+- Pushes to `main` and `beta`
+- Pull requests targeting `main` and `beta`
 
-- Pushes to their target branch
-- Pull requests targetting that branch
-
-The `ci.yml` workflow validates both `main` and `beta` pushes. The `ci-beta.yml` workflow
-additionally validates `beta` (kept for backward compatibility until merged into `ci.yml`).
 CI is automatically skipped for commits containing `[skip ci]` in the commit message.
 
 All CI workflows use a PostgreSQL 17 ephemeral service container so database-dependent steps
@@ -364,8 +359,8 @@ The GitHub Actions workflows have been verified and are correct:
 
 **ci.yml:**
 
-- Validation runs on push to branches [main] ✓
-- Beta pushes do not run CI (prevents duplicate runs) ✓
+- Validation runs on push to branches [main, beta] ✓
+- No duplicate CI runs on beta pushes (single workflow covers both) ✓
 - Skips CI for commits containing [skip ci] ✓
 
 **branch-maintenance.yml:**

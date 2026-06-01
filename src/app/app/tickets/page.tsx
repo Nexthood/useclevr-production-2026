@@ -1,6 +1,6 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { PageActionRow } from "@/components/ui/page-action-row"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { Plus, Ticket } from "lucide-react"
 import Link from "next/link"
 import { TicketsClient } from "./tickets-client"

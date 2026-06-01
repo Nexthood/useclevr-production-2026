@@ -1,0 +1,49 @@
+name: Shared Validation
+
+on:
+  workflow_call:
+    inputs:
+      run_command:
+        description: Command to run after install
+        required: true
+        type: string
+      needs_postgres:
+        description: Start a PostgreSQL service container
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "26.x"
+          cache: pnpm
+
+      - name: Activate pnpm through Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.0 --activate
+
+      - run: pnpm install --frozen-lockfile
+      - run: ${{ inputs.run_command }}

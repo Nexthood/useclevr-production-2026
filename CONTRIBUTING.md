@@ -60,5 +60,29 @@ Examples: `Add(Billing): Stripe webhook handler`, `Fix(Checkout): missing T&C st
 5. Confirm `pnpm exec tsc --noEmit` is clean.
 6. Open PR with clear description of what, why, and how.
 
+## Language Usage
+Use direct, current-state language for product behavior in all user-facing text and documentation.
+- Avoid future-tense or past-tense descriptions when describing current product behavior.
+- Use present-tense, active voice.
+
+Examples:
+
+Bad: "The button will allow users to export reports."
+Good: "The button exports reports."
+
+Bad: "Users were able to filter tickets by status."
+Good: "Users filter tickets by status."
+
+Bad: "This feature adds the ability to..."
+Good: "This feature lets users..."
+
+This rule applies to:
+- User-facing strings in the application (UI components, notifications, etc.)
+- Documentation files (.md)
+- Changelog entries
+- Requirements and product specifications (requirements.md)
+
+It does not apply to internal code comments or developer-only documentation unless they are user-facing.
+
 ## Code of Conduct
 Be kind. Constructive discussion and shared curiosity are always welcome — do not tolerate harassment in any form.

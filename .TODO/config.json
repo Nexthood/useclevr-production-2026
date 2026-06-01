@@ -1,6 +1,6 @@
 {
   "currentTaskPrefix": "T-",
-  "nextTaskNumber": 432,
+  "nextTaskNumber": 438,
   "todoFiles": {
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",
@@ -9,13 +9,15 @@
   },
   "linksHeader": "Links",
   "taskIdPattern": "^T-\\d{2,}$",
-  "instructions": "Get the T-number from .TODO/config.json before adding new numbered tasks. Assign a stable T- prefixed task number to every task in todo-next.md, todo-done.md, todo-future.md, and todo-ignore.md, and keep that number unchanged when moving the task between states. Keep todo-next.md as the only active queue. Move completed tasks to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Keep one task per bullet, include a Links section for related references, and store TODO metadata in .TODO/config.json. Write task descriptions as direct present-action statements and avoid retrospective phrasing such as 'now ...'. Do not duplicate tasks that already exist in todo-next.md.",
+  "instructions": "Get the T-number from .TODO/config.json before adding new tasks. Assign a stable T- prefixed task number to every task in todo-next.md, todo-done.md, todo-future.md, and todo-ignore.md, and keep that number unchanged when moving the task between states. Keep todo-next.md as the only active queue. Move completed tasks to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Keep one task per bullet, include a Links section for related references, and store TODO metadata in .TODO/config.json. Write task descriptions as direct present-action statements and avoid retrospective phrasing such as 'now ...'. Do not duplicate tasks that already exist in todo-next.md.",
   "suggestions": [
     "Keep TODO-next focused on important developer and end-user work.",
     "Use shared config under data-config/frontend_shared.json and data-config/server.json for the date/alias rule source.",
     "Document relative date calculation rules and deterministic overwriteToday behaviour.",
     "Write task bullets as stable present-action statements, not retrospectives.",
     "Avoid task wording that begins with 'now', 'now also', 'now removed', 'now always', or similar changelog-style phrasing.",
-    "Write requirements and guide text as current-state behavior; mention past states or future blockers only for risk prevention."
+    "Write every text file as current-state behavior and current rules; mention past states, removed options, speculative possibilities, or future blockages only for risk prevention.",
+    "Update docs/AI-interaction after every durable AI instruction change, including user instructions, AI instructions, and prompt examples.",
+    "Keep Railway test deploy reviews scoped to beta and dist-test unless the user explicitly names another branch."
   ]
 }

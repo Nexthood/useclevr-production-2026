@@ -25,8 +25,12 @@ export function Search() {
     { href: "/app/settings/profile", label: "Settings", description: "Manage account and profile.", icon: Settings },
   ]
   const [activeResultIndex, setActiveResultIndex] = useState(-1)
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const resultListRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const resultTypes = ["page", "dataset", "report", "faq", "data"] as const
+  const filteredResults = typeFilter ? results.filter((r) => r.type === typeFilter) : results
 
   // Cmd+K / Ctrl+K to open search
   useEffect(() => {
@@ -237,8 +241,32 @@ export function Search() {
 
             <div className="min-h-0 flex-1 overflow-y-auto py-4">
               {results.length > 0 ? (
-                <div ref={resultListRef} className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                  {results.map((result, index) => (
+                <>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTypeFilter(null)}
+                      className={`rounded-md px-3 py-1 text-xs font-medium transition ${typeFilter === null ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                    >
+                      All
+                    </button>
+                    {resultTypes.map((t) => {
+                      const count = results.filter((r) => r.type === t).length
+                      if (count === 0) return null
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setTypeFilter(t)}
+                          className={`rounded-md px-3 py-1 text-xs font-medium transition ${typeFilter === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                        >
+                          {t.charAt(0).toUpperCase() + t.slice(1)} ({count})
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div ref={resultListRef} className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                  {filteredResults.map((result, index) => (
                     <Link
                       key={result.id}
                       href={result.href}
@@ -264,6 +292,7 @@ export function Search() {
                     </Link>
                   ))}
                 </div>
+                </>
               ) : hasSearched ? (
                 <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
                   <FileQuestion className="h-8 w-8 text-muted-foreground" />

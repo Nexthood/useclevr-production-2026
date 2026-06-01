@@ -10,6 +10,8 @@ const allowedActions = new Map([
   ["actions/checkout", new Set(["v6"])],
   ["actions/setup-node", new Set(["v6"])],
   ["actions/github-script", new Set(["v9"])],
+  ["./.github/workflows/validate.yml", new Set([""])],
+  ["./.github/actions/setup", new Set([""])],
 ])
 
 const errors = []

@@ -132,6 +132,100 @@ export async function generateAntigravityCompletion(
 }
 
 /**
+ * Stream a completion from Antigravity, yielding content chunks via a ReadableStream
+ */
+export function generateAntigravityStream(
+  request: AntigravityRequest
+): ReadableStream<string> {
+  const apiKey = ANTIGRAVITY_API_KEY;
+  if (!apiKey) {
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(JSON.stringify({ error: 'AI service not configured. Please contact support.' }));
+        controller.close();
+      }
+    });
+  }
+
+  const encoder = new TextEncoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        const response = await fetch(`${ANTIGRAVITY_BASE_URL}/v1/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: request.model,
+            messages: request.messages,
+            temperature: request.temperature ?? 0.3,
+            max_tokens: request.max_tokens ?? 1000,
+            stream: true,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          controller.enqueue(JSON.stringify({ error: `Antigravity API error: ${response.status} - ${error}` }));
+          controller.close();
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          controller.enqueue(JSON.stringify({ error: 'No response body stream' }));
+          controller.close();
+          return;
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
+            const data = trimmed.slice(6);
+            if (data === '[DONE]') {
+              controller.enqueue(JSON.stringify({ done: true }));
+              controller.close();
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                controller.enqueue(content);
+              }
+            } catch {
+              // skip malformed JSON chunks
+            }
+          }
+        }
+
+        controller.enqueue(JSON.stringify({ done: true }));
+        controller.close();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown streaming error';
+        controller.enqueue(JSON.stringify({ error: msg }));
+        controller.close();
+      }
+    },
+  });
+}
+
+/**
  * Check if Antigravity server is available
  */
 export async function checkAntigravityAvailability(): Promise<boolean> {

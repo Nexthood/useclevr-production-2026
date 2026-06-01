@@ -171,11 +171,20 @@ for (const targetDir of [distDir]) {
   }
 }
 
-// Remove pnpm indicators so Railpack skips dependency installation.
-// Railpack detects pnpm from pnpm-lock.yaml, pnpm-workspace.yaml, .npmrc,
-// and the packageManager field in package.json.
-const pnpmFiles = ["pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc"];
-for (const f of pnpmFiles) {
+// Remove package-manager indicators so Railpack uses the prebuilt standalone bundle without
+// trying to install dependencies in the generated deployment folder.
+const packageManagerFiles = [
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "package-lock.json",
+  "yarn.lock",
+  "bun.lock",
+  "bun.lockb",
+  ".npmrc",
+  ".yarnrc.yml",
+  ".yarnrc.yaml",
+];
+for (const f of packageManagerFiles) {
   const fp = path.join(distDir, f);
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { createTicket, listTickets, updateTicket } from "@/lib/support/ticket-store";
 import { ticketCreateSchema, ticketUpdateSchema, validateOrError } from "@/lib/validation";
 import type { NextRequest } from "next/server";

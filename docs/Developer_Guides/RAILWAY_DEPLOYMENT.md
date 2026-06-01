@@ -11,6 +11,9 @@
 
 Railway deploys generated production output from the `dist` branch.
 
+Railway test deploy review uses the `beta` source branch and `dist-test` deployment branch. Keep
+test deploy checks away from `main`, `dist`, and the live app unless a task explicitly changes scope.
+
 ## Railway Settings
 
 - Branch: `dist`
@@ -86,6 +89,8 @@ browser login or `RAILWAY_TOKEN` in the shell environment.
 pnpm validate:dist
 pnpm prod:build
 test ! -f dist/pnpm-workspace.yaml
+test ! -f dist/pnpm-lock.yaml
+test ! -f dist/package-lock.json
 test ! -f dist/railway.json
 test ! -f dist/vercel.json
 ```
@@ -101,6 +106,10 @@ If logs show workspace metadata errors, confirm generated `/dist` does not conta
 
 If logs show pnpm requiring a newer Node release, keep the deployment package on a pnpm version that
 matches Railway's current Node runtime until Railway moves past the requirement.
+
+If Railpack starts a dependency install for the test deploy, confirm the `dist-test` branch contains
+no package-manager lockfiles inside `/dist`. The standalone bundle includes production modules, so
+the generated deployment package must not ask Railpack to install dependencies.
 
 If logs show `ERR_PNPM_NO_LOCKFILE`, keep Railway runtime installs on `--no-frozen-lockfile` because
 the generated deployment package is smaller than the source workspace and Railway installs from

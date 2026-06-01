@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { listAllActivities, listUserActivities } from "@/lib/activity/activity-store"
 import { NextResponse } from "next/server"
 

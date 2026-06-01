@@ -1,6 +1,6 @@
 import { debugError } from "@/lib/utils/debug"
 
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"

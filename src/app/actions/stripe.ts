@@ -1,9 +1,10 @@
 "use server"
 
 import { PRODUCTS, type ProductId } from "@/lib/business/products"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
+import { issueCheckoutToken, redeemCheckoutToken } from "@/lib/stripe/checkout-token"
 import { createStripeCheckoutSession, retrieveStripeCheckoutSession } from "@/services/stripe/checkout"
 import { eq } from "drizzle-orm"
 
@@ -32,7 +33,8 @@ export async function createCheckoutSession(productId: ProductId, returnUrl?: st
   }
 
   const baseUrl = getBaseUrl()
-  const successUrl = returnUrl || `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`
+  const checkoutToken = issueCheckoutToken("pending", session.user.id)
+  const successUrl = returnUrl || `${baseUrl}/checkout/success?t=${checkoutToken}&s={CHECKOUT_SESSION_ID}`
   const cancelUrl = `${baseUrl}/app/settings/checkout?plan=${productId === "pro_yearly" ? "pro_annual" : productId}`
   const db = getDb()
   const profile = db
@@ -64,6 +66,21 @@ export async function getCheckoutSession(sessionId: string) {
   if (checkoutUserId !== session.user.id) {
     return null
   }
+
+  return checkoutSession
+}
+
+export async function verifyCheckoutToken(token: string, stripeSessionId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  const data = redeemCheckoutToken(token)
+  if (!data) return null
+  if (data.userId !== session.user.id) return null
+
+  const checkoutSession = await retrieveStripeCheckoutSession(stripeSessionId)
+  const checkoutUserId = checkoutSession.client_reference_id || checkoutSession.metadata?.userId
+  if (checkoutUserId !== session.user.id) return null
 
   return checkoutSession
 }

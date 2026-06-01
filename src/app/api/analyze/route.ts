@@ -19,7 +19,7 @@
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
 import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";

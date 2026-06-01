@@ -16,6 +16,27 @@ moving work between states.
 
 ## Completed
 
+- T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist.
+- T-417. Consolidate `ci-beta.yml` into `ci.yml` — removes one workflow file and prevents duplicate CI runs on beta pushes.
+- T-418. Replace barrel re-export files with direct imports across all consuming modules.
+- T-419. Deployment manifest generation already present in `create-dist.cjs`.
+- T-420. Add Neon WebSocket connection pooling to `src/lib/db/index.ts`.
+- T-421. Extract duplicated CI job steps into shared reusable workflow and composite action.
+- T-422. Replace checkout URL session ID proof with server-issued one-time checkout token.
+- T-423. Add Stripe webhook event replay endpoint and admin panel component.
+- T-424. Store suggestions per-user instead of global key, with userId filter.
+- T-425. Add fire-and-forget suggestion refresh trigger after dataset upload.
+- T-426. Add full-text search across dataset row JSONB data in global search.
+- T-427. Add type-ahead search suggest endpoint with result-type filter buttons.
+- T-429. Split 906-line chat route into focused modules: validation, SQL executor, explanation, fallback, and utils.
+- T-430. Add dedicated `/api/mcp/` endpoint stub for future MCP tool execution.
+- T-431. Add cross-dataset comparison MCP tool with tool registry.
+- T-428. Add streaming responses to `/api/chat` using `ReadableStream` and `TextEncoder` for incremental display and abort support.
+- T-434. Railway dist-test publishing omits package-manager lockfiles and guards generated output before test deployment.
+- T-433. AI interaction docs separate user guidance, AI-agent guidance, prompt collection, and bookkeeping user/developer guides.
+- T-432. AI instructions require AI-interaction docs updates after durable instruction changes and scope Railway test deploy reviews to beta and dist-test.
+- T-416. Accountancy overview shows bookkeeping cards, a bookkeeping queue, monthly close readiness, and direct accounting action links.
+- T-415. Requirements and unreleased changelog text use direct current-state language for product behavior.
 - T-390. Server action responses typed as a discriminated `Result<T, E>` union so every handler returns a consistent `{ success, data }` / `{ success: false, error }` shape.
 - T-389. Popover dropdown shadow and z-index values align with the shared `Modal` backdrop layer to prevent overlay gaps.
 - T-388. Client-side data fetching wraps in a shared `useApi` hook that handles loading, error, and abort-controller cleanup for every page.
@@ -181,4 +202,3 @@ moving work between states.
 - T-310. Cookie consent bar added with accept button.
 - T-338. Fix progress system - single line display, page-based steps instead of field-based, activity integration.
 - T-340. Add API endpoint for bulk dataset deletion.
-

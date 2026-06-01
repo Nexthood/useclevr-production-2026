@@ -5,7 +5,7 @@ import {
     normalizeReferralCode,
     referralCookieName
 } from "@/lib/referrals/referral-store";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 

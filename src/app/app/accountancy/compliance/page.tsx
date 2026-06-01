@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { CheckCircle2, FileText, Shield } from "lucide-react"
 import type React from "react"
@@ -11,10 +11,11 @@ export const metadata = {
 export default async function AccountancyCompliancePage() {
   const session = await auth()
   const details = await getPrimaryBusinessDetails(session?.user?.id)
+  const safeDetails = details ?? {}
 
-  const profileComplete = !!(details.businessName && details.industry && details.location)
-  const locationComplete = !!details.location
-  const industryComplete = !!details.industry
+  const profileComplete = !!(safeDetails.businessName && safeDetails.industry && safeDetails.location)
+  const locationComplete = !!safeDetails.location
+  const industryComplete = !!safeDetails.industry
 
   return (
     <Card className="border-border bg-card">

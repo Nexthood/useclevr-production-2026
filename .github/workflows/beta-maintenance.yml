@@ -59,18 +59,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "26.x"
-          cache: pnpm
-
-      - name: Activate pnpm through Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.5.0 --activate
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       - name: Build production artifacts
         run: pnpm prod:build
@@ -108,12 +97,12 @@ jobs:
       - name: Clean build output before publish
         run: |
           cd dist
-          rm -f pnpm-workspace.yaml pnpm-lock.yaml
+          rm -f pnpm-workspace.yaml pnpm-lock.yaml package-lock.json
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); delete p.packageManager; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
-          npm install --package-lock-only --no-optional --no-audit --no-fund
           cd ..
 
           rm -f pnpm-workspace.yaml
+          rm -f dist/package-lock.json
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/.cache
@@ -234,6 +223,11 @@ jobs:
 
           if [ -f "dist/railway.json" ] || [ -f "dist/vercel.json" ]; then
             echo "Error: host config files must not be published inside dist/."
+            exit 1
+          fi
+
+          if [ -f "dist/package-lock.json" ] || [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ]; then
+            echo "Error: generated dist-test output must not publish package-manager lockfiles."
             exit 1
           fi
 

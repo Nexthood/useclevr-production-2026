@@ -6,7 +6,7 @@ import { debugError } from "@/lib/utils/debug"
  * Increments the analysis count for the current user after a successful analysis
  */
 
-import { auth } from "@/lib/auth"
+import { auth } from "@/lib/auth/auth"
 import { consumeAnalystCredit } from "@/lib/usage/analyst-credits"
 
 export async function POST() {

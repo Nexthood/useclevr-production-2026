@@ -3,7 +3,7 @@ import { debugError } from "@/lib/utils/debug";
 // app/api/workspaces/route.ts
 // Workspace management API - CRUD operations for workspaces
 
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/auth';
 import { createWorkspace, getUserWorkspaces } from '@/lib/utils/workspace-permissions';
 import { NextResponse } from 'next/server';
 
