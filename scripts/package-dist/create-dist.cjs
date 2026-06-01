@@ -186,9 +186,16 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
+// Remove .pnpm directory from node_modules — Railpack detects pnpm from its presence
+// even when a package-lock.json is present and no other pnpm indicators exist.
+const pnpmDir = path.join(distDir, "node_modules", ".pnpm");
+if (fs.existsSync(pnpmDir)) {
+  fs.rmSync(pnpmDir, { recursive: true, force: true });
+}
+
 // Write railpack.json to declare the Node.js provider explicitly.
 const railpackConfig = {
-  providers: ["node"],
+  provider: "node",
 };
 fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
 
