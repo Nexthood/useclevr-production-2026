@@ -14,18 +14,12 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
-    - name: Activate pnpm through Corepack
+    - name: Enable corepack and install pnpm
       shell: bash
       run: |
         corepack enable
         corepack prepare pnpm@11.5.0 --activate
-
-    - name: Add pnpm to PATH
-      shell: bash
-      run: |
-        PNPM_HOME="$(corepack env)"
-        echo "Corepack pnpm location: $PNPM_HOME"
-        echo "$PNPM_HOME" >> "$GITHUB_PATH"
+        pnpm --version
 
     - name: Install dependencies
       shell: bash
