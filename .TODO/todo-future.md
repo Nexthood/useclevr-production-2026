@@ -37,9 +37,28 @@ moving work between states.
 - T-394. Add a dashboard table consistency audit that checks list pages use title links, supporting edit links, and row-end actions before new list pages ship.
 - T-395. Add a setup progress audit that verifies every business profile field and required setup action contributes to the topbar completion panel.
 
+## Future Next
+
+- T-441. Consolidate 6+ duplicate metric display components (ProfileMetric, ContextItem, FinancialItem, TaxItem, ReportMetric, etc.) into a shared StatCard component.
+- T-442. Error page template duplicated in 7 feature sections — extract shared ErrorScreen component.
+- T-443. Loading page template duplicated in 7 feature sections — extract shared LoadingScreen component.
+
 ## Future Security
 
-- T-398. Add a security audit that confirms user-uploaded files, prompt text, and generated exports stay outside AI context and public static paths. - T-458. Add internationalization (i18n) support framework with language detection, translations, and locale-based routing.
+- T-398. Add a security audit that confirms user-uploaded files, prompt text, and generated exports stay outside AI context and public static paths.
+
+## Future Quality
+
+- T-444. Fix legacy constants in csv-upload.tsx — UPLOAD_QUEUE_KEY and LEGACY_UPLOAD_QUEUE_KEY resolve to the same string.
+- T-445. Upload route retry helper uses in-memory Map that resets on serverless restart — replace with persistent retry tracking.
+- T-447. OAuth user ID generation uses Date.now() + Math.random() — switch to uuid for collision resistance.
+- T-448. Accessibility: Select component lacks keyboard navigation, aria attributes, and disabled state handling.
+- T-449. Data processing flow uses external placeholder images — add fallback and alt text.
+- T-450. LLM client (antigravity-client.ts) uses raw fetch with no deduplication or timeout — use Next.js extended fetch or dedicated client.
+
+## Future Performance
+
+- T-446. Consolidate heavy client dependencies (canvg, html2canvas, qrcode, jspdf) — lazy-load or move PDF generation server-side.
 
 ## Future Test
 
