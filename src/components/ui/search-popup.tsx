@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, BarChart3, Database, FileQuestion, HelpCircle, SearchIcon, Send, Settings, Ticket, X } from "lucide-react"
 import Link from "next/link"
-import { useState, useRef, useEffect } from "react"
+import { useCallback, useState, useRef, useEffect } from "react"
 
 export function Search() {
   const [open, setOpen] = useState(false)
@@ -24,6 +24,7 @@ export function Search() {
   ]
   const [activeResultIndex, setActiveResultIndex] = useState(-1)
   const resultListRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Cmd+K / Ctrl+K to open search
   useEffect(() => {
@@ -40,17 +41,15 @@ export function Search() {
 
   // Handle opening the search
   useEffect(() => {
+    const prev = document.body.style.overflow
     if (open) {
-      // Focus the input when search opens
       searchInputRef.current?.focus()
-      // Prevent background scrolling
       document.body.style.overflow = 'hidden'
     } else {
-      // Return focus to the search button when closed
       searchButtonRef.current?.focus()
-      // Re-enable background scrolling
-      document.body.style.overflow = ''
+      document.body.style.overflow = prev
     }
+    return () => { document.body.style.overflow = prev }
   }, [open])
 
   // Handle ESC key to close search
@@ -131,12 +130,12 @@ export function Search() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, results, activeResultIndex])
 
-  async function handleSearch() {
-    if (!query.trim() || isSearching) return
+  const handleSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim() || isSearching) return
     setIsSearching(true)
     setHasSearched(true)
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
       const data = await response.json()
       setResults(Array.isArray(data.results) ? data.results : [])
     } catch {
@@ -144,24 +143,46 @@ export function Search() {
     } finally {
       setIsSearching(false)
     }
-  }
+  }, [isSearching])
+
+  // Debounced auto-search as user types
+  useEffect(() => {
+    if (!open || !query.trim()) {
+      setResults([])
+      setHasSearched(false)
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      handleSearch(query)
+    }, 300)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [query, open, handleSearch])
 
   return (
     <>
-      <Button
-        ref={searchButtonRef}
-        variant="ghost"
-        size="icon"
-        onClick={() => setOpen(true)}
-        aria-label="Search"
-        className="h-full min-w-12 gap-1 rounded-none px-2"
-        title="Search (Cmd+K)"
-      >
+  <Button
+    ref={searchButtonRef}
+    variant="ghost"
+    size="icon"
+    onClick={() => setOpen(!open)}
+    aria-label={open ? "Close search" : "Search"}
+    className="h-full min-w-12 gap-1 rounded-none px-2"
+    title="Search (Cmd+K)"
+  >
+    {open ? (
+      <X className="h-4 w-4" />
+    ) : (
+      <>
         <SearchIcon className="h-4 w-4" />
         <kbd className="hidden text-[10px] text-muted-foreground/50 lg:inline-flex items-center gap-0.5 rounded border border-border/50 px-1 font-mono">
           <span>⌘</span>K
         </kbd>
-      </Button>
+      </>
+    )}
+  </Button>
 
       {open && (
         <div
@@ -185,7 +206,7 @@ export function Search() {
               className="flex gap-2 border-b border-border py-4"
               onSubmit={(event) => {
                 event.preventDefault()
-                void handleSearch()
+                void handleSearch(query)
               }}
             >
               <Input

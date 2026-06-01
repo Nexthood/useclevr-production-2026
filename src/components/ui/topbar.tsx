@@ -31,7 +31,7 @@ export default async function Topbar() {
       <div className="flex h-full min-w-0 flex-1 items-center justify-between">
         <Link href="/app" className="flex h-full shrink-0 items-center gap-2">
           <Logo className="h-12 w-auto" />
-          <span className="hidden self-start pt-1 text-[10px] text-muted-foreground/60 sm:inline">v{pkg.version}</span>
+          <span className="self-start pt-1 text-[10px] text-muted-foreground/60">v{pkg.version}</span>
         </Link>
 
          <nav className="flex h-full min-w-0 flex-1 items-stretch justify-end overflow-x-auto">

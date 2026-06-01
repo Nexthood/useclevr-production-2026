@@ -71,7 +71,6 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
 
   if (isRevenue || isRegion) {
     const topPct = ((top[1].value / total) * 100).toFixed(1);
-    const second = sorted[1];
     return {
       insight: `${top[0]} generates the majority of revenue`,
       explanation: `${top[0]} accounts for ${topPct}% of total revenue.`,

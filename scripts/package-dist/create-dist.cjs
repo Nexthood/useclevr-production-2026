@@ -180,6 +180,13 @@ for (const f of pnpmFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
+// Write railpack.json so Railpack uses npm instead of auto-detecting pnpm from
+// the dist-branch root files (packages.json / pnpm-lock.yaml at parent level).
+const railpackConfig = {
+  provider: "node",
+};
+fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
+
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/bash
 set -e

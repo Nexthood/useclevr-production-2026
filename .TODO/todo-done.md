@@ -24,6 +24,20 @@ moving work between states.
 - T-385. `updatedAt` timestamps use a Drizzle `onUpdate` trigger or middleware so all update queries set it automatically without manual inclusion.
 - T-384. Health endpoint verifies database connectivity before returning a healthy status.
 - T-383. Dataset detail page paginates through the `datasetRows` table instead of loading all rows from the JSONB column.
+- T-414. Orphaned duplicate `src/assets/images/icon.svg` removed (asset duplication fix).
+- T-410. Business page verified functional — metrics, DataTable, profile/review panels, archive/restore all work with no type errors.
+- T-409. Upload server action now writes rows to `datasetRows` table so the dataset detail page displays paginated data instead of showing empty rows.
+- T-406. Theme toggle already provides multi-theme switcher (light/dark/system/high-contrast/larger-text) with accessibility icons.
+- T-405. Search popup enhanced with debounced auto-search as the user types and fixed body overflow save/restore.
+- T-404. Notification sidebar feature already present via `TopbarNoticeActivityDrawer` — bell icon in topbar opens a modal sidebar with notices and activity feed.
+- T-402. App version already shown in topbar next to logo (v{version}); changed from `hidden sm:inline` to always visible.
+- T-413. Project favicon resolves from the app route and broken duplicate favicon assets are removed.
+- T-412. Every page already passes a page-specific `icon` prop to `AppPageHeader` — no changes needed.
+- T-411. The last inline table in `ResultPreview` (`ai-assistant-workspace.tsx`) refactored to use the shared `DataTable` component.
+- T-408. FAQ page contains no inline issue form — only links to `/app/tickets` and `/contact`.
+- T-407. Font sizes reduced across the board in `tailwind.config.ts`: page-title 24→22, card-title 15→14, small-title 13→12, body 13→12, meta 11→10.5.
+- T-403. Superadmin `Admin` section added to topbar before Credits section, conditionally rendered via `session?.user?.role`.
+- T-401. Sidebar collapse toggle button added to topbar after Credits section (no border), synchronises state via custom event.
 - T-400. dashboard: topbar - dedup credit number in topbar and show wording
 - T-399. dashboard: topbar - logo bigger without margin and border
 - T-366. `updatedAt` timestamps include on every write operation across all database update queries (verified already present).

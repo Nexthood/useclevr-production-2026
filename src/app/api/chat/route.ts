@@ -339,7 +339,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
   if (countryCol) {
     const byCountry = aggregateData(data, countryCol, revenueCol);
     if (byCountry.length > 0) {
-      const total = byCountry.reduce((sum, r) => sum + r.value, 0);
+      const _total = byCountry.reduce((sum, r) => sum + r.value, 0);
       const top = byCountry[0];
       context.push(`TOP COUNTRY: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
       context.push(`Country rankings: ${byCountry.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
@@ -349,6 +349,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
   if (regionCol) {
     const byRegion = aggregateData(data, regionCol, revenueCol);
     if (byRegion.length > 0) {
+      const _total = byRegion.reduce((sum, r) => sum + r.value, 0);
       const top = byRegion[0];
       context.push(`TOP REGION: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
       context.push(`Region rankings: ${byRegion.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
@@ -358,6 +359,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
   if (productCol) {
     const byProduct = aggregateData(data, productCol, revenueCol);
     if (byProduct.length > 0) {
+      const _total = byProduct.reduce((sum, r) => sum + r.value, 0);
       const top = byProduct[0];
       context.push(`TOP PRODUCT: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
       context.push(`Product rankings: ${byProduct.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
@@ -367,6 +369,7 @@ function generateAggregatedContext(data: any[], columns: string[]): string {
   if (channelCol) {
     const byChannel = aggregateData(data, channelCol, revenueCol);
     if (byChannel.length > 0) {
+      const _total = byChannel.reduce((sum, r) => sum + r.value, 0);
       const top = byChannel[0];
       context.push(`TOP CHANNEL: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
     }

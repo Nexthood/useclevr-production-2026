@@ -7,7 +7,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 import { auth } from "@/lib/auth"
 import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { db } from "@/lib/db"
-import { datasets, users } from "@/lib/db/schema"
+import { datasetRows, datasets, users } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -444,6 +444,22 @@ export async function uploadCSV(formData: FormData): Promise<{
         debugLog("[UPLOAD] dataset saved:", datasetId)
         if (isProfitabilityAnalysis) {
           debugLog("[UPLOAD] result saved:", datasetId)
+        }
+
+        // Also write rows to datasetRows so the detail page can paginate them
+        if (!isProfitabilityAnalysis && allRows.length > 0) {
+          const BATCH_SIZE = 100
+          for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
+            const batch = allRows.slice(i, i + BATCH_SIZE)
+            const rowValues = batch.map((row: Record<string, unknown>, j: number) => ({
+              id: `${datasetId}-row-${i + j}`,
+              datasetId,
+              rowIndex: i + j,
+              data: row,
+            }))
+            await (db as any).insert(datasetRows).values(rowValues)
+          }
+          debugLog("[UPLOAD] Wrote", allRows.length, "rows to datasetRows")
         }
       } catch (insertErr) {
         debugError("[UPLOAD] INSERT FAILED:", insertErr)
