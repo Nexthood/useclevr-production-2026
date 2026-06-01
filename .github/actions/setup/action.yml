@@ -13,7 +13,6 @@ runs:
     - uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
-        cache: pnpm
 
     - name: Activate pnpm through Corepack
       shell: bash
@@ -21,11 +20,13 @@ runs:
         corepack enable
         corepack prepare pnpm@11.5.0 --activate
 
-    - name: Add pnpm to PATH and install dependencies
+    - name: Add pnpm to PATH
       shell: bash
       run: |
         PNPM_HOME="$(corepack env)"
         echo "Corepack pnpm location: $PNPM_HOME"
         echo "$PNPM_HOME" >> "$GITHUB_PATH"
-        export PATH="$PNPM_HOME:$PATH"
-        pnpm install --frozen-lockfile
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

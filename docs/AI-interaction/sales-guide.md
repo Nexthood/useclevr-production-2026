@@ -1,6 +1,6 @@
-# Sales Guide For AI Collaboration
+# Sales and Marketing Guide For AI Collaboration
 
-Use this guide when preparing sales materials, presentations, or analysis documents for UseClevr. Keep all sales-related content up-to-date with the current product state.
+Use this guide when preparing sales and marketing materials, presentations, or analysis documents for UseClevr. Keep all content up-to-date with the current product state.
 
 ## Sales Materials
 
@@ -8,6 +8,14 @@ Use this guide when preparing sales materials, presentations, or analysis docume
 - Use screenshots and demo data that reflect the latest UI.
 - Reference actual customer outcomes and metrics when available.
 - Avoid mentioning planned features unless labeled as roadmap items.
+
+## Marketing Materials
+
+- Create clear, benefit-focused marketing copy for websites, emails, and campaigns.
+- Use up-to-date product screenshots and demo data in marketing assets.
+- Highlight customer success stories and measurable outcomes.
+- Avoid mentioning planned features unless labeled as roadmap items.
+- Include clear calls-to-action (CTAs) aligned with user goals.
 
 ## Analysis Documents
 
@@ -22,16 +30,18 @@ Use this guide when preparing sales materials, presentations, or analysis docume
 - Document methodology and date of information gathering.
 - Separate factual findings from interpretive insights.
 - Archive older research with clear versioning.
+- Include mermaid charts to visualize data flows, market trends, or competitive analysis where applicable.
 
 ## Presentation Guidelines
 
 - Use the current product name, version, and branding.
 - Show real user flows, not mockups, when demonstrating features.
 - Highlight user-observable benefits, not internal implementation details.
+- Use mermaid charts to illustrate architecture, data flows, or user journeys.
 - Include a disclaimer when showing future roadmap items.
 
 ## Collaboration Notes
 
-- Update this guide after any change to sales processes, pricing, or packaging.
-- Coordinate with product and marketing teams when updating sales content.
-- Ensure all sales documents align with the latest requirements.md and CHANGELOG.md.
+- Update this guide after any change to sales, marketing, pricing, or packaging.
+- Coordinate with product, marketing, and sales teams when updating content.
+- Ensure all sales and marketing documents align with the latest requirements.md and CHANGELOG.md.
