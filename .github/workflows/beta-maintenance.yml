@@ -102,7 +102,6 @@ jobs:
           cd ..
 
           rm -f pnpm-workspace.yaml
-          rm -f dist/package-lock.json
           rm -rf dist/.next/cache
           rm -rf dist/node_modules
           rm -rf dist/.cache
