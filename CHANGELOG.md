@@ -8,34 +8,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-
-- Dashboard language selector with four options: English, German, Hungarian, and Romanian.
-- Accountancy overview includes bookkeeping cards, a bookkeeping queue, and monthly close readiness.
-- AI interaction docs include user guidance, AI-agent guidance, prompt examples, and instruction maintenance rules.
+- Select dashboard language in English, German, Hungarian, or Romanian.
+- View bookkeeping cards, queue, and monthly close readiness in Accountancy overview.
 
 ### Changed
-
-- Login combines sign-in and sign-up in tabs with the built-in demo account plus configured Google
-  and LinkedIn sign-in options.
-- Show business review readiness inside the Business overview.
-- Dataset and downloads lists use separated table action columns for clearer row management.
-- Account settings use a horizontal subpage bar so profile, preferences, subscription, billing, and activity stay in one account workspace.
-- Dashboard topbar controls use full-height click and hover targets.
-- Dataset preview, customer level, and discount rule tables use the shared dashboard table shell.
-- Dashboard search opens as a full-page overlay with direct links to pages, datasets, reports, and role-appropriate FAQ results.
-- Railway deployment uses the Railpack builder for improved build control and smaller images.
-- Route sign-out to the login page for reliable navigation.
-- Dataset, business, and ticket listings use consistent title links, supporting edit links, and
-  row-end actions.
+- Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
+- View business review readiness in Business overview.
+- Manage dataset and downloads rows with clear action columns.
+- Navigate account settings via horizontal subpage bar.
+- Use dashboard topbar controls with improved click and hover areas.
+- View dataset preview, customer level, and discount rule tables with consistent design.
+- Dashboard search opens as a full-page overlay with direct links to pages, datasets, reports, and
+  role-appropriate FAQ results.
+- Sign out reliably to the login page.
+- View dataset, business, and ticket listings with consistent title links, edit links, and row-end actions.
 - AI Assistant keeps dataset selection, suggested questions, and the chat input visible while
   messages scroll.
-- Dashboard FAQ separates user help and operator help with a clear section bar.
-- Dashboard navigation uses a global topbar above the sidebar and page body, with profile settings,
-  sign-out, and notices grouped into hover panels.
-- Dashboard sidebar focuses on primary navigation and supports desktop collapse.
-- Dashboard footer links, social links, and coming-soon app badges appear in one global footer row.
-- Display settings offer light, dark, system, high-contrast, and larger-text modes from the
-  dashboard topbar.
+- View user and operator help separately in Dashboard FAQ with clear section bar.
+- Access profile settings, sign-out, and notices via hover panels in global topbar.
+- Collapse dashboard sidebar to focus on primary navigation on desktop.
+- View footer links, social links, and coming-soon app badges in one global footer row.
+- Select light, dark, system, high-contrast, or larger-text display modes from dashboard topbar.
 
 ### Dev
 

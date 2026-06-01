@@ -91,8 +91,6 @@ if (fs.existsSync(publicDir)) {
 
 // Load root package.json for syncing
 const rootPkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
-const distEngines = { ...rootPkg.engines };
-delete distEngines.pnpm;
 
 // Write main distribution README
 fs.writeFileSync(
@@ -143,7 +141,6 @@ const rootDistPackage = {
     "railway:predeploy": "node ./scripts/runtime/railway-predeploy.cjs",
   },
   dependencies: {},
-  engines: distEngines,
 };
 
 // Explicitly remove packageManager so Railpack never detects pnpm

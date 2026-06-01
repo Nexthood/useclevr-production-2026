@@ -202,3 +202,4 @@ moving work between states.
 - T-310. Cookie consent bar added with accept button.
 - T-338. Fix progress system - single line display, page-based steps instead of field-based, activity integration.
 - T-340. Add API endpoint for bulk dataset deletion.
+- T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable.

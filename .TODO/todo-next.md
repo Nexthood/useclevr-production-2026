@@ -16,7 +16,6 @@ moving work between states.
 ## Active
 
 * T-436 Optimize CHANGELOG.md [Unreleased] section: reorder sections, optimize entries for present-action language and user benefit.
-* T-437 Enhance sales and marketing materials: add research data and mermaid charts where applicable.
 
 ## Suggestions
 
