@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
-# TypeScript, deploy config, lint, and production publish build checks
-pnpm validate:precommit
-
-# Self-heal and validate GitHub workflow YAML files
+# Self-heal workflow YAML files when workflow files are staged.
 pnpm lint:workflows:fix
+
+# Fast single-developer local gate for staged files and metadata.
+pnpm validate:precommit

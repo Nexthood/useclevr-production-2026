@@ -3,12 +3,14 @@
 Thank you for considering a contribution to UseClevr. This guide covers the full developer workflow from setup to pull request.
 
 ## Prerequisites
+
 - Node.js 26 or later
 - pnpm 11 (use `corepack enable && corepack prepare pnpm@11.5.0 --activate`)
 - A Neon PostgreSQL connection string in `DATABASE_URL`
 - Environment variables documented in `env.example` / hosting docs
 
 ## Local Development
+
 ```bash
 # clone and install
 pnpm install
@@ -30,6 +32,7 @@ pnpm validate
 ```
 
 ## Project Structure
+
 ```
 src/
   app/           Next.js App Router pages and API routes
@@ -41,9 +44,11 @@ docs/            Project documentation
 ```
 
 ## Commit Messages
+
 Use imperative mood ("Add / Fix / Refactor / Remove") and describe motivation in body for non-trivial changes.
 
 Format:
+
 ```
 <type>(<scope>): <short summary>
 
@@ -52,16 +57,24 @@ Format:
 
 Examples: `Add(Billing): Stripe webhook handler`, `Fix(Checkout): missing T&C step`.
 
+- Before committing, let the pre-commit hook run staged ESLint autofix, Prettier, TODO checks, and workflow checks.
+- Use `pnpm lint` as a manual deeper review command when a change touches broad source areas.
+- The commit message subject (the `<short summary>` part) should be in lower case, except for proper nouns and acronyms. It must not be in sentence case, start case, pascal case, or upper case.
+
 ## Pull Requests
+
 1. Branch from `main`.
 2. Make focused, targeted changes.
 3. Update **`requirements.md`** — convert every planned/proposed/completed item into product-facing requirement (user perspective, not implementation).
 4. Update **`CHANGELOG.md`** under `[Unreleased]` section (`Added`/`Changed`/`Fixed`/`### Dev`).
-5. Confirm `pnpm exec tsc --noEmit` is clean.
-6. Open PR with clear description of what, why, and how.
+5. Confirm `pnpm validate:types` is clean.
+6. Run `pnpm prod:build` when the change can affect production packaging or deployment output.
+7. Open PR with clear description of what, why, and how.
 
 ## Language Usage
+
 Use direct, current-state language for product behavior in all user-facing text and documentation.
+
 - Avoid future-tense or past-tense descriptions when describing current product behavior.
 - Use present-tense, active voice.
 
@@ -77,6 +90,7 @@ Bad: "This feature adds the ability to..."
 Good: "This feature lets users..."
 
 This rule applies to:
+
 - User-facing strings in the application (UI components, notifications, etc.)
 - Documentation files (.md)
 - Changelog entries
@@ -85,4 +99,5 @@ This rule applies to:
 It does not apply to internal code comments or developer-only documentation unless they are user-facing.
 
 ## Code of Conduct
+
 Be kind. Constructive discussion and shared curiosity are always welcome — do not tolerate harassment in any form.

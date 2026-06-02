@@ -21,6 +21,8 @@ Codebase analysis findings are tracked in `.TODO/` queue files, not in this fold
 
 - [User guide](user-guide.md)
 - [AI agent guide](ai-agent-guide.md)
+- [User behaviour guide](User-behaviours/README.md)
+- [AI behaviour guide](AI-behaviours/README.md)
 - [Prompt collection](prompt-collection.md)
 - [Instruction maintenance](instruction-maintenance.md)
 - [Bookkeeping user guide](bookkeeping-user-guide.md)

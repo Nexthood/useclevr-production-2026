@@ -161,6 +161,8 @@ jobs:
 
           git checkout --orphan new-dist
           git rm -rf . || true
+          git clean -fdx || true
+          rm -rf node_modules .next .cache cache .turbo .vercel dist
 
           mkdir -p dist
           cp -a /tmp/useclevr-dist-output/. dist/

@@ -45,7 +45,7 @@
     "ci:railway": "pnpm deploy:railway:sync",
     "ci:validate": "CI=true pnpm validate:types && CI=true pnpm validate:dist && CI=true pnpm lint:package && CI=true pnpm test:all && CI=true DATABASE_URL=postgresql://ci:ci@localhost:5432/ci pnpm build",
     "validate": "pnpm validate:types && pnpm validate:dist && pnpm validate:release",
-    "validate:precommit": "pnpm validate:types && pnpm validate:dist && pnpm lint && pnpm validate:publish",
+    "validate:precommit": "pnpm lint:package && pnpm lint:todos && pnpm lint:workflows && pnpm lint:staged",
     "validate:types": "tsc --noEmit --pretty false",
     "validate:build": "pnpm build",
     "validate:publish": "pnpm prod:build",
@@ -63,7 +63,8 @@
     "clean:all": "node ./scripts/package-dist/clean-generated.cjs --all",
     "clean": "pnpm clean:all && rm -rf dist .next",
     "lint": "pnpm lint:package && pnpm lint:todos && pnpm lint:workflows && node ./scripts/validate-pricing.js && node ./node_modules/eslint/bin/eslint.js . --ext .ts,.tsx,.mjs",
-    "lint:fix": "node ./node_modules/eslint/bin/eslint.js . --ext .ts,.tsx,.mjs --fix",
+    "lint:fix": "node ./node_modules/eslint/bin/eslint.js . --ext .js,.jsx,.ts,.tsx,.mjs,.cjs --fix",
+    "lint:staged": "lint-staged",
     "lint:all": "pnpm lint && pnpm lint:deps",
     "lint:changelog": "node ./scripts/check-unreleased.js && node ./scripts/check-changelog.js",
     "lint:commits": "node ./node_modules/@commitlint/cli/cli.js --from HEAD~10 --to HEAD --verbose",
@@ -141,6 +142,7 @@
     "eslint-plugin-only-warn": "^1.2.1",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
+    "lint-staged": "^17.0.7",
     "markdownlint-cli": "^0.48.0",
     "postcss": "8.5.12",
     "prettier": "^3.8.3",
@@ -149,6 +151,15 @@
     "turbo": "^2.9.16",
     "typescript": "6.0.3",
     "vscode-langservers-extracted": "^4.10.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "node ./node_modules/eslint/bin/eslint.js --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "engines": {
     "node": ">=26.1.0"

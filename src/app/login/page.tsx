@@ -1,91 +1,134 @@
-"use client"
+"use client";
 
-import type React from "react"
+export const dynamic = "force-dynamic";
 
-import { signup } from "@/app/actions/auth"
-import { Logo } from "@/components/layout/logo"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react"
-import { signIn } from "next-auth/react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useState } from "react"
-import { FaGoogle, FaLinkedin } from "react-icons/fa6"
+import type React from "react";
+
+import { signup } from "@/app/actions/auth";
+import { Logo } from "@/components/layout/logo";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users";
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { FaGoogle, FaLinkedin } from "react-icons/fa6";
 
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
       <LoginForm />
     </Suspense>
-  )
+  );
 }
 
 function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin"
-  const [signInEmail, setSignInEmail] = useState("")
-  const [signInPassword, setSignInPassword] = useState("")
-  const [signUpName, setSignUpName] = useState("")
-  const [signUpEmail, setSignUpEmail] = useState("")
-  const [signUpPassword, setSignUpPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
-  const [authError, setAuthError] = useState<string | null>(null)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  const [signUpName, setSignUpName] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authAction, setAuthAction] = useState<
+    "signin" | "signup" | "demo" | "demo-admin" | "google" | "linkedin" | null
+  >(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const goToDashboard = () => {
-    router.replace("/app")
-    router.refresh()
-  }
+    router.replace("/app");
+    router.refresh();
+  };
 
-  const dashboardCallbackUrl = () => new URL("/app", window.location.origin).toString()
+  const dashboardCallbackUrl = () => new URL("/app", window.location.origin).toString();
 
   const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
-    setIsLoading(true)
-    setAuthAction(provider)
-    setAuthError(null)
+    setIsLoading(true);
+    setAuthAction(provider);
+    setAuthError(null);
 
     try {
       if (provider === "demo") {
         const result = await signIn("demo", {
           redirect: false,
           callbackUrl: dashboardCallbackUrl(),
-        })
+        });
 
-        const signInSucceeded = Boolean(result && !result.error && result.status !== 401 && result.status !== 403)
+        const signInSucceeded = Boolean(
+          result && !result.error && result.status !== 401 && result.status !== 403,
+        );
         if (!signInSucceeded) {
-          setAuthError("Demo sign-in failed. Please try again.")
-          return
+          setAuthError("Demo sign-in failed. Please try again.");
+          return;
         }
 
-        goToDashboard()
-        return
+        goToDashboard();
+        return;
       }
 
       await signIn(provider, {
         callbackUrl: dashboardCallbackUrl(),
         redirect: true,
-      })
+      });
     } catch (err) {
-      const message = err instanceof Error ? err.message : ""
-      setAuthError(message || "Social sign-in failed. Please try again.")
+      const message = err instanceof Error ? err.message : "";
+      setAuthError(message || "Social sign-in failed. Please try again.");
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
+
+  const startDemoSignIn = async (account: "demo" | "superadmin") => {
+    if (account === "demo") {
+      await startProviderSignIn("demo");
+      return;
+    }
+
+    setIsLoading(true);
+    setAuthAction("demo-admin");
+    setAuthError(null);
+
+    try {
+      const result = await signIn("credentials", {
+        email: BUILTIN_SUPER_ADMIN_USER.email,
+        password: BUILTIN_SUPER_ADMIN_USER.password,
+        redirect: false,
+        callbackUrl: dashboardCallbackUrl(),
+      });
+
+      const signInSucceeded = Boolean(
+        result && !result.error && result.status !== 401 && result.status !== 403,
+      );
+      if (!signInSucceeded) {
+        setAuthError("Superadmin demo sign-in failed. Please try again.");
+        return;
+      }
+
+      goToDashboard();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setAuthError(message || "Superadmin demo sign-in failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setAuthAction(null);
+    }
+  };
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthAction("signin")
-    setAuthError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthAction("signin");
+    setAuthError(null);
 
     try {
       const result = await signIn("credentials", {
@@ -93,59 +136,61 @@ function LoginForm() {
         password: signInPassword,
         redirect: false,
         callbackUrl: dashboardCallbackUrl(),
-      })
+      });
 
       const returnedToLogin =
         typeof result?.url === "string" &&
-        (result.url.includes("/login") || result.url.includes("error="))
-      const blockedStatus = result?.status === 401 || result?.status === 403
-      const signInSucceeded = Boolean(result && !result.error && !blockedStatus && !returnedToLogin)
+        (result.url.includes("/login") || result.url.includes("error="));
+      const blockedStatus = result?.status === 401 || result?.status === 403;
+      const signInSucceeded = Boolean(
+        result && !result.error && !blockedStatus && !returnedToLogin,
+      );
 
       if (!signInSucceeded) {
-        setAuthError("Sign-in failed. Check your email and password.")
-        return
+        setAuthError("Sign-in failed. Check your email and password.");
+        return;
       }
 
-      goToDashboard()
+      goToDashboard();
     } catch (err) {
-      const message = err instanceof Error ? err.message : ""
+      const message = err instanceof Error ? err.message : "";
       if (message.toLowerCase().includes("configuration")) {
-        setAuthError("Authentication is not configured correctly.")
+        setAuthError("Authentication is not configured correctly.");
       } else if (message.toLowerCase().includes("network")) {
-        setAuthError("Network error during sign-in. Please try again.")
+        setAuthError("Network error during sign-in. Please try again.");
       } else {
-        setAuthError("Sign-in failed. Please try again.")
+        setAuthError("Sign-in failed. Please try again.");
       }
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthAction("signup")
-    setAuthError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthAction("signup");
+    setAuthError(null);
 
     if (signUpPassword.length < 8) {
-      setAuthError("Use at least 8 characters for your password.")
-      setIsLoading(false)
-      setAuthAction(null)
-      return
+      setAuthError("Use at least 8 characters for your password.");
+      setIsLoading(false);
+      setAuthAction(null);
+      return;
     }
 
-    const formData = new FormData()
-    formData.append("name", signUpName)
-    formData.append("email", signUpEmail)
-    formData.append("password", signUpPassword)
+    const formData = new FormData();
+    formData.append("name", signUpName);
+    formData.append("email", signUpEmail);
+    formData.append("password", signUpPassword);
 
     try {
-      const result = await signup(formData)
+      const result = await signup(formData);
 
       if (result.error) {
-        setAuthError(result.error)
-        return
+        setAuthError(result.error);
+        return;
       }
 
       const signInResult = await signIn("credentials", {
@@ -153,41 +198,67 @@ function LoginForm() {
         password: signUpPassword,
         redirect: false,
         callbackUrl: dashboardCallbackUrl(),
-      })
+      });
 
       if (signInResult?.error) {
-        setAuthError("Account created, but automatic sign-in failed. Please use the Sign in tab.")
-        return
+        setAuthError("Account created, but automatic sign-in failed. Please use the Sign in tab.");
+        return;
       }
 
-      goToDashboard()
+      goToDashboard();
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Account creation failed. Please try again.")
+      setAuthError(
+        err instanceof Error ? err.message : "Account creation failed. Please try again.",
+      );
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
 
   const providerButtons = (
     <div className="space-y-3">
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full border-primary/40 bg-background text-foreground hover:bg-primary/10"
-        disabled={isLoading}
-        onClick={() => startProviderSignIn("demo")}
-      >
-        {authAction === "demo" ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Rocket className="mr-2 h-4 w-4" />
-        )}
-        Demo account
-        <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary dark:text-cyan-100">
-          Free
-        </span>
-      </Button>
+      <div className="grid gap-2 rounded-lg border border-border bg-muted/30 p-2">
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Demo accounts
+        </p>
+        {[
+          {
+            id: "demo" as const,
+            title: "User demo",
+            email: BUILTIN_DEMO_USER.email,
+            description: "Open the standard dashboard experience.",
+            action: "demo" as const,
+          },
+          {
+            id: "superadmin" as const,
+            title: "Superadmin demo",
+            email: BUILTIN_SUPER_ADMIN_USER.email,
+            description: "Open the extended admin menu.",
+            action: "demo-admin" as const,
+          },
+        ].map((account) => (
+          <Button
+            key={account.id}
+            type="button"
+            variant="outline"
+            className="h-auto w-full justify-start border-primary/30 bg-background px-3 py-2 text-left text-foreground hover:bg-primary/10"
+            disabled={isLoading}
+            onClick={() => startDemoSignIn(account.id)}
+          >
+            {authAction === account.action ? (
+              <Loader2 className="mr-3 h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <Rocket className="mr-3 h-4 w-4 shrink-0" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{account.title}</span>
+              <span className="block truncate text-xs text-muted-foreground">{account.email}</span>
+              <span className="block text-xs text-muted-foreground">{account.description}</span>
+            </span>
+          </Button>
+        ))}
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
@@ -220,7 +291,7 @@ function LoginForm() {
         </Button>
       </div>
     </div>
-  )
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -294,7 +365,10 @@ function LoginForm() {
                         required
                         autoComplete="current-password"
                       />
-                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
+                      <PasswordToggle
+                        showPassword={showPassword}
+                        setShowPassword={setShowPassword}
+                      />
                     </div>
                   </div>
 
@@ -364,7 +438,10 @@ function LoginForm() {
                         required
                         autoComplete="new-password"
                       />
-                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
+                      <PasswordToggle
+                        showPassword={showPassword}
+                        setShowPassword={setShowPassword}
+                      />
                     </div>
                   </div>
 
@@ -427,15 +504,15 @@ function LoginForm() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
 function PasswordToggle({
   showPassword,
   setShowPassword,
 }: {
-  showPassword: boolean
-  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
     <button
@@ -445,11 +522,7 @@ function PasswordToggle({
       aria-label={showPassword ? "Hide password" : "Show password"}
       aria-pressed={showPassword}
     >
-      {showPassword ? (
-        <EyeOff className="h-4 w-4" />
-      ) : (
-        <Eye className="h-4 w-4" />
-      )}
+      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </button>
-  )
+  );
 }

@@ -41,6 +41,8 @@ export const aiChatBehaviorConfig = {
       "Local AI features use same-origin API routes and the local agent contract.",
       "Railway deploys from the dist branch `/dist` folder with `/server-config/railway.json` as the host config.",
       "Vercel deploys the source app from main using vercel.json synced from dist-root/server-config/vercel.json.",
+      "Keep middleware.ts temporarily while it is the stable production packaging path; revisit proxy after production build, dist packaging, Railway startup, and /api/health are stable.",
+      "Use the single-developer workflow: staged autofix and metadata checks run locally, while CI focuses on type validation, dist config, critical tests, and build.",
     ],
 
     distDeployment: {
@@ -93,6 +95,7 @@ export const aiChatBehaviorConfig = {
       "Use clear names that match the business domain.",
       "Read and respect `.aiignore` before loading repository context into chat.",
       "Avoid reading `dist/`, `.git/`, `node_modules/`, or `.next/` folders to save input tokens.",
+      "Update docs/AI-interaction after durable AI instruction changes.",
     ],
   },
 

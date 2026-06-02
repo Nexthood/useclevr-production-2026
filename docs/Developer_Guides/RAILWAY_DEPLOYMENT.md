@@ -49,6 +49,10 @@ standalone bundle includes all production modules in `dist/node_modules/`.
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
 
+The app keeps the Next.js `middleware.ts` packaging path while the newer proxy convention breaks the
+production dist build rename behavior. Revisit the proxy migration only after production build,
+packaging, Railway startup, and `/api/health` are stable.
+
 ## Runtime Commands
 
 Railway config uses:
@@ -127,10 +131,25 @@ failed to calculate checksum of ref ...: "/app/node_modules": not found
 ```
 
 Key requirements:
+
 - `node_modules/` must NOT appear in any `.gitignore` that applies to the `dist` branch.
 - The symlink structure must be relative, not absolute. Use `cp -a` (not `fs.cpSync`) when copying
   the standalone output — Node.js `fs.cpSync` resolves relative symlinks to absolute paths, which
   breaks the pnpm structure on Railway.
+
+## Production Deployment Handoff Checklist
+
+Use this checklist before every Railway release from the `dist` branch:
+
+1. Confirm the source branch and deploy branch are correct: `main` → `dist` for production, `beta` → `dist-test` for test.
+2. Run `pnpm validate:dist` and `pnpm prod:build` locally, then verify the generated output contains `dist/node_modules/`, `dist/package.json`, `dist/railpack.json`, and `dist/scripts/runtime/`.
+3. Confirm the published deployment branch does not contain `pnpm-workspace.yaml`, `yarn.lock`, or root `railway.json` / `vercel.json` files.
+4. Verify Railway service settings use branch `dist`, root `/dist`, config `/server-config/railway.json`, and no dashboard overrides for build or start commands.
+5. Verify required environment variables exist in Railway: `DATABASE_URL` or `DIRECT_URL`, `AUTH_SECRET` or `NEXTAUTH_SECRET`, and any provider credentials required by the runtime.
+6. Check `/api/health` and `POST /api/health` after startup; the first confirms liveness, the second confirms database readiness.
+7. Capture rollback steps before the deploy: redeploy the previous `dist` commit or restore the last known working `dist` branch commit if the app returns 502.
+
+This checklist keeps the deployment path aligned with the existing GitHub workflow and the generated `dist` branch output.
 
 ## Local Checks
 
@@ -169,6 +188,7 @@ the generated deployment package is smaller than the source workspace and Railwa
 generated output only.
 
 If logs show `failed to calculate checksum of ref ... "/app/node_modules": not found`:
+
 - `node_modules/` is missing from the deployed branch.
 - Check `.gitignore` on the deployment branch — `node_modules/` must not be ignored.
 - Check the publish workflow — cleanup steps must not `rm -rf node_modules`.
@@ -177,6 +197,7 @@ If logs show `failed to calculate checksum of ref ... "/app/node_modules": not f
 ### Runtime Errors (502 / Healthcheck Failures)
 
 If Railway deploys successfully but the app returns 502:
+
 1. Check Railway logs for server startup errors or crash traces.
 2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
 3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.

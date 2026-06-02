@@ -1,4 +1,4 @@
-import { getAnalysisCache } from './handlers';
+import { getAnalysisCache } from "./handlers";
 
 export interface MCPResource {
   uri: string;
@@ -9,7 +9,7 @@ export interface MCPResource {
 
 export function getAvailableResources(datasetId: string): MCPResource[] {
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     return [];
   }
@@ -17,61 +17,74 @@ export function getAvailableResources(datasetId: string): MCPResource[] {
   return [
     {
       uri: `dataset://${datasetId}/schema`,
-      name: 'Dataset Schema',
-      description: 'Dataset structure including columns, types, and business field mappings',
-      mimeType: 'application/json',
+      name: "Dataset Schema",
+      description: "Dataset structure including columns, types, and business field mappings",
+      mimeType: "application/json",
     },
     {
       uri: `dataset://${datasetId}/kpis`,
-      name: 'Precomputed KPIs',
-      description: 'Trusted KPI values including revenue, expenses, profit, margin, and top performers',
-      mimeType: 'application/json',
+      name: "Precomputed KPIs",
+      description:
+        "Trusted KPI values including revenue, expenses, profit, margin, and top performers",
+      mimeType: "application/json",
     },
     {
       uri: `dataset://${datasetId}/top-regions`,
-      name: 'Top Regions',
-      description: 'Ranked region/country data with totals and share percentages',
-      mimeType: 'application/json',
+      name: "Top Regions",
+      description: "Ranked region/country data with totals and share percentages",
+      mimeType: "application/json",
     },
     {
       uri: `dataset://${datasetId}/revenue-trends`,
-      name: 'Revenue Trends',
-      description: 'Revenue-over-time data with trend metadata',
-      mimeType: 'application/json',
+      name: "Revenue Trends",
+      description: "Revenue-over-time data with trend metadata",
+      mimeType: "application/json",
     },
     {
       uri: `dataset://${datasetId}/profitability`,
-      name: 'Profitability Summary',
-      description: 'Profitability analysis including revenue, expenses, net profit, and breakdowns',
-      mimeType: 'application/json',
+      name: "Profitability Summary",
+      description: "Profitability analysis including revenue, expenses, net profit, and breakdowns",
+      mimeType: "application/json",
     },
   ];
 }
 
 export function readResource(uri: string): {
-  content: any;
+  content: unknown;
   mimeType: string;
 } {
   const match = uri.match(/^dataset:\/\/([^/]+)\/(.+)$/);
-  
+
   if (!match) {
     throw new Error(`Invalid resource URI: ${uri}`);
   }
 
   const [, datasetId, resourceType] = match;
   const metrics = getAnalysisCache(datasetId);
-  
+
   if (!metrics) {
     throw new Error(`No analysis found for dataset: ${datasetId}`);
   }
 
+  const chartData = metrics.chartData ?? {};
+  const costBreakdown = metrics.costBreakdown ?? {
+    cogs: 0,
+    marketingCost: 0,
+    shippingCost: 0,
+    refunds: 0,
+    discount: 0,
+    totalCost: metrics.totalCost ?? 0,
+  };
+
   switch (resourceType) {
-    case 'schema':
+    case "schema":
       return {
         content: {
           columns: Object.keys(metrics.detectedColumns || {}),
           rowCount: metrics.fullDatasetRowCount,
-          dateColumns: metrics.detectedColumns?.dateColumn ? [metrics.detectedColumns.dateColumn] : [],
+          dateColumns: metrics.detectedColumns?.dateColumn
+            ? [metrics.detectedColumns.dateColumn]
+            : [],
           businessFields: {
             revenue: metrics.detectedColumns?.revenueColumn,
             cost: metrics.detectedColumns?.costColumn,
@@ -80,10 +93,10 @@ export function readResource(uri: string): {
             region: metrics.detectedColumns?.regionColumn,
           },
         },
-        mimeType: 'application/json',
+        mimeType: "application/json",
       };
-    
-    case 'kpis':
+
+    case "kpis":
       return {
         content: {
           totalRevenue: metrics.totalRevenue,
@@ -95,43 +108,44 @@ export function readResource(uri: string): {
           topProduct: metrics.topProducts?.[0],
           rowCount: metrics.fullDatasetRowCount,
         },
-        mimeType: 'application/json',
+        mimeType: "application/json",
       };
-    
-    case 'top-regions':
+
+    case "top-regions":
       return {
         content: {
-          rankedRows: metrics.chartData.revenueByRegion.map((item, index) => ({
+          rankedRows: (chartData.revenueByRegion ?? []).map((item, index) => ({
             rank: index + 1,
             name: item.category,
             value: item.value,
             percentage: item.percentage,
           })),
           totals: {
-            metric: 'revenue',
+            metric: "revenue",
             value: metrics.totalRevenue,
           },
         },
-        mimeType: 'application/json',
+        mimeType: "application/json",
       };
-    
-    case 'revenue-trends':
+
+    case "revenue-trends":
+      const revenueByMonth = chartData.revenueByMonth ?? [];
       return {
         content: {
-          trendRows: metrics.chartData.revenueByMonth.map(m => ({
+          trendRows: revenueByMonth.map((m) => ({
             period: m.month,
             revenue: m.revenue,
             profit: m.profit,
           })),
-          firstPeriod: metrics.chartData.revenueByMonth[0]?.month || null,
-          lastPeriod: metrics.chartData.revenueByMonth[metrics.chartData.revenueByMonth.length - 1]?.month || null,
+          firstPeriod: revenueByMonth[0]?.month || null,
+          lastPeriod: revenueByMonth[revenueByMonth.length - 1]?.month || null,
           growthRate: metrics.growthRate,
           growthTrend: metrics.growthTrend,
         },
-        mimeType: 'application/json',
+        mimeType: "application/json",
       };
-    
-    case 'profitability':
+
+    case "profitability":
       return {
         content: {
           totalRevenue: metrics.totalRevenue,
@@ -139,17 +153,17 @@ export function readResource(uri: string): {
           netProfit: metrics.totalProfit,
           profitMargin: metrics.profitMargin,
           topCostCategories: [
-            { category: 'COGS', amount: metrics.costBreakdown.cogs },
-            { category: 'Marketing', amount: metrics.costBreakdown.marketingCost },
-            { category: 'Shipping', amount: metrics.costBreakdown.shippingCost },
-            { category: 'Refunds', amount: metrics.costBreakdown.refunds },
-          ].filter(c => c.amount > 0),
-          revenueByRegion: metrics.chartData.revenueByRegion,
-          revenueByProduct: metrics.chartData.revenueByProduct,
+            { category: "COGS", amount: costBreakdown.cogs },
+            { category: "Marketing", amount: costBreakdown.marketingCost },
+            { category: "Shipping", amount: costBreakdown.shippingCost },
+            { category: "Refunds", amount: costBreakdown.refunds },
+          ].filter((c) => c.amount > 0),
+          revenueByRegion: chartData.revenueByRegion ?? [],
+          revenueByProduct: chartData.revenueByProduct ?? [],
         },
-        mimeType: 'application/json',
+        mimeType: "application/json",
       };
-    
+
     default:
       throw new Error(`Unknown resource type: ${resourceType}`);
   }

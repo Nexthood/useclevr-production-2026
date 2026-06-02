@@ -2,6 +2,10 @@
 
 Use this guide when preparing sales and marketing materials, presentations, or analysis documents for UseClevr. Keep all content up-to-date with the current product state.
 
+Sales source documents live in [../Sales_Guide/README.md](../Sales_Guide/README.md). Keep this AI
+collaboration guide focused on behavior rules and use the Sales Guide folder for presentation,
+analysis, demo, objection, follow-up, and source-reference documents.
+
 ## Sales Materials
 
 - Maintain current product feature list in sales presentations.
@@ -31,6 +35,7 @@ Use this guide when preparing sales and marketing materials, presentations, or a
 - Separate factual findings from interpretive insights.
 - Archive older research with clear versioning.
 - Include mermaid charts to visualize data flows, market trends, or competitive analysis where applicable.
+- Payment provider research and market data live in [../Sales_Guide/payment-provider-market-research.md](../Sales_Guide/payment-provider-market-research.md). Use this for checkout friction and payment option positioning in sales conversations.
 
 ## Presentation Guidelines
 

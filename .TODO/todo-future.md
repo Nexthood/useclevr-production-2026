@@ -1,9 +1,12 @@
 # Future TODO
+
 This retired queue stores deferred work until it becomes active enough to move into
 `todo-next.md`.
 Get the T-number from `.TODO/config.json` before adding new tasks. Keep task numbers stable when
 moving work between states.
+
 ## Links
+
 - [TODO-next.md](todo-next.md)
 - [TODO-done.md](todo-done.md)
 - [TODO-ignore.md](todo-ignore.md)
@@ -11,6 +14,7 @@ moving work between states.
 - [.TODO/config.json](config.json)
 
 ## Future Next
+
 - T-299. Evaluate restore candidates for legacy report PDF generation and cloud live-data refresh behavior before deciding whether they should return to the product.
 - T-127. Replace checkout review URL proof with a server-issued one-time token before payment collection is enabled.
 - T-128. Add real billing invoice rows once the payment provider returns invoice history.
@@ -68,6 +72,7 @@ moving work between states.
 - T-397. Add a documentation cleanup pass that removes stale dist-test setup notes after the Railway workflow stabilizes.
 
 ## Additional
+
 - T-463. Stabilize Railway main deploy first. Keep the deprecated middleware workaround if it is the only stable packaging path. Do not migrate middleware/proxy yet. Ensure dist branch contains all runtime files. Document exact deploy flow.
 - T-464. Create one central billing config for plan names, prices, Stripe Price IDs, intervals, and descriptions. Remove hardcoded prices from UI. Add customer portal, cancellation flow, invoice view, and payment failure handling.
 - T-465. Verify role handling for user, admin, and superadmin. Make sure protected routes are consistent. Fix onboarding/session edge cases only where needed.
@@ -78,3 +83,24 @@ moving work between states.
 - T-470. Prepare onepager, simple demo flow, LinkedIn launch post, outreach email, and investor/startup contact list.
 - T-471. Clean env usage, remove exposed secrets, add upload limits, add rate limits, review admin routes, and prepare basic GDPR/privacy notes.
 - T-472. Create beta feedback flow, bug board, launch checklist, and short public demo script.
+
+## Middleware Migration
+
+- T-494. Revisit Next middleware-to-proxy migration after Railway deploy is stable: production build succeeds, dist packages correctly, Railway starts, and `/api/health` passes.
+- T-495. Keep middleware packaging notes current while the proxy convention breaks production dist build rename behavior.
+
+## Multi-Developer Workflow
+
+- T-496. Restore multi-developer CI gates when more contributors join: add docs checks, lint checks, release artifact checks, and stronger PR branch protections.
+- T-497. Add a multi-developer review checklist covering owner assignment, deployment windows, branch sync, release notes, and rollback ownership.
+- T-498. Document which local pre-commit checks move back into CI when repository work is no longer single-developer.
+
+## Payload Migration
+
+- T-499. Evaluate Payload CMS for editable marketing content, FAQ, pricing copy, blog/news, and admin-managed business content.
+- T-500. Map users, profiles, businesses, datasets, tickets, billing, and public content to future Payload collections without migrating production data.
+
+## Sales And Billing
+
+- T-501. Add customer-facing billing portal polish: invoice history, cancellation reason, failed payment recovery, and subscription renewal notices.
+- T-502. Prepare sales source documents for presentation, product analysis, customer proof points, objections, and follow-up materials.

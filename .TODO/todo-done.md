@@ -116,6 +116,7 @@ moving work between states.
 - T-332. Topbar sidebar secondary menu - Account moved to secondary panel above credits, profile combined with settings as Account.
 
 (Existing tasks below)
+
 - T-312. Support dedicated business, business entity, and country tax profile storage with
   multi-business listing rows, archive and restore state, and subscription-tier business limits.
 - T-313. Use a table-first dashboard ticket queue with row edit pages and a separate new ticket page.
@@ -222,3 +223,4 @@ moving work between states.
 - T-340. Add API endpoint for bulk dataset deletion.
 - T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable.
 - T-436. Optimized CHANGELOG.md [Unreleased] section: reordered sections, optimized entries for present-action language and user benefit.
+- T-489. Implemented GitHub Actions workflow to build Next.js app from main branch and push deployable output to dist branch for Railway deployment.

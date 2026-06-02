@@ -36,7 +36,12 @@ flowchart LR
 
 ## Dependency Checks
 
-`pnpm lint` runs package metadata checks, TODO metadata checks, and ESLint.
+`pnpm lint` runs package metadata checks, TODO metadata checks, workflow checks, pricing validation,
+and ESLint.
+
+`pnpm validate:precommit` is the fast single-developer gate. It runs package checks, TODO checks,
+workflow checks, and `lint-staged` for staged ESLint autofix and Prettier formatting. It does not run
+the full production build.
 
 `pnpm lint:docs`, `pnpm lint:changelog`, `pnpm lint:commits`, and `pnpm link:docs` are separate
 targeted checks so developers can run only the surface they changed.

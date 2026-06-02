@@ -51,6 +51,34 @@ For runtime (502): check startup logs, database connectivity (SSL), cold-start t
 missing env vars (DATABASE_URL, AUTH_SECRET), and healthcheck response.
 ```
 
+## Middleware Packaging Safety
+
+```text
+Keep the deprecated middleware strategy temporarily if it is the only stable production packaging path.
+Do not migrate to proxy while it breaks production build or generated dist behavior.
+Verify priority order: production build succeeds, dist packages correctly, Railway starts, and
+/api/health passes.
+Add future TODOs for the middleware-to-proxy migration after deployment is stable.
+```
+
+## Single-Developer Workflow
+
+```text
+Optimize the GitHub workflow for a single-developer project.
+Keep staged ESLint autofix, Prettier, package checks, TODO checks, and workflow checks local.
+Keep CI focused on type validation, dist config validation, critical tests, and production build.
+Document which checks move back into CI for a future multi-developer environment.
+```
+
+## Sales Source Documents
+
+```text
+Create sales source documents for UseClevr.
+Separate presentation story, customer analysis, demo script, objection handling, follow-up, and
+source references.
+Use current product behavior and avoid roadmap claims unless they are explicitly labeled.
+```
+
 ## Bookkeeping Feature Work
 
 ```text

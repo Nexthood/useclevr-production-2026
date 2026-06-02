@@ -8,6 +8,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+
 - Railway health checks keep the test app deployable while database readiness is reported separately.
 - Dashboard route guards avoid Edge runtime crashes by keeping full authentication checks in server code.
 - Railway packaged output points Edge route guard manifests at the generated middleware bundle.
@@ -24,7 +25,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+
 - Add local Railway CLI shortcuts for browserless login, linking, status, and logs.
+- Use a single-developer validation flow that keeps staged autofix local while CI focuses on type checks, deploy config, critical tests, and build.
+- Keep the temporary middleware packaging path until production build, dist packaging, Railway startup, and health checks are stable.
+- Add lint-staged autofix support for staged source and documentation changes.
 - Publish `dist/node_modules/` in deployment branch output for Railpack build graph checksum.
 - Use `cp -a` instead of `fs.cpSync` for standalone copy to preserve relative pnpm symlinks.
 - Remove `node_modules/` cleanup from all publish workflows and `.gitignore` on deployment branches.
@@ -34,6 +39,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add metadata exports (page titles) to settings, tickets, FAQ, and dataset pages.
 
 ### Added
+
 - Select dashboard language in English, German, Hungarian, or Romanian.
 - View bookkeeping cards, queue, and monthly close readiness in Accountancy overview.
 - Open AI Assistant from sidebar, select dataset, and ask follow-up questions in one workspace.
@@ -46,6 +52,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Manage dashboard tickets with table-first queue, separate pages for new tickets and row-level editing.
 
 ### Changed
+
 - Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
 - View business review readiness in Business overview.
 - Manage dataset and downloads rows with clear action columns.
@@ -65,6 +72,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Select light, dark, system, high-contrast, or larger-text display modes from dashboard topbar.
 
 ### Dev
+
 - Remove pnpm metadata from generated Railway deployment packages so Railpack can use npm.
 - Reuse pnpm store cache in GitHub validation and dist publish jobs. Retain install metadata in generated Railway output for faster dependency layers.
 - Include pnpm build-script approvals in generated deployment packages so local and Railway installs can run required native dependency setup.
@@ -74,6 +82,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add translation service with 24-hour caching layer to minimize API calls to Google Translation.
 
 ### Changed
+
 - See App Store and Google Play icons in dashboard sidebar app panel; social links open external pages in new tab.
 - Track setup progress from account data, route to relevant setup pages, and reopen for accounts below 25% completion.
 - Open business setup links in the Business workspace.
@@ -92,8 +101,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - See dashboard help links under topbar Help menu; sidebar focuses on primary app areas.
 - See customer level and discount rule management using horizontal table rows for faster editing.
 
-
 ### Fixed
+
 - View business overview when no business profile exists, with add-business action visible in top-level workspace.
 - Upload datasets using valid persisted demo account path with clearer file-size handling.
 - View business overview metrics even when business storage tables are unavailable.
@@ -127,7 +136,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - See public legal pages and authentication screens expose Terms and Privacy links consistently.
 - See mobile public navigation open as compact menu while keeping mode and theme controls visible.
 - See referral signup and paid events support idempotency keys and block self-referral rewards.
-
 
 ### Dev
 

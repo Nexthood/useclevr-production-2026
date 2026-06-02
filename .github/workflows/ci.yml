@@ -15,17 +15,6 @@ jobs:
       run_command: |
         pnpm validate:types
         pnpm validate:dist
-        pnpm lint:package
         pnpm test:all
         pnpm build
       needs_postgres: true
-
-  docs:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: ./.github/actions/setup
-
-      - run: pnpm docs:check

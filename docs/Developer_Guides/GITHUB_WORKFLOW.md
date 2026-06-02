@@ -121,14 +121,32 @@ All CI workflows use a PostgreSQL 17 ephemeral service container so database-dep
 (schema push, build with DB imports) can execute without a permanent database. Production and
 preview deployments connect to the external Neon PostgreSQL instance.
 
+The single-developer workflow keeps style and documentation checks local so deployment feedback stays
+fast. The pre-commit hook runs staged ESLint autofix, Prettier, TODO metadata checks, package checks,
+and workflow checks. CI focuses on production risk.
+
 The required branch-rule check is:
 
 - `Validate source and production build`
 
 This one check protects `main`, because `main` generates the production `dist` branch and can also
 deploy directly to Vercel. It installs dependencies, runs type validation, verifies Railway and
-Vercel config sync, runs lint and tests with the Postgres service container, then proves Next.js
-can compile the app.
+Vercel config sync, runs critical tests with the Postgres service container, then proves Next.js can
+compile the app.
+
+### Single-Developer CI Policy
+
+GitHub CI runs only the deployment safety gate:
+
+- `pnpm validate:types`
+- `pnpm validate:dist`
+- `pnpm test:all`
+- `pnpm build`
+
+Local pre-commit handles staged-file formatting and fixable lint. Manual `pnpm lint`,
+`pnpm docs:check`, and `pnpm lint:changelog` remain available for broad review passes.
+
+Use the future multi-developer TODO section when the project needs stronger remote checks again.
 
 ### Auto-Merge Workflow
 
@@ -150,9 +168,8 @@ The `.github/workflows/branch-maintenance.yml` workflow handles deployment branc
   - Commit message includes `[skip ci]` to prevent CI duplication
 
 - **publish-dist**: Triggers on push to `main` and `workflow_dispatch`
-- Uses same Node.js (`26.x`) and pnpm (`11.5.0`) setup as `ci.yml` with pnpm cache enabled
+- Uses same Node.js (`26.x`) and pnpm (`11.5.0`) setup as `ci.yml`
 - Includes a PostgreSQL 17 service container for the build step (production uses external Neon)
-- Runs type validation, dist config validation, and lint before publishing generated output
 - Runs `pnpm prod:build` to create the dist output
 - Starts the generated server and checks `/api/health` before publishing; exits with code 1 if the server never starts
 - Checks out the existing `dist` branch after the build
@@ -202,6 +219,12 @@ The source checkout mirrors this with `pnpm start:dist`, `pnpm prod:railway`, an
 `pnpm prod:vercel`. Use the named server target only when testing that host's environment.
 
 For one local env shared by `main`, `beta`, and `dist` checkouts, place it next to the checkout folder as `../.env.local`. The runtime loader applies parent env values first, then checkout-local env values, while shell and Railway variables remain authoritative.
+
+### Middleware Packaging Note
+
+Keep the deprecated `middleware.ts` convention while it is the stable production packaging path.
+Revisit `middleware` to `proxy` only after production build succeeds, dist packages correctly,
+Railway starts, and `/api/health` passes on the deployment target.
 
 ## Deployment Strategy Notes
 

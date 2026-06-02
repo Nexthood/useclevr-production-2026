@@ -14,6 +14,7 @@
 | **[TECH_DEPENDENCIES.md](TECH_DEPENDENCIES.md)**         | Runtime and tooling dependency inventory             |
 | **[PACKAGE_JSON.md](PACKAGE_JSON.md)**                   | pnpm scripts, package usage, and dependency checks   |
 | **[BOOKKEEPING.md](BOOKKEEPING.md)**                     | Accountancy bookkeeping implementation guide         |
+| **[MCP.md](MCP.md)**                                     | MCP route, tool, resource, and access-scope guide    |
 | **[TODO_MANAGEMENT.md](TODO_MANAGEMENT.md)**             | TODO file workflow and completion rules              |
 | **[DASHBOARD_SITEMAP.md](DASHBOARD_SITEMAP.md)**         | Mermaid sitemap for dashboard routes                 |
 | **[PROJECT_AUDIT_GUIDE.md](PROJECT_AUDIT_GUIDE.md)**     | Start-to-finish project audit workflow               |
@@ -26,6 +27,7 @@
 - **[COMMON_PROMPTS.md](COMMON_PROMPTS.md)**: Reusable prompts for common development work.
 - **[RELEASE_ARTIFACT_CHECKLIST.md](RELEASE_ARTIFACT_CHECKLIST.md)**: Release artifact inclusion rules.
 - **[../AI-interaction/README.md](../AI-interaction/README.md)**: AI interaction rules, prompts, and bookkeeping guides.
+- **[../Sales_Guide/README.md](../Sales_Guide/README.md)**: Sales presentation, analysis, source material, and follow-up guides.
 
 ## Recommendation
 

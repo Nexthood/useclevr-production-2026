@@ -13,6 +13,9 @@ folder during the same task cycle.
 - Keep user guides separate from developer guides.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
+- Before committing changes, let the pre-commit hook run staged ESLint autofix, Prettier, TODO checks, and workflow checks.
+- Use `pnpm lint` as a manual deeper review command when a change touches broad source areas.
+- Commit message subject must be in lower case (except for proper nouns and acronyms) and must not be in sentence case, start case, pascal case, or upper case.
 
 ## Railway Deploy Scope
 
@@ -31,6 +34,9 @@ folder during the same task cycle.
   outdated — it needs a fresh publish with `node_modules/` committed.
 - If the deploy fails with `node: command not found`, the `railpack.json` has custom steps that
   skip Node.js runtime setup. Remove custom steps, keep only `{ "provider": "node" }`.
+- Keep `middleware.ts` temporarily while it is the stable production packaging path. Revisit the
+  middleware-to-proxy migration after production build, dist packaging, Railway startup, and
+  `/api/health` are stable.
 
 ## Bookkeeping Scope
 

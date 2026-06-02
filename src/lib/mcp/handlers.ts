@@ -1,13 +1,33 @@
 import { debugLog } from "@/lib/utils/debug";
 
-import type { PrecomputedMetrics } from '../utils/pipeline-types';
+import type { PrecomputedMetrics } from "../utils/pipeline-types";
 import type {
-    DatasetSchemaOutput,
-    PrecomputedKpisOutput,
-    ProfitabilitySummaryOutput,
-    RevenueTrendsOutput,
-    TopRegionsOutput
-} from './tools';
+  DatasetSchemaOutput,
+  PrecomputedKpisOutput,
+  ProfitabilitySummaryOutput,
+  RevenueTrendsOutput,
+  TopRegionsOutput,
+} from "./tools";
+
+type ChartData = PrecomputedMetrics["chartData"];
+type CostBreakdown = PrecomputedMetrics["costBreakdown"];
+
+function getChartData(metrics: PrecomputedMetrics): Partial<ChartData> {
+  return metrics.chartData ?? {};
+}
+
+function getCostBreakdown(metrics: PrecomputedMetrics): CostBreakdown {
+  return (
+    metrics.costBreakdown ?? {
+      cogs: 0,
+      marketingCost: 0,
+      shippingCost: 0,
+      refunds: 0,
+      discount: 0,
+      totalCost: metrics.totalCost ?? 0,
+    }
+  );
+}
 
 interface MCPCache {
   schema?: DatasetSchemaOutput;
@@ -38,32 +58,32 @@ export function getDatasetSchema(datasetId: string): DatasetSchemaOutput {
 
   const detectedColumns = metrics.detectedColumns;
 
-  const inferredTypes: Record<string, 'string' | 'number' | 'date' | 'boolean'> = {};
+  const inferredTypes: Record<string, "string" | "number" | "date" | "boolean"> = {};
   const columns: string[] = [];
 
-  if (metrics.detectedColumns) {
+  if (detectedColumns) {
     if (detectedColumns.revenueColumn) {
-      inferredTypes[detectedColumns.revenueColumn] = 'number';
+      inferredTypes[detectedColumns.revenueColumn] = "number";
       columns.push(detectedColumns.revenueColumn);
     }
     if (detectedColumns.profitColumn) {
-      inferredTypes[detectedColumns.profitColumn] = 'number';
+      inferredTypes[detectedColumns.profitColumn] = "number";
       columns.push(detectedColumns.profitColumn);
     }
     if (detectedColumns.costColumn) {
-      inferredTypes[detectedColumns.costColumn] = 'number';
+      inferredTypes[detectedColumns.costColumn] = "number";
       columns.push(detectedColumns.costColumn);
     }
     if (detectedColumns.dateColumn) {
-      inferredTypes[detectedColumns.dateColumn] = 'date';
+      inferredTypes[detectedColumns.dateColumn] = "date";
       columns.push(detectedColumns.dateColumn);
     }
     if (detectedColumns.productColumn) {
-      inferredTypes[detectedColumns.productColumn] = 'string';
+      inferredTypes[detectedColumns.productColumn] = "string";
       columns.push(detectedColumns.productColumn);
     }
     if (detectedColumns.regionColumn) {
-      inferredTypes[detectedColumns.regionColumn] = 'string';
+      inferredTypes[detectedColumns.regionColumn] = "string";
       columns.push(detectedColumns.regionColumn);
     }
   }
@@ -79,7 +99,6 @@ export function getDatasetSchema(datasetId: string): DatasetSchemaOutput {
       profit: detectedColumns?.profitColumn || undefined,
       product: detectedColumns?.productColumn || undefined,
       region: detectedColumns?.regionColumn || undefined,
-      category: detectedColumns?.regionColumn || undefined,
     },
   };
 }
@@ -108,8 +127,8 @@ export function getPrecomputedKpis(datasetId: string): PrecomputedKpisOutput {
 
 export function getTopRegions(
   datasetId: string,
-  metric: 'revenue' | 'profit' | 'quantity' | 'cost' = 'revenue',
-  limit: number = 10
+  metric: "revenue" | "profit" | "quantity" | "cost" = "revenue",
+  limit: number = 10,
 ): TopRegionsOutput {
   const metrics = getAnalysisCache(datasetId);
 
@@ -118,12 +137,12 @@ export function getTopRegions(
   }
 
   let rankedRows: { rank: number; name: string; value: number }[] = [];
-  let totals = { metric: 'revenue', value: 0 };
+  let totals = { metric: "revenue", value: 0 };
 
-  if (metric === 'revenue' || metric === 'profit') {
-    const data = metric === 'revenue'
-      ? metrics.chartData.revenueByRegion
-      : metrics.chartData.profitByRegion;
+  if (metric === "revenue" || metric === "profit") {
+    const chartData = getChartData(metrics);
+    const data =
+      metric === "revenue" ? (chartData.revenueByRegion ?? []) : (chartData.profitByRegion ?? []);
 
     const total = data.reduce((sum, item) => sum + item.value, 0);
     totals = { metric, value: total };
@@ -133,14 +152,14 @@ export function getTopRegions(
       name: item.category,
       value: item.value,
     }));
-  } else if (metric === 'quantity' && metrics.productPerformance) {
+  } else if (metric === "quantity" && metrics.productPerformance) {
     const data = metrics.productPerformance
-      .filter(p => p.quantity !== undefined)
-      .map(p => ({ category: p.name, value: p.quantity || 0 }))
+      .filter((p) => p.quantity !== undefined)
+      .map((p) => ({ category: p.name, value: p.quantity || 0 }))
       .sort((a, b) => b.value - a.value);
 
     const total = data.reduce((sum, item) => sum + item.value, 0);
-    totals = { metric: 'quantity', value: total };
+    totals = { metric: "quantity", value: total };
 
     rankedRows = data.slice(0, limit).map((item, index) => ({
       rank: index + 1,
@@ -151,10 +170,9 @@ export function getTopRegions(
 
   const sharePercentages: Record<string, number> = {};
   const totalValue = totals.value;
-  rankedRows.forEach(row => {
-    sharePercentages[row.name] = totalValue > 0
-      ? Math.round((row.value / totalValue) * 1000) / 10
-      : 0;
+  rankedRows.forEach((row) => {
+    sharePercentages[row.name] =
+      totalValue > 0 ? Math.round((row.value / totalValue) * 1000) / 10 : 0;
   });
 
   return {
@@ -171,8 +189,8 @@ export function getTopRegions(
 
 export function getRevenueTrends(
   datasetId: string,
-  dateGrain: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly',
-  metric: 'revenue' | 'profit' | 'quantity' = 'revenue'
+  dateGrain: "daily" | "weekly" | "monthly" | "quarterly" | "yearly" = "monthly",
+  metric: "revenue" | "profit" | "quantity" = "revenue",
 ): RevenueTrendsOutput {
   const metrics = getAnalysisCache(datasetId);
 
@@ -182,13 +200,15 @@ export function getRevenueTrends(
 
   let trendRows: { period: string; value: number }[] = [];
 
-  if (metric === 'revenue') {
-    trendRows = metrics.chartData.revenueByMonth.map(m => ({
+  const chartData = getChartData(metrics);
+
+  if (metric === "revenue") {
+    trendRows = (chartData.revenueByMonth ?? []).map((m) => ({
       period: m.month,
       value: m.revenue,
     }));
-  } else if (metric === 'profit') {
-    trendRows = metrics.chartData.profitByMonth.map(m => ({
+  } else if (metric === "profit") {
+    trendRows = (chartData.profitByMonth ?? []).map((m) => ({
       period: m.month,
       value: m.profit,
     }));
@@ -199,16 +219,16 @@ export function getRevenueTrends(
   const firstPeriod = trendRows.length > 0 ? trendRows[0] : null;
   const lastPeriod = trendRows.length > 0 ? trendRows[trendRows.length - 1] : null;
 
-  let growthDirection: 'up' | 'down' | 'stable' | 'insufficient_data' = 'insufficient_data';
+  let growthDirection: "up" | "down" | "stable" | "insufficient_data" = "insufficient_data";
 
   if (firstPeriod && lastPeriod && firstPeriod.value > 0) {
     const change = ((lastPeriod.value - firstPeriod.value) / firstPeriod.value) * 100;
     if (change > 5) {
-      growthDirection = 'up';
+      growthDirection = "up";
     } else if (change < -5) {
-      growthDirection = 'down';
+      growthDirection = "down";
     } else {
-      growthDirection = 'stable';
+      growthDirection = "stable";
     }
   }
 
@@ -218,7 +238,10 @@ export function getRevenueTrends(
   if (trendRows.length > 0) {
     const sorted = [...trendRows].sort((a, b) => b.value - a.value);
     peakPeriod = { period: sorted[0].period, value: sorted[0].value };
-    troughPeriod = { period: sorted[sorted.length - 1].period, value: sorted[sorted.length - 1].value };
+    troughPeriod = {
+      period: sorted[sorted.length - 1].period,
+      value: sorted[sorted.length - 1].value,
+    };
   }
 
   return {
@@ -244,36 +267,37 @@ export function getProfitabilitySummary(datasetId: string): ProfitabilitySummary
     throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
   }
 
-  const costBreakdown = metrics.costBreakdown;
+  const costBreakdown = getCostBreakdown(metrics);
+  const chartData = getChartData(metrics);
 
   const topCostCategories = [
-    { category: 'COGS', amount: costBreakdown.cogs, percentage: 0 },
-    { category: 'Marketing', amount: costBreakdown.marketingCost, percentage: 0 },
-    { category: 'Shipping', amount: costBreakdown.shippingCost, percentage: 0 },
-    { category: 'Refunds', amount: costBreakdown.refunds, percentage: 0 },
-    { category: 'Discounts', amount: costBreakdown.discount, percentage: 0 },
+    { category: "COGS", amount: costBreakdown.cogs, percentage: 0 },
+    { category: "Marketing", amount: costBreakdown.marketingCost, percentage: 0 },
+    { category: "Shipping", amount: costBreakdown.shippingCost, percentage: 0 },
+    { category: "Refunds", amount: costBreakdown.refunds, percentage: 0 },
+    { category: "Discounts", amount: costBreakdown.discount, percentage: 0 },
   ]
-    .filter(c => c.amount > 0)
+    .filter((c) => c.amount > 0)
     .sort((a, b) => b.amount - a.amount);
 
   const totalCost = costBreakdown.totalCost;
-  topCostCategories.forEach(c => {
+  topCostCategories.forEach((c) => {
     c.percentage = totalCost > 0 ? Math.round((c.amount / totalCost) * 1000) / 10 : 0;
   });
 
-  const revenueByRegion = metrics.chartData.revenueByRegion.map(item => ({
+  const revenueByRegion = (chartData.revenueByRegion ?? []).map((item) => ({
     region: item.category,
     revenue: item.value,
     percentage: item.percentage,
   }));
 
-  const revenueByProduct = metrics.chartData.revenueByProduct.map(item => ({
+  const revenueByProduct = (chartData.revenueByProduct ?? []).map((item) => ({
     product: item.category,
     revenue: item.value,
     percentage: item.percentage,
   }));
 
-  const revenueVsExpenses = metrics.chartData.revenueByMonth.map(m => ({
+  const revenueVsExpenses = (chartData.revenueByMonth ?? []).map((m) => ({
     period: m.month,
     revenue: m.revenue,
     expenses: m.revenue - m.profit,
