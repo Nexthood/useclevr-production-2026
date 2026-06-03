@@ -166,14 +166,13 @@ jobs:
           rm -rf .turbo
           rm -rf .vercel
 
-          mkdir -p dist
-          cp -a /tmp/useclevr-dist-output/. dist/
+          cp -a /tmp/useclevr-dist-output/. .
 
-          rm -rf dist/.next/cache
-          rm -rf dist/.cache
-          rm -rf dist/cache
-          rm -rf dist/.turbo
-          rm -rf dist/.vercel
+          rm -rf .next/cache
+          rm -rf .cache
+          rm -rf cache
+          rm -rf .turbo
+          rm -rf .vercel
 
           if [ -d "/tmp/useclevr-dist-root" ]; then
             cp -a /tmp/useclevr-dist-root/. .
@@ -215,7 +214,7 @@ jobs:
               "Do not open pull requests from this branch into \`beta\`." \
               "Do not merge this branch into \`main\`." \
               "" \
-              'Railway deploys from the `/dist` folder in this branch.' \
+              'Railway deploys from the root of this branch.' \
               'Railway config is stored at `/server-config/railway.json`.' \
               'Source code lives in `beta` or `main`.' \
               > README.md
@@ -231,19 +230,14 @@ jobs:
             exit 1
           fi
 
-          if [ -f "dist/railway.json" ] || [ -f "dist/vercel.json" ]; then
-            echo "Error: host config files must not be published inside dist/."
-            exit 1
-          fi
-
-          if [ -f "dist/pnpm-lock.yaml" ] || [ -f "dist/yarn.lock" ]; then
+          if [ -f "pnpm-lock.yaml" ] || [ -f "yarn.lock" ]; then
             echo "Error: generated dist-test output must not publish pnpm or yarn lockfiles."
             exit 1
           fi
 
           node -e "JSON.parse(require('fs').readFileSync('server-config/railway.json', 'utf8')); JSON.parse(require('fs').readFileSync('server-config/vercel.json', 'utf8'))"
 
-          large_dist_file="$(find dist -type f -size +95M -print -quit)"
+          large_dist_file="$(find . -type f -size +95M -not -path './.git/*' -print -quit)"
           if [ -n "$large_dist_file" ]; then
             echo "Error: files larger than GitHub limit still exist."
             exit 1

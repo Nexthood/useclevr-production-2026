@@ -185,3 +185,49 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
 
   return success({ message: "Business details saved." })
 }
+
+// ---------------------------------------------------------------------------
+// Theme preference
+// ---------------------------------------------------------------------------
+
+const validThemes = ["light", "dark", "system", "contrast", "large"] as const
+type ThemeValue = (typeof validThemes)[number]
+
+export async function setThemePreference(theme: string): Promise<Result<{ message: string }>> {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) return failure("Please sign in again.")
+
+  if (isBuiltinUserId(userId)) {
+    return success({ message: "Theme preference updated for this session only." })
+  }
+
+  const db = getDb()
+  if (!db) return failure("Database connection is unavailable.")
+
+  if (!validThemes.includes(theme as ThemeValue)) {
+    return failure("Invalid theme value.")
+  }
+
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    columns: { userId: true },
+  })
+
+  if (existingProfile) {
+    await db.update(profiles)
+      .set({ themePreference: theme as ThemeValue, updatedAt: new Date() })
+      .where(eq(profiles.userId, userId))
+  } else {
+    await db.insert(profiles).values({
+      id: `profile_${uuidv4()}`,
+      userId,
+      themePreference: theme as ThemeValue,
+    })
+  }
+
+  revalidatePath("/app")
+
+  return success({ message: "Theme preference saved." })
+}

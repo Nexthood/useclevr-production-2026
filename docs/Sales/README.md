@@ -2,6 +2,8 @@
 
 This folder stores sales-ready project documents, marketing planning, and project-management artefacts for UseClevr.
 
+For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.md).
+
 ## Project Documents
 
 - [Project brief](Project_Management/project-brief.md)

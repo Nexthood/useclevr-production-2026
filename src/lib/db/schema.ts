@@ -107,6 +107,7 @@ export const profiles = pgTable(
     subscriptionTier: varchar('subscriptionTier', { length: 255 }).default('free').notNull(),
     preferredCurrency: varchar('preferredCurrency', { length: 3 }).default('EUR').notNull(),
     numberFormat: varchar('numberFormat', { length: 10 }).default('auto').notNull(),
+    themePreference: varchar('themePreference', { length: 20 }).default('system').notNull(),
     createdAt: timestamp('createdAt').defaultNow().notNull(),
     updatedAt: timestamp('updatedAt').defaultNow().notNull(),
     // Stripe billing fields
@@ -130,9 +131,6 @@ export const profiles = pgTable(
       name: 'Profile_userId_fkey',
     }).onDelete('cascade'),
     userIdIdx: uniqueIndex('Profile_userId_key').on(table.userId),
-    // Ensure that updates to profile fields (e.g., fullName, preferredCurrency)
-    // are handled by corresponding API routes and persist correctly in the database.
-    // The 'updatedAt' timestamp should be automatically managed by Drizzle's defaultNow().
   })
 )
 

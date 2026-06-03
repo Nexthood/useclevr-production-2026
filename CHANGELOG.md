@@ -44,6 +44,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Clarify documentation structure and retire duplicate AI interaction folders into the current AI knowledge base.
 - Add Sales project documents and marketing planning.
 - Reorganize AI interaction docs by audience, prompt library, learning traces, sales guidance, and project governance.
 - Split reusable AI prompts into dedicated prompt files, including an interaction-trace prompt for user learning and problem markers.

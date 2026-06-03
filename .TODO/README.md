@@ -14,4 +14,5 @@ future blockages appear only when the detail prevents risk.
 | Future work   | [todo-future.md](todo-future.md)                 |
 | Ignored work  | [todo-ignore.md](todo-ignore.md)                 |
 | TODO config   | [config.json](config.json)                       |
+| Plan file     | [plan.md](plan.md)                               |
 | TODO workflow | [TODO_MANAGEMENT.md](../docs/Developer_Guides/TODO_MANAGEMENT.md) |

@@ -5,8 +5,8 @@
     "buildCommand": "echo prebuilt"
   },
   "deploy": {
-    "preDeployCommand": "cd /app/dist && node ./scripts/runtime/railway-predeploy.cjs",
-    "startCommand": "cd /app/dist && sh start.sh",
+    "preDeployCommand": "node ./scripts/runtime/railway-predeploy.cjs",
+    "startCommand": "sh start.sh",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",

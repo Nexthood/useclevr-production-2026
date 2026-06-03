@@ -12,6 +12,9 @@ moving work between states.
 
 ## Future Next
 - T-299. Evaluate restore candidates for legacy report PDF generation and cloud live-data refresh behavior before deciding whether they should return to the product.
+- T-545. Create the minimal monorepo layout under `apps/web` and `apps/docs` without moving the existing dashboard logic out of the current root app yet.
+- T-546. Add verified root scripts for `dev:web`, `dev:docs`, `build:web`, `build:docs`, `lint:web`, and `lint:docs`, and keep the existing deploy flow unchanged.
+- T-547. Validate Railway service-root deployment for the web and docs apps while preserving the current `dist` and `dist-test` branch behavior.
 - T-514. Add business-type-specific setup packs for e-commerce, SaaS, construction, restaurants, logistics, real estate, agencies, manufacturing, professional services, import/export, and freelancers.
 - T-515. Add structured revenue-stream records with VAT treatment, payment terms, customer segment, margin estimate, seasonality, refunds, returns, and B2B/B2C/B2G classification.
 - T-516. Add structured cost records with fixed and variable categories, net/VAT/gross separation, payment frequency, due date, supplier, deductibility, and operating/capital/financing/tax classification.

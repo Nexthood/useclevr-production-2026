@@ -1,9 +1,16 @@
 "use client";
 
+import { setThemePreference } from "@/app/actions/settings";
 import { Contrast, Monitor, Moon, Sun, Type } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+
+const saveTheme = (theme: string) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("theme-preference", theme);
+  }
+};
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const { theme, setTheme } = useTheme();
@@ -12,7 +19,12 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
 
   React.useEffect(() => {
     setMounted(true);
-  }, []);
+    // Restore theme from localStorage on mount
+    const saved = localStorage.getItem("theme-preference");
+    if (saved && theme !== saved) {
+      void setTheme(saved);
+    }
+  }, [theme, setTheme]);
 
   if (!mounted) {
     return (
@@ -79,7 +91,9 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
                 role="menuitem"
                 onClick={() => {
                   setTheme(option.id);
+                  saveTheme(option.id);
                   setOpen(false);
+                  void setThemePreference(option.id);
                 }}
                 className={`flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
                   activeTheme === option.id ? "bg-muted text-foreground" : "text-muted-foreground"

@@ -1,5 +1,7 @@
 # User Guides
 
+For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.md).
+
 | Guide            | Link                                       |
 | ---------------- | ------------------------------------------ |
 | Product overview | [product-overview.md](product-overview.md) |

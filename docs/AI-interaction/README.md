@@ -2,6 +2,8 @@
 
 This folder stores project learning, AI collaboration guidance, prompt patterns, and trace-learning rules. It is organised by audience so current AI agents know where each instruction belongs.
 
+For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.md).
+
 ## Folder Map
 
 | Folder | Audience | Purpose |
