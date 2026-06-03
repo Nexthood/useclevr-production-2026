@@ -16,6 +16,8 @@ moving work between states.
 
 ## Completed
 
+- T-566. Refactor topbar panels to icons-only with tooltips. Replace Popover backgrounds with transparent overlays and add tooltip labels that appear on hover for narrow icon buttons.
+- T-567. Move sidebar toggle from topbar to the AppSidebar component. Relocate the TopbarSidebarToggle button into the sidebar header for desktop view and keep mobile toggle in place.
 - T-556. Business Mentoring AI tracing records booking events in the aiInteractionTraces table for session recommendations and follow-ups.
 - T-555. Business Mentoring sales documentation created with target segments, session type pricing, and sales script reference.
 - T-554. Business Mentoring developer guide created with API routes, database schema, and integration points for MentoringSession table.
