@@ -9,10 +9,10 @@ Apply the instruction in:
 - AGENTS.md
 - .TODO/config.json when task wording or task workflow changes
 - docs/AI-interaction/README.md
-- docs/AI-interaction/user-guide.md when user-facing guidance changes
-- docs/AI-interaction/ai-agent-guide.md when agent behavior changes
-- docs/AI-interaction/instruction-maintenance.md when maintenance rules change
-- docs/AI-interaction/prompts/ when prompt examples change
+- docs/AI-interaction/user-guides/ when user-facing guidance changes
+- docs/AI-interaction/developer-guides/ when agent or developer guidance changes
+- docs/AI-interaction/governance/ when maintenance, PRINCE2 learning, or trace-control rules change
+- docs/AI-interaction/prompt-library/ when prompt examples change
 
 Rules:
 - Use current-state language in every text file.

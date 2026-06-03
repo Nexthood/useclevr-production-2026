@@ -18,7 +18,7 @@
     "Avoid task wording that begins with 'now', 'now also', 'now removed', 'now always', or similar changelog-style phrasing.",
     "Write every text file as current-state behavior and current rules; mention past states, removed options, speculative possibilities, or future blockages only for risk prevention.",
     "Update docs/AI-interaction after every durable AI instruction change, including user instructions, AI instructions, and prompt examples.",
-    "Keep reusable prompt examples in docs/AI-interaction/prompts as separate files and update prompt-collection.md as the index.",
+    "Keep reusable prompt examples in docs/AI-interaction/prompt-library as separate files and update its README.md as the index.",
     "Keep Railway test deploy reviews scoped to beta and dist-test unless the user explicitly names another branch."
   ]
 }

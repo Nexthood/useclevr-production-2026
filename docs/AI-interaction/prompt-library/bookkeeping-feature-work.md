@@ -20,7 +20,7 @@ Developer scope:
 
 Update:
 - requirements.md when behavior is visible in Accountancy.
-- docs/AI-interaction/bookkeeping-user-guide.md for user guidance.
-- docs/AI-interaction/bookkeeping-developer-guide.md for implementation guidance.
+- docs/AI-interaction/user-guides/bookkeeping-user-guide.md for user guidance.
+- docs/AI-interaction/developer-guides/bookkeeping-developer-guide.md for implementation guidance.
 - CHANGELOG.md for release-facing changes.
 ```

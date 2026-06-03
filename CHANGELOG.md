@@ -43,6 +43,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Reorganize AI interaction docs by audience, prompt library, learning traces, sales guidance, and PRINCE2-style governance.
 - Split reusable AI prompts into dedicated prompt files, including an interaction-trace prompt for user learning and problem markers.
 - Move heavy local validation from pre-commit to pre-push while commit messages continue to validate at commit time.
 - Add local Railway CLI shortcuts for browserless login, linking, status, and logs.

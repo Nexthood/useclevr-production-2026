@@ -230,7 +230,7 @@ moving work between states.
 - T-490. AI interaction history UI — history tab in AI Assistant workspace sidebar shows past questions with provider, date, and feedback status.
 - T-491. AI provider indicator — provider name shown in assistant message header next to "AI Analyst" label.
 - T-492. AI response feedback — thumbs-up/thumbs-down buttons on each assistant response, stored via `/api/assistant/feedback`.
-- T-493. "How AI Analysis Works" user guide — updated `docs/AI-interaction/user-guide.md` with architecture explanation, provider indicator, feedback, history, and export guidance.
+- T-493. "How AI Analysis Works" user guide — updated `docs/AI-interaction/user-guides/user-guide.md` with architecture explanation, provider indicator, feedback, history, and export guidance.
 - T-494. AI interaction export — CSV and JSON export of full conversation history via `/api/assistant/export`.
 - T-495. AI trace analytics dashboard — superadmin page at `/app/admin/ai-traces` shows total queries, provider distribution, error rate, latency, top queries.
 - T-496. AI error transparency in UI — error messages show clear explanation and suggested next steps in a styled error card.
