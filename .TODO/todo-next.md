@@ -34,8 +34,6 @@ moving work between states.
 - T-583. Replace barrel proxy files with direct imports — `src/lib/query/engine.ts` re-exports from `src/lib/data/queryEngine` and `src/lib/query/intent-prompt.ts` re-exports from `src/lib/utils/queryIntentPrompt`. Delete both proxies and update all callers to import directly.
 - T-584. Use route groups to simplify middleware auth — restructure `src/app/` into `(public)/`, `(auth)/`, and `api/` route groups. Move auth guard from middleware into `src/app/(auth)/layout.tsx`. Maintains security while colocating auth rules with the pages they protect.
 - T-585. Merge duplicate FAQ and Mentoring pages — `src/app/faq/page.tsx` / `src/app/app/faq/page.tsx` and `src/app/mentoring/page.tsx` / `src/app/app/mentoring/page.tsx` are separate implementations. Extract shared shell (header, breadcrumbs) into a component to eliminate layout duplication, or use route groups to serve a single page at both paths.
-- T-586. Guard debug API routes with NODE_ENV check — `src/app/api/debug/request-headers/route.ts`, `src/app/api/debug/active-dataset/route.ts`, `src/app/api/debug/dataset/route.ts` are accessible in production and can leak internal state. Add `process.env.NODE_ENV === 'development'` guard returning 404 in production.
-
 ### Shared Code
 
 - T-587. Consolidate CSV parsing into one canonical module — four implementations exist: `src/lib/data/csvLoader.ts` (PapaParse), `src/lib/data/upload-handler.ts` (custom `parseCSVLine`), `src/app/api/upload/route.ts` (inline), and `src/app/actions/upload.ts` (inline). Hand-rolled parsers cannot handle quoted fields or commas inside values. Make `csvLoader.ts` the single source of truth and replace all inline parsing with calls to it.
@@ -43,6 +41,12 @@ moving work between states.
 - T-589. Create shared `requireAuth()` helper — auth check pattern (`session = await auth(); if (!session?.user?.id)`) repeated across ~15 files in server actions and API routes. Create `src/lib/auth/require-auth.ts` exporting `requireAuth()` (throws) and `requireAuthResult()` (returns `Result` type). Update all call sites.
 - T-590. Consolidate `ValidationResult` into `Result` type — `src/lib/validation.ts` defines `ValidationResult<T>` and `ValidationError` interfaces structurally identical to `Result<T, string>` from `src/lib/result.ts`. Remove the duplicate types and change `validateOrError` to return `Result<T, string>`.
 - T-591. Normalize pnpm version constant between ESM and CJS configs — `scripts/lib/app-config.js` exports `pnpm@11.5.0+sha512.<hash>` while `scripts/lib/app-config.cjs` exports `pnpm@11.5.0` (no hash). The CJS version should match the ESM version so both configs validate against the same `packageManager` value.
+- T-597. Add CSP nonce support to Next.js headers — generate cryptographically random nonces for inline scripts and styles so Content-Security-Policy allows only trusted inline execution.
+- T-598. Remove remaining `any` types in API routes — replace `any` in `src/app/api/analyze/route.ts`, `src/app/api/admin/*` with proper Zod infer types.
+- T-599. Audit public API route exposure — verify all public routes at `src/app/api/public/*` return safe data only and fail closed on error.
+- T-600. Remove unused imports and dead code in login page — clean up unused `oauthAccount` variable and any stale debugging code.
+- T-601. Add an API route access matrix covering public, signed-in, owner-scoped, super-admin, webhook, and development-only routes with expected auth helper, ownership check, rate limit, and audit evidence.
+- T-602. Restrict local AI install and agent install runtime routes to development mode or approved super-admin operations so signed-in users cannot trigger server-host runtime actions on shared deployments.
 
 ## Deferred
 
