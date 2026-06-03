@@ -204,6 +204,9 @@ for (const targetDir of [distDir]) {
 
 // Remove package-manager indicators so Railpack uses the prebuilt standalone bundle without
 // trying to install dependencies in the generated deployment folder.
+// Note: pnpm-lock.yaml and other lockfiles are removed because Railway Dockerfile uses npm install
+// with the precompiled standalone bundle. The lockfiles are kept in .aiignore for token optimization
+// during AI development work, not for deployment considerations.
 const packageManagerFiles = [
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",

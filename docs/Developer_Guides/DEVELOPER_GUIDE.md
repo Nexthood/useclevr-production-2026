@@ -160,6 +160,7 @@ All commands are run from `pnpm`.
 | `pnpm lint:changelog` | Ensure changelog has unreleased entries   |
 | `pnpm lint:commits`   | Check recent commit messages              |
 | `pnpm lint:deps`      | Manual dependency freshness check         |
+| `pnpm lint:secrets`  | Scan docs and source text for committed credentials |
 | `pnpm format`         | Prettier — write                          |
 | `pnpm format:check`   | Prettier — check only                     |
 | `pnpm docs:check`     | Markdown local-link check                 |

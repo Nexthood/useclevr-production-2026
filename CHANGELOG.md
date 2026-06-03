@@ -50,6 +50,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Add secret-leak linting for docs and source text so credential examples stay placeholder-only.
+- Retire the MCP implementation plan into the MCP developer guide, AI tracing structure, and active MCP hardening tasks.
+- Retire the MCP and FAQ prompt plan into MCP docs, user guidance, requirements, and a reusable scope-check prompt.
+- Retire the project evaluation prompt plan into reusable AI evaluation prompts, project learning controls, and the project audit guide.
+- Retire the Business Profile planning prompt into the developer planning guide with calculation-context, setup payload, and review-flag rules.
 - Add AI tracing structure guidance for prompt versions, user history, feedback, export, analytics, and trace-safe examples.
 - Add AI interaction guidance for compact workflow updates, git release prompts, and memory collection from visible external chat summaries.
 - Clarify documentation structure and retire duplicate AI interaction folders into the current AI knowledge base.

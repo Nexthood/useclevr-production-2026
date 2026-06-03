@@ -17,10 +17,10 @@ This repository tracks plans in `.TODO/.PLAN/`. `.TODO/.PLAN/config.json` owns p
 ```mermaid
 flowchart TD
     Config[.TODO/.PLAN/config.json] --> Plans[Plan Files]
-    Plans --> Business[todo-business-profile.md]
-    Plans --> Base[base-project.md]
-    Plans --> AI[ai interactions.md]
-    Plans --> Eval[todo-project-evaluation-prompts.md]
+    Plans --> Active[Active plan files]
+    Plans --> Retired[Retired into docs or TODO queues]
+    Retired --> Docs[Developer guides and AI interaction docs]
+    Retired --> Todos[TODO next/future/done/ignore]
 ```
 
 ---
@@ -41,11 +41,8 @@ flowchart TD
 
 | File                           | Purpose                                        |
 | ------------------------------ | ---------------------------------------------- |
-| `.TODO/.PLAN/config.json`      | General plan settings and counter management   |
-| `todo-business-profile.md`     | Business profile feature plan                  |
-| `base-project.md`              | Base project stripping plan                    |
-| `ai interactions.md`           | AI interaction guidelines                      |
-| `todo-project-evaluation.md`   | Project evaluation prompts                     |
+| `.TODO/.PLAN/config.json` | General plan settings and counter management |
+| Active `.md` plan files | Temporary planning references for work not yet moved into durable docs or TODO queues |
 
 ---
 
@@ -66,3 +63,4 @@ flowchart TD
 - Update related TODO items and changelog when plans are completed
 - Keep plan files focused on single features or concepts
 - Use Mermaid diagrams for flows and architecture
+- Retire fully distributed plan files by moving durable content into docs, prompt-library files, requirements, changelog, and TODO queues.

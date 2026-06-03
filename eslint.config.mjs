@@ -21,6 +21,7 @@ export default [
       ".TODO/**",
       "scripts/**",
       "docs/**",
+      "src/lib/cms/**",
     ],
   },
   {

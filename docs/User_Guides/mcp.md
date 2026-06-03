@@ -2,6 +2,8 @@
 
 MCP lets connected tools use trusted dashboard data for analysis support. It reads the same prepared metrics that the dashboard shows: dataset schema, KPIs, top regions, revenue trends, and profitability summaries.
 
+MCP is available only to signed-in users and scoped to their own data. Public visitors use public FAQ, help chat, pricing, and contact pages instead.
+
 ## Available MCP Tools
 
 | Tool | Description | Input |
@@ -20,7 +22,6 @@ MCP lets connected tools use trusted dashboard data for analysis support. It rea
 
 | Level | Access |
 |-------|--------|
-| Public visitor | Public FAQ help content only |
 | Signed-in user | Own datasets, reports, tickets, settings |
 | Superadmin | All user data plus admin views |
 
@@ -41,24 +42,4 @@ POST /api/mcp
 **Read a resource:**
 ```
 GET /api/mcp?resource=dataset://your-id/schema
-```
-POST /api/mcp
-{
-  "name": "getPrecomputedKpis",
-  "input": { "datasetId": "your-dataset-id" }
-}
-```
-
-**Get top regions:**
-```
-POST /api/mcp
-{
-  "name": "getTopRegions",
-  "input": { "datasetId": "your-dataset-id", "metric": "revenue", "limit": 10 }
-}
-```
-
-**Read a resource:**
-```
-GET /api/mcp?resource=dataset://your-dataset-id/schema
 ```

@@ -48,10 +48,10 @@ Add or verify these variables in `.env.local`:
 ```env
 # Antigravity Proxy Server
 ANTIGRAVITY_BASE_URL=http://127.0.0.1:8317
-ANTIGRAVITY_API_KEY=AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA
+ANTIGRAVITY_API_KEY=<antigravity-api-key>
 
 # Fallback: Cloud AI
-GEMINI_API_KEY=AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA
+GEMINI_API_KEY=<gemini-api-key>
 ```
 
 ### 3. Start UseClevr
@@ -116,7 +116,7 @@ Add the API key to your Antigravity config:
 ```bash
 # Edit /home/csaba/Documents/Antigravity-CLI/config.yaml
 api-keys:
-  - "AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA"
+  - "<antigravity-api-key>"
 ```
 
 Then restart the Antigravity server.
@@ -215,11 +215,11 @@ File: `/home/csaba/Documents/Antigravity-CLI/config.yaml`
 host: "127.0.0.1"
 port: 8317
 api-keys:
-  - "AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA"
+  - "<antigravity-api-key>"
 debug: false
 
 gemini-api-key:
-  - api-key: "AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA"
+  - api-key: "<gemini-api-key>"
     models:
       - name: "gemini-2.5-pro"
         alias: "gemini-2.5-pro"

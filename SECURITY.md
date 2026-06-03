@@ -22,5 +22,12 @@ Instead, report via email to the project maintainer. Expect response within 72 h
 - Affected version(s)
 - Suggested fix (if any)
 
+## Secret Handling
+
+- Store credentials in local or hosting environment variables.
+- Use placeholders in documentation, prompts, TODOs, traces, and examples.
+- Run `pnpm lint:secrets` before pushing changes that touch docs, prompts, deployment notes, or credential setup.
+- Rotate any credential that appears in committed text, logs, screenshots, or AI chat context.
+
 ## Safe Harbour
 We will not initiate legal action against researchers who discover and report security vulnerabilities in good faith.

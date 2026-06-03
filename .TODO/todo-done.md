@@ -276,3 +276,5 @@ moving work between states.
 - T-560. Business Profile pre-accounting: company setup persistence via JSONB column on businesses table, API route (GET/PUT/DELETE /api/business/setup), wizard wired to save/load, missing-data warnings on business overview page.
 - T-561. CompanyCalculationContext module computes 7 adjusted KPIs (gross revenue, net profit, profit margin, operating costs, tax estimate, cash flow, revenue growth) with high/medium/low confidence labels and missing-input warnings.
 - T-562. Upload and analysis hardened: file size check (50MB) and rate limit (10/min) on upload route, rate limit (30/min) on analyze route, improved dirty-CSV error messages.
+- T-592. Document lockfile handling in create-dist.cjs — added clarifying comment that pnpm-lock.yaml is removed from dist output because Railway Dockerfile uses npm install with precompiled standalone bundle, while .aiignore keeps lockfiles from AI context for token optimization.
+- T-593. Add src/lib/cms/** to eslint ignore list — eslint now ignores the CMS planning directory that tsconfig excludes, preventing parsing errors against non-existent types.

@@ -19,6 +19,8 @@ folder during the same task cycle.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
 - Use compact status updates during long-running validation, deploy checks, and broad implementation work.
 - Use [AI memory collection](../prompt-library/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
+- Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.
+- Keep real API keys, tokens, passwords, webhook secrets, and private keys out of docs, prompts, traces, TODOs, logs, and final summaries.
 
 ## Work Cycle
 
@@ -54,6 +56,7 @@ folder during the same task cycle.
 - Keep bookkeeping user guidance focused on workflows and outcomes.
 - Keep bookkeeping developer guidance focused on data sources, page structure, validation, and risk.
 - Update requirements when bookkeeping changes are visible in Accountancy.
+- Keep Business Profile and Company Setup context aligned with AI tracing guidance when setup data changes analysis confidence.
 
 ## AI Interaction Tracing Scope
 
@@ -63,6 +66,7 @@ folder during the same task cycle.
 - Superadmin analytics pages show aggregate usage, provider distribution, error rates, and top queries.
 - The `aiInteractionTraces` table has a foreign key to the `User` table with cascade delete.
 - Trace anonymization strips email addresses from stored prompts and responses.
+- Trace examples and learning summaries use placeholders for credentials and omit provider tokens, webhook secrets, and environment values.
 - Trace retention is configurable via superadmin UI; default is 90 days with auto-cleanup.
 - The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
 - Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.

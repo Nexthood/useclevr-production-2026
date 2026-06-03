@@ -15,6 +15,11 @@ moving work between states.
 
 ## Active
 
+### MCP Security
+
+- T-595. Add MCP rate limiting and audit logging for tool listing, resource reads, and tool invocation while keeping logs free of raw dataset content.
+- T-596. Add MCP service-token and admin-token access only for approved internal clients, with ownership checks, role-based tool allowlists, and AI trace guidance updates.
+
 ### Build
 
 - T-577. Fix Node.js version mismatch in generated Dockerfile — `FROM node:22-alpine` in `scripts/package-dist/create-dist.cjs` hardcodes Node 22 but `package.json` engine requires `>=26.1.0`. Change to `FROM node:26-alpine` or read the version dynamically from `package.json`.
@@ -22,7 +27,6 @@ moving work between states.
 - T-579. Consolidate overlapping build aliases in package.json — `build:next`, `build:preview`, `build:prod`, `build:clean`, `prod`, `preview` all boil down to either `pnpm build` or `pnpm prod:build`. Keep only `build`, `prod:build`, `start`, and `preview`; remove duplicate/confusing aliases.
 - T-580. Eliminate redundant `.next` copy in dist packaging — `scripts/package-dist/create-dist.cjs` copies `.next/static` to `dist/.next/static` then copies the entire `.next` directory to `dist/next-build`, duplicating static files and inflating the dist bundle. Copy only Railway-specific files to `dist/next-build` instead.
 - T-581. Merge redundant .env cleanup loops in create-dist.cjs — lines 190-193 delete `.env` explicitly, then lines 195-202 loop over all entries deleting `.env.*`. The explicit `.rmSync` on `.env` is dead code since `.env` does not match the `.env.*` glob. Remove lines 190-193.
-- T-592. Remove pnpm-lock.yaml from .aiignore — the lockfile is needed for dist publishing but is listed in .aiignore, causing confusion for agents checking ignored patterns during deployment work.
 
 ### Next.js Structure
 

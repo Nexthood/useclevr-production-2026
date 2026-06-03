@@ -26,8 +26,17 @@ Use this guide when auditing UseClevr from a clean checkout through production r
 ## 4. Data And AI
 
 - Confirm AI responses depend on deterministic query results and uploaded dataset scope.
+- Confirm AI traces store prompt, answer, provider, model, prompt version, latency, error state, and feedback without secrets or raw uploaded files.
+- Confirm AI trace history, search, export, feedback, and super-admin analytics match `docs/AI-interaction/developer-guides/ai-tracing-structure.md`.
 - Review database queries for injection risk and expensive dashboard/report work.
 - Check fallback behavior when database, billing, or AI providers are unavailable.
+
+## 4A. AI Interaction Evaluation
+
+- Use [Work classification](../AI-interaction/prompt-library/work-classification.md) for broad mixed requests.
+- Use [Feature restoration check](../AI-interaction/prompt-library/feature-restoration-check.md) for restored features.
+- Use [TODO retirement check](../AI-interaction/prompt-library/todo-retirement-check.md) before moving tasks between queues.
+- Use [AI memory collection](../AI-interaction/prompt-library/ai-memory-collection.md) for visible learning from other AI chats.
 
 ## 5. Billing And Admin
 

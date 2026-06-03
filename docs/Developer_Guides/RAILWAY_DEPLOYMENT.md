@@ -14,6 +14,16 @@ Railway deploys generated production output from the `dist` branch.
 Railway test deploy review uses the `beta` source branch and `dist-test` deployment branch. Keep
 test deploy checks away from `main`, `dist`, and the live app unless a task explicitly changes scope.
 
+Production and test deploy flows stay isolated:
+
+| Source branch | Generated branch | Railway service | Domain |
+| --- | --- | --- | --- |
+| `main` | `dist` | Production service, root `/dist` | `app.useclevr.com` |
+| `beta` | `dist-test` | Test service, root `/dist` | `test.useclevr.com` |
+
+Generated deployment branches are output branches. Do not merge `dist` or `dist-test` back into
+source branches.
+
 ## Railway Settings
 
 - Branch: `dist`
@@ -40,6 +50,9 @@ flowchart LR
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
 branch, and publishes Railway config to `/server-config/railway.json` on the same branch.
 
+The test flow builds from `beta`, publishes generated output to `/dist` on the `dist-test` branch,
+and lets the dedicated Railway test service deploy from that branch.
+
 `dist-root/server-config/railway.json` controls deploy with a prebuilt `/dist`. The build command
 outputs `"echo prebuilt"` since GitHub Actions publishes generated output directly to `/dist`.
 
@@ -48,6 +61,9 @@ standalone bundle includes all production modules in `dist/node_modules/`.
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
+
+Generated output also excludes repository secrets, environment files, caches, source workspace
+metadata, and dependency folders that are not part of the standalone runtime contract.
 
 ## Runtime Commands
 
@@ -200,6 +216,21 @@ test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed cal
 required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
 service.
 
+Keep test-service environment variables separate from production. Stripe test mode belongs on the
+test service, and live Stripe keys belong only on the production service.
+
 If runtime logs show `Could not find a production build in the './.next' directory`, keep the
 generated `next-build` folder and the runtime restore step. Railway can omit dot-directories from the
 service snapshot, while Next still expects `.next` at runtime.
+
+## Smoke Checks
+
+After a test deployment:
+
+- Check `/api/health`.
+- Verify sign-in and protected dashboard access.
+- Upload a small dataset.
+- Confirm the datasets table renders.
+- Ask one AI analysis question.
+- Open Reports & Downloads.
+- Review Railway logs for startup, database, auth, and healthcheck errors.

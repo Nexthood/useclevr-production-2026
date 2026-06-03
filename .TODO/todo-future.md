@@ -11,6 +11,7 @@ moving work between states.
 - [.TODO/config.json](config.json)
 
 ## Future Next
+- T-594. Evaluate a dedicated MCP subdomain only when MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership.
 - T-537. Add Payload CMS FAQ collection with public read, admin write access — first Payload migration step after core stability.
 - T-563. Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable.
 - T-299. Evaluate restore candidates for legacy report PDF generation and cloud live-data refresh behavior before deciding whether they should return to the product.

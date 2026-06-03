@@ -51,6 +51,7 @@ assertScripts([
   "lint:deps",
   "lint:docs",
   "lint:package",
+  "lint:secrets",
   "lint:todos",
   "link:docs",
   "validate:precommit",

@@ -9,6 +9,8 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Trace anonymization removes email-like values from stored prompts and answers.
 - Users can review, search, re-run, export, and rate their own AI history.
 - Super-admins can review aggregate trace analytics, benchmarking, provider distribution, error rate, and top queries.
+- Business Profile and Company Setup changes that alter AI context update trace guidance so future traces explain which business context shaped an answer.
+- MCP tool changes that alter AI context, prompt inputs, provider-visible metadata, audit logs, or trace fields update trace guidance.
 
 ## Instruction Structure
 
@@ -23,4 +25,7 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Update the prompt version when prompt templates change.
 - Update requirements when trace behavior changes what users can see, search, export, or control.
 - Update changelog when trace behavior changes user workflow, admin workflow, or developer workflow.
-- Keep raw datasets, secrets, environment values, customer data, and private keys out of trace examples.
+- Update Business Profile and bookkeeping guides when setup context changes AI analysis confidence.
+- Update MCP and FAQ guidance when tool scope, FAQ source, public/private context boundaries, service-token access, audit logging, or rate limiting change AI-visible content.
+- Keep raw datasets, secrets, tokens, webhook secrets, environment values, customer data, and private keys out of trace examples.
+- Run `pnpm lint:secrets` after trace docs, prompt examples, deployment notes, or credential setup examples change.

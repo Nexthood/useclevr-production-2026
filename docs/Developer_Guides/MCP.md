@@ -2,6 +2,8 @@
 
 UseClevr exposes a small authenticated MCP interface for trusted dataset analysis tools and resources. The interface gives internal clients a consistent way to list available tools, read cached analysis resources, and invoke deterministic analysis helpers.
 
+MCP stays internal under the app API. The product does not expose a public MCP catalog or a dedicated `mcp.useclevr.com` service.
+
 ## File Structure
 
 ```
@@ -17,9 +19,9 @@ src/lib/mcp/
 
 The MCP interface follows the dashboard visibility rules:
 
-- Public FAQ content is readable without account data.
 - Authenticated users access their own datasets, reports, tickets, settings, and business profile.
 - Superadmin users can access operator-wide administration views.
+- Public FAQ content stays available through `/faq`, homepage FAQ sections, and public help chat, not through MCP.
 
 ## API Routes
 
@@ -28,6 +30,21 @@ The MCP interface follows the dashboard visibility rules:
 | GET | `/api/mcp` | List available tools; add `datasetId` for resources |
 | GET | `/api/mcp?resource=dataset://...` | Read one MCP resource |
 | POST | `/api/mcp` | Invoke a named MCP tool |
+
+## Routing Boundary
+
+- Use `/api/mcp` for the current authenticated MCP interface.
+- Keep MCP route discovery unavailable to unauthenticated users.
+- Do not add `mcp.useclevr.com` until MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership.
+- Keep FAQ routes separate from MCP routes.
+- Do not rely on hidden URLs as security. Hidden endpoints are only an extra layer.
+
+## Authentication Boundary
+
+- Current MCP requests require a signed-in user session.
+- Future service-to-service MCP access uses signed service tokens.
+- Future internal operator MCP access uses admin-only tokens.
+- Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
 
 ## Available Tools
 
@@ -61,4 +78,7 @@ Resource URIs use the format `dataset://<datasetId>/<resource>`:
 - Keep MCP handlers deterministic and read-only.
 - Use in-memory cache populated after dataset analysis (`setAnalysisCache`).
 - Check ownership before adding MCP tools that load database-backed user records.
+- Enforce user ownership, business or workspace ownership, dataset access permission, and role-based tool allowlists for every tool.
+- Add rate limiting and audit logging before MCP expands beyond the current internal session-based route.
 - Return clear errors for invalid JSON, unknown tools, unauthorized access.
+- Update AI tracing structure when MCP tools change the AI context, prompt inputs, provider-visible metadata, or trace fields.

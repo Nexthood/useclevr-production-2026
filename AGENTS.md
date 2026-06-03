@@ -57,6 +57,7 @@ pnpm health           # validate + tests + docs + audit
 - Keep UI accessible in light and dark themes
 - Use `src/assets/` for static assets; `src/app/assets/` is route handler
 - Remove sensitive data from AI context before sending to openai/cloud vendors
+- Run `pnpm lint:secrets` after docs, prompt, AI tracing, deployment, or credential guidance changes.
 - Use direct current-state language in all text files. Describe current behavior and current rules,
   not past states, removed options, speculative possibilities, or future blockages. Mention past or
   future states only when the detail prevents a concrete risk.
@@ -85,6 +86,7 @@ pnpm health           # validate + tests + docs + audit
 - Review current branch, staged changes, unstaged changes, and relevant files before editing.
 - Update `docs/AI-interaction/` after every durable AI instruction change, including user guidance,
   AI-agent guidance, prompt style, text-language rules, and bookkeeping guidance
+- Keep real tokens, keys, passwords, and webhook secrets out of docs, prompts, traces, TODOs, and logs.
 
 ## Important Files
 - `src/app/api/chat/route.ts`
