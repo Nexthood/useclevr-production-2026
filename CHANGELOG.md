@@ -19,6 +19,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.
+- Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.
+- Sidebar toggle moved from topbar to the AppSidebar for desktop view, keeping mobile toggle in the header.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
 - Stripe checkout redirects verify payment success with a signed server token that survives local and deployed server restarts.
 - MCP access stays scoped to signed-in users and their own datasets while super-admins keep full platform access.

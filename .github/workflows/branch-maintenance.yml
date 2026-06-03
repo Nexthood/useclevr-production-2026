@@ -138,8 +138,8 @@ jobs:
           rm -rf dist/.turbo
           rm -rf dist/.vercel
 
-          # Remove large .node binaries (e.g. Next.js SWC fallback >100MB) that exceed GitHub limit
-          find dist/node_modules -name "*.node" -size +50M -delete 2>/dev/null || true
+          # Remove node_modules entirely — not needed in dist branch (Dockerfile runs npm install)
+          rm -rf dist/node_modules
 
       - name: Stage generated output
         run: |
@@ -174,13 +174,8 @@ jobs:
 
           rm -f pnpm-workspace.yaml
 
-          # Remove large .node binaries before git commit (exceeds GitHub 100MB limit).
-          # Uses Node.js fs to correctly handle symlinks (find -size checks symlink size, not target).
-          node -e "
-            const fs=require('fs'),p=require('path');
-            function w(d){try{for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=p.join(d,e.name);if(e.isDirectory())w(f);else if(e.name.endsWith('.node')){const s=fs.statSync(f,{throwIfNoEntry:false});if(s&&s.size>50*1024*1024){fs.rmSync(f);console.log('rm '+f)}}else if(e.isSymbolicLink()){try{const s=fs.statSync(f);if(s.size>50*1024*1024){fs.rmSync(f);console.log('rm symlink '+f)}}catch{fs.rmSync(f);console.log('rm broken '+f)}}}}catch{}}
-            w('dist/node_modules');
-          " 2>&1
+          # Remove node_modules entirely — not needed in dist branch (Dockerfile runs npm install)
+          rm -rf dist/node_modules
 
           git add -A
           git commit -m "${{ steps.dist-title.outputs.title }}"
