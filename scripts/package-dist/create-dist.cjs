@@ -94,8 +94,8 @@ if (fs.existsSync(nextStaticDir)) {
 }
 
 // Railway's source snapshot can omit dot-directories from the service root. Keep a non-dot copy and
-// restore it inside the image before runtime starts.
-copyDir(path.join(distDir, ".next"), path.join(distDir, "next-build"));
+// restore it inside the image before runtime starts. Exclude static/cache to avoid duplicate size.
+copyDir(path.join(distDir, ".next"), path.join(distDir, "next-build"), { excludeRootDirs: ["static", "cache"] });
 normalizeMiddlewareManifest(path.join(distDir, ".next"));
 normalizeMiddlewareManifest(path.join(distDir, "next-build"));
 
@@ -187,13 +187,8 @@ fs.writeFileSync(
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {
-  const envFile = path.join(targetDir, ".env");
-  if (fs.existsSync(envFile)) {
-    fs.rmSync(envFile, { force: true });
-  }
-
   for (const file of fs.readdirSync(targetDir)) {
-    if (file.startsWith(".env.")) {
+    if (file.startsWith(".env")) {
       fs.rmSync(path.join(targetDir, file), { force: true });
     }
     if (file === ".npmrc") {
@@ -232,7 +227,7 @@ for (const f of packageManagerFiles) {
 // standalone app files (server.js, assets, scripts, etc.).
 // node_modules excluded via .dockerignore so the standalone
 // pnpm structure doesn't overwrite npm-installed dependencies.
-const dockerfile = `FROM node:22-alpine
+const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY package.json ./
 RUN npm install --production --omit=optional 2>&1

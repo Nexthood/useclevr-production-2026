@@ -48,6 +48,10 @@ moving work between states.
 - T-601. Add an API route access matrix covering public, signed-in, owner-scoped, super-admin, webhook, and development-only routes with expected auth helper, ownership check, rate limit, and audit evidence.
 - T-602. Restrict local AI install and agent install runtime routes to development mode or approved super-admin operations so signed-in users cannot trigger server-host runtime actions on shared deployments.
 
+- T-603. Migrate hardcoded secrets and API keys from client-side code to server-only environment variables with runtime validation at app startup.
+- T-604. Add security headers documentation covering CSP, HSTS, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy with current values and update triggers.
+- T-605. Document route-parameter injection risks and add validation for dynamic route segments in API routes.
+- T-606. Add input sanitization middleware for dataset column names, user names, and business identifiers to prevent injection in SQL queries and display fields.
 ## Deferred
 
 ## Suggestions
