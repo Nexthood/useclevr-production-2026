@@ -6,6 +6,7 @@ Use this folder for guidance about interaction traces that educate users, mark p
 
 - [Interaction trace guide](interaction-trace-guide.md)
 - [Interaction trace prompt](../prompt-library/interaction-trace-learning.md)
+- [Consolidated interaction log](consolidated-interactions-log.md)
 
 ## Trace Rule
 

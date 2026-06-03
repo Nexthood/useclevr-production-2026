@@ -3,6 +3,12 @@ name: Publish Dist-Test from Beta
 on:
   push:
     branches: [beta]
+    paths-ignore:
+      - "docs/**"
+      - ".TODO/**"
+      - "*.md"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
   workflow_dispatch:
     inputs:
       confirm:
@@ -62,6 +68,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 26.x
+          cache: "pnpm"
 
       - name: Enable corepack and install pnpm
         shell: bash

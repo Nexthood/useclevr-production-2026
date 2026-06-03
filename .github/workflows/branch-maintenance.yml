@@ -3,6 +3,12 @@ name: Sync Beta And Publish Dist
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - ".TODO/**"
+      - "*.md"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
   workflow_dispatch:
 
 permissions:
@@ -79,6 +85,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 26.x
+          cache: "pnpm"
 
       - name: Enable corepack and install pnpm
         shell: bash
