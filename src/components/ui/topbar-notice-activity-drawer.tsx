@@ -1,7 +1,7 @@
 "use client"
 
-import { useNotice } from "@/components/ui/notice-bar"
 import { Modal } from "@/components/ui/modal"
+import { useNotice } from "@/components/ui/notice-bar"
 import { Activity, AlertCircle, Bell, CheckCircle2, Clock3, Info, Loader2 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -98,18 +98,20 @@ export function TopbarNoticeActivityDrawer({ className = "" }: { className?: str
                 </p>
               ) : (
                 notices.map((notice) => {
-                  const Icon = noticeIcon[notice.type]
+                  const Icon = noticeIcon[notice.type] || Info
                   return (
                     <article
                       key={notice.id}
-                      className="rounded-md border border-border bg-card p-4 text-card-foreground shadow-sm"
+                      className="rounded-lg border border-border/60 bg-card/60 p-4 text-card-foreground shadow-sm transition hover:bg-card/80"
                     >
                       <div className="flex items-start gap-3">
-                        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                        <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${
+                          notice.type === "error" ? "text-red-500" : notice.type === "success" ? "text-green-500" : "text-blue-500"
+                        }`} aria-hidden="true" />
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-semibold">{notice.title}</h4>
+                          <h4 className="text-sm font-semibold leading-tight">{notice.title}</h4>
                           {notice.message && (
-                            <p className="mt-1 text-sm text-muted-foreground">{notice.message}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground/90 leading-relaxed">{notice.message}</p>
                           )}
                         </div>
                         <button
@@ -150,15 +152,15 @@ export function TopbarNoticeActivityDrawer({ className = "" }: { className?: str
                 </p>
               ) : (
                 activities.map((item) => (
-                  <article key={item.id} className="rounded-md border border-border bg-card p-4">
+                  <article key={item.id} className="rounded-lg border border-border/60 bg-card/60 p-3 text-card-foreground shadow-sm transition hover:bg-card/80">
                     <div className="flex gap-3">
-                      <Activity className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      <Activity className="mt-1 h-3.5 w-3.5 shrink-0 text-primary/60" aria-hidden="true" />
                       <div className="min-w-0">
-                        <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
+                        <h4 className="text-sm font-semibold text-foreground leading-tight">{item.title}</h4>
                         {item.description && (
-                          <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground/80 leading-relaxed">{item.description}</p>
                         )}
-                        <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
                           <Clock3 className="h-3 w-3" aria-hidden="true" />
                           {formatTime(item.createdAt)}
                         </p>

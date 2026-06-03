@@ -1,12 +1,12 @@
 import { Logo } from "@/components/layout/logo";
 import HybridAiButton from "@/components/ui/hybrid-ai-button";
+import { OnboardingProcessButton } from "@/components/ui/onboarding-process-button";
 import { Search } from "@/components/ui/search-popup";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activity-drawer";
-import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
-import { OnboardingProcessButton } from "@/components/ui/onboarding-process-button";
 import { TopbarPanelLink, TopbarSection } from "@/components/ui/topbar-section";
 import { TopbarSidebarToggle } from "@/components/ui/topbar-sidebar-toggle";
+import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react";
@@ -28,8 +28,8 @@ export default async function Topbar() {
     usage.subscriptionTier === "superadmin" ? "Admin" : usage.subscriptionTier || "Free";
 
   return (
-    <div className="app-topbar sticky top-0 z-[90] min-h-16 border-b border-border bg-background">
-      <div className="flex h-full min-w-0 flex-1 items-center justify-between">
+    <div className="app-topbar sticky top-0 z-[90] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+      <div className="flex h-full min-w-0 flex-1 items-center justify-between gap-2">
         <Link href="/app" className="flex h-full shrink-0 items-center gap-2">
           <Logo className="h-12 w-auto" />
           <span className="self-start pt-1 text-[10px] text-muted-foreground/60">

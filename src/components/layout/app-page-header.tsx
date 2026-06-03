@@ -17,10 +17,10 @@ type AppPageHeaderProps = {
 
 export function AppPageHeader({ title, description, breadcrumbs = [], actions, icon: Icon = FileText }: AppPageHeaderProps) {
   return (
-    <header className="sticky top-16 z-40 border-b border-border bg-card/95 backdrop-blur">
+    <header className="sticky top-16 z-40 border-b border-border/60 bg-card/95 backdrop-blur-sm">
       <div className="flex min-h-14 flex-col items-start justify-between gap-2 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background text-primary">
+          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
             <Icon className="h-4 w-4" />
           </span>
           <div className="min-w-0 space-y-0.5">
