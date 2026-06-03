@@ -2,6 +2,8 @@
 
 Use this guide when preparing sales and marketing materials, presentations, or analysis documents for UseClevr. Keep all content up-to-date with the current product state.
 
+Actual sales artefacts live in [../../Sales](../../Sales/README.md), including project documents and the marketing plan.
+
 ## Sales Materials
 
 - Maintain current product feature list in sales presentations.

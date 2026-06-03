@@ -1,11 +1,11 @@
 # AI Governance And Learning Controls
 
-Use this folder for PRINCE2-style AI interaction control: lessons, risks, issues, decisions, change control, and instruction maintenance.
+Use this folder for AI interaction control: lessons, risks, issues, decisions, change control, and instruction maintenance.
 
 ## Guides
 
 - [Instruction maintenance](instruction-maintenance.md)
-- [PRINCE2 learning controls](prince2-learning-controls.md)
+- [Project learning controls](project-learning-controls.md)
 
 ## Governance Rule
 

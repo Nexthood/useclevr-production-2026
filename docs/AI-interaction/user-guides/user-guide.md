@@ -12,6 +12,14 @@ future path.
 - Ask for docs, requirements, changelog, and TODO updates when the work changes durable behavior.
 - Mark branch or deploy scope clearly, such as beta-only or dist-test-only.
 
+## Communication Patterns
+
+- Compact prompts can include multiple outcomes in one message.
+- Include the expected page, route, branch, deploy target, or document folder when scope matters.
+- Ask the AI to inspect files and current worktree state before deciding.
+- Expect implementation, verification, TODO updates, and changelog updates in the same pass when the request changes product behavior.
+- Ask for explicit task splitting when a broad request spans product, docs, deployment, and sales work.
+
 ## How AI Analysis Works
 
 - AI analysis uses aggregated dataset metrics only. Raw row-level data never leaves the server.
@@ -32,6 +40,12 @@ future path.
 - Use the Search tab to find specific prompts or responses.
 - Click the re-run button on any history entry to ask the same question again.
 - Export your full history from the History tab's Export link.
+
+## Risk Points
+
+- Broad prompts need an explicit task split before edits start.
+- Feature restoration needs route links, sidebar links, API support, and current UI patterns checked together.
+- TODO retirement happens after the work is implemented, deferred, or deliberately ignored.
 
 ## Bookkeeping Requests
 

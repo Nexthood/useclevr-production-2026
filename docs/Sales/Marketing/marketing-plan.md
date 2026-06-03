@@ -1,7 +1,5 @@
 # UseClevr Marketing Plan
 
-This plan defines current marketing direction for UseClevr. It supports sales content, launch planning, campaign assets, and measurable growth work.
-
 ## Positioning
 
 UseClevr is a business intelligence workspace for SMEs, startups, freelancers, consultants, agencies, and operators who need useful answers from business datasets without building a BI stack.
@@ -14,7 +12,7 @@ Upload business data, ask questions in plain language, review structured insight
 
 - Turn CSV and business exports into useful analysis.
 - Ask AI questions against uploaded dataset context.
-- Keep business profile context connected to reporting.
+- Keep Business Profile context connected to reporting.
 - Review bookkeeping, tax context, and compliance readiness from Accountancy.
 - Download reports for meetings, investor updates, client work, and internal decisions.
 - Use guided setup, FAQ, tickets, and help chat to reduce onboarding friction.
@@ -29,14 +27,6 @@ Upload business data, ask questions in plain language, review structured insight
 | Agencies | Review campaign, revenue, client, and project data. | Connect operational data to decision-ready summaries. |
 | E-commerce operators | Understand orders, revenue, returns, stock, and margin context. | Ask business questions from sales exports and prepare reports. |
 | Accountancy-adjacent users | Track readiness, tax context, and bookkeeping inputs. | Organize data before advisory or accounting review. |
-
-## Ideal Customer Profile
-
-- Works with spreadsheets, CSV files, bank exports, sales exports, or operational reports.
-- Needs business answers faster than a traditional analytics project.
-- Has limited internal BI or data engineering capacity.
-- Values reports, summaries, and guided business context.
-- Accepts AI support when results stay tied to uploaded data and clear assumptions.
 
 ## Buyer Personas
 
@@ -58,33 +48,13 @@ Upload business data, ask questions in plain language, review structured insight
 - Pain: Client data needs structure before recommendations.
 - CTA: Upload client-safe datasets and download a report.
 
-### Super-Admin / Internal Operator
-
-- Goal: Manage customers, support, billing settings, discounts, and activity.
-- Pain: Operational support needs clear account context.
-- CTA: Use platform operation pages and trace analytics.
-
 ## Messaging Pillars
 
-### Plain-Language Analysis
-
-Users ask business questions without SQL or dashboard configuration.
-
-### Report-Ready Outputs
-
-Users download structured reports for decision meetings and follow-up work.
-
-### Business Context
-
-Business Profile adds company, location, tax, financial, and review context to analysis readiness.
-
-### Guided Support
-
-FAQ, help chat, tickets, topbar notices, and setup progress reduce friction.
-
-### Controlled AI
-
-AI answers stay tied to dataset context, provider indicators, feedback, history, and trace learning.
+- Plain-language analysis.
+- Report-ready outputs.
+- Business context.
+- Guided support.
+- Controlled AI with trace learning.
 
 ## Campaign Themes
 
@@ -135,35 +105,6 @@ AI answers stay tied to dataset context, provider indicators, feedback, history,
 - Tickets and help chat support problem resolution.
 - Notices and activity keep useful product events visible.
 
-## Content Plan
-
-### Public Pages
-
-- Homepage: product promise, workflow, feature cards, FAQ, CTA.
-- FAQ: public product, data, billing, AI, reports, and support answers.
-- Pricing: plan comparison and checkout path.
-- Contact: demo, sales, support, and feedback requests.
-- Affiliate: referral program and partner benefits.
-
-### Sales Assets
-
-- One-page product overview.
-- Founder demo script.
-- SME owner demo script.
-- Consultant/client review script.
-- Accountancy-prep talking points.
-- Objection handling sheet.
-- Security and data-scope explainer.
-
-### Campaign Assets
-
-- LinkedIn launch post.
-- Short demo video outline.
-- Product screenshots checklist.
-- Email sequence for waitlist and demos.
-- Case-study template.
-- Referral invite copy.
-
 ## Channel Plan
 
 | Channel | Use |
@@ -189,17 +130,6 @@ AI answers stay tied to dataset context, provider indicators, feedback, history,
 | Help chat unresolved rate | Shows FAQ and support content gaps. |
 | Referral signup rate | Shows affiliate channel value. |
 
-## Objection Handling
-
-| Objection | Response |
-| --- | --- |
-| I already use spreadsheets. | UseClevr starts from spreadsheets and turns exports into questions, summaries, and reports. |
-| I do not know SQL. | UseClevr supports plain-language questions and verified calculations. |
-| I need accountant-level advice. | UseClevr provides business-intelligence context and estimates; professional advice remains with qualified advisors. |
-| I worry about data scope. | AI analysis uses scoped dataset context, user access rules, and provider indicators. |
-| I need reports for meetings. | Downloads provide structured reports from generated analysis. |
-| I need support. | Dashboard FAQ, help chat, tickets, and contact flows support users. |
-
 ## Roadmap Messaging Rules
 
 - Present Business Profile, Accountancy, AI Assistant, datasets, reports, support, and Stripe billing as current product areas.
@@ -218,13 +148,3 @@ AI answers stay tied to dataset context, provider indicators, feedback, history,
 - Verify support flow through FAQ, help chat, contact, and tickets.
 - Verify checkout review and Stripe payment path in the correct environment.
 - Review changelog and requirements for current product wording.
-
-## First Campaign Sequence
-
-1. Publish homepage and FAQ update.
-2. Share LinkedIn founder workflow post.
-3. Send waitlist email with demo CTA.
-4. Run three demo calls using the founder or SME script.
-5. Collect objections and map them into FAQ updates.
-6. Review support tickets and help chat misses.
-7. Update sales guide and marketing plan with trace learnings.

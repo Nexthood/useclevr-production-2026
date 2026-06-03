@@ -7,6 +7,9 @@ folder during the same task cycle.
 ## Operating Rules
 
 - Preserve user and other-agent worktree changes.
+- Read project instructions and inspect current worktree status before editing.
+- Identify whether changes are user-visible, developer-only, deployment-only, sales-only, or documentation-only.
+- Add a TODO task before confirmed implementation work starts when the work is active implementation.
 - Write all text files as current-state behavior and current rules.
 - Avoid past states, removed options, speculative possibilities, and future blockages.
 - Mention past or future states only when the detail prevents a concrete risk.
@@ -14,6 +17,16 @@ folder during the same task cycle.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
 - Keep reusable prompt files in `docs/AI-interaction/prompt-library/`.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
+
+## Work Cycle
+
+- Prefer current code patterns over copying old files directly from history.
+- Keep changes scoped to the requested behavior.
+- Verify with typecheck, lint, docs checks, and build when routes or shared UI change.
+- Move completed tasks to `todo-done.md` only after the work is complete.
+- Update requirements for user-observable product behavior.
+- Update changelog with active, release-facing language.
+- Report remaining risks or deferred work without marking it complete.
 
 ## Railway Deploy Scope
 

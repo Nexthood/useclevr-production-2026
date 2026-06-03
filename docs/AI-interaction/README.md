@@ -10,7 +10,7 @@ This folder stores project learning, AI collaboration guidance, prompt patterns,
 | [developer-guides](developer-guides/README.md) | Developers and AI agents | How agents work in the repo, preserve scope, and implement AI-related behavior. |
 | [prompt-library](prompt-library/README.md) | Users, developers, AI agents | Reusable prompts split by task type. |
 | [learning-traces](learning-traces/README.md) | Users, developers, AI agents | How interactions leave useful learning traces, problem markers, and improvement suggestions. |
-| [governance](governance/README.md) | Project management and AI agents | PRINCE2-style controls for lessons, risks, issues, decisions, and durable instruction updates. |
+| [governance](governance/README.md) | Project management and AI agents | Controls for lessons, risks, issues, decisions, and durable instruction updates. |
 | [sales](sales/README.md) | Sales and marketing | Sales, marketing, presentation, research, and analysis guidance. |
 
 ## Current-State Text Rule

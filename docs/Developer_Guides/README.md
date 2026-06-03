@@ -28,7 +28,8 @@
 - **[COMMON_PROMPTS.md](COMMON_PROMPTS.md)**: Reusable prompts for common development work.
 - **[RELEASE_ARTIFACT_CHECKLIST.md](RELEASE_ARTIFACT_CHECKLIST.md)**: Release artifact inclusion rules.
 - **[../AI-interaction/README.md](../AI-interaction/README.md)**: AI interaction rules, prompts, and bookkeeping guides.
-- **[../AI-interaction/sales/sales-guide.md](../AI-interaction/sales/sales-guide.md)**: Sales presentation, analysis, source material, and follow-up guidance.
+- **[../Sales/README.md](../Sales/README.md)**: Sales project documents and marketing plan.
+- **[../AI-interaction/sales/sales-guide.md](../AI-interaction/sales/sales-guide.md)**: AI collaboration guidance for sales and marketing work.
 
 ## Recommendation
 

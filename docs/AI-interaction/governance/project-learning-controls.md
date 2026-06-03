@@ -1,4 +1,4 @@
-# PRINCE2 Learning Controls For AI Interactions
+# Project Learning Controls For AI Interactions
 
 Use this guide to turn AI interactions into useful project learning without confusing user guidance, developer guidance, and task management.
 
@@ -27,7 +27,7 @@ Use this guide to turn AI interactions into useful project learning without conf
 4. Capture AI-agent learning as operational improvements.
 5. Link the trace to a TODO, requirement, changelog entry, or guide only when the finding changes durable project state.
 
-## PRINCE2 Alignment
+## Project Control Alignment
 
 - Lessons log: Store reusable AI-work learnings in this folder or relevant guides.
 - Issue register: Move actionable problems into `.TODO/todo-next.md`.

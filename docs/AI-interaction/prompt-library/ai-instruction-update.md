@@ -11,7 +11,7 @@ Apply the instruction in:
 - docs/AI-interaction/README.md
 - docs/AI-interaction/user-guides/ when user-facing guidance changes
 - docs/AI-interaction/developer-guides/ when agent or developer guidance changes
-- docs/AI-interaction/governance/ when maintenance, PRINCE2 learning, or trace-control rules change
+- docs/AI-interaction/governance/ when maintenance, project learning, or trace-control rules change
 - docs/AI-interaction/prompt-library/ when prompt examples change
 
 Rules:

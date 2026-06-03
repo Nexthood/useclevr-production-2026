@@ -6,4 +6,4 @@
 | Bookkeeping      | [bookkeeping.md](bookkeeping.md)           |
 | MCP access       | [mcp.md](mcp.md)                           |
 
-Sales-facing product explanation lives in [../AI-interaction/sales/sales-guide.md](../AI-interaction/sales/sales-guide.md).
+Sales-facing project documents live in [../Sales/README.md](../Sales/README.md).
