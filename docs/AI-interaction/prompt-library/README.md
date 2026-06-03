@@ -11,6 +11,9 @@ This folder stores reusable AI prompts as separate files.
 - [Bookkeeping feature work](bookkeeping-feature-work.md)
 - [Payload migration](payload-migration.md)
 - [Interaction trace learning](interaction-trace-learning.md)
+- [AI memory collection](ai-memory-collection.md)
+- [Compact status report](compact-status-report.md)
+- [Git release workflow](git-release-workflow.md)
 
 ## Maintenance
 

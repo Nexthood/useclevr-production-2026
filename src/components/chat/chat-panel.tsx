@@ -243,7 +243,7 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask a question..."
-              className="pr-10 h-10"
+              className="pr-12 h-12"
               disabled={isLoading}
             />
             <Button
@@ -251,7 +251,7 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
               variant="ghost"
               onClick={() => handleSend()}
               disabled={!inputValue.trim() || isLoading}
-              className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
             >
               <Send className="h-4 w-4" />
             </Button>

@@ -9,6 +9,12 @@ When adding changelog entries:
 3. Once a version is released, move its entries from Unreleased to the new version section
 4. Use the appropriate subsection: `### Added`, `### Changed`, `### Fixed`, `### Dev`, etc.
 
+## AI Interaction Rules
+
+1. Use compact progress updates for long-running validation, deploy checks, and git workflow steps.
+2. Use `docs/AI-interaction/prompt-library/ai-memory-collection.md` when collecting learning from another AI chat.
+3. Preserve staged and unstaged changes from users and other agents before editing.
+
 ## Example
 
 **Correct:**

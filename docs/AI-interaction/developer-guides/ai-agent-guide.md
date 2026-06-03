@@ -17,6 +17,8 @@ folder during the same task cycle.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
 - Keep reusable prompt files in `docs/AI-interaction/prompt-library/`.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
+- Use compact status updates during long-running validation, deploy checks, and broad implementation work.
+- Use [AI memory collection](../prompt-library/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
 
 ## Work Cycle
 
@@ -27,6 +29,7 @@ folder during the same task cycle.
 - Update requirements for user-observable product behavior.
 - Update changelog with active, release-facing language.
 - Report remaining risks or deferred work without marking it complete.
+- Prefer a concise final summary with changed areas, validation, and remaining risks.
 
 ## Railway Deploy Scope
 

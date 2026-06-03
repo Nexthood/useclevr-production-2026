@@ -21,8 +21,8 @@ import {
   buildSetupStatus,
   emptyCompanySetupPayload,
 } from "@/lib/business/company-setup"
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Save } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Loader2, Save } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 const STEPS = [
   { id: "company", label: "Company", icon: "🏢" },
@@ -158,14 +158,52 @@ export function CompanySetupWizard() {
     [],
   )
 
+  const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+
+useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch("/api/business/setup")
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.payload) {
+          setPayload(data.payload as CompanySetupPayload)
+        }
+      } catch {
+        // Silently fail — use default empty state
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    setSaveMessage(null)
+    try {
+      const res = await fetch("/api/business/setup", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload }),
+      })
+      if (!res.ok) throw new Error("Save failed")
+      setSaveMessage("Setup saved successfully")
+      // Force status update in payload for display
+      setPayload((prev) => ({ ...prev, setupStatus: buildSetupStatus(prev) }))
+    } catch {
+      setSaveMessage("Failed to save — please try again")
+    } finally {
+      setIsSaving(false)
+      setTimeout(() => setSaveMessage(null), 4000)
+    }
+  }
+
   const nextStep = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
   const prevStep = () => setStep((s) => Math.max(s - 1, 0))
   const goToStep = (s: number) => setStep(s)
-
-  const handleSave = () => {
-    console.log("[Company Setup] Payload ready for persistence:", JSON.stringify(payload, null, 2))
-    // TODO: Save to backend database when persistence endpoint is available
-  }
 
   const stepProgress = ((step + 1) / STEPS.length) * 100
 
@@ -592,9 +630,22 @@ export function CompanySetupWizard() {
               </pre>
             </details>
 
-            <Button onClick={handleSave} className="w-full gap-2">
-              <Save className="h-4 w-4" />
-              Save Company Setup
+            {saveMessage && (
+              <div className={`rounded-md px-3 py-2 text-sm ${
+                saveMessage.includes("successfully")
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                  : "bg-red-500/10 text-red-600 dark:text-red-400"
+              }`}>
+                {saveMessage}
+              </div>
+            )}
+            <Button onClick={handleSave} disabled={isSaving} className="w-full gap-2">
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSaving ? "Saving..." : "Save Company Setup"}
             </Button>
           </div>
         )

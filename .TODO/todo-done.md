@@ -16,6 +16,7 @@ moving work between states.
 
 ## Completed
 
+- T-571. Fix theme switcher panel: separate light/dark/system theme selection from high contrast and larger text accessibility options that apply on top of selected theme.
 - T-566. Refactor topbar panels to icons-only with tooltips. Replace Popover backgrounds with transparent overlays and add tooltip labels that appear on hover for narrow icon buttons.
 - T-567. Move sidebar toggle from topbar to the AppSidebar component. Relocate the TopbarSidebarToggle button into the sidebar header for desktop view and keep mobile toggle in place.
 - T-556. Business Mentoring AI tracing records booking events in the aiInteractionTraces table for session recommendations and follow-ups.
@@ -27,6 +28,11 @@ moving work between states.
 - T-543. Demo scripts created for founder (5min), SME owner (7min), consultant (5min), accountancy-prep (3min), and full product tour (10min) sales conversations.
 - T-542. Screenshot guide created listing 20 public and dashboard pages with capture standards and priority order.
 - T-541. Demo datasets prepared: SaaS revenue H1 2025 (32 rows, founder/SME demo) and beverage sales Q1 2025 (36 rows, e-commerce/consultant demo).
+- T-565. FAQ filtering already correctly restricts super-admin sections (Payments and subscriptions, Key pages) to super-admin users only in help-chatbox.tsx.
+- T-569. Login page password improvements: forgot password link under inputs for shorter tab flow, password strength indicator showing length/upper/numbers/special requirements.
+- T-570. Help chat toggle enlarged on right side with wider input field for better usability.
+- T-573. All chat input areas enlarged (h-12 floating, h-14 full-page) with proportionally sized send buttons and icons on right.
+- T-574. Login changed from external labels to inner labels (placeholder + aria-label) for shorter tab flow; password validation upgraded to detailed criteria checklist with per-rule checkmarks; split show/hide toggle into independent sign-in/sign-up states.
 - T-540. Sales one-pager created from project brief, business case, product description, and marketing plan.
 - T-536. Search popup recent history saves last 5 searches to localStorage with save/load/clear methods.
 - T-535. Search popup type filter added: `searchSuggest()` queries datasets and reports from DB with optional type param; `/api/search/suggest` route accepts type query param.

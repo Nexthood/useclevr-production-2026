@@ -16,11 +16,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Business mentoring sales documentation with target segments and pricing tiers.
 - Account linking: users who signed up via Google or LinkedIn can add a password via the signup form without creating duplicate accounts.
 - OAuth user ID format standardized to `user_{uuid}` for consistency with credentials signup.
+- Company setup persistence: wizard data can be saved and loaded via API, with missing-field warnings on the business overview page.
+- Company Calculation Context computes adjusted KPIs (profit margin, net profit, tax estimate, cash flow) with confidence labels based on profile completeness.
+- File size check, rate limiting, and improved dirty-CSV error messages added to the upload API route.
+- Rate limiting added to the analyze API route (30 requests/minute).
 
 ### Fixed
+- Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
 - Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.
 - Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.
 - Sidebar toggle moved from topbar to the AppSidebar for desktop view, keeping mobile toggle in the header.
+- Login uses compact inner labels, short tab flow, and forgot-password access directly under the password input.
+- Signup requires stronger passwords with length, character variety, and personal-information checks.
+- Chat inputs use larger composing areas with clearer send actions.
+- Floating help chat keeps the launcher aligned to the right while the panel is open.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
 - Stripe checkout redirects verify payment success with a signed server token that survives local and deployed server restarts.
 - MCP access stays scoped to signed-in users and their own datasets while super-admins keep full platform access.
@@ -40,6 +49,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Add AI interaction guidance for compact workflow updates, git release prompts, and memory collection from visible external chat summaries.
 - Clarify documentation structure and retire duplicate AI interaction folders into the current AI knowledge base.
 - Add Sales project documents and marketing planning.
 - Reorganize AI interaction docs by audience, prompt library, learning traces, sales guidance, and project governance.
@@ -67,6 +77,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Manage dashboard tickets with table-first queue, separate pages for new tickets and row-level editing.
 
 ### Changed
+- Use a more compact default text scale across public and dashboard pages.
 - Front page sections use the same compact public-page rhythm and call-to-action treatment as the affiliate page.
 - Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
 - View business review readiness in Business overview.

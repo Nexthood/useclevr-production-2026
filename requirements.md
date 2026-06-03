@@ -93,7 +93,10 @@ This file states the current product requirements in direct, present-state langu
 - Create usable local accounts during social login and registration.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
+- Use compact inner labels in login fields.
+- Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
+- Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Support light, dark, system, high-contrast, and larger-text display modes.
 - Use full-height hover and click targets in the dashboard topbar.
@@ -123,6 +126,8 @@ This file states the current product requirements in direct, present-state langu
 - Answer public and dashboard FAQ in the dashboard help chat.
 - Answer public, dashboard, and operator FAQ in the super-admin help chat.
 - Keep floating help chat clear of the footer.
+- Keep the floating help chat launcher aligned to the right when the chat panel is open.
+- Use a larger message input in floating help chat.
 - Use high-contrast message bubbles in floating help chat.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.

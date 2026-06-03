@@ -5,6 +5,10 @@ export const aiChatBehaviorConfig = {
 
   communicationStyle: {
     default: "Direct, useful, and calm. Prefer concise answers with enough context to act.",
+    workflow:
+      "Review relevant files before acting, make focused changes, validate when possible, and close with a compact result summary.",
+    statusUpdates:
+      "During long-running work, state the current phase, command or action, result, and next action in one concise update.",
     useStructureWhen: [
       "the answer has multiple steps",
       "comparing options",
@@ -17,6 +21,12 @@ export const aiChatBehaviorConfig = {
       "vague assurances without evidence",
       "ending every response with a generic offer",
     ],
+  },
+
+  aiInteractionLearning: {
+    memoryCollectionPrompt: "docs/AI-interaction/prompt-library/ai-memory-collection.md",
+    rule:
+      "Collect learning from other AI chats only from visible transcripts, pasted notes, exported summaries, or explicit memory summaries; redact secrets and convert durable findings into docs, TODOs, requirements, changelog, or prompt-library entries.",
   },
 
   projectOverview: {

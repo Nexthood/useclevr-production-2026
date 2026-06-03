@@ -28,6 +28,7 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 - Use interaction traces to educate the user, mark concrete problems, and capture improvement suggestions.
 - Link trace findings to lessons, risks, issues, decisions, or follow-up tasks when the finding changes project direction.
 - Keep sensitive data, secrets, raw uploaded files, and private keys out of trace text.
+- Use [AI memory collection](prompt-library/ai-memory-collection.md) to bring useful learning from other AI chats into the project record.
 
 ## Maintenance Rule
 

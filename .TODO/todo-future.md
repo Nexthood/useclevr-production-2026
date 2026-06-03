@@ -80,6 +80,8 @@ moving work between states.
 - T-397. Add a documentation cleanup pass that removes stale dist-test setup notes after the Railway workflow stabilizes.
 
 ## Additional
+- T-575. Add an AI interaction memory import assistant for pasted external chat summaries, redaction checks, classification, and project-learning destinations.
+- T-576. Add compact status report helpers for long-running validation, deploy checks, git workflow steps, and final release summaries.
 - T-463. Stabilize Railway main deploy first. Keep the deprecated middleware workaround if it is the only stable packaging path. Do not migrate middleware/proxy yet. Ensure dist branch contains all runtime files. Document exact deploy flow.
 - T-464. Create one central billing config for plan names, prices, Stripe Price IDs, intervals, and descriptions. Remove hardcoded prices from UI. Add customer portal, cancellation flow, invoice view, and payment failure handling.
 - T-465. Verify role handling for user, admin, and superadmin. Make sure protected routes are consistent. Fix onboarding/session edge cases only where needed.

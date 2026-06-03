@@ -60,6 +60,8 @@ pnpm health           # validate + tests + docs + audit
 - Use direct current-state language in all text files. Describe current behavior and current rules,
   not past states, removed options, speculative possibilities, or future blockages. Mention past or
   future states only when the detail prevents a concrete risk.
+- Prefer compact progress updates during long-running validation, deploy checks, and broad implementation work.
+- Convert useful learning from other AI chats with `docs/AI-interaction/prompt-library/ai-memory-collection.md`.
 
 ## Script Rules
 - ESM for source-side maintenance scripts (package is `type: module`)
@@ -80,6 +82,7 @@ pnpm health           # validate + tests + docs + audit
 - Respect `.aiignore` for sensitive/ignored paths
 - Respect `.gitignore` before reading source
 - Never read `dist/`, `.git/`, `.next/`, or `node_modules/`
+- Review current branch, staged changes, unstaged changes, and relevant files before editing.
 - Update `docs/AI-interaction/` after every durable AI instruction change, including user guidance,
   AI-agent guidance, prompt style, text-language rules, and bookkeeping guidance
 

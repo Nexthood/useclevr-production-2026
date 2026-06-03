@@ -1,4 +1,5 @@
 import { debugError, debugLog } from "@/lib/utils/debug"
+import { checkRateLimit } from "@/lib/utils/rate-limiter"
 
 import { recordActivity } from '@/lib/activity/activity-store'
 import { auth } from '@/lib/auth/auth'
@@ -375,8 +376,25 @@ export async function POST(request: Request) {
       }, { status: 402 })
     }
 
+    // Rate limit: 10 uploads per minute per user
+    if (!checkRateLimit(`upload:${userId}`, 10, 60_000)) {
+      return NextResponse.json({
+        error: 'Upload limit reached',
+        message: 'Too many uploads. Try again in a minute.',
+      }, { status: 429 })
+    }
+
     // Parse upload form
     const parsed = await parseUploadForm(request)
+
+    // File size limit: 50MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024
+    if (parsed.file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({
+        error: 'File too large',
+        message: 'File size must be less than 50MB.',
+      }, { status: 413 })
+    }
     const { file, fileText, headers, rawRows } = parsed
 
     // Process rows with type detection
@@ -584,6 +602,25 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     if (error instanceof UploadFormError) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('empty') || msg.includes('no rows') || msg.includes('no data')) {
+        return NextResponse.json({
+          error: 'Empty CSV file',
+          message: 'The CSV file appears to be empty or has no data rows. Check that your file has a header row followed by data.',
+        }, { status: 400 })
+      }
+      if (msg.includes('header') || msg.includes('column')) {
+        return NextResponse.json({
+          error: 'Invalid CSV headers',
+          message: 'Could not read column headers. Make sure the first row contains column names separated by commas.',
+        }, { status: 400 })
+      }
+      if (msg.includes('parse') || msg.includes('delimiter')) {
+        return NextResponse.json({
+          error: 'CSV parse error',
+          message: 'The CSV format could not be parsed. Check for: mismatched quotes, inconsistent delimiters, or encoding issues.',
+        }, { status: 400 })
+      }
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
     debugError('[UPLOAD] Error:', error)

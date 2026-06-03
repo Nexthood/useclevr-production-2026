@@ -27,6 +27,7 @@ future path.
 - Every response has thumbs-up/thumbs-down feedback buttons so you can rate answer quality.
 - Your past questions and answers are logged so you can review, search, and re-run them.
 - Export your conversation history as JSON or CSV from the History tab in the AI Assistant sidebar.
+- AI traces keep the prompt, answer, provider, timing, and feedback so the product can improve answer quality without storing secrets or raw uploaded files.
 
 ## Understanding AI Responses
 
@@ -40,6 +41,12 @@ future path.
 - Use the Search tab to find specific prompts or responses.
 - Click the re-run button on any history entry to ask the same question again.
 - Export your full history from the History tab's Export link.
+
+## Theme Settings
+
+- Click the theme icon in the topbar to switch between Light, Dark, and System themes.
+- High contrast and Larger text are accessibility options that apply on top of your selected theme.
+- Your theme preference persists across sessions.
 
 ## Risk Points
 

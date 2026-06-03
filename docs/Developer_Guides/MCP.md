@@ -7,21 +7,19 @@ UseClevr exposes a small authenticated MCP interface for trusted dataset analysi
 ```
 src/lib/mcp/
 ├── tools.ts       # Zod schemas and tool definitions
-├── handlers.ts    # Deterministic metric handlers
-├── resources.ts   # Dataset resource URIs
+├── handlers.ts    # Deterministic metric handlers using in-memory cache
+├── resources.ts   # Dataset resource URIs (schema, kpis, top-regions, etc.)
 ├── server.ts      # Tool invocation endpoint
 └── integration.ts # Helper for external tool registration
 ```
 
 ## Access Model
 
-Use the same visibility rules as the dashboard:
+The MCP interface follows the dashboard visibility rules:
 
-- Public FAQ content is readable without exposing private account data.
-- Authenticated users can access their own dashboard pages, datasets, reports, tickets, settings, and business profile data.
-- Superadmin users can access operator-wide dashboard views and customer administration data.
-- MCP responses must never include another user's private data for a standard authenticated user.
-- Tool inputs must be validated before execution.
+- Public FAQ content is readable without account data.
+- Authenticated users access their own datasets, reports, tickets, settings, and business profile.
+- Superadmin users can access operator-wide administration views.
 
 ## API Routes
 
@@ -31,26 +29,19 @@ Use the same visibility rules as the dashboard:
 | GET | `/api/mcp?resource=dataset://...` | Read one MCP resource |
 | POST | `/api/mcp` | Invoke a named MCP tool |
 
-### POST Request Body
-
-```json
-{
-  "name": "getPrecomputedKpis",
-  "input": {
-    "datasetId": "dataset-id"
-  }
-}
-```
-
 ## Available Tools
 
-| Tool | Description | Input Schema |
-|------|-------------|------------|
-| `getDatasetSchema` | Dataset structure with columns, types, business field mappings | `datasetId: string` |
-| `getPrecomputedKpis` | KPI values: revenue, expenses, profit, margin, top performers | `datasetId: string` |
-| `getTopRegions` | Ranked region/country data with totals and shares | `datasetId, metric, limit` |
-| `getRevenueTrends` | Revenue-over-time data with trend metadata | `datasetId, dateGrain, metric` |
-| `getProfitabilitySummary` | Profitability analysis with breakdowns | `datasetId: string` |
+| Tool | Description | Input |
+|------|-------------|-------|
+| `getDatasetSchema` | Dataset structure with columns, types, business field mappings | `datasetId` |
+| `getPrecomputedKpis` | KPI values: revenue, expenses, profit, margin, top performers | `datasetId` |
+| `getTopRegions` | Ranked region/country data with totals and share percentages | `datasetId`, `metric`, `limit` |
+| `getRevenueTrends` | Revenue-over-time data with trend metadata | `datasetId`, `dateGrain`, `metric` |
+| `getProfitabilitySummary` | Profitability analysis with breakdowns | `datasetId` |
+| `getCostBreakdown` | Cost categories with amounts and percentages | `datasetId` |
+| `getProfitMarginTrend` | Profit margin and growth trend analysis | `datasetId` |
+| `compareDatasets` | Compare two datasets for metric differences | `datasetIdA`, `datasetIdB` |
+| `getTopProducts` | Ranked products with revenue/profit percentages | `datasetId`, `metric`, `limit` |
 
 ## Available Resources
 
@@ -61,19 +52,13 @@ Resource URIs use the format `dataset://<datasetId>/<resource>`:
 | `dataset://<id>/schema` | Column names, types, business field mappings |
 | `dataset://<id>/kpis` | Precomputed KPI values |
 | `dataset://<id>/top-regions` | Ranked region data |
+| `dataset://<id>/top-products` | Ranked product data |
 | `dataset://<id>/revenue-trends` | Time-series revenue data |
-| `dataset://<id>/profitability` | Full profitability breakdown |
+| `dataset://<id>/profitability` | Profitability breakdown |
 
 ## Implementation Rules
 
 - Keep MCP handlers deterministic and read-only.
-- Keep raw dataset rows out of MCP responses unless a future access-controlled tool explicitly requires them.
+- Use in-memory cache populated after dataset analysis (`setAnalysisCache`).
 - Check ownership before adding MCP tools that load database-backed user records.
-- Scope standard users to their own records.
-- Scope superadmin users to operator-wide records only when the feature is explicitly administrative.
-- Keep public FAQ data separate from authenticated user data.
-- Return clear errors for invalid JSON, unknown tools, invalid resources, missing analysis cache, and unauthorized access.
-
-## Cache Integration
-
-Analysis results are cached via `setAnalysisCache` from `handlers.ts`. MCP tools read from this in-memory cache populated after dataset analysis completes.
+- Return clear errors for invalid JSON, unknown tools, unauthorized access.

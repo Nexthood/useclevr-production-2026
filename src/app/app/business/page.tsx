@@ -4,11 +4,12 @@ import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
 import { getBusinessLimit, listUserBusinesses, getPrimaryBusinessDetails, type BusinessListRow } from "@/lib/business/business-store"
 import { BUSINESS_FIELDS, getBusinessCompletionPercent, getBusinessReviewFlags } from "@/lib/business/business-profile"
+import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { businesses, businessEntities, profiles } from "@/lib/db/schema"
 import { eq, count, inArray } from "drizzle-orm"
 import { StatCard } from "@/components/ui/stat-card"
-import { AlertCircle, Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus, Percent, Mail } from "lucide-react"
+import { AlertCircle, Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus, Percent, Mail, TriangleAlert } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
@@ -58,10 +59,11 @@ export default async function BusinessPage() {
   const session = await auth()
   const userId = session?.user?.id
 
-  const [businessesList, subscriptionTier, metrics] = await Promise.all([
+  const [businessesList, subscriptionTier, metrics, companySetup] = await Promise.all([
     listUserBusinesses(userId),
     getSubscriptionTier(userId),
     getBusinessMetrics(userId),
+    getCompanySetup(userId ?? ""),
   ])
 
   const businessLimit = getBusinessLimit(subscriptionTier)
@@ -171,6 +173,42 @@ export default async function BusinessPage() {
           </div>
         </div>
       </div>
+
+      {/* Pre-accounting setup warnings */}
+      {companySetup.setupStatus.missingFields.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950">
+          <div className="flex items-center gap-2 mb-3">
+            <TriangleAlert className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+              Pre-accounting setup incomplete
+            </h3>
+          </div>
+          <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+            Fill in missing fields for accurate KPI and profit calculations. Setup accuracy: {companySetup.setupStatus.setupAccuracy}%.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {companySetup.setupStatus.missingFields.map((field) => (
+              <Link
+                key={field}
+                href="/app/business/setup"
+                className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800 transition"
+              >
+                {field}
+              </Link>
+            ))}
+          </div>
+          {companySetup.setupStatus.accountantReviewFlags.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {companySetup.setupStatus.accountantReviewFlags.map((flag, i) => (
+                <p key={i} className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+                  <span className="mt-0.5">•</span>
+                  <span>{flag}</span>
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <PageActionRow description="Manage business profiles, locations, tax settings, and financial data.">
         <Link

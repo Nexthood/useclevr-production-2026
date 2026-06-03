@@ -18,6 +18,7 @@
  */
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
+import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
@@ -201,11 +202,28 @@ export async function POST(request: Request) {
     debugLog('[ANALYZE] Dataset ID:', datasetId);
 
     // ============================================================================
-    // USAGE LIMIT CHECK - Check for free tier limits
+    // RATE LIMIT - 30 analyses per minute per user
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
     traceUserId = userId || null
+
+    if (!checkRateLimit(`analyze:${userId || "anonymous"}`, 30, 60_000)) {
+      return Response.json({
+        success: false,
+        error: "Rate limit exceeded",
+        answer: "Too many requests. Please wait a moment before asking another question.",
+        insight: "Rate limited",
+        explanation: "You've reached the analysis rate limit.",
+        recommendation: "Wait a minute and try again.",
+        data: [],
+        chartType: "table",
+      }, { status: 429 });
+    }
+
+    // ============================================================================
+    // USAGE LIMIT CHECK - Check for free tier limits
+    // ============================================================================
 
     // If datasetId provided but no precomputedAnalysis/data, fetch from DB
     let analysisToUse = precomputedAnalysis;

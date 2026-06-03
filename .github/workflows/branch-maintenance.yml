@@ -124,28 +124,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
-      - name: Clean build output before publish
-        run: |
-          cd dist
-          rm -f pnpm-workspace.yaml pnpm-lock.yaml yarn.lock
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); delete p.packageManager; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
-          cd ..
-
-          rm -f pnpm-workspace.yaml
-          rm -rf dist/.next/cache
-          rm -rf dist/.cache
-          rm -rf dist/cache
-          rm -rf dist/.turbo
-          rm -rf dist/.vercel
-
-          # Remove node_modules entirely — not needed in dist branch (Dockerfile runs npm install)
-          rm -rf dist/node_modules
-
-      - name: Stage generated output
-        run: |
-          mv dist /tmp/useclevr-dist-output
-          cp -a dist-root /tmp/useclevr-dist-root
-
       - name: Prepare dist commit title from PR
         id: dist-title
         uses: actions/github-script@v9
@@ -157,27 +135,52 @@ jobs:
             title = title.replace(/\s+/g, ' ').slice(0, 70).trim();
             core.setOutput('title', `Main: ${title}`);
 
-      - name: Publish generated folder to clean dist branch
+      - name: Stage deploy files in temporary directory
+        run: |
+          STAGING=$(mktemp -d)
+          echo "STAGING=$STAGING" >> "$GITHUB_ENV"
+
+          # Remove lock files and packageManager from dist package.json
+          rm -f dist/pnpm-workspace.yaml dist/pnpm-lock.yaml dist/yarn.lock
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('dist/package.json','utf8')); delete p.packageManager; fs.writeFileSync('dist/package.json', JSON.stringify(p, null, 2) + '\n');"
+
+          # Remove generated cache and heavy build artifacts from dist
+          rm -rf dist/.next/cache dist/.cache dist/cache dist/.turbo dist/.vercel dist/node_modules
+
+          # Copy deploy-required files to staging (allowlist approach)
+          cp -a dist/. "$STAGING/dist/"
+
+          # Copy server configs (Railway/Vercel) to staging root
+          if [ -d "dist-root/server-config" ]; then
+            cp -a dist-root/server-config "$STAGING/server-config"
+          fi
+
+      - name: Publish to dist branch from staging
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Create clean orphan branch
           git checkout --orphan new-dist
+
+          # Remove ALL files from working tree
           git rm -rf . || true
+          find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} + 2>/dev/null || true
 
+          # Copy only deploy-required files from staging
           mkdir -p dist
-          cp -a /tmp/useclevr-dist-output/. dist/
-
-          if [ -d "/tmp/useclevr-dist-root" ]; then
-            cp -a /tmp/useclevr-dist-root/. .
+          cp -a "$STAGING/dist/." dist/
+          if [ -d "$STAGING/server-config" ]; then
+            cp -a "$STAGING/server-config/." server-config/
           fi
 
-          rm -f pnpm-workspace.yaml
-
-          # Remove node_modules entirely (from pnpm install) — not needed in dist branch
-          # Dockerfile runs npm install and .dockerignore excludes node_modules.
-          rm -rf node_modules dist/node_modules
+          # Safety: ensure no node_modules or cache artifacts snuck in
+          rm -rf node_modules dist/node_modules .pnpm-store .next
 
           git add -A
           git commit -m "${{ steps.dist-title.outputs.title }}"
           git push origin new-dist:dist --force
+
+      - name: Clean up staging
+        if: always()
+        run: rm -rf "$STAGING"

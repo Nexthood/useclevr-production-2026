@@ -7,9 +7,9 @@ import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
@@ -34,7 +34,8 @@ function LoginForm() {
   const [signUpName, setSignUpName] = useState("")
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  const [showSignInPassword, setShowSignInPassword] = useState(false)
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -128,8 +129,12 @@ function LoginForm() {
     setAuthAction("signup")
     setAuthError(null)
 
-    if (signUpPassword.length < 8) {
-      setAuthError("Use at least 8 characters for your password.")
+    const passwordPolicy = validatePasswordPolicy(signUpPassword, {
+      email: signUpEmail,
+      name: signUpName,
+    })
+    if (!passwordPolicy.passed) {
+      setAuthError(passwordPolicy.message)
       setIsLoading(false)
       setAuthAction(null)
       return
@@ -259,40 +264,33 @@ function LoginForm() {
 
               <TabsContent value="signin" className="mt-0">
                 <form onSubmit={handleSignInSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={signInEmail}
-                        onChange={(e) => setSignInEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
+                  <InnerLabelInput
+                    id="signin-email"
+                    type="email"
+                    label="Email"
+                    icon={Mail}
+                    value={signInEmail}
+                    onChange={(e) => setSignInEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={signInPassword}
-                        onChange={(e) => setSignInPassword(e.target.value)}
-                        className="pl-10 pr-11"
-                        required
-                        autoComplete="current-password"
-                      />
-                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
-                    </div>
-                    <Link href="#" className="block text-sm text-primary hover:underline">
+                  <div>
+                    <InnerLabelInput
+                      id="signin-password"
+                      type={showSignInPassword ? "text" : "password"}
+                      label="Password"
+                      icon={Lock}
+                      value={signInPassword}
+                      onChange={(e) => setSignInPassword(e.target.value)}
+                      className="pr-11"
+                      required
+                      autoComplete="current-password"
+                      trailing={
+                        <PasswordToggle showPassword={showSignInPassword} setShowPassword={setShowSignInPassword} />
+                      }
+                    />
+                    <Link href="#" className="mt-1 block text-sm text-primary hover:underline">
                       Forgot password?
                     </Link>
                   </div>
@@ -315,62 +313,59 @@ function LoginForm() {
 
               <TabsContent value="signup" className="mt-0">
                 <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="John Doe"
-                        value={signUpName}
-                        onChange={(e) => setSignUpName(e.target.value)}
-                        className="pl-10"
-                        required
-                        autoComplete="name"
-                      />
-                    </div>
-                  </div>
+                  <InnerLabelInput
+                    id="signup-name"
+                    type="text"
+                    label="Full name"
+                    icon={User}
+                    value={signUpName}
+                    onChange={(e) => setSignUpName(e.target.value)}
+                    required
+                    autoComplete="name"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={signUpEmail}
-                        onChange={(e) => setSignUpEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
+                  <InnerLabelInput
+                    id="signup-email"
+                    type="email"
+                    label="Email"
+                    icon={Mail}
+                    value={signUpEmail}
+                    onChange={(e) => setSignUpEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="At least 8 characters"
-                        value={signUpPassword}
-                        onChange={(e) => setSignUpPassword(e.target.value)}
-                        className="pl-10 pr-11"
-                        required
-                        autoComplete="new-password"
-                      />
-                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
-                    </div>
+                  <div>
+                    <InnerLabelInput
+                      id="signup-password"
+                      type={showSignUpPassword ? "text" : "password"}
+                      label="Password"
+                      icon={Lock}
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                      className="pr-11"
+                      required
+                      autoComplete="new-password"
+                      trailing={
+                        <PasswordToggle showPassword={showSignUpPassword} setShowPassword={setShowSignUpPassword} />
+                      }
+                    />
                     {signUpPassword && (
-                      <PasswordStrengthIndicator password={signUpPassword} />
+                      <PasswordStrengthIndicator password={signUpPassword} email={signUpEmail} name={signUpName} />
                     )}
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || signUpPassword.length < 8}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      isLoading ||
+                      !validatePasswordPolicy(signUpPassword, {
+                        email: signUpEmail,
+                        name: signUpName,
+                      }).passed
+                    }
+                  >
                     {isLoading && authAction === "signup" ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -432,6 +427,40 @@ function LoginForm() {
   )
 }
 
+function InnerLabelInput({
+  id,
+  label,
+  icon: Icon,
+  className,
+  trailing,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  trailing?: React.ReactNode
+}) {
+  return (
+    <div className="relative">
+      <label
+        htmlFor={id}
+        className="pointer-events-none absolute left-10 top-1.5 z-10 text-[10px] font-medium uppercase leading-none tracking-normal text-muted-foreground"
+      >
+        {label}
+      </label>
+      <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        id={id}
+        aria-label={label}
+        placeholder=" "
+        className={["h-14 pl-10 pt-5 text-sm", className].filter(Boolean).join(" ")}
+        {...props}
+      />
+      {trailing}
+    </div>
+  )
+}
+
 function PasswordToggle({
   showPassword,
   setShowPassword,
@@ -446,6 +475,7 @@ function PasswordToggle({
       className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={showPassword ? "Hide password" : "Show password"}
       aria-pressed={showPassword}
+      tabIndex={-1}
     >
       {showPassword ? (
         <EyeOff className="h-4 w-4" />
@@ -456,32 +486,52 @@ function PasswordToggle({
   )
 }
 
-function PasswordStrengthIndicator({ password }: { password: string }) {
-  const strength = (() => {
-    let score = 0
-    if (password.length >= 8) score++
-    if (/[A-Z]/.test(password)) score++
-    if (/[0-9]/.test(password)) score++
-    if (/[^A-Za-z0-9]/.test(password)) score++
-    return score
-  })()
+function PasswordStrengthIndicator({
+  password,
+  email,
+  name,
+}: {
+  password: string
+  email: string
+  name: string
+}) {
+  const criteria = getPasswordPolicyChecks(password, { email, name })
+  const passed = criteria.filter((c) => c.passed).length
+  const strength = Math.min(Math.ceil((passed / criteria.length) * 4), 4)
+  const isComplete = passed === criteria.length
 
   const labels = ["Weak", "Fair", "Good", "Strong"]
   const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"]
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2 pt-1">
       <div className="flex gap-1">
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
             className={`h-1 flex-1 rounded-full ${
-              i < strength ? colors[strength - 1] : "bg-muted"
+              i < strength ? colors[Math.min(strength - 1, colors.length - 1)] : "bg-muted"
             }`}
           />
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">{labels[strength - 1] || "Too short"}</p>
+      <p className={`text-xs font-medium ${
+        passed < 3 ? "text-red-500" : passed < 5 ? "text-yellow-500" : "text-green-500"
+      }`}>
+        {isComplete ? labels[3] : passed < 3 ? labels[0] : passed < 5 ? labels[1] : labels[2]}
+      </p>
+      <ul className="space-y-1">
+        {criteria.map((c) => (
+          <li key={c.label} className="flex items-center gap-2 text-xs">
+            <span className={c.passed ? "text-green-500" : "text-muted-foreground"}>
+              {c.passed ? "✓" : "○"}
+            </span>
+            <span className={c.passed ? "text-foreground" : "text-muted-foreground"}>
+              {c.label}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
