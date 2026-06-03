@@ -17,6 +17,9 @@ moving work between states.
 
 - T-512. Verify type check passes for all new AI tracing files.
 - T-513. Expand Business Profile setup with structured company identity, business type, revenue streams, cost structure, tax context, conditional questions, validation rules, and review output.
+- T-528. Add MCP tool to retrieve dataset column mapping and inferred types from precomputed metrics.
+- T-529. Add MCP resource for top products data with revenue and profit breakdowns.
+- T-530. Add MCP tool for cross-dataset comparison metrics.
 
 ## Deferred
 

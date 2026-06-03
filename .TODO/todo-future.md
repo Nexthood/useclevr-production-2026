@@ -81,9 +81,7 @@ moving work between states.
 - T-466. Improve CSV parsing, dirty CSV handling, column detection, preview generation, file size limits, and clear error messages.
 - T-467. Improve dataset-aware answers. The AI must use uploaded dataset context, not generic answers. Improve chart suggestions, KPI detection, summaries, and follow-up questions.
 - T-468. Clean dashboard, upload flow, pricing page, billing page, empty states, loading states, and error messages. Keep changes minimal and consistent with current design.
-- T-469. Do not migrate now. Prepare notes only. Map current DB tables/models to future Payload collections. Avoid changes that make future Payload migration harder.
 - T-470. Prepare onepager, simple demo flow, LinkedIn launch post, outreach email, and investor/startup contact list.
 - T-471. Clean env usage, remove exposed secrets, add upload limits, add rate limits, review admin routes, and prepare basic GDPR/privacy notes.
 - T-472. Create beta feedback flow, bug board, launch checklist, and short public demo script.
 - T-506. Add PayPal payment provider support when checkout needs a second provider beside Stripe.
-- T-524. Create practical transformation prompts for Payload integration based on current schema analysis.

@@ -16,6 +16,9 @@ moving work between states.
 
 ## Completed
 
+- T-525. Retired the dist-branch migration prompt into the current Railway and GitHub deployment guides.
+- T-524. Created a practical Payload transformation prompt and migration task plan based on the current app routes, schema, billing, content, and deployment shape.
+- T-469. Mapped current application data models and route ownership to future Payload CMS collection boundaries without starting a migration.
 - T-127. Checkout success verification uses a signed, time-limited server token for payment redirects.
 - T-488. Local Railway CLI commands and token-safe login guidance support project deployment operations.
 - T-462. Railway health checks return liveness separately from database readiness, Railway auth uses the active request host by default, edge route guards avoid Node-only auth modules, production packaging starts from clean generated output, generated middleware manifests point to the bundled route guard entry, and generated Railway starts use a portable shell entrypoint.

@@ -12,6 +12,7 @@ folder during the same task cycle.
 - Mention past or future states only when the detail prevents a concrete risk.
 - Keep user guides separate from developer guides.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
+- Keep reusable prompt files in `docs/AI-interaction/prompts/`.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
 
 ## Railway Deploy Scope
@@ -50,3 +51,4 @@ folder during the same task cycle.
 - The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
 - Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.
 - Update the prompt version constant when prompt templates change to correlate trace quality.
+- Use [Interaction trace learning](prompts/interaction-trace-learning.md) when a user asks the AI to leave useful traces, mark problems, educate the user, or collect learning suggestions.
