@@ -225,34 +225,46 @@ for (const f of packageManagerFiles) {
 // node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
 // Remove large native binaries that exceed GitHub's file size limit (100 MB).
 // Next.js SWC fallback binaries are the primary offenders (~124 MB each).
-const largeNodePatterns = [
-  "next-swc-fallback",
-];
-if (fs.existsSync(path.join(distDir, "node_modules"))) {
+const nmDir = path.join(distDir, "node_modules");
+if (fs.existsSync(nmDir)) {
   let removed = 0;
-  for (const dir of largeNodePatterns) {
-    const out = execSync(
-      `find "${distDir}/node_modules" -path "*/${dir}/*" -name "*.node" -type f,l 2>/dev/null || true`,
-      { encoding: "utf-8" },
-    ).trim();
-    for (const f of out.split("\n").filter(Boolean)) {
-      console.log(`Removing large binary: ${repoRelative(f)}`);
-      fs.rmSync(f, { force: true });
-      removed++;
+  function walkDir(dir, patterns) {
+    if (!fs.existsSync(dir)) return;
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walkDir(fullPath, patterns);
+        } else if (entry.isFile() || entry.isSymbolicLink()) {
+          if (!entry.name.endsWith(".node")) continue;
+          const isMatch = patterns.length === 0 ||
+            patterns.some((p) => fullPath.includes(p));
+          if (!isMatch) continue;
+          try {
+            const stat = fs.statSync(fullPath);
+            if (stat.size > 50 * 1024 * 1024) {
+              console.log(`Removing large binary: ${repoRelative(fullPath)} (${(stat.size / 1024 / 1024).toFixed(1)} MB)`);
+              fs.rmSync(fullPath, { force: true });
+              removed++;
+            }
+          } catch {
+            // broken symlink or stat error — still remove it
+            console.log(`Removing inaccessible binary: ${repoRelative(fullPath)}`);
+            fs.rmSync(fullPath, { force: true });
+            removed++;
+          }
+        }
+      }
+    } catch {
+      // permission error, skip
     }
   }
-  // Also catch any >50MB .node files (symlinks or regular) as a safety net
-  const out = execSync(
-    `find "${distDir}/node_modules" -name "*.node" \\( -type f -o -type l \\) -size +50M 2>/dev/null || true`,
-    { encoding: "utf-8" },
-  ).trim();
-  for (const f of out.split("\n").filter(Boolean)) {
-    console.log(`Removing large binary (safety net): ${repoRelative(f)}`);
-    fs.rmSync(f, { force: true });
-    removed++;
-  }
+  walkDir(nmDir, ["next-swc-fallback"]);
+  // safety net: any .node file >50MB
+  walkDir(nmDir, []);
   if (removed > 0) {
-    console.log(`Cleaned up ${removed} large binary files from dist/node_modules`);
+    console.log(`Cleaned up ${removed} large binary files from node_modules`);
   }
 }
 

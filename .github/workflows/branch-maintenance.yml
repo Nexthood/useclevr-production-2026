@@ -138,6 +138,9 @@ jobs:
           rm -rf dist/.turbo
           rm -rf dist/.vercel
 
+          # Remove large .node binaries (e.g. Next.js SWC fallback >100MB) that exceed GitHub limit
+          find dist/node_modules -name "*.node" -size +50M -delete 2>/dev/null || true
+
       - name: Stage generated output
         run: |
           mv dist /tmp/useclevr-dist-output
