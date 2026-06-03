@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
-cd dist
+cd /app/dist
 exec sh start.sh "$@"
