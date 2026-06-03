@@ -32,6 +32,12 @@ moving work between states.
 - T-542. Capture current public and dashboard screenshots for homepage, pricing, FAQ, upload, datasets, AI Assistant, Business, Accountancy, downloads, tickets, and checkout review.
 - T-543. Create demo scripts for founder, SME owner, consultant, and accountancy-prep sales conversations using current product routes and roadmap boundaries.
 - T-544. Review Sales risk, issue, and lessons registers after the next Railway test deploy and move actionable findings into the regular TODO queues.
+- T-545. Add Business Mentoring feature: mentoring session booking and expert guidance on dashboard.
+- T-546. Add Business Mentoring public landing page with value proposition for founders and SMEs.
+- T-547. Add Business Mentoring to user guide documentation with session types and expert qualifications.
+- T-548. Add Business Mentoring to developer guide with API routes and database schema.
+- T-549. Create Business Mentoring sales documentation with pricing and use cases.
+- T-550. Add Business Mentoring AI tracing integration for session recommendations and follow-ups.
 
 ## Deferred
 

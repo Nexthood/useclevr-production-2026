@@ -232,7 +232,7 @@ for (const f of packageManagerFiles) {
 const dockerfile = `FROM node:22-alpine
 WORKDIR /app
 COPY package.json ./
-RUN npm install --production 2>&1
+RUN npm install --production --omit=optional 2>&1
 COPY . .
 EXPOSE 8080
 CMD ["node", "-r", "./scripts/runtime/load-env.cjs", "./scripts/runtime/start-dist.cjs"]
