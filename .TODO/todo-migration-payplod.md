@@ -33,11 +33,11 @@ This file is the consolidated AI prompt and task plan for future Payload CMS int
 
 ## Collection Candidates
 
-- Public FAQ categories and items.
-- Dashboard FAQ categories and items, with scope values for public, dashboard, and operator content.
-- Homepage sections and calls to action.
+- Public FAQ categories and items, mapped from `src/lib/content/faq.ts`.
+- Dashboard FAQ categories and items with scope values for public, dashboard, and operator content, mapped from `src/lib/content/dashboard-faq.ts`.
+- Homepage sections and calls to action, mapped from `src/app/page.tsx` hero content.
 - Pricing page copy that reads plan values from the existing billing config instead of duplicating prices.
-- Legal page content for Terms, Privacy, and Security.
+- Legal page content for Terms, Privacy, and Security from existing pages.
 - Changelog display entries if the product later needs editable public release notes.
 - Sales one-pager sections and presentation source content.
 - Blog or resource posts if marketing content becomes active.
