@@ -8,11 +8,11 @@ This document describes the future architecture direction for UseClevr after the
 
 The future structure should support:
 
-* Main SaaS dashboard
-* Documentation site
-* Possible Payload CMS integration
-* Possible MCP external endpoint
-* Better separation of app, docs, shared UI, and config
+- Main SaaS dashboard
+- Documentation site
+- Possible Payload CMS integration
+- Possible MCP external endpoint
+- Better separation of app, docs, shared UI, and config
 
 This is future planning only. Do not migrate until the current Railway deployment and SaaS core are stable.
 
@@ -74,13 +74,13 @@ Current MCP should remain internal until there is a clear need for external acce
 
 Payload may be used later for:
 
-* Admin content management
-* FAQ editing
-* Homepage copy
-* Pricing copy
-* Blog/content
-* Internal admin collections
-* Possibly business/customer admin views
+- Admin content management
+- FAQ editing
+- Homepage copy
+- Pricing copy
+- Blog/content
+- Internal admin collections
+- Possibly business/customer admin views
 
 Payload should not replace the current SaaS core too early.
 
@@ -101,15 +101,15 @@ Payload is not required for the first stable UseClevr launch.
 
 Fumadocs may be used later for:
 
-* Product documentation
-* Getting started guide
-* CSV upload guide
-* Business Profile guide
-* AI Analysis guide
-* Dashboard guide
-* Billing guide
-* FAQ
-* Developer/API docs later
+- Product documentation
+- Getting started guide
+- CSV upload guide
+- Business Profile guide
+- AI Analysis guide
+- Dashboard guide
+- Billing guide
+- FAQ
+- Developer/API docs later
 
 Preferred future docs app:
 
@@ -125,8 +125,8 @@ docs.useclevr.com
 
 Search:
 
-* Use Fumadocs built-in search first.
-* Do not add Meilisearch unless the docs become large enough to justify external search.
+- Use Fumadocs built-in search first.
+- Do not add Meilisearch unless the docs become large enough to justify external search.
 
 ---
 
@@ -148,22 +148,22 @@ mcp.useclevr.com
 
 Only use this when:
 
-* External tools/agents connect directly
-* Customers receive MCP endpoint access
-* Separate MCP auth is required
-* Separate rate limits are required
-* Separate logs/monitoring are required
-* MCP runs as a separate Railway service
+- External tools/agents connect directly
+- Customers receive MCP endpoint access
+- Separate MCP auth is required
+- Separate rate limits are required
+- Separate logs/monitoring are required
+- MCP runs as a separate Railway service
 
 Future MCP must include:
 
-* Strong authentication
-* Rate limiting
-* User/workspace access checks
-* Audit logging
-* Dataset permission checks
-* No public access to private uploads
-* Clear separation between internal and external tools
+- Strong authentication
+- Rate limiting
+- User/workspace access checks
+- Audit logging
+- Dataset permission checks
+- No public access to private uploads
+- Clear separation between internal and external tools
 
 ---
 
@@ -197,62 +197,62 @@ Do not create this structure until the current deployment flow is stable and the
 
 ### Phase 1: Current SaaS Stability
 
-* Railway deploy stable
-* Business Profile expanded
-* Dataset-aware AI reliable
-* Upload flow hardened
-* Billing config centralized
-* Basic launch/demo flow prepared
+- Railway deploy stable
+- Business Profile expanded
+- Dataset-aware AI reliable
+- Upload flow hardened
+- Billing config centralized
+- Basic launch/demo flow prepared
 
 ### Phase 2: Product Readiness
 
-* Business Profile completion engine
-* Missing data report
-* Financial health score
-* Better KPI dashboard
-* Forecast scenarios
-* Exportable reports
-* Beta feedback flow
-* Public demo script
+- Business Profile completion engine
+- Missing data report
+- Financial health score
+- Better KPI dashboard
+- Forecast scenarios
+- Exportable reports
+- Beta feedback flow
+- Public demo script
 
 ### Phase 3: Architecture Preparation
 
-* Map current app to future `/apps/web`
-* Map docs content to future `/apps/docs`
-* Decide whether Payload is needed
-* Decide whether Fumadocs is needed
-* Decide whether MCP needs a public endpoint
-* Prepare migration notes only
+- Map current app to future `/apps/web`
+- Map docs content to future `/apps/docs`
+- Decide whether Payload is needed
+- Decide whether Fumadocs is needed
+- Decide whether MCP needs a public endpoint
+- Prepare migration notes only
 
 ### Phase 4: Monorepo Migration
 
 Only after approval:
 
-* Move SaaS app to `/apps/web`
-* Add `/apps/docs`
-* Add shared packages only if required
-* Update scripts
-* Update Railway root directories
-* Verify `dist` and `dist-test`
-* Keep rollback path
+- Move SaaS app to `/apps/web`
+- Add `/apps/docs`
+- Add shared packages only if required
+- Update scripts
+- Update Railway root directories
+- Verify `dist` and `dist-test`
+- Keep rollback path
 
 ### Phase 5: External Integrations
 
 Only after core product stability:
 
-* Public MCP endpoint if needed
-* External docs search if needed
-* Advanced billing provider abstraction if needed
-* Multi-workspace support if needed
-* More automation and tests
+- Public MCP endpoint if needed
+- External docs search if needed
+- Advanced billing provider abstraction if needed
+- Multi-workspace support if needed
+- More automation and tests
 
 ---
 
 ## Future Rules
 
-* Do not migrate for theoretical cleanliness.
-* Migrate only when it reduces real product friction.
-* Keep user-facing SaaS value higher priority than architecture.
-* Keep deploy stability higher priority than new tooling.
-* Keep the app simple enough to maintain quickly.
-* Avoid adding systems that require separate hosting unless they are clearly necessary.
+- Do not migrate for theoretical cleanliness.
+- Migrate only when it reduces real product friction.
+- Keep user-facing SaaS value higher priority than architecture.
+- Keep deploy stability higher priority than new tooling.
+- Keep the app simple enough to maintain quickly.
+- Avoid adding systems that require separate hosting unless they are clearly necessary.

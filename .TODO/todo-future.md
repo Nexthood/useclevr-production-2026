@@ -1,9 +1,12 @@
 # Future TODO
+
 This retired queue stores deferred work until it becomes active enough to move into
 `todo-next.md`.
 Get the T-number from `.TODO/config.json` before adding new tasks. Keep task numbers stable when
 moving work between states.
+
 ## Links
+
 - [TODO-next.md](todo-next.md)
 - [TODO-done.md](todo-done.md)
 - [TODO-ignore.md](todo-ignore.md)
@@ -11,6 +14,7 @@ moving work between states.
 - [.TODO/config.json](config.json)
 
 ## Future Next
+
 - T-594. Evaluate a dedicated MCP subdomain only when MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership.
 - T-537. Add Payload CMS FAQ collection with public read, admin write access — first Payload migration step after core stability.
 - T-563. Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable.
@@ -81,6 +85,7 @@ moving work between states.
 - T-397. Add a documentation cleanup pass that removes stale dist-test setup notes after the Railway workflow stabilizes.
 
 ## Additional
+
 - T-575. Add an AI interaction memory import assistant for pasted external chat summaries, redaction checks, classification, and project-learning destinations.
 - T-576. Add compact status report helpers for long-running validation, deploy checks, git workflow steps, and final release summaries.
 - T-463. Stabilize Railway main deploy first. Keep the deprecated middleware workaround if it is the only stable packaging path. Do not migrate middleware/proxy yet. Ensure dist branch contains all runtime files. Document exact deploy flow.

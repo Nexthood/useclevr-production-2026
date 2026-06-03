@@ -16,10 +16,10 @@ test deploy checks away from `main`, `dist`, and the live app unless a task expl
 
 Production and test deploy flows stay isolated:
 
-| Source branch | Generated branch | Railway service | Domain |
-| --- | --- | --- | --- |
-| `main` | `dist` | Production service, root `/dist` | `app.useclevr.com` |
-| `beta` | `dist-test` | Test service, root `/dist` | `test.useclevr.com` |
+| Source branch | Generated branch | Railway service                  | Domain              |
+| ------------- | ---------------- | -------------------------------- | ------------------- |
+| `main`        | `dist`           | Production service, root `/dist` | `app.useclevr.com`  |
+| `beta`        | `dist-test`      | Test service, root `/dist`       | `test.useclevr.com` |
 
 Generated deployment branches are output branches. Do not merge `dist` or `dist-test` back into
 source branches.
@@ -149,6 +149,7 @@ failed to calculate checksum of ref ...: "/app/node_modules": not found
 ```
 
 Key requirements:
+
 - `node_modules/` must NOT appear in any `.gitignore` that applies to the `dist` branch.
 - The symlink structure must be relative, not absolute. Use `cp -a` (not `fs.cpSync`) when copying
   the standalone output — Node.js `fs.cpSync` resolves relative symlinks to absolute paths, which
@@ -191,6 +192,7 @@ the generated deployment package is smaller than the source workspace and Railwa
 generated output only.
 
 If logs show `failed to calculate checksum of ref ... "/app/node_modules": not found`:
+
 - `node_modules/` is missing from the deployed branch.
 - Check `.gitignore` on the deployment branch — `node_modules/` must not be ignored.
 - Check the publish workflow — cleanup steps must not `rm -rf node_modules`.
@@ -199,6 +201,7 @@ If logs show `failed to calculate checksum of ref ... "/app/node_modules": not f
 ### Runtime Errors (502 / Healthcheck Failures)
 
 If Railway deploys successfully but the app returns 502:
+
 1. Check Railway logs for server startup errors or crash traces.
 2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
 3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.

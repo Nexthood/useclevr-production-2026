@@ -14,13 +14,13 @@ UseClevr creates value by turning business datasets into accessible analysis, AI
 
 ## Expected Benefits
 
-| Benefit | Description | Evidence Source |
-| --- | --- | --- |
-| Faster first insight | Users upload data and ask a first question without SQL. | Signup, upload, and AI question events. |
-| Better report workflow | Users download generated reports from analysis. | Downloads and report actions. |
-| Improved business context | Business Profile improves readiness and confidence. | Setup progress and review flags. |
-| Reduced support friction | FAQ, help chat, tickets, and notices guide users. | Ticket topics and unresolved chat rate. |
-| Upgrade path | Pro, Business, Hybrid AI, credits, and referrals support monetization. | Checkout, subscription, and referral metrics. |
+| Benefit                   | Description                                                            | Evidence Source                               |
+| ------------------------- | ---------------------------------------------------------------------- | --------------------------------------------- |
+| Faster first insight      | Users upload data and ask a first question without SQL.                | Signup, upload, and AI question events.       |
+| Better report workflow    | Users download generated reports from analysis.                        | Downloads and report actions.                 |
+| Improved business context | Business Profile improves readiness and confidence.                    | Setup progress and review flags.              |
+| Reduced support friction  | FAQ, help chat, tickets, and notices guide users.                      | Ticket topics and unresolved chat rate.       |
+| Upgrade path              | Pro, Business, Hybrid AI, credits, and referrals support monetization. | Checkout, subscription, and referral metrics. |
 
 ## Disbenefits
 
@@ -56,14 +56,14 @@ UseClevr creates value by turning business datasets into accessible analysis, AI
 
 ## Measurable Outcomes
 
-| Outcome | Target Signal |
-| --- | --- |
-| Acquisition | Website visits, signup rate, demo requests, contact submissions. |
-| Activation | First upload rate, first AI question rate, Business Profile start rate. |
-| Conversion | Checkout review completion, Stripe checkout completion, plan upgrades. |
-| Retention | Repeat uploads, repeat AI questions, report downloads, history usage. |
-| Support Quality | Ticket resolution, help chat matches, FAQ misses, notice usefulness. |
-| Sales Readiness | Demo completion, objection patterns, sales asset usage. |
+| Outcome         | Target Signal                                                           |
+| --------------- | ----------------------------------------------------------------------- |
+| Acquisition     | Website visits, signup rate, demo requests, contact submissions.        |
+| Activation      | First upload rate, first AI question rate, Business Profile start rate. |
+| Conversion      | Checkout review completion, Stripe checkout completion, plan upgrades.  |
+| Retention       | Repeat uploads, repeat AI questions, report downloads, history usage.   |
+| Support Quality | Ticket resolution, help chat matches, FAQ misses, notice usefulness.    |
+| Sales Readiness | Demo completion, objection patterns, sales asset usage.                 |
 
 ## Investment Justification
 

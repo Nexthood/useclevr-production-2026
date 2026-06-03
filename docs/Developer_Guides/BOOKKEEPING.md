@@ -29,4 +29,3 @@ Bookkeeping features live in the dashboard Accountancy workspace.
 - Guard missing business profile data.
 - Keep tax estimates contextual until location and industry data exist.
 - Keep uploaded raw financial data out of documentation and AI prompts.
-

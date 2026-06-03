@@ -49,12 +49,12 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 
 ## Business Options
 
-| Option | Description | Decision |
-| --- | --- | --- |
-| Do nothing | Users keep manual spreadsheet analysis. | Rejected because it does not create product value. |
-| Build enterprise BI | Create a broad BI platform with deep setup. | Rejected because the product targets practical SME workflows. |
-| Build UseClevr SME BI workspace | Provide upload, AI, reports, profile context, support, billing, and operations. | Selected. |
-| Replace app with CMS | Use Payload or another CMS as core app. | Rejected; CMS remains future editable-content layer only. |
+| Option                          | Description                                                                     | Decision                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Do nothing                      | Users keep manual spreadsheet analysis.                                         | Rejected because it does not create product value.            |
+| Build enterprise BI             | Create a broad BI platform with deep setup.                                     | Rejected because the product targets practical SME workflows. |
+| Build UseClevr SME BI workspace | Provide upload, AI, reports, profile context, support, billing, and operations. | Selected.                                                     |
+| Replace app with CMS            | Use Payload or another CMS as core app.                                         | Rejected; CMS remains future editable-content layer only.     |
 
 ## Constraints
 

@@ -15,10 +15,10 @@ validation — the Neon instance is never accessed from CI.
 
 ## Ownership
 
-| Path                                    | Owner                            | Published location                                                                              |
-| --------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `dist-root/server-config/railway.json`  | Railway generated-output deploys | `dist` branch `/server-config/railway.json`                                                     |
-| `dist-root/server-config/vercel.json`   | Vercel source-branch deploys     | source branch root `vercel.json`, plus `dist` branch `/server-config/vercel.json` for reference |
+| Path                                   | Owner                            | Published location                                                                              |
+| -------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `dist-root/server-config/railway.json` | Railway generated-output deploys | `dist` branch `/server-config/railway.json`                                                     |
+| `dist-root/server-config/vercel.json`  | Vercel source-branch deploys     | source branch root `vercel.json`, plus `dist` branch `/server-config/vercel.json` for reference |
 
 Host config files must not land at the `dist` branch root.
 

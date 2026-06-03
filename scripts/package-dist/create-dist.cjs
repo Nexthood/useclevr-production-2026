@@ -14,9 +14,7 @@ const runtimeScriptsDir = resolveRepoPath("scripts", "runtime");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
-    throw new Error(
-      `${label} not found at ${repoRelative(target)}. Run pnpm build first.`,
-    );
+    throw new Error(`${label} not found at ${repoRelative(target)}. Run pnpm build first.`);
   }
 }
 
@@ -55,9 +53,7 @@ function normalizeMiddlewareManifest(nextDir) {
     if (!entry || typeof entry !== "object") continue;
     if (typeof entry.entrypoint !== "string") continue;
 
-    const normalizedName = entry.entrypoint
-      .replace(/^server\//, "")
-      .replace(/\.js$/, "");
+    const normalizedName = entry.entrypoint.replace(/^server\//, "").replace(/\.js$/, "");
 
     if (entry.name !== normalizedName) {
       entry.name = normalizedName;

@@ -19,14 +19,14 @@ Upload business data, ask questions in plain language, review structured insight
 
 ## Target Segments
 
-| Segment | Need | UseClevr Message |
-| --- | --- | --- |
-| Startup founders | Understand growth, revenue, cost, and investor updates. | Turn startup data into reports and answers before building BI. |
-| SME owners | Review sales, expenses, margins, and business health. | Upload existing data and see practical business insights quickly. |
-| Freelancers and consultants | Create client-ready summaries from exported data. | Prepare clearer reports and follow-up questions from client datasets. |
-| Agencies | Review campaign, revenue, client, and project data. | Connect operational data to decision-ready summaries. |
-| E-commerce operators | Understand orders, revenue, returns, stock, and margin context. | Ask business questions from sales exports and prepare reports. |
-| Accountancy-adjacent users | Track readiness, tax context, and bookkeeping inputs. | Organize data before advisory or accounting review. |
+| Segment                     | Need                                                            | UseClevr Message                                                      |
+| --------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Startup founders            | Understand growth, revenue, cost, and investor updates.         | Turn startup data into reports and answers before building BI.        |
+| SME owners                  | Review sales, expenses, margins, and business health.           | Upload existing data and see practical business insights quickly.     |
+| Freelancers and consultants | Create client-ready summaries from exported data.               | Prepare clearer reports and follow-up questions from client datasets. |
+| Agencies                    | Review campaign, revenue, client, and project data.             | Connect operational data to decision-ready summaries.                 |
+| E-commerce operators        | Understand orders, revenue, returns, stock, and margin context. | Ask business questions from sales exports and prepare reports.        |
+| Accountancy-adjacent users  | Track readiness, tax context, and bookkeeping inputs.           | Organize data before advisory or accounting review.                   |
 
 ## Buyer Personas
 
@@ -58,14 +58,14 @@ Upload business data, ask questions in plain language, review structured insight
 
 ## Campaign Themes
 
-| Campaign | Message | Primary CTA |
-| --- | --- | --- |
-| First CSV to Insight | Upload one CSV and ask a business question. | Start free trial |
-| Founder Report Sprint | Turn business exports into investor-ready summaries. | Schedule demo |
-| Consultant Client Review | Prepare client insight reports from uploaded datasets. | Contact sales |
-| Business Profile Readiness | Add business context that improves report confidence. | Complete Business Profile |
-| Accountancy Prep | Organize financial datasets, tax context, and compliance readiness. | Open Accountancy |
-| Hybrid AI Upgrade | Use stronger AI options for deeper analysis workflows. | Review plans |
+| Campaign                   | Message                                                             | Primary CTA               |
+| -------------------------- | ------------------------------------------------------------------- | ------------------------- |
+| First CSV to Insight       | Upload one CSV and ask a business question.                         | Start free trial          |
+| Founder Report Sprint      | Turn business exports into investor-ready summaries.                | Schedule demo             |
+| Consultant Client Review   | Prepare client insight reports from uploaded datasets.              | Contact sales             |
+| Business Profile Readiness | Add business context that improves report confidence.               | Complete Business Profile |
+| Accountancy Prep           | Organize financial datasets, tax context, and compliance readiness. | Open Accountancy          |
+| Hybrid AI Upgrade          | Use stronger AI options for deeper analysis workflows.              | Review plans              |
 
 ## Funnel Plan
 
@@ -107,28 +107,28 @@ Upload business data, ask questions in plain language, review structured insight
 
 ## Channel Plan
 
-| Channel | Use |
-| --- | --- |
-| Website | Primary conversion and education surface. |
-| LinkedIn | Founder, SME, consultant, and agency awareness. |
-| Email | Waitlist, demo follow-up, product education, and onboarding. |
-| Direct outreach | Targeted founder, consultant, agency, and SME owner conversations. |
-| Partner referrals | Affiliate and consultant partner growth. |
-| Product-led onboarding | Upload, AI Assistant, Business Profile, and report download. |
+| Channel                | Use                                                                |
+| ---------------------- | ------------------------------------------------------------------ |
+| Website                | Primary conversion and education surface.                          |
+| LinkedIn               | Founder, SME, consultant, and agency awareness.                    |
+| Email                  | Waitlist, demo follow-up, product education, and onboarding.       |
+| Direct outreach        | Targeted founder, consultant, agency, and SME owner conversations. |
+| Partner referrals      | Affiliate and consultant partner growth.                           |
+| Product-led onboarding | Upload, AI Assistant, Business Profile, and report download.       |
 
 ## Measurement
 
-| Metric | Why It Matters |
-| --- | --- |
-| Signup conversion | Shows public page and pricing effectiveness. |
-| First upload rate | Shows activation quality. |
-| First AI question rate | Shows analysis adoption. |
-| Report download rate | Shows decision-output value. |
+| Metric                      | Why It Matters                                   |
+| --------------------------- | ------------------------------------------------ |
+| Signup conversion           | Shows public page and pricing effectiveness.     |
+| First upload rate           | Shows activation quality.                        |
+| First AI question rate      | Shows analysis adoption.                         |
+| Report download rate        | Shows decision-output value.                     |
 | Business Profile completion | Shows context readiness and onboarding progress. |
-| Checkout conversion | Shows paid plan readiness. |
-| Ticket volume by topic | Shows friction and support demand. |
-| Help chat unresolved rate | Shows FAQ and support content gaps. |
-| Referral signup rate | Shows affiliate channel value. |
+| Checkout conversion         | Shows paid plan readiness.                       |
+| Ticket volume by topic      | Shows friction and support demand.               |
+| Help chat unresolved rate   | Shows FAQ and support content gaps.              |
+| Referral signup rate        | Shows affiliate channel value.                   |
 
 ## Roadmap Messaging Rules
 

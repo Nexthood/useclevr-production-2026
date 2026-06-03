@@ -25,14 +25,14 @@ flowchart LR
 
 ## Script Groups
 
-| Group           | Scripts                                                   | Purpose                                      |
-| --------------- | --------------------------------------------------------- | -------------------------------------------- |
-| Development     | `pnpm dev`, `pnpm dev:frontend`, `pnpm dev:server`        | Start the local Next.js app.                 |
-| Build           | `pnpm build`, `pnpm prod:build`, `pnpm preview`           | Build source or generated deployment output. |
+| Group           | Scripts                                                 | Purpose                                      |
+| --------------- | ------------------------------------------------------- | -------------------------------------------- |
+| Development     | `pnpm dev`, `pnpm dev:frontend`, `pnpm dev:server`      | Start the local Next.js app.                 |
+| Build           | `pnpm build`, `pnpm prod:build`, `pnpm preview`         | Build source or generated deployment output. |
 | Validation      | `pnpm validate`, `pnpm validate:prepush`, `pnpm health` | Run local and CI gates.                      |
-| Deploy config   | `pnpm deploy:railway:check`, `pnpm deploy:vercel:check`   | Validate host config templates.              |
-| Lint and format | `pnpm lint`, `pnpm lint:fix`, `pnpm format:check`         | Check source, package, TODO, and formatting. |
-| Database        | `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`     | Manage Drizzle schema changes.               |
+| Deploy config   | `pnpm deploy:railway:check`, `pnpm deploy:vercel:check` | Validate host config templates.              |
+| Lint and format | `pnpm lint`, `pnpm lint:fix`, `pnpm format:check`       | Check source, package, TODO, and formatting. |
+| Database        | `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`   | Manage Drizzle schema changes.               |
 
 ## Dependency Checks
 

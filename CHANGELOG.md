@@ -8,6 +8,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+
 - Login and registration auto-sign-in after successful signup with a delay to ensure database commit before authentication attempt.
 - Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
@@ -24,6 +25,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Rate limiting added to the analyze API route (30 requests/minute).
 
 ### Fixed
+
 - AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
 - Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
 - Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
@@ -53,6 +55,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+
 - Add secret-leak linting for docs and source text so credential examples stay placeholder-only.
 - Retire the MCP implementation plan into the MCP developer guide, AI tracing structure, and active MCP hardening tasks.
 - Retire the MCP and FAQ prompt plan into MCP docs, user guidance, requirements, and a reusable scope-check prompt.
@@ -75,6 +78,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add metadata exports (page titles) to settings, tickets, FAQ, and dataset pages.
 
 ### Added
+
 - Select dashboard language in English, German, Hungarian, or Romanian.
 - View bookkeeping cards, queue, and monthly close readiness in Accountancy overview.
 - Open AI Assistant from sidebar, select dataset, and ask follow-up questions in one workspace.
@@ -87,6 +91,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Manage dashboard tickets with table-first queue, separate pages for new tickets and row-level editing.
 
 ### Changed
+
 - Use a more compact default text scale across public and dashboard pages.
 - Display settings show accessibility states and explain contrast and larger-text controls.
 - Front page sections use the same compact public-page rhythm and call-to-action treatment as the affiliate page.
@@ -109,6 +114,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Select light, dark, system, high-contrast, or larger-text display modes from dashboard topbar.
 
 ### Dev
+
 - Remove pnpm metadata from generated Railway deployment packages so Railpack can use npm.
 - Reuse pnpm store cache in GitHub validation and dist publish jobs. Retain install metadata in generated Railway output for faster dependency layers.
 - Include pnpm build-script approvals in generated deployment packages so local and Railway installs can run required native dependency setup.
@@ -118,6 +124,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add translation service with 24-hour caching layer to minimize API calls to Google Translation.
 
 ### Changed
+
 - See App Store and Google Play icons in dashboard sidebar app panel; social links open external pages in new tab.
 - Track setup progress from account data, route to relevant setup pages, and reopen for accounts below 25% completion.
 - Open business setup links in the Business workspace.
@@ -136,8 +143,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - See dashboard help links under topbar Help menu; sidebar focuses on primary app areas.
 - See customer level and discount rule management using horizontal table rows for faster editing.
 
-
 ### Fixed
+
 - View business overview when no business profile exists, with add-business action visible in top-level workspace.
 - Upload datasets using valid persisted demo account path with clearer file-size handling.
 - View business overview metrics even when business storage tables are unavailable.
@@ -171,7 +178,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - See public legal pages and authentication screens expose Terms and Privacy links consistently.
 - See mobile public navigation open as compact menu while keeping mode and theme controls visible.
 - See referral signup and paid events support idempotency keys and block self-referral rewards.
-
 
 ### Dev
 

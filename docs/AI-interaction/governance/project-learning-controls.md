@@ -11,12 +11,12 @@ Use this guide to turn AI interactions into useful project learning without conf
 
 ## Trace Categories
 
-| Category | Use |
-| --- | --- |
-| Lesson | A reusable learning that improves future work. |
-| Issue | A current problem that needs action or ownership. |
-| Risk | A possible future problem that needs prevention or monitoring. |
-| Decision | A chosen direction or boundary that prevents rework. |
+| Category    | Use                                                                         |
+| ----------- | --------------------------------------------------------------------------- |
+| Lesson      | A reusable learning that improves future work.                              |
+| Issue       | A current problem that needs action or ownership.                           |
+| Risk        | A possible future problem that needs prevention or monitoring.              |
+| Decision    | A chosen direction or boundary that prevents rework.                        |
 | Improvement | A practical suggestion for prompts, docs, tests, data, or product behavior. |
 
 ## Interaction Trace Flow

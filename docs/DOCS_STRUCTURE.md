@@ -4,12 +4,12 @@ Use this map to choose the right document location.
 
 ## Top-Level Areas
 
-| Area | Audience | Purpose |
-| --- | --- | --- |
-| [User_Guides](User_Guides/README.md) | End users | Product workflows and help guidance |
-| [Developer_Guides](Developer_Guides/README.md) | Developers, AI agents | Setup, architecture, deployment, implementation |
-| [AI-interaction](AI-interaction/README.md) | Users, developers, AI agents | AI collaboration rules, prompts, learning traces |
-| [Sales](Sales/README.md) | Sales, marketing | Sales documents, project planning, marketing plan |
+| Area                                           | Audience                     | Purpose                                           |
+| ---------------------------------------------- | ---------------------------- | ------------------------------------------------- |
+| [User_Guides](User_Guides/README.md)           | End users                    | Product workflows and help guidance               |
+| [Developer_Guides](Developer_Guides/README.md) | Developers, AI agents        | Setup, architecture, deployment, implementation   |
+| [AI-interaction](AI-interaction/README.md)     | Users, developers, AI agents | AI collaboration rules, prompts, learning traces  |
+| [Sales](Sales/README.md)                       | Sales, marketing             | Sales documents, project planning, marketing plan |
 
 ## Placement Rules
 

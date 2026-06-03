@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from "node:fs"
-import path from "node:path"
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 
-import { repoRelative, rootDir } from "./lib/app-config.js"
+import { repoRelative, rootDir } from "./lib/app-config.js";
 
 const ignoredDirectories = new Set([
   ".cache",
@@ -13,12 +13,9 @@ const ignoredDirectories = new Set([
   "node_modules",
   "out",
   "tmp",
-])
+]);
 
-const ignoredFileNames = new Set([
-  "package-lock.json",
-  "pnpm-lock.yaml",
-])
+const ignoredFileNames = new Set(["package-lock.json", "pnpm-lock.yaml"]);
 
 const textExtensions = new Set([
   ".cjs",
@@ -38,11 +35,11 @@ const textExtensions = new Set([
   ".txt",
   ".yaml",
   ".yml",
-])
+]);
 
 const credentialAssignment =
   String.raw`(?<![A-Za-z])(?:api[_ -]?key|apikey|token|secret|password|private[_ -]?key)(?![A-Za-z])` +
-  String.raw`\s*[:=]\s*["']?(?!<|\$\{|process\.env\b)([A-Za-z0-9_./+=-]{20,})`
+  String.raw`\s*[:=]\s*["']?(?!<|\$\{|process\.env\b)([A-Za-z0-9_./+=-]{20,})`;
 
 const checks = [
   {
@@ -71,54 +68,55 @@ const checks = [
   },
   {
     name: "token-like UUID",
-    pattern: /\b(?=.*(?:api|key|secret|token|railway))[^\n]*\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+    pattern:
+      /\b(?=.*(?:api|key|secret|token|railway))[^\n]*\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
   },
-]
+];
 
 function isIgnoredPath(filePath) {
-  const relativePath = repoRelative(filePath)
-  const segments = relativePath.split("/")
-  const fileName = segments.at(-1) || ""
+  const relativePath = repoRelative(filePath);
+  const segments = relativePath.split("/");
+  const fileName = segments.at(-1) || "";
 
-  if (ignoredFileNames.has(fileName)) return true
-  if (fileName.startsWith(".env")) return true
+  if (ignoredFileNames.has(fileName)) return true;
+  if (fileName.startsWith(".env")) return true;
 
-  return segments.some((segment) => ignoredDirectories.has(segment))
+  return segments.some((segment) => ignoredDirectories.has(segment));
 }
 
 function isTextFile(filePath) {
-  const fileName = path.basename(filePath)
+  const fileName = path.basename(filePath);
   if (fileName === "AGENTS.md" || fileName === "CHANGELOG.md" || fileName === "SECURITY.md") {
-    return true
+    return true;
   }
   if (fileName.startsWith(".") && !fileName.endsWith(".md") && !fileName.endsWith(".json")) {
-    return false
+    return false;
   }
 
-  const extension = path.extname(filePath)
-  if (textExtensions.has(extension)) return true
+  const extension = path.extname(filePath);
+  if (textExtensions.has(extension)) return true;
 
-  return [...textExtensions].some((suffix) => fileName.endsWith(suffix))
+  return [...textExtensions].some((suffix) => fileName.endsWith(suffix));
 }
 
 function collectFiles(directory) {
-  const files = []
+  const files = [];
 
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const filePath = path.join(directory, entry.name)
-    if (isIgnoredPath(filePath)) continue
+    const filePath = path.join(directory, entry.name);
+    if (isIgnoredPath(filePath)) continue;
 
     if (entry.isDirectory()) {
-      files.push(...collectFiles(filePath))
-      continue
+      files.push(...collectFiles(filePath));
+      continue;
     }
 
     if (entry.isFile() && isTextFile(filePath)) {
-      files.push(filePath)
+      files.push(filePath);
     }
   }
 
-  return files
+  return files;
 }
 
 function isAllowedLine(line) {
@@ -127,56 +125,56 @@ function isAllowedLine(line) {
     /\$\{[^}]+}/.test(line) ||
     /process\.env\./.test(line) ||
     /\.\.\./.test(line)
-  )
+  );
 }
 
 function redact(value) {
-  const trimmed = value.trim()
-  if (trimmed.length <= 8) return "[redacted]"
-  return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`
+  const trimmed = value.trim();
+  if (trimmed.length <= 8) return "[redacted]";
+  return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`;
 }
 
 function scanFile(filePath) {
-  const content = readFileSync(filePath, "utf8")
-  const lines = content.split(/\r?\n/)
-  const findings = []
+  const content = readFileSync(filePath, "utf8");
+  const lines = content.split(/\r?\n/);
+  const findings = [];
 
   lines.forEach((line, index) => {
-    if (isAllowedLine(line)) return
+    if (isAllowedLine(line)) return;
 
     for (const check of checks) {
-      check.pattern.lastIndex = 0
-      const matches = line.matchAll(check.pattern)
+      check.pattern.lastIndex = 0;
+      const matches = line.matchAll(check.pattern);
       for (const match of matches) {
         findings.push({
           filePath,
           line: index + 1,
           name: check.name,
           sample: redact(match[1] || match[0]),
-        })
+        });
       }
     }
-  })
+  });
 
-  return findings
+  return findings;
 }
 
-const findings = []
+const findings = [];
 
 for (const filePath of collectFiles(rootDir)) {
-  const stats = statSync(filePath)
-  if (stats.size > 1_000_000) continue
-  findings.push(...scanFile(filePath))
+  const stats = statSync(filePath);
+  if (stats.size > 1_000_000) continue;
+  findings.push(...scanFile(filePath));
 }
 
 if (findings.length > 0) {
-  console.error("Secret leak check failed. Replace real credentials with placeholders.")
+  console.error("Secret leak check failed. Replace real credentials with placeholders.");
   for (const finding of findings) {
     console.error(
       `- ${repoRelative(finding.filePath)}:${finding.line} ${finding.name} (${finding.sample})`,
-    )
+    );
   }
-  process.exit(1)
+  process.exit(1);
 }
 
-console.log("Secret leak check passed.")
+console.log("Secret leak check passed.");

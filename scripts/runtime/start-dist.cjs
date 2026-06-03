@@ -41,7 +41,9 @@ function isLocalHttpUrl(value) {
   if (!value) return false;
   try {
     const url = new URL(value);
-    return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname);
+    return (
+      url.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname)
+    );
   } catch {
     return false;
   }

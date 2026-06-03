@@ -25,8 +25,7 @@ export const aiChatBehaviorConfig = {
 
   aiInteractionLearning: {
     memoryCollectionPrompt: "docs/AI-interaction/prompt-library/ai-memory-collection.md",
-    rule:
-      "Collect learning from other AI chats only from visible transcripts, pasted notes, exported summaries, or explicit memory summaries; redact secrets and convert durable findings into docs, TODOs, requirements, changelog, or prompt-library entries.",
+    rule: "Collect learning from other AI chats only from visible transcripts, pasted notes, exported summaries, or explicit memory summaries; redact secrets and convert durable findings into docs, TODOs, requirements, changelog, or prompt-library entries.",
   },
 
   projectOverview: {

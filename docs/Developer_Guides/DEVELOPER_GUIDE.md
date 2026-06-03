@@ -152,19 +152,19 @@ All commands are run from `pnpm`.
 
 ### Lint & Format
 
-| Command               | Description                               |
-| --------------------- | ----------------------------------------- |
-| `pnpm lint`           | Package, TODO, workflows metadata + ESLint |
-| `pnpm lint:fix`       | ESLint with `--fix`                       |
-| `pnpm lint:docs`      | Markdownlint for docs and root markdown   |
-| `pnpm lint:changelog` | Ensure changelog has unreleased entries   |
-| `pnpm lint:commits`   | Check recent commit messages              |
-| `pnpm lint:deps`      | Manual dependency freshness check         |
-| `pnpm lint:secrets`  | Scan docs and source text for committed credentials |
-| `pnpm format`         | Prettier — write                          |
-| `pnpm format:check`   | Prettier — check only                     |
-| `pnpm docs:check`     | Markdown local-link check                 |
-| `pnpm link:docs`      | Alias for markdown local-link check       |
+| Command               | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `pnpm lint`           | Package, TODO, workflows metadata + ESLint          |
+| `pnpm lint:fix`       | ESLint with `--fix`                                 |
+| `pnpm lint:docs`      | Markdownlint for docs and root markdown             |
+| `pnpm lint:changelog` | Ensure changelog has unreleased entries             |
+| `pnpm lint:commits`   | Check recent commit messages                        |
+| `pnpm lint:deps`      | Manual dependency freshness check                   |
+| `pnpm lint:secrets`   | Scan docs and source text for committed credentials |
+| `pnpm format`         | Prettier — write                                    |
+| `pnpm format:check`   | Prettier — check only                               |
+| `pnpm docs:check`     | Markdown local-link check                           |
+| `pnpm link:docs`      | Alias for markdown local-link check                 |
 
 ### Test
 

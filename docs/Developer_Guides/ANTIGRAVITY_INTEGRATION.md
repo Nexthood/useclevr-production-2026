@@ -70,6 +70,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ```
 
 Current models include:
+
 - `gemini-2.5-flash` (default - recommended for most tasks)
 - `gemini-2.5-pro` (better quality, slower)
 - `gemini-3.5-flash-low`
@@ -106,6 +107,7 @@ The system automatically checks provider availability:
 ### "Missing API key" error
 
 **Error:**
+
 ```
 {"error":"Missing API key"}
 ```
@@ -124,23 +126,28 @@ Then restart the Antigravity server.
 ### Connection refused to 127.0.0.1:8317
 
 **Error:**
+
 ```
 Error: connect ECONNREFUSED 127.0.0.1:8317
 ```
 
 **Solution:**
+
 1. Verify Antigravity server is running:
+
    ```bash
    curl http://127.0.0.1:8317/v1/models -H "Authorization: Bearer YOUR_KEY"
    ```
 
 2. If not running, start it:
+
    ```bash
    cd /home/csaba/Documents/Antigravity-CLI
    ./cli-proxy-api
    ```
 
 3. Verify the port (default: 8317):
+
    ```bash
    lsof -i :8317
    ```
@@ -148,12 +155,14 @@ Error: connect ECONNREFUSED 127.0.0.1:8317
 ### "No AI provider available"
 
 **Error:**
+
 ```
 No AI provider. Start Antigravity server (http://127.0.0.1:8317),
 Local AI, or configure GEMINI_API_KEY in .env.local.
 ```
 
 **Solution:**
+
 1. Start Antigravity: `./cli-proxy-api` in the Antigravity CLI directory
 2. OR start Local AI: `ollama serve` or your local AI runtime
 3. OR set `GEMINI_API_KEY` in `.env.local` for cloud fallback
@@ -170,13 +179,13 @@ const available = await checkAntigravityAvailability();
 
 // Generate a completion
 const response = await generateAntigravityCompletion({
-  model: 'gemini-2.5-flash',
+  model: "gemini-2.5-flash",
   messages: [
-    { role: 'system', content: 'You are a helpful assistant.' },
-    { role: 'user', content: 'What is 2+2?' }
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What is 2+2?" },
   ],
   temperature: 0.3,
-  max_tokens: 1000
+  max_tokens: 1000,
 });
 
 // Get available models
@@ -185,11 +194,11 @@ const models = await fetchAntigravityModels();
 
 ### Environment Variables
 
-| Variable | Default | Required | Purpose |
-|----------|---------|----------|---------|
-| `ANTIGRAVITY_BASE_URL` | `http://127.0.0.1:8317` | No | Antigravity proxy server URL |
-| `ANTIGRAVITY_API_KEY` | Falls back to `GEMINI_API_KEY` | No | API key for Antigravity (can be same as Gemini key) |
-| `GEMINI_API_KEY` | - | Yes* | Fallback cloud AI key (*if no Antigravity) |
+| Variable               | Default                        | Required | Purpose                                             |
+| ---------------------- | ------------------------------ | -------- | --------------------------------------------------- |
+| `ANTIGRAVITY_BASE_URL` | `http://127.0.0.1:8317`        | No       | Antigravity proxy server URL                        |
+| `ANTIGRAVITY_API_KEY`  | Falls back to `GEMINI_API_KEY` | No       | API key for Antigravity (can be same as Gemini key) |
+| `GEMINI_API_KEY`       | -                              | Yes\*    | Fallback cloud AI key (\*if no Antigravity)         |
 
 ## Performance
 
@@ -230,11 +239,13 @@ gemini-api-key:
 ### API Endpoints
 
 #### Check Models
+
 ```bash
 curl -H "Authorization: Bearer KEY" http://127.0.0.1:8317/v1/models
 ```
 
 #### Send a Message
+
 ```bash
 curl -X POST http://127.0.0.1:8317/v1/chat/completions \
   -H "Authorization: Bearer KEY" \

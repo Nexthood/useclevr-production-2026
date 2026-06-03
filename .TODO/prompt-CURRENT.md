@@ -5,17 +5,17 @@ UseClevr is cost/time-sensitive. Do not overengineer. Do not introduce large arc
 
 Current repository context:
 
-* Main repository: Nexthood/useclevr-production-2026
-* Current app is a Next.js SaaS application.
-* Railway uses deployment branches:
+- Main repository: Nexthood/useclevr-production-2026
+- Current app is a Next.js SaaS application.
+- Railway uses deployment branches:
+  - `dist` = production deployment branch
+  - `dist-test` = staging/test deployment branch
 
-  * `dist` = production deployment branch
-  * `dist-test` = staging/test deployment branch
-* The current active TODO queue is `.TODO/todo-next.md`.
-* Future/deferred work is stored in `.TODO/todo-future.md`.
-* Get the next task number from `.TODO/config.json` before adding new TODO tasks.
-* Keep one stable T-number per task.
-* Do not duplicate tasks already in TODO files.
+- The current active TODO queue is `.TODO/todo-next.md`.
+- Future/deferred work is stored in `.TODO/todo-future.md`.
+- Get the next task number from `.TODO/config.json` before adding new TODO tasks.
+- Keep one stable T-number per task.
+- Do not duplicate tasks already in TODO files.
 
 Current priority:
 
@@ -29,63 +29,63 @@ Current priority:
 
 Do not implement now:
 
-* Do not migrate to Payload yet.
-* Do not create a monorepo yet.
-* Do not add Fumadocs yet.
-* Do not add Meilisearch yet.
-* Do not move MCP to a separate subdomain yet.
-* Do not add unnecessary CI/CD complexity.
-* Do not force tests if the project baseline is not stable.
-* Do not add enterprise-style abstractions.
+- Do not migrate to Payload yet.
+- Do not create a monorepo yet.
+- Do not add Fumadocs yet.
+- Do not add Meilisearch yet.
+- Do not move MCP to a separate subdomain yet.
+- Do not add unnecessary CI/CD complexity.
+- Do not force tests if the project baseline is not stable.
+- Do not add enterprise-style abstractions.
 
 Current MCP rule:
 Keep MCP internal under the SaaS API for now, for example:
 
-* `/api/mcp/*`
+- `/api/mcp/*`
   or
-* `/app/api/mcp/*`
+- `/app/api/mcp/*`
 
 Only prepare a future option for:
 
-* `mcp.useclevr.com`
+- `mcp.useclevr.com`
 
 Use a separate MCP subdomain only later if:
 
-* external agents/tools connect directly,
-* customers receive public MCP endpoints,
-* MCP needs separate auth/rate limits/logs,
-* MCP runs as a separate Railway service.
+- external agents/tools connect directly,
+- customers receive public MCP endpoints,
+- MCP needs separate auth/rate limits/logs,
+- MCP runs as a separate Railway service.
 
 Current Business Profile rule:
 The Business Profile must become the core identity/configuration layer for accurate analysis. It must collect enough data for:
 
-* business type,
-* revenue streams,
-* fixed costs,
-* variable costs,
-* tax/VAT basics,
-* insurance,
-* loans/leasing,
-* employees/payroll,
-* assets,
-* cash-flow timing,
-* inventory where relevant,
-* marketing spend,
-* risk profile,
-* goals/forecast inputs,
-* missing data warnings.
+- business type,
+- revenue streams,
+- fixed costs,
+- variable costs,
+- tax/VAT basics,
+- insurance,
+- loans/leasing,
+- employees/payroll,
+- assets,
+- cash-flow timing,
+- inventory where relevant,
+- marketing spend,
+- risk profile,
+- goals/forecast inputs,
+- missing data warnings.
 
 The Business Profile must not become a full ERP. Keep it simple, but complete enough for reliable SME/startup business intelligence.
 
 Calculation rule:
 All outputs must match collected data. The system must:
 
-* separate net, VAT, and gross values,
-* normalize monthly/quarterly/yearly values,
-* avoid double-counting taxes, payroll, loans, insurance, and depreciation,
-* separate operating costs from financing costs,
-* mark tax/legal/insurance outputs as estimates or requiring professional verification,
-* show low-confidence labels when required data is missing.
+- separate net, VAT, and gross values,
+- normalize monthly/quarterly/yearly values,
+- avoid double-counting taxes, payroll, loans, insurance, and depreciation,
+- separate operating costs from financing costs,
+- mark tax/legal/insurance outputs as estimates or requiring professional verification,
+- show low-confidence labels when required data is missing.
 
 Dataset AI rule:
 When the user uploads a CSV, the AI must use dataset context first. It must not answer generically if relevant uploaded data exists. If the dataset is missing, weak, or ambiguous, say so clearly and ask for the missing data only if needed.
@@ -93,11 +93,11 @@ When the user uploads a CSV, the AI must use dataset context first. It must not 
 Railway rule:
 Do not break the current Railway deployment flow. Before any architecture change:
 
-* verify current build command,
-* verify start command,
-* verify env usage,
-* verify dist package generation,
-* verify production and dist-test behavior.
+- verify current build command,
+- verify start command,
+- verify env usage,
+- verify dist package generation,
+- verify production and dist-test behavior.
 
 Future architecture direction:
 The future target may become:
@@ -120,11 +120,11 @@ Shared config only when actually needed
 
 Future subdomains:
 
-* `useclevr.com` = marketing/main
-* `app.useclevr.com` = SaaS app/dashboard
-* `docs.useclevr.com` = documentation
-* `api.useclevr.com` = backend API only if separated later
-* `mcp.useclevr.com` = future only, not now
+- `useclevr.com` = marketing/main
+- `app.useclevr.com` = SaaS app/dashboard
+- `docs.useclevr.com` = documentation
+- `api.useclevr.com` = backend API only if separated later
+- `mcp.useclevr.com` = future only, not now
 
 Expected behavior:
 For every task:

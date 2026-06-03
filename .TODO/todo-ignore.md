@@ -19,7 +19,7 @@ moving work between states.
 - T-523. Do not present tax, legal, insurance, or financing outputs as professional advice; label them as estimates, user-provided values, or professional-verification items.
 - T-199. Do not replace the current app, auth, billing, datasets, reports, tickets, AI traces, workspaces, or business records with Payload CMS; keep Payload limited to a future editable-content layer.
 - T-200. Review database migrations as a separate job while the app has one web service and migrations can run in the target runtime pre-deploy phase.
-- T-201. Review  server-host templates under build scripts; they are host templates, not executable build scripts.
+- T-201. Review server-host templates under build scripts; they are host templates, not executable build scripts.
 - T-202. Do not commit `node_modules/` to the dist branch; Railway installs runtime dependencies.
 - T-203. Avoid separate dist-specific TODO files after the dist deployment path succeeds and folds into the regular queues.
 - T-452. Retire `.TODO/todo-analysis.md` — detailed codebase analysis folded into regular TODO queue. Items already addressed by prior tasks; remaining findings moved to todo-next.md and todo-future.md.
@@ -27,6 +27,7 @@ moving work between states.
 - T-454. Ensures reproducible builds for production and test builds.
 
 [additional test ]
+
 - T-473. Verify /api/health returns OK after every deploy.
 - T-474. Verify Railway production starts from a fresh deploy.
 - T-475. Check runtime logs after deploy, not only build logs.

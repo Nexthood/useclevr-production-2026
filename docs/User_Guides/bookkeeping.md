@@ -20,4 +20,3 @@ Accountancy keeps bookkeeping work in one dashboard workspace.
 - Sales or revenue reports.
 - Supplier expense files.
 - Receipt registers.
-

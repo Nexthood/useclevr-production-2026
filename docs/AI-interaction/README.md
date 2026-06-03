@@ -6,14 +6,14 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 
 ## Folder Map
 
-| Folder | Audience | Purpose |
-| --- | --- | --- |
-| [user-guides](user-guides/README.md) | Users | How users ask, understand, review, and learn from AI interactions. |
-| [developer-guides](developer-guides/README.md) | Developers and AI agents | How agents work in the repo, preserve scope, and implement AI-related behavior. |
-| [prompt-library](prompt-library/README.md) | Users, developers, AI agents | Reusable prompts split by task type. |
-| [learning-traces](learning-traces/README.md) | Users, developers, AI agents | How interactions leave useful learning traces, problem markers, and improvement suggestions. |
-| [governance](governance/README.md) | Project management and AI agents | Controls for lessons, risks, issues, decisions, and durable instruction updates. |
-| [sales](sales/README.md) | Sales and marketing | Sales, marketing, presentation, research, and analysis guidance. |
+| Folder                                         | Audience                         | Purpose                                                                                      |
+| ---------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------- |
+| [user-guides](user-guides/README.md)           | Users                            | How users ask, understand, review, and learn from AI interactions.                           |
+| [developer-guides](developer-guides/README.md) | Developers and AI agents         | How agents work in the repo, preserve scope, and implement AI-related behavior.              |
+| [prompt-library](prompt-library/README.md)     | Users, developers, AI agents     | Reusable prompts split by task type.                                                         |
+| [learning-traces](learning-traces/README.md)   | Users, developers, AI agents     | How interactions leave useful learning traces, problem markers, and improvement suggestions. |
+| [governance](governance/README.md)             | Project management and AI agents | Controls for lessons, risks, issues, decisions, and durable instruction updates.             |
+| [sales](sales/README.md)                       | Sales and marketing              | Sales, marketing, presentation, research, and analysis guidance.                             |
 
 ## Current-State Text Rule
 

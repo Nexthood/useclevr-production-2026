@@ -27,22 +27,22 @@ flowchart TD
 
 ## Prefix System
 
-| Prefix | Usage          | Markdown Level | Example      |
-|--------|----------------|----------------|--------------|
-| P-     | Phase          | ##             | P-1 Overview |
-| S-     | Stage          | ###            | S-1 Features |
-| T-     | Suggestion Task| [suggestions]  | T-275 Task   |
-| L-     | List Item      | Unordered list | L-1 Item     |
-| U-     | Group          | ####           | U-1 Details  |
+| Prefix | Usage           | Markdown Level | Example      |
+| ------ | --------------- | -------------- | ------------ |
+| P-     | Phase           | ##             | P-1 Overview |
+| S-     | Stage           | ###            | S-1 Features |
+| T-     | Suggestion Task | [suggestions]  | T-275 Task   |
+| L-     | List Item       | Unordered list | L-1 Item     |
+| U-     | Group           | ####           | U-1 Details  |
 
 ---
 
 ## Files
 
-| File                           | Purpose                                        |
-| ------------------------------ | ---------------------------------------------- |
-| `.TODO/.PLAN/config.json` | General plan settings and counter management |
-| Active `.md` plan files | Temporary planning references for work not yet moved into durable docs or TODO queues |
+| File                      | Purpose                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `.TODO/.PLAN/config.json` | General plan settings and counter management                                          |
+| Active `.md` plan files   | Temporary planning references for work not yet moved into durable docs or TODO queues |
 
 ---
 

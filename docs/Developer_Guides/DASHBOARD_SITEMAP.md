@@ -99,42 +99,42 @@ flowchart TB
 
 ## Linked Menu Map
 
-| Menu area | Page | Route |
-| --- | --- | --- |
-| Dashboard | [Overview](https://app.useclevr.com/app) | `/app` |
-| Datasets | [Datasets table](https://app.useclevr.com/app/datasets) | `/app/datasets` |
-| Datasets | [Dataset table view](https://app.useclevr.com/app/datasets/[id]) | `/app/datasets/[id]` |
-| Datasets | [Dataset analysis](https://app.useclevr.com/app/datasets/[id]/analyze) | `/app/datasets/[id]/analyze` |
-| Datasets | [Upload dataset](https://app.useclevr.com/app/upload) | `/app/upload` |
-| AI Assistant | [Assistant workspace](https://app.useclevr.com/app/assistant) | `/app/assistant` |
-| AI Assistant | [Assistant history](https://app.useclevr.com/app/assistant/history) | `/app/assistant/history` |
-| Reports | [Reports and downloads](https://app.useclevr.com/app/downloads) | `/app/downloads` |
-| Business | [Overview](https://app.useclevr.com/app/business) | `/app/business` |
-| Business | [Profile](https://app.useclevr.com/app/business/profile) | `/app/business/profile` |
-| Business | [Locations](https://app.useclevr.com/app/business/locations) | `/app/business/locations` |
-| Business | [Tax](https://app.useclevr.com/app/business/tax) | `/app/business/tax` |
-| Business | [Financial](https://app.useclevr.com/app/business/financial) | `/app/business/financial` |
-| Business | [Review panel](https://app.useclevr.com/app/business) | Integrated into `/app/business` |
-| Accountancy | [Overview](https://app.useclevr.com/app/accountancy) | `/app/accountancy` |
-| Accountancy | [Reporting](https://app.useclevr.com/app/accountancy/reporting) | `/app/accountancy/reporting` |
-| Accountancy | [Tax](https://app.useclevr.com/app/accountancy/tax) | `/app/accountancy/tax` |
-| Accountancy | [Compliance](https://app.useclevr.com/app/accountancy/compliance) | `/app/accountancy/compliance` |
-| Support | [Dashboard FAQ](https://app.useclevr.com/app/faq) | `/app/faq` |
-| Support | [Tickets table](https://app.useclevr.com/app/tickets) | `/app/tickets` |
-| Support | [New ticket](https://app.useclevr.com/app/tickets/new) | `/app/tickets/new` |
-| Support | [Edit ticket](https://app.useclevr.com/app/tickets/[id]) | `/app/tickets/[id]` |
-| Account | [Profile](https://app.useclevr.com/app/settings/profile) | `/app/settings/profile` |
-| Account | [Preferences](https://app.useclevr.com/app/settings/preferences) | `/app/settings/preferences` |
-| Account | [Subscription](https://app.useclevr.com/app/settings/subscription) | `/app/settings/subscription` |
-| Account | [Billing](https://app.useclevr.com/app/settings/billing) | `/app/settings/billing` |
-| Account | [Activity](https://app.useclevr.com/app/settings/activity) | `/app/settings/activity` |
-| Account | [Checkout](https://app.useclevr.com/app/settings/checkout) | `/app/settings/checkout` |
-| Super-admin | [Customers](https://app.useclevr.com/app/admin/customers) | `/app/admin/customers` |
-| Super-admin | [Customer levels](https://app.useclevr.com/app/admin/levels) | `/app/admin/levels` |
-| Super-admin | [Discount rules](https://app.useclevr.com/app/admin/discounts) | `/app/admin/discounts` |
-| Super-admin | [Operator FAQ](https://app.useclevr.com/app/faq?scope=operator) | `/app/faq?scope=operator` |
-| Super-admin | [Payment setup](https://app.useclevr.com/app/settings/payment) | `/app/settings/payment` |
-| Super-admin | [Credit rules](https://app.useclevr.com/app/settings/credits) | `/app/settings/credits` |
-| Super-admin | [Total activity](https://app.useclevr.com/app/settings/total-activity) | `/app/settings/total-activity` |
+| Menu area    | Page                                                                   | Route                           |
+| ------------ | ---------------------------------------------------------------------- | ------------------------------- |
+| Dashboard    | [Overview](https://app.useclevr.com/app)                               | `/app`                          |
+| Datasets     | [Datasets table](https://app.useclevr.com/app/datasets)                | `/app/datasets`                 |
+| Datasets     | [Dataset table view](https://app.useclevr.com/app/datasets/[id])       | `/app/datasets/[id]`            |
+| Datasets     | [Dataset analysis](https://app.useclevr.com/app/datasets/[id]/analyze) | `/app/datasets/[id]/analyze`    |
+| Datasets     | [Upload dataset](https://app.useclevr.com/app/upload)                  | `/app/upload`                   |
+| AI Assistant | [Assistant workspace](https://app.useclevr.com/app/assistant)          | `/app/assistant`                |
+| AI Assistant | [Assistant history](https://app.useclevr.com/app/assistant/history)    | `/app/assistant/history`        |
+| Reports      | [Reports and downloads](https://app.useclevr.com/app/downloads)        | `/app/downloads`                |
+| Business     | [Overview](https://app.useclevr.com/app/business)                      | `/app/business`                 |
+| Business     | [Profile](https://app.useclevr.com/app/business/profile)               | `/app/business/profile`         |
+| Business     | [Locations](https://app.useclevr.com/app/business/locations)           | `/app/business/locations`       |
+| Business     | [Tax](https://app.useclevr.com/app/business/tax)                       | `/app/business/tax`             |
+| Business     | [Financial](https://app.useclevr.com/app/business/financial)           | `/app/business/financial`       |
+| Business     | [Review panel](https://app.useclevr.com/app/business)                  | Integrated into `/app/business` |
+| Accountancy  | [Overview](https://app.useclevr.com/app/accountancy)                   | `/app/accountancy`              |
+| Accountancy  | [Reporting](https://app.useclevr.com/app/accountancy/reporting)        | `/app/accountancy/reporting`    |
+| Accountancy  | [Tax](https://app.useclevr.com/app/accountancy/tax)                    | `/app/accountancy/tax`          |
+| Accountancy  | [Compliance](https://app.useclevr.com/app/accountancy/compliance)      | `/app/accountancy/compliance`   |
+| Support      | [Dashboard FAQ](https://app.useclevr.com/app/faq)                      | `/app/faq`                      |
+| Support      | [Tickets table](https://app.useclevr.com/app/tickets)                  | `/app/tickets`                  |
+| Support      | [New ticket](https://app.useclevr.com/app/tickets/new)                 | `/app/tickets/new`              |
+| Support      | [Edit ticket](https://app.useclevr.com/app/tickets/[id])               | `/app/tickets/[id]`             |
+| Account      | [Profile](https://app.useclevr.com/app/settings/profile)               | `/app/settings/profile`         |
+| Account      | [Preferences](https://app.useclevr.com/app/settings/preferences)       | `/app/settings/preferences`     |
+| Account      | [Subscription](https://app.useclevr.com/app/settings/subscription)     | `/app/settings/subscription`    |
+| Account      | [Billing](https://app.useclevr.com/app/settings/billing)               | `/app/settings/billing`         |
+| Account      | [Activity](https://app.useclevr.com/app/settings/activity)             | `/app/settings/activity`        |
+| Account      | [Checkout](https://app.useclevr.com/app/settings/checkout)             | `/app/settings/checkout`        |
+| Super-admin  | [Customers](https://app.useclevr.com/app/admin/customers)              | `/app/admin/customers`          |
+| Super-admin  | [Customer levels](https://app.useclevr.com/app/admin/levels)           | `/app/admin/levels`             |
+| Super-admin  | [Discount rules](https://app.useclevr.com/app/admin/discounts)         | `/app/admin/discounts`          |
+| Super-admin  | [Operator FAQ](https://app.useclevr.com/app/faq?scope=operator)        | `/app/faq?scope=operator`       |
+| Super-admin  | [Payment setup](https://app.useclevr.com/app/settings/payment)         | `/app/settings/payment`         |
+| Super-admin  | [Credit rules](https://app.useclevr.com/app/settings/credits)          | `/app/settings/credits`         |
+| Super-admin  | [Total activity](https://app.useclevr.com/app/settings/total-activity) | `/app/settings/total-activity`  |
 
 Super-admin-only routes must stay protected in navigation, search results, and direct route access.

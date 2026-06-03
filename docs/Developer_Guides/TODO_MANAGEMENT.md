@@ -29,13 +29,13 @@ active queue and keeps the original `T-` number unchanged.
 
 ## Files
 
-| File                   | Purpose                                                     |
-| ---------------------- | ----------------------------------------------------------- |
-| `.TODO/config.json`    | Task numbering, tracked TODO file paths, and agent rules.   |
-| `.TODO/todo-next.md`   | The only active queue for confirmed work.                   |
-| `.TODO/todo-done.md`   | Completed work history.                                     |
-| `.TODO/todo-future.md` | Valid work that should wait.                                |
-| `.TODO/todo-ignore.md` | Intentionally excluded work with rationale.                 |
+| File                   | Purpose                                                   |
+| ---------------------- | --------------------------------------------------------- |
+| `.TODO/config.json`    | Task numbering, tracked TODO file paths, and agent rules. |
+| `.TODO/todo-next.md`   | The only active queue for confirmed work.                 |
+| `.TODO/todo-done.md`   | Completed work history.                                   |
+| `.TODO/todo-future.md` | Valid work that should wait.                              |
+| `.TODO/todo-ignore.md` | Intentionally excluded work with rationale.               |
 
 Dist and audit-specific TODO files are retired. Dist follow-ups, audit findings, and migration
 records live in the regular TODO files and project guides.
