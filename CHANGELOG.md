@@ -14,8 +14,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Business mentoring user guide with session types, pricing, and booking process.
 - Business mentoring developer guide with API routes and schema for mentoring sessions.
 - Business mentoring sales documentation with target segments and pricing tiers.
-- Account linking allows users to add a password to an existing OAuth account via the signup form.
-- Clear error messages guide users when they try to sign in with credentials but have an OAuth account.
+- Account linking: users who signed up via Google or LinkedIn can add a password via the signup form without creating duplicate accounts.
+- OAuth user ID format standardized to `user_{uuid}` for consistency with credentials signup.
 
 ### Fixed
 - Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.

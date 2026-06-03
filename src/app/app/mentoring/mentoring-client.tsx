@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -19,11 +18,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getSessionTypeLabel, listExpertMentors, type MentorExpert, type MentoringSession } from "@/lib/mentoring/mentoring-store"
+import type { MentorExpert, MentoringSession } from "@/lib/mentoring/mentoring-store"
 import { Calendar, Clock, GraduationCap, Plus, User } from "lucide-react"
 import { useEffect, useState } from "react"
 
 const sessionTypes = ["fundraising", "growth", "operations", "financial", "product"] as const
+
+const sessionTypeLabels: Record<string, string> = {
+  fundraising: "Fundraising",
+  growth: "Growth Strategy",
+  operations: "Operations",
+  financial: "Financial Planning",
+  product: "Product Development",
+}
+
+function getSessionTypeLabel(type: string): string {
+  return sessionTypeLabels[type] || type
+}
+
+function getDefaultExperts(): MentorExpert[] {
+  return [
+    { id: "mentor-001", name: "Alex Chen", expertise: "Startup Fundraising & Pitch Strategy", bio: "", sessionTypes: ["fundraising", "growth"], pricePerSession: 29900, available: true },
+    { id: "mentor-002", name: "Sarah Mitchell", expertise: "Growth Strategy & Market Expansion", bio: "", sessionTypes: ["growth", "operations"], pricePerSession: 24900, available: true },
+    { id: "mentor-003", name: "James Rodriguez", expertise: "Financial Planning & Operations", bio: "", sessionTypes: ["financial", "operations"], pricePerSession: 34900, available: true },
+    { id: "mentor-004", name: "Priya Patel", expertise: "Product Development & Innovation", bio: "", sessionTypes: ["product", "growth"], pricePerSession: 27900, available: true },
+    { id: "mentor-005", name: "Marcus Thompson", expertise: "Fundraising & Financial Strategy", bio: "", sessionTypes: ["fundraising", "financial"], pricePerSession: 39900, available: true },
+  ]
+}
 
 export function MentoringClient() {
   const [sessions, setSessions] = useState<MentoringSession[]>([])
@@ -40,7 +61,7 @@ export function MentoringClient() {
       fetch("/api/mentoring/experts").then((r) => r.json()),
     ]).then(([sessionsRes, expertsRes]) => {
       setSessions(sessionsRes.sessions || [])
-      setExperts(expertsRes.experts || listExpertMentors())
+      setExperts(expertsRes.experts || getDefaultExperts())
       setLoading(false)
     })
   }, [])
@@ -123,7 +144,7 @@ export function MentoringClient() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Session type</Label>
+                <p className="text-sm font-medium text-foreground">Session type</p>
                 <Select value={bookType} onValueChange={setBookType}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -138,7 +159,7 @@ export function MentoringClient() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mentor">Mentor (optional)</Label>
+                <p className="text-sm font-medium text-foreground">Mentor (optional)</p>
                 <Select value={bookMentorId} onValueChange={setBookMentorId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Any available mentor" />

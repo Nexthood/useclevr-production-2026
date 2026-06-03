@@ -40,7 +40,7 @@ export async function signup(formData: FormData) {
     return { error: "Database connection failed. Please check your configuration." }
   }
 
-  // Handle existing OAuth user - allow adding password
+  // Handle existing OAuth user - automatically link password
   if (existingUser && !existingUser.password) {
     // Find the OAuth provider for this user
     let oauthAccount = null
@@ -52,35 +52,21 @@ export async function signup(formData: FormData) {
       debugError("Error checking OAuth account:", e)
     }
 
-    const providerHint = oauthAccount?.provider === "google" ? "Google"
-      : oauthAccount?.provider === "linkedin" ? "LinkedIn"
-      : "your social provider"
+    // Automatically add password to existing OAuth user
+    try {
+      const hashedPassword = await bcrypt.hash(password, 12)
+      await db.update(users)
+        .set({ password: hashedPassword, name: name || existingUser.name })
+        .where(eq(users.id, existingUser.id))
 
-    // Check if this is an explicit request to link accounts
-    const linkMode = formData.get("linkMode") === "true"
-    if (linkMode) {
-      // Add password to existing OAuth user
-      try {
-        const hashedPassword = await bcrypt.hash(password, 12)
-        await db.update(users)
-          .set({ password: hashedPassword, name: name || existingUser.name })
-          .where(eq(users.id, existingUser.id))
-
-        // Sign them in after linking
-        const signInResult = await db.query.users.findFirst({
-          where: eq(users.email, email),
-        })
-        return { success: true, linked: true, user: signInResult }
-      } catch (dbError) {
-        debugError("Error linking password to OAuth user:", dbError)
-        return { error: "Failed to link account. Please try again." }
-      }
-    }
-
-    return {
-      error: `An account exists with this email (signed up via ${providerHint}).`,
-      canLink: true,
-      providerHint,
+      // Auto-linked - sign them in
+      const signInResult = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      })
+      return { success: true, linked: true, user: signInResult }
+    } catch (dbError) {
+      debugError("Error linking password to OAuth user:", dbError)
+      return { error: "Failed to link account. Please try again." }
     }
   }
 
