@@ -258,6 +258,23 @@ curl -X POST http://127.0.0.1:8317/v1/chat/completions \
   }'
 ```
 
+## Quota, Pricing, and Runtime Separation
+
+The development environment utilizes multiple AI entry points that operate on isolated credentials and pricing structures.
+
+### Runtime Isolation
+
+- **App AI Integration (Antigravity/Cloud Fallback)**: Runs inside the local Next.js server context using configuration from `.env.local`. When the Antigravity key reaches its individual usage quota, the app's internal AI features (e.g., dataset profiling or chatbot) fail or fall back to direct Gemini API usage.
+- **Opencode CLI Developer Agent**: Runs directly in the terminal interface under a distinct developer seat or agent platform token. It does not route through the local Antigravity server or use `.env.local` API keys. Consequently, Opencode remains fully functional even when the app's development quota is exhausted.
+
+### Pricing and Usage Matrix
+
+| Component | Provider / Channel | Pricing Structure | Quota and Limits |
+| :--- | :--- | :--- | :--- |
+| **App-Side Cloud Fallback** | Google Gemini (Direct API) | Pay-As-You-Go:<br>• Input: ~$0.075 / 1M tokens<br>• Output: ~$0.30 / 1M tokens *(based on Gemini 2.5 Flash)* | Standard Google Cloud / AI Studio limits (Free tier: 15 RPM, Paid: High limits). |
+| **Antigravity CLI Proxy** | Local proxy to cloud endpoints | Seat-based subscription or org credit pool | Hard-capped per developer API key. Reaching this quota blocks app-side proxy requests. |
+| **Opencode Agent** | CLI Session (via Google Gemini) | Included in platform seat license or session credentials | Managed separately from development proxy keys. Resets with developer session or billing cycle. |
+
 ## Next Steps
 
 1. **Start Antigravity**: `./cli-proxy-api`

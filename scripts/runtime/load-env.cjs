@@ -38,7 +38,7 @@ if (path.basename(cwd) === "dist") {
   addCandidate(path.dirname(cwd));
 }
 
-const files = [".env", ".env.local"];
+const files = [".env", ".env.local", ".env.mock"];
 const loaded = {};
 
 for (const dir of candidateDirs) {

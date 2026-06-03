@@ -25,7 +25,7 @@ const LOCAL_HEALTH_TIMEOUT_MS = 5000 // 5 seconds timeout for health check
 const RETRY_INTERVAL_MS = 60000 // Retry cloud every 60 seconds
 
 // Provider type
-export type AIProvider = "antigravity" | "local" | "cloud"
+export type AIProvider = "antigravity" | "local" | "cloud" | "mock"
 export type CloudProvider = "gemini"
 
 // State tracking
@@ -133,6 +133,24 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   const antigravityIsAvailable = antigravityAvailable === true
   const localIsAvailable = localAIAvailable === true
   const cloudKey = GEMINI_API_KEY
+
+  // Mock AI mode (development shortcut) - short-circuit before any real provider checks
+  if (process.env.MOCK_AI_MODE === "true") {
+    debugLog("[AI-ROUTER] ═══ MOCK AI MODE ENABLED ═══")
+    currentProvider = "mock"
+    return {
+      provider: {
+        // Stubbed provider object so call sites can still reference getAIProvider(),
+        // but attempts to invoke the model will fail fast during development.
+        async doGenerate() {
+          throw new Error("PENDING_IMPLEMENTATION: Mock AI response generation is not implemented.")
+        },
+      } as unknown as LanguageModel,
+      type: "mock",
+      providerName: "Mock AI",
+      modelName: "mock-model"
+    }
+  }
 
   // Priority 1: ANTIGRAVITY SERVER - use if available (low latency, supports multiple models)
   if (antigravityIsAvailable) {

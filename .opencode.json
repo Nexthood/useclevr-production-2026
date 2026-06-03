@@ -1,17 +1,51 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "google/gemini-3.5-flash",
-  "small_model": "google/gemini-3.1-flash-lite",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "qwen2.5-coder:3b": {
+          "name": "Qwen 2.5 Coder 3B"
+        },
+        "phi3:mini": {
+          "name": "Phi-3 Mini"
+        }
+      }
+    }
+  },
+  "model": "ollama/phi3:mini",
+  "small_model": "ollama/phi3:mini",
   "lsp": {
     "eslint": {
-      "command": ["node_modules/.bin/vscode-eslint-language-server"],
-      "extensions": ["js", "jsx", "ts", "tsx", "mjs", "cjs"]
+      "command": [
+        "node_modules/.bin/vscode-eslint-language-server"
+      ],
+      "extensions": [
+        "js",
+        "jsx",
+        "ts",
+        "tsx",
+        "mjs",
+        "cjs"
+      ]
     },
     "tailwindcss": {
-      "command": ["node_modules/.bin/tailwindcss-language-server"],
-      "extensions": ["css", "tsx", "jsx"]
+      "command": [
+        "node_modules/.bin/tailwindcss-language-server"
+      ],
+      "extensions": [
+        "css",
+        "tsx",
+        "jsx"
+      ]
     }
   },
   "formatter": true,
-  "instructions": ["AGENTS.md"]
+  "instructions": [
+    "AGENTS.md"
+  ]
 }
