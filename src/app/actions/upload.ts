@@ -4,6 +4,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
+import { parseCSVString } from "@/lib/data/csvLoader"
 import { auth } from "@/lib/auth/auth"
 import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { db } from "@/lib/db"
@@ -15,6 +16,34 @@ import { v4 as uuidv4 } from 'uuid'
 
 interface CsvRow {
   [key: string]: string | number | boolean | null
+}
+
+async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  delayMs: number = 2000
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      debugLog(`[DB] ${operationName} - Attempt ${attempt}/${maxRetries}`)
+      const result = await operation()
+      debugLog(`[DB] ${operationName} - Success on attempt ${attempt}`)
+      return result
+    } catch (error: any) {
+      debugError(`[DB] ${operationName} - Attempt ${attempt} failed:`, error.message)
+
+      if (attempt === maxRetries) {
+        debugError(`[DB] ${operationName} - All ${maxRetries} attempts failed`)
+        throw error
+      }
+
+      debugLog(`[DB] ${operationName} - Retrying in ${delayMs}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+    }
+  }
+
+  throw new Error(`${operationName} failed after ${maxRetries} attempts`)
 }
 
 // Minimal DB availability probe to avoid broken downstream logic
@@ -100,11 +129,11 @@ export async function uploadCSV(formData: FormData): Promise<{
       if (file) {
         debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
         const text = await file.text()
-        const lines = text.trim().split("\n")
-        const headers = lines[0]?.split(",").map(h => h.trim().replace(/^"|"$/g, '')) || []
+        const parsed = parseCSVString(text)
+        const headers = parsed.columns
         debugLog("[UPLOAD] CSV parsed")
         debugLog("[UPLOAD] columns detected:", headers)
-        debugLog("[UPLOAD] row count detected:", Math.max(lines.length - 1, 0))
+        debugLog("[UPLOAD] row count detected:", parsed.rowCount)
       }
       debugLog("[UPLOAD] profitability analysis started")
       
@@ -205,15 +234,10 @@ export async function uploadCSV(formData: FormData): Promise<{
           if (file) {
             try {
               const text = await file.text()
-              const lines = text.trim().split("\n")
-              if (lines.length > 0) {
-                const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''))
-                const previewRows = lines.slice(1, 6).map(line => {
-                  const values = line.split(",")
-                  const row: Record<string, string> = {}
-                  headers.forEach((h, i) => { row[h] = values[i]?.trim() || '' })
-                  return row
-                })
+              const parsedPreview = parseCSVString(text)
+              if (parsedPreview.rowCount > 0) {
+                const headers = parsedPreview.columns
+                const previewRows = parsedPreview.rows.slice(0, 5)
                 preview = { headers, rows: previewRows }
               }
             } catch (e) {
@@ -288,43 +312,19 @@ export async function uploadCSV(formData: FormData): Promise<{
     const text = await file.text()
     debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
     
-    // Simple CSV parsing - just get headers and first few rows
-    const lines = text.trim().split("\n")
-    if (lines.length === 0) {
+    // Parse CSV content using canonical parser
+    const parsedDataset = parseCSVString(text)
+    if (parsedDataset.rowCount === 0) {
       return { success: false, error: "CSV file is empty" }
     }
 
-    // Parse headers from first line
-    const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''))
+    const headers = parsedDataset.columns
+    const totalRowCount = parsedDataset.rowCount
+    const allRows = parsedDataset.rows as CsvRow[]
+
     debugLog("[UPLOAD] CSV parsed")
     debugLog("[UPLOAD] columns detected:", headers)
-    
-    // Count total rows first (just count newlines)
-    const totalRowCount = lines.length - 1 // Exclude header
     debugLog("[UPLOAD] row count detected:", totalRowCount)
-    
-    // Parse ALL rows for full dataset analysis
-    const allRows: CsvRow[] = []
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ''))
-      const row: CsvRow = {}
-      headers.forEach((header, index) => {
-        const value = values[index] ?? ""
-        // Try to convert to number if possible
-        if (typeof value === "string" && !isNaN(Number(value)) && value !== "") {
-          row[header] = Number(value)
-        } else if (value.toLowerCase() === "true") {
-          row[header] = true
-        } else if (value.toLowerCase() === "false") {
-          row[header] = false
-        } else if (value === "") {
-          row[header] = null
-        } else {
-          row[header] = value
-        }
-      })
-      allRows.push(row)
-    }
 
     // Generate dataset ID
     const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`
@@ -439,7 +439,10 @@ export async function uploadCSV(formData: FormData): Promise<{
       debugLog("[UPLOAD] ============================")
       
       try {
-        await (db as any).insert(datasets).values(insertData)
+        await executeWithRetry(
+          () => (db as any).insert(datasets).values(insertData),
+          "Insert dataset"
+        )
         debugLog("[UPLOAD] Dataset created with", totalRowCount, "rows")
         debugLog("[UPLOAD] dataset saved:", datasetId)
         if (isProfitabilityAnalysis) {
@@ -457,7 +460,10 @@ export async function uploadCSV(formData: FormData): Promise<{
               rowIndex: i + j,
               data: row,
             }))
-            await (db as any).insert(datasetRows).values(rowValues)
+            await executeWithRetry(
+              () => (db as any).insert(datasetRows).values(rowValues),
+              `Insert datasetRows batch ${i / BATCH_SIZE + 1}`
+            )
           }
           debugLog("[UPLOAD] Wrote", allRows.length, "rows to datasetRows")
         }

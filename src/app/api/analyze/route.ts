@@ -26,7 +26,7 @@ import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
-import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
+import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/data/queryEngine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { analyzeRequestSchema, validateOrError } from "@/lib/validation";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
@@ -36,7 +36,7 @@ import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 
 // Generate business insights from query results without LLM
-function generateBusinessInsights(result: any[], question: string): { insight: string; explanation: string; recommendation: string } {
+function generateBusinessInsights(result: Record<string, unknown>[], question: string): { insight: string; explanation: string; recommendation: string } {
   if (!result || result.length === 0) {
     return { insight: "No data available", explanation: "The query returned no results.", recommendation: "Try a different question." };
   }
@@ -58,11 +58,11 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
     }
 
     const aggregated: Record<string, { value: number; count: number }> = {};
-    data.forEach((row: any) => {
-      const category = row[catKey];
-      const value = row[numKey];
+    data.forEach((row: Record<string, unknown>) => {
+      const category = String(row[catKey] ?? "");
+      const value = Number(row[numKey] ?? 0);
       if (!aggregated[category]) aggregated[category] = { value: 0, count: 0 };
-      aggregated[category].value += typeof value === 'number' ? value : 0;
+      aggregated[category].value += value;
       aggregated[category].count += 1;
     });
 
@@ -81,8 +81,8 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
   }
 
     if (isTrend) {
-      const firstVal = data[0] ? (data[0][numKey] || 0) : 0;
-      const lastVal = data[data.length - 1] ? (data[data.length - 1][numKey] || 0) : 0;
+      const firstVal = data[0] ? Number(data[0][numKey] ?? 0) : 0;
+      const lastVal = data[data.length - 1] ? Number(data[data.length - 1][numKey] ?? 0) : 0;
       const change = parseFloat(((lastVal - firstVal) / (firstVal || 1) * 100).toFixed(1));
       const direction = change >= 0 ? 'increased' : 'declined';
       const growthDecline = change >= 0 ? 'positive growth' : 'declining performance';
@@ -146,7 +146,7 @@ function cleanInsight(text: string): string {
 }
 
 // Store dataset in memory (for the session)
-let currentDataset: any[] = [];
+let currentDataset: Record<string, unknown>[] = [];
 let currentColumns: string[] = [];
 let datasetLoaded = false;
 
@@ -393,7 +393,7 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Execute SQL query
-    let result: any[] = [];
+    let result: Record<string, unknown>[] = [];
     let queryError: string | null = null;
 
     try {

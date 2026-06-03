@@ -16,6 +16,27 @@ moving work between states.
 
 ## Completed
 
+- T-595. Add MCP rate limiting and audit logging for tool listing, resource reads, and tool invocation while keeping logs free of raw dataset content.
+- T-596. Add MCP service-token and admin-token access only for approved internal clients, with ownership checks, role-based tool allowlists, and AI trace guidance updates.
+- T-597. Add CSP nonce support to Next.js headers — generated cryptographically random nonces in `middleware.ts` and set dynamic CSP headers, removing the static duplicate CSP from `next.config.mjs`.
+- T-598. Remove remaining `any` types in API routes — replaced `any` types in `src/app/api/analyze/route.ts` with proper types.
+- T-599. Audit public API route exposure — added a secure `validateAPIKey` and permission checks to `src/app/api/public/ai/route.ts` to ensure it fails closed on unauthorized access and returns safe data only.
+- T-600. Remove unused imports and dead code — cleaned up unused imports and unused variables like `oauthAccount` in actions.
+- T-601. Add an API route access matrix — created `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md` covering access classifications, expected helpers, ownership checks, rate limits, and audit tracking.
+- T-582. Merge duplicate upload implementations — made the server action `uploadCSV` in `src/app/actions/upload.ts` canonical, merged database retry logic and processRows types, and delegated the API route `/api/upload` to call it.
+- T-587. Consolidate CSV parsing into one canonical module — replaced split-by-newline-split-by-comma manual parsers with robust PapaParse-backed `parseCSVString` calls across upload actions and handlers.
+- T-588. Consolidate currency/number cleaning into shared module — extracted currency symbols, date patterns, and cleanNumericValue into a canonical `src/lib/utils/number-parser.ts` and imported them back in cleaner and preview generator.
+- T-590. Consolidate `ValidationResult` into `Result` type — removed the duplicate structurally identical types from `src/lib/validation.ts` and updated `validateOrError` return type.
+- T-591. Normalize pnpm version constant between ESM and CJS configs — updated CJS `app-config.cjs` requiredPackageManager to match ESM requiredPackageManager with the hash.
+- T-584. Use route groups to simplify middleware auth — restructured `src/app/` into `(public)` and `(auth)` route groups, moved the authenticated layout check to `(auth)/layout.tsx`, and simplified the middleware logic.
+- T-589. Create shared `requireAuth()` helper — created `src/lib/auth/require-auth.ts` containing throwing `requireAuth` and functional `requireAuthResult` helper functions, and updated all server action call sites.
+- T-583. Replace barrel proxy files with direct imports — updated callers in api routes and chat helper to import directly from queryEngine and queryIntentPrompt.
+- T-585. Merge duplicate FAQ and Mentoring pages — removed custom accordion from public FAQ and replaced it with canonical in-app FaqList; consolidated duplicated experts and session types from mentoring-client to mentoring-store.
+- T-577. Fix Node.js version mismatch in generated Dockerfile — changed to node:26-alpine matching package.json engine requirements.
+- T-578. Remove dead turbo.json and turbo devDependency — verified turbo.json and turbo are completely removed from package.json devDependencies.
+- T-579. Consolidate overlapping build aliases in package.json — kept only canonical scripts, removing duplicate and confusing build/prod/preview aliases.
+- T-580. Eliminate redundant `.next` copy in dist packaging — copy only server/Railway-specific files from `.next/standalone/.next` to `next-build` instead of copying the whole `.next` directory with static assets.
+- T-581. Merge redundant .env cleanup loops in create-dist.cjs — consolidated env cleanup into a single, efficient loop over all .env files and .npmrc.
 - T-571. Fix theme switcher panel: separate light/dark/system theme selection from high contrast and larger text accessibility options that apply on top of selected theme.
 - T-566. Refactor topbar panels to icons-only with tooltips. Replace Popover backgrounds with transparent overlays and add tooltip labels that appear on hover for narrow icon buttons.
 - T-567. Move sidebar toggle from topbar to the AppSidebar component. Relocate the TopbarSidebarToggle button into the sidebar header for desktop view and keep mobile toggle in place.

@@ -4,7 +4,7 @@ import { debugError } from "@/lib/utils/debug"
 
 
 
-import { auth } from "@/lib/auth/auth"
+import { requireAuthResult } from "@/lib/auth/require-auth"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { failure, type Result, success } from "@/lib/result"
@@ -12,10 +12,11 @@ import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export async function deleteDataset(datasetId: string): Promise<Result<true>> {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return failure("Unauthorized")
+  const authResult = await requireAuthResult()
+  if (!authResult.success) {
+    return failure(authResult.error)
   }
+  const session = authResult.data
 
   try {
     await db.delete(datasets).where(
@@ -33,10 +34,11 @@ export async function deleteDataset(datasetId: string): Promise<Result<true>> {
 }
 
 export async function getUserDatasets(): Promise<Result<Array<Record<string, unknown>>>> {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return failure("Unauthorized")
+  const authResult = await requireAuthResult()
+  if (!authResult.success) {
+    return failure(authResult.error)
   }
+  const session = authResult.data
 
   try {
     const userDatasets = await db.query.datasets.findMany({
@@ -62,10 +64,11 @@ export async function getUserDatasets(): Promise<Result<Array<Record<string, unk
 }
 
 export async function getDatasetById(datasetId: string): Promise<Result<unknown>> {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return failure("Unauthorized")
+  const authResult = await requireAuthResult()
+  if (!authResult.success) {
+    return failure(authResult.error)
   }
+  const session = authResult.data
 
   try {
     const dataset = await db.query.datasets.findFirst({
@@ -90,10 +93,11 @@ export async function getDatasetRows(
   datasetId: string,
   options?: { offset?: number; limit?: number }
 ): Promise<Result<{ rows: unknown[]; total: number }>> {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return failure("Unauthorized")
+  const authResult = await requireAuthResult()
+  if (!authResult.success) {
+    return failure(authResult.error)
   }
+  const session = authResult.data
 
   try {
     const dataset = await db.query.datasets.findFirst({

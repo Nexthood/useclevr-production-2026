@@ -10,6 +10,7 @@ import { compareDatasets } from '@/lib/data/dataset-comparator';
 import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
 import { buildDatasetIntelligence } from '@/lib/data/dataset-intelligence';
 import { executeDuckDBQuery, investigateDataset } from '@/lib/utils/investigation-autopilot';
+import { validateAPIKey, hasAPIPermission } from '@/lib/auth/api-key-auth';
 import { NextResponse } from 'next/server';
 
 // ============================================================================
@@ -18,8 +19,26 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
+    const apiKeyHeader = request.headers.get('x-api-key');
+    if (!apiKeyHeader) {
+      return NextResponse.json({ error: 'Missing x-api-key header' }, { status: 401 });
+    }
+
+    const apiKey = await validateAPIKey(apiKeyHeader);
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Invalid or expired API key' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { action } = body;
+    
+    if (!action) {
+      return NextResponse.json({ error: 'Action is required' }, { status: 400 });
+    }
+
+    if (!hasAPIPermission(apiKey, action)) {
+      return NextResponse.json({ error: `Forbidden: API key lacks '${action}' permission` }, { status: 403 });
+    }
     
     switch (action) {
       case 'analyze':

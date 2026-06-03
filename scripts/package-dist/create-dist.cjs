@@ -94,8 +94,8 @@ if (fs.existsSync(nextStaticDir)) {
 }
 
 // Railway's source snapshot can omit dot-directories from the service root. Keep a non-dot copy and
-// restore it inside the image before runtime starts. Exclude static/cache to avoid duplicate size.
-copyDir(path.join(distDir, ".next"), path.join(distDir, "next-build"), { excludeRootDirs: ["static", "cache"] });
+// restore it inside the image before runtime starts. Copy directly from standalone build to avoid static duplication.
+copyDir(path.join(standaloneDir, ".next"), path.join(distDir, "next-build"));
 normalizeMiddlewareManifest(path.join(distDir, ".next"));
 normalizeMiddlewareManifest(path.join(distDir, "next-build"));
 

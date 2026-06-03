@@ -5,7 +5,7 @@ import { datasets } from '@/lib/db/schema';
 import {
   EXPLANATION_SYSTEM_PROMPT,
   generateExplanationPrompt
-} from '@/lib/query/intent-prompt';
+} from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
 import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';

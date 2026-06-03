@@ -44,16 +44,6 @@ export async function signup(formData: FormData) {
 
   // Handle existing OAuth user - automatically link password
   if (existingUser && !existingUser.password) {
-    // Find the OAuth provider for this user
-    let oauthAccount = null
-    try {
-      oauthAccount = await db.query.accounts.findFirst({
-        where: eq(accounts.userId, existingUser.id),
-      })
-    } catch (e) {
-      debugError("Error checking OAuth account:", e)
-    }
-
     // Automatically add password to existing OAuth user
     try {
       const hashedPassword = await bcrypt.hash(password, 12)

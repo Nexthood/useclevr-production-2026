@@ -1,20 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const publicRoutes = [
-  "/",
-  "/login",
-  "/signup",
-  "/pricing",
-  "/faq",
-  "/contact",
-  "/privacy",
-  "/terms",
-  "/security",
-  "/affiliate",
-]
-
-const publicPrefixes = ["/_next", "/api/auth", "/api/health", "/api/public", "/api/webhooks", "/demo", "/report"]
-
 const apiPrefix = "/api"
 
 function hasSessionCookie(request: NextRequest) {
@@ -29,25 +14,27 @@ export default function middleware(request: NextRequest) {
   const isLoggedIn = hasSessionCookie(request)
   const pathname = nextUrl.pathname
 
-  if (publicRoutes.includes(pathname)) {
-    return NextResponse.next()
-  }
+  // Generate CSP Nonce
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
+  const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'unsafe-eval'; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`.replace(/\s{2,}/g, " ").trim()
 
-  if (publicPrefixes.some((prefix) => pathname.startsWith(prefix))) {
-    return NextResponse.next()
-  }
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set("x-nonce", nonce)
+  requestHeaders.set("Content-Security-Policy", cspHeader)
 
   if (!isLoggedIn && pathname.startsWith(apiPrefix)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    response.headers.set("Content-Security-Policy", cspHeader)
+    return response
   }
 
-  if (!isLoggedIn) {
-    const loginUrl = new URL("/login", nextUrl.origin)
-    loginUrl.searchParams.set("callbackUrl", pathname + nextUrl.search)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  return NextResponse.next()
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+  response.headers.set("Content-Security-Policy", cspHeader)
+  return response
 }
 
 export const config = {

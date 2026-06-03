@@ -11,7 +11,7 @@ Check:
 - Dataset resources and tool calls stay scoped to the owning user.
 - Super-admin access stays explicit.
 - Hidden URLs are not the security model.
-- Service-token or admin-token access is future work and keeps ownership, role allowlist, rate limit, audit log, and trace rules.
+- Service-token or admin-token access validates approved internal clients with specific role allowlists, rate limiting, and secure audit logging.
 - Public FAQ content stays available through public FAQ pages and help chat, not public MCP discovery.
 - Dashboard FAQ includes signed-in support, billing, dataset, report, credit, and Hybrid AI answers.
 - Operator FAQ content is visible only to super-admin users.
