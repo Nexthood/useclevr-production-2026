@@ -8,6 +8,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Login and registration auto-sign-in after successful signup with a delay to ensure database commit before authentication attempt.
 - Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
@@ -23,6 +24,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Rate limiting added to the analyze API route (30 requests/minute).
 
 ### Fixed
+- AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
+- Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
 - Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
 - Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.
 - Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.

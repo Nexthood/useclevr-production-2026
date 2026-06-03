@@ -67,6 +67,7 @@ folder during the same task cycle.
 - The `aiInteractionTraces` table has a foreign key to the `User` table with cascade delete.
 - Trace anonymization strips email addresses from stored prompts and responses.
 - Trace examples and learning summaries use placeholders for credentials and omit provider tokens, webhook secrets, and environment values.
+- Trace storage redacts credential-like values before prompts, answers, and errors are saved.
 - Trace retention is configurable via superadmin UI; default is 90 days with auto-cleanup.
 - The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
 - Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.

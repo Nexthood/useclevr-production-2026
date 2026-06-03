@@ -12,6 +12,10 @@ import { NextResponse } from 'next/server';
 // ============================================================================
 
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new Response(null, { status: 404 });
+  }
+
   const { searchParams } = new URL(request.url);
   const datasetId = searchParams.get('datasetId');
 

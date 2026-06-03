@@ -36,6 +36,38 @@ export interface TraceRecord {
 }
 
 const PROMPT_VERSION = "1.0"
+const TRACE_TEXT_LIMIT = 10000
+const TRACE_RESPONSE_LIMIT = 50000
+
+const traceRedactionPatterns = [
+  { pattern: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, replacement: "[email]" },
+  { pattern: new RegExp("AI" + "za[0-9A-Za-z_-]{20,}", "g"), replacement: "[api-key]" },
+  { pattern: /(?:github_pat_|gh[pousr]_)[A-Za-z0-9_]{20,}/g, replacement: "[github-token]" },
+  { pattern: new RegExp("s" + "k_(?:live|test)_[A-Za-z0-9_]{12,}", "g"), replacement: "[stripe-key]" },
+  { pattern: new RegExp("r" + "k_(?:live|test)_[A-Za-z0-9_]{12,}", "g"), replacement: "[stripe-key]" },
+  { pattern: new RegExp("w" + "hsec_[A-Za-z0-9_]{12,}", "g"), replacement: "[webhook-secret]" },
+  {
+    pattern: /(?<![A-Za-z])(?:api[_ -]?key|apikey|token|secret|password|private[_ -]?key)(?![A-Za-z])\s*[:=]\s*["']?(?!<|\$\{|process\.env\b)[A-Za-z0-9_./+=-]{20,}/gi,
+    replacement: "[credential]",
+  },
+  {
+    pattern: /\b(?=.*(?:api|key|secret|token|railway))[^\n]*\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+    replacement: "[token]",
+  },
+]
+
+function sanitizeTraceText(value: string, limit: number) {
+  let output = String(value || "").slice(0, limit)
+  for (const { pattern, replacement } of traceRedactionPatterns) {
+    output = output.replace(pattern, replacement)
+  }
+  return output
+}
+
+function sanitizeOptionalTraceText(value: string | null | undefined, limit: number) {
+  if (!value) return null
+  return sanitizeTraceText(value, limit)
+}
 
 export function getCurrentPromptVersion(): string {
   return PROMPT_VERSION
@@ -51,15 +83,15 @@ export async function createTrace(input: CreateTraceInput): Promise<TraceRecord 
       id,
       userId: input.userId,
       datasetId: input.datasetId || null,
-      prompt: input.prompt.slice(0, 10000),
-      response: input.response.slice(0, 50000),
+      prompt: sanitizeTraceText(input.prompt, TRACE_TEXT_LIMIT),
+      response: sanitizeTraceText(input.response, TRACE_RESPONSE_LIMIT),
       providerName: input.providerName,
       modelName: input.modelName,
       promptVersion: input.promptVersion || PROMPT_VERSION,
       latencyMs: input.latencyMs ?? null,
       tokenCount: input.tokenCount ?? null,
       estimatedCostUsd: input.estimatedCostUsd ?? null,
-      error: input.error || null,
+      error: sanitizeOptionalTraceText(input.error, TRACE_TEXT_LIMIT),
       feedback: null,
       feedbackText: null,
       userAnonymized: false,

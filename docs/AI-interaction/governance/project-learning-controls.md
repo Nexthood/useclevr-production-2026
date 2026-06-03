@@ -41,10 +41,11 @@ Use this guide to turn AI interactions into useful project learning without conf
 - Risk register: Move valid deferred risk prevention work into `.TODO/todo-future.md`.
 - Decision log: Move deliberate no-fix or boundary decisions into `.TODO/todo-ignore.md`.
 - Change control: Update requirements and changelog when product behavior changes.
+- Audit record: Keep validation evidence, concrete findings, and follow-up task IDs in the relevant developer guide.
 
 ## Safety
 
-- Do not store secrets, tokens, private keys, raw uploaded files, full prompts containing sensitive business data, or personal data that is not needed for learning.
+- Do not store secrets, tokens, credential values, private keys, raw uploaded files, full prompts containing sensitive business data, or personal data that is not needed for learning.
 - Redact user-identifying details unless the trace needs account ownership context.
 - Mark uncertainty clearly.
 - Keep advice boundaries clear for tax, legal, insurance, financing, and medical topics.

@@ -153,22 +153,21 @@ function LoginForm() {
         return
       }
 
-      // Sign in after successful signup
-      const signInResult = await signIn("credentials", {
+      // Small delay to ensure user record is committed before sign-in attempt
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Sign in after successful signup with redirect to dashboard
+      await signIn("credentials", {
         email: signUpEmail,
         password: signUpPassword,
-        redirect: false,
+        redirect: true,
         callbackUrl: dashboardCallbackUrl(),
       })
-
-      if (signInResult?.error) {
-        setAuthError("Account created, but automatic sign-in failed. Please use the Sign in tab.")
-        return
-      }
-
-      goToDashboard()
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Account creation failed. Please try again.")
+      // signIn with redirect: true will navigate away on success, no need for goToDashboard()
+    } catch {
+      // signIn with redirect: true navigates away on success
+      // If we reach here, sign-in failed
+      setAuthError("Account created. Please sign in with your new credentials.")
     } finally {
       setIsLoading(false)
       setAuthAction(null)

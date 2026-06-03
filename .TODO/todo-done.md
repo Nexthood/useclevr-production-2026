@@ -278,3 +278,4 @@ moving work between states.
 - T-562. Upload and analysis hardened: file size check (50MB) and rate limit (10/min) on upload route, rate limit (30/min) on analyze route, improved dirty-CSV error messages.
 - T-592. Document lockfile handling in create-dist.cjs — added clarifying comment that pnpm-lock.yaml is removed from dist output because Railway Dockerfile uses npm install with precompiled standalone bundle, while .aiignore keeps lockfiles from AI context for token optimization.
 - T-593. Add src/lib/cms/** to eslint ignore list — eslint now ignores the CMS planning directory that tsconfig excludes, preventing parsing errors against non-existent types.
+- T-586. Guard debug API routes with production 404 responses so dataset and request-header diagnostics stay development-only.

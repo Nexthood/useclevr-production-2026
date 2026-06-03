@@ -6,7 +6,7 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 
 - AI Assistant requests create non-blocking interaction traces.
 - Traces store user, prompt, answer, provider, model, prompt version, latency, token count, error state, and feedback when available.
-- Trace anonymization removes email-like values from stored prompts and answers.
+- Trace storage redacts email-like values, provider keys, tokens, webhook secrets, and credential-like assignments before prompts, answers, and errors are persisted.
 - Users can review, search, re-run, export, and rate their own AI history.
 - Super-admins can review aggregate trace analytics, benchmarking, provider distribution, error rate, and top queries.
 - Business Profile and Company Setup changes that alter AI context update trace guidance so future traces explain which business context shaped an answer.
@@ -29,3 +29,4 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Update MCP and FAQ guidance when tool scope, FAQ source, public/private context boundaries, service-token access, audit logging, or rate limiting change AI-visible content.
 - Keep raw datasets, secrets, tokens, webhook secrets, environment values, customer data, and private keys out of trace examples.
 - Run `pnpm lint:secrets` after trace docs, prompt examples, deployment notes, or credential setup examples change.
+- During broad audits, classify findings as lesson, issue, risk, decision, or improvement before updating TODO queues or project guides.

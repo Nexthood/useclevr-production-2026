@@ -24,6 +24,7 @@ This file states the current product requirements in direct, present-state langu
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
 - Keep AI answers within the uploaded dataset scope.
+- Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.

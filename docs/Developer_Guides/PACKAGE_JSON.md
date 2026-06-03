@@ -36,7 +36,7 @@ flowchart LR
 
 ## Dependency Checks
 
-`pnpm lint` runs package metadata checks, TODO metadata checks, and ESLint.
+`pnpm lint` runs package metadata checks, TODO metadata checks, workflow checks, secret-leak checks, pricing validation, and ESLint.
 
 `pnpm lint:docs`, `pnpm lint:changelog`, `pnpm lint:commits`, and `pnpm link:docs` are separate
 targeted checks so developers can run only the surface they changed.
