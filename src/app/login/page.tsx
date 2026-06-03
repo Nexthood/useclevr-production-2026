@@ -277,12 +277,7 @@ function LoginForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="signin-password">Password</Label>
-                      <Link href="#" className="text-sm text-primary hover:underline">
-                        Forgot password?
-                      </Link>
-                    </div>
+                    <Label htmlFor="signin-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -297,6 +292,9 @@ function LoginForm() {
                       />
                       <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
                     </div>
+                    <Link href="#" className="block text-sm text-primary hover:underline">
+                      Forgot password?
+                    </Link>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -367,9 +365,12 @@ function LoginForm() {
                       />
                       <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
                     </div>
+                    {signUpPassword && (
+                      <PasswordStrengthIndicator password={signUpPassword} />
+                    )}
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || signUpPassword.length < 8}>
                     {isLoading && authAction === "signup" ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -452,5 +453,35 @@ function PasswordToggle({
         <Eye className="h-4 w-4" />
       )}
     </button>
+  )
+}
+
+function PasswordStrengthIndicator({ password }: { password: string }) {
+  const strength = (() => {
+    let score = 0
+    if (password.length >= 8) score++
+    if (/[A-Z]/.test(password)) score++
+    if (/[0-9]/.test(password)) score++
+    if (/[^A-Za-z0-9]/.test(password)) score++
+    return score
+  })()
+
+  const labels = ["Weak", "Fair", "Good", "Strong"]
+  const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"]
+
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={`h-1 flex-1 rounded-full ${
+              i < strength ? colors[strength - 1] : "bg-muted"
+            }`}
+          />
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">{labels[strength - 1] || "Too short"}</p>
+    </div>
   )
 }

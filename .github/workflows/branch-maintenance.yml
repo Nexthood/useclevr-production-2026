@@ -174,8 +174,9 @@ jobs:
 
           rm -f pnpm-workspace.yaml
 
-          # Remove node_modules entirely — not needed in dist branch (Dockerfile runs npm install)
-          rm -rf dist/node_modules
+          # Remove node_modules entirely (from pnpm install) — not needed in dist branch
+          # Dockerfile runs npm install and .dockerignore excludes node_modules.
+          rm -rf node_modules dist/node_modules
 
           git add -A
           git commit -m "${{ steps.dist-title.outputs.title }}"
