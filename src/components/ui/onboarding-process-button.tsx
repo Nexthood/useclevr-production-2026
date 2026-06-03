@@ -3,14 +3,14 @@
 import { Modal } from "@/components/ui/modal"
 import type { OnboardingStatus, OnboardingStep } from "@/lib/onboarding/status"
 import {
-    BarChart3,
-    Building2,
-    CheckCircle2,
-    Loader2,
-    Map,
-    PlayCircle,
-    Upload,
-    User,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  Loader2,
+  Map,
+  PlayCircle,
+  Upload,
+  User,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -75,20 +75,21 @@ export function OnboardingProcessButton() {
        <button
          type="button"
          onClick={() => setOpen(true)}
-         className="inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/15 px-3 py-2 text-xs font-semibold text-primary transition hover:border-primary/60 hover:bg-primary/20 active:bg-primary/25"
+         className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/15 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/70 hover:bg-primary/25 active:bg-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
          title="Open setup progress"
+         aria-label={`Setup progress ${completionPercent}% complete`}
        >
          {completionPercent === 100 ? (
-           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
          ) : (
-           <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
+           <PlayCircle className="h-4 w-4" aria-hidden="true" />
          )}
          <span className="hidden sm:inline">{completionPercent === 100 ? "Setup complete" : "Setup"}</span>
-         <span className="hidden sm:inline">{completionPercent}%</span>
+         <span className="hidden sm:inline text-sm font-medium">{completionPercent}%</span>
          {completionPercent > 0 && completionPercent < 100 && totalCount > 0 && (
            <>
-             <span className="hidden sm:inline">•</span>
-             <span className="hidden sm:inline text-xs">{completedCount}/{totalCount}</span>
+             <span className="hidden sm:inline text-primary/50">•</span>
+             <span className="hidden sm:inline text-xs text-muted-foreground">{completedCount}/{totalCount}</span>
            </>
          )}
        </button>

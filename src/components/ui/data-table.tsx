@@ -34,23 +34,23 @@ export function DataTable<T extends Record<string, unknown>>({
   minWidth = "min-w-full",
 }: DataTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
       {(title || description) && (
-        <div className="border-b border-border/60 bg-muted/40 px-4 py-3">
+        <div className="border-b border-border/50 bg-muted/30 px-5 py-3.5">
           {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
-          {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
+          {description && <p className="mt-1.5 text-xs text-muted-foreground/90 leading-relaxed">{description}</p>}
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className={`w-full ${minWidth} text-xs`}>
-          <thead className="border-b border-border/60 bg-muted/60 text-muted-foreground">
+        <table className={`w-full ${minWidth} text-sm`}>
+          <thead className="border-b border-border/50 bg-muted/40 text-muted-foreground">
             <tr>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
                   scope="col"
                   className={[
-                    "px-3 py-2 font-medium",
+                    "px-4 py-3 font-semibold tracking-tight",
                     column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left",
                   ].join(" ")}
                 >
@@ -59,21 +59,21 @@ export function DataTable<T extends Record<string, unknown>>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/40">
             {rows.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-muted-foreground" colSpan={columns.length}>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={columns.length}>
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               rows.map((row, rowIndex) => (
-                <tr key={rowKey?.(row, rowIndex) || rowIndex} className="border-b border-border/40 transition hover:bg-muted/40">
+                <tr key={rowKey?.(row, rowIndex) || rowIndex} className="border-b border-transparent transition-colors hover:bg-muted/50">
                   {columns.map((column) => (
                     <td
                       key={String(column.key)}
                       className={[
-                        "px-3 py-2.5 align-middle text-foreground",
+                        "px-4 py-3 align-middle text-foreground",
                         column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left",
                       ].join(" ")}
                     >
