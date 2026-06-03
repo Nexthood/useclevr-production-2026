@@ -223,15 +223,36 @@ for (const f of packageManagerFiles) {
 // Keep .pnpm directory in node_modules — Railway Railpack needs node_modules present
 // in the source for its build graph checksum calculation. The dist branch commits
 // node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
-// Remove large native binaries (>100MB) that exceed GitHub's file size limit.
+// Remove large native binaries that exceed GitHub's file size limit (100 MB).
+// Next.js SWC fallback binaries are the primary offenders (~124 MB each).
+const largeNodePatterns = [
+  "next-swc-fallback",
+];
 if (fs.existsSync(path.join(distDir, "node_modules"))) {
-  const largeFiles = execSync(
-    `find "${distDir}/node_modules" -name "*.node" -size +50M -type f 2>/dev/null || true`,
+  let removed = 0;
+  for (const dir of largeNodePatterns) {
+    const out = execSync(
+      `find "${distDir}/node_modules" -path "*/${dir}/*" -name "*.node" -type f,l 2>/dev/null || true`,
+      { encoding: "utf-8" },
+    ).trim();
+    for (const f of out.split("\n").filter(Boolean)) {
+      console.log(`Removing large binary: ${repoRelative(f)}`);
+      fs.rmSync(f, { force: true });
+      removed++;
+    }
+  }
+  // Also catch any >50MB .node files (symlinks or regular) as a safety net
+  const out = execSync(
+    `find "${distDir}/node_modules" -name "*.node" \\( -type f -o -type l \\) -size +50M 2>/dev/null || true`,
     { encoding: "utf-8" },
-  ).trim().split("\n").filter(Boolean);
-  for (const f of largeFiles) {
-    console.log(`Removing large binary: ${repoRelative(f)}`);
+  ).trim();
+  for (const f of out.split("\n").filter(Boolean)) {
+    console.log(`Removing large binary (safety net): ${repoRelative(f)}`);
     fs.rmSync(f, { force: true });
+    removed++;
+  }
+  if (removed > 0) {
+    console.log(`Cleaned up ${removed} large binary files from dist/node_modules`);
   }
 }
 
