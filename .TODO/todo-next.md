@@ -13,6 +13,11 @@ moving work between states.
 - [TODO-future.md](todo-future.md)
 - [.TODO/config.json](config.json)
 
+## Active
+
+- T-512. Verify type check passes for all new AI tracing files.
+- T-513. Expand Business Profile setup with structured company identity, business type, revenue streams, cost structure, tax context, conditional questions, validation rules, and review output.
+
 ## Deferred
 
 ## Suggestions

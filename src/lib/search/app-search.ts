@@ -250,11 +250,24 @@ export async function searchApp({ query, userId, role, limit = 20 }: SearchInput
   }
 
   try {
-    const reportMatches = listAllReports()
-      .filter((report) =>
-        `${report.datasetName} ${report.summary} ${report.findings.join(" ")}`.toLowerCase().includes(normalizedQuery),
-      )
-      .slice(0, 5)
+    const reportCandidates = listAllReports().filter((report) =>
+      `${report.datasetName} ${report.summary} ${report.findings.join(" ")}`.toLowerCase().includes(normalizedQuery),
+    )
+    const reportMatches = []
+
+    for (const report of reportCandidates) {
+      if (isSuperAdmin) {
+        reportMatches.push(report)
+      } else if (db && userId) {
+        const ownedDataset = await db.query.datasets.findFirst({
+          where: and(eq(datasets.id, report.datasetId), eq(datasets.userId, userId)),
+          columns: { id: true },
+        })
+        if (ownedDataset) reportMatches.push(report)
+      }
+
+      if (reportMatches.length >= 5) break
+    }
 
     dynamicResults.push(
       ...reportMatches.map((report) => ({

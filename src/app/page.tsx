@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { WaitlistSignup } from "@/components/ui/waitlist-signup"
 import { allFaqCategories, getHomepageFaqs } from "@/lib/content/faq"
-import { BarChart3, ChevronDown, Database, FileText, HelpCircle, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
+import { ArrowRight, BarChart3, ChevronDown, Database, FileText, HelpCircle, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -49,15 +49,18 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 md:px-6 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)]">
-          <div className="max-w-5xl mx-auto text-center space-y-6 py-12">
+        <section className="container mx-auto px-4 md:px-6 py-20">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-700/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-800 dark:border-cyan-300/30 dark:text-cyan-100">
+              <Sparkles className="h-4 w-4" />
+              Business intelligence workspace
+            </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-balance leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-balance">
               AI-powered business intelligence{" "}
-              <span className="bg-gradient-to-r from-[#7C3AED] via-[#A78BFA] to-[#06B6D4] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 without the complexity
               </span>
-              <span className="text-[#7C3AED]">.</span>
             </h1>
 
             <div className="flex justify-center my-6">
@@ -66,7 +69,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <p className="text-lg md:text-xl text-muted-foreground">
+            <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
               Turn CSV data into executive reports and actionable business insights with AI.
             </p>
 
@@ -78,16 +81,17 @@ export default function HomePage() {
                <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
                   Start free trial
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
                <Link href="/contact" prefetch={false}>
                  <Button
                    size="lg"
                    variant="outline"
-                   className="h-14 rounded-full border-border bg-transparent px-10 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
+                   className="h-12 rounded-full border-border bg-transparent px-8 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
                  >
                    Schedule demo
                  </Button>
@@ -213,32 +217,33 @@ export default function HomePage() {
         </section>
 
         <section className="container mx-auto px-4 md:px-6 py-20">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <h2 className="text-4xl md:text-5xl font-bold text-balance">Ready to unlock your data's potential?</h2>
-            <p className="text-lg text-muted-foreground">
-              Join leading organizations using UseClevr to drive data-informed decisions
+          <Card className="mx-auto max-w-4xl border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-cyan-500/10 p-8 text-center md:p-12">
+            <h2 className="mb-4 text-3xl font-bold md:text-4xl">Ready to unlock your data's potential?</h2>
+            <p className="mx-auto mb-8 max-w-xl text-muted-foreground">
+              Join teams using UseClevr to turn uploaded business data into clearer decisions.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-               <Link href="/signup" prefetch={false}>
+            <div className="flex flex-col justify-center gap-4 sm:flex-row">
+              <Link href="/signup" prefetch={false}>
                 <Button
                   size="lg"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
+                  className="h-12 rounded-full bg-primary px-8 text-base text-primary-foreground shadow-lg shadow-black/10 hover:bg-primary/90 dark:shadow-black/30"
                 >
                   Start your free trial
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <a href="mailto:sales@useclevr.com">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-14 rounded-full border-border/50 bg-transparent px-10 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
+                  className="h-12 rounded-full border-border/50 bg-transparent px-8 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
                 >
                   Contact sales
                 </Button>
               </a>
             </div>
-            <p className="text-sm font-medium text-cyan-800 dark:text-cyan-100">No credit card required · 14-day free trial · Cancel anytime</p>
-          </div>
+            <p className="mt-6 text-sm font-medium text-cyan-800 dark:text-cyan-100">No credit card required · 14-day free trial · Cancel anytime</p>
+          </Card>
         </section>
 
         {/* Waitlist Section - Before Footer */}

@@ -8,11 +8,33 @@ import { debugError, debugLog } from "@/lib/utils/debug"
  * POST: Generate CSV from analysis data (legacy)
  */
 
+import { auth } from '@/lib/auth/auth'
+import { getDb } from '@/lib/db'
+import { datasets } from '@/lib/db/schema'
 import type { Report } from '@/lib/reports/report-generator'
 import { getReport } from '@/lib/reports/report-generator'
+import { and, eq } from 'drizzle-orm'
 import * as fs from 'fs'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+
+async function canDownloadReport(report: Report) {
+  if (report.visibility === 'public') return true
+
+  const session = await auth()
+  if (!session?.user?.id) return false
+  if (session.user.role === 'superadmin') return true
+
+  const db = getDb()
+  if (!db) return false
+
+  const dataset = await db.query.datasets.findFirst({
+    where: and(eq(datasets.id, report.datasetId), eq(datasets.userId, session.user.id)),
+    columns: { id: true },
+  })
+
+  return Boolean(dataset)
+}
 
 // GET handler - Download a specific report by ID
 export async function GET(request: NextRequest) {
@@ -35,6 +57,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Report not found. It may have expired or been deleted.' },
         { status: 404 }
+      )
+    }
+
+    if (!(await canDownloadReport(report))) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
       )
     }
 
@@ -75,6 +104,14 @@ export async function GET(request: NextRequest) {
 // POST handler - Legacy: Generate CSV from analysis data
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { analysisData, format = 'csv' } = body
 

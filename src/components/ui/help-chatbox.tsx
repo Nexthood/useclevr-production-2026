@@ -3,9 +3,10 @@
 import { submitContactRequest } from "@/app/actions/contact"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { dashboardFaqCategories } from "@/lib/content/dashboard-faq"
+import { dashboardFaqCategories, superAdminFaqCategories } from "@/lib/content/dashboard-faq"
 import { allFaqCategories } from "@/lib/content/faq"
 import { HelpCircle, Loader2, MessageSquare, Send, X } from "lucide-react"
+import { usePathname } from "next/navigation"
 import type { FormEvent } from "react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -14,20 +15,43 @@ type ChatMessage = {
   text: string
 }
 
-const faqItems = [...dashboardFaqCategories, ...allFaqCategories].flatMap((category) =>
-  category.items.map((item) => ({
-    category: category.category,
-    q: item.q,
-    a: item.a,
-    text: `${category.category} ${item.q} ${item.a}`.toLowerCase(),
-  }))
-)
+type HelpChatboxAudience = "public" | "dashboard" | "superadmin"
 
-function findFaqAnswer(query: string) {
+function getFaqItems(audience: HelpChatboxAudience) {
+  const categories =
+    audience === "public"
+      ? allFaqCategories
+      : audience === "superadmin"
+        ? [...allFaqCategories, ...dashboardFaqCategories, ...superAdminFaqCategories]
+        : [...allFaqCategories, ...dashboardFaqCategories]
+
+  return categories.flatMap((category) =>
+    category.items.map((item) => ({
+      category: category.category,
+      q: item.q,
+      a: item.a,
+      text: `${category.category} ${item.q} ${item.a}`.toLowerCase(),
+    })),
+  )
+}
+
+function getIntroMessage(audience: HelpChatboxAudience) {
+  if (audience === "superadmin") {
+    return "Ask about public, dashboard, or operator FAQ topics."
+  }
+
+  if (audience === "dashboard") {
+    return "Ask about public help or dashboard FAQ topics."
+  }
+
+  return "Ask a public FAQ question and I will check the help content first."
+}
+
+function findFaqAnswer(query: string, audience: HelpChatboxAudience) {
   const terms = query.toLowerCase().split(/\s+/).filter((term) => term.length > 2)
   if (terms.length === 0) return null
 
-  return faqItems
+  return getFaqItems(audience)
     .map((item) => ({
       item,
       score: terms.reduce((score, term) => score + (item.text.includes(term) ? 1 : 0), 0),
@@ -36,11 +60,18 @@ function findFaqAnswer(query: string) {
     .sort((a, b) => b.score - a.score)[0]?.item ?? null
 }
 
-export function HelpChatbox() {
+export function HelpChatbox({
+  audience = "public",
+  hideOnApp = false,
+}: {
+  audience?: HelpChatboxAudience
+  hideOnApp?: boolean
+}) {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", text: "Ask a support question and I will check the FAQ first." },
+    { role: "assistant", text: getIntroMessage(audience) },
   ])
   const [showContact, setShowContact] = useState(false)
   const [email, setEmail] = useState("")
@@ -59,12 +90,16 @@ export function HelpChatbox() {
     return () => window.removeEventListener("toggle-help-chat", openChat)
   }, [])
 
+  if (hideOnApp && pathname.startsWith("/app")) {
+    return null
+  }
+
   function handleQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const question = query.trim()
     if (!question) return
 
-    const answer = findFaqAnswer(question)
+    const answer = findFaqAnswer(question, audience)
     setMessages((current) => [
       ...current,
       { role: "user", text: question },

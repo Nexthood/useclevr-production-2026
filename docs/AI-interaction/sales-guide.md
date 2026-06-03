@@ -8,6 +8,9 @@ Use this guide when preparing sales and marketing materials, presentations, or a
 - Use screenshots and demo data that reflect the latest UI.
 - Reference actual customer outcomes and metrics when available.
 - Avoid mentioning planned features unless labeled as roadmap items.
+- Keep Business Profile sales copy aligned with the implemented baseline in `requirements.md`.
+- Use `.TODO/todo-future.md` as the source for roadmap Business Profile modules such as insurance, financing, assets, payroll, inventory, risk scoring, and forecasting.
+- Avoid storing implementation TODO lists inside Sales documents.
 
 ## Marketing Materials
 
@@ -45,3 +48,4 @@ Use this guide when preparing sales and marketing materials, presentations, or a
 - Update this guide after any change to sales, marketing, pricing, or packaging.
 - Coordinate with product, marketing, and sales teams when updating content.
 - Ensure all sales and marketing documents align with the latest requirements.md and CHANGELOG.md.
+- Move detailed product-planning notes into Developer Guides and TODO queues before retiring temporary Sales planning files.

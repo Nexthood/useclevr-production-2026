@@ -15,6 +15,8 @@ moving work between states.
 
 ## Ignored
 
+- T-522. Do not build Business Profile as an ERP, accounting ledger, payroll system, policy-management system, or lending platform; keep it as SME business-intelligence setup context.
+- T-523. Do not present tax, legal, insurance, or financing outputs as professional advice; label them as estimates, user-provided values, or professional-verification items.
 - T-199. Upgrade to Payload CMS.
 - T-200. Review database migrations as a separate job while the app has one web service and migrations can run in the target runtime pre-deploy phase.
 - T-201. Review  server-host templates under build scripts; they are host templates, not executable build scripts.

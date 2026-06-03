@@ -16,6 +16,7 @@ moving work between states.
 
 ## Completed
 
+- T-127. Checkout success verification uses a signed, time-limited server token for payment redirects.
 - T-488. Local Railway CLI commands and token-safe login guidance support project deployment operations.
 - T-462. Railway health checks return liveness separately from database readiness, Railway auth uses the active request host by default, edge route guards avoid Node-only auth modules, production packaging starts from clean generated output, generated middleware manifests point to the bundled route guard entry, and generated Railway starts use a portable shell entrypoint.
 - T-392. Deployment smoke checks fail when generated Railway output includes pnpm workspace metadata or omits required runtime bundle files.
@@ -222,3 +223,19 @@ moving work between states.
 - T-340. Add API endpoint for bulk dataset deletion.
 - T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable.
 - T-436. Optimized CHANGELOG.md [Unreleased] section: reordered sections, optimized entries for present-action language and user benefit.
+- T-489. AI interaction trace storage — added `aiInteractionTraces` table to Drizzle schema and fire-and-forget trace logging in the analyze route.
+- T-490. AI interaction history UI — history tab in AI Assistant workspace sidebar shows past questions with provider, date, and feedback status.
+- T-491. AI provider indicator — provider name shown in assistant message header next to "AI Analyst" label.
+- T-492. AI response feedback — thumbs-up/thumbs-down buttons on each assistant response, stored via `/api/assistant/feedback`.
+- T-493. "How AI Analysis Works" user guide — updated `docs/AI-interaction/user-guide.md` with architecture explanation, provider indicator, feedback, history, and export guidance.
+- T-494. AI interaction export — CSV and JSON export of full conversation history via `/api/assistant/export`.
+- T-495. AI trace analytics dashboard — superadmin page at `/app/admin/ai-traces` shows total queries, provider distribution, error rate, latency, top queries.
+- T-496. AI error transparency in UI — error messages show clear explanation and suggested next steps in a styled error card.
+- T-497. AI interaction search — search tab with full-text search across past prompts and responses via `/api/assistant/search`.
+- T-498. AI prompt version tracking — `getCurrentPromptVersion()` in `src/lib/ai/ai-trace.ts` tags each trace with the prompt template version.
+- T-499. AI trace retention policy — configurable via superadmin `GET/POST /api/admin/ai-trace-retention`, stored in `appSettings` table.
+- T-500. AI interaction anonymization — `anonymizeUserTraces()` strips email patterns from stored prompts and responses.
+- T-501. AI data-usage transparency notice — dismissable notice bar in chat area explains aggregated metrics only, no raw row data sent.
+- T-502. AI interaction benchmarking dashboard — superadmin page at `/app/admin/ai-benchmarking` compares provider latency, error rate, satisfaction.
+- T-503. AI latency and cost per interaction — latency tracked per trace, aggregate metrics shown in superadmin analytics and benchmarking pages.
+- T-504. AI interaction re-run with different provider — re-run button on each history entry calls `askAssistant()` with the stored prompt.

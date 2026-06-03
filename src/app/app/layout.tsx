@@ -29,7 +29,7 @@ export default async function AppLayout({
             {children}
           </main>
           <DashboardGlobalFooter />
-          <HelpChatbox />
+          <HelpChatbox audience={session.user.role === "superadmin" ? "superadmin" : "dashboard"} />
           <PageVisitTracker />
         </div>
       </div>

@@ -250,9 +250,11 @@ pnpm docs:check       # broken local links in *.md
 Husky manages local Git hooks from `.husky/`; the local Git hook path should point at `.husky/_`.
 Do not keep custom scripts in `.git/hooks` beyond Git sample files.
 
-Current hook:
+Current hooks:
 
 - `commit-msg` — runs commitlint and allows `PR:` commit titles used by generated dist commits.
+- `pre-commit` — keeps commits fast and leaves validation to commit message and push gates.
+- `pre-push` — runs TypeScript, deploy config checks, linting, production packaging, and workflow validation.
 
 Setup and checks:
 
@@ -260,6 +262,7 @@ Setup and checks:
 pnpm install          # runs the Husky prepare script
 git config --local --get core.hooksPath
 pnpm exec commitlint --from HEAD~1 --to HEAD
+pnpm validate:prepush
 ```
 
 ### Env safety

@@ -1,38 +1,67 @@
-import { randomBytes } from "node:crypto"
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 
 interface CheckoutTokenData {
   stripeSessionId: string | null
   userId: string
   createdAt: number
+  nonce: string
 }
-
-const tokenStore = new Map<string, CheckoutTokenData>()
 
 const TOKEN_TTL_MS = 60 * 60 * 1000
 
-function cleanupExpired() {
-  const now = Date.now()
-  for (const [token, data] of tokenStore) {
-    if (now - data.createdAt > TOKEN_TTL_MS) {
-      tokenStore.delete(token)
-    }
-  }
+function getSecret() {
+  return (
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.STRIPE_SECRET_KEY ||
+    "useclevr-local-checkout-token"
+  )
+}
+
+function encode(value: string) {
+  return Buffer.from(value, "utf8").toString("base64url")
+}
+
+function decode(value: string) {
+  return Buffer.from(value, "base64url").toString("utf8")
+}
+
+function sign(payload: string) {
+  return createHmac("sha256", getSecret()).update(payload).digest("base64url")
+}
+
+function signaturesMatch(actual: string, expected: string) {
+  const actualBuffer = Buffer.from(actual)
+  const expectedBuffer = Buffer.from(expected)
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
 }
 
 export function issueCheckoutToken(stripeSessionId: string | null, userId: string): string {
-  cleanupExpired()
-  const token = randomBytes(24).toString("hex")
-  tokenStore.set(token, { stripeSessionId, userId, createdAt: Date.now() })
-  return token
+  const payload = encode(JSON.stringify({
+    stripeSessionId,
+    userId,
+    createdAt: Date.now(),
+    nonce: randomBytes(16).toString("hex"),
+  } satisfies CheckoutTokenData))
+
+  return `${payload}.${sign(payload)}`
 }
 
 export function redeemCheckoutToken(token: string): { stripeSessionId: string | null; userId: string } | null {
-  const data = tokenStore.get(token)
-  if (!data) return null
-  if (Date.now() - data.createdAt > TOKEN_TTL_MS) {
-    tokenStore.delete(token)
+  const [payload, signature] = token.split(".")
+  if (!payload || !signature || !signaturesMatch(signature, sign(payload))) return null
+
+  let data: CheckoutTokenData
+  try {
+    data = JSON.parse(decode(payload)) as CheckoutTokenData
+  } catch {
     return null
   }
-  tokenStore.delete(token)
+
+  if (!data.userId || typeof data.createdAt !== "number") return null
+  if (Date.now() - data.createdAt > TOKEN_TTL_MS) {
+    return null
+  }
+
   return { stripeSessionId: data.stripeSessionId, userId: data.userId }
 }

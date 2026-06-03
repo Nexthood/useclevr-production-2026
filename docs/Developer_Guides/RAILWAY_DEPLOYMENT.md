@@ -86,17 +86,23 @@ If `redeploy` is unavailable in the installed CLI:
 railway up
 ```
 
-Use `pnpm dlx @railway/cli <command>` when Railway is not installed globally. CLI access requires a
-browser login, browserless login, or a token in the shell environment.
+Use `pnpm dlx @railway/cli <command>` when Railway is not installed globally.
 
-`pnpm railway:login` uses `railway login --browserless`, which prints a pairing URL and code for
-machines where the browser login flow is unavailable. Token auth does not log the CLI in; it only
-authenticates the commands in the shell where the token is set.
+CLI access requires a Railway account. Railway CLI v4+ dropped support for non-TTY
+`--browserless` login. In an interactive terminal, run `pnpm railway:login` to open
+the browser auth flow.
+
+For headless/CI environments, use token auth instead:
+
+```bash
+export RAILWAY_API_TOKEN=token_value_here
+```
 
 Use `RAILWAY_TOKEN` for project-scoped commands in one project and environment. Use
 `RAILWAY_API_TOKEN` for account or workspace-scoped commands such as listing projects or linking
 without an existing project token. Set only one of these variables in a shell. Keep tokens in the
-local shell or ignored env files, and never commit them.
+local shell or ignored env files, and never commit them. Generate a token at
+https://railway.app/account/tokens.
 
 ## Railpack Configuration
 

@@ -87,8 +87,10 @@ pnpm health           # validate + tests + docs + audit
 - `src/app/api/chat/route.ts`
 - `src/app/api/query/route.ts`
 - `src/app/api/upload/route.ts`
+- `src/app/api/analyze/route.ts`
 - `src/lib/llmAdapter.ts`
 - `src/lib/ai/`
+- `src/lib/ai/ai-trace.ts` — AI interaction trace logging, query, feedback, anonymization, analytics
 - `src/lib/data/`
 - `src/lib/business/`
 - `src/lib/queryEngine.ts`
@@ -98,6 +100,16 @@ pnpm health           # validate + tests + docs + audit
 - This file (AGENTS.md)
 - `.aiignore`
 - `CHANGELOG.md`
+
+## AI Interaction Tracing
+
+- Every analyze request saves a trace to `aiInteractionTraces` table (fire-and-forget, non-blocking).
+- Traces include: userId, prompt, response, providerName, modelName, promptVersion, latencyMs, error.
+- Users can view history, search past conversations, and export traces via the AI Assistant sidebar.
+- Users can give thumbs-up/down feedback on each response, stored with the trace.
+- Superadmin pages at `/app/admin/ai-traces` and `/app/admin/ai-benchmarking` show aggregate analytics.
+- Trace retention is configurable (default 90 days, via `/api/admin/ai-trace-retention`).
+- Update `getCurrentPromptVersion()` in `src/lib/ai/ai-trace.ts` when prompt templates change.
 
 ## Changelog Rules
 When editing `CHANGELOG.md`:

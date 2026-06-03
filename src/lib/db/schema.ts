@@ -467,6 +467,40 @@ export const referralEvents = pgTable(
   })
 )
 
+// AI interaction trace table - logs every user-AI interaction
+export const aiInteractionTraces = pgTable(
+  'AiInteractionTrace',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull(),
+    datasetId: text('datasetId'),
+    prompt: text('prompt').notNull(),
+    response: text('response').notNull(),
+    providerName: varchar('providerName', { length: 100 }).notNull(),
+    modelName: varchar('modelName', { length: 100 }).notNull(),
+    promptVersion: varchar('promptVersion', { length: 50 }),
+    latencyMs: integer('latencyMs'),
+    tokenCount: integer('tokenCount'),
+    estimatedCostUsd: integer('estimatedCostUsd'),
+    error: text('error'),
+    feedback: varchar('feedback', { length: 20 }),
+    feedbackText: text('feedbackText'),
+    userAnonymized: boolean('userAnonymized').default(false).notNull(),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: 'AiInteractionTrace_userId_fkey',
+    }).onDelete('cascade'),
+    userIdIdx: index('AiInteractionTrace_userId_idx').on(table.userId),
+    createdAtIdx: index('AiInteractionTrace_createdAt_idx').on(table.createdAt),
+    providerNameIdx: index('AiInteractionTrace_providerName_idx').on(table.providerName),
+    feedbackIdx: index('AiInteractionTrace_feedback_idx').on(table.feedback),
+  })
+)
+
 export const appSettings = pgTable(
   'AppSetting',
   {

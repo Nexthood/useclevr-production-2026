@@ -12,7 +12,14 @@ moving work between states.
 
 ## Future Next
 - T-299. Evaluate restore candidates for legacy report PDF generation and cloud live-data refresh behavior before deciding whether they should return to the product.
-- T-127. Replace checkout review URL proof with a server-issued one-time token before payment collection is enabled.
+- T-514. Add business-type-specific setup packs for e-commerce, SaaS, construction, restaurants, logistics, real estate, agencies, manufacturing, professional services, import/export, and freelancers.
+- T-515. Add structured revenue-stream records with VAT treatment, payment terms, customer segment, margin estimate, seasonality, refunds, returns, and B2B/B2C/B2G classification.
+- T-516. Add structured cost records with fixed and variable categories, net/VAT/gross separation, payment frequency, due date, supplier, deductibility, and operating/capital/financing/tax classification.
+- T-517. Add insurance policy records with provider, coverage, premium, deductible, renewal date, covered risks, exclusions, related asset or activity, missing-coverage warnings, and renewal reminders.
+- T-518. Add loans, leasing, debt, and financing records with lender, balance, interest, repayment schedule, collateral, fees, early repayment terms, debt service, and financing risk.
+- T-519. Add assets, equipment, inventory, payroll, HR cost, and cash-flow profile records with calculation inputs for working capital, depreciation context, payroll ratios, payment pressure, and runway.
+- T-520. Add marketing, compliance, legal, risk, goals, and forecast scenario records with assumption overrides, missing-data confidence flags, and professional-verification labels.
+- T-521. Add Business Profile output reports covering profile summary, KPI dashboard, financial health score, missing-data report, recommendations, and scenario forecasts.
 - T-128. Add real billing invoice rows once the payment provider returns invoice history.
 - T-129. Resolve whether the payment readiness page needs provider-specific setup actions after Stripe is connected.
 - T-180. Add OAuth providers if the product roadmap requires them.
@@ -78,3 +85,5 @@ moving work between states.
 - T-470. Prepare onepager, simple demo flow, LinkedIn launch post, outreach email, and investor/startup contact list.
 - T-471. Clean env usage, remove exposed secrets, add upload limits, add rate limits, review admin routes, and prepare basic GDPR/privacy notes.
 - T-472. Create beta feedback flow, bug board, launch checklist, and short public demo script.
+- T-506. Add PayPal payment provider support when checkout needs a second provider beside Stripe.
+- T-524. Create practical transformation prompts for Payload integration based on current schema analysis.

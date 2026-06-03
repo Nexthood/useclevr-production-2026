@@ -37,3 +37,16 @@ folder during the same task cycle.
 - Keep bookkeeping user guidance focused on workflows and outcomes.
 - Keep bookkeeping developer guidance focused on data sources, page structure, validation, and risk.
 - Update requirements when bookkeeping changes are visible in Accountancy.
+
+## AI Interaction Tracing Scope
+
+- Every user-AI interaction is logged to the `aiInteractionTraces` database table with provider name,
+  model name, latency, token count, error status, and prompt version.
+- Traces enable user-facing history, search, export, and feedback features.
+- Superadmin analytics pages show aggregate usage, provider distribution, error rates, and top queries.
+- The `aiInteractionTraces` table has a foreign key to the `User` table with cascade delete.
+- Trace anonymization strips email addresses from stored prompts and responses.
+- Trace retention is configurable via superadmin UI; default is 90 days with auto-cleanup.
+- The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
+- Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.
+- Update the prompt version constant when prompt templates change to correlate trace quality.
