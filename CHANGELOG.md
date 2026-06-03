@@ -8,20 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- AI interaction trace logging stores every user-AI interaction with provider, latency, and error status.
-- Railway CLI wrapper replaces native Rust binary with direct GraphQL API calls for login, link, list, and status commands.
-- Users view and search past AI conversations in the AI Assistant sidebar History and Search tabs.
-- Provider indicator shows the active AI model for each assistant response.
-- Thumbs-up/down feedback buttons let users rate every AI response, stored with the interaction trace.
-- AI error messages include clear explanations and actionable next steps when analysis fails.
-- Superadmin AI trace analytics page shows usage, provider distribution, error rates, and top queries.
-- Superadmin AI benchmarking page compares provider performance, latency, and satisfaction.
-- Users export their AI conversation history as JSON or CSV from the History sidebar tab.
-- Data usage transparency notice in the AI Assistant explains what data is sent to AI providers.
-- Re-run button lets users ask a past question again directly from the history sidebar.
-- Search tab provides full-text search across past prompts and AI responses.
-- Trace retention policy configurable via superadmin with configurable auto-cleanup threshold.
-- Admin sidebar and topbar include links to AI Traces and AI Benchmarking pages.
+- Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
+- Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
+- Business mentoring dashboard widget showing next scheduled session and booking options.
+- Business mentoring user guide with session types, pricing, and booking process.
+- Business mentoring developer guide with API routes and schema for mentoring sessions.
+- Business mentoring sales documentation with target segments and pricing tiers.
+- Account linking: users who signed up via Google or LinkedIn can add a password via the signup form without creating duplicate accounts.
+- OAuth user ID format standardized to `user_{uuid}` for consistency with credentials signup.
 
 ### Fixed
 - Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.

@@ -43,12 +43,12 @@ export function TopbarSection({
       </PopoverTrigger>
       <PopoverContent
         align={align === "right" ? "end" : "start"}
-        className="mt-1 w-72 rounded-lg border-border/60 bg-popover/95 p-0 shadow-lg backdrop-blur-sm"
+        className="mt-1 w-72 rounded-lg border border-border/60 bg-popover/95 p-0 shadow-lg backdrop-blur-sm"
       >
         <div className="p-4">
           <div className="border-b border-border/50 pb-3">
-            <p className="text-sm font-semibold">{header}</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+            <p className="text-sm font-semibold text-foreground">{header}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground/90">{description}</p>
           </div>
           {children && <div className="mt-3 space-y-2">{children}</div>}
         </div>

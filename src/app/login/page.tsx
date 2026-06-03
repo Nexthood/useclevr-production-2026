@@ -148,6 +148,7 @@ function LoginForm() {
         return
       }
 
+      // Sign in after successful signup
       const signInResult = await signIn("credentials", {
         email: signUpEmail,
         password: signUpPassword,

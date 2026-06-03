@@ -26,11 +26,23 @@ AVAILABLE MCP TOOLS (Use these for accurate data):
 3. getTopRegions - Get ranked region data
    Input: { datasetId: "${datasetId}", metric: "revenue", limit: 10 }
 
-4. getRevenueTrends - Get revenue-over-time data
+4. getTopProducts - Get ranked product data
+   Input: { datasetId: "${datasetId}", metric: "revenue", limit: 10 }
+
+5. getRevenueTrends - Get revenue-over-time data
    Input: { datasetId: "${datasetId}", dateGrain: "monthly", metric: "revenue" }
 
-5. getProfitabilitySummary - Get profitability analysis
+6. getProfitabilitySummary - Get profitability analysis
    Input: { datasetId: "${datasetId}" }
+
+7. getCostBreakdown - Get cost breakdown by category
+   Input: { datasetId: "${datasetId}" }
+
+8. getProfitMarginTrend - Get profit margin and growth trend
+   Input: { datasetId: "${datasetId}" }
+
+9. compareDatasets - Compare two datasets by ID
+   Input: { datasetIdA: "${datasetId}", datasetIdB: "<other-dataset-id>" }
 
 IMPORTANT:
 - Use these tools to get accurate data values
@@ -70,6 +82,30 @@ export async function getTrustedSchema(datasetId: string): Promise<any> {
 
 export async function getTrustedTopRegions(datasetId: string, metric = 'revenue', limit = 10): Promise<any> {
   const result = await callMCPToolSafely('getTopRegions', { datasetId, metric, limit });
+  return result.success ? result.data : null;
+}
+
+export async function getTrustedCostBreakdown(datasetId: string): Promise<any> {
+  const result = await callMCPToolSafely('getCostBreakdown', { datasetId });
+  return result.success ? result.data : null;
+}
+
+export async function getTrustedProfitMarginTrend(datasetId: string): Promise<any> {
+  const result = await callMCPToolSafely('getProfitMarginTrend', { datasetId });
+  return result.success ? result.data : null;
+}
+
+export async function getTrustedComparison(datasetIdA: string, datasetIdB: string): Promise<any> {
+  const result = await callMCPToolSafely('compareDatasets', { datasetIdA, datasetIdB });
+  return result.success ? result.data : null;
+}
+
+export async function getTrustedTopProducts(
+  datasetId: string,
+  metric = 'revenue',
+  limit = 10
+): Promise<any> {
+  const result = await callMCPToolSafely('getTopProducts', { datasetId, metric, limit });
   return result.success ? result.data : null;
 }
 
@@ -124,11 +160,27 @@ export async function analyzeWithMCP(
     questionLower.includes('over time') ||
     questionLower.includes('month');
 
+  const isProductQuestion = questionLower.includes('product') ||
+    questionLower.includes('item') ||
+    questionLower.includes('sku') ||
+    questionLower.includes('best seller') ||
+    questionLower.includes('top selling');
+
+  const isCostQuestion = questionLower.includes('cost breakdown') ||
+    questionLower.includes('cost category') ||
+    questionLower.includes('spend') ||
+    questionLower.includes('expense category');
+
+  const isProfitMarginQuestion = questionLower.includes('profit margin') ||
+    questionLower.includes('margin analysis') ||
+    questionLower.includes('growth trend') ||
+    questionLower.includes('profit trend');
+
   const isProfitabilityQuestion = questionLower.includes('profitability') ||
     questionLower.includes('cost') ||
     questionLower.includes('expense');
 
-  if (isKPIQuestion || isRegionQuestion || isTrendQuestion || isProfitabilityQuestion) {
+  if (isKPIQuestion || isRegionQuestion || isProductQuestion || isCostQuestion || isProfitMarginQuestion || isTrendQuestion || isProfitabilityQuestion) {
     usedMCPTools = true;
 
     if (isKPIQuestion) {
@@ -141,9 +193,24 @@ export async function analyzeWithMCP(
       if (regions) mcpToolResults.topRegions = regions;
     }
 
+    if (isProductQuestion) {
+      const products = await getTrustedTopProducts(datasetId, 'revenue', 10);
+      if (products) mcpToolResults.topProducts = products;
+    }
+
     if (isTrendQuestion) {
       const trends = await getTrustedRevenueTrends(datasetId, 'monthly', 'revenue');
       if (trends) mcpToolResults.revenueTrends = trends;
+    }
+
+    if (isCostQuestion) {
+      const cost = await getTrustedCostBreakdown(datasetId);
+      if (cost) mcpToolResults.costBreakdown = cost;
+    }
+
+    if (isProfitMarginQuestion) {
+      const marginTrend = await getTrustedProfitMarginTrend(datasetId);
+      if (marginTrend) mcpToolResults.profitMarginTrend = marginTrend;
     }
 
     if (isProfitabilityQuestion) {
@@ -162,6 +229,9 @@ export async function analyzeWithMCP(
 
     const kpis = mcpToolResults.kpis;
     const regions = mcpToolResults.topRegions;
+    const products = mcpToolResults.topProducts;
+    const costBreakdown = mcpToolResults.costBreakdown;
+    const profitMarginTrend = mcpToolResults.profitMarginTrend;
     const trends = mcpToolResults.revenueTrends;
     const profitability = mcpToolResults.profitability;
 
@@ -184,6 +254,13 @@ export async function analyzeWithMCP(
       recommendation = `Focus on ${top.name} while developing strategies for other regions.`;
     }
 
+    if (products && products.rankedProducts?.length > 0) {
+      const top = products.rankedProducts[0];
+      insight = `${top.name} is the top product with ${formatCurrency(top.value)} (${top.percentage}% share)`;
+      explanation = `${products.rankedProducts.slice(0, 3).map((r: any) => `${r.name}: ${formatCurrency(r.value)}`).join(', ')}`;
+      recommendation = `Maximize ${top.name} while developing other products.`;
+    }
+
     if (trends) {
       const direction = trends.growthDirection;
       const first = trends.firstPeriod;
@@ -198,6 +275,21 @@ export async function analyzeWithMCP(
         explanation = 'Review pricing strategy and product-market fit.';
         recommendation = 'Investigate root causes of decline and develop recovery plan.';
       }
+    }
+
+    if (costBreakdown && costBreakdown.categories?.length > 0) {
+      const top = costBreakdown.categories[0];
+      insight = `Top cost category is ${top.category} at ${formatCurrency(top.amount)} (${top.percentage}% of total)`;
+      explanation = `Total costs: ${formatCurrency(costBreakdown.totalCost)}. ${costBreakdown.categories.slice(0, 3).map((c: any) => `${c.category}: ${formatCurrency(c.amount)} (${c.percentage}%)`).join(', ')}`;
+      recommendation = `Review ${top.category} for cost optimization opportunities.`;
+    }
+
+    if (profitMarginTrend) {
+      const margin = profitMarginTrend.profitMargin;
+      const trend = profitMarginTrend.growthTrend;
+      insight = `Profit margin is ${margin}% with ${trend === 'up' ? 'positive' : trend === 'down' ? 'declining' : 'stable'} growth trend`;
+      explanation = `Revenue: ${formatCurrency(profitMarginTrend.totalRevenue)} | Expenses: ${formatCurrency(profitMarginTrend.totalExpenses)} | Net profit: ${formatCurrency(profitMarginTrend.netProfit)}`;
+      recommendation = trend === 'up' ? 'Maintain growth trajectory with strategic investment.' : trend === 'down' ? 'Review cost structure and pricing strategy.' : 'Explore new growth opportunities.';
     }
 
     if (profitability) {

@@ -15,23 +15,10 @@ moving work between states.
 
 ## Active
 
-- T-512. Verify type check passes for all new AI tracing files.
-- T-513. Expand Business Profile setup with structured company identity, business type, revenue streams, cost structure, tax context, conditional questions, validation rules, and review output.
-- T-528. Add MCP tool to retrieve dataset column mapping and inferred types from precomputed metrics.
-- T-529. Add MCP resource for top products data with revenue and profit breakdowns.
-- T-530. Add MCP tool for cross-dataset comparison metrics.
-- T-531. Add MCP tool for cost breakdown by category with percentage shares.
-- T-532. Add MCP resource for revenue-by-region ranked data with share percentages.
-- T-533. Add MCP tool for profit margin and growth trend analysis.
-- T-534. Add MCP endpoint for business profile context injection into AI prompts.
-- T-535. Add search popup type filter for datasets and reports in autocomplete.
-- T-536. Add search popup recent history for user's last 5 searches.
-- T-537. Add Payload FAQ collection with public read, admin write access.
-- T-540. Create Sales one-pager from the project brief, business case, product description, and current marketing plan.
-- T-541. Prepare founder and SME demo datasets with safe sample data for upload, AI Assistant, Business Profile, Accountancy, downloads, and support walkthroughs.
-- T-542. Capture current public and dashboard screenshots for homepage, pricing, FAQ, upload, datasets, AI Assistant, Business, Accountancy, downloads, tickets, and checkout review.
-- T-543. Create demo scripts for founder, SME owner, consultant, and accountancy-prep sales conversations using current product routes and roadmap boundaries.
 - T-544. Review Sales risk, issue, and lessons registers after the next Railway test deploy and move actionable findings into the regular TODO queues.
+- T-560. Expand Business Profile from basic company details into the first practical pre-accounting setup. Add business type, revenue streams, fixed costs, variable costs, VAT/tax basics, insurance, loans/leasing, employees, cash-flow dates, and missing-data warnings.
+- T-561. Connect Business Profile data to the analysis calculation context. Build `CompanyCalculationContext`, apply it to KPI/profit/cash-flow outputs, and label low-confidence results when required profile data is missing.
+- T-562. Harden upload and analysis safety. Add file size limits, dirty CSV handling, clearer parsing errors, basic rate limits, and checks that uploaded files/prompts/exports do not leak into public/static paths.
 
 ## Deferred
 

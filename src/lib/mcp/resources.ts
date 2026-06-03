@@ -35,6 +35,12 @@ export function getAvailableResources(datasetId: string): MCPResource[] {
       mimeType: "application/json",
     },
     {
+      uri: `dataset://${datasetId}/top-products`,
+      name: "Top Products",
+      description: "Ranked product data with revenue, profit, and share percentages",
+      mimeType: "application/json",
+    },
+    {
       uri: `dataset://${datasetId}/revenue-trends`,
       name: "Revenue Trends",
       description: "Revenue-over-time data with trend metadata",
@@ -127,6 +133,26 @@ export function readResource(uri: string): {
         },
         mimeType: "application/json",
       };
+
+    case "top-products": {
+      const revenueByProduct = chartData.revenueByProduct ?? [];
+      const totalRevenue = metrics.totalRevenue;
+      return {
+        content: {
+          rankedProducts: revenueByProduct.map((item, index) => ({
+            rank: index + 1,
+            name: item.category,
+            value: item.value,
+            percentage: item.percentage,
+          })),
+          totals: {
+            metric: "revenue",
+            value: totalRevenue,
+          },
+        },
+        mimeType: "application/json",
+      };
+    }
 
     case "revenue-trends":
       const revenueByMonth = chartData.revenueByMonth ?? [];

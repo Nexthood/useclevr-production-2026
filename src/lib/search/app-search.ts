@@ -296,19 +296,97 @@ export type AppSuggestResult = {
   href: string
 }
 
-export async function searchSuggest(query: string, role: string | null | undefined): Promise<AppSuggestResult[]> {
+export async function searchSuggest(
+  query: string,
+  role: string | null | undefined,
+  userId?: string | null,
+  typeFilter?: string | null,
+): Promise<AppSuggestResult[]> {
   const normalizedQuery = normalize(query)
   if (!normalizedQuery || normalizedQuery.length < 2) return []
 
   const isSuperAdmin = role === "superadmin"
 
-  return APP_PAGES
-    .filter((item) => roleCanSee(item.roles, role))
-    .filter((item) => matchesQuery(item, normalizedQuery))
-    .map(({ roles: _roles, keywords: _keywords, description: _desc, ...item }) => ({
-      type: item.type,
-      title: item.title,
-      href: item.href,
-    }))
-    .slice(0, 8)
+  const results: AppSuggestResult[] = []
+
+  // Add matching pages
+  if (!typeFilter || typeFilter === "page") {
+    results.push(
+      ...APP_PAGES
+        .filter((item) => roleCanSee(item.roles, role))
+        .filter((item) => matchesQuery(item, normalizedQuery))
+        .map(({ roles: _roles, keywords: _keywords, description: _desc, ...item }) => ({
+          type: item.type as AppSearchResult["type"],
+          title: item.title,
+          href: item.href,
+        })),
+    )
+  }
+
+  // Add matching datasets from DB
+  if ((!typeFilter || typeFilter === "dataset") && userId) {
+    const db = getDb()
+    if (db) {
+      const datasetWhere = isSuperAdmin
+        ? or(ilike(datasets.name, `%${normalizedQuery}%`), ilike(datasets.fileName, `%${normalizedQuery}%`))
+        : and(
+            eq(datasets.userId, userId),
+            or(ilike(datasets.name, `%${normalizedQuery}%`), ilike(datasets.fileName, `%${normalizedQuery}%`)),
+          )
+
+      const datasetMatches = await db
+        .select({ id: datasets.id, name: datasets.name })
+        .from(datasets)
+        .where(datasetWhere)
+        .limit(5)
+
+      results.push(
+        ...datasetMatches.map((ds) => ({
+          type: "dataset" as AppSearchResult["type"],
+          title: ds.name,
+          href: `/app/datasets/${encodeURIComponent(ds.id)}`,
+        })),
+      )
+    }
+  }
+
+  // Add matching reports
+  if (!typeFilter || typeFilter === "report") {
+    try {
+      const reportCandidates = listAllReports()
+        .filter((report) =>
+          `${report.datasetName} ${report.summary} ${report.findings.join(" ")}`.toLowerCase().includes(normalizedQuery),
+        )
+        .slice(0, 5)
+
+      for (const report of reportCandidates) {
+        if (isSuperAdmin) {
+          results.push({
+            type: "report" as AppSearchResult["type"],
+            title: `${report.datasetName} report`,
+            href: `/report/${encodeURIComponent(report.id)}`,
+          })
+        } else if (userId) {
+          const db = getDb()
+          if (db) {
+            const ownedDataset = await db.query.datasets.findFirst({
+              where: and(eq(datasets.id, report.datasetId), eq(datasets.userId, userId)),
+              columns: { id: true },
+            })
+            if (ownedDataset) {
+              results.push({
+                type: "report" as AppSearchResult["type"],
+                title: `${report.datasetName} report`,
+                href: `/report/${encodeURIComponent(report.id)}`,
+              })
+            }
+          }
+        }
+      }
+    } catch {
+      // Report search is best-effort
+    }
+  }
+
+  return results.slice(0, 8)
 }

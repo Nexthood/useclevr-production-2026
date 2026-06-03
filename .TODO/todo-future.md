@@ -11,6 +11,8 @@ moving work between states.
 - [.TODO/config.json](config.json)
 
 ## Future Next
+- T-537. Add Payload CMS FAQ collection with public read, admin write access — first Payload migration step after core stability.
+- T-563. Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable.
 - T-299. Evaluate restore candidates for legacy report PDF generation and cloud live-data refresh behavior before deciding whether they should return to the product.
 - T-545. Create the minimal monorepo layout under `apps/web` and `apps/docs` without moving the existing dashboard logic out of the current root app yet.
 - T-546. Add verified root scripts for `dev:web`, `dev:docs`, `build:web`, `build:docs`, `lint:web`, and `lint:docs`, and keep the existing deploy flow unchanged.

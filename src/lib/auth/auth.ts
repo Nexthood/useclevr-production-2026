@@ -398,7 +398,8 @@ async function ensureOAuthUserRecord({
     columns: { id: true },
   });
 
-  const userId = existingUser?.id || uuidv4();
+  // Use consistent ID format: user_{uuid} for new users
+  const userId = existingUser?.id || `user_${uuidv4()}`;
   user.id = userId;
 
   if (existingUser) {

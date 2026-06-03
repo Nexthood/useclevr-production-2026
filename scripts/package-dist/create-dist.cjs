@@ -157,9 +157,8 @@ fs.writeFileSync(
   )}\n`,
 );
 
-// Dependencies are intentionally omitted — the standalone Next.js bundle already includes
-// all production node_modules. Railway (RAILPACK) must not attempt dependency installation
-// because pnpm is not available in the build environment and no lockfile is provided.
+// Include production dependencies so Railway Dockerfile installs them.
+// Dev dependencies omitted — not needed at runtime.
 const rootDistPackage = {
   name: "useclevr-2026-dist",
   version: rootPkg.version,
@@ -175,10 +174,10 @@ const rootDistPackage = {
       "USECLEVR_SERVER_TARGET=vercel node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "railway:predeploy": "node ./scripts/runtime/railway-predeploy.cjs",
   },
-  dependencies: {},
+  dependencies: rootPkg.dependencies || {},
 };
 
-// Explicitly remove packageManager so Railpack never detects pnpm
+// Remove packageManager so npm doesn't detect pnpm
 delete rootDistPackage.packageManager;
 
 fs.writeFileSync(
@@ -226,15 +225,22 @@ for (const f of packageManagerFiles) {
 // node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
 
 // Write Dockerfile for Railway Docker builder.
-// Copies everything as-is (node_modules included from standalone build)
-// so no dependency installation is needed at build time.
+// Installs production dependencies from npm, then copies the
+// standalone app files (server.js, assets, scripts, etc.).
+// node_modules excluded via .dockerignore so the standalone
+// pnpm structure doesn't overwrite npm-installed dependencies.
 const dockerfile = `FROM node:22-alpine
 WORKDIR /app
+COPY package.json ./
+RUN npm install --production --omit=optional 2>&1
 COPY . .
 EXPOSE 8080
 CMD ["node", "-r", "./scripts/runtime/load-env.cjs", "./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
+
+// Exclude node_modules from Docker context so npm install result is used.
+fs.writeFileSync(path.join(distDir, ".dockerignore"), "node_modules\n.next\n.git\n");
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/sh

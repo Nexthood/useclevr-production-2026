@@ -9,7 +9,7 @@ import { TopbarSidebarToggle } from "@/components/ui/topbar-sidebar-toggle";
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
-import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react";
+import { BriefcaseBusiness, CreditCard, GraduationCap, HelpCircle, Shield, UserCircle } from "lucide-react";
 import Link from "next/link";
 import pkg from "../../../package.json";
 
@@ -71,6 +71,16 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/business/profile">Business profile</TopbarPanelLink>
             <TopbarPanelLink href="/app/business/review">Review readiness</TopbarPanelLink>
           </TopbarSection>
+
+            <TopbarSection
+              icon={<GraduationCap className="h-4 w-4" />}
+              label="Mentoring"
+              header="Business Mentoring"
+              description="Book expert sessions for growth, fundraising, and strategy."
+            >
+              <TopbarPanelLink href="/app/mentoring">My sessions</TopbarPanelLink>
+              <TopbarPanelLink href="/mentoring">Public page</TopbarPanelLink>
+            </TopbarSection>
 
           {session?.user?.role === "superadmin" && (
             <TopbarSection

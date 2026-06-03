@@ -9,6 +9,7 @@ const primaryItems = [
 
 const secondaryItems = [
   { label: "Account", href: "/app/settings/profile" },
+  { label: "Setup", href: "/app/business/setup" },
   { label: "Business Settings", href: "/app/business/profile" },
   { label: "Locations", href: "/app/business/locations" },
   { label: "Tax & VAT", href: "/app/business/tax" },

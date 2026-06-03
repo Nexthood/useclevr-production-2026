@@ -102,21 +102,21 @@ export function TopbarNoticeActivityDrawer({ className = "" }: { className?: str
                   return (
                     <article
                       key={notice.id}
-                      className="rounded-lg border border-border/60 bg-card/60 p-4 text-card-foreground shadow-sm transition hover:bg-card/80"
+                      className="rounded-lg border border-border/70 bg-card/60 p-4 text-card-foreground shadow-sm transition-all hover:shadow-md hover:bg-card/90"
                     >
                       <div className="flex items-start gap-3">
-                        <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${
-                          notice.type === "error" ? "text-red-500" : notice.type === "success" ? "text-green-500" : "text-blue-500"
+                        <Icon className={`mt-0.5 h-4 w-4 shrink-0 flex-shrink-0 ${
+                          notice.type === "error" ? "text-red-500" : notice.type === "success" ? "text-green-600" : "text-blue-600"
                         }`} aria-hidden="true" />
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-semibold leading-tight">{notice.title}</h4>
+                          <h4 className="text-sm font-semibold leading-tight text-foreground">{notice.title}</h4>
                           {notice.message && (
-                            <p className="mt-0.5 text-xs text-muted-foreground/90 leading-relaxed">{notice.message}</p>
+                            <p className="mt-1 text-xs text-muted-foreground/85 leading-relaxed">{notice.message}</p>
                           )}
                         </div>
                         <button
                           type="button"
-                          className="text-xs font-medium text-primary hover:underline"
+                          className="text-xs font-medium text-primary transition hover:text-primary/80 whitespace-nowrap ml-2"
                           onClick={() => clearNotice(notice.id)}
                         >
                           Dismiss
@@ -152,13 +152,13 @@ export function TopbarNoticeActivityDrawer({ className = "" }: { className?: str
                 </p>
               ) : (
                 activities.map((item) => (
-                  <article key={item.id} className="rounded-lg border border-border/60 bg-card/60 p-3 text-card-foreground shadow-sm transition hover:bg-card/80">
+                  <article key={item.id} className="rounded-lg border border-border/70 bg-card/60 p-3.5 text-card-foreground shadow-sm transition-all hover:shadow-md hover:bg-card/90">
                     <div className="flex gap-3">
-                      <Activity className="mt-1 h-3.5 w-3.5 shrink-0 text-primary/60" aria-hidden="true" />
-                      <div className="min-w-0">
+                      <Activity className="mt-0.5 h-4 w-4 shrink-0 flex-shrink-0 text-primary/70" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
                         <h4 className="text-sm font-semibold text-foreground leading-tight">{item.title}</h4>
                         {item.description && (
-                          <p className="mt-0.5 text-xs text-muted-foreground/80 leading-relaxed">{item.description}</p>
+                          <p className="mt-1 text-xs text-muted-foreground/85 leading-relaxed">{item.description}</p>
                         )}
                         <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
                           <Clock3 className="h-3 w-3" aria-hidden="true" />

@@ -5,7 +5,7 @@ import { debugError } from "@/lib/utils/debug"
 
 import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
-import { profiles, users } from "@/lib/db/schema"
+import { accounts, profiles, users } from "@/lib/db/schema"
 import bcrypt from "bcryptjs"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -38,6 +38,36 @@ export async function signup(formData: FormData) {
   } catch (dbError) {
     debugError("Database connection error during signup:", dbError)
     return { error: "Database connection failed. Please check your configuration." }
+  }
+
+  // Handle existing OAuth user - automatically link password
+  if (existingUser && !existingUser.password) {
+    // Find the OAuth provider for this user
+    let oauthAccount = null
+    try {
+      oauthAccount = await db.query.accounts.findFirst({
+        where: eq(accounts.userId, existingUser.id),
+      })
+    } catch (e) {
+      debugError("Error checking OAuth account:", e)
+    }
+
+    // Automatically add password to existing OAuth user
+    try {
+      const hashedPassword = await bcrypt.hash(password, 12)
+      await db.update(users)
+        .set({ password: hashedPassword, name: name || existingUser.name })
+        .where(eq(users.id, existingUser.id))
+
+      // Auto-linked - sign them in
+      const signInResult = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      })
+      return { success: true, linked: true, user: signInResult }
+    } catch (dbError) {
+      debugError("Error linking password to OAuth user:", dbError)
+      return { error: "Failed to link account. Please try again." }
+    }
   }
 
   if (existingUser) {
