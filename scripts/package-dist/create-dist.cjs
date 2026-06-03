@@ -220,53 +220,9 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Keep .pnpm directory in node_modules — Railway Railpack needs node_modules present
-// in the source for its build graph checksum calculation. The dist branch commits
-// node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
-// Remove large native binaries that exceed GitHub's file size limit (100 MB).
-// Next.js SWC fallback binaries are the primary offenders (~124 MB each).
-const nmDir = path.join(distDir, "node_modules");
-if (fs.existsSync(nmDir)) {
-  let removed = 0;
-  function walkDir(dir, patterns) {
-    if (!fs.existsSync(dir)) return;
-    try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          walkDir(fullPath, patterns);
-        } else if (entry.isFile() || entry.isSymbolicLink()) {
-          if (!entry.name.endsWith(".node")) continue;
-          const isMatch = patterns.length === 0 ||
-            patterns.some((p) => fullPath.includes(p));
-          if (!isMatch) continue;
-          try {
-            const stat = fs.statSync(fullPath);
-            if (stat.size > 50 * 1024 * 1024) {
-              console.log(`Removing large binary: ${repoRelative(fullPath)} (${(stat.size / 1024 / 1024).toFixed(1)} MB)`);
-              fs.rmSync(fullPath, { force: true });
-              removed++;
-            }
-          } catch {
-            // broken symlink or stat error — still remove it
-            console.log(`Removing inaccessible binary: ${repoRelative(fullPath)}`);
-            fs.rmSync(fullPath, { force: true });
-            removed++;
-          }
-        }
-      }
-    } catch {
-      // permission error, skip
-    }
-  }
-  walkDir(nmDir, ["next-swc-fallback"]);
-  // safety net: any .node file >50MB
-  walkDir(nmDir, []);
-  if (removed > 0) {
-    console.log(`Cleaned up ${removed} large binary files from node_modules`);
-  }
-}
+// Railway uses DOCKERFILE builder (not Railpack). The Dockerfile runs npm install, and
+// .dockerignore excludes node_modules from the Docker build context. Therefore the dist
+// branch does not need node_modules committed. The workflow removes it before git commit.
 
 // Write Dockerfile for Railway Docker builder.
 // Installs production dependencies from npm, then copies the
