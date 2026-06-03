@@ -29,6 +29,7 @@ export function TopbarSection({
         <button
           type="button"
           className={`flex h-full min-w-12 items-center gap-2 px-3 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70 ${noBorder ? "" : "border-l border-border/50"}`}
+          title={label}
         >
           <span className="flex-shrink-0 text-primary/80 transition group-hover:text-primary">{icon}</span>
           <span className="hidden min-w-0 lg:block">
@@ -43,7 +44,7 @@ export function TopbarSection({
       </PopoverTrigger>
       <PopoverContent
         align={align === "right" ? "end" : "start"}
-        className="mt-1 w-72 rounded-lg border border-border/60 bg-popover/95 p-0 shadow-lg backdrop-blur-sm"
+        className="mt-1 w-72 rounded-lg border border-border/60 bg-popover p-0 shadow-lg"
       >
         <div className="p-4">
           <div className="border-b border-border/50 pb-3">

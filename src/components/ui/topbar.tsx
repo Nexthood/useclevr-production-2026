@@ -5,7 +5,6 @@ import { Search } from "@/components/ui/search-popup";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activity-drawer";
 import { TopbarPanelLink, TopbarSection } from "@/components/ui/topbar-section";
-import { TopbarSidebarToggle } from "@/components/ui/topbar-sidebar-toggle";
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
@@ -109,8 +108,6 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/settings/billing">Billing</TopbarPanelLink>
             <TopbarPanelLink href="/app/settings/credits">Credit rules</TopbarPanelLink>
           </TopbarSection>
-
-          <TopbarSidebarToggle />
 
           <TopbarSection
             icon={<UserCircle className="h-4 w-4" />}
