@@ -1,11 +1,18 @@
 import { debugLog } from "@/lib/utils/debug";
+import { getDb } from "@/lib/db";
+import { datasets, datasetRows } from "@/lib/db/schema";
+import { eq, asc } from "drizzle-orm";
 
 import type { PrecomputedMetrics } from "../utils/pipeline-types";
 import type {
+  CompareDatasetsOutput,
+  CostBreakdownOutput,
   DatasetSchemaOutput,
   PrecomputedKpisOutput,
+  ProfitMarginTrendOutput,
   ProfitabilitySummaryOutput,
   RevenueTrendsOutput,
+  TopProductsOutput,
   TopRegionsOutput,
 } from "./tools";
 
@@ -184,6 +191,200 @@ export function getTopRegions(
       metric,
       computedAt: metrics.computedAt,
     },
+  };
+}
+
+export function getTopProducts(
+  datasetId: string,
+  metric: "revenue" | "profit" | "quantity" = "revenue",
+  limit: number = 10,
+): TopProductsOutput {
+  const metrics = getAnalysisCache(datasetId);
+
+  if (!metrics) {
+    throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
+  }
+
+  const chartData = getChartData(metrics);
+  let rankedProducts: { rank: number; name: string; value: number; percentage: number }[] = [];
+  let totals = { metric: "revenue", value: 0 };
+
+  if (metric === "revenue") {
+    const data = chartData.revenueByProduct ?? [];
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    totals = { metric: "revenue", value: total };
+    rankedProducts = data.slice(0, limit).map((item, index) => ({
+      rank: index + 1,
+      name: item.category,
+      value: item.value,
+      percentage: total > 0 ? Math.round((item.value / total) * 1000) / 10 : 0,
+    }));
+  } else if (metric === "profit") {
+    const data = chartData.profitByProduct ?? [];
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    totals = { metric: "profit", value: total };
+    rankedProducts = data.slice(0, limit).map((item, index) => ({
+      rank: index + 1,
+      name: item.category,
+      value: item.value,
+      percentage: total > 0 ? Math.round((item.value / total) * 1000) / 10 : 0,
+    }));
+  } else if (metric === "quantity" && metrics.productPerformance) {
+    const data = metrics.productPerformance
+      .filter((p) => p.quantity !== undefined)
+      .map((p) => ({ category: p.name, value: p.quantity || 0, percentage: p.percentage }))
+      .sort((a, b) => b.value - a.value);
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    totals = { metric: "quantity", value: total };
+    rankedProducts = data.slice(0, limit).map((item, index) => ({
+      rank: index + 1,
+      name: item.category,
+      value: item.value,
+      percentage: total > 0 ? Math.round((item.value / total) * 1000) / 10 : 0,
+    }));
+  }
+
+  return {
+    rankedProducts,
+    totals,
+    metadata: {
+      datasetId,
+      metric,
+      computedAt: metrics.computedAt,
+    },
+  };
+}
+
+export function getCostBreakdownFromCache(datasetId: string): CostBreakdownOutput {
+  const metrics = getAnalysisCache(datasetId);
+
+  if (!metrics) {
+    throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
+  }
+
+  const costBreakdown = getCostBreakdown(metrics);
+  const totalCost = costBreakdown.totalCost;
+
+  const categories = [
+    { category: "COGS", amount: costBreakdown.cogs },
+    { category: "Marketing", amount: costBreakdown.marketingCost },
+    { category: "Shipping", amount: costBreakdown.shippingCost },
+    { category: "Refunds", amount: costBreakdown.refunds },
+    { category: "Discounts", amount: costBreakdown.discount },
+  ]
+    .filter((c) => c.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+    .map((c) => ({
+      ...c,
+      percentage: totalCost > 0 ? Math.round((c.amount / totalCost) * 1000) / 10 : 0,
+    }));
+
+  return {
+    totalCost,
+    categories,
+    metadata: {
+      datasetId,
+      computedAt: metrics.computedAt,
+    },
+  };
+}
+
+export function getProfitMarginTrend(datasetId: string): ProfitMarginTrendOutput {
+  const metrics = getAnalysisCache(datasetId);
+
+  if (!metrics) {
+    throw new Error(`No analysis found for dataset: ${datasetId}. Please run analysis first.`);
+  }
+
+  return {
+    totalRevenue: metrics.totalRevenue,
+    totalExpenses: metrics.totalCost,
+    netProfit: metrics.totalProfit,
+    profitMargin: metrics.profitMargin || 0,
+    growthRate: metrics.growthRate,
+    growthTrend: metrics.growthTrend,
+    growthMessage: metrics.growthMessage,
+    metadata: {
+      datasetId,
+      computedAt: metrics.computedAt,
+    },
+  };
+}
+
+export async function compareDatasets(
+  datasetIdA: string,
+  datasetIdB: string,
+): Promise<CompareDatasetsOutput> {
+  const db = getDb();
+  if (!db) {
+    throw new Error("Database not available for dataset comparison.");
+  }
+
+  const [dsA, dsB] = await Promise.all([
+    db.query.datasets.findFirst({ where: eq(datasets.id, datasetIdA), columns: { id: true, name: true, data: true } }),
+    db.query.datasets.findFirst({ where: eq(datasets.id, datasetIdB), columns: { id: true, name: true, data: true } }),
+  ]);
+
+  if (!dsA) throw new Error(`Dataset not found: ${datasetIdA}`);
+  if (!dsB) throw new Error(`Dataset not found: ${datasetIdB}`);
+
+  const [rowsA, rowsB] = await Promise.all([
+    db.query.datasetRows.findMany({
+      where: eq(datasetRows.datasetId, datasetIdA),
+      columns: { data: true },
+      orderBy: [asc(datasetRows.rowIndex)],
+    }),
+    db.query.datasetRows.findMany({
+      where: eq(datasetRows.datasetId, datasetIdB),
+      columns: { data: true },
+      orderBy: [asc(datasetRows.rowIndex)],
+    }),
+  ]);
+
+  const dataA: Record<string, unknown>[] = (dsA.data as Record<string, unknown>[]) || rowsA.map((r) => r.data as Record<string, unknown>);
+  const dataB: Record<string, unknown>[] = (dsB.data as Record<string, unknown>[]) || rowsB.map((r) => r.data as Record<string, unknown>);
+
+  // Infer numeric columns from first rows of each dataset
+  const numericColsA = dataA.length > 0
+    ? Object.entries(dataA[0]).filter(([, v]) => typeof v === "number" || !isNaN(Number(v))).map(([k]) => k)
+    : [];
+  const numericColsB = dataB.length > 0
+    ? Object.entries(dataB[0]).filter(([, v]) => typeof v === "number" || !isNaN(Number(v))).map(([k]) => k)
+    : [];
+  const commonNumeric = numericColsA.filter((col) => numericColsB.includes(col));
+
+  // Aggregate sums for common numeric columns
+  const sumA = (col: string) => dataA.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+  const sumB = (col: string) => dataB.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+
+  const metrics = commonNumeric.map((col) => {
+    const valueA = sumA(col);
+    const valueB = sumB(col);
+    const absoluteChange = valueB - valueA;
+    const changePercent = valueA !== 0 ? ((valueB - valueA) / Math.abs(valueA)) * 100 : 0;
+    const trend: "up" | "down" | "stable" = changePercent > 3 ? "up" : changePercent < -3 ? "down" : "stable";
+    return { metric: col, valueA, valueB, absoluteChange, changePercent, trend };
+  });
+
+  // Build matching columns metadata
+  const allColumns = [...new Set([...Object.keys(dataA[0] || {}), ...Object.keys(dataB[0] || {})])];
+  const matchingColumns = allColumns.map((col) => ({
+    column: col,
+    type: commonNumeric.includes(col) ? "numeric" : "categorical",
+    inBoth: col in (dataA[0] || {}) && col in (dataB[0] || {}),
+    matchPercent: col in (dataA[0] || {}) && col in (dataB[0] || {}) ? 100 : 0,
+  }));
+
+  const increases = metrics.filter((m) => m.trend === "up").length;
+  const decreases = metrics.filter((m) => m.trend === "down").length;
+  const summary = `Compared ${metrics.length} common metrics between ${dsA.name} and ${dsB.name}. ${increases > 0 ? `${increases} metric${increases > 1 ? "s" : ""} increased.` : ""} ${decreases > 0 ? `${decreases} metric${decreases > 1 ? "s" : ""} decreased.` : ""}`;
+
+  return {
+    datasetA: { id: dsA.id, name: dsA.name, rowCount: dataA.length },
+    datasetB: { id: dsB.id, name: dsB.name, rowCount: dataB.length },
+    matchingColumns,
+    metrics,
+    summary,
   };
 }
 

@@ -349,6 +349,24 @@ export async function deleteOldTraces(retentionDays: number): Promise<number> {
   }
 }
 
+export async function recordMentoringTrace(input: {
+  userId: string
+  sessionType: string
+  mentorName: string | null
+  action: "booked" | "completed" | "cancelled"
+  providerName?: string
+  modelName?: string
+}): Promise<TraceRecord | null> {
+  return createTrace({
+    userId: input.userId,
+    prompt: `Mentoring session ${input.action}: ${input.sessionType}${input.mentorName ? ` with ${input.mentorName}` : ""}`,
+    response: `Session type: ${input.sessionType}. Mentor: ${input.mentorName || "TBD"}. Action: ${input.action}.`,
+    providerName: input.providerName || "mentoring",
+    modelName: input.modelName || "system",
+    promptVersion: PROMPT_VERSION,
+  })
+}
+
 export async function anonymizeUserTraces(userId: string): Promise<boolean> {
   try {
     const db = getDb()

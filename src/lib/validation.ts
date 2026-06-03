@@ -54,6 +54,21 @@ export interface ValidationError {
   error: string
 }
 
+export const mentoringSessionCreateSchema = z.object({
+  type: z.enum(["fundraising", "growth", "operations", "financial", "product"]),
+  scheduledAt: z.string().optional(),
+  mentorId: z.string().optional(),
+  mentorName: z.string().optional(),
+  mentorExpertise: z.string().optional(),
+  price: z.number().optional(),
+})
+
+export const mentoringSessionUpdateSchema = z.object({
+  id: z.string().min(1, "id is required"),
+  status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
+  notes: z.string().optional(),
+})
+
 export function validateOrError<T>(schema: z.ZodSchema<T>, data: unknown): ValidationResult<T> | ValidationError {
   const result = schema.safeParse(data)
   if (!result.success) {

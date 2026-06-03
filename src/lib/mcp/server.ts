@@ -1,20 +1,28 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
 
 import {
+  CompareDatasetsInput,
+  GetCostBreakdownInput,
   GetDatasetSchemaInput,
   GetPrecomputedKpisInput,
+  GetProfitMarginTrendInput,
   GetProfitabilitySummaryInput,
   GetRevenueTrendsInput,
   getToolByName,
+  GetTopProductsInput,
   GetTopRegionsInput,
   mcpTools,
 } from "./tools";
 
 import {
+  compareDatasets,
+  getCostBreakdownFromCache,
   getDatasetSchema,
   getPrecomputedKpis,
+  getProfitMarginTrend,
   getProfitabilitySummary,
   getRevenueTrends,
+  getTopProducts,
   getTopRegions,
 } from "./handlers";
 
@@ -69,6 +77,45 @@ export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPTool
         return {
           success: true,
           result: getTopRegions(
+            validatedInput.datasetId,
+            validatedInput.metric,
+            validatedInput.limit,
+          ),
+        };
+      }
+
+      case "getCostBreakdown": {
+        const validatedInput = GetCostBreakdownInput.parse(input);
+        return {
+          success: true,
+          result: getCostBreakdownFromCache(validatedInput.datasetId),
+        };
+      }
+
+      case "getProfitMarginTrend": {
+        const validatedInput = GetProfitMarginTrendInput.parse(input);
+        return {
+          success: true,
+          result: getProfitMarginTrend(validatedInput.datasetId),
+        };
+      }
+
+      case "compareDatasets": {
+        const validatedInput = CompareDatasetsInput.parse(input);
+        return {
+          success: true,
+          result: await compareDatasets(
+            validatedInput.datasetIdA,
+            validatedInput.datasetIdB,
+          ),
+        };
+      }
+
+      case "getTopProducts": {
+        const validatedInput = GetTopProductsInput.parse(input);
+        return {
+          success: true,
+          result: getTopProducts(
             validatedInput.datasetId,
             validatedInput.metric,
             validatedInput.limit,

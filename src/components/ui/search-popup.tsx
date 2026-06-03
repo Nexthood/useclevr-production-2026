@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import {
   ArrowRight,
   BarChart3,
+  Clock,
   Database,
   FileQuestion,
   HelpCircle,
@@ -57,6 +58,36 @@ const quickLinks = [
   },
 ];
 
+const RECENT_SEARCHES_KEY = "useclevr-recent-searches";
+const MAX_RECENT_SEARCHES = 5;
+
+function loadRecentSearches(): string[] {
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return stored ? (JSON.parse(stored) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(query: string) {
+  try {
+    const recent = loadRecentSearches().filter((s) => s !== query);
+    recent.unshift(query);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, MAX_RECENT_SEARCHES)));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+function clearRecentSearches() {
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 export function Search() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -65,11 +96,18 @@ export function Search() {
   const [hasSearched, setHasSearched] = useState(false);
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultListRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSearchingRef = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      setRecentSearches(loadRecentSearches());
+    }
+  }, [open]);
 
   const filteredResults = typeFilter
     ? results.filter((result) => result.type === typeFilter)
@@ -128,6 +166,9 @@ export function Search() {
     isSearchingRef.current = true;
     setIsSearching(true);
     setHasSearched(true);
+
+    saveRecentSearch(searchQuery.trim());
+    setRecentSearches(loadRecentSearches());
 
     try {
       const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
@@ -282,6 +323,38 @@ export function Search() {
                 Search dashboard pages, datasets, support tickets, reports, and FAQ answers.
                 Operator-only results appear for super-admin accounts.
               </div>
+
+              {recentSearches.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent searches</span>
+                    <button
+                      type="button"
+                      onClick={() => { clearRecentSearches(); setRecentSearches([]); }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {recentSearches.map((search) => (
+                      <button
+                        key={search}
+                        type="button"
+                        onClick={() => {
+                          setQuery(search);
+                          void handleSearch(search);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                      >
+                        <Clock className="h-3 w-3" />
+                        {search}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {quickLinks.map((item) => (
                   <Link

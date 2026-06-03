@@ -123,6 +123,7 @@ export const profiles = pgTable(
     location: text('location'),
     website: text('website'),
     businessDescription: text('businessDescription'),
+    mentorshipUsed: integer('mentorshipUsed').default(0).notNull(),
   },
   (table) => ({
     userIdFk: foreignKey({
@@ -508,5 +509,45 @@ export const appSettings = pgTable(
   },
   (table) => ({
     keyIdx: uniqueIndex('AppSetting_key_key').on(table.key),
+  })
+)
+
+// ============================================================================
+// MENTORING TABLES
+// ============================================================================
+
+export const mentoringSessionTypes = ['fundraising', 'growth', 'operations', 'financial', 'product'] as const
+export type MentoringSessionType = typeof mentoringSessionTypes[number]
+
+export const mentoringSessionStatuses = ['scheduled', 'completed', 'cancelled'] as const
+export type MentoringSessionStatus = typeof mentoringSessionStatuses[number]
+
+export const mentoringSessions = pgTable(
+  'MentoringSession',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull(),
+    mentorId: text('mentorId'),
+    type: varchar('type', { length: 50 }).notNull().$type<MentoringSessionType>(),
+    status: varchar('status', { length: 30 }).default('scheduled').notNull().$type<MentoringSessionStatus>(),
+    scheduledAt: timestamp('scheduledAt'),
+    duration: integer('duration'),
+    notes: text('notes'),
+    recordingUrl: text('recordingUrl'),
+    mentorName: varchar('mentorName', { length: 255 }),
+    mentorExpertise: text('mentorExpertise'),
+    price: integer('price'),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: 'MentoringSession_userId_fkey',
+    }).onDelete('cascade'),
+    userIdIdx: index('MentoringSession_userId_idx').on(table.userId),
+    statusIdx: index('MentoringSession_status_idx').on(table.status),
+    scheduledAtIdx: index('MentoringSession_scheduledAt_idx').on(table.scheduledAt),
   })
 )

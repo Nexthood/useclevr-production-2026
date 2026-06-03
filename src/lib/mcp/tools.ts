@@ -80,6 +80,24 @@ export interface RevenueTrendsOutput {
   };
 }
 
+export const GetTopProductsInput = z.object({
+  datasetId: z.string(),
+  metric: z.enum(["revenue", "profit", "quantity"]).default("revenue"),
+  limit: z.number().min(1).max(50).default(10),
+});
+
+export type GetTopProductsInput = z.infer<typeof GetTopProductsInput>;
+
+export interface TopProductsOutput {
+  rankedProducts: { rank: number; name: string; value: number; percentage: number }[];
+  totals: { metric: string; value: number };
+  metadata: {
+    datasetId: string;
+    metric: string;
+    computedAt: string;
+  };
+}
+
 export const GetProfitabilitySummaryInput = z.object({
   datasetId: z.string(),
 });
@@ -95,6 +113,63 @@ export interface ProfitabilitySummaryOutput {
   revenueByRegion: { region: string; revenue: number; percentage: number }[];
   revenueByProduct: { product: string; revenue: number; percentage: number }[];
   revenueVsExpenses?: { period: string; revenue: number; expenses: number; profit: number }[];
+}
+
+export const GetCostBreakdownInput = z.object({
+  datasetId: z.string(),
+});
+
+export type GetCostBreakdownInput = z.infer<typeof GetCostBreakdownInput>;
+
+export interface CostBreakdownOutput {
+  totalCost: number;
+  categories: { category: string; amount: number; percentage: number }[];
+  metadata: {
+    datasetId: string;
+    computedAt: string;
+  };
+}
+
+export const GetProfitMarginTrendInput = z.object({
+  datasetId: z.string(),
+});
+
+export type GetProfitMarginTrendInput = z.infer<typeof GetProfitMarginTrendInput>;
+
+export interface ProfitMarginTrendOutput {
+  totalRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
+  profitMargin: number;
+  growthRate: number | null;
+  growthTrend: "up" | "down" | "stable" | null;
+  growthMessage: string;
+  metadata: {
+    datasetId: string;
+    computedAt: string;
+  };
+}
+
+export const CompareDatasetsInput = z.object({
+  datasetIdA: z.string(),
+  datasetIdB: z.string(),
+});
+
+export type CompareDatasetsInput = z.infer<typeof CompareDatasetsInput>;
+
+export interface CompareDatasetsOutput {
+  datasetA: { id: string; name: string; rowCount: number };
+  datasetB: { id: string; name: string; rowCount: number };
+  matchingColumns: { column: string; type: string; inBoth: boolean; matchPercent: number }[];
+  metrics: {
+    metric: string;
+    valueA: number;
+    valueB: number;
+    absoluteChange: number;
+    changePercent: number;
+    trend: "up" | "down" | "stable";
+  }[];
+  summary: string;
 }
 
 export interface MCPTool {
@@ -125,6 +200,34 @@ export const mcpTools: MCPTool[] = [
       "Returns normalized ranked region/country data with totals and share percentages for visualization.",
     inputSchema: GetTopRegionsInput,
     outputSchema: {} as TopRegionsOutput,
+  },
+  {
+    name: "getCostBreakdown",
+    description:
+      "Returns cost breakdown by category with amounts and percentage shares of total cost.",
+    inputSchema: GetCostBreakdownInput,
+    outputSchema: {} as CostBreakdownOutput,
+  },
+  {
+    name: "getProfitMarginTrend",
+    description:
+      "Returns profit margin and growth trend analysis including revenue, expenses, net profit, margin percentage, and growth direction.",
+    inputSchema: GetProfitMarginTrendInput,
+    outputSchema: {} as ProfitMarginTrendOutput,
+  },
+  {
+    name: "compareDatasets",
+    description:
+      "Compares two datasets by ID and returns matching columns, metric differences, percentage changes, and a summary.",
+    inputSchema: CompareDatasetsInput,
+    outputSchema: {} as CompareDatasetsOutput,
+  },
+  {
+    name: "getTopProducts",
+    description:
+      "Returns ranked product data with revenue, profit, or quantity breakdowns and share percentages for visualization.",
+    inputSchema: GetTopProductsInput,
+    outputSchema: {} as TopProductsOutput,
   },
   {
     name: "getRevenueTrends",

@@ -16,6 +16,27 @@ moving work between states.
 
 ## Completed
 
+- T-556. Business Mentoring AI tracing records booking events in the aiInteractionTraces table for session recommendations and follow-ups.
+- T-555. Business Mentoring sales documentation created with target segments, session type pricing, and sales script reference.
+- T-554. Business Mentoring developer guide created with API routes, database schema, and integration points for MentoringSession table.
+- T-553. Business Mentoring user guide created with session types, expert qualifications, booking process, and pricing tiers.
+- T-552. Business Mentoring public landing page at `/mentoring` with value proposition, session types, how-it-works cards, and sign-up CTA.
+- T-551. Business Mentoring feature: MentoringSession DB schema, CRUD API routes (`/api/mentoring/sessions`, `/api/mentoring/experts`), dashboard UI with booking dialog, session list, and cancel, plus 5 expert mentor profiles.
+- T-543. Demo scripts created for founder (5min), SME owner (7min), consultant (5min), accountancy-prep (3min), and full product tour (10min) sales conversations.
+- T-542. Screenshot guide created listing 20 public and dashboard pages with capture standards and priority order.
+- T-541. Demo datasets prepared: SaaS revenue H1 2025 (32 rows, founder/SME demo) and beverage sales Q1 2025 (36 rows, e-commerce/consultant demo).
+- T-540. Sales one-pager created from project brief, business case, product description, and marketing plan.
+- T-536. Search popup recent history saves last 5 searches to localStorage with save/load/clear methods.
+- T-535. Search popup type filter added: `searchSuggest()` queries datasets and reports from DB with optional type param; `/api/search/suggest` route accepts type query param.
+- T-534. MCP tools integrated into analyze route via `buildMCPToolsPrompt` and `analyzeWithMCP` in integration.ts with trusted wrapper functions.
+- T-533. MCP tool `getProfitMarginTrend` added: combines profit margin calculation with growth trend direction in handlers.ts, tools.ts, server.ts, integration.ts.
+- T-532. MCP resource `revenue-by-region` added with ranked rows and share percentages (already existed as `getTopRegions` in resources.ts).
+- T-531. MCP tool `getCostBreakdown` added: extracts cost categories from precomputed metrics with percentage shares in handlers.ts, tools.ts, server.ts, integration.ts.
+- T-530. MCP tool `compareDatasets` added: async DB handler fetches precomputed metrics for two datasets and returns comparison in handlers.ts, server.ts, tools.ts, integration.ts.
+- T-529. MCP resource `top-products` added: ranked products by revenue/profit with percentage share in resources.ts, tools.ts, server.ts, integration.ts.
+- T-528. MCP tool `getDatasetSchema` added: returns column mapping and inferred types from precomputed metrics (handler already existed in handlers.ts, wired in tools.ts, server.ts).
+- T-513. Company Setup Wizard created: 8-step form component, types/validation in company-setup.ts, route at `/app/business/setup`, Setup link in business-nav.tsx.
+- T-512. Type check verified: all new AI tracing and MCP files pass with zero errors.
 - T-525. Retired the dist-branch migration prompt into the current Railway and GitHub deployment guides.
 - T-524. Created a practical Payload transformation prompt and migration task plan based on the current app routes, schema, billing, content, and deployment shape.
 - T-469. Mapped current application data models and route ownership to future Payload CMS collection boundaries without starting a migration.
@@ -242,3 +263,4 @@ moving work between states.
 - T-502. AI interaction benchmarking dashboard — superadmin page at `/app/admin/ai-benchmarking` compares provider latency, error rate, satisfaction.
 - T-503. AI latency and cost per interaction — latency tracked per trace, aggregate metrics shown in superadmin analytics and benchmarking pages.
 - T-504. AI interaction re-run with different provider — re-run button on each history entry calls `askAssistant()` with the stored prompt.
+- T-557. Fix social login and sign-up interconnection — when a user exists via OAuth, the signup form detects it and offers to link a password instead of creating duplicate accounts.

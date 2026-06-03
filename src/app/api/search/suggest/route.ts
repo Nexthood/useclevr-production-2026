@@ -13,12 +13,13 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get("q") || ""
+  const typeFilter = searchParams.get("type")
 
   if (!query.trim() || query.trim().length < 2) {
     return NextResponse.json({ results: [] })
   }
 
-  const results = await searchSuggest(query, session.user.role)
+  const results = await searchSuggest(query, session.user.role, session.user.id, typeFilter)
 
   return NextResponse.json({ results })
 }

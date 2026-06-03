@@ -36,8 +36,9 @@ function LoginForm() {
   const [signUpPassword, setSignUpPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
-  const [authError, setAuthError] = useState<string | null>(null)
+const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
+   const [authError, setAuthError] = useState<string | null>(null)
+   const [linkMode, setLinkMode] = useState(false)
 
   const goToDashboard = () => {
     router.replace("/app")
@@ -139,15 +140,22 @@ function LoginForm() {
     formData.append("name", signUpName)
     formData.append("email", signUpEmail)
     formData.append("password", signUpPassword)
+    formData.append("linkMode", String(linkMode))
 
     try {
       const result = await signup(formData)
 
       if (result.error) {
-        setAuthError(result.error)
+        if (result.canLink) {
+          setAuthError(`${result.error} Set a password to link accounts.`)
+          setLinkMode(true)
+        } else {
+          setAuthError(result.error)
+        }
         return
       }
 
+      // Sign in after successful signup or linking
       const signInResult = await signIn("credentials", {
         email: signUpEmail,
         password: signUpPassword,
