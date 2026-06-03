@@ -223,6 +223,17 @@ for (const f of packageManagerFiles) {
 // Keep .pnpm directory in node_modules — Railway Railpack needs node_modules present
 // in the source for its build graph checksum calculation. The dist branch commits
 // node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
+// Remove large native binaries (>100MB) that exceed GitHub's file size limit.
+if (fs.existsSync(path.join(distDir, "node_modules"))) {
+  const largeFiles = execSync(
+    `find "${distDir}/node_modules" -name "*.node" -size +50M -type f 2>/dev/null || true`,
+    { encoding: "utf-8" },
+  ).trim().split("\n").filter(Boolean);
+  for (const f of largeFiles) {
+    console.log(`Removing large binary: ${repoRelative(f)}`);
+    fs.rmSync(f, { force: true });
+  }
+}
 
 // Write Dockerfile for Railway Docker builder.
 // Installs production dependencies from npm, then copies the
