@@ -1,6 +1,6 @@
 # Bookkeeping User Guide
 
-The canonical user guide lives at [../User_Guides/bookkeeping.md](../User_Guides/bookkeeping.md).
+The canonical user guide lives at [../../User_Guides/bookkeeping.md](../../User_Guides/bookkeeping.md).
 Keep this AI interaction guide aligned with it when bookkeeping instructions change.
 
 ## Core Workflows

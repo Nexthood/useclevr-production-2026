@@ -225,25 +225,16 @@ for (const f of packageManagerFiles) {
 // in the source for its build graph checksum calculation. The dist branch commits
 // node_modules (33MB pnpm symlink structure) to satisfy Railway source copying.
 
-// Write railpack.json to declare the Node.js provider explicitly.
-// No custom install/build steps — Railpack's default npm install is instant
-// because dist/package.json has empty dependencies. The real production
-// node_modules are bundled from .next/standalone.
-const railpackConfig = { provider: "node" };
-fs.writeFileSync(path.join(distDir, "railpack.json"), JSON.stringify(railpackConfig, null, 2) + "\n");
-
-// Write a minimal package-lock.json so Railpack detects npm (not pnpm)
-// as the package manager when no lockfile is present.
-const packageLock = {
-  name: "useclevr-2026-dist",
-  lockfileVersion: 3,
-  requires: true,
-  packages: {},
-};
-fs.writeFileSync(
-  path.join(distDir, "package-lock.json"),
-  JSON.stringify(packageLock, null, 2) + "\n",
-);
+// Write Dockerfile for Railway Docker builder.
+// Copies everything as-is (node_modules included from standalone build)
+// so no dependency installation is needed at build time.
+const dockerfile = `FROM node:22-alpine
+WORKDIR /app
+COPY . .
+EXPOSE 8080
+CMD ["node", "-r", "./scripts/runtime/load-env.cjs", "./scripts/runtime/start-dist.cjs"]
+`;
+fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/sh

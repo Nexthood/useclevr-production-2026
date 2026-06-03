@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const GetDatasetSchemaInput = z.object({
   datasetId: z.string(),
@@ -8,7 +8,7 @@ export type GetDatasetSchemaInput = z.infer<typeof GetDatasetSchemaInput>;
 
 export interface DatasetSchemaOutput {
   columns: string[];
-  inferredTypes: Record<string, 'string' | 'number' | 'date' | 'boolean'>;
+  inferredTypes: Record<string, "string" | "number" | "date" | "boolean">;
   rowCount: number;
   dateColumns: string[];
   businessFields?: {
@@ -40,7 +40,7 @@ export interface PrecomputedKpisOutput {
 
 export const GetTopRegionsInput = z.object({
   datasetId: z.string(),
-  metric: z.enum(['revenue', 'profit', 'quantity', 'cost']).default('revenue'),
+  metric: z.enum(["revenue", "profit", "quantity", "cost"]).default("revenue"),
   limit: z.number().min(1).max(20).default(10),
 });
 
@@ -59,8 +59,8 @@ export interface TopRegionsOutput {
 
 export const GetRevenueTrendsInput = z.object({
   datasetId: z.string(),
-  dateGrain: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']).default('monthly'),
-  metric: z.enum(['revenue', 'profit', 'quantity']).default('revenue'),
+  dateGrain: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]).default("monthly"),
+  metric: z.enum(["revenue", "profit", "quantity"]).default("revenue"),
 });
 
 export type GetRevenueTrendsInput = z.infer<typeof GetRevenueTrendsInput>;
@@ -69,7 +69,7 @@ export interface RevenueTrendsOutput {
   trendRows: { period: string; value: number }[];
   firstPeriod: { period: string; value: number } | null;
   lastPeriod: { period: string; value: number } | null;
-  growthDirection: 'up' | 'down' | 'stable' | 'insufficient_data';
+  growthDirection: "up" | "down" | "stable" | "insufficient_data";
   peakPeriod: { period: string; value: number } | null;
   troughPeriod: { period: string; value: number } | null;
   metadata: {
@@ -100,43 +100,48 @@ export interface ProfitabilitySummaryOutput {
 export interface MCPTool {
   name: string;
   description: string;
-  inputSchema: z.ZodType<any>;
-  outputSchema: any;
+  inputSchema: z.ZodTypeAny;
+  outputSchema: unknown;
 }
 
 export const mcpTools: MCPTool[] = [
   {
-    name: 'getDatasetSchema',
-    description: 'Returns the trusted dataset structure including columns, inferred types, row count, date columns, and mapped business fields.',
+    name: "getDatasetSchema",
+    description:
+      "Returns the trusted dataset structure including columns, inferred types, row count, date columns, and mapped business fields.",
     inputSchema: GetDatasetSchemaInput,
     outputSchema: {} as DatasetSchemaOutput,
   },
   {
-    name: 'getPrecomputedKpis',
-    description: 'Returns trusted precomputed KPI values including total revenue, expenses, profit, margin, and top performers.',
+    name: "getPrecomputedKpis",
+    description:
+      "Returns trusted precomputed KPI values including total revenue, expenses, profit, margin, and top performers.",
     inputSchema: GetPrecomputedKpisInput,
     outputSchema: {} as PrecomputedKpisOutput,
   },
   {
-    name: 'getTopRegions',
-    description: 'Returns normalized ranked region/country data with totals and share percentages for visualization.',
+    name: "getTopRegions",
+    description:
+      "Returns normalized ranked region/country data with totals and share percentages for visualization.",
     inputSchema: GetTopRegionsInput,
     outputSchema: {} as TopRegionsOutput,
   },
   {
-    name: 'getRevenueTrends',
-    description: 'Returns normalized revenue-over-time data with trend metadata including growth direction, peak, and trough periods.',
+    name: "getRevenueTrends",
+    description:
+      "Returns normalized revenue-over-time data with trend metadata including growth direction, peak, and trough periods.",
     inputSchema: GetRevenueTrendsInput,
     outputSchema: {} as RevenueTrendsOutput,
   },
   {
-    name: 'getProfitabilitySummary',
-    description: 'Returns trusted profitability results including revenue, expenses, net profit, margin, and breakdowns by region and product.',
+    name: "getProfitabilitySummary",
+    description:
+      "Returns trusted profitability results including revenue, expenses, net profit, margin, and breakdowns by region and product.",
     inputSchema: GetProfitabilitySummaryInput,
     outputSchema: {} as ProfitabilitySummaryOutput,
   },
 ];
 
 export function getToolByName(name: string): MCPTool | undefined {
-  return mcpTools.find(tool => tool.name === name);
+  return mcpTools.find((tool) => tool.name === name);
 }

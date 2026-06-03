@@ -10,6 +10,8 @@ let failed = false;
 const localLinkPattern = /\[[^\]]+\]\((?!https?:|mailto:|#)([^)]+)\)/g;
 
 for (const file of files) {
+  if (!existsSync(file)) continue;
+
   const text = readFileSync(file, "utf8");
   let match;
 

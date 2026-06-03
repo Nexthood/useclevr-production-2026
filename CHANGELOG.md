@@ -7,7 +7,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- AI interaction trace logging stores every user-AI interaction with provider, latency, and error status.
+- Railway CLI wrapper replaces native Rust binary with direct GraphQL API calls for login, link, list, and status commands.
+- Users view and search past AI conversations in the AI Assistant sidebar History and Search tabs.
+- Provider indicator shows the active AI model for each assistant response.
+- Thumbs-up/down feedback buttons let users rate every AI response, stored with the interaction trace.
+- AI error messages include clear explanations and actionable next steps when analysis fails.
+- Superadmin AI trace analytics page shows usage, provider distribution, error rates, and top queries.
+- Superadmin AI benchmarking page compares provider performance, latency, and satisfaction.
+- Users export their AI conversation history as JSON or CSV from the History sidebar tab.
+- Data usage transparency notice in the AI Assistant explains what data is sent to AI providers.
+- Re-run button lets users ask a past question again directly from the history sidebar.
+- Search tab provides full-text search across past prompts and AI responses.
+- Trace retention policy configurable via superadmin with configurable auto-cleanup threshold.
+- Admin sidebar and topbar include links to AI Traces and AI Benchmarking pages.
+
 ### Fixed
+- Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.
+- Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
+- Stripe checkout redirects verify payment success with a signed server token that survives local and deployed server restarts.
+- MCP access stays scoped to signed-in users and their own datasets while super-admins keep full platform access.
 - Railway health checks keep the test app deployable while database readiness is reported separately.
 - Dashboard route guards avoid Edge runtime crashes by keeping full authentication checks in server code.
 - Railway packaged output points Edge route guard manifests at the generated middleware bundle.
@@ -24,6 +44,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Clarify documentation structure and retire duplicate AI interaction folders into the current AI knowledge base.
+- Add Sales project documents and marketing planning.
+- Reorganize AI interaction docs by audience, prompt library, learning traces, sales guidance, and project governance.
+- Split reusable AI prompts into dedicated prompt files, including an interaction-trace prompt for user learning and problem markers.
+- Move heavy local validation from pre-commit to pre-push while commit messages continue to validate at commit time.
 - Add local Railway CLI shortcuts for browserless login, linking, status, and logs.
 - Publish `dist/node_modules/` in deployment branch output for Railpack build graph checksum.
 - Use `cp -a` instead of `fs.cpSync` for standalone copy to preserve relative pnpm symlinks.
@@ -46,6 +71,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Manage dashboard tickets with table-first queue, separate pages for new tickets and row-level editing.
 
 ### Changed
+- Front page sections use the same compact public-page rhythm and call-to-action treatment as the affiliate page.
 - Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
 - View business review readiness in Business overview.
 - Manage dataset and downloads rows with clear action columns.
@@ -183,7 +209,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   publish do not depend on suppressed token-generated events.
 - Dist publishing syncs deployment config files from the source branch while keeping generated
   app output inside `/dist`.
-- Local pre-commit validation runs the production publish build so missing bundle dependencies
+- Local pre-push validation runs the production publish build so missing bundle dependencies
   fail before deployment.
 - Payload migration planning uses clearer AI implementation steps.
 - GitHub automation can auto-merge pull requests from beta into main.

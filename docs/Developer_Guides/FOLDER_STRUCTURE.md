@@ -7,7 +7,7 @@ outside `src/`.
 | -------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `.TODO/`                               | Humans, AI agents          | Active tasks, done lists, future notes, and AI task skills.                                                                  |
 | `.github/workflows/`                   | GitHub Actions             | Source validation, beta sync, and dist publishing workflows.                                                                 |
-| `.husky/`                              | Husky                      | Local Git hooks. Current hook checks commit messages with commitlint and allows `PR:` titles.                                |
+| `.husky/`                              | Husky                      | Local Git hooks. Commit messages validate at commit time; full source validation runs at push time.                          |
 | `.kilo/`                               | Kilo                       | Local Kilo agents and commands.                                                                                              |
 | `.vscode/`                             | VS Code                    | Workspace recommendations, launch settings, and local editor settings.                                                       |
 | `docs/`                                | Developers, users          | Developer and user documentation.                                                                                            |

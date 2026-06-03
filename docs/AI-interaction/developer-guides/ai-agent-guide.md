@@ -7,12 +7,26 @@ folder during the same task cycle.
 ## Operating Rules
 
 - Preserve user and other-agent worktree changes.
+- Read project instructions and inspect current worktree status before editing.
+- Identify whether changes are user-visible, developer-only, deployment-only, sales-only, or documentation-only.
+- Add a TODO task before confirmed implementation work starts when the work is active implementation.
 - Write all text files as current-state behavior and current rules.
 - Avoid past states, removed options, speculative possibilities, and future blockages.
 - Mention past or future states only when the detail prevents a concrete risk.
 - Keep user guides separate from developer guides.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
+- Keep reusable prompt files in `docs/AI-interaction/prompt-library/`.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
+
+## Work Cycle
+
+- Prefer current code patterns over copying old files directly from history.
+- Keep changes scoped to the requested behavior.
+- Verify with typecheck, lint, docs checks, and build when routes or shared UI change.
+- Move completed tasks to `todo-done.md` only after the work is complete.
+- Update requirements for user-observable product behavior.
+- Update changelog with active, release-facing language.
+- Report remaining risks or deferred work without marking it complete.
 
 ## Railway Deploy Scope
 
@@ -37,3 +51,17 @@ folder during the same task cycle.
 - Keep bookkeeping user guidance focused on workflows and outcomes.
 - Keep bookkeeping developer guidance focused on data sources, page structure, validation, and risk.
 - Update requirements when bookkeeping changes are visible in Accountancy.
+
+## AI Interaction Tracing Scope
+
+- Every user-AI interaction is logged to the `aiInteractionTraces` database table with provider name,
+  model name, latency, token count, error status, and prompt version.
+- Traces enable user-facing history, search, export, and feedback features.
+- Superadmin analytics pages show aggregate usage, provider distribution, error rates, and top queries.
+- The `aiInteractionTraces` table has a foreign key to the `User` table with cascade delete.
+- Trace anonymization strips email addresses from stored prompts and responses.
+- Trace retention is configurable via superadmin UI; default is 90 days with auto-cleanup.
+- The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
+- Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.
+- Update the prompt version constant when prompt templates change to correlate trace quality.
+- Use [Interaction trace learning](../prompt-library/interaction-trace-learning.md) when a user asks the AI to leave useful traces, mark problems, educate the user, or collect learning suggestions.

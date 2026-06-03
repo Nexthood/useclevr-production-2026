@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# TypeScript, deploy config, lint, and production publish build checks
+pnpm validate:prepush
+
+# Self-heal and validate GitHub workflow YAML files
+pnpm lint:workflows:fix

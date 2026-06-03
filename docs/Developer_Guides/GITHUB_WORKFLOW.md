@@ -48,6 +48,9 @@ type(scope?): subject
 
 The `commit-msg` hook validates commit messages automatically. Bypass with `git commit --no-verify` only for urgent fixes.
 
+The `pre-push` hook runs the heavier local validation gate before code leaves the machine. It checks
+TypeScript, deployment config, lint rules, production packaging, and workflow files.
+
 ## Pull Request Titles
 
 Pull request titles should start with `PR:` for deployment tracking. The auto-merge workflow formats them as `PR-{number}: title`. The formatted title becomes the dist branch commit message.

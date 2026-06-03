@@ -3,12 +3,46 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 // app/api/reports/route.ts
 // Report generation and management API
 
+import { auth } from '@/lib/auth/auth';
+import { getDb } from '@/lib/db';
+import { datasets } from '@/lib/db/schema';
 import { deleteReport, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
+import { and, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import { NextResponse } from 'next/server';
 
+async function getSession() {
+  const session = await auth();
+  return session?.user?.id ? session : null;
+}
+
+async function canAccessDataset(userId: string, role: string | undefined, datasetId: string) {
+  if (role === 'superadmin') return true;
+
+  const db = getDb();
+  if (!db) return false;
+
+  const dataset = await db.query.datasets.findFirst({
+    where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
+    columns: { id: true },
+  });
+
+  return Boolean(dataset);
+}
+
+function unauthorized() {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+function forbidden() {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+}
+
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session) return unauthorized();
+
     const body = await request.json();
     const { 
       datasetId, 
@@ -28,6 +62,10 @@ export async function POST(request: Request) {
         { error: 'datasetId and datasetName are required' },
         { status: 400 }
       );
+    }
+
+    if (!(await canAccessDataset(session.user.id, session.user.role, datasetId))) {
+      return forbidden();
     }
     
     const report = await generateReport(
@@ -59,6 +97,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const session = await getSession();
+  if (!session) return unauthorized();
+
   const { searchParams } = new URL(request.url);
   const datasetId = searchParams.get('datasetId');
   const listAll = searchParams.get('list');
@@ -68,7 +109,15 @@ export async function GET(request: Request) {
   // If list=true, return all reports
   if (listAll === 'true') {
     try {
-      const reports = listAllReports(); // Get all reports
+      const allReports = listAllReports()
+      const reports = []
+
+      for (const report of allReports) {
+        if (await canAccessDataset(session.user.id, session.user.role, report.datasetId)) {
+          reports.push(report)
+        }
+      }
+
       debugLog('[REPORTS API] Returning all reports:', reports.length);
       return NextResponse.json({ reports });
     } catch (err) {
@@ -78,6 +127,10 @@ export async function GET(request: Request) {
   }
   
   if (datasetId) {
+    if (!(await canAccessDataset(session.user.id, session.user.role, datasetId))) {
+      return forbidden();
+    }
+
     const reports = listReports(datasetId);
     return NextResponse.json({ reports });
   }
@@ -88,6 +141,9 @@ export async function GET(request: Request) {
 // DELETE /api/reports?id=<reportId>
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session) return unauthorized();
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) {
@@ -97,6 +153,10 @@ export async function DELETE(request: Request) {
     const report = getReport(id)
     if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    if (!(await canAccessDataset(session.user.id, session.user.role, report.datasetId))) {
+      return forbidden()
     }
 
     // Attempt to remove generated PDF file if present

@@ -15,7 +15,9 @@ moving work between states.
 
 ## Ignored
 
-- T-199. Upgrade to Payload CMS.
+- T-522. Do not build Business Profile as an ERP, accounting ledger, payroll system, policy-management system, or lending platform; keep it as SME business-intelligence setup context.
+- T-523. Do not present tax, legal, insurance, or financing outputs as professional advice; label them as estimates, user-provided values, or professional-verification items.
+- T-199. Do not replace the current app, auth, billing, datasets, reports, tickets, AI traces, workspaces, or business records with Payload CMS; keep Payload limited to a future editable-content layer.
 - T-200. Review database migrations as a separate job while the app has one web service and migrations can run in the target runtime pre-deploy phase.
 - T-201. Review  server-host templates under build scripts; they are host templates, not executable build scripts.
 - T-202. Do not commit `node_modules/` to the dist branch; Railway installs runtime dependencies.

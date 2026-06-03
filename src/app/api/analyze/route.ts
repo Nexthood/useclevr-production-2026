@@ -32,6 +32,7 @@ import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
+import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 
 // Generate business insights from query results without LLM
 function generateBusinessInsights(result: any[], question: string): { insight: string; explanation: string; recommendation: string } {
@@ -151,6 +152,15 @@ let datasetLoaded = false;
 export async function POST(request: Request) {
   debugLog('\n========== ANALYZE REQUEST ==========');
 
+  const requestStart = Date.now();
+  let traceProvider = "gemini-cloud"
+  let traceModel = "gemini-2.5-flash"
+  let traceError: string | null = null
+  let traceResponseContent = ""
+  let traceQuestion = ""
+  let traceDatasetId: string | null = null
+  let traceUserId: string | null = null
+
   try {
     let body;
     try {
@@ -184,6 +194,8 @@ export async function POST(request: Request) {
     }
 
     const { question, datasetId, data, columns, analysis: precomputedAnalysis } = parseResult.data;
+    traceQuestion = question
+    traceDatasetId = datasetId || null
 
     debugLog('[ANALYZE] Question:', question);
     debugLog('[ANALYZE] Dataset ID:', datasetId);
@@ -193,6 +205,7 @@ export async function POST(request: Request) {
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
+    traceUserId = userId || null
 
     // If datasetId provided but no precomputedAnalysis/data, fetch from DB
     let analysisToUse = precomputedAnalysis;
@@ -550,11 +563,9 @@ export async function POST(request: Request) {
       recommendation = cleanInsight(recommendation);
     }
 
-    // Step 6: Return response (ALWAYS includes data)
-    debugLog('[ANALYZE] Returning response with', result.length, 'rows');
-    debugLog('========== ANALYZE COMPLETE ==========\n');
+    traceResponseContent = answer || ""
 
-    return Response.json({
+    const responseBody = {
       success: true,
       answer,
       insight,
@@ -564,11 +575,50 @@ export async function POST(request: Request) {
       chartType,
       metricColumn,
       columns: availableColumns,
-    });
+    }
+
+    // Save trace asynchronously (fire-and-forget)
+    if (traceUserId) {
+      const latencyMs = Date.now() - requestStart
+      createTrace({
+        userId: traceUserId,
+        datasetId: traceDatasetId,
+        prompt: question,
+        response: traceResponseContent.slice(0, 5000),
+        providerName: traceProvider,
+        modelName: traceModel,
+        promptVersion: getCurrentPromptVersion(),
+        latencyMs,
+        tokenCount: 0,
+        estimatedCostUsd: 0,
+      })
+    }
+
+    debugLog('[ANALYZE] Returning response with', result.length, 'rows');
+    debugLog('========== ANALYZE COMPLETE ==========\n');
+
+    return Response.json(responseBody);
 
   } catch (error: any) {
+    traceError = error?.message || "Unknown error"
+
     debugError('[ANALYZE] FATAL ERROR:', error);
     debugError('[ANALYZE] Stack:', error?.stack);
+
+    if (traceUserId) {
+      const latencyMs = Date.now() - requestStart
+      createTrace({
+        userId: traceUserId,
+        datasetId: traceDatasetId,
+        prompt: traceQuestion,
+        response: traceError || "",
+        providerName: traceProvider,
+        modelName: traceModel,
+        promptVersion: getCurrentPromptVersion(),
+        latencyMs,
+        error: traceError,
+      })
+    }
 
     // NEVER crash the UI - always return valid response
     return Response.json({

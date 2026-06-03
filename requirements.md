@@ -35,6 +35,8 @@ This file states the current product requirements in direct, present-state langu
 - Track downloads by dataset and report entry.
 - Combine charts and table details in PDF exports.
 - Use separated row actions for viewing, downloading, and deleting report rows.
+- Keep private report search, listing, deletion, and downloads scoped to the owning user.
+- Let super-admins search and manage report entries across users.
 
 ## Subscriptions & Billing
 
@@ -42,6 +44,7 @@ This file states the current product requirements in direct, present-state langu
 - Use a checkout review step before terms acceptance and payment.
 - Start the secure payment flow after terms acceptance.
 - Verify successful checkout sessions against the signed-in user.
+- Verify checkout redirects with signed, time-limited server tokens.
 - Apply the annual Pro discount at checkout.
 - Sync subscription status from the payment provider.
 - Open the hosted billing portal for users with linked payment customers.
@@ -51,6 +54,7 @@ This file states the current product requirements in direct, present-state langu
 
 ## Business Profile
 
+- Use Business Profile as the SME business-intelligence and pre-accounting context layer.
 - Show onboarding progress from account, business, upload, analysis, and dashboard visit data.
 - Reopen onboarding for accounts below the minimum completion threshold.
 - Link each setup progress item to its relevant page.
@@ -63,6 +67,10 @@ This file states the current product requirements in direct, present-state langu
 - Support subscription-tier business limits, primary business storage, archive and restore states, operating entities, and cached country tax context.
 - Collect company name, industry, location, website, and description.
 - Show identity, contact, and operations sections in Business Profile.
+- Collect baseline company identity, operating location, industry, contact, currency, and tax context.
+- Separate user-entered values, estimates, and professional-verification items in tax-sensitive outputs.
+- Keep tax, legal, insurance, and financing outputs framed as business-intelligence estimates or user-provided context, not professional advice.
+- Keep Business Profile lightweight enough for SMEs, startups, freelancers, agencies, e-commerce companies, local services, restaurants, logistics, construction, real estate, and small manufacturers.
 - Show review flags for missing details that lower AI confidence.
 - Show business completion in the topbar.
 - Link incomplete business fields to Business Profile.
@@ -111,6 +119,9 @@ This file states the current product requirements in direct, present-state langu
 - Answer account, billing, dataset, report, credit, and Hybrid AI questions in the dashboard FAQ.
 - Show protected operator FAQ content for authorised platform staff.
 - Search FAQ answers from floating help chat.
+- Answer public FAQ in the public help chat.
+- Answer public and dashboard FAQ in the dashboard help chat.
+- Answer public, dashboard, and operator FAQ in the super-admin help chat.
 - Keep floating help chat clear of the footer.
 - Use high-contrast message bubbles in floating help chat.
 - Show expandable FAQ answers.
@@ -125,6 +136,8 @@ This file states the current product requirements in direct, present-state langu
 - Show payment provider connection status before customers reach checkout.
 - Restrict payment provider configuration to super-admins.
 - Show secret key and webhook secret readiness on the payment setup page.
+- Keep Stripe as the active payment provider.
+- Add PayPal only when a second checkout provider is required.
 
 ## Credit Rules & Referrals
 
@@ -158,3 +171,9 @@ This file states the current product requirements in direct, present-state langu
 - Use the shared modal pattern for the Hybrid AI popup.
 - Open the Hybrid AI popup from the dashboard topbar.
 - Show Pro and Business plan options to free users inside the Hybrid AI popup.
+
+## MCP
+
+- Expose MCP tools only to signed-in users.
+- Scope MCP dataset resources and tool calls to the signed-in user's datasets.
+- Let super-admins access MCP resources and tools across platform datasets.

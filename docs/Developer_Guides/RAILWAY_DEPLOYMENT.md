@@ -86,17 +86,23 @@ If `redeploy` is unavailable in the installed CLI:
 railway up
 ```
 
-Use `pnpm dlx @railway/cli <command>` when Railway is not installed globally. CLI access requires a
-browser login, browserless login, or a token in the shell environment.
+The Railway CLI v4 native binary does not work well in non-TTY environments
+(see [railwayapp/cli#683](https://github.com/railwayapp/cli/issues/683)).
+This project uses a GraphQL wrapper (`scripts/server/railway/railway.cjs`)
+that makes API calls directly. It replaces the native binary for auth,
+project listing, linking, and status. Unsupported commands fall through
+to the native binary.
 
-`pnpm railway:login` uses `railway login --browserless`, which prints a pairing URL and code for
-machines where the browser login flow is unavailable. Token auth does not log the CLI in; it only
-authenticates the commands in the shell where the token is set.
+```bash
+pnpm railway:login           # Verify token & show user info
+pnpm railway:list            # List projects (create one on Railway first)
+pnpm railway:link            # Link current directory to a project
+pnpm railway:status          # Show linked project status
+```
 
-Use `RAILWAY_TOKEN` for project-scoped commands in one project and environment. Use
-`RAILWAY_API_TOKEN` for account or workspace-scoped commands such as listing projects or linking
-without an existing project token. Set only one of these variables in a shell. Keep tokens in the
-local shell or ignored env files, and never commit them.
+Token auth is required. Set `RAILWAY_API_TOKEN` in `.env` (loads
+automatically — no need to source). Generate a token at
+https://railway.app/account/tokens.
 
 ## Railpack Configuration
 

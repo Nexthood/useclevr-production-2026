@@ -1,0 +1,85 @@
+# UseClevr Project Product Description
+
+## Product Purpose
+
+UseClevr provides a usable business intelligence workspace for users who need answers from business data without building dashboards, SQL queries, or enterprise data pipelines.
+
+## Product Composition
+
+### Public Product Surface
+
+- Homepage.
+- FAQ.
+- Pricing.
+- Contact.
+- Signup and login.
+- Affiliate page.
+- Legal and security pages.
+
+### Dashboard Product Surface
+
+- Dashboard overview.
+- Upload.
+- Datasets.
+- AI Assistant.
+- Reports and downloads.
+- Business workspace.
+- Accountancy workspace.
+- Referral center.
+- Settings.
+- Tickets.
+
+### Super-Admin Product Surface
+
+- Customer management.
+- Customer levels.
+- Discount rules.
+- Billing settings.
+- AI trace analytics.
+- AI benchmarking.
+- Operator FAQ and support controls.
+
+### Support Product Surface
+
+- Public FAQ.
+- Dashboard FAQ.
+- Operator FAQ.
+- Help chat.
+- Tickets.
+- Notices and activity.
+
+### Payment Product Surface
+
+- Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Checkout review.
+- Stripe checkout.
+- Billing portal access.
+- Credits and Hybrid AI upgrade paths.
+
+## Product Quality Expectations
+
+- Pages use clear current-state copy.
+- Tables use shared row patterns with title links and row-end actions.
+- AI answers stay tied to uploaded dataset context.
+- Private reports, datasets, MCP resources, and search results stay scoped to the signed-in user.
+- Super-admin users access operational views without exposing operator-only content to regular users.
+- Help chat uses the correct FAQ scope for public, dashboard, and super-admin users.
+- Deployment packaging succeeds before release.
+
+## Product Acceptance Criteria
+
+- Public users can understand the product and reach signup, contact, pricing, and FAQ.
+- Signed-in users can upload datasets, ask AI questions, and download reports.
+- Signed-in users can manage Business Profile and Accountancy readiness.
+- Users can open tickets and receive support guidance.
+- Super-admin users can manage customers, billing settings, discounts, levels, support, and AI traces.
+- Checkout uses Stripe and verifies successful sessions against the signed-in user.
+- Railway generated-output deployment starts and serves `/api/health`.
+
+## Product Boundaries
+
+- UseClevr provides estimates and decision-support context.
+- UseClevr does not replace professional advice.
+- UseClevr does not become an ERP, payroll system, policy-management system, lending platform, or tax filing system.
+- Payload CMS remains a future content-management layer only.
+- PayPal remains deferred until a second payment provider is needed.

@@ -1,4 +1,5 @@
 import { CookieBar } from "@/components/ui/cookie-bar"
+import { HelpChatbox } from "@/components/ui/help-chatbox"
 import { NoticeProvider } from "@/components/ui/notice-bar"
 import { ThemeProvider } from "@/components/ui/theme-provider"
 import { LanguageProvider } from "@/lib/i18n/language-context"
@@ -66,6 +67,7 @@ export default function RootLayout({
           <LanguageProvider>
             <NoticeProvider>
               {children}
+              <HelpChatbox audience="public" hideOnApp />
               <CookieBar />
             </NoticeProvider>
           </LanguageProvider>
