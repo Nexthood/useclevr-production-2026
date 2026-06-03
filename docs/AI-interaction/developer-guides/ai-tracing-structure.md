@@ -1,0 +1,26 @@
+# AI Tracing Structure
+
+Use this guide when AI prompts, assistant routes, trace storage, feedback, export, or analytics change.
+
+## Product Trace Structure
+
+- AI Assistant requests create non-blocking interaction traces.
+- Traces store user, prompt, answer, provider, model, prompt version, latency, token count, error state, and feedback when available.
+- Trace anonymization removes email-like values from stored prompts and answers.
+- Users can review, search, re-run, export, and rate their own AI history.
+- Super-admins can review aggregate trace analytics, benchmarking, provider distribution, error rate, and top queries.
+
+## Instruction Structure
+
+- Store user-facing trace guidance in `docs/AI-interaction/user-guides/`.
+- Store agent and developer trace rules in `docs/AI-interaction/developer-guides/`.
+- Store trace-learning and problem-marker rules in `docs/AI-interaction/learning-traces/`.
+- Store reusable trace prompts in `docs/AI-interaction/prompt-library/`.
+- Keep `AGENTS.md` aligned with durable trace behavior.
+
+## Update Rules
+
+- Update the prompt version when prompt templates change.
+- Update requirements when trace behavior changes what users can see, search, export, or control.
+- Update changelog when trace behavior changes user workflow, admin workflow, or developer workflow.
+- Keep raw datasets, secrets, environment values, customer data, and private keys out of trace examples.

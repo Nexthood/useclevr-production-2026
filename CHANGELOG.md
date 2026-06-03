@@ -8,6 +8,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
 - Business mentoring dashboard widget showing next scheduled session and booking options.
@@ -49,6 +50,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Add AI tracing structure guidance for prompt versions, user history, feedback, export, analytics, and trace-safe examples.
 - Add AI interaction guidance for compact workflow updates, git release prompts, and memory collection from visible external chat summaries.
 - Clarify documentation structure and retire duplicate AI interaction folders into the current AI knowledge base.
 - Add Sales project documents and marketing planning.
@@ -78,6 +80,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - Use a more compact default text scale across public and dashboard pages.
+- Display settings show accessibility states and explain contrast and larger-text controls.
 - Front page sections use the same compact public-page rhythm and call-to-action treatment as the affiliate page.
 - Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
 - View business review readiness in Business overview.

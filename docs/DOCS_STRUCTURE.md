@@ -14,6 +14,7 @@ Use this map to choose the right document location.
 ## Placement Rules
 
 - User-facing how-to content goes in `docs/User_Guides/`.
+- Accessibility and display guidance goes in `docs/User_Guides/accessibility.md`.
 - Implementation and deployment guidance goes in `docs/Developer_Guides/`.
 - AI prompt patterns and instruction updates go in `docs/AI-interaction/prompt-library/`.
 - Sales material and project documents go in `docs/Sales/`.

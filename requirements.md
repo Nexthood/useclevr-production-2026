@@ -99,6 +99,7 @@ This file states the current product requirements in direct, present-state langu
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Support light, dark, system, high-contrast, and larger-text display modes.
+- Show accessibility state and descriptions in display settings.
 - Use full-height hover and click targets in the dashboard topbar.
 - Use a horizontal subpage bar for account profile, preferences, subscription, billing, and activity pages.
 - Search app pages, datasets, reports, and FAQ answers from the dashboard search overlay.
@@ -131,6 +132,7 @@ This file states the current product requirements in direct, present-state langu
 - Use high-contrast message bubbles in floating help chat.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.
+- Answer display, contrast, and text-size questions in public and dashboard FAQ.
 - Show ticket creation on the Tickets page.
 - Separate user help and operator help with a section bar.
 - Filter operator notes from the dashboard FAQ for super-admins.

@@ -5,6 +5,7 @@ Use this folder for implementation guidance, repo behavior, and agent operating 
 ## Guides
 
 - [AI agent guide](ai-agent-guide.md)
+- [AI tracing structure](ai-tracing-structure.md)
 - [Bookkeeping developer guide](bookkeeping-developer-guide.md)
 - [AI interaction workflow guide](interaction-workflow-guide.md)
 

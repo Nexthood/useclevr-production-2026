@@ -47,6 +47,7 @@ future path.
 - Click the theme icon in the topbar to switch between Light, Dark, and System themes.
 - High contrast and Larger text are accessibility options that apply on top of your selected theme.
 - Your theme preference persists across sessions.
+- Use [Accessibility and display settings](../../User_Guides/accessibility.md) for display guidance.
 
 ## Risk Points
 

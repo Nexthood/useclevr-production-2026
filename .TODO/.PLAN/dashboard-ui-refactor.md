@@ -1,73 +1,27 @@
-# Dashboard UI Refactor Plan
+# Dashboard UI Refactor Resolution
 
-Status: planning only. Do not implement until reviewed and approved.
+Status: resolved as current-state audit.
 
----
+## Current Dashboard Layout
 
-# Goal
+- Global topbar spans the dashboard above the sidebar and content area.
+- Topbar sections show logo, Hybrid AI, search, setup progress, help, business workspace, mentoring, admin tools, credits, account, notices, display settings, and sign-out.
+- Sidebar uses one primary navigation list, expands for super-admin tools, and supports desktop collapse plus mobile drawer.
+- Dashboard footer holds legal links, copyright, social links, and coming-soon app store links.
+- Main pages use page headers, action rows, shared table shells, row title links, supporting edit links, and row-end actions where the page has listing behavior.
+- Business workspace opens as a top-level listing and uses subpages for profile, location, tax, financial, and review.
+- Dashboard FAQ uses a user/operator section bar and quick action links.
+- AI Assistant keeps dataset selection, messages, suggestions, history, search, feedback, and chat input in a fixed workspace structure.
+- Notices describe page errors, failed requests, and important product events directly.
+- Setup progress includes account setup, business profile actions, uploads, analysis, and key dashboard visits.
 
-Redesign the dashboard layout for consistent UX:
+## Existing Follow-Up Coverage
 
-- Global topbar above sidebar
-- Collapsible sidebar with account submenu
-- Consistent table layouts across pages
-- Sticky sidebars and footer for AI Assistant
-- Action rows per page, not in header
-- Clear, descriptive notices
+- T-394 covers future dashboard table consistency audits.
+- T-395 covers future setup-progress coverage audits.
+- T-396 covers future AI Assistant layout smoke testing.
 
----
+## Resolution Rule
 
-# Key Changes
-
-## Layout Structure
-
-```
-[Global Topbar - full width]
-  ├─ Logo
-  ├─ Hybrid AI
-  ├─ Notices
-  ├─ User profile submenu
-  └─ Sign-out
-[Sidebar (collapsible)]
-  ├─ Main nav (Dashboard, Datasets, AI, etc.)
-  └─ Account submenu
-[Main Content Area]
-  ├─ Page header
-  ├─ Page content
-  ├─ Action row (New, Upload, etc.)
-  └─ Edit page action row
-[AI Assistant]
-  ├─ Left sidebar: Dataset selector (sticky)
-  ├─ Main: Messages (scrollable)
-  ├─ Right sidebar: Suggestions (sticky)
-  └─ Footer: Chat input (sticky)
-```
-
----
-
-# Implementation Checklist
-
-- [ ] Create global topbar component with sections
-- [ ] Move settings links to account submenu
-- [ ] Add account submenu to sidebar
-- [ ] Update table layouts for consistency
-- [ ] Add action rows to table pages
-- [ ] Refactor AI Assistant layout
-- [ ] Update sub-page bars (FAQ, Business, Tickets)
-- [ ] Update notices to be descriptive
-- [ ] Move Terms to footer
-- [ ] Add footer with T&C, copyright, social links
-- [ ] Update progress tracking
-- [ ] Update documentation
-
----
-
-# Files to Modify
-
-- `src/components/layout/app-sidebar.tsx`
-- `src/components/ui/topbar.tsx`
-- `src/components/layout/dashboard-global-footer.tsx`
-- `src/components/chat/ai-assistant-workspace.tsx`
-- `src/components/ui/notice-bar.tsx`
-- Table listing pages in `src/app/app/`
-- Documentation files
+- Add new dashboard UI work to `.TODO/todo-next.md` only when a concrete current behavior is missing.
+- Keep this file as the resolved audit note for the dashboard UI refactor scope.

@@ -5,6 +5,7 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 | Guide            | Link                                       |
 | ---------------- | ------------------------------------------ |
 | Product overview | [product-overview.md](product-overview.md) |
+| Accessibility    | [accessibility.md](accessibility.md)       |
 | Bookkeeping      | [bookkeeping.md](bookkeeping.md)           |
 | MCP access       | [mcp.md](mcp.md)                           |
 

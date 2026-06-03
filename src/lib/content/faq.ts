@@ -184,6 +184,10 @@ export const allFaqCategories: FaqCategory[] = [
         q: "Can I self-host UseClevr?",
         a: "Self-hosting is available on the Business / Custom plan. Contact sales@useclevr.com to discuss private deployment options for your organisation.",
       },
+      {
+        q: "Can I change theme, contrast, or text size?",
+        a: "Yes. Use the display settings icon to choose Light, Dark, or System theme. High contrast increases visual separation, and Larger text raises the reading size across pages.",
+      },
     ],
   },
 ]

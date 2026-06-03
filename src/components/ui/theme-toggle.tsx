@@ -1,7 +1,7 @@
 "use client";
 
 import { setThemePreference } from "@/app/actions/settings";
-import { Contrast, Monitor, Moon, Sun, Type } from "lucide-react";
+import { Check, Contrast, Monitor, Moon, Sun, Type } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -164,24 +164,34 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             <button
               type="button"
               role="menuitem"
+              aria-pressed={storedContrast}
               onClick={toggleContrast}
-              className={`flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
+              className={`flex items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
                 storedContrast ? "bg-primary/10 text-foreground" : "text-muted-foreground"
               }`}
             >
-              <Contrast className="h-4 w-4 text-primary" />
-              <span>High contrast</span>
+              <Contrast className="mt-0.5 h-4 w-4 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">High contrast</span>
+                <span className="block text-xs text-muted-foreground">Increase text and border contrast.</span>
+              </span>
+              {storedContrast && <Check className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />}
             </button>
             <button
               type="button"
               role="menuitem"
+              aria-pressed={storedLarge}
               onClick={toggleLarge}
-              className={`flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
+              className={`flex items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
                 storedLarge ? "bg-primary/10 text-foreground" : "text-muted-foreground"
               }`}
             >
-              <Type className="h-4 w-4 text-primary" />
-              <span>Larger text</span>
+              <Type className="mt-0.5 h-4 w-4 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Larger text</span>
+                <span className="block text-xs text-muted-foreground">Raise the reading size across pages.</span>
+              </span>
+              {storedLarge && <Check className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />}
             </button>
           </div>
         </div>

@@ -66,6 +66,10 @@ export const dashboardFaqCategories: FaqCategory[] = [
         q: "How do I contact support?",
         a: "Open Tickets & Issues from the topbar or sidebar, create a ticket, and track the response from the same page.",
       },
+      {
+        q: "How do I change theme, contrast, or text size?",
+        a: "Open the display settings icon in the topbar. Choose Light, Dark, or System theme, then turn on High contrast or Larger text when you need stronger contrast or a higher reading size.",
+      },
     ],
   },
   customerBillingFaqs,

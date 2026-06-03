@@ -161,12 +161,12 @@
     @apply border-border;
   }
   html {
-    font-size: 93.75%;
+    font-size: 87.5%;
   }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 11.5px;
     line-height: 1.5;
     overflow-x: hidden;
     background:
@@ -206,7 +206,7 @@
   }
 
   .large body {
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.62;
   }
 }

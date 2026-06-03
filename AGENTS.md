@@ -113,6 +113,7 @@ pnpm health           # validate + tests + docs + audit
 - Superadmin pages at `/app/admin/ai-traces` and `/app/admin/ai-benchmarking` show aggregate analytics.
 - Trace retention is configurable (default 90 days, via `/api/admin/ai-trace-retention`).
 - Update `getCurrentPromptVersion()` in `src/lib/ai/ai-trace.ts` when prompt templates change.
+- Keep trace documentation aligned with `docs/AI-interaction/developer-guides/ai-tracing-structure.md`.
 
 ## Changelog Rules
 When editing `CHANGELOG.md`:
