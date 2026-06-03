@@ -20,6 +20,13 @@ moving work between states.
 - T-528. Add MCP tool to retrieve dataset column mapping and inferred types from precomputed metrics.
 - T-529. Add MCP resource for top products data with revenue and profit breakdowns.
 - T-530. Add MCP tool for cross-dataset comparison metrics.
+- T-531. Add MCP tool for cost breakdown by category with percentage shares.
+- T-532. Add MCP resource for revenue-by-region ranked data with share percentages.
+- T-533. Add MCP tool for profit margin and growth trend analysis.
+- T-534. Add MCP endpoint for business profile context injection into AI prompts.
+- T-535. Add search popup type filter for datasets and reports in autocomplete.
+- T-536. Add search popup recent history for user's last 5 searches.
+- T-537. Add Payload FAQ collection with public read, admin write access.
 
 ## Deferred
 
