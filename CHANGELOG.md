@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - AI interaction trace logging stores every user-AI interaction with provider, latency, and error status.
+- Railway CLI wrapper replaces native Rust binary with direct GraphQL API calls for login, link, list, and status commands.
 - Users view and search past AI conversations in the AI Assistant sidebar History and Search tabs.
 - Provider indicator shows the active AI model for each assistant response.
 - Thumbs-up/down feedback buttons let users rate every AI response, stored with the interaction trace.
@@ -43,6 +44,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+- Add sales project documentation with PRINCE2-style project description and marketing planning.
 - Reorganize AI interaction docs by audience, prompt library, learning traces, sales guidance, and PRINCE2-style governance.
 - Split reusable AI prompts into dedicated prompt files, including an interaction-trace prompt for user learning and problem markers.
 - Move heavy local validation from pre-commit to pre-push while commit messages continue to validate at commit time.

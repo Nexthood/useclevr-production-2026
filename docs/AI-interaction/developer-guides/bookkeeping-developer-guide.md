@@ -1,6 +1,6 @@
 # Bookkeeping Developer Guide
 
-The canonical developer guide lives at [../Developer_Guides/BOOKKEEPING.md](../Developer_Guides/BOOKKEEPING.md).
+The canonical developer guide lives at [../../Developer_Guides/BOOKKEEPING.md](../../Developer_Guides/BOOKKEEPING.md).
 Keep this AI interaction guide aligned with it when bookkeeping implementation instructions change.
 
 ## Current Structure
