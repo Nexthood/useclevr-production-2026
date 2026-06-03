@@ -143,7 +143,7 @@ export function HelpChatbox({
   return (
     <div className="fixed bottom-12 right-4 z-[120]">
       {open && (
-        <div className="mb-3 w-[min(calc(100vw-2rem),380px)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="mb-3 w-[min(calc(100vw-2rem),420px)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4 text-primary" />
@@ -159,7 +159,7 @@ export function HelpChatbox({
             </button>
           </div>
 
-          <div className="max-h-72 space-y-3 overflow-auto px-4 py-3">
+          <div className="max-h-80 space-y-3 overflow-auto px-4 py-3">
             {messages.map((message, index) => (
               <div
                 key={`${message.role}-${index}`}
@@ -176,13 +176,13 @@ export function HelpChatbox({
 
           {showContact && (
             <form className="space-y-3 border-t border-border px-4 py-3" onSubmit={handleContact}>
-              <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" type="email" required />
+              <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" type="email" required className="h-10" />
               <textarea
                 value={contactMessage}
                 onChange={(event) => setContactMessage(event.target.value)}
                 placeholder="Message for support"
                 required
-                className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
               />
               <Button type="submit" className="w-full gap-2" disabled={!canSubmitContact || isSending}>
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -192,10 +192,10 @@ export function HelpChatbox({
           )}
 
           <form className="flex gap-2 border-t border-border p-3" onSubmit={handleQuestion}>
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search help..." />
-            <Button type="submit" size="sm" className="gap-2">
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search help..." className="h-10 flex-1 text-base" />
+            <Button type="submit" size="sm" className="gap-2 px-4">
               <Send className="h-4 w-4" />
-              Send
+              <span className="hidden sm:inline">Send</span>
             </Button>
           </form>
 
@@ -206,7 +206,7 @@ export function HelpChatbox({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={`inline-flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        className={`inline-flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
           open
             ? "border border-border bg-background text-foreground hover:bg-muted"
             : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -214,7 +214,7 @@ export function HelpChatbox({
         aria-label={open ? "Close help chat" : "Open help chat"}
         aria-expanded={open}
       >
-        <MessageSquare className="h-5 w-5" />
+        <MessageSquare className="h-6 w-6" />
       </button>
     </div>
   )
