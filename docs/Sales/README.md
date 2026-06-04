@@ -1,6 +1,6 @@
 # UseClevr Sales Documents
 
-This folder stores sales-ready project documents, marketing planning, and project-management artefacts for UseClevr.
+This folder stores sales-ready project documents, marketing planning, PRINCE2-inspired project management, founder materials, planning, and sales artefacts for UseClevr.
 
 For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.md).
 
@@ -15,6 +15,21 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 - [Lessons log](Project_Management/lessons-log.md)
 - [Stakeholder and communications plan](Project_Management/stakeholder-communications-plan.md)
 
+## PRINCE2
+
+- [PRINCE2 approach](Prince2/prince2-approach.md) — PRINCE2 themes and principles mapped to project artefacts
+
+## Sales Planning
+
+- [Sales plan](sales-plan.md) — structured sales plan with stages, channels, segments, and objection handling
+- [Sales one-pager](sales-one-pager.md) — product summary for prospects and investors
+- [Demo scripts](demo-scripts.md) — persona-specific demo walkthroughs
+- [Screenshot guide](screenshot-guide.md) — screenshot reference for sales materials
+
+## Founder Materials
+
+- [Founder's guide](Founders/founders-guide.md) — founder-specific use cases, workflow, and pricing
+
 ## Marketing Documents
 
 - [Marketing plan](Marketing/marketing-plan.md)
@@ -26,3 +41,4 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 - Keep implementation TODOs in `.TODO/`.
 - Keep sales claims aligned with `requirements.md`.
 - Keep regulated-advice boundaries clear for tax, legal, insurance, and financing topics.
+- Follow PRINCE2 stage gates: complete one stage's exit criteria before starting the next.

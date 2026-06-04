@@ -81,6 +81,19 @@ Implement in small phases:
 Validate with TypeScript, dist config checks, linting, production packaging, and route smoke checks.
 ```
 
+## AI Planning Prompts
+
+Use these focused prompts during migration planning and implementation reviews:
+
+1. Analyze current editable content sources and list only content suitable for CMS ownership.
+2. Confirm package compatibility with Next.js 16, React 19, TypeScript 6, current pnpm, and PostgreSQL before adding dependencies.
+3. Design Payload collections for FAQ, dashboard/operator FAQ, homepage sections, legal pages, sales content, and optional resource posts.
+4. Design the CMS admin route and API namespace without conflicting with `/app/admin`.
+5. Add read adapters that prefer CMS content and fall back to current static files.
+6. Preserve Stripe as the billing source of truth and keep plan prices in the current billing configuration.
+7. Verify Railway generated-output packaging and Vercel source deployment after every CMS wiring phase.
+8. Document environment variables, access rules, media storage, rollback steps, and trace-safe AI guidance.
+
 ## Precise Tasks
 
 1. Confirm compatible Payload packages for Next.js 16, React 19, TypeScript 6, and the current PostgreSQL runtime.
@@ -96,6 +109,7 @@ Validate with TypeScript, dist config checks, linting, production packaging, and
 11. Add object-storage configuration before enabling CMS media uploads.
 12. Run `pnpm validate:types`, `pnpm validate:dist`, `pnpm lint`, and `pnpm prod:build`.
 13. Document rollback by disabling CMS adapters and falling back to static content files.
+14. Keep the prompt-library entry aligned with this plan so future AI sessions use the same boundaries.
 
 ## Acceptance Criteria
 

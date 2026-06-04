@@ -19,6 +19,7 @@ folder during the same task cycle.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
 - Use compact status updates during long-running validation, deploy checks, and broad implementation work.
 - Use [AI memory collection](../prompt-library/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
+- Follow the [AI memory collection guide](ai-memory-collection-guide.md) for the collection flow and classification rules.
 - Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.
 - Keep real API keys, tokens, passwords, webhook secrets, and private keys out of docs, prompts, traces, TODOs, logs, and final summaries.
 
@@ -28,6 +29,7 @@ folder during the same task cycle.
 - Keep changes scoped to the requested behavior.
 - Verify with typecheck, lint, docs checks, and build when routes or shared UI change.
 - Move completed tasks to `todo-done.md` only after the work is complete.
+- Add new dashboard UI work to `.TODO/todo-next.md` only when a concrete current behavior is missing — keep resolved audit notes as current-state references.
 - Update requirements for user-observable product behavior.
 - Update changelog with active, release-facing language.
 - Report remaining risks or deferred work without marking it complete.
@@ -57,6 +59,16 @@ folder during the same task cycle.
 - Keep bookkeeping developer guidance focused on data sources, page structure, validation, and risk.
 - Update requirements when bookkeeping changes are visible in Accountancy.
 - Keep Business Profile and Company Setup context aligned with AI tracing guidance when setup data changes analysis confidence.
+
+## Local AI And Mock Scope
+
+- Local AI features use same-origin app routes and the local agent contract.
+- Local MCP work keeps real local AI active unless a development task explicitly enables mock mode.
+- Mock AI mode uses `MOCK_AI_MODE=true` in non-production runtime to return local development responses for chat, streaming chat, and analysis.
+- Mock AI mode records traces with provider `Mock AI` and model `mock-local-development`.
+- Mock AI mode stays disabled in production runtime even when the environment variable is present.
+- Mock response templates, scenario storage, and a development UI toggle are future enhancements tracked in `todo-future.md`.
+- Update trace guidance when mock mode changes provider names, prompt versions, or trace fields.
 
 ## AI Interaction Tracing Scope
 

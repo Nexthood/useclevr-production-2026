@@ -112,6 +112,8 @@ AUTH_URL=                # Full app URL (set on Railway)
 AUTH_TRUST_HOST=true
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
+MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true
+MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
 Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
@@ -174,6 +176,12 @@ All commands are run from `pnpm`.
 | `pnpm test:all`          | Run CSV-analyser test suite |
 | `pnpm test:csv-analyzer` | CSV analyser specific tests |
 | `pnpm test:neon`         | Neon connection smoke test  |
+
+### Analysis Helpers
+
+- `scripts/analysis/test-csv-analyzer.ts` and `scripts/analysis/test-csv-edge-cases.ts` power the CSV analyser test suite.
+- `scripts/analysis/analyze-business.ts` is a database-backed diagnostic for the latest dataset.
+- Mock AI setup lives in `src/lib/ai/mock-ai.ts`; analysis scripts stay focused on dataset analysis checks.
 
 ### Clean
 

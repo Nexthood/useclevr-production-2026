@@ -30,6 +30,12 @@ import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/data/q
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { analyzeRequestSchema, validateOrError } from "@/lib/validation";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
+import {
+  generateMockAnalysisText,
+  isMockAIMode,
+  MOCK_AI_MODEL_NAME,
+  MOCK_AI_PROVIDER_NAME,
+} from "@/lib/ai/mock-ai";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
@@ -154,8 +160,9 @@ export async function POST(request: Request) {
   debugLog('\n========== ANALYZE REQUEST ==========');
 
   const requestStart = Date.now();
-  let traceProvider = "gemini-cloud"
-  let traceModel = "gemini-2.5-flash"
+  const mockAIMode = isMockAIMode()
+  let traceProvider = mockAIMode ? MOCK_AI_PROVIDER_NAME : "gemini-cloud"
+  let traceModel = mockAIMode ? MOCK_AI_MODEL_NAME : "gemini-2.5-flash"
   let traceError: string | null = null
   let traceResponseContent = ""
   let traceQuestion = ""
@@ -464,10 +471,6 @@ export async function POST(request: Request) {
     };
 
     try {
-      debugLog('[ANALYZE] Calling Google AI (Gemini) for response...');
-
-      const model = google("gemini-2.5-flash");
-
       let mcpToolsPrompt = '';
       if (datasetId && precomputedAnalysis) {
         mcpToolsPrompt = buildMCPToolsPrompt(datasetId);
@@ -476,12 +479,15 @@ export async function POST(request: Request) {
       const prompt = generateAnalysisPrompt(question, result, availableColumns, precomputedAnalysis) + mcpToolsPrompt;
 
       try {
-        const { text } = await generateText({
-          model,
-          prompt,
-        });
+        debugLog(mockAIMode ? '[ANALYZE] Calling Mock AI for response...' : '[ANALYZE] Calling Google AI (Gemini) for response...');
+        const text = mockAIMode
+          ? await generateMockAnalysisText({ question, resultRows: result })
+          : (await generateText({
+              model: google("gemini-2.5-flash"),
+              prompt,
+            })).text;
         answer = text;
-        debugLog('[ANALYZE] Gemini response received');
+        debugLog(mockAIMode ? '[ANALYZE] Mock AI response received' : '[ANALYZE] Gemini response received');
 
         const parts = answer.split('\n\n');
         for (const part of parts) {

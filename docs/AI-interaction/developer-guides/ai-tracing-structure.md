@@ -11,6 +11,7 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Super-admins can review aggregate trace analytics, benchmarking, provider distribution, error rate, and top queries.
 - Business Profile and Company Setup changes that alter AI context update trace guidance so future traces explain which business context shaped an answer.
 - MCP tool changes that alter AI context, prompt inputs, provider-visible metadata, audit logs, or trace fields update trace guidance.
+- Local Mock AI traces use provider `Mock AI` and model `mock-local-development` so development responses stay distinguishable from Gemini, Antigravity, and local model traces.
 
 ## Instruction Structure
 

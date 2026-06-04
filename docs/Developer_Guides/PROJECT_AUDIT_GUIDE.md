@@ -13,6 +13,7 @@ Use this guide when auditing UseClevr from a clean checkout through production r
 - Run `pnpm validate`.
 - Run `pnpm lint`.
 - Run `pnpm build`.
+- Run `pnpm test:all`.
 - Record failures as `T-` tasks in `.TODO/todo-next.md` unless you fix them immediately.
 
 ## 3. Security
@@ -65,7 +66,7 @@ Use this guide when auditing UseClevr from a clean checkout through production r
 - `pnpm validate` passes.
 - `pnpm lint` passes with warnings only.
 - `pnpm test:all` passes.
-- `pnpm build` passes and reports the known middleware convention warning.
+- `pnpm build` passes.
 - `pnpm lint:secrets` passes.
 - `pnpm docs:check` passes.
-- Active follow-up work is tracked in `.TODO/todo-next.md` under route access, public API exposure, local runtime actions, CSP, and lint cleanup.
+- Active follow-up work is tracked in `.TODO/todo-next.md` under persistent external API keys, route access, public API exposure, local runtime actions, CSP, rate limiting, and lint cleanup.

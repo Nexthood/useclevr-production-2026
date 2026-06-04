@@ -36,11 +36,11 @@ export default async function Topbar() {
           </span>
         </Link>
 
-        <nav className="flex h-full min-w-0 flex-1 items-stretch justify-end gap-0.5 overflow-x-auto">
-          <div className="flex h-full items-center bg-primary/10 px-2">
+        <nav className="flex h-full min-w-0 flex-1 items-stretch justify-end overflow-x-auto">
+          <div className="flex h-full items-center border-l border-border/50 px-2">
             <HybridAiButton
               subscriptionTier={usage.subscriptionTier}
-              className="h-full rounded-none border-0 bg-transparent px-2 shadow-none hover:bg-primary/10"
+              className="h-full whitespace-nowrap rounded-none border-0 bg-transparent px-2 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
             />
           </div>
 
@@ -53,6 +53,7 @@ export default async function Topbar() {
             label="Help"
             header="Help"
             description="Find answers, open tickets, or start chat support."
+            iconOnly
           >
             <TopbarPanelLink href="/app/faq">Dashboard FAQ</TopbarPanelLink>
             <TopbarPanelLink href="/app/tickets">Tickets & Issues</TopbarPanelLink>
@@ -123,11 +124,11 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/settings/activity">Activity</TopbarPanelLink>
           </TopbarSection>
 
-          <TopbarNoticeActivityDrawer className="h-full min-w-10 rounded-none border-l border-r-0 border-y-0 bg-transparent" />
+          <TopbarNoticeActivityDrawer className="h-full min-w-10 rounded-none border-l border-r-0 border-y-0 bg-transparent text-muted-foreground hover:text-foreground" />
 
-          <ThemeToggle className="h-full min-w-10 rounded-none border-l border-border/70" />
+          <ThemeToggle className="h-full min-w-10 rounded-none border-l border-border/50 text-muted-foreground hover:text-foreground" />
 
-          <div className="flex h-full min-w-10 items-center justify-center px-2 text-sm text-foreground transition hover:bg-muted/70">
+          <div className="flex h-full min-w-10 items-center justify-center border-l border-border/50 px-2 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
             <TopbarSignOutButton />
           </div>
         </nav>

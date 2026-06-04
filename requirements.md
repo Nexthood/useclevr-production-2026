@@ -99,6 +99,8 @@ This file states the current product requirements in direct, present-state langu
 - Keep login and sign-out redirects on the active app host.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
+- Keep topbar items on one line with consistent icon color and compact hover targets.
+- Show a host-specific keyboard shortcut in the dashboard search trigger.
 - Support light, dark, system, high-contrast, and larger-text display modes.
 - Show accessibility state and descriptions in display settings.
 - Use full-height hover and click targets in the dashboard topbar.

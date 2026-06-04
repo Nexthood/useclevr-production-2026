@@ -47,7 +47,8 @@ export const aiChatBehaviorConfig = {
     productRules: [
       "Users upload business data, inspect dashboards, ask AI questions, and download reports.",
       "AI is an explanation layer over verified application data.",
-      "Local AI features use same-origin API routes and the local agent contract.",
+      "Local AI features use same-origin app routes and the local agent contract.",
+      "Local MCP use keeps real local AI running unless explicitly invoked through a mock-mode development session.",
       "Railway deploys from the dist branch `/dist` folder with `/server-config/railway.json` as the host config.",
       "Vercel deploys the source app from main using vercel.json synced from dist-root/server-config/vercel.json.",
     ],

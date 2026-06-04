@@ -1,4 +1,5 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
+import { generateMockAICompletion, isMockAIMode, streamMockAICompletion } from "@/lib/ai/mock-ai";
 
 /**
  * Antigravity Server Client
@@ -86,6 +87,11 @@ export async function fetchAntigravityModels(): Promise<AntigravityModel[]> {
 export async function generateAntigravityCompletion(
   request: AntigravityRequest
 ): Promise<string> {
+  if (isMockAIMode()) {
+    debugLog("[Antigravity] Mock AI mode enabled")
+    return generateMockAICompletion({ messages: request.messages })
+  }
+
   if (!ANTIGRAVITY_API_KEY) {
     throw new Error(
       "Antigravity API key not configured. Set ANTIGRAVITY_API_KEY or GEMINI_API_KEY environment variable."
@@ -137,6 +143,11 @@ export async function generateAntigravityCompletion(
 export function generateAntigravityStream(
   request: AntigravityRequest
 ): ReadableStream<string> {
+  if (isMockAIMode()) {
+    debugLog("[Antigravity] Mock AI stream enabled")
+    return streamMockAICompletion({ messages: request.messages })
+  }
+
   const apiKey = ANTIGRAVITY_API_KEY;
   if (!apiKey) {
     return new ReadableStream({
@@ -146,8 +157,6 @@ export function generateAntigravityStream(
       }
     });
   }
-
-  const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {

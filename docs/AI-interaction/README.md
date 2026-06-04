@@ -30,6 +30,7 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 - Keep sensitive data, secrets, tokens, credential values, raw uploaded files, and private keys out of trace text.
 - Classify broad audit findings before turning them into TODO work or durable guidance.
 - Use [AI memory collection](prompt-library/ai-memory-collection.md) to bring useful learning from other AI chats into the project record.
+- Follow the [AI memory collection guide](developer-guides/ai-memory-collection-guide.md) for the collection flow and destination rules.
 - Use [AI tracing structure](developer-guides/ai-tracing-structure.md) when trace storage, feedback, search, export, analytics, or prompt versions change.
 
 ## Maintenance Rule

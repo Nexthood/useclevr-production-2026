@@ -1,9 +1,20 @@
 import { fetchOllamaModels } from "@/lib/ai/ollama-client"
+import { isMockAIMode } from "@/lib/ai/mock-ai"
 import { NextResponse } from "next/server"
 
 const TIMEOUT_MS = 5000
 
 export async function GET() {
+  if (isMockAIMode()) {
+    return NextResponse.json({
+      models: [
+        { name: "llama3.2:3b-instruct", mock: true },
+        { name: "llama3:8b-instruct", mock: true },
+      ],
+      mock: true,
+    })
+  }
+
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 

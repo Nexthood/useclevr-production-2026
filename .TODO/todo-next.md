@@ -27,6 +27,7 @@ moving work between states.
 - T-614. Add audit logging for sensitive operations (user data access, permission changes, financial transactions).
 - T-615. Implement input sanitization for all user-provided data displayed in HTML contexts.
 - T-616. Add password breach detection using HaveIBeenPwned API during registration and password change.
+- T-676. Store external API keys in a persistent, owner-scoped table with hashed key values, expiry, revocation, last-used tracking, and audit logging.
 
 ### Code Improvement
 
@@ -53,19 +54,4 @@ moving work between states.
 - T-634. Implement repository pattern for data access abstraction.
 - T-635. Add unit test coverage >90% for all business logic and utility functions.
 - T-636. Implement comprehensive integration tests covering critical user journeys.
-
-
-## Deferred
-
-### Development Experience
-
-- T-667. Implement Mock AI mode for development with fake AI responses - enables rapid UI/UX development without API credits
-- T-668. Add environment variable configuration (MOCK_AI_MODE, MOCK_AI_RESPONSE_DELAY_MS, etc.)
-- T-669. Create mock response templates for AI Assistant, dataset analysis, and report generation
-- T-670. Modify AI router to return mock responses when MOCK_AI_MODE is enabled
-- T-671. Add configurable response delay and variability for realistic simulation
-- T-672. Implement persistent mock storage for consistent testing scenarios
-- T-673. Create toggle in development settings/UI for easy switching between mock and real AI
-- T-674. Ensure mock mode is automatically disabled in production builds
-- T-675. Add documentation for enabling/disabling mock mode and creating custom mock responses
 

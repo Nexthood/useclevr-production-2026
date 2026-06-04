@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 export default async function MentoringPage() {
-  const session = await auth()
+  const _session = await auth()
 
   return (
     <div className="flex-1 bg-background">

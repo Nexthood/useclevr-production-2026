@@ -26,6 +26,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
 - AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
 - Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
 - Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
@@ -56,6 +57,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Add development-only Mock AI responses for local chat, streaming chat, and analysis flows.
+- Consolidate Payload migration planning into one current migration plan and prompt reference.
+- Clarify local AI, mock-mode, and API route access audit guidance so developer docs match current controls.
+- Keep the mentoring booking page out of the server database bundle so production builds compile.
 - Add secret-leak linting for docs and source text so credential examples stay placeholder-only.
 - Retire the MCP implementation plan into the MCP developer guide, AI tracing structure, and active MCP hardening tasks.
 - Retire the MCP and FAQ prompt plan into MCP docs, user guidance, requirements, and a reusable scope-check prompt.

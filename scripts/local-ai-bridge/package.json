@@ -1,0 +1,14 @@
+{
+  "name": "useclevr-ai-mega-bridge",
+  "version": "1.0.0",
+  "description": "Local AI bridge server for UseClevr AI MEGA",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["ai", "local", "bridge", "useclevr"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}

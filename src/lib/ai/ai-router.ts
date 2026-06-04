@@ -1,4 +1,5 @@
 import { checkAntigravityAvailability } from "@/lib/ai/antigravity-client"
+import { isMockAIMode, MOCK_AI_MODEL_NAME, MOCK_AI_PROVIDER_NAME } from "@/lib/ai/mock-ai"
 import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 
@@ -135,20 +136,20 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   const cloudKey = GEMINI_API_KEY
 
   // Mock AI mode (development shortcut) - short-circuit before any real provider checks
-  if (process.env.MOCK_AI_MODE === "true") {
+  if (isMockAIMode()) {
     debugLog("[AI-ROUTER] ═══ MOCK AI MODE ENABLED ═══")
     currentProvider = "mock"
     return {
       provider: {
         // Stubbed provider object so call sites can still reference getAIProvider(),
-        // but attempts to invoke the model will fail fast during development.
+        // while active routes use the dedicated mock completion helpers.
         async doGenerate() {
-          throw new Error("PENDING_IMPLEMENTATION: Mock AI response generation is not implemented.")
+          throw new Error("Mock AI provider stubs are metadata-only. Use the mock completion helpers for local responses.")
         },
       } as unknown as LanguageModel,
       type: "mock",
-      providerName: "Mock AI",
-      modelName: "mock-model"
+      providerName: MOCK_AI_PROVIDER_NAME,
+      modelName: MOCK_AI_MODEL_NAME
     }
   }
 

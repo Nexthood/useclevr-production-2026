@@ -26,7 +26,7 @@ moving work between states.
 - T-453. Accept tsconfig `target: "ES6"` — Next.js handles transpilation internally; changing target has no practical effect on output.
 - T-454. Ensures reproducible builds for production and test builds.
 
-[additional test ]
+## Testing
 
 - T-473. Verify /api/health returns OK after every deploy.
 - T-474. Verify Railway production starts from a fresh deploy.

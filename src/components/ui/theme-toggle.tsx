@@ -1,7 +1,7 @@
 "use client";
 
 import { setThemePreference } from "@/app/actions/settings";
-import { Check, Contrast, Monitor, Moon, Sun, Type } from "lucide-react";
+import { Check, Contrast, Monitor, Moon, Palette, Sun, Type } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -66,7 +66,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           .join(" ")}
         aria-label="Display settings"
       >
-        <Sun className="h-4 w-4" />
+        <Palette className="h-4 w-4 text-muted-foreground" />
       </button>
     );
   }
@@ -92,7 +92,6 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     document.body.classList.toggle("large", next);
   };
 
-  const isBaseTheme = (t: string) => t === "light" || t === "dark" || t === "system";
   const activeTheme = storedTheme;
 
   return (
@@ -109,13 +108,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           aria-label="Display settings"
           title="Display settings"
         >
-          {activeTheme === "dark" ? (
-            <Moon className="h-4 w-4" />
-          ) : activeTheme === "system" ? (
-            <Monitor className="h-4 w-4" />
-          ) : (
-            <Sun className="h-4 w-4" />
-          )}
+          <Palette className="h-4 w-4 text-muted-foreground" />
           {(storedContrast || storedLarge) && (
             <span className="absolute right-1 top-1 flex h-2 w-2" aria-hidden="true">
               <span

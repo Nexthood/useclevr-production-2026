@@ -1,7 +1,7 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicPageHeader } from "@/components/layout/public-page-header"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Award, Calendar, ChartLine, Lightbulb, Star, Target, Users } from "lucide-react"
 import Link from "next/link"
 

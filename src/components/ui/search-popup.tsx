@@ -97,6 +97,7 @@ export function Search() {
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultListRef = useRef<HTMLDivElement>(null);
@@ -104,6 +105,8 @@ export function Search() {
   const isSearchingRef = useRef(false);
 
   useEffect(() => {
+    const platform = window.navigator.platform || "";
+    setShortcutLabel(/Mac|iPhone|iPad|iPod/i.test(platform) ? "⌘ K" : "Ctrl K");
     if (open) {
       setRecentSearches(loadRecentSearches());
     }
@@ -204,20 +207,22 @@ export function Search() {
       <Button
         ref={searchButtonRef}
         variant="ghost"
-        size="icon"
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Close search" : "Search"}
-        className="h-full min-w-12 gap-1 rounded-none px-2"
-        title="Search (Cmd+K)"
+        className="h-full min-w-11 gap-2 rounded-none border-l border-border/50 px-2.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        title={`Search (${shortcutLabel})`}
       >
         {open ? (
           <X className="h-4 w-4" />
         ) : (
           <>
             <SearchIcon className="h-4 w-4" />
-            <kbd className="hidden items-center gap-0.5 rounded border border-border/50 px-1 font-mono text-[10px] text-muted-foreground/50 lg:inline-flex">
-              <span>⌘</span>K
-            </kbd>
+            <span className="hidden min-w-24 items-center justify-between rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-muted-foreground lg:inline-flex">
+              <span className="truncate">Search</span>
+              <kbd className="ml-2 shrink-0 font-mono text-[10px] text-muted-foreground/70">
+                {shortcutLabel}
+              </kbd>
+            </span>
           </>
         )}
       </Button>

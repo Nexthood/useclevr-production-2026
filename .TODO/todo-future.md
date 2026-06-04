@@ -86,7 +86,12 @@ moving work between states.
 
 ## Additional
 
+- T-669. Add editable Mock AI response templates for assistant chat, dataset analysis, report generation, and error-state testing.
+- T-672. Add persistent Mock AI scenario storage for deterministic local screenshots and repeatable UI tests.
+- T-673. Add a development settings toggle for switching between real local AI and Mock AI during local-only sessions.
 - T-575. Add an AI interaction memory import assistant for pasted external chat summaries, redaction checks, classification, and project-learning destinations.
+- T-677. Add a review screen for imported AI memory summaries that lets the user classify findings into docs, TODO queues, requirements, changelog, or prompt-library entries before saving.
+- T-678. Add redaction checks before saving imported AI memory summaries — strip email addresses, API keys, tokens, and private values from imported text.
 - T-576. Add compact status report helpers for long-running validation, deploy checks, git workflow steps, and final release summaries.
 - T-463. Stabilize Railway main deploy first. Keep the deprecated middleware workaround if it is the only stable packaging path. Do not migrate middleware/proxy yet. Ensure dist branch contains all runtime files. Document exact deploy flow.
 - T-464. Create one central billing config for plan names, prices, Stripe Price IDs, intervals, and descriptions. Remove hardcoded prices from UI. Add customer portal, cancellation flow, invoice view, and payment failure handling.

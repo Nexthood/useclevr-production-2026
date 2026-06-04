@@ -1,6 +1,6 @@
 # Payload Migration Prompt
 
-Use this prompt when activating future Payload CMS work. Keep this aligned with `.TODO/todo-migration-payplod.md`.
+Use this prompt when activating future Payload CMS work. Keep this aligned with `.TODO/todo-migration-payload.md`.
 
 ```text
 Integrate Payload CMS into the current UseClevr Next.js app as an editable content layer only.

@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { MentorExpert, MentoringSession } from "@/lib/mentoring/mentoring-store"
-import { listExpertMentors, getSessionTypeLabel } from "@/lib/mentoring/mentoring-store"
+import type { MentorExpert, MentoringSession } from "@/lib/mentoring/mentoring-catalog"
+import { getSessionTypeLabel, listExpertMentors } from "@/lib/mentoring/mentoring-catalog"
 import { Calendar, Clock, GraduationCap, Plus, User } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -180,9 +180,7 @@ export function MentoringClient() {
           {upcoming.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-muted-foreground">Upcoming</h3>
-              {upcoming.map((session) => {
-                const mentor = experts.find((e) => e.name === session.mentorName)
-                return (
+              {upcoming.map((session) => (
                   <Card key={session.id}>
                     <CardContent className="flex items-start justify-between p-6">
                       <div className="space-y-2">
@@ -228,8 +226,7 @@ export function MentoringClient() {
                       </div>
                     </CardContent>
                   </Card>
-                )
-              })}
+              ))}
             </div>
           )}
 

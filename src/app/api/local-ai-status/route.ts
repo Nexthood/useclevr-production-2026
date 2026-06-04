@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { isMockAIMode } from "@/lib/ai/mock-ai"
 
 // Step 3: Route status detection through the UseClevr Local Agent instead of probing Ollama directly
 
@@ -9,6 +10,16 @@ const TIMEOUT_MS = 5000
 type Status = "reachable" | "unavailable" | "error"
 
 export async function GET() {
+  if (isMockAIMode()) {
+    return NextResponse.json({
+      available: true,
+      status: "reachable",
+      provider: "mock_local_ai",
+      localAIAvailable: true,
+      mock: true,
+    })
+  }
+
   const agentBase = process.env.USECLEVR_AGENT_BASE?.trim() || DEFAULT_AGENT_BASE
 
   const controller = new AbortController()

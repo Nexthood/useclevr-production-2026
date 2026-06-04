@@ -16,6 +16,12 @@ moving work between states.
 
 ## Completed
 
+- T-667. Add development-only Mock AI mode for local chat and analysis responses without external AI provider calls.
+- T-668. Add Mock AI environment configuration for enabling local mode and setting response delay.
+- T-670. Route local Mock AI responses through the active chat, streaming, and analysis AI paths.
+- T-671. Add configurable Mock AI response delay for local UI state testing.
+- T-674. Disable Mock AI mode automatically in production runtime.
+- T-675. Document Mock AI usage, tracing behavior, and local-only boundaries for AI-agent workflows.
 - T-595. Add MCP rate limiting and audit logging for tool listing, resource reads, and tool invocation while keeping logs free of raw dataset content.
 - T-596. Add MCP service-token and admin-token access only for approved internal clients, with ownership checks, role-based tool allowlists, and AI trace guidance updates.
 - T-597. Add CSP nonce support to Next.js headers — generated cryptographically random nonces in `middleware.ts` and set dynamic CSP headers, removing the static duplicate CSP from `next.config.mjs`.
