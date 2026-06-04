@@ -175,8 +175,10 @@ jobs:
           rm -rf cache
           rm -rf .turbo
           rm -rf .vercel
+          rm -f railpack.json
 
           mkdir -p dist
+          rm -f dist/railpack.json
           cp -a /tmp/useclevr-dist-output/. dist/
 
           rm -rf dist/.next/cache

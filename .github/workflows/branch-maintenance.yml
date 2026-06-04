@@ -176,6 +176,7 @@ jobs:
           # Remove ALL files from working tree
           git rm -rf . || true
           find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} + 2>/dev/null || true
+          rm -f railpack.json
 
           # Copy only deploy-required files from staging
           mkdir -p dist
