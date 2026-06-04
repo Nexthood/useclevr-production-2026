@@ -49,7 +49,7 @@ The Hybrid AI feature (local on-device AI with cloud fallback) follows stage gat
 
 ## Manage by Exception — Sales Tolerances
 
-PRINCE2's "manage by exception" principle applied to sales activities:
+"Manage by exception" principle applied to sales activities:
 
 | Tolerance | Threshold | Escalation Path |
 |-----------|-----------|-----------------|
@@ -60,7 +60,7 @@ PRINCE2's "manage by exception" principle applied to sales activities:
 
 ## Quality Review Cycle
 
-Sales materials reviewed against PRINCE2 quality expectations after every release:
+Sales materials reviewed against quality expectations after every release:
 
 1. Run `CHANGELOG.md` current-release changes against one-pager feature list.
 2. Check screenshots match current topbar, sidebar, upload, AI Assistant, and report pages.

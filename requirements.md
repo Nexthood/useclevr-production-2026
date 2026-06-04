@@ -199,7 +199,7 @@ This file states the current product requirements in direct, present-state langu
 
 ## Sales Planning
 
-- Use PRINCE2-stage gates for sales readiness milestones: materials draft, demo readiness, early adopter release, general availability.
+- Use stage gates for sales readiness milestones: materials draft, demo readiness, early adopter release, general availability.
 - Review sales materials against `requirements.md` and `CHANGELOG.md` after every release.
 - Log sales objection patterns, competitor positioning gaps, and pricing blockers in the lessons log.
 - Track sales material accuracy as part of the release process.

@@ -21,13 +21,19 @@ Write the result as current project learning with these sections:
 5. User learning
 6. AI-agent learning  
 7. Follow-up tasks (one per bullet, prefixed with T- when the task is already assigned)
-8. Minimal destination
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+9. Minimal destination
    - dev expectation: docs/AI-interaction/developer-guides/dev-persona.md
    - agent rule: docs/AI-interaction/developer-guides/ai-agent-guide.md
    - hook routing: docs/AI-interaction/developer-guides/post-interaction-hook.md
    - user/operator usage: user guide or FAQ content
-   - active/deferred/no-fix work: .TODO/
+   - active/deferred/no-fix work: .TODO/ queue files only as destinations
    - product requirement updates: requirements.md
+   - release notes: CHANGELOG.md
 
 Keep the summary concise (under 400 words).
 Use direct current-state language.
@@ -43,4 +49,8 @@ Never include secrets, tokens, keys, or customer data.
 
 ## Integration
 
-AI agents run this capture automatically after each completed request/response cycle, unless the user explicitly says not to. Keep only durable learning. If the cycle contains no durable project learning, record no project-memory update and continue. Recognize correction patterns and update the smallest matching files, including requirements when product-facing wording changes.
+AI agents run this capture automatically after each completed request/response cycle, unless the
+user explicitly says not to. Keep only durable learning. If the cycle contains no durable project
+learning, record no project-memory update and continue. Treat the hook files as instruction
+sources, then update the smallest matching destination files, including requirements when
+product-facing wording changes.

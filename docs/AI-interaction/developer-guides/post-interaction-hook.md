@@ -2,14 +2,16 @@
 
 Use this guide to keep post-interaction capture precise.
 
-## Hook Files
+## Instruction Sources
 
 - `AGENTS.md`
 - `.kilo/agent/changelog.md`
 - `ai-chat-behavior.config.ts`
 - `gemini-behavior.config.ts`
 
-These files tell future agents that post-interaction capture exists and runs after each completed request/response cycle.
+These files are the post-interaction manual. They tell future agents that post-interaction capture
+exists, when it runs, and how to decide the right destination after each completed
+request/response cycle or code-change cycle.
 
 ## Evaluation Rule
 
@@ -24,12 +26,16 @@ Current correction pattern:
 - Good evaluation also leaves a short note for future developers about the pattern, not the full transcript.
 - Record the branch or document split only when it changes durable project structure.
 
-## Destinations
+## Destination Files
+
+These files receive the outcome. They are not the instruction source.
 
 - Developer expectation: [Dev persona](dev-persona.md)
 - AI-agent behavior: [AI agent guide](ai-agent-guide.md)
 - User AI usage: [User guide](../user-guides/user-guide.md)
 - Operator-facing AI usage: dashboard FAQ content
+- Product rules: `requirements.md`
+- Release notes: `CHANGELOG.md`
 - Active or deferred work: `.TODO/`
 
 Skip the hook when there is no durable learning.

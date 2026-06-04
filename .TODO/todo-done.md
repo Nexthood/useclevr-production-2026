@@ -310,8 +310,14 @@ moving work between states.
 - T-209. Use `T-` task numbers and `todo-next.md` as the only active queue. (labels: todo, workflow; commit: 53deaed7)
 - T-710. TODO management and AI memory collection guidance use one label, wording, and post-interaction capture rule across agent docs and prompt files. (labels: ai, docs, todo; commit: worktree)
 
-## Label: ui
+## Label: dashboard
 
+- T-722. Resolve dashboard-ui-refactor audit plan — delete plan file, distribute content to dashboard-ui.md, AGENTS.md, DEVELOPER_GUIDE.md, todo-future.md. (labels: dashboard, ui, docs; commit: worktree)
+
+## Label: ai
+
+- T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)
+- T-724. Extend sales planning with stage gate reviews, product focus quality criteria, sales tolerances, and lessons integration. (labels: sales, docs; commit: worktree)
 - T-302. FAQ items open by default with open/close all buttons in header. (labels: ui, faq; commit: 53deaed7)
 - T-303. FAQ page includes open/close all buttons. (labels: ui, faq; commit: 53deaed7)
 - T-427. Add type-ahead search suggest endpoint with result-type filter buttons. (labels: api, ui, search; commit: 53deaed7)

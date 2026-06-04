@@ -97,9 +97,9 @@ Common objections and responses:
 | Monthly active users (MAU) | TBD | Session tracking |
 | NPS or satisfaction score | TBD | In-app survey |
 
-## Stage Gate Reviews (PRINCE2)
+## Stage Gate Reviews
 
-Each sales stage gates against PRINCE2 stage transition criteria before proceeding:
+Each sales stage gates against stage transition criteria before proceeding:
 
 | Gate | Trigger | Review Criteria | Tolerances |
 |------|---------|-----------------|------------|
@@ -111,7 +111,7 @@ Escalate when tolerances exceed. Log overruns in the issue register.
 
 ## Lessons Integration
 
-Sales conversation feedback feeds into the PRINCE2 lessons log (`Project_Management/lessons-log.md`):
+Sales conversation feedback feeds into the lessons log (`Project_Management/lessons-log.md`):
 
 - Capture objection patterns after each batch of 10 demos.
 - Log competitor comparison questions that reveal positioning gaps.
@@ -120,9 +120,9 @@ Sales conversation feedback feeds into the PRINCE2 lessons log (`Project_Managem
 
 Review the lessons log quarterly and update sales materials accordingly.
 
-## PRINCE2 Product Focus
+## Product Focus
 
-Sales materials are managed as PRINCE2 products with defined quality criteria:
+Sales materials are managed as project products with defined quality criteria:
 
 | Sales Product | Quality Criteria | Reviewed Against |
 |---------------|-----------------|------------------|

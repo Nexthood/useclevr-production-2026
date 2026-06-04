@@ -20,7 +20,8 @@ folder during the same task cycle.
 - Use compact status updates during long-running validation, deploy checks, and broad implementation work.
 - Use [AI memory collection](../prompt-library/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
 - Run [post-interaction memory capture](../prompt-library/ai-memory-collection-post-interaction.md) after each completed request/response cycle and keep only durable learning.
-- Use [Post-interaction hook](post-interaction-hook.md) to route learning into persona, guides, FAQ, prompt files, TODOs, or project records instead of one technical summary file.
+- Treat `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the instruction sources for post-interaction behavior.
+- Use [Post-interaction hook](post-interaction-hook.md) to choose the smallest matching destination files for persona, guides, FAQ, prompt files, TODOs, requirements, or changelog updates instead of one technical summary file.
 - Prepare future developers by recording concise AI-collaboration lessons that explain correction patterns, expectations, and reusable working habits.
 - Keep the post-interaction summary short enough that the correction pattern is obvious at a glance.
 - When durable structure changes, record the split in the doc that owns the audience rather than repeating it everywhere.

@@ -81,7 +81,7 @@ Hybrid AI upgrade available for on-device analysis when working with sensitive s
 
 ## Project Controls — What Founders Should Know
 
-UseClevr uses lightweight PRINCE2-stage controls to keep product and sales aligned. This means:
+UseClevr uses lightweight stage controls to keep product and sales aligned. This means:
 
 | Control | What It Means for Founders |
 |---------|---------------------------|
@@ -98,6 +98,6 @@ Founders reviewing UseClevr for their own use, investment due diligence, or part
 - [Sales one-pager](../sales-one-pager.md) — complete product overview
 - [Demo scripts](../demo-scripts.md) — step-by-step demo walkthroughs
 - [Business profile planning](../../Developer_Guides/business-profile-planning.md) — current and planned Business Profile scope
-- [Project controls approach](../Project_Controls/project-controls-approach.md) — PRINCE2 themes mapped to UseClevr artefacts
+- [Project controls approach](../Project_Controls/project-controls-approach.md) — stage gates, quality reviews, risk management
 - [Business case](../Project_Management/business-case.md) — cost-benefit analysis and justification
 - [Risk register](../Project_Management/risk-register.md) — risk identification and response

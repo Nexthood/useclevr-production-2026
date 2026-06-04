@@ -30,7 +30,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.
 - Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
 - Hybrid AI local testing uses Mock AI responses for local runtime status, model list, pull, verification, chat, and analysis flows.
-- Project controls approach now documents sales tolerances and quality review cycles for PRINCE2-aligned sales materials.
+- Project controls approach now documents sales tolerances and quality review cycles for sales materials.
 - AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
 - Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
 - Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
@@ -62,7 +62,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Dev
 
 - Record AI-interaction correction patterns and future-developer notes in the smallest matching files.
-- Rename sales project guidance around project controls instead of PRINCE2 wording and keep founder docs ready for a future branch split.
+- Rename sales project guidance around project controls and keep founder docs ready for a future branch split.
 - Add generic TODO labels and done-task commit markers so task queues are easier to scan and audit.
 - Add development-only Mock AI responses for local chat, streaming chat, and analysis flows.
 - Consolidate Payload migration planning into one current migration plan and prompt reference.

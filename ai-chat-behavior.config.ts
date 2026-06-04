@@ -26,7 +26,7 @@ export const aiChatBehaviorConfig = {
   aiInteractionLearning: {
     memoryCollectionPrompt: "docs/AI-interaction/prompt-library/ai-memory-collection.md",
     postInteractionPrompt: "docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md",
-    rule: "Run post-interaction memory capture after each completed request/response cycle. Keep only durable learning, redact secrets, and convert useful findings into docs, TODOs, requirements, changelog, or prompt-library entries. Collect learning from other AI chats only from visible transcripts, pasted notes, exported summaries, or explicit memory summaries.",
+    rule: "Use AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, and gemini-behavior.config.ts as the post-interaction instruction sources. Run post-interaction memory capture after each completed request/response cycle. Keep only durable learning, redact secrets, and route useful findings into destination files such as docs, TODOs, requirements, changelog, or prompt-library entries. Collect learning from other AI chats only from visible transcripts, pasted notes, exported summaries, or explicit memory summaries.",
   },
 
   projectOverview: {

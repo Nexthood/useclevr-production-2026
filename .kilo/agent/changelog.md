@@ -12,9 +12,11 @@ When adding changelog entries:
 ## AI Interaction Rules
 
 1. Use compact progress updates for long-running validation, deploy checks, and git workflow steps.
-2. Run `docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md` after each completed request/response cycle and keep only durable learning.
-3. Use `docs/AI-interaction/prompt-library/ai-memory-collection.md` when collecting learning from another AI chat.
-4. Preserve staged and unstaged changes from users and other agents before editing.
+2. Treat `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the post-interaction instruction sources.
+3. Run `docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md` after each completed request/response cycle and keep only durable learning.
+4. Use `docs/AI-interaction/prompt-library/ai-memory-collection.md` when collecting learning from another AI chat.
+5. Route outcomes into destination files such as `requirements.md`, `CHANGELOG.md`, `.TODO/`, and the relevant `docs/AI-interaction/` guides.
+6. Preserve staged and unstaged changes from users and other agents before editing.
 
 ## Example
 

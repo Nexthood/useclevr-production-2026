@@ -69,7 +69,10 @@ pnpm health           # validate + tests + docs + audit
   not past states, removed options, speculative possibilities, or future blockages. Mention past or
   future states only when the detail prevents a concrete risk.
 - Prefer compact progress updates during long-running validation, deploy checks, and broad implementation work.
-- Run post-interaction memory capture (`docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md`) after each completed request/response cycle and route durable learning into the correct project file.
+- Treat `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and
+  `gemini-behavior.config.ts` as the post-interaction instruction sources; run
+  `docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md` after each
+  completed request/response cycle and route durable learning into the correct destination file.
 - Convert useful learning from other AI chats with `docs/AI-interaction/prompt-library/ai-memory-collection.md`.
 
 ## Script Rules
