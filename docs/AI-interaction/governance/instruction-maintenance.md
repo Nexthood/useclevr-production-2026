@@ -9,6 +9,7 @@ Update this folder whenever durable AI instructions change.
 - Store user-facing collaboration guidance in [../user-guides/user-guide.md](../user-guides/user-guide.md).
 - Store AI-agent collaboration guidance in [../developer-guides/ai-agent-guide.md](../developer-guides/ai-agent-guide.md).
 - Store reusable prompt files and the prompt index in [../prompt-library/](../prompt-library/README.md).
+- Run post-interaction memory capture after each completed request/response cycle and keep only durable learning in project records.
 - Store bookkeeping user and developer mirrors in this folder when bookkeeping guidance changes.
 
 ## Text Language Rule

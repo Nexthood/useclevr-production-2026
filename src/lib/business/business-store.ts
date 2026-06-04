@@ -34,7 +34,7 @@ const emptyDetails: BusinessDetails = {
   businessDescription: "",
 }
 
-function businessId() {
+function createBusinessId() {
   return `business_${randomUUID().replace(/-/g, "").slice(0, 16)}`
 }
 
@@ -182,7 +182,7 @@ export async function listUserBusinesses(userId: string | null | undefined) {
 
   try {
     const [row] = await db.insert(businesses).values({
-      id: businessId(),
+      id: createBusinessId(),
       userId,
       name: profile.businessName,
       email: profile.businessEmail || null,
@@ -226,6 +226,32 @@ export async function getPrimaryBusinessDetails(userId: string | null | undefine
   return getProfileBusinessDetails(userId)
 }
 
+export async function getBusinessDetailsById(
+  userId: string | null | undefined,
+  businessId: string | null | undefined
+): Promise<BusinessDetails> {
+  if (!userId || !businessId || businessId === "profile-primary") {
+    return getPrimaryBusinessDetails(userId)
+  }
+
+  const db = getDb()
+  if (!db) return emptyDetails
+
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(and(eq(businesses.userId, userId), eq(businesses.id, businessId)))
+      .limit(1)
+
+    if (business) return toDetails(business)
+  } catch (error) {
+    debugError("[BUSINESS] Business detail lookup failed:", error)
+  }
+
+  return emptyDetails
+}
+
 export async function upsertPrimaryBusinessDetails(userId: string, details: BusinessDetails) {
   const db = getDb()
   if (!db) throw new Error("Database connection is unavailable.")
@@ -263,7 +289,7 @@ export async function upsertPrimaryBusinessDetails(userId: string, details: Busi
     return existing.id
   }
 
-  const id = businessId()
+  const id = createBusinessId()
   try {
     await db.insert(businesses).values({
       id,
@@ -278,6 +304,58 @@ export async function upsertPrimaryBusinessDetails(userId: string, details: Busi
     debugError("[BUSINESS] Business table insert failed after profile save:", error)
     return "profile-primary"
   }
+  return id
+}
+
+export async function upsertBusinessDetails(
+  userId: string,
+  businessId: string | null | undefined,
+  details: BusinessDetails
+) {
+  if (!businessId || businessId === "profile-primary") {
+    return upsertPrimaryBusinessDetails(userId, details)
+  }
+
+  const db = getDb()
+  if (!db) throw new Error("Database connection is unavailable.")
+
+  const now = new Date()
+  const status = businessCompletion(details) === 100 ? "active" : "draft"
+  const values = {
+    name: details.businessName || "Business profile",
+    email: details.businessEmail || null,
+    industry: details.industry || null,
+    address: details.location || null,
+    website: details.website || null,
+    description: details.businessDescription || null,
+    status,
+    archivedAt: null,
+    archiveExpiresAt: null,
+    updatedAt: now,
+  }
+
+  if (businessId !== "new") {
+    const [updated] = await db
+      .update(businesses)
+      .set(values)
+      .where(and(eq(businesses.userId, userId), eq(businesses.id, businessId)))
+      .returning()
+
+    if (updated?.id) return updated.id
+    throw new Error("Business profile was not found.")
+  }
+
+  const id = businessId === "new" ? createBusinessId() : businessId
+  await db.insert(businesses).values({
+    id,
+    userId,
+    ...values,
+    isPrimary: false,
+    localeSettings: {},
+    invoiceSettings: {},
+    createdAt: now,
+  })
+
   return id
 }
 

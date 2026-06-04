@@ -9,7 +9,7 @@ function hasSessionCookie(request: NextRequest) {
     request.cookies.has("__Secure-next-auth.session-token")
 }
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { nextUrl } = request
   const isLoggedIn = hasSessionCookie(request)
   const pathname = nextUrl.pathname

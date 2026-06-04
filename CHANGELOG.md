@@ -26,7 +26,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Business profile row links open the matching business profile and new business creation opens a blank profile.
+- AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.
 - Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
+- Hybrid AI local testing uses Mock AI responses for local runtime status, model list, pull, verification, chat, and analysis flows.
 - AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
 - Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
 - Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
@@ -57,6 +60,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Add generic TODO labels and done-task commit markers so task queues are easier to scan and audit.
 - Add development-only Mock AI responses for local chat, streaming chat, and analysis flows.
 - Consolidate Payload migration planning into one current migration plan and prompt reference.
 - Clarify local AI, mock-mode, and API route access audit guidance so developer docs match current controls.
@@ -97,6 +101,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Help content explains how users and operators get clearer AI answers and review answer quality.
 - Use a more compact default text scale across public and dashboard pages.
 - Display settings show accessibility states and explain contrast and larger-text controls.
 - Front page sections use the same compact public-page rhythm and call-to-action treatment as the affiliate page.

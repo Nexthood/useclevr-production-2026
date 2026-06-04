@@ -49,6 +49,8 @@ pnpm dev
 - Confirm Pro users see Lite access.
 - Confirm Business and super-admin users see the correct local AI access.
 - Confirm plan buttons route through checkout review.
+- For localhost UI testing without a local runtime, set `MOCK_AI_MODE=true` and confirm local status,
+  model list, model pull, verification, chat, and analysis flows use mock responses.
 
 ## 6. Billing Flow
 

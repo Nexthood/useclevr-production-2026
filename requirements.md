@@ -24,6 +24,9 @@ This file states the current product requirements in direct, present-state langu
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
 - Keep AI answers within the uploaded dataset scope.
+- Store AI answer feedback on the saved answer history item.
+- Explain efficient AI usage for public users, dashboard users, and operators.
+- Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
 - Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
 - Offer Hybrid AI Lite to Pro users.
@@ -63,6 +66,8 @@ This file states the current product requirements in direct, present-state langu
 - Include business profile, location, tax, financial, and overview visits in setup progress.
 - Open Business as a top-level workspace with the businesses listing first.
 - Show profile, location, tax, financial, and review subpages inside the Business workspace.
+- Open business row edit links on the matching business profile.
+- Open new business creation as a blank business profile.
 - Show business review readiness inside the Business overview.
 - Show saved business profile details when dedicated business records are unavailable.
 - Support subscription-tier business limits, primary business storage, archive and restore states, operating entities, and cached country tax context.
@@ -181,6 +186,7 @@ This file states the current product requirements in direct, present-state langu
 - Use the shared modal pattern for the Hybrid AI popup.
 - Open the Hybrid AI popup from the dashboard topbar.
 - Show Pro and Business plan options to free users inside the Hybrid AI popup.
+- Support localhost Mock AI testing for Hybrid AI status, model list, pull, verification, chat, and analysis flows.
 
 ## MCP
 

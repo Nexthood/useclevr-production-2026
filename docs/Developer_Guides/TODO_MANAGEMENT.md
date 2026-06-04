@@ -51,6 +51,19 @@ Use `.TODO/config.json` before adding tasks:
 5. Every task in the TODO files must have a `T-` number.
 6. Write task descriptions as direct present-action statements, not retrospective changelog copy.
 
+## Labels
+
+`.TODO/config.json` owns the generic TODO labels. Labels work like lightweight GitHub labels and a
+task can carry more than one label.
+
+- Use only labels listed in `.TODO/config.json`.
+- Keep labels generic, such as `ci-build`, `dashboard`, `notice`, `payment`, `local-ai`, `docs`, and
+  `security`.
+- Group TODO files by the task's primary label using `## Label: label-name` sections.
+- Add `(labels: label, label)` to active, future, and ignored tasks.
+- Add `(labels: label, label; commit: abc1234)` to completed tasks.
+- Use `commit: worktree` only for completed tasks that are not committed yet; replace it with the short commit after commit.
+
 ## How To Add Work
 
 Add confirmed work to `.TODO/todo-next.md`. Use `.TODO/todo-future.md` for deferred work and
@@ -116,5 +129,5 @@ pnpm lint:todos
 ```
 
 The TODO checker validates `.TODO/config.json`, confirms configured files exist, checks task ID
-format, prevents duplicate task IDs across configured TODO files, and reports active versus retired
-task counts.
+format, validates label suffixes, prevents duplicate task IDs across configured TODO files, and
+reports active versus retired task counts.

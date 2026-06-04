@@ -12,6 +12,7 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Business Profile and Company Setup changes that alter AI context update trace guidance so future traces explain which business context shaped an answer.
 - MCP tool changes that alter AI context, prompt inputs, provider-visible metadata, audit logs, or trace fields update trace guidance.
 - Local Mock AI traces use provider `Mock AI` and model `mock-local-development` so development responses stay distinguishable from Gemini, Antigravity, and local model traces.
+- Local Mock AI status, model-list, pull, and verification routes are development-only helpers for localhost UI testing and do not create production provider traces.
 
 ## Instruction Structure
 

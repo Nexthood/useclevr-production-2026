@@ -55,6 +55,7 @@ Upload business data, ask questions in plain language, review structured insight
 - Business context.
 - Guided support.
 - Controlled AI with trace learning.
+- Learn-as-you-go AI interaction: users and operators improve prompts, support content, and product guidance from concise feedback patterns.
 
 ## Campaign Themes
 

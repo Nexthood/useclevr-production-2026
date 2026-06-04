@@ -69,6 +69,7 @@ pnpm health           # validate + tests + docs + audit
   not past states, removed options, speculative possibilities, or future blockages. Mention past or
   future states only when the detail prevents a concrete risk.
 - Prefer compact progress updates during long-running validation, deploy checks, and broad implementation work.
+- Run post-interaction memory capture (`docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md`) after each completed request/response cycle and route durable learning into the correct project file.
 - Convert useful learning from other AI chats with `docs/AI-interaction/prompt-library/ai-memory-collection.md`.
 
 ## Script Rules
@@ -266,6 +267,9 @@ AI agents keep regular `.TODO/` queue files synced:
 - `.TODO/todo-ignore.md`: holds deliberate no-fix decisions with rationale
 - Dist/audit-specific TODO files retired; follow-ups/findings go to regular next/done/future/ignore
 - Keep task numbers stable when moving work between active/retired
+- Use only labels from `.TODO/config.json`; group TODO files by `## Label: label-name`
+- Add `(labels: label, label)` to active, future, and ignored tasks
+- Add `(labels: label, label; commit: shortsha)` to done tasks, or `commit: worktree` until the work is committed
 - Write task descriptions as direct present-action (not retrospective changelog)
 - Write all text-file bullets as current-state behavior; mention past states, removed options,
   speculative possibilities, or future blockages only for risk prevention

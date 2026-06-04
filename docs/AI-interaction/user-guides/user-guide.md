@@ -55,6 +55,22 @@ future path.
 - Feature restoration needs route links, sidebar links, API support, and current UI patterns checked together.
 - TODO retirement happens after the work is implemented, deferred, or deliberately ignored.
 
+## Tips for Faster AI Responses
+
+- Upload a CSV dataset first, then ask questions about it — the AI needs data to analyze.
+- Be specific about what you want: numbers, trends, comparisons, or recommendations.
+- If the response is too general, ask for specifics: "give me concrete numbers" or "show me month by month".
+- Use the re-run button (↻) on any past response to ask the same question again without retyping.
+- Rate responses with thumbs up/down — this trains which answers are useful for your business.
+
+## Efficient AI Usage
+
+- Ask one clear business question at a time.
+- Name the dataset, metric, period, or segment when it matters.
+- Ask for the direct result first when speed matters.
+- Ask for evidence when a recommendation needs review.
+- Use feedback buttons so operators can spot weak answers and improve support guidance.
+
 ## Bookkeeping Requests
 
 - Describe accounting work as current dashboard behavior.

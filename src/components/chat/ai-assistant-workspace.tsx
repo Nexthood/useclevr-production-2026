@@ -223,7 +223,7 @@ export function AiAssistantWorkspace() {
 
       const assistantMessage: AssistantMessage = {
         id: `assistant-${Date.now()}`,
-        traceId: `trace_${Date.now()}`,
+        traceId: typeof body.traceId === "string" ? body.traceId : undefined,
         role: "assistant",
         content: responseText(body),
         insight: body.insight,

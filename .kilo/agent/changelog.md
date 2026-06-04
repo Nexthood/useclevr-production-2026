@@ -12,8 +12,9 @@ When adding changelog entries:
 ## AI Interaction Rules
 
 1. Use compact progress updates for long-running validation, deploy checks, and git workflow steps.
-2. Use `docs/AI-interaction/prompt-library/ai-memory-collection.md` when collecting learning from another AI chat.
-3. Preserve staged and unstaged changes from users and other agents before editing.
+2. Run `docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md` after each completed request/response cycle and keep only durable learning.
+3. Use `docs/AI-interaction/prompt-library/ai-memory-collection.md` when collecting learning from another AI chat.
+4. Preserve staged and unstaged changes from users and other agents before editing.
 
 ## Example
 

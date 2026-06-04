@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
-import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
+import { getBusinessDetailsById, getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { debugError } from "@/lib/utils/debug"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
@@ -11,6 +11,7 @@ const parseBoolean = z
   .optional()
 
 const querySchema = z.object({
+  businessId: z.string().optional(),
   includeNulls: parseBoolean,
 })
 
@@ -37,7 +38,9 @@ export async function GET(request: NextRequest) {
   const includeNulls = parsed.success ? parsed.data.includeNulls === "true" : false
 
   try {
-    const details = await getPrimaryBusinessDetails(userId)
+    const details = parsed.success && parsed.data.businessId
+      ? await getBusinessDetailsById(userId, parsed.data.businessId)
+      : await getPrimaryBusinessDetails(userId)
 
     return NextResponse.json({ details: includeNulls ? details : details })
   } catch (error) {

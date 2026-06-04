@@ -1,24 +1,48 @@
 # Sales Plan — UseClevr
 
-Structured sales approach aligned with the [stage plan](Project_Management/stage-plan.md), [PRINCE2 themes](Prince2/prince2-approach.md), and current product capability.
+Structured sales approach aligned with the [stage plan](Project_Management/stage-plan.md), [project controls](Project_Controls/project-controls-approach.md), and current product capability.
 
 ## Objectives
 
 - Convert free users to Pro and Business plans through product-led activation.
 - Enable repeatable demo and discovery conversations for outbound sales.
 - Build sales materials that accurately represent current capability without overpromising.
+- Drive Hybrid AI adoption as a privacy and cost differentiator for data-sensitive segments.
 
 ## Target Segments
 
 | Segment | Primary Pain | Sales Approach |
 |---------|-------------|----------------|
-| Startup founders (pre-seed to Series A) | No BI resources, need investor-ready reports | Product-led: upload → ask → export. Demo: SaaS dataset + investor report export. |
-| SME owners (10–50 employees) | Spreadsheet chaos, need business health overview | Guided: Business Profile setup + Accountancy overview + recurring analysis. |
-| Consultants and agencies | Need client-ready analysis from client data | Data-safe demo: upload client-like data, export branded reports, show multi-provider re-run. |
+| Startup founders (pre-seed to Series A) | No BI resources, need investor-ready reports | Product-led: upload → ask → export. Demo: SaaS dataset + investor report export. Hybrid AI Lite for sensitive data. |
+| SME owners (10–50 employees) | Spreadsheet chaos, need business health overview | Guided: Business Profile setup + Accountancy overview + recurring analysis. Hybrid AI for offline/private use. |
+| Consultants and agencies | Need client-ready analysis from client data | Data-safe demo: upload client-like data, export branded reports, show multi-provider re-run. Hybrid AI MEGA as privacy sell. |
 | E-commerce operators | Sales and margin tracking from platform exports | Quick-start: upload platform CSV → AI computes revenue, costs, margins by product/region. |
 | Accountancy-adjacent users | Pre-accountancy data organisation before advisor review | Accountancy readiness: upload + Business Profile + tax context → organised output for accountant. |
 
-## Sales Stages (Inspired by PRINCE2)
+## Hybrid AI Sales Positioning
+
+Hybrid AI is UseClevr's local-on-device AI capability with automatic cloud fallback. Two tiers:
+
+| Tier | Model | Size | Best For |
+|------|-------|------|----------|
+| **Hybrid AI Lite** | `llama3.2:3b-instruct` | ~2GB | Quick analysis, basic questions, sensitive data |
+| **Hybrid AI MEGA** | `llama3:8b-instruct` | ~5GB | Deep analysis, complex questions, full offline use |
+
+**Sales differentiators**:
+- Data never leaves the user's machine when running locally — strong privacy sell for legal, healthcare, and financial data.
+- No API credits consumed during local analysis — reduces operating cost for heavy users.
+- Works offline — usable without internet connectivity.
+- Automatic cloud fallback when local model can't answer — no capability gap.
+
+**Pricing**: Hybrid AI is an add-on upgrade available on Pro and Business plans. Free users see the option but must upgrade to activate.
+
+**Deployment flow** (simplified for sales conversations):
+1. User enables Hybrid AI from dashboard topbar
+2. One-click install: downloads Ollama runtime + selected model
+3. Dashboard routes AI queries through local model with cloud fallback
+4. Mega installer modal shows progress, model sizes, and platform-specific desktop runtime options
+
+## Sales Stages
 
 ### Stage 1: Awareness
 - Content marketing (LinkedIn posts, use case examples, founder stories)
@@ -76,7 +100,7 @@ Common objections and responses:
 ## Related
 
 - [Stage plan](Project_Management/stage-plan.md) — phased delivery with stage gates
-- [PRINCE2 approach](Prince2/prince2-approach.md) — PRINCE2 themes and principles applied
+- [Project controls approach](Project_Controls/project-controls-approach.md) — business case, risks, issues, lessons, and stage gates applied
 - [Marketing plan](Marketing/marketing-plan.md) — campaign planning and funnel measurement
 - [Demo scripts](demo-scripts.md) — demo walkthroughs per persona
 - [Risk register](Project_Management/risk-register.md) — sales-related risks tracked

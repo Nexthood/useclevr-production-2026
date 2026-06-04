@@ -1,8 +1,8 @@
-# PRINCE2 Approach — UseClevr
+# Project Controls Approach — UseClevr
 
-This document maps UseClevr project management artefacts to PRINCE2 themes and processes. The existing documents under `docs/Sales/Project_Management/` follow PRINCE2-inspired structure without naming it explicitly.
+This document maps UseClevr project management artefacts to lightweight controls for business justification, roles, quality, staged delivery, risk, change, and lessons.
 
-## PRINCE2 Themes Applied
+## Controls Applied
 
 | Theme | UseClevr Artefact | Purpose |
 |-------|-------------------|---------|
@@ -14,7 +14,7 @@ This document maps UseClevr project management artefacts to PRINCE2 themes and p
 | Change | [Issue register](../Project_Management/issue-register.md) | Tracks issues, decisions, and their resolution through defined ownership and status. |
 | Progress | [Lessons log](../Project_Management/lessons-log.md) + Stage plan controls | Captures learning and measures progress against stage-level controls and exit criteria. |
 
-## PRINCE2 Principles Applied
+## Principles Applied
 
 1. **Continued business justification** — Business case maintained with current cost and benefit estimates. Stage plan requires a viable business case to proceed.
 2. **Learn from experience** — Lessons log captures findings from deployment, sales, development, and user feedback cycles.
@@ -22,17 +22,30 @@ This document maps UseClevr project management artefacts to PRINCE2 themes and p
 4. **Manage by stages** — Four-stage plan with separate objectives, controls, and exit criteria. Each stage must pass before the next starts.
 5. **Manage by exception** — Stage tolerances set via controls. Escalation happens when tolerances are exceeded.
 6. **Focus on products** — Product description defines deliverables. Quality expectations set acceptance standards for each product.
-7. **Tailor to suit environment** — Lightweight PRINCE2 adoption suitable for a startup/small-team context. No heavyweight governance overhead.
+7. **Tailor to suit environment** — Keep controls lightweight enough for a startup and small-team context.
 
-## Sales-Specific PRINCE2 Adaptation
+## Sales-Specific Adaptation
 
-| PRINCE2 Practice | Sales Application |
+| Practice | Sales Application |
 |------------------|-------------------|
 | Stage gates | Each sales readiness milestone (demo ready, objection handling, materials complete) functions as a stage gate. |
 | Product focus | The one-pager, demo scripts, and demo datasets are managed as project products with defined quality criteria. |
 | Risk management | Sales risks tracked: overpromising capabilities, regulated-advice boundaries, competitive positioning gaps. |
 | Lessons learned | Sales conversation feedback feeds back into demo scripts, objection handling, and messaging updates. |
 | Quality review | Sales materials reviewed against `requirements.md` and `CHANGELOG.md` before use in customer conversations. |
+
+## Hybrid AI Sales Initiative
+
+The Hybrid AI feature (local on-device AI with cloud fallback) follows stage gates for its sales rollout:
+
+| Stage | Gate | Sales Milestone | Exit Criteria |
+|-------|-------------|-----------------|---------------|
+| 1 | Initiation | Developer preview | Local agent installs, mock AI works, local AI route responds |
+| 2 | Stage 1 | Internal demo ready | One-pager covers Hybrid AI tiers, demo script includes local AI flow, screenshots updated |
+| 3 | Stage 2 | Early adopter release | Installer flow works end-to-end, support content covers Hybrid AI setup, objection handling includes data-sovereignty response |
+| 4 | Stage 3 | General availability | Pricing live, Hybrid AI in checkout, activation metrics tracked, founder and SME docs updated |
+
+**Key risk**: Overpromising local AI capability — local model quality differs from cloud Gemini. Mitigated by clearly marking local vs. cloud analysis in the UI and sales materials.
 
 ## Related Documents
 

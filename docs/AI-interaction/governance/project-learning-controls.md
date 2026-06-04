@@ -26,12 +26,14 @@ Use this guide to turn AI interactions into useful project learning without conf
 3. Capture user learning in plain language.
 4. Capture AI-agent learning as operational improvements.
 5. Link the trace to a TODO, requirement, changelog entry, or guide only when the finding changes durable project state.
+6. Run post-interaction memory capture after each completed request/response cycle and skip empty updates when there is no durable learning.
 
 ## Evaluation Prompts
 
 - Use [Work classification](../prompt-library/work-classification.md) when a request mixes product work, developer maintenance, deployment work, docs, TODO cleanup, or release tasks.
 - Use [Feature restoration check](../prompt-library/feature-restoration-check.md) when bringing back or auditing a restored feature.
 - Use [TODO retirement check](../prompt-library/todo-retirement-check.md) when moving tasks to done, future, or ignore.
+- Use [Post-interaction memory collection](../prompt-library/ai-memory-collection-post-interaction.md) after each completed request/response cycle.
 - Use [AI memory collection](../prompt-library/ai-memory-collection.md) when project learning comes from another visible AI chat or exported transcript.
 
 ## Project Control Alignment

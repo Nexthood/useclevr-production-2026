@@ -17,6 +17,6 @@ Current dashboard layout for AI agents and developers working on UI changes.
 
 ## Related
 
-- [Dashboard page source](../../src/app/(auth)/app/page.tsx) — dashboard overview with stat cards, status cards, and quick actions
-- [Setup progress component](../../src/components/ui/onboarding-process-button.tsx) — topbar progress panel implementation
-- [requirements.md](../../requirements.md) — product requirements covering dashboard behavior
+- Dashboard page source: `src/app/(auth)/app/page.tsx` — dashboard overview with stat cards, status cards, and quick actions
+- [Setup progress component](../../../src/components/ui/onboarding-process-button.tsx) — topbar progress panel implementation
+- [requirements.md](../../../requirements.md) — product requirements covering dashboard behavior

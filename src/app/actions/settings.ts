@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { recordActivity } from "@/lib/activity/activity-store"
-import { upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
+import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import { failure, type Result, success } from "@/lib/result"
@@ -123,6 +123,36 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
   const location            = String(formData.get("location") ?? "").trim() || null
   const website             = String(formData.get("website") ?? "").trim() || null
   const businessDescription = String(formData.get("businessDescription") ?? "").trim() || null
+  const businessId          = String(formData.get("businessId") ?? "").trim()
+
+  const details = {
+    businessName,
+    businessEmail,
+    industry: industry || "",
+    location: location || "",
+    website: website || "",
+    businessDescription: businessDescription || "",
+  }
+
+  if (businessId && businessId !== "profile-primary") {
+    await upsertBusinessDetails(userId, businessId, details)
+
+    await recordActivity({
+      userId,
+      userEmail: session.user.email,
+      type: "business_updated",
+      feature: "business",
+      title: businessId === "new" ? "Business profile created" : "Business profile updated",
+      description: "Business profile details were saved.",
+    })
+
+    revalidatePath("/app")
+    revalidatePath("/app/business")
+    revalidatePath("/app/business/profile")
+    revalidatePath("/app/business/review")
+
+    return success({ message: businessId === "new" ? "Business profile created." : "Business profile saved." })
+  }
 
   const existingProfile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
@@ -158,14 +188,7 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
     })
   }
 
-  await upsertPrimaryBusinessDetails(userId, {
-    businessName,
-    businessEmail,
-    industry: industry || "",
-    location: location || "",
-    website: website || "",
-    businessDescription: businessDescription || "",
-  })
+  await upsertPrimaryBusinessDetails(userId, details)
 
   await recordActivity({
     userId,

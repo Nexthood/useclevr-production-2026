@@ -183,6 +183,15 @@ All commands are run from `pnpm`.
 - `scripts/analysis/analyze-business.ts` is a database-backed diagnostic for the latest dataset.
 - Mock AI setup lives in `src/lib/ai/mock-ai.ts`; analysis scripts stay focused on dataset analysis checks.
 
+### Local Mock AI
+
+Set `MOCK_AI_MODE=true` in local development to test AI flows without Gemini, Antigravity, Ollama, or
+the local desktop agent. Mock mode returns development responses for chat, streaming chat, dataset
+analysis, local AI status, local model tags, model pull, and model verification routes.
+
+Mock mode is ignored in production runtime. Traces from mock responses use provider `Mock AI` and
+model `mock-local-development`.
+
 ### Clean
 
 | Command                | Description                                       |

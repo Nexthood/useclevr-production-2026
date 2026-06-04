@@ -70,6 +70,10 @@ export const dashboardFaqCategories: FaqCategory[] = [
         q: "How do I change theme, contrast, or text size?",
         a: "Open the display settings icon in the topbar. Choose Light, Dark, or System theme, then turn on High contrast or Larger text when you need stronger contrast or a higher reading size.",
       },
+      {
+        q: "How do I get faster, clearer AI answers?",
+        a: "Select the right dataset, ask one direct question, name the metric or period you care about, and use thumbs-up or thumbs-down so answer quality can be reviewed.",
+      },
     ],
   },
   customerBillingFaqs,
@@ -87,6 +91,10 @@ export const dashboardFaqCategories: FaqCategory[] = [
       {
         q: "Does local mode replace cloud analysis?",
         a: "No. Local mode is an extra option for private or offline workflows. Cloud analysis remains available when your plan allows it.",
+      },
+      {
+        q: "How can I test Hybrid AI locally without installing the runtime?",
+        a: "Developers can set MOCK_AI_MODE=true in local development. The app then uses mock local AI status, model, pull, verification, chat, and analysis responses for UI testing.",
       },
     ],
   },
@@ -111,6 +119,10 @@ export const superAdminFaqCategories: FaqCategory[] = [
       {
         q: "How are support tickets resolved?",
         a: "Open Tickets & Issues, add a support note, and mark the ticket open, in progress, or resolved.",
+      },
+      {
+        q: "How should operators review AI answer quality?",
+        a: "Use AI trace history, user feedback, repeated questions, and error patterns to find unclear answers and turn them into FAQ updates, prompt improvements, or support tasks.",
       },
     ],
   },

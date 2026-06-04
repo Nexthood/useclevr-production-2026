@@ -47,7 +47,7 @@ export default function AiTracesPage() {
         icon={BarChart3}
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 p-6">
         <div className="mb-4 flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Period:</label>
           <select

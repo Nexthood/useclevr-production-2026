@@ -114,6 +114,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
       <div className="space-y-3 border-t border-sidebar-border p-4">
         {!isLoading && !isCollapsed && <UsageMonitor used={usage} total={total} isPro={isPro} />}
+        {!isCollapsed && (
+          <p className="text-center text-[10px] text-muted-foreground/50 select-none">
+            v{process.env.NEXT_PUBLIC_APP_VERSION || "7.0.0"}
+          </p>
+        )}
       </div>
     </>
   );
@@ -143,11 +148,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
             localStorage.setItem("useclevr_sidebar_collapsed", String(next))
             window.dispatchEvent(new CustomEvent("useclevr:sidebar-toggle", { detail: { collapsed: next } }))
           }}
-          className="absolute -right-3 top-4 z-50 hidden h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted md:inline-flex"
+          className="absolute right-2 top-4 z-50 hidden h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted md:inline-flex"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
         </button>
         </div>
       </aside>

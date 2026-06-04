@@ -135,8 +135,12 @@ export const allFaqCategories: FaqCategory[] = [
         a: "Any question your structured data can answer: totals, averages, top-N rankings, group-by summaries, comparisons over time, trend analysis, and more. The AI will confirm if a question cannot be answered with the available columns.",
       },
       {
+        q: "How do I get the best answer from the AI assistant?",
+        a: "Ask one clear question, name the dataset or metric when it matters, and ask for the direct result first. Add context such as period, region, product, or customer segment when you need a focused answer.",
+      },
+      {
         q: "Is Hybrid AI really local?",
-        a: "Yes. Hybrid AI Lite downloads a small local engine to your browser. All calculations run on your machine. No data is sent to the cloud during local analysis.",
+        a: "Yes. Hybrid AI connects to the local UseClevr runtime on your device. Local analysis keeps your data on your machine instead of sending it to the cloud AI provider.",
       },
       {
         q: "Which Hybrid AI mode should I pick?",

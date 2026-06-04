@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
 import { BUSINESS_FIELDS, type BusinessDetails } from "@/lib/business/business-profile"
 import { Building2, Save } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import * as React from "react"
 
 export function BusinessProfileForm() {
-  const router = useRouter()
+  const searchParams = useSearchParams()
   const { showNotice } = useNotice()
+  const businessId = searchParams.get("id") || ""
+  const mode = searchParams.get("mode") || ""
+  const formBusinessId = mode === "new" ? "new" : businessId
   const [details, setDetails] = React.useState<BusinessDetails>({
     businessName: "",
     businessEmail: "",
@@ -28,8 +31,11 @@ export function BusinessProfileForm() {
     let cancelled = false
 
     ;(async () => {
+      if (mode === "new") return
+
       try {
-        const res = await fetch("/api/me/business", { cache: "no-store" })
+        const query = businessId ? `?businessId=${encodeURIComponent(businessId)}` : ""
+        const res = await fetch(`/api/me/business${query}`, { cache: "no-store" })
         if (res.ok) {
           const data = await res.json()
           if (data.details && !cancelled) {
@@ -51,7 +57,7 @@ export function BusinessProfileForm() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [businessId, mode])
 
   const handleChange = (id: keyof BusinessDetails, value: string) => {
     setDetails((prev) => ({ ...prev, [id]: value }))
@@ -88,6 +94,7 @@ export function BusinessProfileForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <input type="hidden" name="businessId" value={formBusinessId} />
           {sections.map((section) => (
             <div key={section} className="space-y-4">
               <div>

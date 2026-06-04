@@ -8,6 +8,7 @@ Use this folder for implementation guidance, repo behavior, and agent operating 
 - [AI tracing structure](ai-tracing-structure.md)
 - [Bookkeeping developer guide](bookkeeping-developer-guide.md)
 - [AI interaction workflow guide](interaction-workflow-guide.md)
+- [Post-interaction hook](post-interaction-hook.md)
 
 ## Developer Rule
 

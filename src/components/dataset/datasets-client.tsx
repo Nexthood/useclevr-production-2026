@@ -131,7 +131,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <AppPageHeader
         title="Datasets"
         description="Manage uploaded files and analysis-ready data."
@@ -157,7 +157,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
         )}
       </PageActionRow>
 
-      <main className="flex-1 p-5">
+      <div className="flex-1 p-5">
         <div className="max-w-6xl mx-auto space-y-5">
           {datasets.length === 0 ? (
             <Card className="p-12 bg-card border-border">
@@ -228,7 +228,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
             </>
           )}
         </div>
-      </main>
+      </div>
     </div>
   )
 }

@@ -54,6 +54,24 @@ This structure should only be introduced when it brings clear value.
 
 ---
 
+## Future Founder Docs Branch
+
+UseClevr may later keep founder-focused project documents on a separate branch when those files need a distinct audience, release cadence, or review path from the main sales and product docs.
+
+Possible branch split:
+
+```txt
+main
+  current app, product, docs, and sales sources
+
+founders
+  founder project documents, founder planning, and founder-facing narrative
+```
+
+This split should stay future-only until the current documentation flow and branch workflow are stable.
+
+---
+
 ## Future Subdomain Structure
 
 Recommended future subdomains:

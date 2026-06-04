@@ -212,7 +212,7 @@ export default async function BusinessPage() {
 
       <PageActionRow description="Manage business profiles, locations, tax settings, and financial data.">
         <Link
-          href="/app/business/profile"
+          href="/app/business/profile?mode=new"
           aria-disabled={!canAddBusiness}
           className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition ${
             canAddBusiness

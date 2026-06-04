@@ -11,6 +11,7 @@ UseClevr helps startup founders understand business performance, prepare for inv
 | Tracking unit economics | Upload sales data with revenue, cost, and quantity columns → AI computes margins, trends, and concentration |
 | Limited time for analysis | Pre-computed KPIs (total revenue, profit margin, growth, top products/regions) visible instantly |
 | Multiple data sources | Upload datasets per period or business line → AI Assistant keeps answers scoped to selected data |
+| Sensitive startup data | Hybrid AI runs analysis on your device — data never leaves your machine |
 
 ## Common Founder Use Cases
 
@@ -33,6 +34,11 @@ UseClevr helps startup founders understand business performance, prepare for inv
 - Include cost columns in your dataset.
 - AI computes profit margin per product, region, or overall.
 - Identify which products or markets drive the most profit.
+
+### Learn As You Go With AI
+- Use AI history and feedback to see which questions produce useful answers.
+- Turn repeated unclear answers into better prompts, FAQ updates, or support questions.
+- Keep investor and founder analysis grounded in uploaded data, not generic advice.
 
 ## Getting Started Fast
 
@@ -60,7 +66,18 @@ Week 4: Upload next month's data → Compare growth trends → Update investor p
 | Pro Annual | $290/yr | Same as Pro Monthly, two months free. |
 | Business Monthly | $99/mo | Business Profile, Accountancy, priority support. |
 
-Hybrid AI upgrade available for on-device analysis when working with sensitive startup data.
+Hybrid AI upgrade available for on-device analysis when working with sensitive startup data. Two tiers:
+
+| Tier | Model | Size | Use Case |
+|------|-------|------|----------|
+| Hybrid AI Lite | `llama3.2:3b-instruct` | ~2GB | Daily Q&A, revenue checks, basic margin analysis |
+| Hybrid AI MEGA | `llama3:8b-instruct` | ~5GB | Deep dives, full reports, complex trend analysis, offline use |
+
+**When to use Hybrid AI as a founder:**
+- Your data contains customer PII, employee records, or financial details you don't want sent to cloud AI.
+- You're working without internet (travel, cafés, on-site).
+- You've exhausted your analyst credits and want unlimited local analysis.
+- You want faster response times for routine questions (local models respond in 1-5s for simple queries).
 
 ## Related
 

@@ -41,7 +41,7 @@ Upload CSV → Ask question in plain language → Review AI answer + computed KP
 | Pro Annual       | $290/yr | Same as Pro Monthly at 2 months free            |
 | Business Monthly | $99/mo  | Business Profile, Accountancy, Priority support |
 
-Hybrid AI upgrade available for on-device/local analysis.
+Hybrid AI upgrade runs analysis on-device (Lite: ~2GB model, MEGA: ~5GB model) with automatic cloud fallback. Data never leaves your machine in local mode. No API credits consumed for local analysis.
 
 ## Competitive Position
 

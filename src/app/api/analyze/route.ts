@@ -589,22 +589,12 @@ export async function POST(request: Request) {
 
     traceResponseContent = answer || ""
 
-    const responseBody = {
-      success: true,
-      answer,
-      insight,
-      explanation,
-      recommendation,
-      data: result,
-      chartType,
-      metricColumn,
-      columns: availableColumns,
-    }
+    let savedTraceId: string | null = null
 
-    // Save trace asynchronously (fire-and-forget)
+    // Save trace before returning so the UI can attach feedback to the real trace.
     if (traceUserId) {
       const latencyMs = Date.now() - requestStart
-      createTrace({
+      const trace = await createTrace({
         userId: traceUserId,
         datasetId: traceDatasetId,
         prompt: question,
@@ -616,6 +606,22 @@ export async function POST(request: Request) {
         tokenCount: 0,
         estimatedCostUsd: 0,
       })
+      savedTraceId = trace?.id ?? null
+    }
+
+    const responseBody = {
+      success: true,
+      answer,
+      insight,
+      explanation,
+      recommendation,
+      data: result,
+      chartType,
+      metricColumn,
+      columns: availableColumns,
+      traceId: savedTraceId,
+      providerName: traceProvider,
+      modelName: traceModel,
     }
 
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');
