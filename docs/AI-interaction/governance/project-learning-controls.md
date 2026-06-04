@@ -26,7 +26,8 @@ Use this guide to turn AI interactions into useful project learning without conf
 3. Capture user learning in plain language.
 4. Capture AI-agent learning as operational improvements.
 5. Link the trace to a TODO, requirement, changelog entry, or guide only when the finding changes durable project state.
-6. Run post-interaction memory capture after each completed request/response cycle and skip empty updates when there is no durable learning.
+6. Write the learning with super-precise language that names who must act, what must change, and where the durable update belongs.
+7. Run post-interaction memory capture after each completed request/response cycle and skip empty updates when there is no durable learning.
 
 ## Evaluation Prompts
 

@@ -20,6 +20,7 @@ Use this guide to collect useful project learning from current and external AI c
 ## Quality Rules
 
 - Use direct current-state language in all records.
+- Use super-precise wording in all records that define a rule, action, destination, or follow-up.
 - Keep summaries concise and searchable.
 - Preserve task numbers when moving TODO items.
 - Add a new task number from `.TODO/config.json` only when creating a new queue item.

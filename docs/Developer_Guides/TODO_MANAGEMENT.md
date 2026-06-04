@@ -51,6 +51,8 @@ Use `.TODO/config.json` before adding tasks:
 4. Do not reuse or renumber existing task IDs unless correcting a clear error.
 5. Every task in the TODO files must have a `T-` number.
 6. Write task descriptions as direct present-action statements, not retrospective changelog copy.
+7. Write task descriptions with super-precise wording that states the current action directly and
+   does not hide the actor behind vague reminders.
 
 ## Labels
 

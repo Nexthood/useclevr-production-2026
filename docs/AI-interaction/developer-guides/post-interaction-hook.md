@@ -9,13 +9,15 @@ Use this guide to keep post-interaction capture precise.
 - `ai-chat-behavior.config.ts`
 - `gemini-behavior.config.ts`
 
-These files are the post-interaction manual. They tell future agents that post-interaction capture
-exists, when it runs, and how to decide the right destination after each completed
-request/response cycle or code-change cycle.
+These files are the post-interaction manual. The active AI agent must read them as instructions for
+itself before ending a work cycle, sending a final reply, or closing a code-change cycle.
 
 ## Evaluation Rule
 
 Evaluation means recognizing the correction pattern, not adding more documentation. Capture only the durable lesson.
+
+Write the evaluation with super-precise language that names the active actor, the required action,
+and the smallest correct destination.
 
 Current correction pattern:
 
@@ -41,10 +43,11 @@ These files receive the outcome. They are not the instruction source.
 
 ## Immediate Actions After Docs Changes
 
-- Update the smallest matching docs instead of adding a duplicate summary file.
-- Update `requirements.md` when docs clarify durable product rules.
-- Update `CHANGELOG.md` only when the change affects current product or developer behavior.
-- Update `.TODO/` only when the docs change reveals active work, deferred work, or a deliberate
-  no-fix decision.
+- This AI agent must update the smallest matching docs instead of adding a duplicate summary file.
+- This AI agent must update `requirements.md` when docs clarify durable product rules.
+- This AI agent must update `CHANGELOG.md` only when the change affects current product or
+  developer behavior.
+- This AI agent must update `.TODO/` only when the docs change reveals active work, deferred work,
+  or a deliberate no-fix decision.
 
 Skip the hook when there is no durable learning.

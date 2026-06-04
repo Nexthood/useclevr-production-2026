@@ -68,9 +68,13 @@ pnpm health           # validate + tests + docs + audit
 - Use direct current-state language in all text files. Describe current behavior and current rules,
   not past states, removed options, speculative possibilities, or future blockages. Mention past or
   future states only when the detail prevents a concrete risk.
+- Use super-precise instruction language in TODO rules, changelog rules, requirements, guides, and
+  prompts. Sharpen wording from current-state and concise into naming the actor, the required
+  action, and the destination file or target outcome with no vagueness.
 - Prefer compact progress updates during long-running validation, deploy checks, and broad implementation work.
-- Treat `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and
-  `gemini-behavior.config.ts` as the post-interaction instruction sources; run
+- This AI agent must treat `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the post-interaction
+  instruction sources. This AI agent must run
   `docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md` after each
   completed request/response cycle and route durable learning into the correct destination file.
 - Convert useful learning from other AI chats with `docs/AI-interaction/prompt-library/ai-memory-collection.md`.
@@ -144,6 +148,8 @@ When editing `CHANGELOG.md`:
 - Use present-action statements (e.g., "Add feature" not "Feature added")
 - Prefer current-state product wording: "Show ticket creation on the Tickets page" instead of
   comparing against past page placement or removed forms
+- Use super-precise wording that names the current behavior directly and avoids soft phrasing,
+  vague reminders, or implied actors
 - Use plain user language: "Exports now include attachments" not "Attachment export support added"
 - Describe user benefit and why it matters (not implementation)
 - Never mention: function names, file names, internal IDs, routes, packages, env vars, CI files, source paths

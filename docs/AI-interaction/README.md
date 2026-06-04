@@ -19,6 +19,7 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 
 - Write text files in direct current-state language.
 - Describe current behavior, current rules, and current user outcomes.
+- Use super-precise wording that names the actor, the required action, and the destination when the text gives instructions.
 - Avoid past-state comparisons, removed-option notes, speculative possibilities, and future blockages.
 - Mention past or future states only when the detail prevents a concrete risk.
 - Keep examples in the [Prompt Library](prompt-library/README.md).

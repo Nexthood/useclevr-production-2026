@@ -220,27 +220,20 @@ for (const f of ["vercel.json", "railway.json"]) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Railway uses DOCKERFILE builder (not Railpack). The Dockerfile runs npm install, and
-// .dockerignore excludes node_modules from the Docker build context. Therefore the dist
-// branch does not need node_modules committed. The workflow removes it before git commit.
-
-// Write Dockerfile for Railway Docker builder.
-// Installs production dependencies from npm, then copies the
-// standalone app files (server.js, assets, scripts, etc.).
-// node_modules excluded via .dockerignore so the standalone
-// pnpm structure doesn't overwrite npm-installed dependencies.
+// Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
+// all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
+// image copies the entire prebuilt dist directory — no npm install needed.
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
-COPY package.json ./
-RUN npm install --production --omit=optional 2>&1
 COPY . .
 EXPOSE 8080
 CMD ["node", "-r", "./scripts/runtime/load-env.cjs", "./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
 
-// Exclude node_modules from Docker context so npm install result is used.
-fs.writeFileSync(path.join(distDir, ".dockerignore"), "node_modules\n.next\n.git\n");
+// Keep node_modules in the build context — the standalone bundle contains the correct
+// dependency tree (from pnpm + Next.js tracing). .git is unnecessary in the image.
+fs.writeFileSync(path.join(distDir, ".dockerignore"), ".git\n");
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/sh

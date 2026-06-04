@@ -2,6 +2,13 @@
 
 This file states the current product requirements in direct, present-state language.
 
+Text rules for this file:
+
+- Name the current actor, current behavior, and current outcome directly.
+- Use required-action wording when the requirement defines a rule or boundary.
+- Avoid vague phrases that hide the actor or the required action.
+- Avoid past-state comparison unless it prevents a concrete risk.
+
 ## Infrastructure
 
 - Store application data in Neon PostgreSQL.
@@ -151,6 +158,9 @@ This file states the current product requirements in direct, present-state langu
 - Record concise correction patterns, user expectations, and reusable lessons after each completed request/response cycle.
 - Route durable learning into the smallest matching files for the audience instead of storing one large summary.
 - Use the post-interaction hook to prepare future developers for repeated AI collaboration work.
+- Use super-precise instruction language in AI guidance, TODO rules, changelog rules, and docs so
+  the active AI agent can see who must act, what must change, and where the change belongs with no
+  vagueness.
 - Keep founder-facing project documents, sales planning, and project-control references separated from the current product docs when that split improves clarity.
 
 ## Payment Provider Setup

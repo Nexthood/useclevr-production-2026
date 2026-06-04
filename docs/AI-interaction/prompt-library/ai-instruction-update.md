@@ -5,7 +5,7 @@ Use this prompt when a user changes durable AI-agent behavior, prompt style, doc
 ```text
 Update durable AI instructions for this project.
 
-Apply the instruction in:
+This AI agent must apply the instruction in:
 - AGENTS.md
 - .TODO/config.json when task wording or task workflow changes
 - docs/AI-interaction/README.md
@@ -15,11 +15,12 @@ Apply the instruction in:
 - docs/AI-interaction/prompt-library/ when prompt examples change
 
 Rules:
-- Use current-state language in every text file.
-- Keep user guidance separate from developer guidance.
-- Keep reusable prompts in the prompt collection.
-- Update requirements.md only when the instruction changes product behavior.
-- Update CHANGELOG.md only when the change affects users or developer workflow.
+- This AI agent must use current-state language in every text file.
+- This AI agent must use super-precise wording that names the actor, the required action, and the target file or target outcome.
+- This AI agent must keep user guidance separate from developer guidance.
+- This AI agent must keep reusable prompts in the prompt collection.
+- This AI agent must update requirements.md only when the instruction changes product behavior.
+- This AI agent must update CHANGELOG.md only when the change affects users or developer workflow.
 
 Validation:
 - Run focused docs/TODO checks for touched files.
