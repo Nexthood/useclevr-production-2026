@@ -47,6 +47,29 @@ The Hybrid AI feature (local on-device AI with cloud fallback) follows stage gat
 
 **Key risk**: Overpromising local AI capability — local model quality differs from cloud Gemini. Mitigated by clearly marking local vs. cloud analysis in the UI and sales materials.
 
+## Manage by Exception — Sales Tolerances
+
+PRINCE2's "manage by exception" principle applied to sales activities:
+
+| Tolerance | Threshold | Escalation Path |
+|-----------|-----------|-----------------|
+| Demo readiness delay | >1 sprint past stage gate date | Log to issue register, re-plan demo scope |
+| Objection handling gaps | >3 demos with same unanswered objection | Update objection handling doc, add FAQ entry |
+| Pricing confusion | >2 checkout drop-offs citing price confusion | Review pricing page, update one-pager |
+| Sales material accuracy | requirements or CHANGELOG update without sales doc sync | Add checklist step to release process |
+
+## Quality Review Cycle
+
+Sales materials reviewed against PRINCE2 quality expectations after every release:
+
+1. Run `CHANGELOG.md` current-release changes against one-pager feature list.
+2. Check screenshots match current topbar, sidebar, upload, AI Assistant, and report pages.
+3. Verify pricing table matches Stripe product configuration.
+4. Confirm objection handling covers new feature edge cases.
+5. Update demo scripts for changed UI flows.
+
+Review results logged in the lessons log. Misses become issue register entries.
+
 ## Related Documents
 
 - [Project brief](../Project_Management/project-brief.md) — project definition and approach

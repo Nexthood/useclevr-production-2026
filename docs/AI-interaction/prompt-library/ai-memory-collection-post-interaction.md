@@ -27,6 +27,7 @@ Write the result as current project learning with these sections:
    - hook routing: docs/AI-interaction/developer-guides/post-interaction-hook.md
    - user/operator usage: user guide or FAQ content
    - active/deferred/no-fix work: .TODO/
+   - product requirement updates: requirements.md
 
 Keep the summary concise (under 400 words).
 Use direct current-state language.

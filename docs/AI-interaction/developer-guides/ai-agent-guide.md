@@ -22,6 +22,8 @@ folder during the same task cycle.
 - Run [post-interaction memory capture](../prompt-library/ai-memory-collection-post-interaction.md) after each completed request/response cycle and keep only durable learning.
 - Use [Post-interaction hook](post-interaction-hook.md) to route learning into persona, guides, FAQ, prompt files, TODOs, or project records instead of one technical summary file.
 - Prepare future developers by recording concise AI-collaboration lessons that explain correction patterns, expectations, and reusable working habits.
+- Keep the post-interaction summary short enough that the correction pattern is obvious at a glance.
+- When durable structure changes, record the split in the doc that owns the audience rather than repeating it everywhere.
 - Read [dev-persona.md](dev-persona.md) before starting work with the project owner — follow their communication style and expectations.
 - Follow the [AI memory collection guide](ai-memory-collection-guide.md) for the collection flow and classification rules.
 - Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.
@@ -67,12 +69,17 @@ folder during the same task cycle.
 ## Local AI And Mock Scope
 
 - Local AI features use same-origin app routes and the local agent contract.
+- The Hybrid AI Router (`src/lib/ai/ai-router.ts`) routes queries in priority order: Antigravity Server (local proxy) → Local AI (Ollama) → Cloud AI (Gemini Flash 2.5). Mock AI short-circuits before any real provider check.
+- Local AI availability uses a `/api/local-ai-status` endpoint and Ollama health checks through `/api/ollama/tags` and `/api/ollama/test`.
 - Local MCP work keeps real local AI active unless a development task explicitly enables mock mode.
-- Mock AI mode uses `MOCK_AI_MODE=true` in non-production runtime to return local development responses for chat, streaming chat, analysis, local AI status, model list, model pull, and model verification.
+- Mock AI mode uses `MOCK_AI_MODE=true` in non-production runtime to return local development responses. It short-circuits the router before real provider checks. Supported flows: chat (streaming and non-streaming), dataset analysis, local AI status, model list, model pull, and model verification.
+- Mock AI mode is implemented in `src/lib/ai/mock-ai.ts`. Response delay is configurable via `MOCK_AI_RESPONSE_DELAY_MS` (default 250ms, max 5000ms).
 - Mock AI mode records traces with provider `Mock AI` and model `mock-local-development`.
-- Mock AI mode stays disabled in production runtime even when the environment variable is present.
+- Mock AI mode stays disabled in production runtime even when the environment variable is present. The guard is `process.env.NODE_ENV !== "production" && process.env.MOCK_AI_MODE === "true"`.
 - Mock response templates, scenario storage, and a development UI toggle are future enhancements tracked in `todo-future.md`.
 - Update trace guidance when mock mode changes provider names, prompt versions, or trace fields.
+- The local AI bridge (`scripts/local-ai-bridge/server.js`) is a separate Node.js HTTP server that proxies requests to Ollama. It is not required when using cloud or mock modes. Default port 3210, configurable via `PORT` env var.
+- Set `MOCK_AI_MODE=true` and `GEMINI_API_KEY` in `.env.local` for development without Ollama running.
 
 ## AI Interaction Tracing Scope
 

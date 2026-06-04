@@ -97,6 +97,40 @@ Common objections and responses:
 | Monthly active users (MAU) | TBD | Session tracking |
 | NPS or satisfaction score | TBD | In-app survey |
 
+## Stage Gate Reviews (PRINCE2)
+
+Each sales stage gates against PRINCE2 stage transition criteria before proceeding:
+
+| Gate | Trigger | Review Criteria | Tolerances |
+|------|---------|-----------------|------------|
+| Stage 1 → 2 | Sales materials draft complete | Requirements alignment, screenshots current, objection handling drafted | ±1 week delay, scope reduced to core features only |
+| Stage 2 → 3 | Demo script reviewed | Demo covers all personas, objection mapping complete, pricing current | ±1 sprint, demo flow cuts acceptable for edge personas |
+| Stage 3 → 4 | Conversion metrics tracked | First-use flow clear, support content covers top questions, checkout measurable | ±2 weeks, activation rate target ±20% relative |
+
+Escalate when tolerances exceed. Log overruns in the issue register.
+
+## Lessons Integration
+
+Sales conversation feedback feeds into the PRINCE2 lessons log (`Project_Management/lessons-log.md`):
+
+- Capture objection patterns after each batch of 10 demos.
+- Log competitor comparison questions that reveal positioning gaps.
+- Record pricing blockers that surface during checkout conversations.
+- Update demo scripts and objection handling based on recurring themes.
+
+Review the lessons log quarterly and update sales materials accordingly.
+
+## PRINCE2 Product Focus
+
+Sales materials are managed as PRINCE2 products with defined quality criteria:
+
+| Sales Product | Quality Criteria | Reviewed Against |
+|---------------|-----------------|------------------|
+| One-pager | Current features, current screenshots, clear CTA | `requirements.md`, `CHANGELOG.md` |
+| Demo scripts | Covers all planned flows, objection handling current | Stage plan scope, issue register |
+| Demo datasets | Realistic sample data, privacy safe, covers target segments | Product description |
+| Objection handling | Maps to FAQ, follows regulated-advice boundaries | Risk register, FAQ content |
+
 ## Related
 
 - [Stage plan](Project_Management/stage-plan.md) — phased delivery with stage gates
@@ -104,3 +138,4 @@ Common objections and responses:
 - [Marketing plan](Marketing/marketing-plan.md) — campaign planning and funnel measurement
 - [Demo scripts](demo-scripts.md) — demo walkthroughs per persona
 - [Risk register](Project_Management/risk-register.md) — sales-related risks tracked
+- [Project product description](Project_Management/project-product-description.md) — product composition and quality expectations

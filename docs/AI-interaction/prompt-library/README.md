@@ -13,6 +13,7 @@ This folder stores reusable AI prompts as separate files.
 - [Interaction trace learning](interaction-trace-learning.md)
 - [AI memory collection](ai-memory-collection.md)
 - [Post-interaction memory collection](ai-memory-collection-post-interaction.md)
+- [AI collaboration reminder](ai-collaboration-reminder.md)
 - [Compact status report](compact-status-report.md)
 - [Git release workflow](git-release-workflow.md)
 - [Feature restoration check](feature-restoration-check.md)

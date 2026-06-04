@@ -79,8 +79,25 @@ Hybrid AI upgrade available for on-device analysis when working with sensitive s
 - You've exhausted your analyst credits and want unlimited local analysis.
 - You want faster response times for routine questions (local models respond in 1-5s for simple queries).
 
+## Project Controls — What Founders Should Know
+
+UseClevr uses lightweight PRINCE2-stage controls to keep product and sales aligned. This means:
+
+| Control | What It Means for Founders |
+|---------|---------------------------|
+| Business case | Every feature has a documented benefit and cost. The [business case](../Project_Management/business-case.md) shows what UseClevr delivers and why. |
+| Stage gates | New capabilities go through defined stages before reaching users — quality checks before rollout. |
+| Risk register | Known risks (data privacy, AI accuracy, regulated-advice boundaries) are tracked with responses. See the [risk register](../Project_Management/risk-register.md). |
+| Lessons log | Sales conversations, support tickets, and user feedback feed back into product improvement cycles. |
+| Product description | [Clear boundaries](../Project_Management/project-product-description.md) on what UseClevr is — BI and decision support, not regulated advice. |
+
+Founders reviewing UseClevr for their own use, investment due diligence, or partnership evaluation can rely on these controls as evidence of structured product management.
+
 ## Related
 
 - [Sales one-pager](../sales-one-pager.md) — complete product overview
 - [Demo scripts](../demo-scripts.md) — step-by-step demo walkthroughs
 - [Business profile planning](../../Developer_Guides/business-profile-planning.md) — current and planned Business Profile scope
+- [Project controls approach](../Project_Controls/project-controls-approach.md) — PRINCE2 themes mapped to UseClevr artefacts
+- [Business case](../Project_Management/business-case.md) — cost-benefit analysis and justification
+- [Risk register](../Project_Management/risk-register.md) — risk identification and response

@@ -15,8 +15,15 @@ Current dashboard layout for AI agents and developers working on UI changes.
 - Notices describe page errors, failed requests, and important product events directly.
 - Setup progress includes account setup, business profile actions, uploads, analysis, and key dashboard visits.
 
+## Follow-Up Audit Tasks
+
+- T-394: Dashboard table consistency audit — verify list pages use title links, supporting edit links, and row-end actions before new list pages ship.
+- T-395: Setup progress audit — verify every business profile field and required setup action contributes to the topbar completion panel.
+- T-396: AI Assistant layout smoke test — confirm fixed sidebars, scrollable messages, and the fixed chat footer stay usable on desktop and mobile widths.
+
 ## Related
 
 - Dashboard page source: `src/app/(auth)/app/page.tsx` — dashboard overview with stat cards, status cards, and quick actions
 - [Setup progress component](../../../src/components/ui/onboarding-process-button.tsx) — topbar progress panel implementation
 - [requirements.md](../../../requirements.md) — product requirements covering dashboard behavior
+- Follow-up tasks tracked in `.TODO/todo-future.md`

@@ -21,6 +21,8 @@ Current correction pattern:
 - The AI tends to over-document when a short distributed update is enough.
 - The right response is to update the smallest matching files, not create a large summary.
 - Good evaluation records what pattern was recognized and where it was recorded.
+- Good evaluation also leaves a short note for future developers about the pattern, not the full transcript.
+- Record the branch or document split only when it changes durable project structure.
 
 ## Destinations
 

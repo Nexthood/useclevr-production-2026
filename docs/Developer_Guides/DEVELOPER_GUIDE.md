@@ -136,7 +136,7 @@ All commands are run from `pnpm`.
 
 | Command              | Description                         |
 | -------------------- | ----------------------------------- |
-| `pnpm build`         | Production build (webpack)          |
+| `pnpm build`         | Production build (Turbopack)        |
 | `pnpm build:next`    | Alias for `pnpm build`              |
 | `pnpm build:clean`   | Clean generated artefacts           |
 | `pnpm build:preview` | Full prod build + start dist server |

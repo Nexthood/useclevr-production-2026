@@ -38,3 +38,4 @@
 - When Csaba says "too tech", strip all code references from the response and reframe in product terms.
 - Treat evaluation as correction-pattern recognition. Update the smallest matching files and avoid adding explanatory bulk.
 - Name what was recorded when summarizing AI-interaction updates; this helps verify the learning without restating every implementation detail.
+- If a docs split or future branch split helps clarity, record the split as a concise outcome, not a long plan.

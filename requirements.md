@@ -146,6 +146,13 @@ This file states the current product requirements in direct, present-state langu
 - Filter operator notes from the dashboard FAQ for super-admins.
 - Keep product-update waitlist signup usable during local development.
 
+## AI Interaction Learning
+
+- Record concise correction patterns, user expectations, and reusable lessons after each completed request/response cycle.
+- Route durable learning into the smallest matching files for the audience instead of storing one large summary.
+- Use the post-interaction hook to prepare future developers for repeated AI collaboration work.
+- Keep founder-facing project documents, sales planning, and project-control references separated from the current product docs when that split improves clarity.
+
 ## Payment Provider Setup
 
 - Show payment provider connection status before customers reach checkout.
@@ -187,6 +194,16 @@ This file states the current product requirements in direct, present-state langu
 - Open the Hybrid AI popup from the dashboard topbar.
 - Show Pro and Business plan options to free users inside the Hybrid AI popup.
 - Support localhost Mock AI testing for Hybrid AI status, model list, pull, verification, chat, and analysis flows.
+- Guard Mock AI mode from production runtime: only activate when `NODE_ENV !== "production"` and `MOCK_AI_MODE=true`.
+- Route local AI queries in priority order: Antigravity Server → Local AI (Ollama) → Cloud AI (Gemini Flash 2.5). Mock AI short-circuits before any real provider check.
+
+## Sales Planning
+
+- Use PRINCE2-stage gates for sales readiness milestones: materials draft, demo readiness, early adopter release, general availability.
+- Review sales materials against `requirements.md` and `CHANGELOG.md` after every release.
+- Log sales objection patterns, competitor positioning gaps, and pricing blockers in the lessons log.
+- Track sales material accuracy as part of the release process.
+- Manage sales artefacts (one-pager, demo scripts, demo datasets, objection handling) as project products with defined quality criteria and stage gate approvals.
 
 ## MCP
 
