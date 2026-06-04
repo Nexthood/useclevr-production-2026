@@ -37,14 +37,22 @@ temporary incident. The config file owns those commands.
 ## Build Shape
 
 ```mermaid
-flowchart LR
+flowchart TD
   Main[main branch] --> Build[pnpm prod:build]
+  Beta[beta branch] --> TestBuild[pnpm prod:build]
+
   Build --> DistBranch[dist branch /dist]
-  Config[dist-root/server-config/railway.json] --> ServerConfig[dist branch /server-config]
-  Railpack[dist-root/railpack.json] --> RailpackRoot[dist branch root]
-  DistBranch --> Railway[Railway service root /dist]
-  ServerConfig --> Railway
-  RailpackRoot --> Railway
+  TestBuild --> DistTestBranch[dist-test branch /dist]
+
+  Config[dist-root/server-config/railway.json] --> ServerConfig[server-config/railway.json]
+  Railpack[dist-root/railpack.json] --> RailpackRoot[railpack.json at deployment root]
+
+  DistBranch --> ProdRailway[Production Railway service]
+  DistTestBranch --> TestRailway[Test Railway service]
+  ServerConfig --> ProdRailway
+  ServerConfig --> TestRailway
+  RailpackRoot --> ProdRailway
+  RailpackRoot --> TestRailway
 ```
 
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
@@ -64,6 +72,13 @@ The generated output intentionally does not include `pnpm-workspace.yaml`, `rail
 
 Generated output also excludes repository secrets, environment files, caches, source workspace
 metadata, and dependency folders that are not part of the standalone runtime contract.
+
+## Local Private Config
+
+- `.railway/project.json` is a local machine link file and stays ignored.
+- Keep a private restore-ready copy of `.railway/project.json` outside the repo so a fresh checkout
+  can reconnect to the right Railway project without guesswork.
+- Keep real tokens and environment files in private local storage only, never in source control.
 
 ## Runtime Commands
 

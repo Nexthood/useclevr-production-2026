@@ -39,4 +39,12 @@ These files receive the outcome. They are not the instruction source.
 - Release notes: `CHANGELOG.md`
 - Active or deferred work: `.TODO/`
 
+## Immediate Actions After Docs Changes
+
+- Update the smallest matching docs instead of adding a duplicate summary file.
+- Update `requirements.md` when docs clarify durable product rules.
+- Update `CHANGELOG.md` only when the change affects current product or developer behavior.
+- Update `.TODO/` only when the docs change reveals active work, deferred work, or a deliberate
+  no-fix decision.
+
 Skip the hook when there is no durable learning.

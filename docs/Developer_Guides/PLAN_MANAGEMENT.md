@@ -16,11 +16,12 @@ This repository tracks plans in `.TODO/.PLAN/`. `.TODO/.PLAN/config.json` owns p
 
 ```mermaid
 flowchart TD
-    Config[.TODO/.PLAN/config.json] --> Plans[Plan Files]
-    Plans --> Active[Active plan files]
-    Plans --> Retired[Retired into docs or TODO queues]
-    Retired --> Docs[Developer guides and AI interaction docs]
-    Retired --> Todos[TODO next/future/done/ignore]
+    Config[.TODO/.PLAN/config.json] --> Plans[Plan files]
+    Plans --> Active[Active planning]
+    Active --> Distributed{Distribute outcome}
+    Distributed --> Docs[Docs and AI guides]
+    Distributed --> Todos[TODO queues]
+    Distributed --> Requirements[Requirements or changelog]
 ```
 
 ---

@@ -91,24 +91,36 @@ jobs:
         run: |
           PORT=8090 node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs > /tmp/useclevr-dist-smoke.log 2>&1 &
           pid=$!
+          echo "Background PID: $pid"
 
           # Wait for server to be ready with retries
           server_started=false
           for i in {1..15}; do
-            if curl -fsS http://127.0.0.1:8090/api/health >/dev/null 2>&1; then
+            echo "--- Health check attempt $i/15 ---"
+            if curl -v http://127.0.0.1:8090/api/health 2>&1; then
               echo "Server is healthy!"
               server_started=true
+              break
+            fi
+            # Check if server process is still running
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "Server process ($pid) is no longer running!"
+              wait "$pid" 2>/dev/null
+              echo "Exit code: $?"
               break
             fi
             echo "Waiting for server to start... (attempt $i/15)"
             sleep 2
           done
 
-          kill "$pid" >/dev/null 2>&1 || true
+          kill "$pid" 2>/dev/null || true
 
           if [ "$server_started" = false ]; then
             echo "Server failed to start. Smoke test output:"
             cat /tmp/useclevr-dist-smoke.log
+            # Also check if port 8090 is in use
+            echo "--- Port 8090 status ---"
+            ss -tlnp | grep 8090 || echo "Port 8090 not listening"
             exit 1
           fi
         env:

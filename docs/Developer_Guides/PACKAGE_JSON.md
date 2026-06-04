@@ -15,12 +15,12 @@ deployment output.
 ## Command Flow
 
 ```mermaid
-flowchart LR
+flowchart TD
   Dev[pnpm dev] --> Source[Source app]
   Source --> Validate[pnpm validate]
   Validate --> Publish[pnpm prod:build]
-  Publish --> Dist[generated dist output]
-  Dist --> Railway[Railway /dist runtime]
+  Publish --> Dist[Generated dist output]
+  Dist --> Railway[Railway runtime]
 ```
 
 ## Script Groups
@@ -55,6 +55,8 @@ Use `pnpm lint:all` when you want source lint plus dependency freshness in one m
 - Keep build, lint, docs, and release tooling in `devDependencies`.
 - Update [TECH_DEPENDENCIES.md](TECH_DEPENDENCIES.md) when dependency versions or usage categories
   change.
+- Keep local-only environment files, Railway link files, and editor settings ignored in git and
+  backed up through a private copy outside the repo.
 
 ## Script Modules
 
@@ -70,3 +72,4 @@ scripts when a script needs repository paths or the pinned package-manager setti
 - [Technical Dependencies](TECH_DEPENDENCIES.md)
 - [Railway Deployment](RAILWAY_DEPLOYMENT.md)
 - [Vercel Deployment](VERCEL_DEPLOYMENT.md)
+- [Local Private Config Copies Plan](../../.TODO/.PLAN/local-private-config-copies.md)

@@ -20,45 +20,59 @@ flowchart TB
   root --> accountMenu["Account menu"]
   root --> adminMenu["Super-admin menu"]
 
-  dataMenu --> datasets["Datasets table"]
-  datasets --> datasetTable["Dataset table view"]
-  datasets --> datasetAnalyze["Dataset analysis"]
-  datasets --> upload["Upload dataset"]
+  subgraph datasetsGroup["Datasets"]
+    dataMenu --> datasets["Datasets table"]
+    datasets --> datasetTable["Dataset table view"]
+    datasets --> datasetAnalyze["Dataset analysis"]
+    datasets --> upload["Upload dataset"]
+  end
 
-  assistantMenu --> assistant["Assistant workspace"]
-  assistantMenu --> assistantHistory["Assistant history"]
+  subgraph assistantGroup["AI Assistant"]
+    assistantMenu --> assistant["Assistant workspace"]
+    assistantMenu --> assistantHistory["Assistant history"]
+  end
 
-  businessMenu --> businessOverview["Business overview"]
-  businessMenu --> businessProfile["Business profile"]
-  businessMenu --> businessLocations["Business locations"]
-  businessMenu --> businessTax["Business tax"]
-  businessMenu --> businessFinancial["Business financial"]
-  businessOverview --> businessReviewPanel["Review panel"]
+  subgraph businessGroup["Business"]
+    businessMenu --> businessOverview["Business overview"]
+    businessMenu --> businessProfile["Business profile"]
+    businessMenu --> businessLocations["Business locations"]
+    businessMenu --> businessTax["Business tax"]
+    businessMenu --> businessFinancial["Business financial"]
+    businessOverview --> businessReviewPanel["Review panel"]
+  end
 
-  accountancyMenu --> accountancyOverview["Accountancy overview"]
-  accountancyMenu --> accountancyReporting["Accountancy reporting"]
-  accountancyMenu --> accountancyTax["Accountancy tax"]
-  accountancyMenu --> accountancyCompliance["Accountancy compliance"]
+  subgraph accountancyGroup["Accountancy"]
+    accountancyMenu --> accountancyOverview["Accountancy overview"]
+    accountancyMenu --> accountancyReporting["Accountancy reporting"]
+    accountancyMenu --> accountancyTax["Accountancy tax"]
+    accountancyMenu --> accountancyCompliance["Accountancy compliance"]
+  end
 
-  supportMenu --> faq["Dashboard FAQ"]
-  supportMenu --> tickets["Tickets table"]
-  tickets --> newTicket["New ticket"]
-  tickets --> editTicket["Edit ticket"]
+  subgraph supportGroup["Support"]
+    supportMenu --> faq["Dashboard FAQ"]
+    supportMenu --> tickets["Tickets table"]
+    tickets --> newTicket["New ticket"]
+    tickets --> editTicket["Edit ticket"]
+  end
 
-  accountMenu --> profile["Profile"]
-  accountMenu --> preferences["Preferences"]
-  accountMenu --> subscription["Subscription"]
-  accountMenu --> billing["Billing"]
-  accountMenu --> activity["Activity"]
-  accountMenu --> checkout["Checkout"]
+  subgraph accountGroup["Account"]
+    accountMenu --> profile["Profile"]
+    accountMenu --> preferences["Preferences"]
+    accountMenu --> subscription["Subscription"]
+    accountMenu --> billing["Billing"]
+    accountMenu --> activity["Activity"]
+    accountMenu --> checkout["Checkout"]
+  end
 
-  adminMenu --> customers["Customers"]
-  adminMenu --> levels["Customer levels"]
-  adminMenu --> discounts["Discount rules"]
-  adminMenu --> operatorFaq["Operator FAQ"]
-  adminMenu --> payment["Payment setup"]
-  adminMenu --> credits["Credit rules"]
-  adminMenu --> totalActivity["Total activity"]
+  subgraph adminGroup["Super-admin"]
+    adminMenu --> customers["Customers"]
+    adminMenu --> levels["Customer levels"]
+    adminMenu --> discounts["Discount rules"]
+    adminMenu --> operatorFaq["Operator FAQ"]
+    adminMenu --> payment["Payment setup"]
+    adminMenu --> credits["Credit rules"]
+    adminMenu --> totalActivity["Total activity"]
+  end
 
   click home "/app" "Dashboard overview"
   click datasets "/app/datasets" "Datasets table"

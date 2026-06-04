@@ -22,7 +22,7 @@ export default function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce)
   requestHeaders.set("Content-Security-Policy", cspHeader)
 
-  if (!isLoggedIn && pathname.startsWith(apiPrefix)) {
+  if (!isLoggedIn && pathname.startsWith(apiPrefix) && pathname !== "/api/health") {
     const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     response.headers.set("Content-Security-Policy", cspHeader)
     return response

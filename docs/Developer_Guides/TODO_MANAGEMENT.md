@@ -9,9 +9,10 @@ paths, and validation metadata.
 flowchart TD
   Config[.TODO/config.json] --> Next[.TODO/todo-next.md]
   Next --> Work[Implement task]
-  Work --> Done[.TODO/todo-done.md]
-  Next --> Future[.TODO/todo-future.md]
-  Next --> Ignore[.TODO/todo-ignore.md]
+  Work --> Decision{Outcome}
+  Decision --> Done[.TODO/todo-done.md]
+  Decision --> Future[.TODO/todo-future.md]
+  Decision --> Ignore[.TODO/todo-ignore.md]
   Done --> Requirements[requirements.md]
   Done --> Changelog[CHANGELOG.md]
 ```
