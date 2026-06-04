@@ -214,6 +214,12 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
+// Strip host-config files that Next.js tracing may have pulled in from the project root
+for (const f of ["vercel.json", "railway.json"]) {
+  const fp = path.join(distDir, f);
+  if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
+}
+
 // Railway uses DOCKERFILE builder (not Railpack). The Dockerfile runs npm install, and
 // .dockerignore excludes node_modules from the Docker build context. Therefore the dist
 // branch does not need node_modules committed. The workflow removes it before git commit.

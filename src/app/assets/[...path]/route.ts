@@ -6,32 +6,27 @@ import { createReadStream, existsSync, statSync } from "node:fs"
 import { extname, relative, resolve } from "node:path"
 import { Readable } from "node:stream"
 
-const distNodeAssetsDir = resolve(process.cwd(), "dist", "node", "assets")
-const distSharedAssetsDir = resolve(process.cwd(), "dist", "shared", "assets")
-const cwdAssetsDir = resolve(process.cwd(), "assets")
-const distRootNodeAssetsDir = resolve(process.cwd(), "node", "assets")
-const distRootSharedAssetsDir = resolve(process.cwd(), "shared", "assets")
-const srcAssetsDir = resolve(process.cwd(), "src", "assets")
-
 function getAssetsDir() {
+  const cwd = process.cwd()
+
   if (process.env.NODE_ENV !== "production") {
-    return srcAssetsDir
+    return resolve(cwd, "src", "assets")
   }
 
   for (const candidate of [
-    cwdAssetsDir,
-    distRootNodeAssetsDir,
-    distNodeAssetsDir,
-    distRootSharedAssetsDir,
-    distSharedAssetsDir,
-    srcAssetsDir,
+    resolve(cwd, "assets"),
+    resolve(cwd, "node", "assets"),
+    resolve(cwd, "dist", "node", "assets"),
+    resolve(cwd, "dist", "shared", "assets"),
+    resolve(cwd, "shared", "assets"),
+    resolve(cwd, "src", "assets"),
   ]) {
     if (existsSync(candidate)) {
       return candidate
     }
   }
 
-  return srcAssetsDir
+  return resolve(cwd, "src", "assets")
 }
 
 const CONTENT_TYPES: Record<string, string> = {
