@@ -21,6 +21,7 @@ Current correction pattern:
 
 - The user wants precise, minimal correction capture.
 - The AI tends to over-document when a short distributed update is enough.
+- The AI must separate instruction sources from destination files before writing any follow-up.
 - The right response is to update the smallest matching files, not create a large summary.
 - Good evaluation records what pattern was recognized and where it was recorded.
 - Good evaluation also leaves a short note for future developers about the pattern, not the full transcript.

@@ -31,6 +31,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
 - Hybrid AI local testing uses Mock AI responses for local runtime status, model list, pull, verification, chat, and analysis flows.
 - Project controls approach now documents sales tolerances and quality review cycles for sales materials.
+- Search popup local storage key uses consistent underscore naming and "FAQ" label renders correctly.
+- Onboarding auto-open re-opens when completion drops below the minimum threshold.
+- FAQ link added to the desktop public header navigation.
 - AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
 - Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
 - Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.

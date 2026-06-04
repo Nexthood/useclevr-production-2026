@@ -11,13 +11,13 @@ export const metadata = {
 }
 
 async function getReportingMetrics(userId: string | null | undefined) {
-  if (!userId) return { totalDatasets: 0, totalRevenue: 0, analysisReady: 0 }
+  if (!userId) return { totalDatasets: 0, totalRows: 0, analysisReady: 0 }
 
   const db = getDb()
-  if (!db) return { totalDatasets: 0, totalRevenue: 0, analysisReady: 0 }
+  if (!db) return { totalDatasets: 0, totalRows: 0, analysisReady: 0 }
 
   try {
-    const [countResult, revenueResult] = await Promise.all([
+    const [countResult, rowCountResult] = await Promise.all([
       db.select({ count: count() }).from(datasets).where(eq(datasets.userId, userId)),
       db
         .select({ total: sum(datasets.rowCount) })
@@ -26,15 +26,15 @@ async function getReportingMetrics(userId: string | null | undefined) {
     ])
 
     const totalDatasets = countResult[0]?.count ?? 0
-    const totalRows = Number(revenueResult[0]?.total ?? 0)
+    const totalRows = Number(rowCountResult[0]?.total ?? 0)
 
     return {
       totalDatasets,
-      totalRevenue: totalRows,
+      totalRows,
       analysisReady: totalDatasets,
     }
   } catch {
-    return { totalDatasets: 0, totalRevenue: 0, analysisReady: 0 }
+    return { totalDatasets: 0, totalRows: 0, analysisReady: 0 }
   }
 }
 
@@ -52,7 +52,7 @@ export default async function AccountancyReportingPage() {
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-3">
           <StatCard icon={BarChart3} label="Datasets" value={metrics.totalDatasets.toString()} variant="large" />
-          <StatCard icon={DollarSign} label="Total rows" value={metrics.totalRevenue.toLocaleString()} variant="large" />
+          <StatCard icon={DollarSign} label="Total rows" value={metrics.totalRows.toLocaleString()} variant="large" />
           <StatCard icon={Calendar} label="Ready for analysis" value={metrics.analysisReady.toString()} variant="large" />
         </div>
         <p className="text-sm text-muted-foreground">

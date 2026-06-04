@@ -318,6 +318,11 @@ moving work between states.
 
 - T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)
 - T-724. Extend sales planning with stage gate reviews, product focus quality criteria, sales tolerances, and lessons integration. (labels: sales, docs; commit: worktree)
+- T-732. Fix accountancy reporting page naming — rename misleading `totalRevenue` variable to `totalRows`. (labels: dashboard, reports; commit: worktree)
+- T-733. Fix search popup inconsistencies — "FAQ" label, localStorage key naming, double-fetch on form submit. (labels: ui, search; commit: worktree)
+- T-734. Fix onboarding button indentation and auto-open re-open logic — allow re-opening when completion drops below threshold. (labels: ui, dashboard; commit: worktree)
+- T-735. Add FAQ link to desktop public header nav — mobile had it, desktop was missing. (labels: ui, faq; commit: worktree)
+- T-736. Review business profile naming — business and company used interchangeably, "organization" term absent. (labels: business, dashboard; commit: worktree)
 - T-302. FAQ items open by default with open/close all buttons in header. (labels: ui, faq; commit: 53deaed7)
 - T-303. FAQ page includes open/close all buttons. (labels: ui, faq; commit: 53deaed7)
 - T-427. Add type-ahead search suggest endpoint with result-type filter buttons. (labels: api, ui, search; commit: 53deaed7)

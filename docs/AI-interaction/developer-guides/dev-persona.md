@@ -23,6 +23,7 @@
 - AI creates single-file summaries for things that should be in multiple docs. Csaba expects distribution across the right files.
 - AI treats post-interaction capture as a developer-only trace. Csaba expects separate learning for the dev relationship, AI-agent behavior, user guidance, operator FAQ, and follow-up tasks.
 - AI defaults to over-documenting when Csaba wants precise, minimal correction capture.
+- AI can confuse instruction sources with destination files. Csaba expects hook files to act as the manual, while TODOs, requirements, changelog, and audience docs receive the outcome.
 
 ## What Works
 
@@ -37,5 +38,6 @@
 - Post-interaction capture is not optional — distribute findings across the correct files, don't dump everything in one temp file.
 - When Csaba says "too tech", strip all code references from the response and reframe in product terms.
 - Treat evaluation as correction-pattern recognition. Update the smallest matching files and avoid adding explanatory bulk.
+- Treat hook files as instructions and project records as destinations. Do not make TODO files define the rule they only receive.
 - Name what was recorded when summarizing AI-interaction updates; this helps verify the learning without restating every implementation detail.
 - If a docs split or future branch split helps clarity, record the split as a concise outcome, not a long plan.

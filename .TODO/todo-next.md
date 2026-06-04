@@ -24,6 +24,8 @@ moving work between states.
 - T-680. Set NEXT_PUBLIC_APP_VERSION env var for version display. (labels: ci-build, deployment)
 - T-705. Add build metadata to Docker image labels for traceability. (labels: ci-build, deployment)
 - T-682. Implement automated dependency security scanning in CI pipeline. (labels: ci-build, security)
+- T-725. Reduce production build work by skipping duplicate packaging checks and reusing validated artifacts between build phases. (labels: ci-build, performance, workflow)
+- T-726. Measure build memory spikes and cap the heaviest packaging steps before Railway and local dist builds run out of RAM. (labels: ci-build, performance, monitoring)
 
 ## Label: data
 
@@ -58,6 +60,8 @@ moving work between states.
 - T-712. Reduce memory use in dataset and assistant flows by paging large records, sampling previews, and avoiding full-row duplication in client state. (labels: performance, data, ai)
 - T-692. Implement HTTP/2 push for critical assets in production builds. (labels: performance, deployment)
 - T-693. Add server-side caching with Redis for expensive database queries. (labels: performance, data, caching)
+- T-727. Reduce dashboard memory pressure by unloading inactive panels, trimming oversized client stores, and limiting repeated fetch payloads. (labels: performance, dashboard, data)
+- T-728. Serve faster first responses by prioritizing above-the-fold dashboard data and deferring low-value background requests. (labels: performance, ui, dashboard)
 
 ## Label: reports
 
@@ -76,6 +80,8 @@ moving work between states.
 - T-696. Implement API gateway with request/response validation and threat protection. (labels: security, api, deployment)
 - T-697. Add file upload virus scanning for all user-uploaded content. (labels: security, upload)
 - T-698. Implement account lockout mechanism after failed login attempts. (labels: security, auth)
+- T-729. Tighten security headers, cookie flags, and session defaults across local and deployed environments. (labels: security, auth, deployment)
+- T-730. Add secret-exposure review for docs, prompts, logs, and trace exports so operational text cannot leak credentials or private data. (labels: security, docs, ai)
 
 ## Label: ui
 
@@ -103,6 +109,7 @@ moving work between states.
 - T-716. Add automated dependency update checks with security vulnerability scanning. (labels: workflow, ci-build)
 - T-718. Add documentation generation from code comments and JSDoc. (labels: workflow, docs)
 - T-720. Implement rollback mechanism for failed deployments with health check verification. (labels: workflow, deployment)
+- T-731. Track slow developer workflows and remove repeated manual steps from local setup, build packaging, and deploy verification. (labels: workflow, performance, deployment)
 
 ## Deferred
 

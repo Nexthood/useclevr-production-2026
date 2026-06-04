@@ -58,7 +58,7 @@ const quickLinks = [
   },
 ];
 
-const RECENT_SEARCHES_KEY = "useclevr-recent-searches";
+const RECENT_SEARCHES_KEY = "useclevr_recent_searches";
 const MAX_RECENT_SEARCHES = 5;
 
 function loadRecentSearches(): string[] {
@@ -200,7 +200,7 @@ export function Search() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, open, handleSearch]);
+  }, [query, open]);
 
   return (
     <>
@@ -238,6 +238,7 @@ export function Search() {
           className="flex gap-2 border-b border-border pb-4"
           onSubmit={(event) => {
             event.preventDefault();
+            if (debounceRef.current) clearTimeout(debounceRef.current);
             void handleSearch(query);
           }}
         >
@@ -275,7 +276,7 @@ export function Search() {
                       onClick={() => setTypeFilter(type)}
                       className={`rounded-md px-3 py-1 text-xs font-medium transition ${typeFilter === type ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
                     >
-                      {type.charAt(0).toUpperCase() + type.slice(1)} ({count})
+                      {type === "faq" ? "FAQ" : type.charAt(0).toUpperCase() + type.slice(1)} ({count})
                     </button>
                   );
                 })}

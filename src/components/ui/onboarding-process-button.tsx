@@ -47,10 +47,11 @@ export function OnboardingProcessButton() {
         const payload = (await response.json()) as OnboardingStatus
         if (cancelled) return
         setStatus(payload)
-        const alreadyShown = typeof window !== "undefined" && localStorage.getItem(AUTO_SHOWN_KEY)
-        if (payload.autoOpen && !alreadyShown) {
+        if (payload.autoOpen) {
           localStorage.setItem(AUTO_SHOWN_KEY, "true")
           setOpen(true)
+        } else {
+          localStorage.removeItem(AUTO_SHOWN_KEY)
         }
       } catch {
         if (!cancelled) setStatus(null)
@@ -68,44 +69,44 @@ export function OnboardingProcessButton() {
     fetch("/api/onboarding", { method: "POST" }).catch(() => undefined)
   }, [open])
 
-   const steps = status?.steps ?? []
-   const completionPercent = status?.completionPercent ?? 0
-   const completedCount = status?.completedCount ?? 0
-   const totalCount = status?.totalCount ?? steps.length
+  const steps = status?.steps ?? []
+  const completionPercent = status?.completionPercent ?? 0
+  const completedCount = status?.completedCount ?? 0
+  const totalCount = status?.totalCount ?? steps.length
 
   return (
     <>
-       <button
-         type="button"
-         onClick={() => setOpen(true)}
-         className="inline-flex h-full items-center gap-2 whitespace-nowrap border-l border-border/50 px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50 active:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-         title="Open setup progress"
-         aria-label={`Setup progress ${completionPercent}% complete`}
-       >
-         {completionPercent === 100 ? (
-           <CheckCircle2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-         ) : (
-           <PlayCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-         )}
-         <span className="hidden lg:inline">{completionPercent === 100 ? "Setup complete" : "Setup"}</span>
-         <span className="hidden text-sm font-medium lg:inline">{completionPercent}%</span>
-         {completionPercent > 0 && completionPercent < 100 && totalCount > 0 && (
-           <>
-             <span className="hidden text-muted-foreground/50 lg:inline">&bull;</span>
-             <span className="hidden text-xs text-muted-foreground lg:inline">{completedCount}/{totalCount}</span>
-           </>
-         )}
-       </button>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-full items-center gap-2 whitespace-nowrap border-l border-border/50 px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50 active:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title="Open setup progress"
+        aria-label={`Setup progress ${completionPercent}% complete`}
+      >
+        {completionPercent === 100 ? (
+          <CheckCircle2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <PlayCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        )}
+        <span className="hidden lg:inline">{completionPercent === 100 ? "Setup complete" : "Setup"}</span>
+        <span className="hidden text-sm font-medium lg:inline">{completionPercent}%</span>
+        {completionPercent > 0 && completionPercent < 100 && totalCount > 0 && (
+          <>
+            <span className="hidden text-muted-foreground/50 lg:inline">&bull;</span>
+            <span className="hidden text-xs text-muted-foreground lg:inline">{completedCount}/{totalCount}</span>
+          </>
+        )}
+      </button>
 
       <Modal
         open={open}
         onOpenChange={setOpen}
         title="Setup progress"
-         description={
-           status
-             ? `${status.completedCount} of ${status.totalCount} setup steps complete`
-             : "Follow the main workflow from setup to analysis."
-         }
+        description={
+          status
+            ? `${status.completedCount} of ${status.totalCount} setup steps complete`
+            : "Follow the main workflow from setup to analysis."
+        }
         variant="fullscreen"
       >
         <div className="mx-auto max-w-lg space-y-6">
@@ -116,9 +117,9 @@ export function OnboardingProcessButton() {
                 style={{ width: `${completionPercent}%` }}
               />
             </div>
-             <p className="mt-2 text-sm text-muted-foreground">
-               Complete your account, upload data, and explore the dashboard.
-             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Complete your account, upload data, and explore the dashboard.
+            </p>
           </div>
 
           {!status ? (

@@ -103,6 +103,11 @@ export function PublicHeader() {
           <Link href="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
             Book demo
           </Link>
+
+          {/* FAQ */}
+          <Link href="/faq" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
+            FAQ
+          </Link>
         </nav>
         
         {/* Right side - Controls and CTAs */}
