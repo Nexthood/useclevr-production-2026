@@ -239,18 +239,31 @@ function restoreNextBuildDir(targetNodeModulesDir, sourceNodeModulesDir) {
     candidates.push(flatNext);
   }
 
+  const sourceCandidates = [];
+  const sourcePnpmDir = path.join(sourceNodeModulesDir, ".pnpm");
+  if (fs.existsSync(sourcePnpmDir)) {
+    for (const entry of fs.readdirSync(sourcePnpmDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith("next@")) {
+        sourceCandidates.push(path.join(sourcePnpmDir, entry.name, "node_modules", "next"));
+      }
+    }
+  }
+  const sourceFlatNext = path.join(sourceNodeModulesDir, "next");
+  if (fs.existsSync(path.join(sourceFlatNext, "package.json"))) {
+    sourceCandidates.push(sourceFlatNext);
+  }
+
+  const sourceBuildDirs = sourceCandidates
+    .map((candidate) => path.join(candidate, "dist", "build"))
+    .filter((candidate, index, all) => all.indexOf(candidate) === index && fs.existsSync(candidate));
+
   for (const pkgDir of candidates) {
     const buildDir = path.join(pkgDir, "dist", "build");
     if (fs.existsSync(buildDir)) continue; // already present
-    const parent = path.dirname(pkgDir);
-    const nextDirName = path.basename(pkgDir);
-    // Try to restore from the same relative path under sourceNodeModulesDir
-    const relPath = path.relative(targetNodeModulesDir, parent);
-    const sourceParent = path.join(sourceNodeModulesDir, relPath);
-    const sourceBuild = path.join(sourceParent, nextDirName, "dist", "build");
-    if (fs.existsSync(sourceBuild)) {
+    for (const sourceBuild of sourceBuildDirs) {
       fs.cpSync(sourceBuild, buildDir, { recursive: true });
-      console.log(`Restored next/dist/build/ (${path.relative(targetNodeModulesDir, parent)}/${nextDirName})`);
+      console.log(`Restored next/dist/build/ into ${path.relative(targetNodeModulesDir, pkgDir)}`);
+      break;
     }
   }
 }
