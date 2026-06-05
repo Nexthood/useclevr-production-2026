@@ -102,3 +102,21 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - `observation`: Parallel AI work can pollute the memory record if one agent tries to summarize unrelated worktree changes from another agent.
 - **User Learning**: Workflow job-name guarding belongs in both the developer workflow docs and the AI memory rules, because the same drift can break merge flow even when the workflows are green.
 - **AI-Agent Learning**: When another AI agent is active in the same repository, keep the post-interaction update scoped to your own completed change and the smallest matching instruction files.
+
+---
+
+## Interaction 6: MCP FAQ Tool + Railway CLI Usage Guidance
+
+- **Date**: June 2026
+- **User Goal**: Add FAQ querying to the app's MCP server, commit, create PR from beta to main, check Railway deploy status, and update agent instructions so other AIs can find Railway CLI usage without hand-crafting GraphQL queries.
+- **Current Product State**: MCP had dataset-analysis tools but no FAQ capability. No Railway CLI usage reference existed in AGENTS.md. The railway-deploy-review prompt lacked CLI status commands.
+- **Implemented Changes & Decisions**:
+  1. **MCP FAQ Tool**: Added `getFaqs` tool to `src/lib/mcp/` — filters by category, keyword search, or returns all FAQs from `src/lib/content/faq.ts`. Registered in tools.ts, handlers.ts, server.ts, integration.ts.
+  2. **MCP Docs**: Updated `docs/Developer_Guides/MCP.md` with local ping process and FAQ tool listing.
+  3. **PR & Deploy**: Created PR #120 from beta → main, auto-merged, dist branch published, Railway deploy triggered.
+  4. **Railway CLI Guidance**: Added Railway CLI section to `AGENTS.md`, updated `ai-agent-guide.md` with explicit commands, updated `railway-deploy-review.md` prompt with CLI status commands, added "do not hand-craft GraphQL" warning to `RAILWAY_DEPLOYMENT.md`.
+- **Problems Marked**:
+  - `observation`: Railway API GraphQL schema changes frequently — hand-crafted queries fail silently or return schema errors.
+  - `improvement`: AI agents now have a direct Railway CLI reference in AGENTS.md instead of guessing the auth flow.
+- **User Learning**: Use the project's Railway wrapper at `scripts/server/railway/railway.cjs` for auth, status, and connectivity. Use `railway deployment list` for recent deployment statuses. Never hand-craft Railway GraphQL queries.
+- **AI-Agent Learning**: Before querying any external API (Railway, GitHub, etc.), check if the project already has a wrapper script, doc reference, or pnpm script for that purpose. Hand-crafted API calls bypass auth loading, error formatting, and environment handling that the project scripts already provide.
