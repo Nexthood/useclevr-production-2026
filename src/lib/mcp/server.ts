@@ -4,6 +4,7 @@ import {
   CompareDatasetsInput,
   GetCostBreakdownInput,
   GetDatasetSchemaInput,
+  GetFaqsInput,
   GetPrecomputedKpisInput,
   GetProfitMarginTrendInput,
   GetProfitabilitySummaryInput,
@@ -18,6 +19,7 @@ import {
   compareDatasets,
   getCostBreakdownFromCache,
   getDatasetSchema,
+  getFaqs,
   getPrecomputedKpis,
   getProfitMarginTrend,
   getProfitabilitySummary,
@@ -56,6 +58,18 @@ export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPTool
     }
 
     switch (name) {
+      case "getFaqs": {
+        const validatedInput = GetFaqsInput.parse(input);
+        return {
+          success: true,
+          result: getFaqs(
+            validatedInput.category,
+            validatedInput.query,
+            validatedInput.limit,
+          ),
+        };
+      }
+
       case "getDatasetSchema": {
         const validatedInput = GetDatasetSchemaInput.parse(input);
         return {

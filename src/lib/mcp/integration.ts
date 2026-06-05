@@ -44,6 +44,10 @@ AVAILABLE MCP TOOLS (Use these for accurate data):
 9. compareDatasets - Compare two datasets by ID
    Input: { datasetIdA: "${datasetId}", datasetIdB: "<other-dataset-id>" }
 
+10. getFaqs - Search FAQ entries by category or keyword
+    Input: { category: "Getting Started", query: "upload", limit: 5 }
+    (category and query are optional; omit to list all FAQs)
+
 IMPORTANT:
 - Use these tools to get accurate data values
 - Do NOT invent numbers or metrics
@@ -120,6 +124,15 @@ export async function getTrustedRevenueTrends(
 
 export async function getTrustedProfitability(datasetId: string): Promise<any> {
   const result = await callMCPToolSafely('getProfitabilitySummary', { datasetId });
+  return result.success ? result.data : null;
+}
+
+export async function getTrustedFaqs(
+  category?: string,
+  query?: string,
+  limit?: number,
+): Promise<any> {
+  const result = await callMCPToolSafely('getFaqs', { category, query, limit });
   return result.success ? result.data : null;
 }
 

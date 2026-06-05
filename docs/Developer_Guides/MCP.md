@@ -45,6 +45,60 @@ The MCP interface follows the dashboard visibility rules:
 - Future service-to-service MCP access uses signed service tokens.
 - Future internal operator MCP access uses admin-only tokens.
 - Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
+- Current global proxy behavior blocks unauthenticated `/api/*` requests before the MCP route can
+  evaluate MCP token headers. In the current app state, a local MCP ping succeeds only when the
+  client already has a signed-in session cookie.
+
+## Local Ping Process
+
+Use this ping to verify that the UseClevr app MCP route is reachable and enforcing the current auth
+boundary.
+
+1. Start the app locally:
+
+```bash
+pnpm dev
+```
+
+2. In a second terminal, call the MCP list route without a session cookie:
+
+```bash
+curl -i http://127.0.0.1:3000/api/mcp
+```
+
+3. Current expected result:
+
+```text
+HTTP/1.1 401 Unauthorized
+{"error":"Unauthorized"}
+```
+
+This result confirms three things:
+
+- the UseClevr MCP route exists at `/api/mcp`
+- the request reaches the application
+- the current auth boundary rejects unauthenticated MCP access
+
+4. For a positive tools-list ping, repeat the request from a signed-in browser session or an HTTP
+client that reuses a valid UseClevr session cookie:
+
+```bash
+curl -b cookies.txt http://127.0.0.1:3000/api/mcp
+```
+
+Expected signed-in result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+Do not place raw session cookies, service tokens, or admin tokens into docs, prompts, logs, or
+screenshots.
 
 ## Available Tools
 
