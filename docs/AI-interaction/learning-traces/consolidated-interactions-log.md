@@ -170,3 +170,20 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - `improvement`: Future docs planning now has one owning document for the public-versus-operator split.
 - **User Learning**: One docs host can stay acceptable if the public user-doc structure and the protected operator-doc structure remain separate by design.
 - **AI-Agent Learning**: When a planning change defines durable docs information architecture, update the owning plan and the smallest matching AI-instruction files instead of creating duplicate TODO entries.
+
+---
+
+## Interaction 10: Payload Login and MCP Auth Boundary Fix
+
+- **Date**: June 2026
+- **User Goal**: Fix Payload admin login and MCP authenticated testing, then record the durable rule in docs and post-interaction files.
+- **Current Product State**: The proxy blocked unauthenticated app-auth and Payload-auth API routes, so login could not start. Payload local admin startup also attempted automatic schema push against the shared database.
+- **Implemented Changes & Decisions**:
+  1. **Proxy Auth Boundary**: Allowed the app auth routes and the required Payload CMS auth routes to stay reachable before login, while keeping the rest of the protected API surface behind authentication.
+  2. **Payload Dev Safety**: Disabled automatic Payload schema push during normal local startup.
+  3. **Runtime Verification**: Verified app login, Payload login API, authenticated MCP access, and signed session retrieval against the live local server.
+- **Problems Marked**:
+  - `risk`: A global API guard can accidentally block the login routes that are required to create the session in the first place.
+  - `risk`: Payload local admin startup can become unsafe if development auto-push runs against the shared app database.
+- **User Learning**: When login fails across both app auth and Payload auth, verify the proxy boundary before treating the credentials or provider setup as broken.
+- **AI-Agent Learning**: When auth testing fails at the first request, verify the route guard and the required pre-login endpoints before debugging deeper provider logic.

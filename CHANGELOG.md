@@ -29,6 +29,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Keep local app login, Payload admin login, and signed-in MCP checks reachable by allowing the required auth endpoints before a session exists.
+- Keep Payload Phase 0 local startup from attempting destructive automatic schema push during normal admin access.
 - Stripe service initialization now matches the current Stripe SDK constructor so checkout, webhook, and replay paths compile and run.
 - Business profile row links open the matching business profile and new business creation opens a blank profile.
 - AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.

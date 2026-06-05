@@ -56,6 +56,10 @@
       "enabled": true
     }
   },
+  "tool_output": {
+    "max_lines": 15,
+    "max_bytes": 4096
+  },
   "formatter": true,
   "instructions": [
     "AGENTS.md"

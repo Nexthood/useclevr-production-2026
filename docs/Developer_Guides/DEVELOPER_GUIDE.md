@@ -201,6 +201,24 @@ analysis, local AI status, local model tags, model pull, and model verification 
 Mock mode is ignored in production runtime. Traces from mock responses use provider `Mock AI` and
 model `mock-local-development`.
 
+### Payload Phase 0
+
+Payload Phase 0 currently serves:
+
+- `/admin`
+- `/api/payload`
+- public homepage content
+- public privacy page content
+- public terms page content
+- public news posts
+
+Current local safety rules:
+
+- Keep Payload database schema auto-push disabled during normal local startup.
+- Use explicit migration commands when Payload schema work is intentional.
+- Keep app auth routes and Payload auth routes reachable before login, while keeping other
+  protected API routes behind authentication.
+
 ### Clean
 
 | Command                | Description                                       |

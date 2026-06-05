@@ -45,9 +45,10 @@ The MCP interface follows the dashboard visibility rules:
 - Future service-to-service MCP access uses signed service tokens.
 - Future internal operator MCP access uses admin-only tokens.
 - Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
-- Current global proxy behavior blocks unauthenticated `/api/*` requests before the MCP route can
-  evaluate MCP token headers. In the current app state, a local MCP ping succeeds only when the
-  client already has a signed-in session cookie.
+- Current global proxy behavior keeps the MCP route protected, but leaves app-auth routes and
+  Payload CMS auth routes reachable before login.
+- In the current app state, a local positive MCP ping succeeds only when the client already has a
+  signed-in app session cookie.
 
 ## Local Ping Process
 

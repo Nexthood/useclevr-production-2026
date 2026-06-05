@@ -30,6 +30,7 @@ export default buildConfig({
     pool: {
       connectionString: databaseUrl,
     },
+    push: false,
   }),
   admin: {
     user: CmsUsers.slug,
