@@ -154,3 +154,19 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - `improvement`: Shared API tests now live in one Git-tracked location that other developers can reuse without exporting personal tool collections.
 - **User Learning**: Use `docs/api-tests/` as the shared project API test source of truth. Reuse a temporary local session cookie only when a protected route needs a signed-in request.
 - **AI-Agent Learning**: When the user asks for shared API testing, create reproducible REST Client files in the repo first and treat personal test tools as secondary.
+
+---
+
+## Interaction 9: Future Docs Branch Audience Separation
+
+- **Date**: June 2026
+- **User Goal**: Keep the future docs-branch plan explicit that user-facing docs stay separate from operator docs, even when both live on one docs host with operator login.
+- **Current Product State**: The repository already had a docs-subdomain planning file, but the audience boundary needed to be stated as a durable information-architecture rule instead of staying implicit.
+- **Implemented Changes & Decisions**:
+  1. **Planning Rule**: Updated the docs-subdomain planning file so public user docs and protected operator docs stay separate in routes, navigation, search scope, breadcrumbs, and sitemap behavior.
+  2. **Hook Rule**: Updated AI-interaction guidance so future agents record docs-audience separation in the planning file that owns docs structure instead of scattering the rule across active TODO files.
+- **Problems Marked**:
+  - `risk`: A combined docs host can still blur audiences if login is treated as the only boundary and the route structure stays mixed.
+  - `improvement`: Future docs planning now has one owning document for the public-versus-operator split.
+- **User Learning**: One docs host can stay acceptable if the public user-doc structure and the protected operator-doc structure remain separate by design.
+- **AI-Agent Learning**: When a planning change defines durable docs information architecture, update the owning plan and the smallest matching AI-instruction files instead of creating duplicate TODO entries.

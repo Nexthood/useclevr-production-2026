@@ -28,6 +28,7 @@ folder during the same task cycle.
 - Prepare future developers by recording concise AI-collaboration lessons that explain correction patterns, expectations, and reusable working habits.
 - Keep the post-interaction summary short enough that the correction pattern is obvious at a glance.
 - When durable structure changes, record the split in the doc that owns the audience rather than repeating it everywhere.
+- Keep public user docs and protected operator docs as separate audiences when planning future docs branches, docs hosts, navigation, search scopes, or sitemap rules.
 - Read [dev-persona.md](dev-persona.md) before starting work with the project owner — follow their communication style and expectations.
 - Follow the [AI memory collection guide](ai-memory-collection-guide.md) for the collection flow and classification rules.
 - Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.

@@ -60,6 +60,10 @@ moving work between states.
 - T-185. Add unit tests for pure utilities and data transforms. (labels: data, testing)
 - T-466. Improve CSV parsing, dirty CSV handling, column detection, preview generation, file size limits, and clear error messages. (labels: data, upload, workflow)
 
+## Label: docs
+
+- T-779. Separate user-facing docs onto a dedicated docs branch with operator login support, and keep post-interaction update docs in sync. (labels: docs, deployment, workflow)
+
 ## Label: deployment
 
 - T-563. Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable. (labels: deployment, dashboard, ui, docs)

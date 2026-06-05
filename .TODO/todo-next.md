@@ -26,6 +26,7 @@ moving work between states.
 - T-682. Implement automated dependency security scanning in CI pipeline. (labels: ci-build, security)
 - T-725. Reduce production build work by skipping duplicate packaging checks and reusing validated artifacts between build phases. (labels: ci-build, performance, workflow)
 - T-726. Measure build memory spikes and cap the heaviest packaging steps before Railway and local dist builds run out of RAM. (labels: ci-build, performance, monitoring)
+- T-777. Stop CI force-push to dist-test when smoke test fails, preventing broken builds from reaching Railway deployment. (labels: ci-build, deployment, workflow)
 
 ## Label: data
 
@@ -39,6 +40,8 @@ moving work between states.
 - T-624. Add centralized error reporting with contextual information for production debugging. (labels: deployment, reports, workflow)
 - T-685. Add health check endpoints for all external service dependencies. (labels: deployment, monitoring)
 - T-686. Implement blue-green deployment strategy for zero-downtime releases. (labels: deployment, devops)
+- T-776. Fix Payload CMS seed crash during next build by wrapping onInit cms_users query with graceful table-existence check, so static page generation succeeds on fresh databases. (labels: deployment, content, ci-build)
+- T-778. Fix Railway test service deploy so test.useclevr.com serves the beta build instead of returning 404. (labels: deployment, ci-build)
 
 ## Label: docs
 
@@ -111,6 +114,110 @@ moving work between states.
 - T-720. Implement rollback mechanism for failed deployments with health check verification. (labels: workflow, deployment)
 - T-731. Track slow developer workflows and remove repeated manual steps from local setup, build packaging, and deploy verification. (labels: workflow, performance, deployment)
 
+
+## Label: accessibility
+
+- T-740. Implement automated accessibility testing in CI pipeline. (labels: accessibility, testing, ci-build)
+
+## Label: ai
+
+- T-741. Add AI response caching layer for repeated queries. (labels: ai, performance, caching)
+
+## Label: api
+
+- T-742. Implement API versioning and deprecation policy. (labels: api, workflow, docs)
+
+## Label: auth
+
+- T-743. Add multi-factor authentication option for sensitive operations. (labels: auth, security)
+
+## Label: billing
+
+- T-744. Implement usage-based billing for API consumption. (labels: billing, payment, api)
+
+## Label: caching
+
+- T-745. Add Redis cache warming strategy for peak hours. (labels: caching, performance)
+
+## Label: devops
+
+- T-746. Implement automated rollback on health check failure. (labels: devops, deployment, workflow)
+
+## Label: faq
+
+- T-747. Create automated FAQ generation from support tickets. (labels: faq, ai, content)
+
+## Label: local-ai
+
+- T-748. Add local AI model quantization for reduced memory usage. (labels: local-ai, performance)
+
+## Label: mcp
+
+- T-749. Implement MCP server for external tool integration. (labels: mcp, api, workflow)
+
+## Label: metrics
+
+- T-750. Add business metrics dashboard for executive summary. (labels: metrics, dashboard, reporting)
+
+## Label: notice
+
+- T-751. Implement notice prioritization and filtering system. (labels: notice, ui, workflow)
+- T-752. Add notice snooze and reminder functionality for non-critical alerts. (labels: notice, ui)
+
+## Label: observability
+
+- T-753. Implement service mesh for microservices communication observability. (labels: observability, monitoring, performance)
+
+## Label: payment
+
+- T-754. Add support for multiple payment providers (PayPal, Stripe, etc.). (labels: payment, billing)
+
+## Label: performance
+
+- T-755. Implement adaptive loading based on network conditions and device capabilities. (labels: performance, ui, api)
+- T-756. Add server-side rendering caching with stale-while-revalidate strategy. (labels: performance, docs)
+
+## Label: quality
+
+- T-757. Implement code quality gates in CI pipeline with minimum coverage thresholds. (labels: quality, ci-build, testing)
+
+## Label: reports
+
+- T-758. Add report templates for common business use cases. (labels: reports, docs)
+- T-759. Implement report sharing and collaboration features. (labels: reports, workflow)
+
+## Label: search
+
+- T-760. Add search analytics and popular queries tracking. (labels: search, monitoring)
+- T-761. Implement search result personalization based on user history. (labels: search, ui)
+
+## Label: security
+
+- T-762. Add regular security audit automation and compliance reporting. (labels: security, ci-build)
+- T-763. Implement zero-trust architecture principles for service-to-service communication. (labels: security, monitoring)
+
+## Label: testing
+
+- T-764. Add visual regression testing for UI components. (labels: testing, ui)
+- T-765. Implement contract testing for API integrations. (labels: testing, api)
+
+## Label: ui
+
+- T-766. Add dark mode automatic switching based on system preferences. (labels: ui, accessibility)
+- T-767. Implement responsive typography scaling for better readability. (labels: ui, accessibility)
+
+## Label: upload
+
+- T-768. Add upload progress tracking with resumable uploads for large files. (labels: upload, api)
+- T-769. Implement upload file validation beyond extension (MIME type, content inspection). (labels: upload, api)
+
+## Label: workflow
+
+- T-770. Add automated dependency licensing compliance checks. (labels: workflow, ci-build)
+- T-771. Implement feature flag lifecycle management with automated cleanup. (labels: workflow, testing)
+
 ## Deferred
+
+## Suggestions
 
 ## Suggestions

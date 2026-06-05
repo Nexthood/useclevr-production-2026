@@ -349,6 +349,12 @@ moving work between states.
 - T-327. Search popup fixed - added submit button, proper width, non-blocking modal. (labels: ui, search, workflow; commit: 53deaed7)
 - T-310. Cookie consent bar added with accept button. (labels: ui; commit: 53deaed7)
 
+## Label: ai
+
+- T-773. Add MCP FAQ query tool with category filtering and keyword search, wired through tools.ts, handlers.ts, server.ts, integration.ts. (labels: ai, mcp, faq; commit: 6ccd0b84)
+- T-774. Add Railway CLI usage guidance for AI agents across AGENTS.md, ai-agent-guide.md, railway-deploy-review.md, and RAILWAY_DEPLOYMENT.md. (labels: ai, docs; commit: b9ccda2b)
+- T-775. Update consolidated-interactions-log.md with MCP FAQ tool and Railway CLI workflow interaction. (labels: ai, docs; commit: b2409b83)
+
 ## Label: workflow
 
 - T-218. Add Mermaid editor guidance for project diagrams. (labels: workflow; commit: 53deaed7)
