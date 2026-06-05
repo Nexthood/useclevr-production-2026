@@ -44,13 +44,13 @@ The `dist` and `dist-test` branches must stay stable because Railway depends on 
 
 Before adding new architecture, confirm:
 
-* Production deploy works from `dist`
-* Test deploy works from `dist-test`
-* Build command works
-* Start command works
-* Required runtime files are included in dist output
-* Environment variables are correct
-* Deprecated middleware/proxy workaround stays if it is currently required for stable packaging
+- Production deploy works from `dist`
+- Test deploy works from `dist-test`
+- Build command works
+- Start command works
+- Required runtime files are included in dist output
+- Environment variables are correct
+- Deprecated middleware/proxy workaround stays if it is currently required for stable packaging
 
 Do not change the deployment strategy unless required.
 
@@ -62,24 +62,24 @@ The current Business Profile must evolve from simple company details into a prac
 
 It should collect:
 
-* Company identity
-* Legal form
-* Country and operating location
-* Business type
-* Revenue streams
-* Fixed costs
-* Variable costs
-* VAT/tax basics
-* Insurance policies
-* Loans and leasing
-* Payroll and employee costs
-* Assets
-* Cash-flow dates
-* Inventory, if relevant
-* Marketing spend
-* Risk profile
-* Forecast goals
-* Missing data warnings
+- Company identity
+- Legal form
+- Country and operating location
+- Business type
+- Revenue streams
+- Fixed costs
+- Variable costs
+- VAT/tax basics
+- Insurance policies
+- Loans and leasing
+- Payroll and employee costs
+- Assets
+- Cash-flow dates
+- Inventory, if relevant
+- Marketing spend
+- Risk profile
+- Forecast goals
+- Missing data warnings
 
 This must stay user-friendly. It should not become a full ERP.
 
@@ -101,14 +101,14 @@ Company Calculation Context
 
 The calculation context should support:
 
-* KPI generation
-* Profit/loss calculation
-* Cash-flow analysis
-* Forecast scenarios
-* Tax reserve estimates
-* Insurance cost overview
-* Debt pressure overview
-* Missing-data confidence warnings
+- KPI generation
+- Profit/loss calculation
+- Cash-flow analysis
+- Forecast scenarios
+- Tax reserve estimates
+- Insurance cost overview
+- Debt pressure overview
+- Missing-data confidence warnings
 
 All calculated outputs must clearly show assumptions.
 
@@ -120,12 +120,12 @@ The AI assistant must use uploaded dataset context before giving generic answers
 
 Required behavior:
 
-* Use uploaded CSV data where available
-* Detect columns and likely KPI meaning
-* Generate chart suggestions from actual data
-* Summarize real dataset trends
-* Ask for missing information only when required
-* Mark weak or incomplete analysis clearly
+- Use uploaded CSV data where available
+- Detect columns and likely KPI meaning
+- Generate chart suggestions from actual data
+- Summarize real dataset trends
+- Ask for missing information only when required
+- Mark weak or incomplete analysis clearly
 
 Avoid generic AI answers when dataset context exists.
 
@@ -137,16 +137,16 @@ Current upload and analysis flow should be hardened before launch.
 
 Required basics:
 
-* File size limits
-* Dirty CSV handling
-* Clear parsing errors
-* Column detection
-* Safe preview generation
-* Upload rate limits
-* Admin route review
-* Uploaded files must not leak into public/static paths
-* Prompt text and generated exports must be handled safely
-* Basic GDPR/privacy notes should be prepared
+- File size limits
+- Dirty CSV handling
+- Clear parsing errors
+- Column detection
+- Safe preview generation
+- Upload rate limits
+- Admin route review
+- Uploaded files must not leak into public/static paths
+- Prompt text and generated exports must be handled safely
+- Basic GDPR/privacy notes should be prepared
 
 ---
 
@@ -156,13 +156,13 @@ Before real payment collection, billing values must be centralized.
 
 Create one shared billing config for:
 
-* Plan names
-* Prices
-* Stripe Price IDs
-* Billing intervals
-* Plan descriptions
-* Feature limits
-* Trial/free/lifetime rules if used
+- Plan names
+- Prices
+- Stripe Price IDs
+- Billing intervals
+- Plan descriptions
+- Feature limits
+- Trial/free/lifetime rules if used
 
 Remove hardcoded pricing from UI where possible.
 
@@ -190,13 +190,13 @@ Config:
 
 Rules:
 
-* Get the next T-number from `.TODO/config.json`
-* Keep task numbers stable
-* Keep one task per bullet
-* Do not duplicate existing TODOs
-* Keep `todo-next.md` focused only on active work
-* Move deferred work to `todo-future.md`
-* Move completed work to `todo-done.md`
+- Get the next T-number from `.TODO/config.json`
+- Keep task numbers stable
+- Keep one task per bullet
+- Do not duplicate existing TODOs
+- Keep `todo-next.md` focused only on active work
+- Move deferred work to `todo-future.md`
+- Move completed work to `todo-done.md`
 
 ---
 
@@ -232,15 +232,15 @@ A separate MCP subdomain is only justified later if MCP becomes a public/externa
 
 Do not implement the following yet:
 
-* Payload migration
-* Fumadocs app
-* Meilisearch
-* Separate MCP subdomain
-* Monorepo migration
-* Large CI/CD redesign
-* Complex test framework setup
-* Multi-workspace architecture
-* Second payment provider architecture
-* Full ERP/accounting system
+- Payload migration
+- Fumadocs app
+- Meilisearch
+- Separate MCP subdomain
+- Monorepo migration
+- Large CI/CD redesign
+- Complex test framework setup
+- Multi-workspace architecture
+- Second payment provider architecture
+- Full ERP/accounting system
 
 These can be planned, but not implemented until the SaaS core and Railway deploy are stable.

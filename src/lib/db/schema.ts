@@ -156,6 +156,7 @@ export const businesses = pgTable(
       invoicePrefix?: string
     }>().default({}).notNull(),
     invoiceSettings: jsonb('invoiceSettings').$type<Record<string, unknown>>().default({}).notNull(),
+    companySetup: jsonb('companySetup').$type<Record<string, unknown>>().default({}).notNull(),
     archivedAt: timestamp('archivedAt'),
     archiveExpiresAt: timestamp('archiveExpiresAt'),
     createdAt: timestamp('createdAt').defaultNow().notNull(),

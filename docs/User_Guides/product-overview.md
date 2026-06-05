@@ -22,12 +22,19 @@ reports.
 | Downloads | Stores generated reports and files.                      |
 | Settings  | Holds account and product preferences.                   |
 
+## Display
+
+- Use the display menu to select Light, Dark, or System theme.
+- Turn on High contrast for stronger text and control contrast.
+- Turn on Larger text for a higher reading size.
+- See [Accessibility and display settings](accessibility.md) for display guidance.
+
 ## Support
 
 - Use the topbar Help menu for support tickets, dashboard FAQ, and admin FAQ when available.
 - Use the floating help chat to search FAQ answers from inside the dashboard.
 - If the help chat does not find an answer, send a support request with an email and message.
-- Dashboard FAQ includes a ticket form for signed-in users who need direct support.
+- Dashboard FAQ links signed-in users to ticket creation for direct support.
 
 ## Admin Areas
 

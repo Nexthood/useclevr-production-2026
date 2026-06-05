@@ -48,10 +48,10 @@ Add or verify these variables in `.env.local`:
 ```env
 # Antigravity Proxy Server
 ANTIGRAVITY_BASE_URL=http://127.0.0.1:8317
-ANTIGRAVITY_API_KEY=AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA
+ANTIGRAVITY_API_KEY=<antigravity-api-key>
 
 # Fallback: Cloud AI
-GEMINI_API_KEY=AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA
+GEMINI_API_KEY=<gemini-api-key>
 ```
 
 ### 3. Start UseClevr
@@ -70,6 +70,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ```
 
 Current models include:
+
 - `gemini-2.5-flash` (default - recommended for most tasks)
 - `gemini-2.5-pro` (better quality, slower)
 - `gemini-3.5-flash-low`
@@ -106,6 +107,7 @@ The system automatically checks provider availability:
 ### "Missing API key" error
 
 **Error:**
+
 ```
 {"error":"Missing API key"}
 ```
@@ -116,7 +118,7 @@ Add the API key to your Antigravity config:
 ```bash
 # Edit /home/csaba/Documents/Antigravity-CLI/config.yaml
 api-keys:
-  - "AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA"
+  - "<antigravity-api-key>"
 ```
 
 Then restart the Antigravity server.
@@ -124,23 +126,28 @@ Then restart the Antigravity server.
 ### Connection refused to 127.0.0.1:8317
 
 **Error:**
+
 ```
 Error: connect ECONNREFUSED 127.0.0.1:8317
 ```
 
 **Solution:**
+
 1. Verify Antigravity server is running:
+
    ```bash
    curl http://127.0.0.1:8317/v1/models -H "Authorization: Bearer YOUR_KEY"
    ```
 
 2. If not running, start it:
+
    ```bash
    cd /home/csaba/Documents/Antigravity-CLI
    ./cli-proxy-api
    ```
 
 3. Verify the port (default: 8317):
+
    ```bash
    lsof -i :8317
    ```
@@ -148,12 +155,14 @@ Error: connect ECONNREFUSED 127.0.0.1:8317
 ### "No AI provider available"
 
 **Error:**
+
 ```
 No AI provider. Start Antigravity server (http://127.0.0.1:8317),
 Local AI, or configure GEMINI_API_KEY in .env.local.
 ```
 
 **Solution:**
+
 1. Start Antigravity: `./cli-proxy-api` in the Antigravity CLI directory
 2. OR start Local AI: `ollama serve` or your local AI runtime
 3. OR set `GEMINI_API_KEY` in `.env.local` for cloud fallback
@@ -170,13 +179,13 @@ const available = await checkAntigravityAvailability();
 
 // Generate a completion
 const response = await generateAntigravityCompletion({
-  model: 'gemini-2.5-flash',
+  model: "gemini-2.5-flash",
   messages: [
-    { role: 'system', content: 'You are a helpful assistant.' },
-    { role: 'user', content: 'What is 2+2?' }
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What is 2+2?" },
   ],
   temperature: 0.3,
-  max_tokens: 1000
+  max_tokens: 1000,
 });
 
 // Get available models
@@ -185,11 +194,11 @@ const models = await fetchAntigravityModels();
 
 ### Environment Variables
 
-| Variable | Default | Required | Purpose |
-|----------|---------|----------|---------|
-| `ANTIGRAVITY_BASE_URL` | `http://127.0.0.1:8317` | No | Antigravity proxy server URL |
-| `ANTIGRAVITY_API_KEY` | Falls back to `GEMINI_API_KEY` | No | API key for Antigravity (can be same as Gemini key) |
-| `GEMINI_API_KEY` | - | Yes* | Fallback cloud AI key (*if no Antigravity) |
+| Variable               | Default                        | Required | Purpose                                             |
+| ---------------------- | ------------------------------ | -------- | --------------------------------------------------- |
+| `ANTIGRAVITY_BASE_URL` | `http://127.0.0.1:8317`        | No       | Antigravity proxy server URL                        |
+| `ANTIGRAVITY_API_KEY`  | Falls back to `GEMINI_API_KEY` | No       | API key for Antigravity (can be same as Gemini key) |
+| `GEMINI_API_KEY`       | -                              | Yes\*    | Fallback cloud AI key (\*if no Antigravity)         |
 
 ## Performance
 
@@ -215,11 +224,11 @@ File: `/home/csaba/Documents/Antigravity-CLI/config.yaml`
 host: "127.0.0.1"
 port: 8317
 api-keys:
-  - "AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA"
+  - "<antigravity-api-key>"
 debug: false
 
 gemini-api-key:
-  - api-key: "AIzaSyD2lfTWPskxxNl_v6nJroC_jhxuL4fh8WA"
+  - api-key: "<gemini-api-key>"
     models:
       - name: "gemini-2.5-pro"
         alias: "gemini-2.5-pro"
@@ -230,11 +239,13 @@ gemini-api-key:
 ### API Endpoints
 
 #### Check Models
+
 ```bash
 curl -H "Authorization: Bearer KEY" http://127.0.0.1:8317/v1/models
 ```
 
 #### Send a Message
+
 ```bash
 curl -X POST http://127.0.0.1:8317/v1/chat/completions \
   -H "Authorization: Bearer KEY" \
@@ -246,6 +257,23 @@ curl -X POST http://127.0.0.1:8317/v1/chat/completions \
     "max_tokens": 1000
   }'
 ```
+
+## Quota, Pricing, and Runtime Separation
+
+The development environment utilizes multiple AI entry points that operate on isolated credentials and pricing structures.
+
+### Runtime Isolation
+
+- **App AI Integration (Antigravity/Cloud Fallback)**: Runs inside the local Next.js server context using configuration from `.env.local`. When the Antigravity key reaches its individual usage quota, the app's internal AI features (e.g., dataset profiling or chatbot) fail or fall back to direct Gemini API usage.
+- **Opencode CLI Developer Agent**: Runs directly in the terminal interface under a distinct developer seat or agent platform token. It does not route through the local Antigravity server or use `.env.local` API keys. Consequently, Opencode remains fully functional even when the app's development quota is exhausted.
+
+### Pricing and Usage Matrix
+
+| Component | Provider / Channel | Pricing Structure | Quota and Limits |
+| :--- | :--- | :--- | :--- |
+| **App-Side Cloud Fallback** | Google Gemini (Direct API) | Pay-As-You-Go:<br>• Input: ~$0.075 / 1M tokens<br>• Output: ~$0.30 / 1M tokens *(based on Gemini 2.5 Flash)* | Standard Google Cloud / AI Studio limits (Free tier: 15 RPM, Paid: High limits). |
+| **Antigravity CLI Proxy** | Local proxy to cloud endpoints | Seat-based subscription or org credit pool | Hard-capped per developer API key. Reaching this quota blocks app-side proxy requests. |
+| **Opencode Agent** | CLI Session (via Google Gemini) | Included in platform seat license or session credentials | Managed separately from development proxy keys. Resets with developer session or billing cycle. |
 
 ## Next Steps
 

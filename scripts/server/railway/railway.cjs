@@ -67,8 +67,7 @@ function requireToken() {
   const token = getToken();
   if (!token) {
     console.error(
-      "❌ No Railway token found.\n" +
-        "Set RAILWAY_API_TOKEN in .env or run: pnpm railway:login"
+      "❌ No Railway token found.\n" + "Set RAILWAY_API_TOKEN in .env or run: pnpm railway:login",
     );
     exit(1);
   }
@@ -116,7 +115,9 @@ async function cmdWhoami() {
 async function cmdList() {
   requireToken();
   try {
-    const { me } = await gql(`{ me { id name email projects { edges { node { id name description } } } } }`);
+    const { me } = await gql(
+      `{ me { id name email projects { edges { node { id name description } } } } }`,
+    );
     const projects = me.projects?.edges?.map((e) => e.node) || [];
     if (projects.length === 0) {
       console.log("No projects found. Create one at https://railway.app/new");
@@ -138,7 +139,9 @@ async function cmdLink() {
   requireToken();
   let projects;
   try {
-    const { me } = await gql(`{ me { id email projects { edges { node { id name description } } } } }`);
+    const { me } = await gql(
+      `{ me { id email projects { edges { node { id name description } } } } }`,
+    );
     projects = me.projects?.edges?.map((e) => e.node) || [];
   } catch {
     // project-scoped token
@@ -170,7 +173,9 @@ async function cmdLink() {
 
   // Multiple projects — let user pick
   console.log("Select a project:");
-  projects.forEach((p, i) => console.log(`  ${i + 1}. ${p.name}${p.description ? " — " + p.description : ""}`));
+  projects.forEach((p, i) =>
+    console.log(`  ${i + 1}. ${p.name}${p.description ? " — " + p.description : ""}`),
+  );
 
   // Accept index from args or prompt
   const idxArg = env.RAILWAY_LINK_INDEX;
@@ -248,7 +253,7 @@ function fallthrough(args) {
   const localBin = resolve(__dirname, "../../../node_modules/@railway/cli/bin/railway");
   const globalBin = resolve(
     env.HOME || "/home/csaba",
-    ".local/share/pnpm/global/v11/11fb4-19e83ceb034/node_modules/@railway/cli/bin/railway"
+    ".local/share/pnpm/global/v11/11fb4-19e83ceb034/node_modules/@railway/cli/bin/railway",
   );
   const bin = existsSync(localBin) ? localBin : globalBin;
 

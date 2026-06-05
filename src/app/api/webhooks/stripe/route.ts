@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "STRIPE_SECRET_KEY is not configured." }, { status: 500 });
   }
 
-  const stripe = new Stripe(stripeSecretKey);
+  const stripe = new Stripe(stripeSecretKey, {});
 
   const rawBody = await getRawBody(request);
   const signature = request.headers.get("stripe-signature");

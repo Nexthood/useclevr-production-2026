@@ -1,4 +1,5 @@
 import { checkAntigravityAvailability } from "@/lib/ai/antigravity-client"
+import { isMockAIMode, MOCK_AI_MODEL_NAME, MOCK_AI_PROVIDER_NAME } from "@/lib/ai/mock-ai"
 import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 
@@ -25,7 +26,7 @@ const LOCAL_HEALTH_TIMEOUT_MS = 5000 // 5 seconds timeout for health check
 const RETRY_INTERVAL_MS = 60000 // Retry cloud every 60 seconds
 
 // Provider type
-export type AIProvider = "antigravity" | "local" | "cloud"
+export type AIProvider = "antigravity" | "local" | "cloud" | "mock"
 export type CloudProvider = "gemini"
 
 // State tracking
@@ -133,6 +134,24 @@ export function getAIProvider(): { provider: LanguageModel; type: AIProvider; pr
   const antigravityIsAvailable = antigravityAvailable === true
   const localIsAvailable = localAIAvailable === true
   const cloudKey = GEMINI_API_KEY
+
+  // Mock AI mode (development shortcut) - short-circuit before any real provider checks
+  if (isMockAIMode()) {
+    debugLog("[AI-ROUTER] ═══ MOCK AI MODE ENABLED ═══")
+    currentProvider = "mock"
+    return {
+      provider: {
+        // Stubbed provider object so call sites can still reference getAIProvider(),
+        // while active routes use the dedicated mock completion helpers.
+        async doGenerate() {
+          throw new Error("Mock AI provider stubs are metadata-only. Use the mock completion helpers for local responses.")
+        },
+      } as unknown as LanguageModel,
+      type: "mock",
+      providerName: MOCK_AI_PROVIDER_NAME,
+      modelName: MOCK_AI_MODEL_NAME
+    }
+  }
 
   // Priority 1: ANTIGRAVITY SERVER - use if available (low latency, supports multiple models)
   if (antigravityIsAvailable) {

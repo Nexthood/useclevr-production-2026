@@ -8,7 +8,7 @@ import {
   formatCurrencyValue,
   formatPercentValue,
   normalizeCurrencyValue,
-} from '@/lib/query/engine';
+} from '@/lib/data/queryEngine';
 import { eq } from 'drizzle-orm';
 
 export async function executeStrictSQL(datasetId: string, question: string): Promise<{
@@ -140,7 +140,7 @@ export function generateAggregatedContext(data: any[], columns: string[]): strin
     if (byCountry.length > 0) {
       const top = byCountry[0];
       context.push(`TOP COUNTRY: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
-      context.push(`Country rankings: ${byCountry.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
+      context.push(`Country rankings: ${byCountry.slice(0, 5).map((r: any, i: number) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
 
@@ -149,7 +149,7 @@ export function generateAggregatedContext(data: any[], columns: string[]): strin
     if (byRegion.length > 0) {
       const top = byRegion[0];
       context.push(`TOP REGION: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
-      context.push(`Region rankings: ${byRegion.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
+      context.push(`Region rankings: ${byRegion.slice(0, 5).map((r: any, i: number) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
 
@@ -158,7 +158,7 @@ export function generateAggregatedContext(data: any[], columns: string[]): strin
     if (byProduct.length > 0) {
       const top = byProduct[0];
       context.push(`TOP PRODUCT: ${top.name} - ${formatCurrencyValue(top.value)} (${formatPercentValue(top.pct)} of total)`);
-      context.push(`Product rankings: ${byProduct.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
+      context.push(`Product rankings: ${byProduct.slice(0, 5).map((r: any, i: number) => `${i + 1}. ${r.name}: ${formatCurrencyValue(r.value)}`).join(', ')}`);
     }
   }
 

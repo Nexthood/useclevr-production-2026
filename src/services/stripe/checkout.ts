@@ -8,7 +8,7 @@ function getStripe(): Stripe {
   if (!key) {
     throw new Error("STRIPE_SECRET_KEY is not configured.");
   }
-  _stripe = new Stripe(key);
+  _stripe = new Stripe(key, {});
   return _stripe;
 }
 

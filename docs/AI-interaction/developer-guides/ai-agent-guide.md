@@ -11,12 +11,27 @@ folder during the same task cycle.
 - Identify whether changes are user-visible, developer-only, deployment-only, sales-only, or documentation-only.
 - Add a TODO task before confirmed implementation work starts when the work is active implementation.
 - Write all text files as current-state behavior and current rules.
+- Write instruction text with super-precise language that sharpens wording from current-state and
+  concise into naming the actor, the required action, and the target file or target outcome with no
+  vagueness.
 - Avoid past states, removed options, speculative possibilities, and future blockages.
 - Mention past or future states only when the detail prevents a concrete risk.
 - Keep user guides separate from developer guides.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
 - Keep reusable prompt files in `docs/AI-interaction/prompt-library/`.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
+- Use compact status updates during long-running validation, deploy checks, and broad implementation work.
+- Use [AI memory collection](../prompt-library/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
+- This AI agent must run [post-interaction memory capture](../prompt-library/ai-memory-collection-post-interaction.md) after each completed request/response cycle and keep only durable learning.
+- This AI agent must treat `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the instruction sources for post-interaction behavior.
+- This AI agent must use [Post-interaction hook](post-interaction-hook.md) to choose the smallest matching destination files for persona, guides, FAQ, prompt files, TODOs, requirements, or changelog updates instead of one technical summary file.
+- Prepare future developers by recording concise AI-collaboration lessons that explain correction patterns, expectations, and reusable working habits.
+- Keep the post-interaction summary short enough that the correction pattern is obvious at a glance.
+- When durable structure changes, record the split in the doc that owns the audience rather than repeating it everywhere.
+- Read [dev-persona.md](dev-persona.md) before starting work with the project owner — follow their communication style and expectations.
+- Follow the [AI memory collection guide](ai-memory-collection-guide.md) for the collection flow and classification rules.
+- Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.
+- Keep real API keys, tokens, passwords, webhook secrets, and private keys out of docs, prompts, traces, TODOs, logs, and final summaries.
 
 ## Work Cycle
 
@@ -24,9 +39,11 @@ folder during the same task cycle.
 - Keep changes scoped to the requested behavior.
 - Verify with typecheck, lint, docs checks, and build when routes or shared UI change.
 - Move completed tasks to `todo-done.md` only after the work is complete.
+- Add new dashboard UI work to `.TODO/todo-next.md` only when a concrete current behavior is missing — keep resolved audit notes as current-state references.
 - Update requirements for user-observable product behavior.
 - Update changelog with active, release-facing language.
 - Report remaining risks or deferred work without marking it complete.
+- Prefer a concise final summary with changed areas, validation, and remaining risks.
 
 ## Railway Deploy Scope
 
@@ -51,6 +68,22 @@ folder during the same task cycle.
 - Keep bookkeeping user guidance focused on workflows and outcomes.
 - Keep bookkeeping developer guidance focused on data sources, page structure, validation, and risk.
 - Update requirements when bookkeeping changes are visible in Accountancy.
+- Keep Business Profile and Company Setup context aligned with AI tracing guidance when setup data changes analysis confidence.
+
+## Local AI And Mock Scope
+
+- Local AI features use same-origin app routes and the local agent contract.
+- The Hybrid AI Router (`src/lib/ai/ai-router.ts`) routes queries in priority order: Antigravity Server (local proxy) → Local AI (Ollama) → Cloud AI (Gemini Flash 2.5). Mock AI short-circuits before any real provider check.
+- Local AI availability uses a `/api/local-ai-status` endpoint and Ollama health checks through `/api/ollama/tags` and `/api/ollama/test`.
+- Local MCP work keeps real local AI active unless a development task explicitly enables mock mode.
+- Mock AI mode uses `MOCK_AI_MODE=true` in non-production runtime to return local development responses. It short-circuits the router before real provider checks. Supported flows: chat (streaming and non-streaming), dataset analysis, local AI status, model list, model pull, and model verification.
+- Mock AI mode is implemented in `src/lib/ai/mock-ai.ts`. Response delay is configurable via `MOCK_AI_RESPONSE_DELAY_MS` (default 250ms, max 5000ms).
+- Mock AI mode records traces with provider `Mock AI` and model `mock-local-development`.
+- Mock AI mode stays disabled in production runtime even when the environment variable is present. The guard is `process.env.NODE_ENV !== "production" && process.env.MOCK_AI_MODE === "true"`.
+- Mock response templates, scenario storage, and a development UI toggle are future enhancements tracked in `todo-future.md`.
+- Update trace guidance when mock mode changes provider names, prompt versions, or trace fields.
+- The local AI bridge (`scripts/local-ai-bridge/server.js`) is a separate Node.js HTTP server that proxies requests to Ollama. It is not required when using cloud or mock modes. Default port 3210, configurable via `PORT` env var.
+- Set `MOCK_AI_MODE=true` and `GEMINI_API_KEY` in `.env.local` for development without Ollama running.
 
 ## AI Interaction Tracing Scope
 
@@ -60,6 +93,8 @@ folder during the same task cycle.
 - Superadmin analytics pages show aggregate usage, provider distribution, error rates, and top queries.
 - The `aiInteractionTraces` table has a foreign key to the `User` table with cascade delete.
 - Trace anonymization strips email addresses from stored prompts and responses.
+- Trace examples and learning summaries use placeholders for credentials and omit provider tokens, webhook secrets, and environment values.
+- Trace storage redacts credential-like values before prompts, answers, and errors are saved.
 - Trace retention is configurable via superadmin UI; default is 90 days with auto-cleanup.
 - The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
 - Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.

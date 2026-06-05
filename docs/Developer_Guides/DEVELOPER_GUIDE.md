@@ -112,6 +112,8 @@ AUTH_URL=                # Full app URL (set on Railway)
 AUTH_TRUST_HOST=true
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
+MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true
+MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
 Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
@@ -134,7 +136,7 @@ All commands are run from `pnpm`.
 
 | Command              | Description                         |
 | -------------------- | ----------------------------------- |
-| `pnpm build`         | Production build (webpack)          |
+| `pnpm build`         | Production build (Turbopack)        |
 | `pnpm build:next`    | Alias for `pnpm build`              |
 | `pnpm build:clean`   | Clean generated artefacts           |
 | `pnpm build:preview` | Full prod build + start dist server |
@@ -152,18 +154,19 @@ All commands are run from `pnpm`.
 
 ### Lint & Format
 
-| Command               | Description                               |
-| --------------------- | ----------------------------------------- |
-| `pnpm lint`           | Package, TODO, workflows metadata + ESLint |
-| `pnpm lint:fix`       | ESLint with `--fix`                       |
-| `pnpm lint:docs`      | Markdownlint for docs and root markdown   |
-| `pnpm lint:changelog` | Ensure changelog has unreleased entries   |
-| `pnpm lint:commits`   | Check recent commit messages              |
-| `pnpm lint:deps`      | Manual dependency freshness check         |
-| `pnpm format`         | Prettier — write                          |
-| `pnpm format:check`   | Prettier — check only                     |
-| `pnpm docs:check`     | Markdown local-link check                 |
-| `pnpm link:docs`      | Alias for markdown local-link check       |
+| Command               | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `pnpm lint`           | Package, TODO, workflows metadata + ESLint          |
+| `pnpm lint:fix`       | ESLint with `--fix`                                 |
+| `pnpm lint:docs`      | Markdownlint for docs and root markdown             |
+| `pnpm lint:changelog` | Ensure changelog has unreleased entries             |
+| `pnpm lint:commits`   | Check recent commit messages                        |
+| `pnpm lint:deps`      | Manual dependency freshness check                   |
+| `pnpm lint:secrets`   | Scan docs and source text for committed credentials |
+| `pnpm format`         | Prettier — write                                    |
+| `pnpm format:check`   | Prettier — check only                               |
+| `pnpm docs:check`     | Markdown local-link check                           |
+| `pnpm link:docs`      | Alias for markdown local-link check                 |
 
 ### Test
 
@@ -173,6 +176,21 @@ All commands are run from `pnpm`.
 | `pnpm test:all`          | Run CSV-analyser test suite |
 | `pnpm test:csv-analyzer` | CSV analyser specific tests |
 | `pnpm test:neon`         | Neon connection smoke test  |
+
+### Analysis Helpers
+
+- `scripts/analysis/test-csv-analyzer.ts` and `scripts/analysis/test-csv-edge-cases.ts` power the CSV analyser test suite.
+- `scripts/analysis/analyze-business.ts` is a database-backed diagnostic for the latest dataset.
+- Mock AI setup lives in `src/lib/ai/mock-ai.ts`; analysis scripts stay focused on dataset analysis checks.
+
+### Local Mock AI
+
+Set `MOCK_AI_MODE=true` in local development to test AI flows without Gemini, Antigravity, Ollama, or
+the local desktop agent. Mock mode returns development responses for chat, streaming chat, dataset
+analysis, local AI status, local model tags, model pull, and model verification routes.
+
+Mock mode is ignored in production runtime. Traces from mock responses use provider `Mock AI` and
+model `mock-local-development`.
 
 ### Clean
 

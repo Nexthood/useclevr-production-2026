@@ -14,6 +14,16 @@ Railway deploys generated production output from the `dist` branch.
 Railway test deploy review uses the `beta` source branch and `dist-test` deployment branch. Keep
 test deploy checks away from `main`, `dist`, and the live app unless a task explicitly changes scope.
 
+Production and test deploy flows stay isolated:
+
+| Source branch | Generated branch | Railway service                  | Domain              |
+| ------------- | ---------------- | -------------------------------- | ------------------- |
+| `main`        | `dist`           | Production service, root `/dist` | `app.useclevr.com`  |
+| `beta`        | `dist-test`      | Test service, root `/dist`       | `test.useclevr.com` |
+
+Generated deployment branches are output branches. Do not merge `dist` or `dist-test` back into
+source branches.
+
 ## Railway Settings
 
 - Branch: `dist`
@@ -27,18 +37,29 @@ temporary incident. The config file owns those commands.
 ## Build Shape
 
 ```mermaid
-flowchart LR
+flowchart TD
   Main[main branch] --> Build[pnpm prod:build]
+  Beta[beta branch] --> TestBuild[pnpm prod:build]
+
   Build --> DistBranch[dist branch /dist]
-  Config[dist-root/server-config/railway.json] --> ServerConfig[dist branch /server-config]
-  Railpack[dist-root/railpack.json] --> RailpackRoot[dist branch root]
-  DistBranch --> Railway[Railway service root /dist]
-  ServerConfig --> Railway
-  RailpackRoot --> Railway
+  TestBuild --> DistTestBranch[dist-test branch /dist]
+
+  Config[dist-root/server-config/railway.json] --> ServerConfig[server-config/railway.json]
+  Railpack[dist-root/railpack.json] --> RailpackRoot[railpack.json at deployment root]
+
+  DistBranch --> ProdRailway[Production Railway service]
+  DistTestBranch --> TestRailway[Test Railway service]
+  ServerConfig --> ProdRailway
+  ServerConfig --> TestRailway
+  RailpackRoot --> ProdRailway
+  RailpackRoot --> TestRailway
 ```
 
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
 branch, and publishes Railway config to `/server-config/railway.json` on the same branch.
+
+The test flow builds from `beta`, publishes generated output to `/dist` on the `dist-test` branch,
+and lets the dedicated Railway test service deploy from that branch.
 
 `dist-root/server-config/railway.json` controls deploy with a prebuilt `/dist`. The build command
 outputs `"echo prebuilt"` since GitHub Actions publishes generated output directly to `/dist`.
@@ -48,6 +69,16 @@ standalone bundle includes all production modules in `dist/node_modules/`.
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
+
+Generated output also excludes repository secrets, environment files, caches, source workspace
+metadata, and dependency folders that are not part of the standalone runtime contract.
+
+## Local Private Config
+
+- `.railway/project.json` is a local machine link file and stays ignored.
+- Keep a private restore-ready copy of `.railway/project.json` outside the repo so a fresh checkout
+  can reconnect to the right Railway project without guesswork.
+- Keep real tokens and environment files in private local storage only, never in source control.
 
 ## Runtime Commands
 
@@ -133,6 +164,7 @@ failed to calculate checksum of ref ...: "/app/node_modules": not found
 ```
 
 Key requirements:
+
 - `node_modules/` must NOT appear in any `.gitignore` that applies to the `dist` branch.
 - The symlink structure must be relative, not absolute. Use `cp -a` (not `fs.cpSync`) when copying
   the standalone output — Node.js `fs.cpSync` resolves relative symlinks to absolute paths, which
@@ -175,6 +207,7 @@ the generated deployment package is smaller than the source workspace and Railwa
 generated output only.
 
 If logs show `failed to calculate checksum of ref ... "/app/node_modules": not found`:
+
 - `node_modules/` is missing from the deployed branch.
 - Check `.gitignore` on the deployment branch — `node_modules/` must not be ignored.
 - Check the publish workflow — cleanup steps must not `rm -rf node_modules`.
@@ -183,6 +216,7 @@ If logs show `failed to calculate checksum of ref ... "/app/node_modules": not f
 ### Runtime Errors (502 / Healthcheck Failures)
 
 If Railway deploys successfully but the app returns 502:
+
 1. Check Railway logs for server startup errors or crash traces.
 2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
 3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.
@@ -200,6 +234,21 @@ test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed cal
 required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
 service.
 
+Keep test-service environment variables separate from production. Stripe test mode belongs on the
+test service, and live Stripe keys belong only on the production service.
+
 If runtime logs show `Could not find a production build in the './.next' directory`, keep the
 generated `next-build` folder and the runtime restore step. Railway can omit dot-directories from the
 service snapshot, while Next still expects `.next` at runtime.
+
+## Smoke Checks
+
+After a test deployment:
+
+- Check `/api/health`.
+- Verify sign-in and protected dashboard access.
+- Upload a small dataset.
+- Confirm the datasets table renders.
+- Ask one AI analysis question.
+- Open Reports & Downloads.
+- Review Railway logs for startup, database, auth, and healthcheck errors.

@@ -7,6 +7,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 // Returns dataset metadata for database record creation
 // ============================================================================
 
+import { parseCSVString } from "./csvLoader";
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================
@@ -329,64 +330,7 @@ export async function parseCSVFile(buffer: Buffer): Promise<{
   columnCount: number;
 }> {
   const text = buffer.toString('utf-8');
-  const lines = text.split(/\r?\n/).filter(line => line.trim());
-  
-  if (lines.length === 0) {
-    throw new Error('Empty CSV file');
-  }
-  
-  // Parse header
-  const headers = parseCSVLine(lines[0]);
-  
-  // Parse data rows
-  const rows: Record<string, any>[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    const row: Record<string, any> = {};
-    
-    headers.forEach((header, index) => {
-      row[header] = values[index] || '';
-    });
-    
-    rows.push(row);
-  }
-  
-  return {
-    rows,
-    columns: headers,
-    rowCount: rows.length,
-    columnCount: headers.length,
-  };
-}
-
-/**
- * Parse a single CSV line handling quoted values
- */
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  result.push(current.trim());
-  return result;
+  return parseCSVString(text);
 }
 
 /**

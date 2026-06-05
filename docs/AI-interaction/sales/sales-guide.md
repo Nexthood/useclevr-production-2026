@@ -13,6 +13,7 @@ Actual sales artefacts live in [../../Sales](../../Sales/README.md), including p
 - Keep Business Profile sales copy aligned with the implemented baseline in `requirements.md`.
 - Use `.TODO/todo-future.md` as the source for roadmap Business Profile modules such as insurance, financing, assets, payroll, inventory, risk scoring, and forecasting.
 - Avoid storing implementation TODO lists inside Sales documents.
+- For Hybrid AI positioning: describe as two-tier (Lite / MEGA) with automatic cloud fallback. Emphasise data-sovereignty for sensitive-data segments. Reference the [Hybrid AI sales positioning in the sales plan](../../Sales/sales-plan.md#hybrid-ai-sales-positioning) for current tier details.
 
 ## Marketing Materials
 
@@ -51,3 +52,6 @@ Actual sales artefacts live in [../../Sales](../../Sales/README.md), including p
 - Coordinate with product, marketing, and sales teams when updating content.
 - Ensure all sales and marketing documents align with the latest requirements.md and CHANGELOG.md.
 - Move detailed product-planning notes into Developer Guides and TODO queues before retiring temporary Sales planning files.
+- Follow the [project controls approach](../../Sales/Project_Controls/project-controls-approach.md) when creating sales planning documents — use stage gates, risk tracking, lessons, and defined quality criteria.
+- Reference the [sales plan](../../Sales/sales-plan.md) for current sales stages, target segments, objection handling, and metrics.
+- Use the [founder's guide](../../Sales/Founders/founders-guide.md) when creating founder-specific content or targeting startup audiences.

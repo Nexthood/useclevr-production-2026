@@ -58,7 +58,7 @@ const quickLinks = [
   },
 ];
 
-const RECENT_SEARCHES_KEY = "useclevr-recent-searches";
+const RECENT_SEARCHES_KEY = "useclevr_recent_searches";
 const MAX_RECENT_SEARCHES = 5;
 
 function loadRecentSearches(): string[] {
@@ -97,6 +97,7 @@ export function Search() {
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultListRef = useRef<HTMLDivElement>(null);
@@ -104,6 +105,8 @@ export function Search() {
   const isSearchingRef = useRef(false);
 
   useEffect(() => {
+    const platform = window.navigator.platform || "";
+    setShortcutLabel(/Mac|iPhone|iPad|iPod/i.test(platform) ? "⌘ K" : "Ctrl K");
     if (open) {
       setRecentSearches(loadRecentSearches());
     }
@@ -197,27 +200,29 @@ export function Search() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, open, handleSearch]);
+  }, [query, open]);
 
   return (
     <>
       <Button
         ref={searchButtonRef}
         variant="ghost"
-        size="icon"
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Close search" : "Search"}
-        className="h-full min-w-12 gap-1 rounded-none px-2"
-        title="Search (Cmd+K)"
+        className="h-full min-w-11 gap-2 rounded-none border-l border-border/50 px-2.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        title={`Search (${shortcutLabel})`}
       >
         {open ? (
           <X className="h-4 w-4" />
         ) : (
           <>
             <SearchIcon className="h-4 w-4" />
-            <kbd className="hidden items-center gap-0.5 rounded border border-border/50 px-1 font-mono text-[10px] text-muted-foreground/50 lg:inline-flex">
-              <span>⌘</span>K
-            </kbd>
+            <span className="hidden min-w-24 items-center justify-between rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-muted-foreground lg:inline-flex">
+              <span className="truncate">Search</span>
+              <kbd className="ml-2 shrink-0 font-mono text-[10px] text-muted-foreground/70">
+                {shortcutLabel}
+              </kbd>
+            </span>
           </>
         )}
       </Button>
@@ -233,6 +238,7 @@ export function Search() {
           className="flex gap-2 border-b border-border pb-4"
           onSubmit={(event) => {
             event.preventDefault();
+            if (debounceRef.current) clearTimeout(debounceRef.current);
             void handleSearch(query);
           }}
         >
@@ -270,7 +276,7 @@ export function Search() {
                       onClick={() => setTypeFilter(type)}
                       className={`rounded-md px-3 py-1 text-xs font-medium transition ${typeFilter === type ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
                     >
-                      {type.charAt(0).toUpperCase() + type.slice(1)} ({count})
+                      {type === "faq" ? "FAQ" : type.charAt(0).toUpperCase() + type.slice(1)} ({count})
                     </button>
                   );
                 })}

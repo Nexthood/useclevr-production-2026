@@ -153,35 +153,35 @@ const statements = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "Workspace_slug_key" ON "Workspace" USING btree ("slug")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceInvitation_email_workspaceId_key" ON "WorkspaceInvitation" USING btree ("email","workspaceId")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceInvitation_token_key" ON "WorkspaceInvitation" USING btree ("token")`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceMember_workspaceId_userId_key" ON "WorkspaceMember" USING btree ("workspaceId","userId")`
+  `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceMember_workspaceId_userId_key" ON "WorkspaceMember" USING btree ("workspaceId","userId")`,
 ];
 
 const constraints = [
   {
     name: "UserActivity_userId_fkey",
     table: "UserActivity",
-    sql: `ALTER TABLE "UserActivity" ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`
+    sql: `ALTER TABLE "UserActivity" ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`,
   },
   {
     name: "WorkspaceInvitation_workspaceId_fkey",
     table: "WorkspaceInvitation",
-    sql: `ALTER TABLE "WorkspaceInvitation" ADD CONSTRAINT "WorkspaceInvitation_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "public"."Workspace"("id") ON DELETE cascade ON UPDATE no action`
+    sql: `ALTER TABLE "WorkspaceInvitation" ADD CONSTRAINT "WorkspaceInvitation_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "public"."Workspace"("id") ON DELETE cascade ON UPDATE no action`,
   },
   {
     name: "WorkspaceMember_workspaceId_fkey",
     table: "WorkspaceMember",
-    sql: `ALTER TABLE "WorkspaceMember" ADD CONSTRAINT "WorkspaceMember_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "public"."Workspace"("id") ON DELETE cascade ON UPDATE no action`
+    sql: `ALTER TABLE "WorkspaceMember" ADD CONSTRAINT "WorkspaceMember_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "public"."Workspace"("id") ON DELETE cascade ON UPDATE no action`,
   },
   {
     name: "WorkspaceMember_userId_fkey",
     table: "WorkspaceMember",
-    sql: `ALTER TABLE "WorkspaceMember" ADD CONSTRAINT "WorkspaceMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`
+    sql: `ALTER TABLE "WorkspaceMember" ADD CONSTRAINT "WorkspaceMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`,
   },
   {
     name: "Workspace_ownerId_fkey",
     table: "Workspace",
-    sql: `ALTER TABLE "Workspace" ADD CONSTRAINT "Workspace_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`
-  }
+    sql: `ALTER TABLE "Workspace" ADD CONSTRAINT "Workspace_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`,
+  },
 ];
 
 // Tables that have an updatedAt column requiring an auto-update trigger
@@ -208,35 +208,28 @@ const updateTriggerFn = `
 `;
 
 async function functionExists(client, fnName) {
-  const result = await client.query(
-    `SELECT 1 FROM pg_proc WHERE proname = $1 LIMIT 1`,
-    [fnName]
-  );
+  const result = await client.query(`SELECT 1 FROM pg_proc WHERE proname = $1 LIMIT 1`, [fnName]);
   return result.rowCount > 0;
 }
 
 async function triggerExists(client, triggerName, tableName) {
   const result = await client.query(
     `SELECT 1 FROM pg_trigger WHERE tgname = $1 AND tgrelid = to_regclass($2) LIMIT 1`,
-    [triggerName, `public."${tableName}"`]
+    [triggerName, `public."${tableName}"`],
   );
   return result.rowCount > 0;
 }
 
 async function tableExists(client, tableName) {
-  const result = await client.query(
-    `SELECT to_regclass($1) AS exists`,
-    [`public."${tableName}"`]
-  );
+  const result = await client.query(`SELECT to_regclass($1) AS exists`, [`public."${tableName}"`]);
 
   return Boolean(result.rows[0]?.exists);
 }
 
 async function constraintExists(client, constraintName) {
-  const result = await client.query(
-    `SELECT 1 FROM pg_constraint WHERE conname = $1 LIMIT 1`,
-    [constraintName]
-  );
+  const result = await client.query(`SELECT 1 FROM pg_constraint WHERE conname = $1 LIMIT 1`, [
+    constraintName,
+  ]);
 
   return result.rowCount > 0;
 }
@@ -248,7 +241,7 @@ async function main() {
 
   const client = new Client({
     connectionString: databaseUrl,
-    ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined
+    ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,
   });
 
   await client.connect();
@@ -289,7 +282,7 @@ async function main() {
 
         if (tblExists && !trgExists) {
           await client.query(
-            `CREATE TRIGGER "${triggerName}" BEFORE UPDATE ON "public"."${tName}" FOR EACH ROW EXECUTE FUNCTION update_updatedat_column()`
+            `CREATE TRIGGER "${triggerName}" BEFORE UPDATE ON "public"."${tName}" FOR EACH ROW EXECUTE FUNCTION update_updatedat_column()`,
           );
           console.log(`Created trigger ${triggerName} on ${tName}`);
         }

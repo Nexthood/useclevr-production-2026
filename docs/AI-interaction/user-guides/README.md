@@ -6,6 +6,7 @@ Use this folder for user-facing guidance about asking AI questions, reading AI r
 
 - [User guide](user-guide.md)
 - [Bookkeeping user guide](bookkeeping-user-guide.md)
+- [AI interaction request guide](interaction-request-guide.md)
 
 ## User Rule
 

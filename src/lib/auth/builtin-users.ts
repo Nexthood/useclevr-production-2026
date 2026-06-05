@@ -1,8 +1,18 @@
+export const DEMO_PASS = "12345678" as const
+
+export const BUILTIN_BASE_USER = {
+  id: "base-user-id",
+  email: "base@useclevr.app",
+  name: "Base User",
+  password: DEMO_PASS,
+  role: "user",
+} as const
+
 export const BUILTIN_DEMO_USER = {
   id: "demo-user-id",
   email: "demo@useclevr.app",
   name: "Demo User",
-  password: "12345678",
+  password: DEMO_PASS,
   role: "demo",
 } as const
 
@@ -10,11 +20,11 @@ export const BUILTIN_SUPER_ADMIN_USER = {
   id: "super-admin-user-id",
   email: "superadmin@useclevr.app",
   name: "Super Admin",
-  password: "12345678",
+  password: DEMO_PASS,
   role: "superadmin",
 } as const
 
-export const BUILTIN_USERS = [BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER] as const
+export const BUILTIN_USERS = [BUILTIN_BASE_USER, BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER] as const
 
 export type BuiltinUserRole = (typeof BUILTIN_USERS)[number]["role"] | "user"
 

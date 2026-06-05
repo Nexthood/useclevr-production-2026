@@ -3,9 +3,25 @@ name: Validate Source
 on:
   push:
     branches: [main, beta]
+    paths-ignore:
+      - "docs/**"
+      - ".TODO/**"
+      - "*.md"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
   pull_request:
     branches: [main, beta]
+    paths-ignore:
+      - "docs/**"
+      - ".TODO/**"
+      - "*.md"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-source-and-build:

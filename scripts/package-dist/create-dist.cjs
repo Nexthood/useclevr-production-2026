@@ -14,9 +14,7 @@ const runtimeScriptsDir = resolveRepoPath("scripts", "runtime");
 
 function assertExists(target, label) {
   if (!fs.existsSync(target)) {
-    throw new Error(
-      `${label} not found at ${repoRelative(target)}. Run pnpm build first.`,
-    );
+    throw new Error(`${label} not found at ${repoRelative(target)}. Run pnpm build first.`);
   }
 }
 
@@ -55,9 +53,7 @@ function normalizeMiddlewareManifest(nextDir) {
     if (!entry || typeof entry !== "object") continue;
     if (typeof entry.entrypoint !== "string") continue;
 
-    const normalizedName = entry.entrypoint
-      .replace(/^server\//, "")
-      .replace(/\.js$/, "");
+    const normalizedName = entry.entrypoint.replace(/^server\//, "").replace(/\.js$/, "");
 
     if (entry.name !== normalizedName) {
       entry.name = normalizedName;
@@ -94,8 +90,8 @@ if (fs.existsSync(nextStaticDir)) {
 }
 
 // Railway's source snapshot can omit dot-directories from the service root. Keep a non-dot copy and
-// restore it inside the image before runtime starts.
-copyDir(path.join(distDir, ".next"), path.join(distDir, "next-build"));
+// restore it inside the image before runtime starts. Copy directly from standalone build to avoid static duplication.
+copyDir(path.join(standaloneDir, ".next"), path.join(distDir, "next-build"));
 normalizeMiddlewareManifest(path.join(distDir, ".next"));
 normalizeMiddlewareManifest(path.join(distDir, "next-build"));
 
@@ -187,13 +183,8 @@ fs.writeFileSync(
 
 // Clean up sensitive files from output
 for (const targetDir of [distDir]) {
-  const envFile = path.join(targetDir, ".env");
-  if (fs.existsSync(envFile)) {
-    fs.rmSync(envFile, { force: true });
-  }
-
   for (const file of fs.readdirSync(targetDir)) {
-    if (file.startsWith(".env.")) {
+    if (file.startsWith(".env")) {
       fs.rmSync(path.join(targetDir, file), { force: true });
     }
     if (file === ".npmrc") {
@@ -204,6 +195,9 @@ for (const targetDir of [distDir]) {
 
 // Remove package-manager indicators so Railpack uses the prebuilt standalone bundle without
 // trying to install dependencies in the generated deployment folder.
+// Note: pnpm-lock.yaml and other lockfiles are removed because Railway Dockerfile uses npm install
+// with the precompiled standalone bundle. The lockfiles are kept in .aiignore for token optimization
+// during AI development work, not for deployment considerations.
 const packageManagerFiles = [
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
@@ -220,27 +214,48 @@ for (const f of packageManagerFiles) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Railway uses DOCKERFILE builder (not Railpack). The Dockerfile runs npm install, and
-// .dockerignore excludes node_modules from the Docker build context. Therefore the dist
-// branch does not need node_modules committed. The workflow removes it before git commit.
+// Strip host-config files that Next.js tracing may have pulled in from the project root
+for (const f of ["vercel.json", "railway.json"]) {
+  const fp = path.join(distDir, f);
+  if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
+}
 
-// Write Dockerfile for Railway Docker builder.
-// Installs production dependencies from npm, then copies the
-// standalone app files (server.js, assets, scripts, etc.).
-// node_modules excluded via .dockerignore so the standalone
-// pnpm structure doesn't overwrite npm-installed dependencies.
-const dockerfile = `FROM node:22-alpine
+// Restore pruned `next/dist/build/` — Next.js standalone tracing removes this directory,
+// but `next/dist/server/next.js` dynamically requires `../build/output/log` at runtime.
+const distNextPnpmDir = path.join(distDir, "node_modules", ".pnpm");
+if (fs.existsSync(distNextPnpmDir)) {
+  for (const entry of fs.readdirSync(distNextPnpmDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith("next@")) {
+      const pkgDir = path.join(distNextPnpmDir, entry.name, "node_modules", "next");
+      const buildDir = path.join(pkgDir, "dist", "build");
+      if (!fs.existsSync(buildDir)) {
+        const sourceBuildDir = path.join(
+          rootDir, "node_modules", ".pnpm", entry.name, "node_modules", "next", "dist", "build"
+        );
+        if (fs.existsSync(sourceBuildDir)) {
+          fs.cpSync(sourceBuildDir, buildDir, { recursive: true });
+          console.log(`Restored next/dist/build/ from source (${entry.name})`);
+        }
+      }
+      break;
+    }
+  }
+}
+
+// Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
+// all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
+// image copies the entire prebuilt dist directory — no npm install needed.
+const dockerfile = `FROM node:26-alpine
 WORKDIR /app
-COPY package.json ./
-RUN npm install --production --omit=optional 2>&1
 COPY . .
 EXPOSE 8080
 CMD ["node", "-r", "./scripts/runtime/load-env.cjs", "./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
 
-// Exclude node_modules from Docker context so npm install result is used.
-fs.writeFileSync(path.join(distDir, ".dockerignore"), "node_modules\n.next\n.git\n");
+// Keep node_modules in the build context — the standalone bundle contains the correct
+// dependency tree (from pnpm + Next.js tracing). .git is unnecessary in the image.
+fs.writeFileSync(path.join(distDir, ".dockerignore"), ".git\n");
 
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/sh

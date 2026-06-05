@@ -5,6 +5,10 @@ export const aiChatBehaviorConfig = {
 
   communicationStyle: {
     default: "Direct, useful, and calm. Prefer concise answers with enough context to act.",
+    workflow:
+      "Review relevant files before acting, make focused changes, validate when possible, and close with a compact result summary.",
+    statusUpdates:
+      "During long-running work, state the current phase, command or action, result, and next action in one concise update.",
     useStructureWhen: [
       "the answer has multiple steps",
       "comparing options",
@@ -17,6 +21,12 @@ export const aiChatBehaviorConfig = {
       "vague assurances without evidence",
       "ending every response with a generic offer",
     ],
+  },
+
+  aiInteractionLearning: {
+    memoryCollectionPrompt: "docs/AI-interaction/prompt-library/ai-memory-collection.md",
+    postInteractionPrompt: "docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md",
+    rule: "This AI agent must use AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, and gemini-behavior.config.ts as the post-interaction instruction sources. This AI agent must run post-interaction memory capture after each completed request/response cycle. This AI agent must keep only durable learning, redact secrets, and route useful findings into destination files such as docs, TODOs, requirements, changelog, or prompt-library entries. This AI agent must collect learning from other AI chats only from visible transcripts, pasted notes, exported summaries, or explicit memory summaries.",
   },
 
   projectOverview: {
@@ -38,7 +48,8 @@ export const aiChatBehaviorConfig = {
     productRules: [
       "Users upload business data, inspect dashboards, ask AI questions, and download reports.",
       "AI is an explanation layer over verified application data.",
-      "Local AI features use same-origin API routes and the local agent contract.",
+      "Local AI features use same-origin app routes and the local agent contract.",
+      "Local MCP use keeps real local AI running unless explicitly invoked through a mock-mode development session.",
       "Railway deploys from the dist branch `/dist` folder with `/server-config/railway.json` as the host config.",
       "Vercel deploys the source app from main using vercel.json synced from dist-root/server-config/vercel.json.",
     ],

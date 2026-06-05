@@ -12,6 +12,7 @@ Use this guide when reviewing or writing AI interaction traces for user educatio
 - AI-agent learning for future improvement.
 - Short suggested next actions.
 - Tags for feature area, page, provider, data source, issue type, and user intent when known.
+- Validation evidence and task IDs when an audit creates follow-up work.
 
 ## Problem Markers
 
@@ -27,3 +28,4 @@ Use this guide when reviewing or writing AI interaction traces for user educatio
 - Move deliberate no-fix decisions to `.TODO/todo-ignore.md`.
 - Update requirements and changelog when the trace changes product behavior.
 - Update prompt files when the trace shows a better reusable prompt pattern.
+- Redact credentials, tokens, secrets, raw uploaded rows, and unnecessary personal data before preserving trace learning.

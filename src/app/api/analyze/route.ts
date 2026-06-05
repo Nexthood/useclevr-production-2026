@@ -18,6 +18,7 @@
  */
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
+import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
@@ -25,17 +26,23 @@ import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
-import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/query/engine";
+import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/data/queryEngine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { analyzeRequestSchema, validateOrError } from "@/lib/validation";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
+import {
+  generateMockAnalysisText,
+  isMockAIMode,
+  MOCK_AI_MODEL_NAME,
+  MOCK_AI_PROVIDER_NAME,
+} from "@/lib/ai/mock-ai";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 
 // Generate business insights from query results without LLM
-function generateBusinessInsights(result: any[], question: string): { insight: string; explanation: string; recommendation: string } {
+function generateBusinessInsights(result: Record<string, unknown>[], question: string): { insight: string; explanation: string; recommendation: string } {
   if (!result || result.length === 0) {
     return { insight: "No data available", explanation: "The query returned no results.", recommendation: "Try a different question." };
   }
@@ -57,11 +64,11 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
     }
 
     const aggregated: Record<string, { value: number; count: number }> = {};
-    data.forEach((row: any) => {
-      const category = row[catKey];
-      const value = row[numKey];
+    data.forEach((row: Record<string, unknown>) => {
+      const category = String(row[catKey] ?? "");
+      const value = Number(row[numKey] ?? 0);
       if (!aggregated[category]) aggregated[category] = { value: 0, count: 0 };
-      aggregated[category].value += typeof value === 'number' ? value : 0;
+      aggregated[category].value += value;
       aggregated[category].count += 1;
     });
 
@@ -80,8 +87,8 @@ function generateBusinessInsights(result: any[], question: string): { insight: s
   }
 
     if (isTrend) {
-      const firstVal = data[0] ? (data[0][numKey] || 0) : 0;
-      const lastVal = data[data.length - 1] ? (data[data.length - 1][numKey] || 0) : 0;
+      const firstVal = data[0] ? Number(data[0][numKey] ?? 0) : 0;
+      const lastVal = data[data.length - 1] ? Number(data[data.length - 1][numKey] ?? 0) : 0;
       const change = parseFloat(((lastVal - firstVal) / (firstVal || 1) * 100).toFixed(1));
       const direction = change >= 0 ? 'increased' : 'declined';
       const growthDecline = change >= 0 ? 'positive growth' : 'declining performance';
@@ -145,7 +152,7 @@ function cleanInsight(text: string): string {
 }
 
 // Store dataset in memory (for the session)
-let currentDataset: any[] = [];
+let currentDataset: Record<string, unknown>[] = [];
 let currentColumns: string[] = [];
 let datasetLoaded = false;
 
@@ -153,8 +160,9 @@ export async function POST(request: Request) {
   debugLog('\n========== ANALYZE REQUEST ==========');
 
   const requestStart = Date.now();
-  let traceProvider = "gemini-cloud"
-  let traceModel = "gemini-2.5-flash"
+  const mockAIMode = isMockAIMode()
+  let traceProvider = mockAIMode ? MOCK_AI_PROVIDER_NAME : "gemini-cloud"
+  let traceModel = mockAIMode ? MOCK_AI_MODEL_NAME : "gemini-2.5-flash"
   let traceError: string | null = null
   let traceResponseContent = ""
   let traceQuestion = ""
@@ -201,11 +209,28 @@ export async function POST(request: Request) {
     debugLog('[ANALYZE] Dataset ID:', datasetId);
 
     // ============================================================================
-    // USAGE LIMIT CHECK - Check for free tier limits
+    // RATE LIMIT - 30 analyses per minute per user
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
     traceUserId = userId || null
+
+    if (!checkRateLimit(`analyze:${userId || "anonymous"}`, 30, 60_000)) {
+      return Response.json({
+        success: false,
+        error: "Rate limit exceeded",
+        answer: "Too many requests. Please wait a moment before asking another question.",
+        insight: "Rate limited",
+        explanation: "You've reached the analysis rate limit.",
+        recommendation: "Wait a minute and try again.",
+        data: [],
+        chartType: "table",
+      }, { status: 429 });
+    }
+
+    // ============================================================================
+    // USAGE LIMIT CHECK - Check for free tier limits
+    // ============================================================================
 
     // If datasetId provided but no precomputedAnalysis/data, fetch from DB
     let analysisToUse = precomputedAnalysis;
@@ -375,7 +400,7 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Execute SQL query
-    let result: any[] = [];
+    let result: Record<string, unknown>[] = [];
     let queryError: string | null = null;
 
     try {
@@ -446,10 +471,6 @@ export async function POST(request: Request) {
     };
 
     try {
-      debugLog('[ANALYZE] Calling Google AI (Gemini) for response...');
-
-      const model = google("gemini-2.5-flash");
-
       let mcpToolsPrompt = '';
       if (datasetId && precomputedAnalysis) {
         mcpToolsPrompt = buildMCPToolsPrompt(datasetId);
@@ -458,12 +479,15 @@ export async function POST(request: Request) {
       const prompt = generateAnalysisPrompt(question, result, availableColumns, precomputedAnalysis) + mcpToolsPrompt;
 
       try {
-        const { text } = await generateText({
-          model,
-          prompt,
-        });
+        debugLog(mockAIMode ? '[ANALYZE] Calling Mock AI for response...' : '[ANALYZE] Calling Google AI (Gemini) for response...');
+        const text = mockAIMode
+          ? await generateMockAnalysisText({ question, resultRows: result })
+          : (await generateText({
+              model: google("gemini-2.5-flash"),
+              prompt,
+            })).text;
         answer = text;
-        debugLog('[ANALYZE] Gemini response received');
+        debugLog(mockAIMode ? '[ANALYZE] Mock AI response received' : '[ANALYZE] Gemini response received');
 
         const parts = answer.split('\n\n');
         for (const part of parts) {
@@ -565,22 +589,12 @@ export async function POST(request: Request) {
 
     traceResponseContent = answer || ""
 
-    const responseBody = {
-      success: true,
-      answer,
-      insight,
-      explanation,
-      recommendation,
-      data: result,
-      chartType,
-      metricColumn,
-      columns: availableColumns,
-    }
+    let savedTraceId: string | null = null
 
-    // Save trace asynchronously (fire-and-forget)
+    // Save trace before returning so the UI can attach feedback to the real trace.
     if (traceUserId) {
       const latencyMs = Date.now() - requestStart
-      createTrace({
+      const trace = await createTrace({
         userId: traceUserId,
         datasetId: traceDatasetId,
         prompt: question,
@@ -592,6 +606,22 @@ export async function POST(request: Request) {
         tokenCount: 0,
         estimatedCostUsd: 0,
       })
+      savedTraceId = trace?.id ?? null
+    }
+
+    const responseBody = {
+      success: true,
+      answer,
+      insight,
+      explanation,
+      recommendation,
+      data: result,
+      chartType,
+      metricColumn,
+      columns: availableColumns,
+      traceId: savedTraceId,
+      providerName: traceProvider,
+      modelName: traceModel,
     }
 
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');

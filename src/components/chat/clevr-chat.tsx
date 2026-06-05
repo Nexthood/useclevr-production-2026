@@ -465,7 +465,7 @@ export function ClevrChat({
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask Clevr..."
-                className="pr-10 h-10 text-sm"
+                className="pr-12 h-12 text-sm"
                 disabled={isLoading}
               />
               <Button
@@ -473,7 +473,7 @@ export function ClevrChat({
                 variant="ghost"
                 onClick={handleSend}
                 disabled={!inputValue.trim() || isLoading}
-                className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
               >
                 <Send className="h-4 w-4" />
               </Button>

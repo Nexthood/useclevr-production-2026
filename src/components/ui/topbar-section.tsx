@@ -13,6 +13,7 @@ export function TopbarSection({
   children,
   align = "left",
   noBorder = false,
+  iconOnly = false,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -22,17 +23,19 @@ export function TopbarSection({
   children?: React.ReactNode;
   align?: "left" | "right";
   noBorder?: boolean;
+  iconOnly?: boolean;
 }) {
   return (
     <Popover className="h-full">
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`flex h-full min-w-12 items-center gap-2 px-3 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70 ${noBorder ? "" : "border-l border-border/50"}`}
+          className={`group flex h-full min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70 ${noBorder ? "" : "border-l border-border/50"}`}
           title={label}
+          aria-label={label}
         >
-          <span className="flex-shrink-0 text-primary/80 transition group-hover:text-primary">{icon}</span>
-          <span className="hidden min-w-0 lg:block">
+          <span className="flex-shrink-0 text-muted-foreground transition group-hover:text-foreground">{icon}</span>
+          <span className={iconOnly ? "sr-only" : "hidden min-w-0 lg:block"}>
             <span className="block truncate text-xs font-semibold leading-4">{label}</span>
             {value && (
               <span className="block truncate text-[11px] leading-4 text-muted-foreground">

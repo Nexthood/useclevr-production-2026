@@ -8,6 +8,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+
+- Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
+- Show built-in base and superadmin demo credentials on the login page for app and admin testing.
+- Publish a public News section with five starter updates and individual article pages.
+- Login and registration auto-sign-in after successful signup with a delay to ensure database commit before authentication attempt.
+- Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
 - Business mentoring dashboard widget showing next scheduled session and booking options.
@@ -16,11 +22,32 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Business mentoring sales documentation with target segments and pricing tiers.
 - Account linking: users who signed up via Google or LinkedIn can add a password via the signup form without creating duplicate accounts.
 - OAuth user ID format standardized to `user_{uuid}` for consistency with credentials signup.
+- Company setup persistence: wizard data can be saved and loaded via API, with missing-field warnings on the business overview page.
+- Company Calculation Context computes adjusted KPIs (profit margin, net profit, tax estimate, cash flow) with confidence labels based on profile completeness.
+- File size check, rate limiting, and improved dirty-CSV error messages added to the upload API route.
+- Rate limiting added to the analyze API route (30 requests/minute).
 
 ### Fixed
+
+- Stripe service initialization now matches the current Stripe SDK constructor so checkout, webhook, and replay paths compile and run.
+- Business profile row links open the matching business profile and new business creation opens a blank profile.
+- AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.
+- Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
+- Hybrid AI local testing uses Mock AI responses for local runtime status, model list, pull, verification, chat, and analysis flows.
+- Project controls approach now documents sales tolerances and quality review cycles for sales materials.
+- Search popup local storage key uses consistent underscore naming and "FAQ" label renders correctly.
+- Onboarding auto-open re-opens when completion drops below the minimum threshold.
+- FAQ link added to the desktop public header navigation.
+- AI interaction traces redact credential-like values before prompts, answers, and errors are stored or exported.
+- Development debug endpoints return 404 in production so request and dataset diagnostics stay local.
+- Dist publish workflow uses an allowlist-based staging directory instead of the working tree, preventing large build artifacts and node_modules from leaking into the dist branch.
 - Public help chat answers public FAQ, dashboard help chat answers public and dashboard FAQ, and super-admin help chat includes operator FAQ.
 - Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.
 - Sidebar toggle moved from topbar to the AppSidebar for desktop view, keeping mobile toggle in the header.
+- Login uses compact inner labels, short tab flow, and forgot-password access directly under the password input.
+- Signup requires stronger passwords with length, character variety, and personal-information checks.
+- Chat inputs use larger composing areas with clearer send actions.
+- Floating help chat keeps the launcher aligned to the right while the panel is open.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
 - Stripe checkout redirects verify payment success with a signed server token that survives local and deployed server restarts.
 - MCP access stays scoped to signed-in users and their own datasets while super-admins keep full platform access.
@@ -40,6 +67,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `railpack.json` so Railpack sets up Node.js runtime; npm install is instant (empty dependencies).
 
 ### Dev
+
+- Add Payload Phase 0 migration scripts, generated types, and PostgreSQL migration files for the new admin content schema.
+- Record that the AI agent already follows task-close and post-interaction capture automatically, while user reminders sharpen the wording standard into actor-action-destination precision.
+- Record AI-interaction correction patterns and future-developer notes in the smallest matching files.
+- Rename sales project guidance around project controls and keep founder docs ready for a future branch split.
+- Add generic TODO labels and done-task commit markers so task queues are easier to scan and audit.
+- Add development-only Mock AI responses for local chat, streaming chat, and analysis flows.
+- Consolidate Payload migration planning into one current migration plan and prompt reference.
+- Clarify local AI, mock-mode, and API route access audit guidance so developer docs match current controls.
+- Keep the mentoring booking page out of the server database bundle so production builds compile.
+- Add secret-leak linting for docs and source text so credential examples stay placeholder-only.
+- Retire the MCP implementation plan into the MCP developer guide, AI tracing structure, and active MCP hardening tasks.
+- Retire the MCP and FAQ prompt plan into MCP docs, user guidance, requirements, and a reusable scope-check prompt.
+- Retire the project evaluation prompt plan into reusable AI evaluation prompts, project learning controls, and the project audit guide.
+- Retire the Business Profile planning prompt into the developer planning guide with calculation-context, setup payload, and review-flag rules.
+- Add AI tracing structure guidance for prompt versions, user history, feedback, export, analytics, and trace-safe examples.
+- Add AI interaction guidance for compact workflow updates, git release prompts, and memory collection from visible external chat summaries.
 - Clarify documentation structure and retire duplicate AI interaction folders into the current AI knowledge base.
 - Add Sales project documents and marketing planning.
 - Reorganize AI interaction docs by audience, prompt library, learning traces, sales guidance, and project governance.
@@ -55,6 +99,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add metadata exports (page titles) to settings, tickets, FAQ, and dataset pages.
 
 ### Added
+
 - Select dashboard language in English, German, Hungarian, or Romanian.
 - View bookkeeping cards, queue, and monthly close readiness in Accountancy overview.
 - Open AI Assistant from sidebar, select dataset, and ask follow-up questions in one workspace.
@@ -67,6 +112,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Manage dashboard tickets with table-first queue, separate pages for new tickets and row-level editing.
 
 ### Changed
+
+- Help content explains how users and operators get clearer AI answers and review answer quality.
+- Use a more compact default text scale across public and dashboard pages.
+- Display settings show accessibility states and explain contrast and larger-text controls.
 - Front page sections use the same compact public-page rhythm and call-to-action treatment as the affiliate page.
 - Access sign-in and sign-up in tabs with demo account, Google, and LinkedIn options.
 - View business review readiness in Business overview.
@@ -87,6 +136,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Select light, dark, system, high-contrast, or larger-text display modes from dashboard topbar.
 
 ### Dev
+
 - Remove pnpm metadata from generated Railway deployment packages so Railpack can use npm.
 - Reuse pnpm store cache in GitHub validation and dist publish jobs. Retain install metadata in generated Railway output for faster dependency layers.
 - Include pnpm build-script approvals in generated deployment packages so local and Railway installs can run required native dependency setup.
@@ -96,6 +146,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add translation service with 24-hour caching layer to minimize API calls to Google Translation.
 
 ### Changed
+
 - See App Store and Google Play icons in dashboard sidebar app panel; social links open external pages in new tab.
 - Track setup progress from account data, route to relevant setup pages, and reopen for accounts below 25% completion.
 - Open business setup links in the Business workspace.
@@ -114,8 +165,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - See dashboard help links under topbar Help menu; sidebar focuses on primary app areas.
 - See customer level and discount rule management using horizontal table rows for faster editing.
 
-
 ### Fixed
+
 - View business overview when no business profile exists, with add-business action visible in top-level workspace.
 - Upload datasets using valid persisted demo account path with clearer file-size handling.
 - View business overview metrics even when business storage tables are unavailable.
@@ -149,7 +200,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - See public legal pages and authentication screens expose Terms and Privacy links consistently.
 - See mobile public navigation open as compact menu while keeping mode and theme controls visible.
 - See referral signup and paid events support idempotency keys and block self-referral rewards.
-
 
 ### Dev
 

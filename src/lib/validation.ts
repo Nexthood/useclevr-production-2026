@@ -1,4 +1,5 @@
 import { z } from "zod"
+import type { Result } from "@/lib/result"
 
 export const chatRequestSchema = z.object({
   messages: z.array(z.object({
@@ -44,16 +45,6 @@ export const ticketUpdateSchema = z.object({
   adminNote: z.string().optional(),
 })
 
-export interface ValidationResult<T> {
-  success: true
-  data: T
-}
-
-export interface ValidationError {
-  success: false
-  error: string
-}
-
 export const mentoringSessionCreateSchema = z.object({
   type: z.enum(["fundraising", "growth", "operations", "financial", "product"]),
   scheduledAt: z.string().optional(),
@@ -69,7 +60,7 @@ export const mentoringSessionUpdateSchema = z.object({
   notes: z.string().optional(),
 })
 
-export function validateOrError<T>(schema: z.ZodSchema<T>, data: unknown): ValidationResult<T> | ValidationError {
+export function validateOrError<T>(schema: z.ZodSchema<T>, data: unknown): Result<T, string> {
   const result = schema.safeParse(data)
   if (!result.success) {
     const firstError = result.error.issues[0]

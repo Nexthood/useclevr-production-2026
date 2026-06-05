@@ -1,4 +1,5 @@
 import { getOllamaBaseUrl } from "@/lib/ai/ollama-client"
+import { isMockAIMode } from "@/lib/ai/mock-ai"
 import { NextResponse } from "next/server"
 
 const PULL_PATH = "/api/pull"
@@ -9,6 +10,10 @@ export async function POST(request: Request) {
     const { model } = await request.json()
     if (typeof model !== 'string' || !model.trim()) {
       return NextResponse.json({ success: false, error: 'invalid_model' }, { status: 400 })
+    }
+
+    if (isMockAIMode()) {
+      return NextResponse.json({ success: true, mock: true, result: { status: "success", model } })
     }
 
     const baseUrl = getOllamaBaseUrl()

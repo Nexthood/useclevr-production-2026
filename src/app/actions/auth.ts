@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 import { debugError } from "@/lib/utils/debug"
 
 import { recordActivity } from "@/lib/activity/activity-store"
+import { validatePasswordPolicy } from "@/lib/auth/password-policy"
 import { db } from "@/lib/db"
 import { accounts, profiles, users } from "@/lib/db/schema"
 import bcrypt from "bcryptjs"
@@ -25,8 +26,9 @@ export async function signup(formData: FormData) {
     return { error: "Email and password are required" }
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters" }
+  const passwordPolicy = validatePasswordPolicy(password, { email, name })
+  if (!passwordPolicy.passed) {
+    return { error: passwordPolicy.message }
   }
 
   // Check if user already exists with error handling
@@ -42,16 +44,6 @@ export async function signup(formData: FormData) {
 
   // Handle existing OAuth user - automatically link password
   if (existingUser && !existingUser.password) {
-    // Find the OAuth provider for this user
-    let oauthAccount = null
-    try {
-      oauthAccount = await db.query.accounts.findFirst({
-        where: eq(accounts.userId, existingUser.id),
-      })
-    } catch (e) {
-      debugError("Error checking OAuth account:", e)
-    }
-
     // Automatically add password to existing OAuth user
     try {
       const hashedPassword = await bcrypt.hash(password, 12)

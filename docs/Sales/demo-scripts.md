@@ -4,9 +4,9 @@
 
 Two demo datasets are provided in `docs/Sales/demo-datasets/`:
 
-| File | Content | Best For |
-|------|---------|----------|
-| `saas-revenue-2025-h1.csv` | 32 rows: Date, Product, Region, Revenue, Cost, Quantity, CustomerType | Founder, SME owner demos |
+| File                         | Content                                                                     | Best For                     |
+| ---------------------------- | --------------------------------------------------------------------------- | ---------------------------- |
+| `saas-revenue-2025-h1.csv`   | 32 rows: Date, Product, Region, Revenue, Cost, Quantity, CustomerType       | Founder, SME owner demos     |
 | `beverage-sales-q1-2025.csv` | 36 rows: Date, Product, Category, UnitsSold, UnitPrice, CostPerUnit, Region | Consultant, e-commerce demos |
 
 ---
@@ -160,10 +160,10 @@ Two demo datasets are provided in `docs/Sales/demo-datasets/`:
 
 ## Objection Handling
 
-| Objection | Response |
-|-----------|----------|
-| "I already use Excel/Sheets" | UseClevr adds AI analysis and report-ready output on top of your existing data. |
-| "ChatGPT can answer my questions" | ChatGPT gives generic answers. UseClevr ties answers to your actual uploaded data with verified computed numbers. |
-| "I need an accountant, not software" | UseClevr helps you organize data before an accountant reviews it — saves time and cost. |
-| "My data is sensitive" | Data is stored in encrypted PostgreSQL (EU, GDPR). AI sees only aggregated metrics, never raw rows. |
-| "I am not technical" | No SQL or BI skills needed. Upload a CSV and ask questions in plain English. |
+| Objection                            | Response                                                                                                          |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| "I already use Excel/Sheets"         | UseClevr adds AI analysis and report-ready output on top of your existing data.                                   |
+| "ChatGPT can answer my questions"    | ChatGPT gives generic answers. UseClevr ties answers to your actual uploaded data with verified computed numbers. |
+| "I need an accountant, not software" | UseClevr helps you organize data before an accountant reviews it — saves time and cost.                           |
+| "My data is sensitive"               | Data is stored in encrypted PostgreSQL (EU, GDPR). AI sees only aggregated metrics, never raw rows.               |
+| "I am not technical"                 | No SQL or BI skills needed. Upload a CSV and ask questions in plain English.                                      |

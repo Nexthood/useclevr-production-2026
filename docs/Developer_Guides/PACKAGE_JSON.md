@@ -15,28 +15,28 @@ deployment output.
 ## Command Flow
 
 ```mermaid
-flowchart LR
+flowchart TD
   Dev[pnpm dev] --> Source[Source app]
   Source --> Validate[pnpm validate]
   Validate --> Publish[pnpm prod:build]
-  Publish --> Dist[generated dist output]
-  Dist --> Railway[Railway /dist runtime]
+  Publish --> Dist[Generated dist output]
+  Dist --> Railway[Railway runtime]
 ```
 
 ## Script Groups
 
-| Group           | Scripts                                                   | Purpose                                      |
-| --------------- | --------------------------------------------------------- | -------------------------------------------- |
-| Development     | `pnpm dev`, `pnpm dev:frontend`, `pnpm dev:server`        | Start the local Next.js app.                 |
-| Build           | `pnpm build`, `pnpm prod:build`, `pnpm preview`           | Build source or generated deployment output. |
+| Group           | Scripts                                                 | Purpose                                      |
+| --------------- | ------------------------------------------------------- | -------------------------------------------- |
+| Development     | `pnpm dev`, `pnpm dev:frontend`, `pnpm dev:server`      | Start the local Next.js app.                 |
+| Build           | `pnpm build`, `pnpm prod:build`, `pnpm preview`         | Build source or generated deployment output. |
 | Validation      | `pnpm validate`, `pnpm validate:prepush`, `pnpm health` | Run local and CI gates.                      |
-| Deploy config   | `pnpm deploy:railway:check`, `pnpm deploy:vercel:check`   | Validate host config templates.              |
-| Lint and format | `pnpm lint`, `pnpm lint:fix`, `pnpm format:check`         | Check source, package, TODO, and formatting. |
-| Database        | `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`     | Manage Drizzle schema changes.               |
+| Deploy config   | `pnpm deploy:railway:check`, `pnpm deploy:vercel:check` | Validate host config templates.              |
+| Lint and format | `pnpm lint`, `pnpm lint:fix`, `pnpm format:check`       | Check source, package, TODO, and formatting. |
+| Database        | `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`   | Manage Drizzle schema changes.               |
 
 ## Dependency Checks
 
-`pnpm lint` runs package metadata checks, TODO metadata checks, and ESLint.
+`pnpm lint` runs package metadata checks, TODO metadata checks, workflow checks, secret-leak checks, pricing validation, and ESLint.
 
 `pnpm lint:docs`, `pnpm lint:changelog`, `pnpm lint:commits`, and `pnpm link:docs` are separate
 targeted checks so developers can run only the surface they changed.
@@ -55,6 +55,8 @@ Use `pnpm lint:all` when you want source lint plus dependency freshness in one m
 - Keep build, lint, docs, and release tooling in `devDependencies`.
 - Update [TECH_DEPENDENCIES.md](TECH_DEPENDENCIES.md) when dependency versions or usage categories
   change.
+- Keep local-only environment files, Railway link files, and editor settings ignored in git and
+  backed up through a private copy outside the repo.
 
 ## Script Modules
 
@@ -70,3 +72,4 @@ scripts when a script needs repository paths or the pinned package-manager setti
 - [Technical Dependencies](TECH_DEPENDENCIES.md)
 - [Railway Deployment](RAILWAY_DEPLOYMENT.md)
 - [Vercel Deployment](VERCEL_DEPLOYMENT.md)
+- [Local Private Config Copies Plan](../../.TODO/.PLAN/local-private-config-copies.md)

@@ -12,7 +12,7 @@ Vercel deploys the source application from `main`.
 ## Vercel Settings
 
 ```mermaid
-flowchart LR
+flowchart TD
   Template[dist-root/server-config/vercel.json] --> Root[vercel.json]
   Root --> Main[main branch]
   Main --> Vercel[Vercel source deploy]
@@ -24,6 +24,7 @@ flowchart LR
 - Framework: Next.js
 
 The root `vercel.json` is synced from `dist-root/server-config/vercel.json`.
+Keep the root file in source branches because Vercel reads it from the repository root.
 
 ## Commands
 

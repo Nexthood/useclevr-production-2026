@@ -339,7 +339,7 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask your data a question..."
-                  className="pr-12 h-12"
+                  className="pr-14 h-14"
                   disabled={isLoading}
                 />
                 <Button
@@ -347,9 +347,9 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
                   variant="ghost"
                   onClick={handleSend}
                   disabled={!inputValue.trim() || isLoading}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground text-center mt-2">

@@ -14,9 +14,13 @@ Check:
 - GitHub Actions latest runs for the relevant branch.
 - Generated deployment config under dist-root/server-config.
 - Railway config path and service root.
+- Test service uses test.useclevr.com and production service uses app.useclevr.com.
+- Test service variables stay separate from production variables.
+- Stripe test mode is used for test deploys and live Stripe keys stay production-only.
 - railpack.json provider format.
 - dist/node_modules presence and pnpm symlink preservation.
 - Generated output excludes source workspace metadata.
+- Generated output excludes environment files, caches, and forbidden generated-branch files.
 - Runtime start command and healthcheck path.
 - Railway logs for build-phase or runtime-phase failure.
 
@@ -31,4 +35,5 @@ Validate:
 - pnpm validate:dist
 - pnpm prod:build when packaging can be affected
 - HTTP healthcheck after deploy
+- Sign-in, protected dashboard access, dataset upload, dataset table, AI analysis, and reports/downloads on the requested service
 ```

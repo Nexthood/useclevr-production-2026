@@ -2,11 +2,20 @@
 
 This file states the current product requirements in direct, present-state language.
 
+Text rules for this file:
+
+- Name the current actor, current behavior, and current outcome directly.
+- Use required-action wording when the requirement defines a rule or boundary.
+- Avoid vague phrases that hide the actor or the required action.
+- Avoid past-state comparison unless it prevents a concrete risk.
+
 ## Infrastructure
 
 - Store application data in Neon PostgreSQL.
+- Store Payload Phase 0 content tables in the same PostgreSQL database.
 - Use ephemeral PostgreSQL containers for local and CI validation.
 - Manage database schema with Drizzle ORM migrations.
+- Manage Payload schema with Payload migrations and generated types.
 - Keep production and preview deployments connected to the configured Neon database.
 - Return liveness health checks even while database readiness is reported as unavailable or degraded.
 - Keep Railway authentication on the active request host unless a strict fixed auth URL is enabled.
@@ -24,6 +33,10 @@ This file states the current product requirements in direct, present-state langu
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
 - Keep AI answers within the uploaded dataset scope.
+- Store AI answer feedback on the saved answer history item.
+- Explain efficient AI usage for public users, dashboard users, and operators.
+- Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
+- Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
@@ -62,6 +75,8 @@ This file states the current product requirements in direct, present-state langu
 - Include business profile, location, tax, financial, and overview visits in setup progress.
 - Open Business as a top-level workspace with the businesses listing first.
 - Show profile, location, tax, financial, and review subpages inside the Business workspace.
+- Open business row edit links on the matching business profile.
+- Open new business creation as a blank business profile.
 - Show business review readiness inside the Business overview.
 - Show saved business profile details when dedicated business records are unavailable.
 - Support subscription-tier business limits, primary business storage, archive and restore states, operating entities, and cached country tax context.
@@ -93,9 +108,16 @@ This file states the current product requirements in direct, present-state langu
 - Create usable local accounts during social login and registration.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
+- Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
+- Use compact inner labels in login fields.
+- Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
+- Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
+- Keep topbar items on one line with consistent icon color and compact hover targets.
+- Show a host-specific keyboard shortcut in the dashboard search trigger.
 - Support light, dark, system, high-contrast, and larger-text display modes.
+- Show accessibility state and descriptions in display settings.
 - Use full-height hover and click targets in the dashboard topbar.
 - Use a horizontal subpage bar for account profile, preferences, subscription, billing, and activity pages.
 - Search app pages, datasets, reports, and FAQ answers from the dashboard search overlay.
@@ -123,13 +145,36 @@ This file states the current product requirements in direct, present-state langu
 - Answer public and dashboard FAQ in the dashboard help chat.
 - Answer public, dashboard, and operator FAQ in the super-admin help chat.
 - Keep floating help chat clear of the footer.
+- Keep the floating help chat launcher aligned to the right when the chat panel is open.
+- Use a larger message input in floating help chat.
 - Use high-contrast message bubbles in floating help chat.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.
+- Answer display, contrast, and text-size questions in public and dashboard FAQ.
 - Show ticket creation on the Tickets page.
 - Separate user help and operator help with a section bar.
 - Filter operator notes from the dashboard FAQ for super-admins.
 - Keep product-update waitlist signup usable during local development.
+
+## AI Interaction Learning
+
+- Record concise correction patterns, user expectations, and reusable lessons after each completed request/response cycle.
+- Route durable learning into the smallest matching files for the audience instead of storing one large summary.
+- Use the post-interaction hook to prepare future developers for repeated AI collaboration work.
+- Use super-precise instruction language in AI guidance, TODO rules, changelog rules, and docs so
+  the active AI agent can see who must act, what must change, and where the change belongs with no
+  vagueness.
+- Keep founder-facing project documents, sales planning, and project-control references separated from the current product docs when that split improves clarity.
+
+## Public Content
+
+- Keep the existing homepage, privacy, and terms routes available.
+- Show public news at `/news` with individual news detail pages.
+- Seed five starter news entries for first-use admin testing.
+- Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.
+- Open Payload admin at `/admin`.
+- Keep Payload admin focused on minimal content editing for CMS users, news, homepage, privacy, and terms.
+- Allow only superadmin CMS users to edit Phase 0 public content.
 
 ## Payment Provider Setup
 
@@ -137,6 +182,7 @@ This file states the current product requirements in direct, present-state langu
 - Restrict payment provider configuration to super-admins.
 - Show secret key and webhook secret readiness on the payment setup page.
 - Keep Stripe as the active payment provider.
+- Load the Stripe plugin in Payload when Stripe server credentials are configured.
 - Add PayPal only when a second checkout provider is required.
 
 ## Credit Rules & Referrals
@@ -171,9 +217,23 @@ This file states the current product requirements in direct, present-state langu
 - Use the shared modal pattern for the Hybrid AI popup.
 - Open the Hybrid AI popup from the dashboard topbar.
 - Show Pro and Business plan options to free users inside the Hybrid AI popup.
+- Support localhost Mock AI testing for Hybrid AI status, model list, pull, verification, chat, and analysis flows.
+- Guard Mock AI mode from production runtime: only activate when `NODE_ENV !== "production"` and `MOCK_AI_MODE=true`.
+- Route local AI queries in priority order: Antigravity Server → Local AI (Ollama) → Cloud AI (Gemini Flash 2.5). Mock AI short-circuits before any real provider check.
+
+## Sales Planning
+
+- Use stage gates for sales readiness milestones: materials draft, demo readiness, early adopter release, general availability.
+- Review sales materials against `requirements.md` and `CHANGELOG.md` after every release.
+- Log sales objection patterns, competitor positioning gaps, and pricing blockers in the lessons log.
+- Track sales material accuracy as part of the release process.
+- Manage sales artefacts (one-pager, demo scripts, demo datasets, objection handling) as project products with defined quality criteria and stage gate approvals.
 
 ## MCP
 
 - Expose MCP tools only to signed-in users.
 - Scope MCP dataset resources and tool calls to the signed-in user's datasets.
 - Let super-admins access MCP resources and tools across platform datasets.
+- Keep MCP under the authenticated app API and separate from public FAQ routes.
+- Keep unauthenticated MCP discovery unavailable.
+- Keep a dedicated MCP subdomain out of scope until MCP becomes an external customer-facing service.

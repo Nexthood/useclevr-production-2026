@@ -1,4 +1,5 @@
 import { generateOllamaCompletion } from "@/lib/ai/ollama-client"
+import { isMockAIMode } from "@/lib/ai/mock-ai"
 import { NextResponse } from "next/server"
 
 const TIMEOUT_MS = 15000 // 15s minimal verification window
@@ -8,6 +9,10 @@ export async function POST(request: Request) {
     const { model } = await request.json()
     if (typeof model !== 'string' || !model.trim()) {
       return NextResponse.json({ success: false, error: 'invalid_model' }, { status: 400 })
+    }
+
+    if (isMockAIMode()) {
+      return NextResponse.json({ success: true, mock: true, model })
     }
 
     const controller = new AbortController()

@@ -11,6 +11,15 @@ This folder stores reusable AI prompts as separate files.
 - [Bookkeeping feature work](bookkeeping-feature-work.md)
 - [Payload migration](payload-migration.md)
 - [Interaction trace learning](interaction-trace-learning.md)
+- [AI memory collection](ai-memory-collection.md)
+- [Post-interaction memory collection](ai-memory-collection-post-interaction.md)
+- [AI collaboration reminder](ai-collaboration-reminder.md)
+- [Compact status report](compact-status-report.md)
+- [Git release workflow](git-release-workflow.md)
+- [Feature restoration check](feature-restoration-check.md)
+- [TODO retirement check](todo-retirement-check.md)
+- [Work classification](work-classification.md)
+- [MCP and FAQ scope check](mcp-faq-scope-check.md)
 
 ## Maintenance
 

@@ -3,6 +3,10 @@ import { NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new Response(null, { status: 404 })
+  }
+
   const relevantHeaders = {
     accept: request.headers.get("accept"),
     rsc: request.headers.get("rsc"),
@@ -32,4 +36,3 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ diagnosis })
 }
-

@@ -9,9 +9,10 @@ paths, and validation metadata.
 flowchart TD
   Config[.TODO/config.json] --> Next[.TODO/todo-next.md]
   Next --> Work[Implement task]
-  Work --> Done[.TODO/todo-done.md]
-  Next --> Future[.TODO/todo-future.md]
-  Next --> Ignore[.TODO/todo-ignore.md]
+  Work --> Decision{Outcome}
+  Decision --> Done[.TODO/todo-done.md]
+  Decision --> Future[.TODO/todo-future.md]
+  Decision --> Ignore[.TODO/todo-ignore.md]
   Done --> Requirements[requirements.md]
   Done --> Changelog[CHANGELOG.md]
 ```
@@ -29,13 +30,13 @@ active queue and keeps the original `T-` number unchanged.
 
 ## Files
 
-| File                   | Purpose                                                     |
-| ---------------------- | ----------------------------------------------------------- |
-| `.TODO/config.json`    | Task numbering, tracked TODO file paths, and agent rules.   |
-| `.TODO/todo-next.md`   | The only active queue for confirmed work.                   |
-| `.TODO/todo-done.md`   | Completed work history.                                     |
-| `.TODO/todo-future.md` | Valid work that should wait.                                |
-| `.TODO/todo-ignore.md` | Intentionally excluded work with rationale.                 |
+| File                   | Purpose                                                   |
+| ---------------------- | --------------------------------------------------------- |
+| `.TODO/config.json`    | Task numbering, tracked TODO file paths, and agent rules. |
+| `.TODO/todo-next.md`   | The only active queue for confirmed work.                 |
+| `.TODO/todo-done.md`   | Completed work history.                                   |
+| `.TODO/todo-future.md` | Valid work that should wait.                              |
+| `.TODO/todo-ignore.md` | Intentionally excluded work with rationale.               |
 
 Dist and audit-specific TODO files are retired. Dist follow-ups, audit findings, and migration
 records live in the regular TODO files and project guides.
@@ -50,6 +51,21 @@ Use `.TODO/config.json` before adding tasks:
 4. Do not reuse or renumber existing task IDs unless correcting a clear error.
 5. Every task in the TODO files must have a `T-` number.
 6. Write task descriptions as direct present-action statements, not retrospective changelog copy.
+7. Write task descriptions with super-precise wording that states the current action directly and
+   does not hide the actor behind vague reminders.
+
+## Labels
+
+`.TODO/config.json` owns the generic TODO labels. Labels work like lightweight GitHub labels and a
+task can carry more than one label.
+
+- Use only labels listed in `.TODO/config.json`.
+- Keep labels generic, such as `ci-build`, `dashboard`, `notice`, `payment`, `local-ai`, `docs`, and
+  `security`.
+- Group TODO files by the task's primary label using `## Label: label-name` sections.
+- Add `(labels: label, label)` to active, future, and ignored tasks.
+- Add `(labels: label, label; commit: abc1234)` to completed tasks.
+- Use `commit: worktree` only for completed tasks that are not committed yet; replace it with the short commit after commit.
 
 ## How To Add Work
 
@@ -116,5 +132,5 @@ pnpm lint:todos
 ```
 
 The TODO checker validates `.TODO/config.json`, confirms configured files exist, checks task ID
-format, prevents duplicate task IDs across configured TODO files, and reports active versus retired
-task counts.
+format, validates label suffixes, prevents duplicate task IDs across configured TODO files, and
+reports active versus retired task counts.

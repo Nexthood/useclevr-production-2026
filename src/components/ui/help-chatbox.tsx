@@ -141,9 +141,9 @@ export function HelpChatbox({
   }
 
   return (
-    <div className="fixed bottom-12 right-4 z-[120]">
+    <div className="fixed bottom-6 right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:right-6">
       {open && (
-        <div className="mb-3 w-[min(calc(100vw-2rem),420px)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="w-[min(calc(100vw-2rem),440px)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4 text-primary" />
@@ -192,8 +192,13 @@ export function HelpChatbox({
           )}
 
           <form className="flex gap-2 border-t border-border p-3" onSubmit={handleQuestion}>
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search help..." className="h-10 flex-1 text-base" />
-            <Button type="submit" size="sm" className="gap-2 px-4">
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search help..."
+              className="h-12 flex-1 text-sm"
+            />
+            <Button type="submit" className="h-12 gap-2 px-4">
               <Send className="h-4 w-4" />
               <span className="hidden sm:inline">Send</span>
             </Button>
@@ -206,7 +211,7 @@ export function HelpChatbox({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={`inline-flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
           open
             ? "border border-border bg-background text-foreground hover:bg-muted"
             : "bg-primary text-primary-foreground hover:bg-primary/90"

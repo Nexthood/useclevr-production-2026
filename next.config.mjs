@@ -1,3 +1,7 @@
+import path from "node:path";
+
+import { withPayload } from "@payloadcms/next/withPayload";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   productionBrowserSourceMaps: false,
@@ -14,6 +18,10 @@ const nextConfig = {
     },
   },
   webpack: (config, { dev }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@payload-config": path.resolve(process.cwd(), "payload.config.ts"),
+    };
     if (!dev && config.cache) {
       config.cache = false;
     }
@@ -51,10 +59,6 @@ const nextConfig = {
             value: "strict-origin-when-cross-origin",
           },
           {
-            key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
-          },
-          {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
@@ -64,4 +68,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPayload(nextConfig);

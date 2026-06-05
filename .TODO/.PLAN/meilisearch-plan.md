@@ -1,6 +1,7 @@
 # Meilisearch Integration Plan
 
-Planning-only document. Use this when activating Meilisearch work for dashboard search, FAQ search, dataset/report discovery, and future content search.
+Planning-only document. Use this when activating Meilisearch work for dashboard search, FAQ search,
+dataset/report discovery, and future docs-subdomain power search.
 
 ## Goal
 
@@ -12,6 +13,8 @@ Meilisearch should improve:
 - Public and dashboard FAQ discovery.
 - Dataset and report discovery.
 - Future CMS/content search.
+- Future docs-subdomain public documentation search.
+- Future docs-subdomain protected operator documentation search.
 - Super-admin operational search where allowed.
 
 ## Current Search State
@@ -23,6 +26,7 @@ Meilisearch should improve:
 - Dataset search uses PostgreSQL `ilike` against dataset name and file name.
 - Dataset row search scans a limited set of JSON row data after matching datasets.
 - Report search reads generated report metadata from report storage and checks dataset ownership.
+- Docs subdomain search does not exist yet.
 - Search access scope is enforced in application code:
   - Signed-in users see own datasets and own reports.
   - Super-admin users see platform-wide operational results.
@@ -35,6 +39,7 @@ Meilisearch should improve:
 - Do not expose user-owned results without application-side access filters.
 - Do not make Meilisearch required for core dashboard use until fallback behavior is proven.
 - Do not bypass existing role checks for public, signed-in, and super-admin users.
+- Do not expose operator docs or protected docs metadata in public search indexes.
 
 ## Target Architecture
 
@@ -214,6 +219,61 @@ Rules:
 - Index published content only for public search.
 - Keep draft content admin-only.
 
+### Future `docs_public`
+
+Purpose: Search the public docs subdomain.
+
+Fields:
+
+- `id`
+- `slug`
+- `section`
+- `title`
+- `summary`
+- `body`
+- `tags`
+- `href`
+- `visibility`: `public`
+
+Filters:
+
+- `section`
+- `visibility`
+
+Rules:
+
+- Index only docs approved for the public docs host.
+- Keep results usable without leaking hidden content structure.
+
+### Future `docs_operator`
+
+Purpose: Search protected operator docs on the docs subdomain.
+
+Fields:
+
+- `id`
+- `slug`
+- `section`
+- `title`
+- `summary`
+- `body`
+- `tags`
+- `href`
+- `visibility`: `operator`
+- `roles`
+
+Filters:
+
+- `visibility`
+- `roles`
+- `section`
+
+Rules:
+
+- Query only after superadmin auth succeeds.
+- Keep the operator index physically or logically separated from the public docs index.
+- Never return operator snippets or titles in public search responses.
+
 ## Implementation Phases
 
 ### Phase 1: Adapter And Fallback
@@ -258,6 +318,15 @@ Rules:
 - Add admin-only reindex action or script.
 - Log index failures without blocking upload or report generation.
 - Add docs for local and Railway/host setup.
+
+### Phase 7: Docs Subdomain Search
+
+- Add a docs search adapter for `docs.useclevr.com`.
+- Index public docs content into `docs_public`.
+- Add protected operator docs indexing into `docs_operator`.
+- Add auth-aware filters before operator-doc search runs.
+- Keep public docs search available without login.
+- Keep baseline docs navigation usable when Meilisearch is disabled.
 
 ## Access Control Rules
 

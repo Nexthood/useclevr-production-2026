@@ -11,6 +11,7 @@ export type OnboardingStep = {
   href: string
   complete: boolean
   group?: string
+  section?: string
 }
 
 export type OnboardingStatus = {
@@ -81,18 +82,6 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
       .filter((path): path is string => Boolean(path)),
   )
 
-   const _profileFields = [
-     { id: "profile-name", title: "Add your name", complete: Boolean(profile?.fullName) },
-     { id: "profile-email", title: "Confirm account email", complete: Boolean(profile?.email) },
-   ]
-   const _businessFields = [
-     { id: "business-name", title: "Add company name", complete: Boolean(businessDetails.businessName) },
-     { id: "business-email", title: "Add company email", complete: Boolean(businessDetails.businessEmail) },
-     { id: "business-industry", title: "Add industry", complete: Boolean(businessDetails.industry) },
-     { id: "business-location", title: "Add location", complete: Boolean(businessDetails.location) },
-     { id: "business-website", title: "Add website", complete: Boolean(businessDetails.website) },
-     { id: "business-description", title: "Add business description", complete: Boolean(businessDetails.businessDescription) },
-   ]
   const requiredPageVisits = [
     { id: "visit-profile", title: "Visit profile settings", href: "/app/settings/profile" },
     { id: "visit-business", title: "Visit business workspace", href: "/app/business" },
@@ -109,48 +98,59 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
   const hasDataset = Boolean(firstDataset)
   const hasAnalysis = Boolean(analyzedActivity)
 
-   const steps: OnboardingStep[] = [
-     {
-       id: "profile-completed",
-       title: "Complete profile",
-       description: "Add your name and confirm your account email in profile settings.",
-       href: "/app/settings/profile",
-       complete: Boolean(profile?.fullName && profile?.email),
-       group: "Profile",
-     },
-     {
-       id: "business-profile-completed",
-       title: "Complete business profile",
-       description: "Add company name, email, industry, location, website, and description.",
-       href: "/app/business/profile",
-       complete: Boolean(businessDetails.businessName && businessDetails.businessEmail && businessDetails.industry && businessDetails.location && businessDetails.website && businessDetails.businessDescription),
-       group: "Business",
-     },
-     {
-       id: "dataset-uploaded",
-       title: "Upload data",
-       description: "Add a CSV dataset from the upload workflow.",
-       href: "/app/upload",
-       complete: hasDataset,
-       group: "Data workflow",
-     },
-     {
-       id: "dataset-analyzed",
-       title: "Run analysis",
-       description: "Open a dataset and generate its first analysis.",
-       href: "/app/datasets",
-       complete: hasAnalysis,
-       group: "Data workflow",
-     },
-     ...requiredPageVisits.map((page) => ({
-       id: page.id,
-       title: page.title,
-       description: "Open this dashboard area at least once so setup progress reflects explored pages.",
-       href: page.href,
-       complete: visitedPages.has(page.href),
-       group: "Page visits",
-     })),
-   ]
+  const profileComplete = Boolean(profile?.fullName && profile?.email)
+  const businessComplete = Boolean(businessDetails.businessName && businessDetails.businessEmail && businessDetails.industry && businessDetails.location && businessDetails.website && businessDetails.businessDescription)
+
+  const visitedCount = requiredPageVisits.filter((p) => visitedPages.has(p.href)).length
+  const allPagesVisited = visitedCount === requiredPageVisits.length
+
+  const steps: OnboardingStep[] = [
+    {
+      id: "profile-completed",
+      title: "Complete profile",
+      description: "Add your name and confirm your account email in profile settings.",
+      href: "/app/settings/profile",
+      complete: profileComplete,
+      group: "Profile",
+      section: "Account",
+    },
+    {
+      id: "business-profile-completed",
+      title: "Complete business profile",
+      description: "Add company name, email, industry, location, website, and description.",
+      href: "/app/business/profile",
+      complete: businessComplete,
+      group: "Business",
+      section: "Account",
+    },
+    {
+      id: "dataset-uploaded",
+      title: "Upload data",
+      description: "Add a CSV dataset from the upload workflow.",
+      href: "/app/upload",
+      complete: hasDataset,
+      group: "Data workflow",
+      section: "Data",
+    },
+    {
+      id: "dataset-analyzed",
+      title: "Run analysis",
+      description: "Open a dataset and generate its first analysis.",
+      href: "/app/datasets",
+      complete: hasAnalysis,
+      group: "Data workflow",
+      section: "Data",
+    },
+    {
+      id: "pages-visited",
+      title: `Guided tour (${visitedCount} of ${requiredPageVisits.length} pages)`,
+      description: "Visit the main dashboard sections to complete the tour.",
+      href: requiredPageVisits.find((p) => !visitedPages.has(p.href))?.href ?? requiredPageVisits[0].href,
+      complete: allPagesVisited,
+      group: "Page visits",
+      section: "Tour",
+    },
+  ]
   const completedCount = steps.filter((step) => step.complete).length
   const completionPercent = Math.round(
     (completedCount / steps.length) * 100,
@@ -159,7 +159,7 @@ export async function getOnboardingStatus(userId: string | null | undefined): Pr
 
   return {
     completionPercent,
-    autoOpen: !hasSeenOnboarding || completionPercent < 25,
+    autoOpen: !hasSeenOnboarding || completionPercent < 50,
     hasSeenOnboarding,
     steps,
     completedCount,

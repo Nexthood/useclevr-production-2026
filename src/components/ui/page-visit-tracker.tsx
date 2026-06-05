@@ -7,6 +7,10 @@ export function PageVisitTracker() {
   const pathname = usePathname()
 
   React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" })
+  }, [pathname])
+
+  React.useEffect(() => {
     if (!pathname || !pathname.startsWith("/app")) return
 
     fetch("/api/onboarding", {

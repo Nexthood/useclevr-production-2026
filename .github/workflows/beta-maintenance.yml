@@ -3,6 +3,12 @@ name: Publish Dist-Test from Beta
 on:
   push:
     branches: [beta]
+    paths-ignore:
+      - "docs/**"
+      - ".TODO/**"
+      - "*.md"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
   workflow_dispatch:
     inputs:
       confirm:
@@ -59,16 +65,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 26.x
-
       - name: Enable corepack and install pnpm
         shell: bash
         run: |
           corepack enable
           corepack prepare pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1 --activate
           pnpm --version
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.x
+          cache: "pnpm"
 
       - name: Install dependencies
         shell: bash
@@ -85,7 +92,6 @@ jobs:
           PORT=8090 node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs > /tmp/useclevr-dist-smoke.log 2>&1 &
           pid=$!
 
-          # Wait for server to be ready with retries
           server_started=false
           for i in {1..15}; do
             if curl -fsS http://127.0.0.1:8090/api/health >/dev/null 2>&1; then
@@ -93,14 +99,18 @@ jobs:
               server_started=true
               break
             fi
-            echo "Waiting for server to start... (attempt $i/15)"
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "Server process exited prematurely."
+              break
+            fi
+            echo "Waiting for server... (attempt $i/15)"
             sleep 2
           done
 
-          kill "$pid" >/dev/null 2>&1 || true
+          kill "$pid" 2>/dev/null || true
 
           if [ "$server_started" = false ]; then
-            echo "Server failed to start. Smoke test output:"
+            echo "Smoke test failed. Server log:"
             cat /tmp/useclevr-dist-smoke.log
             exit 1
           fi
@@ -165,8 +175,10 @@ jobs:
           rm -rf cache
           rm -rf .turbo
           rm -rf .vercel
+          rm -f railpack.json
 
           mkdir -p dist
+          rm -f dist/railpack.json
           cp -a /tmp/useclevr-dist-output/. dist/
 
           rm -rf dist/.next/cache

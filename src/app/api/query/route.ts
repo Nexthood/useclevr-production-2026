@@ -4,7 +4,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import { processQuestion } from '@/lib/ai/ai-query-generator';
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
-import { aggregateData, findColumn } from '@/lib/query/engine';
+import { aggregateData, findColumn } from '@/lib/data/queryEngine';
 import { queryRequestSchema, validateOrError } from '@/lib/validation';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
