@@ -16,6 +16,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
+    outputFileTracingIncludes: {
+      "**/*": ["./node_modules/next/dist/build/**"],
+    },
   },
   webpack: (config, { dev }) => {
     config.resolve.alias = {

@@ -222,25 +222,39 @@ for (const f of ["vercel.json", "railway.json"]) {
 
 // Restore pruned `next/dist/build/` — Next.js standalone tracing removes this directory,
 // but `next/dist/server/next.js` dynamically requires `../build/output/log` at runtime.
-const distNextPnpmDir = path.join(distDir, "node_modules", ".pnpm");
-if (fs.existsSync(distNextPnpmDir)) {
-  for (const entry of fs.readdirSync(distNextPnpmDir, { withFileTypes: true })) {
-    if (entry.isDirectory() && entry.name.startsWith("next@")) {
-      const pkgDir = path.join(distNextPnpmDir, entry.name, "node_modules", "next");
-      const buildDir = path.join(pkgDir, "dist", "build");
-      if (!fs.existsSync(buildDir)) {
-        const sourceBuildDir = path.join(
-          rootDir, "node_modules", ".pnpm", entry.name, "node_modules", "next", "dist", "build"
-        );
-        if (fs.existsSync(sourceBuildDir)) {
-          fs.cpSync(sourceBuildDir, buildDir, { recursive: true });
-          console.log(`Restored next/dist/build/ from source (${entry.name})`);
-        }
+function restoreNextBuildDir(targetNodeModulesDir, sourceNodeModulesDir) {
+  const candidates = [];
+  // pnpm: check .pnpm/next@*/node_modules/next/
+  const pnpmDir = path.join(targetNodeModulesDir, ".pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith("next@")) {
+        candidates.push(path.join(pnpmDir, entry.name, "node_modules", "next"));
       }
-      break;
+    }
+  }
+  // flat: check next/ directly
+  const flatNext = path.join(targetNodeModulesDir, "next");
+  if (fs.existsSync(path.join(flatNext, "package.json"))) {
+    candidates.push(flatNext);
+  }
+
+  for (const pkgDir of candidates) {
+    const buildDir = path.join(pkgDir, "dist", "build");
+    if (fs.existsSync(buildDir)) continue; // already present
+    const parent = path.dirname(pkgDir);
+    const nextDirName = path.basename(pkgDir);
+    // Try to restore from the same relative path under sourceNodeModulesDir
+    const relPath = path.relative(targetNodeModulesDir, parent);
+    const sourceParent = path.join(sourceNodeModulesDir, relPath);
+    const sourceBuild = path.join(sourceParent, nextDirName, "dist", "build");
+    if (fs.existsSync(sourceBuild)) {
+      fs.cpSync(sourceBuild, buildDir, { recursive: true });
+      console.log(`Restored next/dist/build/ (${path.relative(targetNodeModulesDir, parent)}/${nextDirName})`);
     }
   }
 }
+restoreNextBuildDir(path.join(distDir, "node_modules"), path.join(rootDir, "node_modules"));
 
 // Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
 // all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
