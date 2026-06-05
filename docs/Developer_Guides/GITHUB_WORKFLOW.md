@@ -50,6 +50,9 @@ The `commit-msg` hook validates commit messages automatically. Bypass with `git 
 
 The `pre-push` hook runs the heavier local validation gate before code leaves the machine. It checks
 TypeScript, deployment config, lint rules, production packaging, and workflow files.
+It also checks the current workflow check-run names against
+`.github/workflow-job-names.golden.json` so branch protection does not drift onto a stale required
+job name.
 
 ## Pull Request Titles
 
@@ -88,7 +91,7 @@ Use this flow when testing a change before release:
 2. Verify the behavior from `beta`.
 3. Open a pull request from `beta` into `main`.
 4. Enable auto-merge on the pull request when the required check is selected.
-5. Wait for `Validate source and production build` to pass.
+5. Wait for `Validate source and production build / validate` to pass.
 6. Let GitHub merge the pull request into `main`.
 7. Watch the branch maintenance workflow sync `beta` and publish `dist:/dist`.
 
@@ -126,7 +129,7 @@ preview deployments connect to the external Neon PostgreSQL instance.
 
 The required branch-rule check is:
 
-- `Validate source and production build`
+- `Validate source and production build / validate`
 
 This one check protects `main`, because `main` generates the production `dist` branch and can also
 deploy directly to Vercel. It installs dependencies, runs type validation, verifies Railway and
@@ -351,9 +354,31 @@ If the selector is empty:
 1. Confirm `.github/workflows/ci.yml` exists on `main`.
 2. Open a small pull request targeting `main`.
 3. Wait for the workflow to run.
-4. Return to the ruleset and select `Validate source and production build`.
+4. Return to the ruleset and select `Validate source and production build / validate`.
 
-The check name may appear as either `Validate source and production build` or `Validate Source / Validate source and production build`, depending on the GitHub settings page.
+Do not select the older plain job name `Validate source and production build`. The current required
+check is the emitted GitHub Actions check-run name from the reusable workflow job.
+
+## Workflow Check-Name Golden File
+
+The repository keeps the expected workflow check-run names in:
+
+- `.github/workflow-job-names.golden.json`
+
+Local guard:
+
+- `pnpm lint:workflows` checks the current workflow files against the golden file.
+- `pnpm lint:workflows:refresh` rewrites the golden file after a deliberate workflow-name change.
+
+Automatic refresh:
+
+- `.github/workflows/refresh-workflow-golden.yml` runs as a non-blocking follow-up when workflow
+  files or workflow-name scripts change on `main` or `beta`.
+- If the workflow names changed, it commits the refreshed golden file back to the same branch with
+  a bot commit.
+
+This setup keeps the local pre-push gate strict while still giving the repository a safe self-heal
+path after intentional workflow renames.
 
 ## GitHub Actions Verification
 

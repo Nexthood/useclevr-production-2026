@@ -16,6 +16,7 @@ Use this guide to collect useful project learning from current and external AI c
    - `.TODO/todo-next.md` for active implementation.
    - `.TODO/todo-future.md` for deferred valid work.
    - `.TODO/todo-ignore.md` for deliberate no-fix decisions.
+7. When another AI agent is actively editing the repository, keep the memory update scoped to the instruction files and durable learning files that match your own change. Do not fold unrelated worktree changes into the memory record.
 
 ## Quality Rules
 
@@ -27,6 +28,7 @@ Use this guide to collect useful project learning from current and external AI c
 - Never include secrets, tokens, private keys, raw uploaded files, private customer data, or environment values.
 - Run docs and TODO validation after updates.
 - Skip empty memory updates when the cycle contains no durable project learning.
+- Record workflow check-name drift as a concrete risk when branch protection can wait for a stale required check name.
 
 ## Current Sources
 

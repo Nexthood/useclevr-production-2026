@@ -64,3 +64,41 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **User Learning**: Post-interaction capture must be distributed across the correct files, not dumped in a single temp summary. AI should use product language in responses, not file paths or function names.
 - **AI-Agent Learning**: Read `dev-persona.md` before starting work with this dev. They prefer short, direct result summaries in product language. When they say "too tech", strip all code references and reframe. Keep configs, docs, and TODOs in sync in the same pass.
 - **Interaction Evaluation**: The first delivery (single-file tech summary at `/tmp/opencode/`) was wrong in two ways: it dumped everything in one file instead of distributing across the right docs, and it used file paths and code references instead of product language. The user corrected with "that is too tech" and "should be in multiple files". The correction propagated to 3 files: a dev-persona profile, an updated interaction log entry, and a user FAQ addition. Future evaluations should recognize this pattern immediately: if the user asks for a summary of what happened, distribute the learning across the relevant docs (persona, log, guides) in product language — never a single temp file with code references.
+
+---
+
+## Interaction 4: MCP Developer Guide Expansion + OpenCode MCP Config
+
+- **Date**: June 2026
+- **User Goal**: Document MCP support across ChatGPT web, OpenCode, VS Code native, terminal CLI clients, and VS Code extensions. Add MCP server config to opencode and verify it works.
+- **Current Product State**: MCP dev guide only covered UseClevr's internal MCP interface. No MCP server configured in `.opencode.json`. No documentation of third-party MCP clients or platforms.
+- **Implemented Changes & Decisions**:
+  1. **ChatGPT Web MCP**: Documented Developer Mode (full read/write) and Connectors (read-only search/fetch), including availability tiers, transport constraints, and security rules.
+  2. **OpenCode MCP Config**: Added `mcp_everything` test server to `.opencode.json` with local `npx` command. Documented local, remote, OAuth, and per-agent scoping patterns.
+  3. **VS Code Native MCP**: Documented `.vscode/mcp.json` config, all supported features (tools, prompts, resources, MCP Apps, sampling, OAuth), configuration methods (6 entry points), management commands, extension-bundled servers, and development mode debugging.
+  4. **Terminal MCP Clients**: Documented 7 CLI tools (mcpc, mcpx, mcp-cli, mcp2cli, mcp-gateway-cli, mcp-proxy-cli, mcpmu) with install commands, transport support, and feature comparisons.
+  5. **VS Code MCP Extensions**: Documented 7 popular marketplace extensions (VSCode MCP, VSCode-MCP Server, VSC-MCPServer, Maestro MCP, VSCode MCP Bridge, IDE-LSP, MCP Tool Explorer) with tool lists, transport details, and configuration.
+  6. **Quick Reference Table**: Added decision guide mapping user needs (add to AI agent, use in Copilot, call from terminal, pipe to jq, connect to ChatGPT, debug, aggregate, test, expose LSP) to the recommended client.
+- **Problems Marked**:
+  - `observation`: `@modelcontextprotocol/server-everything` spawns a persistent process — background verification in shell timed out; needs opencode restart to confirm.
+  - `improvement`: MCP dev guide now covers both internal UseClevr MCP and external third-party client/platform documentation in one file.
+- **User Learning**: MCP is now supported across all major coding platforms — OpenCode, VS Code native, ChatGPT web, and multiple terminal CLI clients. The `.opencode.json` config is the standard entry point for OpenCode MCP.
+- **AI-Agent Learning**: When documenting MCP, cover all major clients (AI coding agents, IDEs, web chat, terminal CLIs, inspector tools) in one comprehensive guide rather than scattering across files. Use a quick-reference table to help users choose the right tool for their need.
+- **Follow-Up**: Verify the `mcp_everything` server works by restarting opencode and testing with a tool call prompt.
+
+---
+
+## Interaction 5: Workflow Required-Check Drift Guard + Parallel-Agent Memory Scope
+
+- **Date**: June 2026
+- **User Goal**: Update the docs and post-interaction actions while another AI agent continues working in the same repository.
+- **Current Product State**: The repository now guards workflow action refs and workflow check-run names locally, but the AI-interaction docs also need to teach agents how to record that safeguard and how to scope memory updates during parallel work.
+- **Implemented Changes & Decisions**:
+  1. **Workflow Guard Documentation**: Updated the AI-interaction docs so workflow guard changes are treated as durable instruction changes, not as one-off CI fixes.
+  2. **Parallel-Agent Scope Rule**: Added a rule that the active AI agent updates only the instruction and learning files that match its own completed change when another agent is editing in parallel.
+  3. **Post-Interaction Prompt Precision**: Tightened the post-interaction prompt so the memory record names the actor, action, and destination with no vagueness.
+- **Problems Marked**:
+  - `risk`: Branch protection can wait forever if the required check name drifts from the emitted GitHub Actions check-run name.
+  - `observation`: Parallel AI work can pollute the memory record if one agent tries to summarize unrelated worktree changes from another agent.
+- **User Learning**: Workflow job-name guarding belongs in both the developer workflow docs and the AI memory rules, because the same drift can break merge flow even when the workflows are green.
+- **AI-Agent Learning**: When another AI agent is active in the same repository, keep the post-interaction update scoped to your own completed change and the smallest matching instruction files.

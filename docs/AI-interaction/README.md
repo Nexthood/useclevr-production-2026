@@ -41,3 +41,4 @@ For the full documentation map, use [Documentation structure](../DOCS_STRUCTURE.
 - Update the folder that matches the audience first.
 - Update [governance/instruction-maintenance.md](governance/instruction-maintenance.md) when the maintenance rule changes.
 - Keep implementation tasks in `.TODO/` queue files, not in this folder.
+- Record workflow guard changes in the developer guides and post-interaction files when the change affects how AI agents keep CI, branch protection, or required check names aligned.

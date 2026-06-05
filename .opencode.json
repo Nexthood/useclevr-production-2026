@@ -44,6 +44,13 @@
       ]
     }
   },
+  "mcp": {
+    "mcp_everything": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-everything"],
+      "enabled": true
+    }
+  },
   "formatter": true,
   "instructions": [
     "AGENTS.md"

@@ -68,6 +68,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Add a workflow check-name golden file, local pre-push validation, and a non-blocking GitHub refresh workflow so branch protection cannot wait on stale required job names.
 - Add Payload Phase 0 migration scripts, generated types, and PostgreSQL migration files for the new admin content schema.
 - Record that the AI agent already follows task-close and post-interaction capture automatically, while user reminders sharpen the wording standard into actor-action-destination precision.
 - Record AI-interaction correction patterns and future-developer notes in the smallest matching files.

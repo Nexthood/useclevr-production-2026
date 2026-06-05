@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "requiredMainChecks": [
+    "Validate source and production build / validate"
+  ],
+  "workflows": {
+    "auto-merge.yml": {
+      "workflowName": "Auto-merge PRs from beta to main",
+      "checkRuns": [
+        "Auto-merge PR from beta to main"
+      ]
+    },
+    "beta-maintenance.yml": {
+      "workflowName": "Publish Dist-Test from Beta",
+      "checkRuns": [
+        "Publish dist-test deployment folder"
+      ]
+    },
+    "branch-maintenance.yml": {
+      "workflowName": "Sync Beta And Publish Dist",
+      "checkRuns": [
+        "Sync beta with main",
+        "Publish dist deployment folder"
+      ]
+    },
+    "ci.yml": {
+      "workflowName": "Validate Source",
+      "checkRuns": [
+        "Validate source and production build / validate",
+        "docs"
+      ]
+    },
+    "refresh-workflow-golden.yml": {
+      "workflowName": "Refresh Workflow Job Names Golden",
+      "checkRuns": [
+        "Refresh workflow job names golden"
+      ]
+    },
+    "validate.yml": {
+      "workflowName": "Shared Validation",
+      "checkRuns": [
+        "validate"
+      ]
+    }
+  }
+}
