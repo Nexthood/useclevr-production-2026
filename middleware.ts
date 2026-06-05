@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const TEST_SUBDOMAIN_PASSWORD = "erdely";
+function getTestPassword() {
+  return process.env.TEST_SUBDOMAIN_PASSWORD;
+}
 
 function isTestSubdomain(request: NextRequest): boolean {
   const host = request.headers.get("host") || "";
-  return host.startsWith("test.") || host.startsWith("test-") || process.env.NODE_ENV === "development";
+  const isTest = host.startsWith("test.") || host.startsWith("test-");
+  const isLocalDev = process.env.NODE_ENV === "development" && process.env.TEST_SUBDOMAIN_AUTH === "true";
+  return isTest || isLocalDev;
 }
 
 function getTestAuthEnv() {
@@ -12,8 +16,12 @@ function getTestAuthEnv() {
 }
 
 export function middleware(request: NextRequest) {
-  // Only apply to test subdomain when auth is enabled
   if (!isTestSubdomain(request) || !getTestAuthEnv()) {
+    return NextResponse.next();
+  }
+
+  const testPassword = getTestPassword();
+  if (!testPassword) {
     return NextResponse.next();
   }
 
@@ -22,8 +30,8 @@ export function middleware(request: NextRequest) {
   if (authHeader) {
     const [, credentials] = authHeader.split(" ");
     if (credentials) {
-      const [username, password] = Buffer.from(credentials, "base64").toString().split(":");
-      if (password === TEST_SUBDOMAIN_PASSWORD) {
+      const [, password] = Buffer.from(credentials, "base64").toString().split(":");
+      if (password === testPassword) {
         return NextResponse.next();
       }
     }

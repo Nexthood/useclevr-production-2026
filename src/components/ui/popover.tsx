@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 type PopoverContextValue = {
   open: boolean;
   setOpen: (open: boolean) => void;
   contentId: string;
+  triggerRef: React.RefObject<HTMLElement | null>;
 };
 
 const PopoverContext = React.createContext<PopoverContextValue | null>(null);
@@ -31,6 +33,7 @@ export function Popover({
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
   const contentId = React.useId();
+  const triggerRef = React.useRef<HTMLElement | null>(null);
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = React.useCallback(
     (nextOpen: boolean) => {
@@ -43,7 +46,7 @@ export function Popover({
   );
 
   return (
-    <PopoverContext.Provider value={{ open, setOpen, contentId }}>
+    <PopoverContext.Provider value={{ open, setOpen, contentId, triggerRef }}>
       <div className={["relative inline-flex", className].filter(Boolean).join(" ")}>
         {children}
       </div>
@@ -58,10 +61,18 @@ export function PopoverTrigger({
   asChild?: boolean;
   children: React.ReactElement<React.HTMLAttributes<HTMLElement>>;
 }) {
-  const { open, setOpen, contentId } = usePopover();
+  const { open, setOpen, contentId, triggerRef } = usePopover();
 
   if (asChild && React.isValidElement(children)) {
     return React.cloneElement<React.HTMLAttributes<HTMLElement>>(children, {
+      ref: (node: HTMLElement | null) => {
+        triggerRef.current = node;
+        const childRef = (children as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
+        if (typeof childRef === "function") childRef(node);
+        else if (childRef && typeof childRef === "object") {
+          (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+        }
+      },
       "aria-expanded": open,
       "aria-haspopup": "dialog" as const,
       "aria-controls": contentId,
@@ -94,7 +105,29 @@ export function PopoverContent({
   className?: string;
   children: React.ReactNode;
 }) {
-  const { open, setOpen, contentId } = usePopover();
+  const { open, setOpen, contentId, triggerRef } = usePopover();
+  const [mounted, setMounted] = React.useState(false);
+  const [position, setPosition] = React.useState<React.CSSProperties>({});
+
+  const updatePosition = React.useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const top = rect.bottom + 8;
+
+    setPosition(
+      align === "start"
+        ? { top, left: rect.left }
+        : align === "end"
+          ? { top, right: Math.max(8, window.innerWidth - rect.right) }
+          : { top, left: rect.left + rect.width / 2, transform: "translateX(-50%)" },
+    );
+  }, [align, triggerRef]);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (!open) return;
@@ -105,15 +138,22 @@ export function PopoverContent({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, setOpen]);
 
-  if (!open) return null;
+  React.useEffect(() => {
+    if (!open) return;
+    updatePosition();
 
-  const alignClass = {
-    start: "left-0",
-    center: "left-1/2 -translate-x-1/2",
-    end: "right-0",
-  }[align];
+    const handleLayout = () => updatePosition();
+    window.addEventListener("resize", handleLayout);
+    window.addEventListener("scroll", handleLayout, true);
+    return () => {
+      window.removeEventListener("resize", handleLayout);
+      window.removeEventListener("scroll", handleLayout, true);
+    };
+  }, [open, updatePosition]);
 
-  return (
+  if (!open || !mounted) return null;
+
+  return createPortal(
     <>
       <button
         type="button"
@@ -125,15 +165,16 @@ export function PopoverContent({
         id={contentId}
         role="dialog"
         className={[
-          "absolute top-full z-[1010] mt-2 rounded-lg border border-border bg-popover p-4 text-popover-foreground shadow-2xl",
-          alignClass,
+          "fixed z-[1200] max-w-[calc(100vw-1rem)] rounded-lg border border-border bg-popover p-4 text-popover-foreground shadow-2xl",
           className,
         ]
           .filter(Boolean)
           .join(" ")}
+        style={position}
       >
         {children}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

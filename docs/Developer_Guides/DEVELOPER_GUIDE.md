@@ -179,7 +179,7 @@ All commands are run from `pnpm`.
 
 ## Shared API Testing
 
-Use [docs/api-tests/README.md](/home/csaba/Documents/Useclever-2026/docs/api-tests/README.md) and the
+Use [docs/api-tests/README.md](../api-tests/README.md) and the
 Git-tracked `.http` files under `docs/api-tests/` as the shared API testing method.
 
 - Use REST Client in VS Code for reproducible local, staging, and production request examples.
@@ -218,6 +218,8 @@ Current local safety rules:
 - Use explicit migration commands when Payload schema work is intentional.
 - Keep app auth routes and Payload auth routes reachable before login, while keeping other
   protected API routes behind authentication.
+- Keep `/admin` requests on the Payload root layout so the admin login and admin workspace boot
+  with the required Payload providers and server functions.
 
 ### Clean
 

@@ -172,7 +172,7 @@ session cookie.
 
 ## Shared API Test Files
 
-Use Git-tracked REST Client files under [docs/api-tests](/home/csaba/Documents/Useclever-2026/docs/api-tests/README.md)
+Use Git-tracked REST Client files under [docs/api-tests](../api-tests/README.md)
 as the shared MCP and API testing path.
 
 - Use `docs/api-tests/mcp.http` for route reachability, signed-in tool listing, dataset resource listing, and tool invocation.

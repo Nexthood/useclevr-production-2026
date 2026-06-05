@@ -14,7 +14,7 @@ Install the VS Code extension `REST Client` by Huachao Mao.
 
 ## Environments
 
-VS Code reads safe shared base URLs from [.vscode/settings.json](/home/csaba/Documents/Useclever-2026/.vscode/settings.json):
+VS Code reads safe shared base URLs from [.vscode/settings.json](../../.vscode/settings.json):
 
 - `local` -> `http://localhost:3000`
 - `staging` -> `https://CHANGE_ME_STAGING_URL`
@@ -54,7 +54,7 @@ This folder covers the current important API areas that already exist in the app
 
 ## MCP Testing
 
-Use [mcp.http](/home/csaba/Documents/Useclever-2026/docs/api-tests/mcp.http) for the current app-state MCP checks.
+Use [mcp.http](mcp.http) for the current app-state MCP checks.
 
 - Unsigned `GET /api/mcp` currently returns `401 Unauthorized`.
 - Signed-in MCP requests require a real session cookie because the current proxy blocks unauthenticated `/api/*` requests before MCP token headers are evaluated.

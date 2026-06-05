@@ -187,3 +187,20 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - `risk`: Payload local admin startup can become unsafe if development auto-push runs against the shared app database.
 - **User Learning**: When login fails across both app auth and Payload auth, verify the proxy boundary before treating the credentials or provider setup as broken.
 - **AI-Agent Learning**: When auth testing fails at the first request, verify the route guard and the required pre-login endpoints before debugging deeper provider logic.
+
+---
+
+## Interaction 11: Payload Admin Root Runtime Recovery
+
+- **Date**: June 2026
+- **User Goal**: Fix the remaining Payload admin caveat and keep the docs and post-interaction records aligned with the actual runtime behavior.
+- **Current Product State**: Payload auth API login worked, but `/admin/login` still failed because the app root layout was not handing admin requests into Payload's root runtime.
+- **Implemented Changes & Decisions**:
+  1. **Admin Root Handoff**: Routed `/admin` requests through the Payload root layout so the admin UI boots with the required providers, import map generation, and server-function bridge.
+  2. **Runtime Verification**: Verified `/admin/login` now returns `200 OK` and verified Payload CMS local login still succeeds through `/api/payload/cms-users/login`.
+  3. **Owning Docs**: Added the current Payload admin runtime rule to the developer guide and recorded the current-state fix in the changelog.
+- **Problems Marked**:
+  - `risk`: A mixed app root and Payload admin route can fail even when the auth API is already healthy, because the admin UI still needs the Payload runtime wrapper.
+  - `risk`: A partial fix that restores only the login API can hide a second failure at the admin page boot layer.
+- **User Learning**: When the Payload login API succeeds but `/admin/login` still fails, treat the next check as a layout-runtime handoff problem before changing credentials, cookies, or CMS user records.
+- **AI-Agent Learning**: When a framework-owned admin route crashes after auth is restored, verify the route is still using the framework's required root runtime before replacing deeper view logic.

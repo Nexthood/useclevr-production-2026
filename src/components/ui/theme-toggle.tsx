@@ -100,7 +100,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         <button
           type="button"
           className={[
-            "relative inline-flex h-full min-w-12 items-center justify-center rounded-md p-2 text-foreground transition-colors hover:bg-muted",
+            "relative inline-flex h-16 min-w-12 items-center justify-center rounded-none p-2 text-foreground transition-colors hover:bg-muted/50",
             className,
           ]
             .filter(Boolean)
@@ -119,7 +119,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="mt-0 w-64 rounded-b-lg rounded-t-none p-3">
+      <PopoverContent align="end" className="w-64 p-3">
         <div role="menu">
           <div className="border-b border-border pb-2">
             <p className="text-sm font-semibold">Theme</p>
