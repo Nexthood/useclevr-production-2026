@@ -1,5 +1,4 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { DashboardGlobalFooter } from "@/components/layout/dashboard-global-footer"
 import { HelpChatbox } from "@/components/ui/help-chatbox"
 import { PageVisitTracker } from "@/components/ui/page-visit-tracker"
 import Topbar from "@/components/ui/topbar"
@@ -23,7 +22,6 @@ export default async function AppLayout({
           <main className="flex min-h-[calc(100vh-4rem)] flex-col">
             {children}
           </main>
-          <DashboardGlobalFooter />
           <HelpChatbox audience={session!.user.role === "superadmin" ? "superadmin" : "dashboard"} />
           <PageVisitTracker />
         </div>

@@ -30,6 +30,7 @@ export default function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-nonce", nonce)
+  requestHeaders.set("x-useclevr-pathname", pathname)
   requestHeaders.set("Content-Security-Policy", cspHeader)
 
   const isPublicApiPrefix = publicApiPrefixes.some((prefix) => pathname.startsWith(prefix))

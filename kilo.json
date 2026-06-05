@@ -1,5 +1,9 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
+  "output_verbosity": "minimal",
+  "code_output_style": "collapsed",
+  "show_api_results": false,
+  "show_api_requests": false,
   "auto_collapse_reasoning": true,
   "instructions": ["AGENTS.md", "ai-chat-behavior.config.ts", ".aiignore"],
   "permission": {

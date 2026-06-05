@@ -115,9 +115,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <div className="space-y-3 border-t border-sidebar-border p-4">
         {!isLoading && !isCollapsed && <UsageMonitor used={usage} total={total} isPro={isPro} />}
         {!isCollapsed && (
-          <p className="text-center text-[10px] text-muted-foreground/50 select-none">
-            v{process.env.NEXT_PUBLIC_APP_VERSION || "7.0.0"}
-          </p>
+          <div className="space-y-2">
+            <div className="flex flex-col items-center gap-1.5 text-[10px] text-muted-foreground/70">
+              <span>Copyright {new Date().getFullYear()} UseClevr</span>
+              <Link href="/terms" className="transition hover:text-foreground">Terms</Link>
+              <Link href="/privacy" className="transition hover:text-foreground">Privacy</Link>
+            </div>
+            <p className="text-center text-[10px] text-muted-foreground/50 select-none">
+              v{process.env.NEXT_PUBLIC_APP_VERSION || "7.0.0"}
+            </p>
+          </div>
         )}
       </div>
     </>

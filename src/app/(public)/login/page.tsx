@@ -3,16 +3,15 @@
 import type React from "react"
 
 import { signup } from "@/app/actions/auth"
-import { Logo } from "@/components/layout/logo"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react"
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, User } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -38,6 +37,7 @@ function LoginForm() {
   const [signUpPassword, setSignUpPassword] = useState("")
   const [showSignInPassword, setShowSignInPassword] = useState(false)
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
+  const [showBuiltInPasswords, setShowBuiltInPasswords] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -155,20 +155,9 @@ function LoginForm() {
         return
       }
 
-      // Small delay to ensure user record is committed before sign-in attempt
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Sign in after successful signup with redirect to dashboard
-      await signIn("credentials", {
-        email: signUpEmail,
-        password: signUpPassword,
-        redirect: true,
-        callbackUrl: dashboardCallbackUrl(),
-      })
-      // signIn with redirect: true will navigate away on success, no need for goToDashboard()
+      // Account created - user must sign in manually
+      setAuthError("Account created. Please sign in with your credentials.")
     } catch {
-      // signIn with redirect: true navigates away on success
-      // If we reach here, sign-in failed
       setAuthError("Account created. Please sign in with your new credentials.")
     } finally {
       setIsLoading(false)
@@ -244,25 +233,12 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border/70 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto flex h-24 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex h-20 items-center">
-            <Logo className="h-16 w-auto" />
-          </Link>
-          <ThemeToggle />
-        </div>
+      <header className="absolute right-4 top-4 z-10">
+        <ThemeToggle />
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md border border-border/80 bg-card/95 shadow-2xl backdrop-blur-sm">
-          <CardHeader className="space-y-2 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold">Access UseClevr</CardTitle>
-            </div>
-          </CardHeader>
           <CardContent>
             <Tabs defaultValue={defaultTab} className="space-y-5">
               <TabsList className="grid w-full grid-cols-2">
@@ -284,6 +260,14 @@ function LoginForm() {
                       Use the same username and password for app sign-in and the CMS admin at <code>/admin</code>.
                     </p>
                   </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowBuiltInPasswords(!showBuiltInPasswords)}
+                  >
+                    {showBuiltInPasswords ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
                 </div>
                 <div className="space-y-3">
                   {builtInAccounts.map((account) => (
@@ -295,7 +279,9 @@ function LoginForm() {
                         <div className="space-y-1 text-sm">
                           <p className="font-medium text-foreground">{account.label}</p>
                           <p className="font-mono text-xs text-muted-foreground">{account.email}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{account.password}</p>
+                          {showBuiltInPasswords && (
+                            <p className="font-mono text-xs text-muted-foreground">{account.password}</p>
+                          )}
                         </div>
                         <Button
                           type="button"
