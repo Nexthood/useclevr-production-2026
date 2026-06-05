@@ -10,9 +10,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
-- Show built-in base and superadmin demo credentials on the login page for app and admin testing.
+- Show built-in base and superadmin demo credentials on the login page for app and admin testing, with password visibility toggle.
 - Publish a public News section with five starter updates and individual article pages.
-- Login and registration auto-sign-in after successful signup with a delay to ensure database commit before authentication attempt.
 - Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.

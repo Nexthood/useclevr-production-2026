@@ -16,9 +16,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
-    outputFileTracingExcludes: {
-      "/*": [".next/server/middleware.js.nft.json"],
-    },
+  },
+  outputFileTracingExcludes: {
+    "/*": [".next/server/middleware.js.nft.json"],
   },
   webpack: (config, { dev }) => {
     config.resolve.alias = {

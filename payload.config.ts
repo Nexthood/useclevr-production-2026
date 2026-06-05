@@ -59,10 +59,17 @@ export default buildConfig({
   onInit: async (payload) => {
     if (hasSeeded) return
     hasSeeded = true
-    await seedPayloadPhaseZero(payload)
-    payload.logger.info(
-      `Seeded Phase 0 Payload content and demo CMS users: ${BUILTIN_BASE_USER.email}, ${BUILTIN_SUPER_ADMIN_USER.email}`,
-    )
+    try {
+      await seedPayloadPhaseZero(payload)
+      payload.logger.info(
+        `Seeded Phase 0 Payload content and demo CMS users: ${BUILTIN_BASE_USER.email}, ${BUILTIN_SUPER_ADMIN_USER.email}`,
+      )
+    } catch (cause) {
+      payload.logger.warn(
+        { err: cause },
+        "Seed skipped — database tables not ready (expected during build against fresh databases)",
+      )
+    }
   },
   typescript: {
     outputFile: path.resolve(dirname, "src/payload-types.ts"),

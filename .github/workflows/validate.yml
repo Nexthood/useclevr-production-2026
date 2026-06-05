@@ -47,3 +47,5 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: ${{ inputs.run_command }}
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
