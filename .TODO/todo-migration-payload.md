@@ -1,6 +1,18 @@
 # Payload Migration Plan
 
-This file is the consolidated AI prompt and task plan for future Payload CMS integration. The current app stays the source of truth until this plan moves into `.TODO/todo-next.md`.
+This file is the consolidated AI prompt and task plan for future Payload CMS integration. The
+current app stays the source of truth until this plan moves into `.TODO/todo-next.md`.
+
+## Phase 0
+
+Phase 0 uses Payload for news only.
+
+- Phase 0 adds the smallest CMS footprint needed to create, edit, publish, and unpublish news
+  entries.
+- Phase 0 keeps FAQ, homepage sections, legal pages, sales content, dashboard content, and pricing
+  copy outside Payload.
+- Phase 0 keeps auth, billing, Stripe, datasets, reports, uploads, AI traces, tickets, business
+  records, and app settings outside Payload.
 
 ## Current Implementation
 
@@ -19,7 +31,8 @@ This file is the consolidated AI prompt and task plan for future Payload CMS int
 - Do not replace Stripe billing, webhook processing, checkout, subscriptions, referrals, datasets, reports, uploads, AI traces, tickets, workspaces, auth, or business records with Payload collections.
 - Do not store CMS media on Railway disk.
 - Do not change public UI copy or routes during the infrastructure setup step unless a content collection is already wired to that page.
-- Add Payload only as a CMS layer for editable public and sales content.
+- Add Payload only as a CMS layer for editable news content in Phase 0.
+- Keep all other CMS candidates out of scope until a later approved phase.
 
 ## Target Shape
 
@@ -31,7 +44,11 @@ This file is the consolidated AI prompt and task plan for future Payload CMS int
 - Payload uses the existing PostgreSQL environment only after schema ownership and migration strategy are confirmed.
 - CMS media uses durable object storage, not Railway filesystem storage.
 
-## Collection Candidates
+## Phase 0 Collection Candidate
+
+- News posts only.
+
+## Later Collection Candidates
 
 - Public FAQ categories and items, mapped from `src/lib/content/faq.ts`.
 - Dashboard FAQ categories and items with scope values for public, dashboard, and operator content, mapped from `src/lib/content/dashboard-faq.ts`.
@@ -58,13 +75,8 @@ Add Payload under a distinct CMS route such as `/cms` or `/payload-admin`, with 
 
 Do not replace existing application data models. Keep auth, profiles, businesses, datasets, dataset rows, tickets, referrals, billing, Stripe webhooks, AI interaction traces, workspaces, reports, uploads, and app settings in the current Drizzle/PostgreSQL application layer.
 
-Migrate only editable content first:
-- public FAQ
-- dashboard/operator FAQ
-- homepage sections
-- legal pages
-- sales one-pager/source content
-- optional blog/resource posts
+Phase 0 migrates only one editable content surface:
+- news posts
 
 Keep Stripe as the payment source of truth. Payload may display billing-related copy but must not own prices, checkout state, subscriptions, webhook events, invoices, or customer payment records.
 
@@ -73,9 +85,9 @@ Keep Railway generated-output deployment working from the `dist` branch `/dist` 
 Implement in small phases:
 1. Add dependencies and configuration.
 2. Add CMS route and API route.
-3. Add content collections without changing public pages.
-4. Add read adapters with fallback to existing static content.
-5. Switch one content surface at a time.
+3. Add the news collection without changing other public pages.
+4. Add a read adapter with fallback for news content only.
+5. Switch the news surface only.
 6. Document env vars, access rules, deployment behavior, and rollback steps.
 
 Validate with TypeScript, dist config checks, linting, production packaging, and route smoke checks.
@@ -85,11 +97,11 @@ Validate with TypeScript, dist config checks, linting, production packaging, and
 
 Use these focused prompts during migration planning and implementation reviews:
 
-1. Analyze current editable content sources and list only content suitable for CMS ownership.
+1. Analyze the current news surface and list only content suitable for Phase 0 CMS ownership.
 2. Confirm package compatibility with Next.js 16, React 19, TypeScript 6, current pnpm, and PostgreSQL before adding dependencies.
-3. Design Payload collections for FAQ, dashboard/operator FAQ, homepage sections, legal pages, sales content, and optional resource posts.
+3. Design a minimal Payload news collection for title, slug, summary, body, publish state, publish date, and cover media only if storage is approved.
 4. Design the CMS admin route and API namespace without conflicting with `/app/admin`.
-5. Add read adapters that prefer CMS content and fall back to current static files.
+5. Add a read adapter that prefers CMS news content and falls back to the current news source.
 6. Preserve Stripe as the billing source of truth and keep plan prices in the current billing configuration.
 7. Verify Railway generated-output packaging and Vercel source deployment after every CMS wiring phase.
 8. Document environment variables, access rules, media storage, rollback steps, and trace-safe AI guidance.
@@ -101,14 +113,14 @@ Use these focused prompts during migration planning and implementation reviews:
 3. Add `PAYLOAD_SECRET`, public server URL, database, and media-storage environment requirements to documentation without committing secrets.
 4. Create a Payload config in a dedicated source folder and keep it separate from existing Drizzle schema ownership.
 5. Add CMS admin and API routes under paths that do not conflict with `/app/admin`.
-6. Add collection definitions for FAQ, homepage sections, legal pages, sales content, and optional posts.
-7. Add content adapters that return Payload content when available and fall back to existing static content files.
-8. Connect public FAQ to the adapter first, then dashboard FAQ, then homepage/legal/sales pages.
+6. Add a collection definition for news posts only.
+7. Add a content adapter that returns Payload news content when available and falls back to the existing news source.
+8. Connect the public news surface only.
 9. Keep billing copy synced with existing billing config instead of storing duplicate plan prices in Payload.
 10. Add super-admin or CMS-specific access rules for the CMS route.
-11. Add object-storage configuration before enabling CMS media uploads.
+11. Add object-storage configuration only before enabling news media uploads.
 12. Run `pnpm validate:types`, `pnpm validate:dist`, `pnpm lint`, and `pnpm prod:build`.
-13. Document rollback by disabling CMS adapters and falling back to static content files.
+13. Document rollback by disabling the news adapter and falling back to the current news source.
 14. Keep the prompt-library entry aligned with this plan so future AI sessions use the same boundaries.
 
 ## Acceptance Criteria
@@ -116,8 +128,8 @@ Use these focused prompts during migration planning and implementation reviews:
 - Homepage, `/app`, `/app/admin`, checkout, uploads, reports, AI Assistant, and support tickets continue to work.
 - CMS admin opens on its own route.
 - Payload API uses its own route namespace.
-- Public FAQ can read CMS content with static fallback.
-- Dashboard/operator FAQ keeps role-aware scoping.
+- News can read CMS content with fallback to the current news source.
 - Stripe remains the billing source of truth.
 - Railway production packaging still creates deployable `dist/` output.
 - No secrets or CMS media files are committed.
+- FAQ, homepage sections, legal pages, dashboard content, and sales content stay outside Phase 0.

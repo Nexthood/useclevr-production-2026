@@ -1,3 +1,7 @@
+import path from "node:path";
+
+import { withPayload } from "@payloadcms/next/withPayload";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   productionBrowserSourceMaps: false,
@@ -14,6 +18,10 @@ const nextConfig = {
     },
   },
   webpack: (config, { dev }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@payload-config": path.resolve(process.cwd(), "payload.config.ts"),
+    };
     if (!dev && config.cache) {
       config.cache = false;
     }
@@ -60,4 +68,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPayload(nextConfig);

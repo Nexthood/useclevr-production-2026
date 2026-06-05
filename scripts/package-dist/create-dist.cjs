@@ -220,6 +220,28 @@ for (const f of ["vercel.json", "railway.json"]) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
+// Restore pruned `next/dist/build/` — Next.js standalone tracing removes this directory,
+// but `next/dist/server/next.js` dynamically requires `../build/output/log` at runtime.
+const distNextPnpmDir = path.join(distDir, "node_modules", ".pnpm");
+if (fs.existsSync(distNextPnpmDir)) {
+  for (const entry of fs.readdirSync(distNextPnpmDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith("next@")) {
+      const pkgDir = path.join(distNextPnpmDir, entry.name, "node_modules", "next");
+      const buildDir = path.join(pkgDir, "dist", "build");
+      if (!fs.existsSync(buildDir)) {
+        const sourceBuildDir = path.join(
+          rootDir, "node_modules", ".pnpm", entry.name, "node_modules", "next", "dist", "build"
+        );
+        if (fs.existsSync(sourceBuildDir)) {
+          fs.cpSync(sourceBuildDir, buildDir, { recursive: true });
+          console.log(`Restored next/dist/build/ from source (${entry.name})`);
+        }
+      }
+      break;
+    }
+  }
+}
+
 // Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
 // all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
 // image copies the entire prebuilt dist directory — no npm install needed.

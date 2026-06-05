@@ -108,6 +108,10 @@ export function PublicHeader() {
           <Link href="/faq" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
             FAQ
           </Link>
+
+          <Link href="/news" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
+            News
+          </Link>
         </nav>
         
         {/* Right side - Controls and CTAs */}
@@ -219,6 +223,13 @@ export function PublicHeader() {
               onClick={() => setMobileOpen(false)}
             >
               Affiliate
+            </Link>
+            <Link
+              href="/news"
+              className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+              onClick={() => setMobileOpen(false)}
+            >
+              News
             </Link>
             <Link
               href="/contact"

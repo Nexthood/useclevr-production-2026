@@ -1,5 +1,4 @@
-"use client"
-
+import { FaqAccordion } from "@/components/public/faq-accordion"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
@@ -7,42 +6,17 @@ import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { WaitlistSignup } from "@/components/ui/waitlist-signup"
 import { allFaqCategories, getHomepageFaqs } from "@/lib/content/faq"
-import { ArrowRight, BarChart3, ChevronDown, Database, FileText, HelpCircle, MessageSquare, Shield, Sparkles, Zap } from "lucide-react"
+import { getHomepageContent, getNewsPosts } from "@/lib/payload/content"
+import { ArrowRight, BarChart3, Database, FileText, HelpCircle, MessageSquare, Newspaper, Shield, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
-import * as React from "react"
 
 const faqData = getHomepageFaqs()
 const allFaqCount = allFaqCategories.reduce((n, c) => n + c.items.length, 0)
-function FaqAccordion({ items }: { items: { q: string; a: string }[] }) {
-  const [openIdx, setOpenIdx] = React.useState<number | null>(null)
-  return (
-    <div className="space-y-3">
-      {items.map((item, i) => {
-        const isOpen = openIdx === i
-        return (
-          <div key={i} className="rounded-lg border border-border bg-background overflow-hidden">
-            <button
-              type="button"
-              aria-expanded={isOpen}
-              onClick={() => setOpenIdx(isOpen ? null : i)}
-              className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left"
-            >
-              <span className="text-sm font-medium text-foreground">{item.q}</span>
-              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-            </button>
-            {isOpen && (
-              <div className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/40 pt-4">
-                {item.a}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
 
-export default function HomePage() {
+export default async function HomePage() {
+  const homepageContent = await getHomepageContent()
+  const latestNews = await getNewsPosts(3)
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <PublicHeader />
@@ -53,13 +27,13 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-700/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-800 dark:border-cyan-300/30 dark:text-cyan-100">
               <Sparkles className="h-4 w-4" />
-              Business intelligence workspace
+              {homepageContent.heroBadge}
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-balance">
-              AI-powered business intelligence{" "}
+              {homepageContent.heroTitle}{" "}
               <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                without the complexity
+                {homepageContent.heroHighlight}
               </span>
             </h1>
 
@@ -70,11 +44,11 @@ export default function HomePage() {
             </div>
 
             <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-              Turn CSV data into executive reports and actionable business insights with AI.
+              {homepageContent.heroDescription}
             </p>
 
             <p className="text-base font-medium text-foreground/80">
-              For founders, startup teams, and business operators who need fast answers from data.
+              {homepageContent.heroAudience}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
@@ -83,7 +57,7 @@ export default function HomePage() {
                   size="lg"
                   className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
-                  Start free trial
+                  {homepageContent.primaryCtaLabel}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -93,7 +67,7 @@ export default function HomePage() {
                    variant="outline"
                    className="h-12 rounded-full border-border bg-transparent px-8 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
                  >
-                   Schedule demo
+                   {homepageContent.secondaryCtaLabel}
                  </Button>
                </Link>
             </div>
@@ -113,6 +87,48 @@ export default function HomePage() {
                 <Sparkles className="h-4 w-4 text-[#7C3AED]" />
                 <span>99.9% uptime SLA</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 py-6 md:px-6 md:py-10">
+          <div className="mx-auto max-w-6xl space-y-8">
+            <div className="flex items-end justify-between gap-4">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/10 px-4 py-2 text-sm text-primary">
+                  <Newspaper className="h-3.5 w-3.5" />
+                  News
+                </div>
+                <h2 className="text-3xl font-bold md:text-4xl">{homepageContent.newsSectionTitle}</h2>
+                <p className="max-w-2xl text-muted-foreground">{homepageContent.newsSectionDescription}</p>
+              </div>
+              <Link href="/news" prefetch={false}>
+                <Button variant="outline" className="shrink-0 bg-transparent">
+                  View all news
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {latestNews.map((post) => (
+                <Card key={post.id} className="flex h-full flex-col border-border/60 p-6">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {new Date(post.publishedAt).toLocaleDateString()}
+                  </p>
+                  <h3 className="mt-3 text-xl font-semibold text-foreground">{post.title}</h3>
+                  <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {post.summary}
+                  </p>
+                  <Link
+                    href={`/news/${post.slug}`}
+                    prefetch={false}
+                    className="mt-5 inline-flex items-center text-sm font-medium text-primary"
+                  >
+                    Read update
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Card>
+              ))}
             </div>
           </div>
         </section>

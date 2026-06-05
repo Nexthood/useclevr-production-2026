@@ -31,6 +31,7 @@
 - Link to the relevant files instead of quoting paths inline.
 - Use product language: "sidebar collapse button" not `app-sidebar.tsx:146`.
 - When uncertain, ask a yes/no question — Csaba answers quickly.
+- When a reminder improves wording, record the sharper rule without pretending the reminder introduced the rule from nothing.
 
 ## Learning for Future AIs
 

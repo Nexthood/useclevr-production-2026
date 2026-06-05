@@ -23,6 +23,8 @@ Current correction pattern:
 
 - The user wants precise, minimal correction capture.
 - The AI tends to over-document when a short distributed update is enough.
+- The AI already follows task-close and post-interaction capture without a reminder when the instruction sources are current.
+- User reminders still matter when they sharpen the wording standard into naming the actor, the required action, and the destination with no vagueness.
 - The AI must separate instruction sources from destination files before writing any follow-up.
 - The right response is to update the smallest matching files, not create a large summary.
 - Good evaluation records what pattern was recognized and where it was recorded.

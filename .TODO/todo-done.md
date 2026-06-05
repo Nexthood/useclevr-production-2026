@@ -14,6 +14,10 @@ moving work between states.
 - [TODO-future.md](todo-future.md)
 - [.TODO/config.json](config.json)
 
+## Label: content
+
+- T-737. Set up Payload Phase 0 with minimal admin content editing for news, homepage, privacy, terms, demo CMS accounts, and shared PostgreSQL migration flow. (labels: content, auth, payment, deployment; commit: worktree)
+
 ## Label: ai
 
 - T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist. (labels: ai, data, upload, docs; commit: 53deaed7)

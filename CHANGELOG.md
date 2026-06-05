@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
+- Show built-in base and superadmin demo credentials on the login page for app and admin testing.
+- Publish a public News section with five starter updates and individual article pages.
 - Login and registration auto-sign-in after successful signup with a delay to ensure database commit before authentication attempt.
 - Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
@@ -26,6 +29,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Stripe service initialization now matches the current Stripe SDK constructor so checkout, webhook, and replay paths compile and run.
 - Business profile row links open the matching business profile and new business creation opens a blank profile.
 - AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.
 - Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
@@ -64,6 +68,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Add Payload Phase 0 migration scripts, generated types, and PostgreSQL migration files for the new admin content schema.
+- Record that the AI agent already follows task-close and post-interaction capture automatically, while user reminders sharpen the wording standard into actor-action-destination precision.
 - Record AI-interaction correction patterns and future-developer notes in the smallest matching files.
 - Rename sales project guidance around project controls and keep founder docs ready for a future branch split.
 - Add generic TODO labels and done-task commit markers so task queues are easier to scan and audit.

@@ -8,6 +8,7 @@ import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
@@ -228,6 +229,19 @@ function LoginForm() {
     </div>
   )
 
+  const builtInAccounts = [
+    {
+      label: "Base role",
+      email: BUILTIN_BASE_USER.email,
+      password: DEMO_PASS,
+    },
+    {
+      label: "Superadmin role",
+      email: BUILTIN_SUPER_ADMIN_USER.email,
+      password: DEMO_PASS,
+    },
+  ]
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/70 bg-background/95 backdrop-blur-sm">
@@ -261,6 +275,46 @@ function LoginForm() {
                   {authError}
                 </div>
               )}
+
+              <div className="rounded-lg border border-border/70 bg-muted/30 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Built-in accounts</p>
+                    <p className="text-xs text-muted-foreground">
+                      Use the same username and password for app sign-in and the CMS admin at <code>/admin</code>.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {builtInAccounts.map((account) => (
+                    <div
+                      key={account.email}
+                      className="rounded-md border border-border/60 bg-background px-3 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 text-sm">
+                          <p className="font-medium text-foreground">{account.label}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{account.email}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{account.password}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setSignInEmail(account.email)
+                            setSignInPassword(account.password)
+                            setAuthError(null)
+                          }}
+                        >
+                          Use
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <TabsContent value="signin" className="mt-0">
                 <form onSubmit={handleSignInSubmit} className="space-y-4">

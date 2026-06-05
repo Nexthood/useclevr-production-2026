@@ -18,6 +18,7 @@ Update this folder whenever durable AI instructions change.
 - Use direct verbs and short user-observable statements.
 - Use super-precise instruction language that sharpens wording from current-state and concise into
   naming the actor, the required action, and the target file or target outcome with no vagueness.
+- Record when the active AI agent already follows the rule automatically, and record separately when a user reminder improves the wording standard.
 - Avoid notes about past states, removed options, speculative possibilities, and future blockages.
 - Include past or future context only when it prevents a concrete risk.
 

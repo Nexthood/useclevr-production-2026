@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const stripe = new Stripe(stripeSecretKey)
+    const stripe = new Stripe(stripeSecretKey, {})
     const event = await stripe.events.retrieve(eventId)
 
     const result = await handleSubscriptionEvent(event)

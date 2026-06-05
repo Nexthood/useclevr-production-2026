@@ -70,6 +70,7 @@ moving work between states.
 - T-194. Add server-host templates for a second hosting destination if Railway stops being the only production host. (labels: deployment, workflow)
 - T-195. Add a Railway account-backed service checklist covering Railway, Neon, Gemini, Stripe, upload storage, and future secondary hosts. (labels: deployment, payment, ai, data)
 - T-196. Add a CMS-backed content editing path for FAQ, homepage copy, and pricing copy if non-developers need content changes without deploys. (labels: deployment, faq, content, workflow)
+- T-738. Extend Payload beyond Phase 0 news and legal pages only after the admin content flow stays stable through normal editing, logout, and re-login cycles. (labels: deployment, content, workflow)
 - T-197. Resolve whether Vercel remains a live deployment target or only a documented fallback. (labels: deployment, docs)
 - T-198. Resolve whether dist branch history should keep exactly two commits or use tags/releases for longer deployment audit history. (labels: deployment, ci-build, workflow)
 - T-256. Add a dist branch smoke-check workflow only if Railway needs to wait for a GitHub status check before deploying. (labels: deployment, ci-build, testing, workflow)

@@ -12,8 +12,10 @@ Text rules for this file:
 ## Infrastructure
 
 - Store application data in Neon PostgreSQL.
+- Store Payload Phase 0 content tables in the same PostgreSQL database.
 - Use ephemeral PostgreSQL containers for local and CI validation.
 - Manage database schema with Drizzle ORM migrations.
+- Manage Payload schema with Payload migrations and generated types.
 - Keep production and preview deployments connected to the configured Neon database.
 - Return liveness health checks even while database readiness is reported as unavailable or degraded.
 - Keep Railway authentication on the active request host unless a strict fixed auth URL is enabled.
@@ -106,6 +108,7 @@ Text rules for this file:
 - Create usable local accounts during social login and registration.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
+- Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
@@ -163,12 +166,23 @@ Text rules for this file:
   vagueness.
 - Keep founder-facing project documents, sales planning, and project-control references separated from the current product docs when that split improves clarity.
 
+## Public Content
+
+- Keep the existing homepage, privacy, and terms routes available.
+- Show public news at `/news` with individual news detail pages.
+- Seed five starter news entries for first-use admin testing.
+- Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.
+- Open Payload admin at `/admin`.
+- Keep Payload admin focused on minimal content editing for CMS users, news, homepage, privacy, and terms.
+- Allow only superadmin CMS users to edit Phase 0 public content.
+
 ## Payment Provider Setup
 
 - Show payment provider connection status before customers reach checkout.
 - Restrict payment provider configuration to super-admins.
 - Show secret key and webhook secret readiness on the payment setup page.
 - Keep Stripe as the active payment provider.
+- Load the Stripe plugin in Payload when Stripe server credentials are configured.
 - Add PayPal only when a second checkout provider is required.
 
 ## Credit Rules & Referrals

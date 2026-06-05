@@ -5,6 +5,7 @@ Use this prompt before or after a task when another AI needs a short reminder to
 ```text
 Work in this repository with current-state language.
 This AI agent must use super-precise language.
+This AI agent must name the actor, the required action, and the destination file or destination outcome with no vagueness.
 
 This AI agent must update the files that match the change:
 - `requirements.md` for user-visible behavior
