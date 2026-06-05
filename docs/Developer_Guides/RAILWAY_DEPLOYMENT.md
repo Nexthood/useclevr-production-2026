@@ -105,6 +105,12 @@ pnpm railway:status
 pnpm railway:logs
 ```
 
+List recent deployments with statuses:
+
+```bash
+railway deployment list
+```
+
 Trigger the latest deploy:
 
 ```bash
@@ -134,6 +140,11 @@ pnpm railway:status          # Show linked project status
 Token auth is required. Set `RAILWAY_API_TOKEN` in `.env` (loads
 automatically — no need to source). Generate a token at
 https://railway.app/account/tokens.
+
+**Important:** Always use the project's Railway wrapper or native Railway CLI to query deploy
+status. Do not hand-craft GraphQL queries against the Railway API — the schema changes frequently
+and direct queries are brittle. The wrapper at `scripts/server/railway/railway.cjs` handles auth,
+token loading, and error formatting.
 
 ## Railpack Configuration
 

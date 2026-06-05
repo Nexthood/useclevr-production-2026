@@ -265,6 +265,26 @@ fix on beta → CI builds → publish to dist-test → Railway deploys → verif
 - Run `pnpm validate:dist` locally before pushing deploy-config changes
 - For local smoke testing: `pnpm prod:build && pnpm start:dist`
 
+## Railway CLI Status
+
+Check Railway deploy status using the project's scripts, not by hand-crafting GraphQL
+queries. The Railway CLI wrapper at `scripts/server/railway/railway.cjs` handles auth
+and queries.
+
+```bash
+pnpm railway:login           # Verify token (reads RAILWAY_API_TOKEN from .env)
+pnpm railway:status          # Show project name, ID, connectivity
+pnpm railway:logs            # View deploy/runtime logs (falls through to native binary)
+railway deployment list      # List recent deployments with statuses
+```
+
+The API token is set in `.env` as `RAILWAY_API_TOKEN`. The local link file
+`.railway/project.json` stays gitignored — keep a private restore copy outside the
+repo.
+
+Key scripts reference: `RAILWAY_DEPLOYMENT.md` at
+`docs/Developer_Guides/RAILWAY_DEPLOYMENT.md`.
+
 ## TODOs
 
 AI agents keep regular `.TODO/` queue files synced:

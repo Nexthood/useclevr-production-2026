@@ -31,6 +31,13 @@ Runtime 502 checklist:
 - Check /api/health liveness and strict readiness behavior.
 - Check fixed auth host variables only when strict host mode is required.
 
+CLI deploy status:
+- Use pnpm railway:login to verify auth
+- Use pnpm railway:status to check project connectivity
+- Use railway deployment list to list recent deployments with statuses
+- Use pnpm railway:logs to view deploy/runtime logs
+- Do NOT hand-craft Railway GraphQL API queries — use the wrapper at scripts/server/railway/railway.cjs instead
+
 Validate:
 - pnpm validate:dist
 - pnpm prod:build when packaging can be affected
