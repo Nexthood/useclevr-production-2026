@@ -48,7 +48,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.
 - Sidebar toggle moved from topbar to the AppSidebar for desktop view, keeping mobile toggle in the header.
 - Login uses compact inner labels, short tab flow, and forgot-password access directly under the password input.
-- Signup requires stronger passwords with length, character variety, and personal-information checks.
 - Chat inputs use larger composing areas with clearer send actions.
 - Floating help chat keeps the launcher aligned to the right while the panel is open.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.

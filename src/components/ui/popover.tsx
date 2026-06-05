@@ -64,23 +64,24 @@ export function PopoverTrigger({
   const { open, setOpen, contentId, triggerRef } = usePopover();
 
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement<React.HTMLAttributes<HTMLElement>>(children, {
-      ref: (node: HTMLElement | null) => {
-        triggerRef.current = node;
-        const childRef = (children as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
-        if (typeof childRef === "function") childRef(node);
-        else if (childRef && typeof childRef === "object") {
-          (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
-        }
-      },
+    const childRef = (children as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
+    const mergedRef = (node: HTMLElement | null) => {
+      triggerRef.current = node;
+      if (typeof childRef === "function") childRef(node);
+      else if (childRef && typeof childRef === "object")
+        (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+    };
+    return React.cloneElement(children, {
+      ...children.props,
       "aria-expanded": open,
       "aria-haspopup": "dialog" as const,
       "aria-controls": contentId,
-      onClick: (event) => {
-        children.props.onClick?.(event as React.MouseEvent<HTMLElement>);
+      ref: mergedRef,
+      onClick: (event: React.MouseEvent<HTMLElement>) => {
+        children.props.onClick?.(event);
         setOpen(!open);
       },
-    });
+    } as React.HTMLAttributes<HTMLElement>);
   }
 
   return (
