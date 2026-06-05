@@ -1,0 +1,18 @@
+@baseUrl = {{baseUrl}}
+
+### Auth session status
+# Expected: 200 OK with session payload or null session
+GET {{baseUrl}}/api/auth/session
+
+### Auth CSRF token
+# Expected: 200 OK with csrfToken
+GET {{baseUrl}}/api/auth/csrf
+
+### Auth providers
+# Expected: 200 OK with configured providers
+GET {{baseUrl}}/api/auth/providers
+
+### Protected session reuse example
+# Replace the cookie value manually when you need to test a signed-in route.
+GET {{baseUrl}}/api/auth/session
+Cookie: authjs.session-token=<paste-local-session-cookie>

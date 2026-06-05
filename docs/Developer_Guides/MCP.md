@@ -100,6 +100,84 @@ Expected signed-in result shape:
 Do not place raw session cookies, service tokens, or admin tokens into docs, prompts, logs, or
 screenshots.
 
+## Terminal Test Process
+
+Use terminal testing for the current internal UseClevr MCP route.
+
+### Route Reachability Test
+
+This test proves that the app exposes the MCP route and enforces the current auth boundary:
+
+```bash
+curl -i http://127.0.0.1:3000/api/mcp
+```
+
+Expected result:
+
+```text
+HTTP/1.1 401 Unauthorized
+{"error":"Unauthorized"}
+```
+
+### Signed-In Tool Listing Test
+
+This test proves that a signed-in client can list UseClevr MCP tools:
+
+1. Sign in to the local app in a browser.
+2. Export the session cookie into a cookie jar your terminal client can reuse.
+3. Re-run the MCP list call with that cookie jar:
+
+```bash
+curl -b cookies.txt http://127.0.0.1:3000/api/mcp
+```
+
+Expected result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+### Signed-In Tool Invocation Test
+
+After you know a dataset ID that belongs to the signed-in user, invoke one deterministic tool:
+
+```bash
+curl -b cookies.txt \
+  -H "content-type: application/json" \
+  -d '{"name":"getDatasetSchema","input":{"datasetId":"<dataset-id>"}}' \
+  http://127.0.0.1:3000/api/mcp
+```
+
+Expected result shape:
+
+```json
+{
+  "success": true,
+  "result": {
+    "columns": ["..."],
+    "rowCount": 123
+  }
+}
+```
+
+If the signed-in terminal test still returns `401`, the cookie jar is missing the active Auth.js
+session cookie.
+
+## Shared API Test Files
+
+Use Git-tracked REST Client files under [docs/api-tests](/home/csaba/Documents/Useclever-2026/docs/api-tests/README.md)
+as the shared MCP and API testing path.
+
+- Use `docs/api-tests/mcp.http` for route reachability, signed-in tool listing, dataset resource listing, and tool invocation.
+- Keep secrets manual and temporary.
+- Keep Thunder Client as a personal manual tool only, not the shared project source of truth.
+
 ## Available Tools
 
 | Tool                      | Description                                                    | Input                              |
@@ -247,6 +325,115 @@ Disable globally, enable per agent:
 ## VS Code Native MCP Support
 
 VS Code has built-in MCP client support (v1.85+) with full stdio, Streamable HTTP, and SSE transports.
+
+### UseClevr Current-State Note
+
+The current UseClevr `/api/mcp` route is an internal authenticated JSON API. It is not yet exposed
+as a native MCP transport server for VS Code's built-in MCP client.
+
+Current result:
+
+- Use VS Code native MCP for real MCP servers that speak stdio, Streamable HTTP, or SSE.
+- Use HTTP request tooling inside VS Code to test the current UseClevr `/api/mcp` route.
+- Do not point `.vscode/mcp.json` directly at `/api/mcp` and expect native MCP discovery yet.
+
+### VS Code Local Test Process
+
+Use one of these two current-state paths:
+
+#### Option A: REST Client Extension
+
+1. Install the `REST Client` VS Code extension.
+2. Create a file such as `tmp/useclevr-mcp-test.http`.
+3. Add a route reachability request:
+
+```http
+GET http://127.0.0.1:3000/api/mcp
+```
+
+4. Send the request.
+
+Expected result:
+
+```text
+401 Unauthorized
+```
+
+5. After signing in locally, repeat the request with the active session cookie copied from browser
+devtools into the request header:
+
+```http
+GET http://127.0.0.1:3000/api/mcp
+Cookie: <paste active auth session cookie pair>
+```
+
+Expected result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+#### Option B: Thunder Client Or Similar HTTP Tool
+
+1. Open a new request to `GET http://127.0.0.1:3000/api/mcp`.
+2. Confirm the unsigned request returns `401 Unauthorized`.
+3. Add the active session cookie from the local signed-in browser session.
+4. Re-run the request and confirm the tool list appears.
+
+#### Option C: VS Code Integrated Browser + Manual Cookie Reuse
+
+Use this path when you sign in through the VS Code integrated browser and want to verify the
+current internal UseClevr MCP route without leaving VS Code.
+
+1. Open the local app in the VS Code integrated browser.
+2. Sign in with a valid local account.
+3. Open browser devtools inside VS Code.
+4. Open the cookie storage view for `http://127.0.0.1:3000` or `http://localhost:3000`.
+5. Copy the active Auth.js session cookie pair:
+   - `authjs.session-token=...`
+   - or `__Secure-authjs.session-token=...`
+6. Reuse that cookie in a terminal request:
+
+```bash
+curl -i \
+  -H 'Cookie: authjs.session-token=<paste-value>' \
+  http://127.0.0.1:3000/api/mcp
+```
+
+If the secure cookie name is the active one, use:
+
+```bash
+curl -i \
+  -H 'Cookie: __Secure-authjs.session-token=<paste-value>' \
+  http://127.0.0.1:3000/api/mcp
+```
+
+Expected signed-in result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+Current limitation:
+
+- The coding agent can document this process and run the terminal half.
+- The coding agent cannot click the VS Code integrated browser or extract its live cookies directly.
+- Treat the cookie copy step as a manual local operator step.
+
+### Future Native VS Code MCP Test
+
+Use native `.vscode/mcp.json` testing only after UseClevr exposes a real MCP transport endpoint
+instead of the current internal JSON route.
 
 ### Configuration
 

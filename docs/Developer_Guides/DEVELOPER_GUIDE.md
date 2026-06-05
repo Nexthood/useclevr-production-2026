@@ -177,6 +177,15 @@ All commands are run from `pnpm`.
 | `pnpm test:csv-analyzer` | CSV analyser specific tests |
 | `pnpm test:neon`         | Neon connection smoke test  |
 
+## Shared API Testing
+
+Use [docs/api-tests/README.md](/home/csaba/Documents/Useclever-2026/docs/api-tests/README.md) and the
+Git-tracked `.http` files under `docs/api-tests/` as the shared API testing method.
+
+- Use REST Client in VS Code for reproducible local, staging, and production request examples.
+- Keep Thunder Client for personal manual exploration only.
+- Paste session cookies manually for protected-route checks and do not save secrets into Git.
+
 ### Analysis Helpers
 
 - `scripts/analysis/test-csv-analyzer.ts` and `scripts/analysis/test-csv-edge-cases.ts` power the CSV analyser test suite.

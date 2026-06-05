@@ -23,6 +23,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-772. Allow signed internal MCP token access through the global proxy or narrow the proxy bypass for trusted MCP headers so documented token-based MCP calls can run without a browser session. (labels: auth, mcp, security, workflow)
 - T-594. Evaluate a dedicated MCP subdomain only when MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership. (labels: auth, mcp, ai, performance)
 - T-180. Add OAuth providers if the product roadmap requires them. (labels: auth, ai, workflow)
 - T-447. OAuth user ID generation uses Date.now() + Math.random() — switch to uuid for collision resistance. (labels: auth)

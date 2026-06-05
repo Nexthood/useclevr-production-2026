@@ -1,0 +1,30 @@
+@baseUrl = {{baseUrl}}
+
+### Current business details
+# Expected: 200 OK with current business details or default empty details
+GET {{baseUrl}}/api/me/business
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### Current business setup payload
+# Expected: 200 OK with saved setup payload for the signed-in user
+GET {{baseUrl}}/api/business/setup
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### Update business setup payload
+# Expected: 200 OK with success true on valid signed-in update
+PUT {{baseUrl}}/api/business/setup
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "payload": {
+    "businessName": "UseClevr Test Business",
+    "industry": "software",
+    "country": "Netherlands"
+  }
+}
+
+### Reset business setup payload
+# Expected: 200 OK with success true on valid signed-in reset
+DELETE {{baseUrl}}/api/business/setup
+Cookie: authjs.session-token=<paste-local-session-cookie>

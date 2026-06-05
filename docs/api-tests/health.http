@@ -1,0 +1,13 @@
+@baseUrl = {{baseUrl}}
+
+### Health check
+# Expected: 200 OK
+GET {{baseUrl}}/api/health
+
+### Health HEAD check
+# Expected: 200 OK
+HEAD {{baseUrl}}/api/health
+
+### Health readiness POST check
+# Expected: 200 OK when database is ready, or 503 when database is unavailable or degraded
+POST {{baseUrl}}/api/health

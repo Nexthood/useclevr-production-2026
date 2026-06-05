@@ -120,3 +120,37 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - `improvement`: AI agents now have a direct Railway CLI reference in AGENTS.md instead of guessing the auth flow.
 - **User Learning**: Use the project's Railway wrapper at `scripts/server/railway/railway.cjs` for auth, status, and connectivity. Use `railway deployment list` for recent deployment statuses. Never hand-craft Railway GraphQL queries.
 - **AI-Agent Learning**: Before querying any external API (Railway, GitHub, etc.), check if the project already has a wrapper script, doc reference, or pnpm script for that purpose. Hand-crafted API calls bypass auth loading, error formatting, and environment handling that the project scripts already provide.
+
+---
+
+## Interaction 7: UseClevr MCP Local Ping + VS Code Integrated Browser Test Documentation
+
+- **Date**: June 2026
+- **User Goal**: Test the internal UseClevr MCP route locally and document terminal and VS Code testing paths.
+- **Current Product State**: The internal `/api/mcp` route answers locally. The unsigned ping returns `401 Unauthorized`, which confirms the route exists and the current auth boundary blocks unauthenticated access. A positive tool-list response requires a valid signed-in session cookie.
+- **Implemented Changes & Decisions**:
+  1. **Terminal Test Path**: Documented unsigned route reachability, signed-in tool listing, and signed-in tool invocation examples.
+  2. **VS Code Test Path**: Documented REST Client, Thunder Client, and VS Code integrated browser testing paths for the current JSON route.
+  3. **Manual-Step Rule**: Recorded that the AI agent can run the terminal half and document the browser-cookie step, but cannot click the integrated browser or extract its live cookies directly.
+- **Problems Marked**:
+  - `observation`: `curl -b cookies.txt http://127.0.0.1:3000/api/mcp` returned `401 Unauthorized`, so the local cookie jar did not contain a valid active session.
+- `risk`: Agents can overclaim browser testing if they do not mark live browser-cookie extraction as a manual local operator step.
+- **User Learning**: The current negative ping is still useful because it confirms route reachability and the active auth boundary. The positive local MCP list test needs a valid signed-in session cookie.
+- **AI-Agent Learning**: When a test depends on a live browser cookie or IDE-integrated browser state, document the manual step directly and do not imply the AI agent completed the browser interaction itself.
+
+---
+
+## Interaction 8: Shared REST Client API Tests + MCP Request Files
+
+- **Date**: June 2026
+- **User Goal**: Add a shared REST Client testing kit, test the current MCP route, update docs, and record the durable post-interaction learning.
+- **Current Product State**: The local app returns `200` from `/api/health` and returns `401 Unauthorized` from unsigned `/api/mcp`. The team needed a Git-tracked API testing path instead of personal-only request collections.
+- **Implemented Changes & Decisions**:
+  1. **Shared REST Client Files**: Added `docs/api-tests/` request files for health, auth, upload, analyze, business profile, billing, Railway smoke, and MCP checks.
+  2. **VS Code Environments**: Added safe shared REST Client base URLs in `.vscode/settings.json` for local, staging, and production.
+  3. **MCP Current-State Testing**: Recorded the real local MCP contract directly in the shared request files and MCP guide.
+- **Problems Marked**:
+  - `observation`: Unsigned `/api/mcp` still stops at the current auth boundary, so a positive MCP request example must remain a manual signed-in session step.
+  - `improvement`: Shared API tests now live in one Git-tracked location that other developers can reuse without exporting personal tool collections.
+- **User Learning**: Use `docs/api-tests/` as the shared project API test source of truth. Reuse a temporary local session cookie only when a protected route needs a signed-in request.
+- **AI-Agent Learning**: When the user asks for shared API testing, create reproducible REST Client files in the repo first and treat personal test tools as secondary.

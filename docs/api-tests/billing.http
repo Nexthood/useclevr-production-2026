@@ -1,0 +1,28 @@
+@baseUrl = {{baseUrl}}
+
+### Billing plan options
+# Expected: 200 OK with configured plans
+GET {{baseUrl}}/api/checkout/options
+
+### Save checkout review without payment provider handoff
+# Expected: 200 OK with saved review status when Stripe price is not connected or review-only flow is used
+POST {{baseUrl}}/api/checkout/confirm
+Content-Type: application/json
+
+{
+  "planId": "starter"
+}
+
+### Start checkout
+# Expected: 200 OK with review or checkout payload, or 400 when plan is invalid
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "planId": "starter"
+}
+
+### Open billing portal
+# Expected: 200 OK with portal URL for signed-in customers, 401 when session is missing, 404 when billing is not linked
+POST {{baseUrl}}/api/portal
+Cookie: authjs.session-token=<paste-local-session-cookie>
