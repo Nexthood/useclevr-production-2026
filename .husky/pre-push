@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -e
 
 # TypeScript, deploy config, lint, and production publish build checks
 pnpm validate:prepush

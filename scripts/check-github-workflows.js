@@ -5,6 +5,12 @@ import process from "node:process";
 import yaml from "js-yaml";
 
 import { requiredPackageManager, resolveRepoPath, workflowsDir } from "./lib/app-config.js";
+import {
+  deriveWorkflowSnapshot,
+  readWorkflowGolden,
+  stringifyWorkflowSnapshot,
+  workflowGoldenPath,
+} from "./lib/workflow-check-names.js";
 
 const allowedActions = new Map([
   ["actions/checkout", new Set(["v6"])],
@@ -17,6 +23,7 @@ const allowedActions = new Map([
 const errors = [];
 const fixesApplied = [];
 const isFix = process.argv.includes("--fix");
+const shouldRefreshGolden = process.argv.includes("--refresh-golden");
 
 function walk(value, visitor) {
   if (Array.isArray(value)) {
@@ -82,6 +89,8 @@ function fixWorkflow(source, fileName) {
 
   return { fixed: dumped, modified: true };
 }
+
+const workflowSnapshot = deriveWorkflowSnapshot({ readdirSync, readFileSync });
 
 for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.test(file))) {
   const filePath = resolveRepoPath(".github", "workflows", fileName);
@@ -154,6 +163,21 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
         );
       }
     }
+  }
+}
+
+if (shouldRefreshGolden) {
+  writeFileSync(workflowGoldenPath, stringifyWorkflowSnapshot(workflowSnapshot), "utf-8");
+  fixesApplied.push(".github/workflow-job-names.golden.json: refreshed workflow check-run golden file");
+} else {
+  const workflowGolden = readWorkflowGolden({ readFileSync });
+  const expected = stringifyWorkflowSnapshot(workflowGolden);
+  const actual = stringifyWorkflowSnapshot(workflowSnapshot);
+
+  if (expected !== actual) {
+    errors.push(
+      `workflow check-run names drifted from .github/workflow-job-names.golden.json; run 'pnpm lint:workflows:refresh' after reviewing workflow name changes`,
+    );
   }
 }
 

@@ -1,0 +1,49 @@
+name: Refresh Workflow Job Names Golden
+
+on:
+  push:
+    branches: [main, beta]
+    paths:
+      - ".github/workflows/**"
+      - "scripts/check-github-workflows.js"
+      - "scripts/lib/workflow-check-names.js"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-workflow-golden-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-golden:
+    name: Refresh workflow job names golden
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/setup
+
+      - name: Refresh workflow check-run golden file
+        run: pnpm lint:workflows:refresh
+
+      - name: Commit refreshed golden file
+        run: |
+          if git diff --quiet -- .github/workflow-job-names.golden.json; then
+            echo "Workflow golden file already matches current workflow names."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/workflow-job-names.golden.json
+          git commit -m "chore: refresh workflow job names golden [skip ci]"
+          git push origin HEAD:${GITHUB_REF_NAME}

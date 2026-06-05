@@ -272,7 +272,7 @@ Current hooks:
 
 - `commit-msg` — runs commitlint and allows `PR:` commit titles used by generated dist commits.
 - `pre-commit` — keeps commits fast and leaves validation to commit message and push gates.
-- `pre-push` — runs TypeScript, deploy config checks, linting, production packaging, and workflow validation.
+- `pre-push` — runs TypeScript, deploy config checks, linting, production packaging, workflow validation, and workflow check-name golden validation.
 
 Setup and checks:
 
@@ -301,7 +301,8 @@ pnpm lint                     # must be clean
 pnpm test:all                 # must pass
 ```
 
-GitHub Actions CI runs one required source check automatically: `Validate source and production build`.
+GitHub Actions CI runs one required source check automatically:
+`Validate source and production build / validate`.
 It type-checks, validates dist config, lints, runs tests, and executes `pnpm build`.
 
 ## Quick Checks
@@ -372,7 +373,7 @@ build-time only.
 
 | Job                                    | Runs    | Steps                                            |
 | -------------------------------------- | ------- | ------------------------------------------------ |
-| `Validate source and production build` | Always  | types, dist-check, lint, tests, production build |
+| `Validate source and production build / validate` | Always  | types, dist-check, lint, tests, production build |
 | `Documentation checks`                 | PR only | `pnpm docs:check`                                |
 
 ## Security

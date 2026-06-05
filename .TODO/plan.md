@@ -23,35 +23,12 @@ Use this minimal structure:
   /ui
 /config
 ```
-
-Only add shared packages or config if they are genuinely needed after the first pass.
-
-## Adjusted Implementation Prompt
-
-Use this prompt as the working implementation brief:
-
-```text
-Implement the smallest safe monorepo split for UseClevr.
-
-Goals:
-- Keep the current SaaS dashboard app working.
-- Add a separate docs app for public documentation.
-- Use Fumadocs built-in search only.
-- Do not introduce Meilisearch, Typesense, Algolia, or other external search now.
-- Preserve the existing Railway dist / dist-test deployment flow.
-- Avoid unnecessary architecture churn.
-
-Constraints:
-- Keep the current root app as the main dashboard path.
-- Add apps/web and apps/docs only when the migration is stable.
-- Do not mix the dashboard build with the docs build.
-- Keep deployment roots explicit for Railway.
-- Prefer practical scripts and minimal config over enterprise structure.
-
-Expected outcome:
-- Root scripts support local dev/build for web and docs.
-- Railway can deploy each service from its own service root.
-- The docs app is ready for future external search only if it becomes necessary later.
+/apps
+  /web
+  /docs
+/packages
+  /ui  # UI and project design branding planned for future update post-payload migration
+/config
 ```
 
 ## Minimal Safe Migration Path
@@ -120,15 +97,76 @@ If a command cannot be validated in this repo, do not force it into the root `pa
 
 ## Risk Notes
 
-- The current deployment model is already working for generated `dist` output; avoid changing that path during the monorepo migration.
-- The docs app should be isolated so the main dashboard build remains predictable.
-- Any new workspace layout must be validated locally before changing Railway service roots.
+## Post-Payload Migration Steps and Tasks
 
-## Suggested First Implementation Check
+After the initial monorepo migration and payload CMS upgrade are complete, the following steps should be undertaken:
 
-Before changing production deployment settings, verify:
+### Phase 6: Post-Payload UI and Design Branding
 
-1. current `pnpm` scripts still work,
-2. the current Railway config remains valid,
-3. the docs app can start independently,
-4. the dashboard app can still run independently.
+1. **Design System Establishment**
+   - Create shared UI component library in `/packages/ui`
+   - Implement design tokens and theme system
+   - Establish component documentation and storytelling
+
+2. **Project Design Branding Update**
+   - Update visual identity across all applications
+   - Implement consistent styling and branding guidelines
+   - Update logo, color schemes, and typography
+
+3. **Component Migration**
+   - Migrate existing UI components to the shared package
+   - Refactor components to follow design system patterns
+   - Ensure backward compatibility during transition
+
+4. **Quality Assurance**
+   - Implement visual regression testing
+   - Add component testing with storybook
+   - Perform cross-browser and accessibility testing
+
+### Post-Payload Tasks to Add to TODO:
+
+- T-XXX. Create shared UI component library in `/packages/ui` with design tokens and theme system
+- T-XXX. Implement design system documentation and component storytelling
+- T-XXX. Update visual identity and branding across all applications
+- T-XXX. Migrate existing UI components to shared package with refactoring
+- T-XXX. Add visual regression testing and component testing suite
+- T-XXX. Implement consistent styling and branding guidelines
+- T-XXX. Update logo, color schemes, and typography per brand guidelines
+- T-XXX. Perform cross-browser and accessibility testing for UI components
+
+## Post-Payload Migration Steps and Tasks
+
+After the initial monorepo migration and payload CMS upgrade are complete, the following steps should be undertaken:
+
+### Phase 6: Post-Payload UI and Design Branding
+
+1. **Design System Establishment**
+   - Create shared UI component library in `/packages/ui`
+   - Implement design tokens and theme system
+   - Establish component documentation and storytelling
+
+2. **Project Design Branding Update**
+   - Update visual identity across all applications
+   - Implement consistent styling and branding guidelines
+   - Update logo, color schemes, and typography
+
+3. **Component Migration**
+   - Migrate existing UI components to the shared package
+   - Refactor components to follow design system patterns
+   - Ensure backward compatibility during transition
+
+4. **Quality Assurance**
+   - Implement visual regression testing
+   - Add component testing with storybook
+   - Perform cross-browser and accessibility testing
+
+### Post-Payload Tasks to Add to TODO:
+
+- T-XXX. Create shared UI component library in `/packages/ui` with design tokens and theme system
+- T-XXX. Implement design system documentation and component storytelling
+- T-XXX. Update visual identity and branding across all applications
+- T-XXX. Migrate existing UI components to shared package with refactoring
+- T-XXX. Add visual regression testing and component testing suite
+- T-XXX. Implement consistent styling and branding guidelines
+- T-XXX. Update logo, color schemes, and typography per brand guidelines
+- T-XXX. Perform cross-browser and accessibility testing for UI components

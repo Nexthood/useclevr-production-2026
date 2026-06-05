@@ -37,6 +37,7 @@ Write the result as current project learning with these sections:
 
 Keep the summary concise (under 400 words).
 Use direct current-state language.
+Name the active actor, the required action, and the destination file or destination outcome with no vagueness.
 Never include secrets, tokens, keys, or customer data.
 ```
 
@@ -53,4 +54,5 @@ AI agents run this capture automatically after each completed request/response c
 user explicitly says not to. Keep only durable learning. If the cycle contains no durable project
 learning, record no project-memory update and continue. Treat the hook files as instruction
 sources, then update the smallest matching destination files, including requirements when
-product-facing wording changes.
+product-facing wording changes. When another AI agent is working in parallel, update only the
+instruction and learning destinations owned by your own completed change.

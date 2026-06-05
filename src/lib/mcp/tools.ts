@@ -150,6 +150,27 @@ export interface ProfitMarginTrendOutput {
   };
 }
 
+export const GetFaqsInput = z.object({
+  category: z.string().optional(),
+  query: z.string().optional(),
+  limit: z.number().min(1).max(50).optional().default(20),
+});
+
+export type GetFaqsInput = z.infer<typeof GetFaqsInput>;
+
+export interface FaqItemOutput {
+  category: string;
+  question: string;
+  answer: string;
+  tag?: string;
+}
+
+export interface GetFaqsOutput {
+  faqs: FaqItemOutput[];
+  totalCount: number;
+  categories: string[];
+}
+
 export const CompareDatasetsInput = z.object({
   datasetIdA: z.string(),
   datasetIdB: z.string(),
@@ -180,6 +201,13 @@ export interface MCPTool {
 }
 
 export const mcpTools: MCPTool[] = [
+  {
+    name: "getFaqs",
+    description:
+      "Returns FAQ entries filtered by category, keyword search in question/answer, or both. Lists all FAQ content with categories, questions, and answers.",
+    inputSchema: GetFaqsInput,
+    outputSchema: {} as GetFaqsOutput,
+  },
   {
     name: "getDatasetSchema",
     description:

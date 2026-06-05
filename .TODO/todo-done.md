@@ -18,6 +18,10 @@ moving work between states.
 
 - T-737. Set up Payload Phase 0 with minimal admin content editing for news, homepage, privacy, terms, demo CMS accounts, and shared PostgreSQL migration flow. (labels: content, auth, payment, deployment; commit: worktree)
 
+## Label: ci-build
+
+- T-739. Add workflow check-name golden validation, bot-driven golden refresh, and fail-fast pre-push workflow guarding against stale required job names. (labels: ci-build, deployment, workflow; commit: worktree)
+
 ## Label: ai
 
 - T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist. (labels: ai, data, upload, docs; commit: 53deaed7)

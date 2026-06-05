@@ -3,11 +3,15 @@ import { getDb } from "@/lib/db";
 import { datasets, datasetRows } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 
+import { allFaqCategories } from "@/lib/content/faq";
+
 import type { PrecomputedMetrics } from "../utils/pipeline-types";
 import type {
   CompareDatasetsOutput,
   CostBreakdownOutput,
   DatasetSchemaOutput,
+  FaqItemOutput,
+  GetFaqsOutput,
   PrecomputedKpisOutput,
   ProfitMarginTrendOutput,
   ProfitabilitySummaryOutput,
@@ -458,6 +462,45 @@ export function getRevenueTrends(
       metric,
       computedAt: metrics.computedAt,
     },
+  };
+}
+
+export function getFaqs(
+  category?: string,
+  query?: string,
+  limit: number = 20,
+): GetFaqsOutput {
+  let faqs: FaqItemOutput[] = allFaqCategories.flatMap((cat) =>
+    cat.items.map((item) => ({
+      category: cat.category,
+      question: item.q,
+      answer: item.a,
+      tag: item.tag,
+    })),
+  );
+
+  if (category) {
+    const catLower = category.toLowerCase();
+    faqs = faqs.filter((f) => f.category.toLowerCase() === catLower);
+  }
+
+  if (query) {
+    const qLower = query.toLowerCase();
+    faqs = faqs.filter(
+      (f) =>
+        f.question.toLowerCase().includes(qLower) ||
+        f.answer.toLowerCase().includes(qLower),
+    );
+  }
+
+  const categories = [
+    ...new Set(allFaqCategories.map((c) => c.category)),
+  ];
+
+  return {
+    faqs: faqs.slice(0, limit),
+    totalCount: faqs.length,
+    categories,
   };
 }
 
