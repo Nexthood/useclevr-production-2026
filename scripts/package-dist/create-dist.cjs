@@ -253,18 +253,25 @@ function restoreNextBuildDir(targetNodeModulesDir, sourceNodeModulesDir) {
     sourceCandidates.push(sourceFlatNext);
   }
 
-  const sourceBuildDirs = sourceCandidates
-    .map((candidate) => path.join(candidate, "dist", "build"))
-    .filter((candidate, index, all) => all.indexOf(candidate) === index && fs.existsSync(candidate));
-
   for (const pkgDir of candidates) {
     const buildDir = path.join(pkgDir, "dist", "build");
-    if (fs.existsSync(buildDir)) continue; // already present
-    for (const sourceBuild of sourceBuildDirs) {
-      fs.cpSync(sourceBuild, buildDir, { recursive: true });
-      console.log(`Restored next/dist/build/ into ${path.relative(targetNodeModulesDir, pkgDir)}`);
-      break;
+    const packageDirName = path.basename(path.dirname(path.dirname(pkgDir)));
+    const matchingSource = sourceCandidates.find(
+      (candidate) => path.basename(path.dirname(path.dirname(candidate))) === packageDirName,
+    );
+    const sourceBuild = matchingSource
+      ? path.join(matchingSource, "dist", "build")
+      : sourceCandidates
+          .map((candidate) => path.join(candidate, "dist", "build"))
+          .find((candidate) => fs.existsSync(candidate));
+
+    if (!sourceBuild || !fs.existsSync(sourceBuild)) {
+      throw new Error(`Next.js runtime build directory not found for ${packageDirName}`);
     }
+
+    fs.rmSync(buildDir, { recursive: true, force: true });
+    fs.cpSync(sourceBuild, buildDir, { recursive: true });
+    console.log(`Restored complete next/dist/build/ into ${path.relative(targetNodeModulesDir, pkgDir)}`);
   }
 }
 restoreNextBuildDir(path.join(distDir, "node_modules"), path.join(rootDir, "node_modules"));
