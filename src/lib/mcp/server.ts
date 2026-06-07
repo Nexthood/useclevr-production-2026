@@ -13,6 +13,8 @@ import {
   GetTopProductsInput,
   GetTopRegionsInput,
   mcpTools,
+  type MCPScope,
+  zodToJsonSchema,
 } from "./tools";
 
 import {
@@ -176,8 +178,21 @@ export function listTools() {
   return mcpTools.map((tool) => ({
     name: tool.name,
     description: tool.description,
-    inputSchema: "object",
+    inputSchema: zodToJsonSchema(tool.inputSchema),
+    requiredScopes: tool.requiredScopes,
   }));
+}
+
+export function listToolsByScope(scopes: MCPScope[]) {
+  const scopeSet = new Set(scopes);
+  return mcpTools
+    .filter((tool) => tool.requiredScopes.every((s) => scopeSet.has(s)))
+    .map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: zodToJsonSchema(tool.inputSchema),
+      requiredScopes: tool.requiredScopes,
+    }));
 }
 
 export function listResources(datasetId: string) {

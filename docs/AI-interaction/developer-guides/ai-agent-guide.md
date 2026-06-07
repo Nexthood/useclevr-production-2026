@@ -28,6 +28,7 @@ folder during the same task cycle.
 - Prepare future developers by recording concise AI-collaboration lessons that explain correction patterns, expectations, and reusable working habits.
 - Keep the post-interaction summary short enough that the correction pattern is obvious at a glance.
 - When durable structure changes, record the split in the doc that owns the audience rather than repeating it everywhere.
+- Keep public user docs and protected operator docs as separate audiences when planning future docs branches, docs hosts, navigation, search scopes, or sitemap rules.
 - Read [dev-persona.md](dev-persona.md) before starting work with the project owner — follow their communication style and expectations.
 - Follow the [AI memory collection guide](ai-memory-collection-guide.md) for the collection flow and classification rules.
 - Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.
@@ -52,6 +53,13 @@ folder during the same task cycle.
 - Do not use `main`, `dist`, or the live app when the request names the test deploy.
 - Treat Railway tokens as sensitive. Do not echo them in summaries, docs, TODOs, or logs.
 - Prefer status, deployment list, and logs commands before redeploy or restart commands.
+- Check Railway deploy status with the project's own scripts at `scripts/server/railway/railway.cjs`,
+  not by hand-crafting GraphQL queries. Use `pnpm railway:login` to verify auth,
+  `pnpm railway:status` for project connectivity, and `railway deployment list` for recent
+  deployment statuses. `pnpm railway:logs` falls through to the native binary for runtime logs.
+  The API token is in `.env` as `RAILWAY_API_TOKEN`; the link file `.railway/project.json` is
+  gitignored. See `docs/Developer_Guides/RAILWAY_DEPLOYMENT.md` and the Railway CLI section in
+  `AGENTS.md`.
 - The `dist` branch includes `dist/node_modules/` (33MB pnpm symlink structure) — Railpack requires
   it for build graph checksums. The publish workflow never removes `node_modules/` from output.
 - `railpack.json` at the `dist` branch root uses `"provider": "node"` (singular string) with no custom

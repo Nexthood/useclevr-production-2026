@@ -62,7 +62,7 @@ export function runQuery(sql: string): any[] {
   return runQueryJS(sql);
 }
 
-export function runQueryJS(query: string): any[] {
+export function runQueryJS(query: string, data: any[] = jsData): any[] {
   debugLog('[DatasetEngine-JS] Running query:', query);
   
   const q = query.toLowerCase().trim();
@@ -70,7 +70,7 @@ export function runQueryJS(query: string): any[] {
   
   if (!q.includes('select') || !q.includes('from')) {
     // Invalid query, return all data
-    return jsData.slice(0, 100);
+    return data.slice(0, 100);
   }
   
   // Parse query
@@ -98,7 +98,7 @@ export function runQueryJS(query: string): any[] {
   // Handle GROUP BY aggregation
   if (hasGroupBy && groupCol) {
     const groups: { [key: string]: any[] } = {};
-    jsData.forEach((row: any) => {
+    data.forEach((row: any) => {
       const key = String(row[groupCol!] || 'unknown');
       if (!groups[key]) groups[key] = [];
       groups[key].push(row);
@@ -135,7 +135,7 @@ export function runQueryJS(query: string): any[] {
     });
   } else {
     // Simple select
-    result = jsData.slice(0, limit);
+    result = data.slice(0, limit);
   }
   
   // Apply ORDER BY

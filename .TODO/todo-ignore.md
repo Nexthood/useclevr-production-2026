@@ -82,3 +82,10 @@ moving work between states.
 - T-607. Implement SQL injection prevention using parameterized queries and input validation for all database operations. (labels: security, data, testing, workflow)
 - T-611. Implement proper CORS configuration with strict origin validation. (labels: security, testing, workflow)
 - T-613. Implement JWT token rotation and refresh token invalidation on password change. (labels: security, testing)
+- T-616. Add password breach detection using HaveIBeenPwned API during registration and password change. (labels: security, api)
+
+## Additional
+
+- T-689. Add distributed tracing with OpenTelemetry for all service interactions. (labels: monitoring, observability)
+- T-690. Implement custom metrics collection for business KPIs and system performance. (labels: monitoring, metrics)
+- T-691. Add log aggregation and structured logging for all application components. (labels: monitoring, logging)

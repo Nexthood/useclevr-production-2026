@@ -64,7 +64,7 @@ function CheckoutClient() {
 
   const tscUrl = "https://useclevr.com/terms";
   const canReview = !!plan.stripePriceId;
-  const submitLabel = canReview ? "Continue to secure payment" : "Save checkout review";
+  const submitLabel = canReview ? "Continue to secure payment" : "Checkout unavailable";
 
   const onSubmit = async () => {
     if (!termsAccepted) return;
@@ -295,11 +295,15 @@ function CheckoutClient() {
                 </div>
               )}
               <div className="mt-4 space-y-3">
-                <Button onClick={onSubmit} disabled={!termsAccepted || isGoing} className="w-full">
+                <Button
+                  onClick={onSubmit}
+                  disabled={!termsAccepted || isGoing || !canReview}
+                  className="w-full"
+                >
                   {isGoing
                     ? canReview
                       ? "Opening payment..."
-                      : "Saving review..."
+                      : "Checkout unavailable"
                     : termsAccepted
                       ? submitLabel
                       : "Accept terms and conditions to continue"}
@@ -313,7 +317,7 @@ function CheckoutClient() {
               </div>
               <div className="mt-4 space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Checkout saved locally when the payment provider is not yet connected.
+                  Checkout requires an active payment provider and a configured price for this plan.
                 </p>
                 <Link href="/app/settings/subscription" className="block">
                   <Button variant="outline" className="w-full bg-transparent">

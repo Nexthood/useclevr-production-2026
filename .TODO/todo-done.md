@@ -20,10 +20,14 @@ moving work between states.
 
 ## Label: ci-build
 
+- T-791. Supply a deterministic CI-only authentication secret to source validation and generated deployment builds so required environment validation and smoke tests complete. (labels: ci-build, auth, deployment; commit: 4b99e59d)
+- T-783. Keep the Next.js production proxy entry intact so webpack builds complete middleware finalization. (labels: ci-build, deployment; commit: worktree)
 - T-739. Add workflow check-name golden validation, bot-driven golden refresh, and fail-fast pre-push workflow guarding against stale required job names. (labels: ci-build, deployment, workflow; commit: worktree)
 
 ## Label: ai
 
+- T-781. Keep each analysis request scoped to the signed-in user's selected dataset without shared server memory between requests. (labels: ai, auth, data, api; commit: worktree)
+- T-784. Keep assistant calculations limited to verified dataset values and name missing columns instead of inventing proxy costs, lifespans, or performance values. (labels: ai, data, quality; commit: worktree)
 - T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist. (labels: ai, data, upload, docs; commit: 53deaed7)
 - T-411. The last inline table in `ResultPreview` (`ai-assistant-workspace.tsx`) refactored to use the shared `DataTable` component. (labels: ai, dashboard, ui, data; commit: 53deaed7)
 - T-363. Per-page loading and error states added for datasets, settings, business, assistant, tickets, accountancy, and admin sections. (labels: ai, dashboard, ui, business; commit: 53deaed7)
@@ -47,12 +51,16 @@ moving work between states.
 
 ## Label: api
 
+- T-786. Remove orphaned dataset comparison, alert, and live-refresh API routes that expose non-persistent or no-op production behavior. (labels: api, data, quality; commit: worktree)
+- T-782. Require authentication and dataset ownership for upload and direct dataset query operations. (labels: api, auth, upload, security; commit: worktree)
 - T-598. Remove remaining `any` types in API routes — replaced `any` types in `src/app/api/analyze/route.ts` with proper types. (labels: api, workflow; commit: 5b62cb31)
 - T-428. Add streaming responses to `/api/chat` using `ReadableStream` and `TextEncoder` for incremental display and abort support. (labels: api; commit: 53deaed7)
 - T-309. Language context enhanced with `translate` function using Google Translation API. (labels: api; commit: 53deaed7)
 
 ## Label: auth
 
+- T-790. Keep Railway credential login on the public request host and confirm the authenticated session before the login page reports invalid credentials. (labels: auth, deployment, security; commit: 26e5fc63)
+- T-787. Stop signed-out dashboard rendering before nested layouts access session data and prevent the datasets page from loading another account as demo content. (labels: auth, data, security; commit: worktree)
 - T-499. AI trace retention policy — configurable via superadmin `GET/POST /api/admin/ai-trace-retention`, stored in `appSettings` table. (labels: auth, ai, api, dashboard; commit: 545be481)
 - T-600. Remove unused imports and dead code — cleaned up unused imports and unused variables like `oauthAccount` in actions. (labels: auth, accessibility; commit: 5b62cb31)
 - T-589. Create shared `requireAuth()` helper — created `src/lib/auth/require-auth.ts` containing throwing `requireAuth` and functional `requireAuthResult` helper functions, and updated all server action call sites. (labels: auth, api, data, faq; commit: 72b947d6)
@@ -75,6 +83,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-785. Give signed-in accounts a 14-day analyst trial from account creation, preserve two free credits after the trial, and require authentication for usage and checkout account actions. (labels: billing, auth, security; commit: worktree)
 - T-540. Sales one-pager created from project brief, business case, product description, and marketing plan. (labels: billing, business, reports, sales; commit: 3e8d4602)
 - T-429. Split 906-line chat route into focused modules: validation, SQL executor, explanation, fallback, and utils. (labels: billing, api, data, testing; commit: 53deaed7)
 - T-403. Superadmin `Admin` section added to topbar before Credits section, conditionally rendered via `session?.user?.role`. (labels: billing, auth, dashboard, ui; commit: 53deaed7)
@@ -159,6 +168,7 @@ moving work between states.
 
 ## Label: data
 
+- T-780. Classify numeric, text, date, boolean, identifier, and mixed CSV columns from representative values without treating every unique value as an identifier. (labels: data, upload, testing; commit: worktree)
 - T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable. (labels: data, reports, search, sales; commit: 53deaed7)
 - T-582. Merge duplicate upload implementations — made the server action `uploadCSV` in `src/app/actions/upload.ts` canonical, merged database retry logic and processRows types, and delegated the API route `/api/upload` to call it. (labels: api, data, upload, performance; commit: 72b947d6)
 - T-587. Consolidate CSV parsing into one canonical module — replaced split-by-newline-split-by-comma manual parsers with robust PapaParse-backed `parseCSVString` calls across upload actions and handlers. (labels: data, upload; commit: 72b947d6)
@@ -245,6 +255,11 @@ moving work between states.
 - T-358. All bare `console.error` and `console.warn` calls across API routes and hooks replaced with gated `debugError`/`debugWarn` helpers. (labels: api, faq; commit: 53deaed7)
 - T-601. Add an API route access matrix — created `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md` covering access classifications, expected helpers, ownership checks, rate limits, and audit tracking. (labels: api, faq, performance, docs; commit: 5b62cb31)
 
+## Label: security
+
+- T-602. Restrict local AI install and agent runtime install routes to development mode or explicit super-admin operations on shared deployments. (labels: security, local-ai, auth, api; commit: worktree)
+- T-603. Validate authentication, Stripe signing, and MCP service secrets from current server-only environment variables at startup without old compatibility aliases or hardcoded fallback tokens. (labels: security, auth, payment, mcp; commit: worktree)
+
 ## Label: local-ai
 
 - T-667. Add development-only Mock AI mode for local chat and analysis responses without external AI provider calls. (labels: local-ai, ai, api, data; commit: d8d24e66)
@@ -322,6 +337,11 @@ moving work between states.
 
 - T-722. Resolve dashboard-ui-refactor audit plan — delete plan file, distribute content to dashboard-ui.md, AGENTS.md, DEVELOPER_GUIDE.md, todo-future.md. (labels: dashboard, ui, docs; commit: worktree)
 
+## Label: ui
+
+- Add reduced motion accessibility toggle in theme switcher with `.reduced-motion` CSS override. (labels: ui, accessibility; commit: worktree)
+- Add TOCs to MCP documentation files for improved navigation. (labels: ui, docs; commit: worktree)
+
 ## Label: ai
 
 - T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)
@@ -348,6 +368,19 @@ moving work between states.
 - T-412. Every page already passes a page-specific `icon` prop to `AppPageHeader` — no changes needed. (labels: ui, workflow; commit: 53deaed7)
 - T-327. Search popup fixed - added submit button, proper width, non-blocking modal. (labels: ui, search, workflow; commit: 53deaed7)
 - T-310. Cookie consent bar added with accept button. (labels: ui; commit: 53deaed7)
+
+## Label: ai
+
+- T-773. Add MCP FAQ query tool with category filtering and keyword search, wired through tools.ts, handlers.ts, server.ts, integration.ts. (labels: ai, mcp, faq; commit: 6ccd0b84)
+- T-774. Add Railway CLI usage guidance for AI agents across AGENTS.md, ai-agent-guide.md, railway-deploy-review.md, and RAILWAY_DEPLOYMENT.md. (labels: ai, docs; commit: b9ccda2b)
+- T-775. Update consolidated-interactions-log.md with MCP FAQ tool and Railway CLI workflow interaction. (labels: ai, docs; commit: b2409b83)
+- T-749. Add tool scope declarations and convert static tool array to registry pattern with registerTool() and getRegisteredTools(). (labels: mcp, api, ai; commit: worktree)
+- T-795. Expose full JSON Schema per tool via MCP discovery endpoint and add CORS headers for subdomain access. (labels: mcp, api, ai; commit: worktree)
+- T-796. Create mcp_tokens DB table with scoped permissions and replace env-var-only auth with DB-backed token validation. (labels: mcp, auth, security; commit: worktree)
+- T-797. Create mcp_audit_logs DB table, persist audit logs instead of console, add per-token rate limiting with DB storage, and add usage stats endpoint. (labels: mcp, monitoring, security; commit: worktree)
+- T-804. Register Faqs Payload collection in payload.config.ts and consolidate CMS content types under /src/lib/cms/collections. (labels: deployment, content, workflow; commit: worktree)
+- T-805. Add field validation rules (required, format, min/max, unique) to all Payload collection fields with user-friendly error messages. (labels: deployment, content, workflow; commit: worktree)
+- T-806. Fix Payload admin logout redirect and session expiration by configuring Payload routes and session TTL correctly. (labels: deployment, auth, ui; commit: worktree)
 
 ## Label: workflow
 

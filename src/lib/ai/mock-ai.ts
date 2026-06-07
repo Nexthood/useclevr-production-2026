@@ -1,10 +1,8 @@
-import type { AntigravityMessage } from "@/lib/ai/antigravity-client"
-
 export const MOCK_AI_PROVIDER_NAME = "Mock AI"
 export const MOCK_AI_MODEL_NAME = "mock-local-development"
 
 type MockCompletionInput = {
-  messages?: AntigravityMessage[]
+  messages?: { role: "system" | "user" | "assistant"; content: string }[]
   prompt?: string
   resultRows?: Record<string, unknown>[]
 }
@@ -15,7 +13,7 @@ function getDelayMs() {
   return Math.max(0, Math.min(raw, 5000))
 }
 
-function getLatestUserText(messages?: AntigravityMessage[], prompt?: string) {
+function getLatestUserText(messages?: { role: "system" | "user" | "assistant"; content: string }[], prompt?: string) {
   const latestUserMessage = [...(messages ?? [])].reverse().find((message) => message.role === "user")
   return (latestUserMessage?.content || prompt || "").trim()
 }

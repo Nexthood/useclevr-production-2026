@@ -591,8 +591,8 @@ export function calculateKPIs(processed: ProcessedDataset): ExecutiveKPIs {
     revenueByTime[time] = (revenueByTime[time] || 0) + revenue;
   }
   
-  const grossProfit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  const grossProfit = costCol ? totalRevenue - totalCost : null;
+  const margin = grossProfit !== null && totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : null;
   
   const topRegion = Object.entries(revenueByRegion).sort((a, b) => b[1] - a[1])[0];
   const total = totalRevenue;
@@ -608,11 +608,11 @@ export function calculateKPIs(processed: ProcessedDataset): ExecutiveKPIs {
   return {
     status: 'success',
     total_revenue: Math.round(totalRevenue * 100) / 100,
-    total_cost: Math.round(totalCost * 100) / 100,
+    ...(costCol ? { total_cost: Math.round(totalCost * 100) / 100 } : {}),
     total_units: columnMappings.quantity ? data.reduce((sum, row) => sum + (Number(row[columnMappings.quantity!]) || 0), 0) : 0,
     avg_order_value: data.length > 0 ? Math.round((totalRevenue / data.length) * 100) / 100 : 0,
-    gross_profit: Math.round(grossProfit * 100) / 100,
-    margin_pct: Math.round(margin * 100) / 100,
+    ...(grossProfit !== null ? { gross_profit: Math.round(grossProfit * 100) / 100 } : {}),
+    ...(margin !== null ? { margin_pct: Math.round(margin * 100) / 100 } : {}),
     revenue_by_region: revenueByRegion,
     revenue_by_product: revenueByProduct,
     revenue_by_currency: revenueByCurrency,

@@ -19,28 +19,35 @@ export default async function Topbar() {
   const usage = await getAnalystCreditUsage(userId);
 
   const remainingCredits =
-    usage.subscriptionTier === "superadmin" || usage.subscriptionTier === "pro"
+    usage.trialActive ||
+    usage.subscriptionTier === "superadmin" ||
+    usage.subscriptionTier === "pro" ||
+    usage.subscriptionTier === "business"
       ? "Unlimited"
       : Math.max(0, usage.total - usage.analysisCount).toString();
 
   const levelLabel =
-    usage.subscriptionTier === "superadmin" ? "Admin" : usage.subscriptionTier || "Free";
+    usage.subscriptionTier === "superadmin"
+      ? "Admin"
+      : usage.trialActive
+        ? `Trial: ${usage.trialDaysRemaining}d`
+        : usage.subscriptionTier || "Free";
 
   return (
-    <div className="app-topbar sticky top-0 z-[90] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">
-      <div className="flex h-full min-w-0 flex-1 items-center justify-between gap-2">
-        <Link href="/app" className="flex h-full shrink-0 items-center gap-2">
+    <div className="app-topbar sticky top-0 z-[110] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+      <div className="flex min-h-16 min-w-0 flex-1 items-center justify-between gap-2 overflow-visible">
+        <Link href="/app" className="flex h-16 shrink-0 items-center gap-2 px-2">
           <Logo className="h-12 w-auto" />
           <span className="self-start pt-1 text-[10px] text-muted-foreground/60">
             v{pkg.version}
           </span>
         </Link>
 
-        <nav className="flex h-full min-w-0 flex-1 items-stretch justify-end overflow-x-auto">
-          <div className="flex h-full items-center border-l border-border/50 px-2">
+        <nav className="flex min-w-0 flex-1 items-stretch justify-end overflow-x-auto overflow-y-visible">
+          <div className="flex h-16 items-center border-l border-border/50 px-2">
             <HybridAiButton
               subscriptionTier={usage.subscriptionTier}
-              className="h-full whitespace-nowrap rounded-none border-0 bg-transparent px-2 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
+              className="h-16 whitespace-nowrap rounded-none border-0 bg-transparent px-2 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
             />
           </div>
 
@@ -124,11 +131,11 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/settings/activity">Activity</TopbarPanelLink>
           </TopbarSection>
 
-          <TopbarNoticeActivityDrawer className="h-full min-w-10 rounded-none border-l border-r-0 border-y-0 bg-transparent text-muted-foreground hover:text-foreground" />
+          <TopbarNoticeActivityDrawer className="h-16 min-w-10 rounded-none border-l border-r-0 border-y-0 bg-transparent text-muted-foreground hover:text-foreground" />
 
-          <ThemeToggle className="h-full min-w-10 rounded-none border-l border-border/50 text-muted-foreground hover:text-foreground" />
+          <ThemeToggle className="h-16 min-w-10 rounded-none border-l border-border/50 text-muted-foreground hover:text-foreground" />
 
-          <div className="flex h-full min-w-10 items-center justify-center border-l border-border/50 px-2 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
+          <div className="flex h-16 min-w-10 items-center justify-center border-l border-border/50 px-2 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
             <TopbarSignOutButton />
           </div>
         </nav>

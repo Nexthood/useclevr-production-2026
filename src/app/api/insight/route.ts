@@ -1,4 +1,5 @@
 import { debugError } from "@/lib/utils/debug";
+import { auth } from '@/lib/auth/auth';
 
 // app/api/insight/route.ts
 import { getBusinessInsight } from '@/lib/business/business-insight-engine';
@@ -31,8 +32,11 @@ function checkRateLimit(userId: string): boolean {
 
 export async function POST(request: Request) {
   try {
-    // Get user ID from headers (or use IP as fallback)
-    const userId = request.headers.get('x-user-id') || request.headers.get('x-forwarded-for') || 'anonymous';
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     // Check rate limit
     if (!checkRateLimit(userId)) {
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     // Get business insight
-    const insight = await getBusinessInsight(datasetId, question);
+    const insight = await getBusinessInsight(datasetId, question, userId);
 
     return NextResponse.json({
       success: true,

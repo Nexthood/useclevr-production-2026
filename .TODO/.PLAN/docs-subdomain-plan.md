@@ -11,6 +11,7 @@ while keeping implementation docs and sensitive project guidance protected in th
 ## Target Outcomes
 
 - Public docs are easy to discover and browse.
+- User-facing docs stay structurally separate from operator docs even when both are served from the same docs host.
 - Sales and user-facing docs can be shared without exposing internal implementation details.
 - Public and superadmin docs can share one docs experience with clear access boundaries.
 - Developer/internal docs stay private unless explicitly approved for publication.
@@ -37,6 +38,8 @@ while keeping implementation docs and sensitive project guidance protected in th
   reviewers.
 - Content type: product guidance, user guides, sales-facing docs, public FAQs, onboarding guides,
   selected technical explainers, and operator docs shown only after superadmin login.
+- Information architecture: public user docs remain a first-class public section, and operator docs
+  remain a separate protected section instead of mixing both audiences into the same navigation tree.
 
 ## Branch And Deployment Shape
 
@@ -143,6 +146,15 @@ public docs openly on `docs.useclevr.com` and gate operator docs behind superadm
 same docs UI. Keep developer, AI, deployment, TODO, and internal project-management documents
 private in the main repository unless a later review explicitly promotes them.
 
+### Audience Separation Rule
+
+- Keep public user docs in their own top-level navigation, landing pages, search scope, and sitemap.
+- Keep operator docs in a separate protected navigation after login.
+- Do not place operator-only articles inside public user-guide trees.
+- Do not depend on login state to explain public product basics that belong in user-facing docs.
+- Allow one shared docs theme and one shared host, but keep audience boundaries explicit in routes,
+  menus, search results, and breadcrumbs.
+
 ## Suggested Folder Shape
 
 ```text
@@ -154,7 +166,12 @@ docs/
     theme/
   content/
     public/
+      user/
+      sales/
+      faq/
     operator/
+      support/
+      operations/
 docs-root/
   server-config/
   dist/
@@ -162,6 +179,9 @@ docs-root/
 
 - `docs/src/` owns the themed docs application.
 - `docs/content/public/` stores publishable content sources or generated copies from approved docs.
+- `docs/content/public/user/` stores customer and end-user documentation that stays public.
+- `docs/content/public/sales/` stores public sales-facing material approved for the docs host.
+- `docs/content/public/faq/` stores public FAQ and support guidance approved for publication.
 - `docs/content/operator/` stores superadmin-only docs content approved for the docs subdomain.
 - `docs-root/` owns docs deployment config and generated deployment output.
 
@@ -171,13 +191,16 @@ docs-root/
 2. Add a script that copies approved Markdown files into `docs/content/public/` and
    `docs/content/operator/`.
 3. Build a themed docs app in `docs/src/`.
-4. Add host-aware auth rules so public docs stay open and operator docs require superadmin login.
-5. Normalize links for public paths and protected operator paths.
-6. Add a docs build step that outputs deployable files into `docs-root/dist/`.
-7. Add a docs preview command.
-8. Add CI checks for broken public links and forbidden-file leakage.
-9. Add deployment config for `docs.useclevr.com` from the `docs` branch.
-10. Add DNS and host routing after the generated docs build is stable.
+4. Split the docs route structure into public user paths and protected operator paths before adding content imports.
+5. Add host-aware auth rules so public docs stay open and operator docs require superadmin login.
+6. Normalize links for public paths and protected operator paths.
+7. Keep public search, breadcrumbs, and sidebar trees scoped to public docs only.
+8. Keep operator search, breadcrumbs, and sidebar trees scoped to operator docs only after login.
+9. Add a docs build step that outputs deployable files into `docs-root/dist/`.
+10. Add a docs preview command.
+11. Add CI checks for broken public links and forbidden-file leakage.
+12. Add deployment config for `docs.useclevr.com` from the `docs` branch.
+13. Add DNS and host routing after the generated docs build is stable.
 
 ## Access And Safety Rules
 
@@ -199,6 +222,7 @@ docs-root/
 - Link public docs from homepage, FAQ, support, and dashboard help where useful.
 - Keep dashboard-only support docs behind signed-in app routes unless they are safe for public docs.
 - Exclude protected operator pages from the public sitemap.
+- Keep public user-doc routes indexable and keep operator-doc routes non-indexable.
 
 ## Deployment Notes
 
@@ -212,6 +236,7 @@ docs-root/
 
 - Public docs build succeeds.
 - Protected docs auth gate succeeds for superadmin users.
+- Public user-doc navigation stays separate from protected operator navigation.
 - Public docs link check passes.
 - Public docs do not include denied folders.
 - Public docs do not include environment variables or secrets.

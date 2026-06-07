@@ -1,5 +1,27 @@
 # MCP Developer Guide
 
+## Table of Contents
+
+- [File Structure](#file-structure)
+- [Access Model](#access-model)
+- [API Routes](#api-routes)
+- [Routing Boundary](#routing-boundary)
+- [Authentication Boundary](#authentication-boundary)
+- [Local Ping Process](#local-ping-process)
+- [Terminal Test Process](#terminal-test-process)
+- [Shared API Test Files](#shared-api-test-files)
+- [Subdomain Verification](#subdomain-verification)
+- [MCP Subdomain Setup](#mcp-subdomain-setup)
+- [Available Tools](#available-tools)
+- [Available Resources](#available-resources)
+- [ChatGPT Web MCP Support](#chatgpt-web-mcp-support)
+- [Local MCP in OpenCode](#local-mcp-in-opencode)
+- [VS Code Native MCP Support](#vs-code-native-mcp-support)
+- [Terminal MCP Clients](#terminal-mcp-clients)
+- [VS Code MCP Extensions](#vs-code-mcp-extensions-marketplace)
+- [Quick Reference](#quick-reference-which-mcp-client-to-use)
+- [Implementation Rules](#implementation-rules)
+
 UseClevr exposes a small authenticated MCP interface for trusted dataset analysis tools and resources. The interface gives internal clients a consistent way to list available tools, read cached analysis resources, and invoke deterministic analysis helpers.
 
 MCP stays internal under the app API. The product does not expose a public MCP catalog or a dedicated `mcp.useclevr.com` service.
@@ -33,21 +55,17 @@ The MCP interface follows the dashboard visibility rules:
 
 ## Routing Boundary
 
-- Use `/api/mcp` for the current authenticated MCP interface.
+- Use `/api/mcp` for the current authenticated MCP interface, reachable from `mcp.useclevr.com` when configured.
 - Keep MCP route discovery unavailable to unauthenticated users.
-- Do not add `mcp.useclevr.com` until MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership.
 - Keep FAQ routes separate from MCP routes.
 - Do not rely on hidden URLs as security. Hidden endpoints are only an extra layer.
 
 ## Authentication Boundary
 
-- Current MCP requests require a signed-in user session.
-- Future service-to-service MCP access uses signed service tokens.
-- Future internal operator MCP access uses admin-only tokens.
+- MCP requests accept signed-in user sessions, service tokens, or admin tokens.
+- Service/admin tokens use `x-mcp-token`, `x-mcp-service-token`, or `x-mcp-admin-token` headers.
 - Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
-- Current global proxy behavior blocks unauthenticated `/api/*` requests before the MCP route can
-  evaluate MCP token headers. In the current app state, a local MCP ping succeeds only when the
-  client already has a signed-in session cookie.
+- Current configuration allows the MCP route and required auth endpoints before login.
 
 ## Local Ping Process
 
@@ -99,6 +117,117 @@ Expected signed-in result shape:
 
 Do not place raw session cookies, service tokens, or admin tokens into docs, prompts, logs, or
 screenshots.
+
+## Terminal Test Process
+
+Use terminal testing for the current internal UseClevr MCP route.
+
+### Route Reachability Test
+
+This test proves that the app exposes the MCP route and enforces the current auth boundary:
+
+```bash
+curl -i http://127.0.0.1:3000/api/mcp
+```
+
+Expected result:
+
+```text
+HTTP/1.1 401 Unauthorized
+{"error":"Unauthorized"}
+```
+
+### Signed-In Tool Listing Test
+
+This test proves that a signed-in client can list UseClevr MCP tools:
+
+1. Sign in to the local app in a browser.
+2. Export the session cookie into a cookie jar your terminal client can reuse.
+3. Re-run the MCP list call with that cookie jar:
+
+```bash
+curl -b cookies.txt http://127.0.0.1:3000/api/mcp
+```
+
+Expected result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+### Signed-In Tool Invocation Test
+
+After you know a dataset ID that belongs to the signed-in user, invoke one deterministic tool:
+
+```bash
+curl -b cookies.txt \
+  -H "content-type: application/json" \
+  -d '{"name":"getDatasetSchema","input":{"datasetId":"<dataset-id>"}}' \
+  http://127.0.0.1:3000/api/mcp
+```
+
+Expected result shape:
+
+```json
+{
+  "success": true,
+  "result": {
+    "columns": ["..."],
+    "rowCount": 123
+  }
+}
+```
+
+If the signed-in terminal test still returns `401`, the cookie jar is missing the active Auth.js
+session cookie.
+
+## Shared API Test Files
+
+Use Git-tracked REST Client files under [docs/api-tests](../api-tests/README.md)
+as the shared MCP and API testing path.
+
+- Use `docs/api-tests/mcp.http` for route reachability, signed-in tool listing, dataset resource listing, and tool invocation.
+- Keep secrets manual and temporary.
+- Keep Thunder Client as a personal manual tool only, not the shared project source of truth.
+
+## Subdomain Verification
+
+The MCP endpoint at `/api/mcp` accepts requests from any `*.useclevr.com` origin when configured. Route requests directly to the same `/api/mcp` endpoint on either the production or test host.
+
+### DNS Configuration
+
+In Railway or your DNS provider, configure CNAME records pointing subdomains to the app host:
+
+- `mcp.useclevr.com` → CNAME to production Railway hostname (e.g., `useclevr.up.railway.app`)
+- `mcp-test.useclevr.com` → CNAME to test Railway hostname (e.g., `test.useclevr.up.railway.app`)
+
+DNS cannot point to URL paths — it points only to hostnames. The backend router handles subdomain routing to the `/api/mcp` endpoint.
+
+### Verification Steps
+
+After DNS propagates, verify:
+
+```bash
+# Verify unsigned access is rejected
+curl -i https://mcp.useclevr.com/api/mcp
+
+# Verify with service token
+curl -H "x-mcp-service-token: $TOKEN" https://mcp.useclevr.com/api/mcp
+
+# Verify CORS header for subdomain
+curl -I -H "Origin: https://mcp.useclevr.com" https://mcp.useclevr.com/api/mcp
+```
+
+Expected responses:
+- Unsigned: `401 Unauthorized`
+- With token: `200 OK` with tools array
+- CORS header: `Access-Control-Allow-Origin: https://mcp.useclevr.com`
 
 ## Available Tools
 
@@ -247,6 +376,115 @@ Disable globally, enable per agent:
 ## VS Code Native MCP Support
 
 VS Code has built-in MCP client support (v1.85+) with full stdio, Streamable HTTP, and SSE transports.
+
+### UseClevr Current-State Note
+
+The current UseClevr `/api/mcp` route is an internal authenticated JSON API. It is not yet exposed
+as a native MCP transport server for VS Code's built-in MCP client.
+
+Current result:
+
+- Use VS Code native MCP for real MCP servers that speak stdio, Streamable HTTP, or SSE.
+- Use HTTP request tooling inside VS Code to test the current UseClevr `/api/mcp` route.
+- Do not point `.vscode/mcp.json` directly at `/api/mcp` and expect native MCP discovery yet.
+
+### VS Code Local Test Process
+
+Use one of these two current-state paths:
+
+#### Option A: REST Client Extension
+
+1. Install the `REST Client` VS Code extension.
+2. Create a file such as `tmp/useclevr-mcp-test.http`.
+3. Add a route reachability request:
+
+```http
+GET http://127.0.0.1:3000/api/mcp
+```
+
+4. Send the request.
+
+Expected result:
+
+```text
+401 Unauthorized
+```
+
+5. After signing in locally, repeat the request with the active session cookie copied from browser
+devtools into the request header:
+
+```http
+GET http://127.0.0.1:3000/api/mcp
+Cookie: <paste active auth session cookie pair>
+```
+
+Expected result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+#### Option B: Thunder Client Or Similar HTTP Tool
+
+1. Open a new request to `GET http://127.0.0.1:3000/api/mcp`.
+2. Confirm the unsigned request returns `401 Unauthorized`.
+3. Add the active session cookie from the local signed-in browser session.
+4. Re-run the request and confirm the tool list appears.
+
+#### Option C: VS Code Integrated Browser + Manual Cookie Reuse
+
+Use this path when you sign in through the VS Code integrated browser and want to verify the
+current internal UseClevr MCP route without leaving VS Code.
+
+1. Open the local app in the VS Code integrated browser.
+2. Sign in with a valid local account.
+3. Open browser devtools inside VS Code.
+4. Open the cookie storage view for `http://127.0.0.1:3000` or `http://localhost:3000`.
+5. Copy the active Auth.js session cookie pair:
+   - `authjs.session-token=...`
+   - or `__Secure-authjs.session-token=...`
+6. Reuse that cookie in a terminal request:
+
+```bash
+curl -i \
+  -H 'Cookie: authjs.session-token=<paste-value>' \
+  http://127.0.0.1:3000/api/mcp
+```
+
+If the secure cookie name is the active one, use:
+
+```bash
+curl -i \
+  -H 'Cookie: __Secure-authjs.session-token=<paste-value>' \
+  http://127.0.0.1:3000/api/mcp
+```
+
+Expected signed-in result shape:
+
+```json
+{
+  "tools": [
+    { "name": "getFaqs", "description": "..." }
+  ],
+  "resources": []
+}
+```
+
+Current limitation:
+
+- The coding agent can document this process and run the terminal half.
+- The coding agent cannot click the VS Code integrated browser or extract its live cookies directly.
+- Treat the cookie copy step as a manual local operator step.
+
+### Future Native VS Code MCP Test
+
+Use native `.vscode/mcp.json` testing only after UseClevr exposes a real MCP transport endpoint
+instead of the current internal JSON route.
 
 ### Configuration
 
@@ -513,3 +751,12 @@ Popular VS Code extensions that expose IDE capabilities as an MCP server to exte
 - Add rate limiting and audit logging before MCP expands beyond the current internal session-based route.
 - Return clear errors for invalid JSON, unknown tools, unauthorized access.
 - Update AI tracing structure when MCP tools change the AI context, prompt inputs, provider-visible metadata, or trace fields.
+
+## MCP Subdomain Setup
+
+The MCP endpoint stays internal to the UseClevr app. Configure subdomains via DNS routing to the existing app hosts:
+
+- `mcp.useclevr.com` → CNAME to production Railway hostname
+- `mcp-test.useclevr.com` → CNAME to test/Next.js dev hostname
+
+No code changes required — the `/api/mcp` route already accepts `*.useclevr.com` origins via CORS. Requests to MCP subdomains serve the same endpoint without redirects. No separate MCP service or branch needed until scale demands independent scaling, monitoring, or auth.

@@ -22,7 +22,7 @@ import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
-import { getDatasetInfo, loadDataJS, runQueryJS } from "@/lib/data/datasetEngine";
+import { runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
@@ -151,11 +151,6 @@ function cleanInsight(text: string): string {
     .trim();
 }
 
-// Store dataset in memory (for the session)
-let currentDataset: Record<string, unknown>[] = [];
-let currentColumns: string[] = [];
-let datasetLoaded = false;
-
 export async function POST(request: Request) {
   debugLog('\n========== ANALYZE REQUEST ==========');
 
@@ -215,6 +210,19 @@ export async function POST(request: Request) {
     const userId = session?.user?.id;
     traceUserId = userId || null
 
+    if (!userId) {
+      return Response.json({
+        success: false,
+        error: "Unauthorized",
+        answer: "Please sign in to analyze a dataset.",
+        insight: "Sign-in required",
+        explanation: "Dataset analysis is available only to signed-in users.",
+        recommendation: "Sign in and select one of your datasets.",
+        data: [],
+        chartType: "table",
+      }, { status: 401 });
+    }
+
     if (!checkRateLimit(`analyze:${userId || "anonymous"}`, 30, 60_000)) {
       return Response.json({
         success: false,
@@ -236,7 +244,7 @@ export async function POST(request: Request) {
     let analysisToUse = precomputedAnalysis;
     if (datasetId && !data && !precomputedAnalysis) {
       const storedDataset = await db.query.datasets.findFirst({
-        where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId || '')),
+        where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
       });
       if (storedDataset) {
         analysisToUse = storedDataset.analysis as Record<string, unknown> | null;
@@ -276,15 +284,71 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check if data was provided directly
-    if (data && Array.isArray(data) && data.length > 0) {
+    let requestDataset: Record<string, unknown>[] = [];
+    let requestColumns: string[] = [];
+
+    // Persisted dataset IDs always load owner-scoped server data.
+    if (datasetId) {
+      debugLog('[ANALYZE] Loading dataset from database...');
+      try {
+        const storedDataset = await db.query.datasets.findFirst({
+          where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
+        });
+
+        if (!storedDataset) {
+          return Response.json({
+            success: false,
+            error: "Dataset not found",
+            answer: "I could not find that dataset.",
+            insight: "Dataset unavailable",
+            explanation: "The selected dataset does not exist or belongs to another account.",
+            recommendation: "Select one of your datasets or upload a new file.",
+            data: [],
+            chartType: "table",
+          }, { status: 404 });
+        }
+
+        const precomputedMetrics = storedDataset.precomputedMetrics;
+        const precomputedAnalysis = storedDataset.analysis;
+        requestDataset = (storedDataset.data as Record<string, unknown>[]) || [];
+
+        if (requestDataset.length === 0) {
+          const rows = await db.query.datasetRows.findMany({
+            where: eq(datasetRows.datasetId, datasetId),
+            columns: { data: true },
+            orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+          });
+          requestDataset = rows.map((row) => row.data as Record<string, unknown>);
+        }
+
+        requestColumns = (storedDataset.columns as string[]) || Object.keys(requestDataset[0] || {});
+
+        if (precomputedAnalysis && precomputedMetrics) {
+          try {
+            initializeMCPContext(datasetId, precomputedMetrics as unknown as PrecomputedMetrics);
+            debugLog('[ANALYZE] MCP context initialized with precomputed metrics');
+          } catch (mcpErr) {
+            debugLog('[ANALYZE] MCP context init skipped:', mcpErr);
+          }
+        }
+      } catch (loadError) {
+        debugError('[ANALYZE] Failed to load stored dataset:', loadError);
+        return Response.json({
+          success: false,
+          error: "Failed to load dataset",
+          answer: "There was a problem loading your dataset.",
+          insight: "Data loading failed",
+          explanation: "The selected dataset could not be prepared for analysis.",
+          recommendation: "Try another dataset or refresh the page.",
+          data: [],
+          chartType: "table",
+        }, { status: 500 });
+      }
+    } else if (data && Array.isArray(data) && data.length > 0) {
       debugLog('[ANALYZE] Loading dataset into memory...');
       try {
-        loadDataJS(data);
-        currentDataset = data;
-        currentColumns = columns || Object.keys(data[0] || {});
-        datasetLoaded = true;
-        debugLog('[ANALYZE] Dataset loaded:', getDatasetInfo());
+        requestDataset = data;
+        requestColumns = columns || Object.keys(data[0] || {});
       } catch (loadError) {
         debugError('[ANALYZE] Failed to load data:', loadError);
         return Response.json({
@@ -298,74 +362,10 @@ export async function POST(request: Request) {
           chartType: "table",
         });
       }
-    } else if (datasetId && session?.user?.id) {
-      debugLog('[ANALYZE] Loading dataset from database...');
-      try {
-        const storedDataset = await db.query.datasets.findFirst({
-          where: and(eq(datasets.id, datasetId), eq(datasets.userId, session.user.id)),
-        });
-
-        if (!storedDataset) {
-          return Response.json({
-            success: false,
-            error: "Dataset not found",
-            answer: "I could not find that dataset.",
-            insight: "Dataset unavailable",
-            explanation: "The selected dataset could not be loaded for this account.",
-            recommendation: "Select another dataset or upload a new file.",
-            data: [],
-            chartType: "table",
-          });
-        }
-
-        // Pass precomputed metrics to frontend for unified KPI context
-        const precomputedMetrics = (storedDataset as any).precomputedMetrics;
-        const precomputedAnalysis = (storedDataset as any).analysis;
-        
-        let storedData = (storedDataset.data as Record<string, unknown>[]) || [];
-
-        if (storedData.length === 0) {
-          const rows = await db.query.datasetRows.findMany({
-            where: eq(datasetRows.datasetId, datasetId),
-            columns: { data: true },
-            orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
-          });
-          storedData = rows.map((row) => row.data as Record<string, unknown>);
-        }
-
-        if (storedData.length > 0) {
-          loadDataJS(storedData);
-          currentDataset = storedData;
-          currentColumns = (storedDataset.columns as string[]) || Object.keys(storedData[0] || {});
-          datasetLoaded = true;
-          // Initialize MCP context with precomputed metrics
-          if (precomputedAnalysis && precomputedMetrics) {
-            try {
-              initializeMCPContext(datasetId, precomputedMetrics as unknown as PrecomputedMetrics);
-              debugLog('[ANALYZE] MCP context initialized with precomputed metrics');
-            } catch (mcpErr) {
-              debugLog('[ANALYZE] MCP context init skipped:', mcpErr);
-            }
-          }
-          debugLog('[ANALYZE] Stored dataset loaded:', getDatasetInfo());
-        }
-      } catch (loadError) {
-        debugError('[ANALYZE] Failed to load stored dataset:', loadError);
-        return Response.json({
-          success: false,
-          error: "Failed to load dataset",
-          answer: "There was a problem loading your dataset.",
-          insight: "Data loading failed",
-          explanation: "The selected dataset could not be prepared for analysis.",
-          recommendation: "Try another dataset or refresh the page.",
-          data: [],
-          chartType: "table",
-        });
-      }
     }
 
     // Check if dataset is loaded
-    if (!datasetLoaded || currentDataset.length === 0) {
+    if (requestDataset.length === 0) {
       debugLog('[ANALYZE] No dataset loaded');
       return Response.json({
         success: false,
@@ -380,9 +380,9 @@ export async function POST(request: Request) {
     }
 
     // Get available columns
-    let availableColumns: string[] = columns || currentColumns;
+    let availableColumns: string[] = requestColumns;
     if (availableColumns.length === 0) {
-      availableColumns = Object.keys(currentDataset[0] || {});
+      availableColumns = Object.keys(requestDataset[0] || {});
     }
     debugLog('[ANALYZE] Available columns:', availableColumns.length);
 
@@ -405,7 +405,7 @@ export async function POST(request: Request) {
 
     try {
       debugLog('[ANALYZE] Executing query...');
-      result = runQueryJS(sqlQuery);
+      result = runQueryJS(sqlQuery, requestDataset);
       debugLog('[ANALYZE] Query returned:', result.length, 'rows');
     } catch (execError: any) {
       queryError = execError?.message || 'Unknown query error';
@@ -414,7 +414,7 @@ export async function POST(request: Request) {
       // Try simpler fallback query
       try {
         debugLog('[ANALYZE] Trying fallback query...');
-        result = runQueryJS('SELECT * FROM dataset LIMIT 10');
+        result = runQueryJS('SELECT * FROM dataset LIMIT 10', requestDataset);
         debugLog('[ANALYZE] Fallback returned:', result.length, 'rows');
         queryError = null; // Fallback worked
       } catch (fallbackError: any) {
@@ -566,7 +566,7 @@ export async function POST(request: Request) {
           ? `Focus on ${topRegion.name} while developing strategies for other regions.`
           : 'Review all segments for growth opportunities.';
         answer = `INSIGHT\n${insight}\n\nKEY TAKEAWAYS\n${explanation}\n\nRECOMMENDATION\n${recommendation}`;
-      } else if (!answer && datasetId && !datasetLoaded) {
+      } else if (!answer && datasetId && requestDataset.length === 0) {
         // No dataset loaded but datasetId was provided
         answer = "The requested information is not available in this dataset.";
         insight = "Data unavailable";
@@ -664,10 +664,10 @@ export async function POST(request: Request) {
   }
 }
 
-// Reset dataset (for testing)
 export async function DELETE() {
-  currentDataset = [];
-  currentColumns = [];
-  datasetLoaded = false;
-  return Response.json({ message: "Dataset cleared" });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return Response.json({ message: "Analysis requests use request-scoped dataset state." });
 }

@@ -29,6 +29,8 @@ Use this guide to collect useful project learning from current and external AI c
 - Run docs and TODO validation after updates.
 - Skip empty memory updates when the cycle contains no durable project learning.
 - Record workflow check-name drift as a concrete risk when branch protection can wait for a stale required check name.
+- Record browser-only or IDE-only manual steps as current limitations when the AI agent can document the step but cannot operate the live UI surface directly.
+- Record shared API testing work in Git-tracked REST Client files under `docs/api-tests/` when the team needs reproducible request examples.
 
 ## Current Sources
 

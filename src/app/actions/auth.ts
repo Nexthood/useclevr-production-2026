@@ -6,14 +6,15 @@ import { debugError } from "@/lib/utils/debug"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { validatePasswordPolicy } from "@/lib/auth/password-policy"
 import { db } from "@/lib/db"
-import { accounts, profiles, users } from "@/lib/db/schema"
+import { profiles, users } from "@/lib/db/schema"
 import bcrypt from "bcryptjs"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 
 export async function signup(formData: FormData) {
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
+  const name = String(formData.get("name") || "").trim()
+  const email = String(formData.get("email") || "").trim().toLowerCase()
   const password = formData.get("password") as string
   const isDemo = formData.get("demo") === "true"
 
@@ -24,6 +25,10 @@ export async function signup(formData: FormData) {
 
   if (!email || !password) {
     return { error: "Email and password are required" }
+  }
+
+  if (!z.string().email().safeParse(email).success) {
+    return { error: "Enter a valid email address" }
   }
 
   const passwordPolicy = validatePasswordPolicy(password, { email, name })
@@ -51,11 +56,7 @@ export async function signup(formData: FormData) {
         .set({ password: hashedPassword, name: name || existingUser.name })
         .where(eq(users.id, existingUser.id))
 
-      // Auto-linked - sign them in
-      const signInResult = await db.query.users.findFirst({
-        where: eq(users.email, email),
-      })
-      return { success: true, linked: true, user: signInResult }
+      return { success: true, linked: true }
     } catch (dbError) {
       debugError("Error linking password to OAuth user:", dbError)
       return { error: "Failed to link account. Please try again." }
@@ -94,8 +95,12 @@ export async function signup(formData: FormData) {
     })
   } catch (dbError) {
     debugError("Database connection error creating profile:", dbError)
-    // User was created but profile failed - still return success
-    // The profile can be created later
+    try {
+      await db.delete(users).where(eq(users.id, user.id))
+    } catch (cleanupError) {
+      debugError("Database cleanup error after failed profile creation:", cleanupError)
+    }
+    return { error: "Account setup failed. Please try again." }
   }
 
   await recordActivity({

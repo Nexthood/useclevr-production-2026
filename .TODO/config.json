@@ -1,6 +1,6 @@
 {
   "currentTaskPrefix": "T-",
-  "nextTaskNumber": 740,
+  "nextTaskNumber": 810,
   "todoFiles": {
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",
@@ -36,10 +36,12 @@
     "payment",
     "performance",
     "quality",
+    "reporting",
     "reports",
     "sales",
     "search",
     "security",
+    "stability",
     "testing",
     "todo",
     "ui",
@@ -60,7 +62,7 @@
     "Update docs/AI-interaction after every durable AI instruction change, including user instructions, AI instructions, prompt examples, and post-interaction memory capture rules.",
     "Keep reusable prompt examples in docs/AI-interaction/prompt-library as separate files and update its README.md as the index.",
     "Use docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md after each completed request/response cycle and keep only durable learning.",
-    "Use docs/AI-interaction/prompt-library/ai-memory-collection.md to collect visible learning from other AI chats and convert it into durable project records.",
+    "Use docs/AI-interaction/prompt-library/ai-memory-collection.md to convert it into durable project records.",
     "Prefer compact status updates that state phase, action, result, and next action during long-running work.",
     "Keep Railway test deploy reviews scoped to beta and dist-test unless the user explicitly names another branch.",
     "Record broad audit findings as trace categories, then move actionable implementation into TODO-next and deferred risk prevention into TODO-future."

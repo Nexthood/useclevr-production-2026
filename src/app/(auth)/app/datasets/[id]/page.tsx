@@ -5,7 +5,7 @@ import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
 import { datasets, datasetRows } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { ChevronLeft, ChevronRight, Database, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
@@ -14,8 +14,11 @@ const PAGE_SIZE = 100
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const session = await auth()
+  if (!session?.user?.id) return { title: "Dataset" }
+
   const dataset = await db.query.datasets.findFirst({
-    where: eq(datasets.id, id),
+    where: and(eq(datasets.id, id), eq(datasets.userId, session.user.id)),
     columns: { name: true },
   })
   return { title: dataset?.name ?? "Dataset" }
@@ -41,7 +44,7 @@ export default async function DatasetDetailPage({
   }
 
   const dataset = await db.query.datasets.findFirst({
-    where: eq(datasets.id, id),
+    where: and(eq(datasets.id, id), eq(datasets.userId, userId)),
   })
 
   if (!dataset) {

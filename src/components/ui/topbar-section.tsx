@@ -30,15 +30,15 @@ export function TopbarSection({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`group flex h-full min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70 ${noBorder ? "" : "border-l border-border/50"}`}
+          className={`group flex h-16 min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70 ${noBorder ? "" : "border-l border-border/50"}`}
           title={label}
           aria-label={label}
         >
           <span className="flex-shrink-0 text-muted-foreground transition group-hover:text-foreground">{icon}</span>
           <span className={iconOnly ? "sr-only" : "hidden min-w-0 lg:block"}>
-            <span className="block truncate text-xs font-semibold leading-4">{label}</span>
+            <span className="block truncate text-xs font-semibold leading-4 whitespace-nowrap">{label}</span>
             {value && (
-              <span className="block truncate text-[11px] leading-4 text-muted-foreground">
+              <span className="block truncate text-[11px] leading-4 whitespace-nowrap text-muted-foreground">
                 {value}
               </span>
             )}
@@ -47,7 +47,7 @@ export function TopbarSection({
       </PopoverTrigger>
       <PopoverContent
         align={align === "right" ? "end" : "start"}
-        className="mt-1 w-72 rounded-lg border border-border/60 bg-popover p-0 shadow-lg"
+        className="w-72 rounded-lg border border-border/60 bg-popover p-0 shadow-lg"
       >
         <div className="p-4">
           <div className="border-b border-border/50 pb-3">

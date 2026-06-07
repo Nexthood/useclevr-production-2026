@@ -9,10 +9,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
-- Show built-in base and superadmin demo credentials on the login page for app and admin testing.
-- Publish a public News section with five starter updates and individual article pages.
-- Login and registration auto-sign-in after successful signup with a delay to ensure database commit before authentication attempt.
+- MCP subdomain exposes tool schemas with scoped access for service tokens
+- Database-backed MCP tokens support creation, listing, and revocation for service authentication
+- MCP audit trail records tool invocations, auth failures, and token management events for compliance
+- MCP tool invocations appear in AI interaction traces for unified analytics across chat and tool interactions
+- FAQ content management available via Payload admin with field validation
+- Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
+- Give new Free accounts a 14-day analyst trial while preserving two free analyst credits for use after the trial.
+- Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
 - Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
@@ -29,7 +33,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Payload admin workspace requires explicit login instead of auto-authenticating on first load
+- Keep successful administrator login on the public UseClevr host and confirm the authenticated session before showing a credential error.
+- Complete email registration only when both account and profile setup succeed, then sign the new user into the dashboard.
+- Keep signed-out dashboard requests from rendering account data or loading another user's datasets as demo content.
+- Let signed Stripe webhooks update subscriptions while unavailable paid checkout returns a clear setup error instead of a false success.
+- Remove unused comparison, alert, and live-refresh endpoints that returned non-persistent or no-op production behavior.
+- Keep uploaded datasets, analysis, dashboards, predictions, suggestions, and queries scoped to the signed-in owner.
+- Classify CSV dates, text, numbers, booleans, and identifiers without treating unique business values as IDs.
+- Leave profit, margin, ROAS, net profit, and LTV unavailable when required source columns are missing instead of inventing proxy values.
+- Complete production middleware packaging without splitting the protected route entry into incompatible build chunks.
+- Keep Payload admin pages on the Payload root runtime so the admin login and content workspace open instead of failing during boot.
+- Keep local app login, Payload admin login, and signed-in MCP checks reachable by allowing the required auth endpoints before a session exists.
+- Keep Payload Phase 0 local startup from attempting destructive automatic schema push during normal admin access.
 - Stripe service initialization now matches the current Stripe SDK constructor so checkout, webhook, and replay paths compile and run.
+- Runtime install routes now require development mode or explicit super-admin access, and server secret validation no longer accepts legacy auth aliases or hardcoded fallback tokens.
 - Business profile row links open the matching business profile and new business creation opens a blank profile.
 - AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.
 - Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.
@@ -45,7 +63,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.
 - Sidebar toggle moved from topbar to the AppSidebar for desktop view, keeping mobile toggle in the header.
 - Login uses compact inner labels, short tab flow, and forgot-password access directly under the password input.
-- Signup requires stronger passwords with length, character variety, and personal-information checks.
+- Signup creates account and shows success message; users sign in separately.
 - Chat inputs use larger composing areas with clearer send actions.
 - Floating help chat keeps the launcher aligned to the right while the panel is open.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
@@ -68,6 +86,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Move lightweight AI-governance checks (TODO, changelog, secrets, package lint) to pre-commit while tests stay in pre-push
+- Generate an isolated authentication secret for validation and deployment builds so required environment checks and generated-server smoke tests complete.
+- Add Git-tracked REST Client API request files and shared VS Code environments for health, auth, upload, analyze, business profile, billing, Railway smoke, and MCP checks.
 - Add a workflow check-name golden file, local pre-push validation, and a non-blocking GitHub refresh workflow so branch protection cannot wait on stale required job names.
 - Add Payload Phase 0 migration scripts, generated types, and PostgreSQL migration files for the new admin content schema.
 - Record that the AI agent already follows task-close and post-interaction capture automatically, while user reminders sharpen the wording standard into actor-action-destination precision.

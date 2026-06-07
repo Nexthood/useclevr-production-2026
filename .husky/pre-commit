@@ -1,3 +1,19 @@
 #!/usr/bin/env sh
+set -e
 
-# Keep commits fast. Full validation runs before push.
+# Verify local Node version matches .nvmrc before running local pre-commit checks.
+# This check only applies to local development; deployments use their own Node version.
+REQUIRED_NODE=$(cat .nvmrc 2>/dev/null || echo "26.1.0")
+CURRENT_NODE=$(node --version | sed 's/v//')
+if [ "$CURRENT_NODE" != "$REQUIRED_NODE" ]; then
+  echo "Error: Local Node version ($CURRENT_NODE) does not match .nvmrc ($REQUIRED_NODE)"
+  echo "Use 'nvm use' to switch to the correct Node version for development."
+  exit 1
+fi
+
+# AI-governance checks: ensure AI agents updated TODOs, changelog, and
+# didn't leak secrets before committing. Full validation runs before push.
+pnpm lint:todos
+pnpm lint:changelog
+pnpm lint:secrets
+pnpm lint:package

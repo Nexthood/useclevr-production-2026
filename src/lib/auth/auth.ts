@@ -7,6 +7,7 @@ import {
   isBuiltinUserId,
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
+import { isLocalAuthOrigin, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
 import { accounts, profiles, users } from "@/lib/db/schema";
@@ -17,6 +18,7 @@ import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import LinkedIn from "next-auth/providers/linkedin"
 import { z } from "zod"
+import "@/lib/config"
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog("[Auth] Module loading - initializing NextAuth v5");
@@ -49,15 +51,15 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-const linkedinClientId = process.env.AUTH_LINKEDIN_ID || process.env.LINKEDIN_ID || process.env.LINKEDIN_CLIENT_ID;
-const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET || process.env.LINKEDIN_SECRET || process.env.LINKEDIN_CLIENT_SECRET;
+const googleClientId = process.env.AUTH_GOOGLE_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
+const linkedinClientId = process.env.AUTH_LINKEDIN_ID;
+const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET;
 
 normalizeLocalAuthUrlEnv();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET,
   // Use a simple JWT adapter-like configuration without PrismaAdapter
   // to avoid database connections during module initialization
   providers: [
@@ -277,23 +279,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Return the redirect URL string, not a Response object
      */
     async redirect({ url, baseUrl }) {
-      try {
-        if (url.startsWith("/")) return `${baseUrl}${url}`;
-
-        const targetUrl = new URL(url);
-        if (targetUrl.origin === baseUrl || isLocalAuthOrigin(targetUrl)) {
-          return targetUrl.toString();
-        }
-
-        debugWarn("[Auth] Blocked cross-origin redirect:", {
-          targetOrigin: targetUrl.origin,
-          baseUrl,
-        });
-      } catch (error) {
-        debugWarn("[Auth] Ignoring invalid redirect URL:", error);
+      const redirectUrl = resolveAuthRedirect(url, baseUrl);
+      if (redirectUrl !== url && !url.startsWith("/")) {
+        debugWarn("[Auth] Replaced untrusted redirect URL:", { baseUrl });
       }
-
-      return `${baseUrl}/login`;
+      return redirectUrl;
     },
   },
   events: {
@@ -342,12 +332,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 function normalizeLocalAuthUrlEnv() {
   if (process.env.NODE_ENV === "production") return;
 
-  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+  const configuredUrl = process.env.AUTH_URL;
   if (!configuredUrl || isLocalAuthUrl(configuredUrl)) return;
 
   debugWarn("[Auth] Ignoring non-local auth URL during local development.");
   delete process.env.AUTH_URL;
-  delete process.env.NEXTAUTH_URL;
   process.env.AUTH_TRUST_HOST ||= "true";
 }
 
@@ -357,10 +346,6 @@ function isLocalAuthUrl(value: string) {
   } catch {
     return false;
   }
-}
-
-function isLocalAuthOrigin(url: URL) {
-  return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname);
 }
 
 async function ensureOAuthUserRecord({

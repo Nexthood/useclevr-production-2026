@@ -1,10 +1,15 @@
+import payloadConfig from "@payload-config"
+import { handleServerFunctions, RootLayout as PayloadRootLayout } from "@payloadcms/next/layouts"
 import { CookieBar } from "@/components/ui/cookie-bar"
 import { HelpChatbox } from "@/components/ui/help-chatbox"
 import { NoticeProvider } from "@/components/ui/notice-bar"
 import { ThemeProvider } from "@/components/ui/theme-provider"
 import { LanguageProvider } from "@/lib/i18n/language-context"
+import { headers } from "next/headers"
 import type { Metadata, Viewport } from "next"
+import type { ServerFunctionClient } from "payload"
 import type React from "react"
+import { importMap } from "./(payload)/admin/importMap"
 import "./../assets/styles/globals.css"
 
 export const metadata: Metadata = {
@@ -50,11 +55,33 @@ export const viewport: Viewport = {
   maximumScale: 5,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const headerStore = await headers()
+  const pathname = headerStore.get("x-useclevr-pathname") || ""
+
+  if (pathname.startsWith("/admin")) {
+    const serverFunction: ServerFunctionClient = async function (args) {
+      "use server"
+
+      return handleServerFunctions({
+        ...args,
+        config: payloadConfig,
+        importMap,
+      })
+    }
+
+    return PayloadRootLayout({
+      children,
+      config: payloadConfig,
+      importMap,
+      serverFunction,
+    })
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">

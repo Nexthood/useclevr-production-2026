@@ -47,3 +47,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: ${{ inputs.run_command }}
+        env:
+          AUTH_SECRET: ${{ format('{0}:{1}', github.sha, github.run_id) }}
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci

@@ -102,7 +102,14 @@ Fastest safe local operator flow:
 pnpm railway:login
 pnpm railway:link -- --project <project-id-or-name> --environment <environment-id-or-name> --service <service-id-or-name>
 pnpm railway:status
+pnpm railway inspect
 pnpm railway:logs
+```
+
+List recent deployments with statuses:
+
+```bash
+railway deployment list
 ```
 
 Trigger the latest deploy:
@@ -129,11 +136,21 @@ pnpm railway:login           # Verify token & show user info
 pnpm railway:list            # List projects (create one on Railway first)
 pnpm railway:link            # Link current directory to a project
 pnpm railway:status          # Show linked project status
+pnpm railway inspect         # Show linked project environments, services, domains, and latest deployments
 ```
 
 Token auth is required. Set `RAILWAY_API_TOKEN` in `.env` (loads
 automatically — no need to source). Generate a token at
 https://railway.app/account/tokens.
+
+Shell-provided `RAILWAY_API_TOKEN` or `RAILWAY_TOKEN` takes priority over `.env`. Use a shell
+token when you need to inspect a different Railway account or project without changing the private
+local token file.
+
+**Important:** Always use the project's Railway wrapper or native Railway CLI to query deploy
+status. Do not hand-craft GraphQL queries against the Railway API — the schema changes frequently
+and direct queries are brittle. The wrapper at `scripts/server/railway/railway.cjs` handles auth,
+token loading, and error formatting.
 
 ## Railpack Configuration
 
@@ -233,6 +250,10 @@ If the test app redirects to the live app host, remove fixed auth host variables
 test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed callback host is
 required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
 service.
+
+Generated Railway startup sets `USECLEVR_SERVER_TARGET=railway`. Auth redirects accept the current
+origin, local development origins, and HTTPS `useclevr.com` origins; internal listener addresses such
+as `0.0.0.0:8080` are never the destination for a successful browser login.
 
 Keep test-service environment variables separate from production. Stripe test mode belongs on the
 test service, and live Stripe keys belong only on the production service.

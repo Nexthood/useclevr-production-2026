@@ -17,6 +17,9 @@ const nextConfig = {
       bodySizeLimit: "100mb",
     },
   },
+  outputFileTracingIncludes: {
+    "**/*": ["./node_modules/next/dist/build/**"],
+  },
   webpack: (config, { dev }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -24,15 +27,6 @@ const nextConfig = {
     };
     if (!dev && config.cache) {
       config.cache = false;
-    }
-    if (!dev && config.optimization?.splitChunks) {
-      Object.assign(config.optimization.splitChunks, {
-        chunks: "all",
-        maxInitialRequests: 25,
-        maxAsyncRequests: 25,
-        minSize: 20000,
-        maxSize: 244000,
-      });
     }
     return config;
   },

@@ -86,7 +86,7 @@ export async function verifyCheckoutToken(token: string, stripeSessionId: string
 }
 
 function getBaseUrl() {
-  const configured = process.env.NEXTAUTH_URL || process.env.AUTH_URL
+  const configured = process.env.AUTH_URL
   if (configured) return configured
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   return "http://localhost:3000"

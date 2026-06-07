@@ -2,6 +2,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
+import { Faqs } from "@/lib/cms/collections/Faqs"
 import { CmsUsers } from "@/lib/payload/collections/CmsUsers"
 import { NewsPosts } from "@/lib/payload/collections/NewsPosts"
 import { HomePageContent } from "@/lib/payload/globals/HomePageContent"
@@ -30,6 +31,7 @@ export default buildConfig({
     pool: {
       connectionString: databaseUrl,
     },
+    push: false,
   }),
   admin: {
     user: CmsUsers.slug,
@@ -37,12 +39,13 @@ export default buildConfig({
       titleSuffix: "UseClevr Admin",
       description: "Minimal content admin for UseClevr public news and page content.",
     },
+    autoLogin: false,
   },
   routes: {
     admin: "/admin",
     api: "/api/payload",
   },
-  collections: [CmsUsers, NewsPosts],
+  collections: [CmsUsers, NewsPosts, Faqs],
   globals: [HomePageContent, PrivacyPageContent, TermsPageContent],
   plugins: [
     ...(stripeSecretKey
@@ -58,10 +61,17 @@ export default buildConfig({
   onInit: async (payload) => {
     if (hasSeeded) return
     hasSeeded = true
-    await seedPayloadPhaseZero(payload)
-    payload.logger.info(
-      `Seeded Phase 0 Payload content and demo CMS users: ${BUILTIN_BASE_USER.email}, ${BUILTIN_SUPER_ADMIN_USER.email}`,
-    )
+    try {
+      await seedPayloadPhaseZero(payload)
+      payload.logger.info(
+        `Seeded Phase 0 Payload content and demo CMS users: ${BUILTIN_BASE_USER.email}, ${BUILTIN_SUPER_ADMIN_USER.email}`,
+      )
+    } catch (cause) {
+      payload.logger.warn(
+        { err: cause },
+        "Seed skipped — database tables not ready (expected during build against fresh databases)",
+      )
+    }
   },
   typescript: {
     outputFile: path.resolve(dirname, "src/payload-types.ts"),

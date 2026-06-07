@@ -38,6 +38,8 @@ Write the result as current project learning with these sections:
 Keep the summary concise (under 400 words).
 Use direct current-state language.
 Name the active actor, the required action, and the destination file or destination outcome with no vagueness.
+State manual local steps plainly when the AI agent cannot operate the browser, IDE panel, or another user's live session directly.
+When the task asks for shared API testing, create Git-tracked REST Client request files under `docs/api-tests/` before suggesting personal-only tools.
 Never include secrets, tokens, keys, or customer data.
 ```
 

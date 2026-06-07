@@ -1,0 +1,55 @@
+@baseUrl = {{baseUrl}}
+
+### MCP route reachability
+# Expected: 401 Unauthorized without a signed-in session
+GET {{baseUrl}}/api/mcp
+
+### MCP tools list with signed-in session
+# Expected: 200 OK with tools array
+GET {{baseUrl}}/api/mcp
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### MCP resources list for an owned dataset
+# Expected: 200 OK with resource URIs for the owned dataset
+GET {{baseUrl}}/api/mcp?datasetId=<paste-owned-dataset-id>
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### MCP tool invocation for an owned dataset
+# Expected: 200 OK with tool result
+POST {{baseUrl}}/api/mcp
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "name": "getDatasetSchema",
+  "input": {
+    "datasetId": "<paste-owned-dataset-id>"
+  }
+}
+
+### MCP tool invocation with service token
+# Expected: 200 OK with tool result
+POST {{baseUrl}}/api/mcp
+Content-Type: application/json
+x-mcp-service-token: <paste-service-token>
+
+{
+  "name": "getDatasetSchema",
+  "input": {
+    "datasetId": "<paste-owned-dataset-id>"
+  }
+}
+
+### MCP admin token invocation
+# Expected: 200 OK (admin scope allows compareDatasets)
+POST {{baseUrl}}/api/mcp
+Content-Type: application/json
+x-mcp-admin-token: <paste-admin-token>
+
+{
+  "name": "compareDatasets",
+  "input": {
+    "datasetIdA": "<paste-dataset-id-a>",
+    "datasetIdB": "<paste-dataset-id-b>"
+  }
+}

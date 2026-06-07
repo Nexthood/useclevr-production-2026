@@ -17,6 +17,7 @@ This folder stores reusable AI prompts as separate files.
 - [Compact status report](compact-status-report.md)
 - [Git release workflow](git-release-workflow.md)
 - [Feature restoration check](feature-restoration-check.md)
+- [REST Client API tests](rest-client-api-tests.md)
 - [TODO retirement check](todo-retirement-check.md)
 - [Work classification](work-classification.md)
 - [MCP and FAQ scope check](mcp-faq-scope-check.md)

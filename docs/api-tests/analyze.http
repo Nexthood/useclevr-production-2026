@@ -1,0 +1,13 @@
+@baseUrl = {{baseUrl}}
+
+### Analyze dataset
+# Expected: 200 OK on valid signed-in request, 400 on invalid body, 401 when session is missing, or 429 on rate limit
+POST {{baseUrl}}/api/analyze
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "datasetId": "<paste-owned-dataset-id>",
+  "query": "Summarize the main revenue and cost trends.",
+  "mode": "chat"
+}

@@ -18,7 +18,11 @@ This document defines the security boundaries, authentication requirements, auth
 | `/api/reports/*`   | **Owner-Scoped**      | Session helper                                         | Queries filter strictly on the signed-in user unless super-admin access is explicit | Standard authenticated-user limits             | System log output                    |
 | `/api/chat`        | **Signed-In Analyst** | Session helper or middleware guard                     | User ID context matching session plus credit checks       | Credit and endpoint controls                               | Trace saved to `aiInteractionTraces` |
 | `/api/analyze`     | **Signed-In Analyst** | Session helper                                         | User ID context matching session plus credit checks       | 30 requests/minute                                         | Trace saved to `aiInteractionTraces` |
+| `/api/local-ai-install` | **Development or Super-Admin** | `requireDevelopmentOrSuperAdmin` helper                | Development runtime only, or super-admin on shared deploy | Manual operator use only                                   | System log output                    |
+| `/api/agent/install-runtime` | **Development or Super-Admin** | `requireDevelopmentOrSuperAdmin` helper                | Development runtime only, or super-admin on shared deploy | Manual operator use only                                   | System log output                    |
 | `/api/debug/*`     | **Development-Only**  | Environment guard                                      | Returns 404 in production                                 | None                                                       | Development log output               |
+| `/api/mcp`         | **Signed-In or Token** | `validateMCPAuth` helper                                | Session ownership check, or token scope check             | 100 requests/minute per client                              | Audit trail to `mcpAuditLogs`        |
+| `/api/mcp/tokens/*` | **Super-Admin**      | `requireAdmin` helper                                   | Token management restricted to super-admin role           | Manual operator use only                                    | Token creation/revocation logged     |
 
 ---
 
@@ -35,6 +39,12 @@ Any route returning or modifying specific datasets, files, businesses, or settin
 ### 3. Development Routes Sandbox
 
 Diagnostic or debugging endpoints under `/api/debug/*` must be completely deactivated in non-development environments, returning a 404 Not Found error instantly if `process.env.NODE_ENV === 'production'`.
+
+### 4. Runtime Install Operations
+
+Routes that can install local AI runtimes, trigger agent runtime setup, or perform other server-host
+operations must use `requireDevelopmentOrSuperAdmin`. Development keeps local setup available.
+Shared deployments allow only explicit super-admin operations.
 
 ---
 

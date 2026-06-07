@@ -30,6 +30,7 @@ Current correction pattern:
 - Good evaluation records what pattern was recognized and where it was recorded.
 - Good evaluation also leaves a short note for future developers about the pattern, not the full transcript.
 - Record the branch or document split only when it changes durable project structure.
+- Record public-doc and operator-doc audience separation when a docs-host or docs-branch plan changes durable information architecture.
 
 ## Destination Files
 
@@ -51,5 +52,7 @@ These files receive the outcome. They are not the instruction source.
   developer behavior.
 - This AI agent must update `.TODO/` only when the docs change reveals active work, deferred work,
   or a deliberate no-fix decision.
+- This AI agent must update the planning document that owns the docs structure when the change is a
+  future docs-branch or docs-host rule, instead of duplicating the same rule in active TODO files.
 
 Skip the hook when there is no durable learning.

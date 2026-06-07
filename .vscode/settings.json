@@ -116,6 +116,17 @@
   "actions.refreshInterval": 5,
   "actions.loggingLevel": "info",
   "actions.showWorkflowRunButtons": true,
+  "rest-client.environmentVariables": {
+    "local": {
+      "baseUrl": "http://localhost:3000"
+    },
+    "staging": {
+      "baseUrl": "https://CHANGE_ME_STAGING_URL"
+    },
+    "production": {
+      "baseUrl": "https://CHANGE_ME_PRODUCTION_URL"
+    }
+  },
 
   "kilo-code.new.autoApprove.enabled": true,
 

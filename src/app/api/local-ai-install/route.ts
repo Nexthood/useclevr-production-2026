@@ -1,4 +1,5 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
+import { requireDevelopmentOrSuperAdmin } from "@/lib/auth/require-session";
 
 /**
  * UseClevr AI MEGA Installer
@@ -24,6 +25,9 @@ let installationProgress = '';
 let installationError = '';
 
 export async function POST(_request: Request) {
+  const access = await requireDevelopmentOrSuperAdmin()
+  if (!access.success) return access.error
+
   debugLog('[INSTALLER] Starting AI engine installation...');
   
   try {
@@ -119,6 +123,9 @@ export async function POST(_request: Request) {
 }
 
 export async function GET() {
+  const access = await requireDevelopmentOrSuperAdmin()
+  if (!access.success) return access.error
+
   // Return current installation status
   const ollamaStatus = await checkOllamaInstalled();
   const modelStatus = await checkModelDownloaded();

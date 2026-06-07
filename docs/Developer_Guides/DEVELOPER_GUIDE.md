@@ -1,5 +1,24 @@
 # Developer Guide
 
+## Table of Contents
+
+- [Setup](#setup)
+- [Technical Requirements](#technical-requirements)
+- [Project Structure](#project-structure)
+- [Environment Variables](#environment-variables)
+- [Scripts](#scripts)
+- [Shared API Testing](#shared-api-testing)
+- [Database](#database)
+- [Release](#release)
+- [Development Conventions](#development-conventions)
+- [Verified Computation](#verified-computation)
+- [Smoke Tests](#smoke-tests)
+- [CI / GitHub Actions](#ci--github-actions)
+- [Security](#security)
+- [Contributing](#contributing)
+- [Troubleshooting](#troubleshooting)
+- [Deployment](#deployment)
+
 ## Setup
 
 ```bash
@@ -177,6 +196,15 @@ All commands are run from `pnpm`.
 | `pnpm test:csv-analyzer` | CSV analyser specific tests |
 | `pnpm test:neon`         | Neon connection smoke test  |
 
+## Shared API Testing
+
+Use [docs/api-tests/README.md](../api-tests/README.md) and the
+Git-tracked `.http` files under `docs/api-tests/` as the shared API testing method.
+
+- Use REST Client in VS Code for reproducible local, staging, and production request examples.
+- Keep Thunder Client for personal manual exploration only.
+- Paste session cookies manually for protected-route checks and do not save secrets into Git.
+
 ### Analysis Helpers
 
 - `scripts/analysis/test-csv-analyzer.ts` and `scripts/analysis/test-csv-edge-cases.ts` power the CSV analyser test suite.
@@ -191,6 +219,26 @@ analysis, local AI status, local model tags, model pull, and model verification 
 
 Mock mode is ignored in production runtime. Traces from mock responses use provider `Mock AI` and
 model `mock-local-development`.
+
+### Payload Phase 0
+
+Payload Phase 0 currently serves:
+
+- `/admin`
+- `/api/payload`
+- public homepage content
+- public privacy page content
+- public terms page content
+- public news posts
+
+Current local safety rules:
+
+- Keep Payload database schema auto-push disabled during normal local startup.
+- Use explicit migration commands when Payload schema work is intentional.
+- Keep app auth routes and Payload auth routes reachable before login, while keeping other
+  protected API routes behind authentication.
+- Keep `/admin` requests on the Payload root layout so the admin login and admin workspace boot
+  with the required Payload providers and server functions.
 
 ### Clean
 

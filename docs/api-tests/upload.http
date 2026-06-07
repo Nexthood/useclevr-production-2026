@@ -1,0 +1,16 @@
+@baseUrl = {{baseUrl}}
+
+### CSV upload
+# Expected: 200 OK on valid upload, 400 on validation error, or 401 when auth is required and missing
+POST {{baseUrl}}/api/upload
+Content-Type: multipart/form-data; boundary=UseClevrBoundary
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+--UseClevrBoundary
+Content-Disposition: form-data; name="file"; filename="sample.csv"
+Content-Type: text/csv
+
+month,revenue,expenses
+2026-01,1000,500
+2026-02,1100,550
+--UseClevrBoundary--
