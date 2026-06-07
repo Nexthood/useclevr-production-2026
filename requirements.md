@@ -121,9 +121,11 @@ Text rules for this file:
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
+- Authenticate the built-in superadmin account with the `superadmin` session role and allow protected administrator pages.
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
+- Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.

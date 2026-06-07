@@ -249,3 +249,25 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - T-778. Run the beta to dist-test Railway deployment loop and verify `/api/health`.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; completed implementation lives in `.TODO/todo-done.md`; unresolved release gates remain in the active queue.
+
+---
+
+## Interaction 14: Superadmin Production Login Redirect
+
+- **Date**: June 2026
+- **User Goal**: Restore administrator login for `superadmin@useclevr.app`.
+- **Current Product State**: The built-in credentials authenticated correctly, but production Auth.js returned the internal listener URL and the login page mislabeled the redirect defect as invalid credentials.
+- **Implemented Changes & Decisions**:
+  1. **Session Confirmation**: The login page confirms the Auth.js session after credential, demo, and post-signup login before reporting failure.
+  2. **Redirect Boundary**: Auth redirects allow only same-origin, local development, or HTTPS UseClevr origins.
+  3. **Railway Runtime**: Generated startup commands set the Railway server target so runtime host handling follows deployment rules.
+  4. **Regression Test**: The auth test covers production and test UseClevr hosts, local redirects, and an untrusted external host.
+- **Problems Marked**:
+  - `risk`: A successful credential callback can still look like failure when the returned redirect uses an internal deployment listener.
+  - `observation`: The live endpoint authenticated the superadmin session while returning `0.0.0.0:8080/login`.
+- **User Learning**: The built-in superadmin credential mapping remains valid; the failure was redirect handling after authentication.
+- **AI-Agent Learning**: Verify the session independently from the callback URL when diagnosing Auth.js credential failures behind a reverse proxy.
+- **Follow-up Tasks**:
+  - T-778. Publish through beta to dist-test and verify browser login on the Railway test host.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Login behavior lives in `requirements.md` and `CHANGELOG.md`; deployment host rules live in `docs/Developer_Guides/RAILWAY_DEPLOYMENT.md`; completed work lives in `.TODO/todo-done.md`.

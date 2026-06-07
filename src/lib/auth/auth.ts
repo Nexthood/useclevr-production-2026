@@ -7,6 +7,7 @@ import {
   isBuiltinUserId,
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
+import { isLocalAuthOrigin, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
 import { accounts, profiles, users } from "@/lib/db/schema";
@@ -278,23 +279,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Return the redirect URL string, not a Response object
      */
     async redirect({ url, baseUrl }) {
-      try {
-        if (url.startsWith("/")) return `${baseUrl}${url}`;
-
-        const targetUrl = new URL(url);
-        if (targetUrl.origin === baseUrl || isLocalAuthOrigin(targetUrl)) {
-          return targetUrl.toString();
-        }
-
-        debugWarn("[Auth] Blocked cross-origin redirect:", {
-          targetOrigin: targetUrl.origin,
-          baseUrl,
-        });
-      } catch (error) {
-        debugWarn("[Auth] Ignoring invalid redirect URL:", error);
+      const redirectUrl = resolveAuthRedirect(url, baseUrl);
+      if (redirectUrl !== url && !url.startsWith("/")) {
+        debugWarn("[Auth] Replaced untrusted redirect URL:", { baseUrl });
       }
-
-      return `${baseUrl}/login`;
+      return redirectUrl;
     },
   },
   events: {
@@ -357,10 +346,6 @@ function isLocalAuthUrl(value: string) {
   } catch {
     return false;
   }
-}
-
-function isLocalAuthOrigin(url: URL) {
-  return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname);
 }
 
 async function ensureOAuthUserRecord({

@@ -29,6 +29,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Keep successful administrator login on the public UseClevr host and confirm the authenticated session before showing a credential error.
 - Complete email registration only when both account and profile setup succeed, then sign the new user into the dashboard.
 - Keep signed-out dashboard requests from rendering account data or loading another user's datasets as demo content.
 - Let signed Stripe webhooks update subscriptions while unavailable paid checkout returns a clear setup error instead of a false success.

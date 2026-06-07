@@ -276,7 +276,7 @@ const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
 EXPOSE 8080
-CMD ["node", "-r", "./scripts/runtime/load-env.cjs", "./scripts/runtime/start-dist.cjs"]
+CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
 
@@ -287,6 +287,7 @@ fs.writeFileSync(path.join(distDir, ".dockerignore"), ".git\n");
 // Create start.sh for Railway deploy
 const startSh = `#!/bin/sh
 set -e
+export USECLEVR_SERVER_TARGET=railway
 exec node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs "$@"
 `;
 fs.writeFileSync(path.join(distDir, "start.sh"), startSh, { mode: 0o755 });

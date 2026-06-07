@@ -58,6 +58,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-790. Keep Railway credential login on the public request host and confirm the authenticated session before the login page reports invalid credentials. (labels: auth, deployment, security; commit: worktree)
 - T-787. Stop signed-out dashboard rendering before nested layouts access session data and prevent the datasets page from loading another account as demo content. (labels: auth, data, security; commit: worktree)
 - T-499. AI trace retention policy — configurable via superadmin `GET/POST /api/admin/ai-trace-retention`, stored in `appSettings` table. (labels: auth, ai, api, dashboard; commit: 545be481)
 - T-600. Remove unused imports and dead code — cleaned up unused imports and unused variables like `oauthAccount` in actions. (labels: auth, accessibility; commit: 5b62cb31)

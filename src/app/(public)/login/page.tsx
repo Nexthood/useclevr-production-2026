@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, User } from "lucide-react"
-import { signIn } from "next-auth/react"
+import { getSession, signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
@@ -61,7 +61,8 @@ function LoginForm() {
           callbackUrl: dashboardCallbackUrl(),
         })
 
-        const signInSucceeded = Boolean(result && !result.error && result.status !== 401 && result.status !== 403)
+        const authenticatedSession = result && !result.error ? await getSession() : null
+        const signInSucceeded = Boolean(authenticatedSession?.user?.id)
         if (!signInSucceeded) {
           setAuthError("Demo sign-in failed. Please try again.")
           return
@@ -98,11 +99,10 @@ function LoginForm() {
         callbackUrl: dashboardCallbackUrl(),
       })
 
-      const returnedToLogin =
-        typeof result?.url === "string" &&
-        (result.url.includes("/login") || result.url.includes("error="))
       const blockedStatus = result?.status === 401 || result?.status === 403
-      const signInSucceeded = Boolean(result && !result.error && !blockedStatus && !returnedToLogin)
+      const authenticatedSession =
+        result && !result.error && !blockedStatus ? await getSession() : null
+      const signInSucceeded = Boolean(authenticatedSession?.user?.id)
 
       if (!signInSucceeded) {
         setAuthError("Sign-in failed. Check your email and password.")
@@ -161,12 +161,10 @@ function LoginForm() {
         redirect: false,
         callbackUrl: dashboardCallbackUrl(),
       })
-      const signInSucceeded = Boolean(
-        signInResult &&
-        !signInResult.error &&
-        signInResult.status !== 401 &&
-        signInResult.status !== 403,
-      )
+      const blockedStatus = signInResult?.status === 401 || signInResult?.status === 403
+      const authenticatedSession =
+        signInResult && !signInResult.error && !blockedStatus ? await getSession() : null
+      const signInSucceeded = Boolean(authenticatedSession?.user?.id)
 
       if (!signInSucceeded) {
         setAuthError("Account created. Please sign in with your credentials.")

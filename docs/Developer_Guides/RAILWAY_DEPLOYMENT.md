@@ -245,6 +245,10 @@ test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed cal
 required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
 service.
 
+Generated Railway startup sets `USECLEVR_SERVER_TARGET=railway`. Auth redirects accept the current
+origin, local development origins, and HTTPS `useclevr.com` origins; internal listener addresses such
+as `0.0.0.0:8080` are never the destination for a successful browser login.
+
 Keep test-service environment variables separate from production. Stripe test mode belongs on the
 test service, and live Stripe keys belong only on the production service.
 
