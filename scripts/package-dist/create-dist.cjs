@@ -71,6 +71,9 @@ assertExists(standaloneDir, "Next standalone build");
 assertExists(path.join(standaloneDir, "server.js"), "Standalone server");
 assertExists(path.join(standaloneDir, ".next", "BUILD_ID"), "Standalone .next build");
 
+// Save next/dist/build/ from root node_modules before we clean dist
+saveNextBuildDir();
+
 // Clean and create output directories
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
@@ -220,40 +223,81 @@ for (const f of ["vercel.json", "railway.json"]) {
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
 }
 
-// Restore pruned `next/dist/build/` — Next.js standalone tracing removes this directory,
-// but `next/dist/server/next.js` dynamically requires `../build/output/log` at runtime.
-function findNextDir(nodeModulesDir) {
-  // Check flat next/ first (resolves through pnpm symlinks)
-  const flat = path.join(nodeModulesDir, "next");
-  if (fs.existsSync(path.join(flat, "package.json"))) return flat;
-  // Fallback: search .pnpm/next@*/node_modules/next/
-  const pnpmDir = path.join(nodeModulesDir, ".pnpm");
-  if (!fs.existsSync(pnpmDir)) throw new Error("next package not found in node_modules");
-  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
-    if (entry.isDirectory() && entry.name.startsWith("next@")) {
-      return path.join(pnpmDir, entry.name, "node_modules", "next");
+// --- Next.js build directory restore ---
+// next/dist/server/next.js needs ../build/output/log at runtime but standalone tracing prunes it.
+// Save source from root node_modules BEFORE cleaning dist, restore AFTER standalone copy.
+var _nextSourceBuildDir;
+function saveNextBuildDir() {
+  const nm = path.join(rootDir, "node_modules");
+  // Try flat next/ first
+  const flat = path.join(nm, "next");
+  const flatBuild = path.join(flat, "dist", "build");
+  if (fs.existsSync(flatBuild)) {
+    _nextSourceBuildDir = flatBuild;
+    return;
+  }
+  // Try pnpm store
+  const pnpmDir = path.join(nm, ".pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith("next@")) {
+        const pnpmBuild = path.join(pnpmDir, entry.name, "node_modules", "next", "dist", "build");
+        if (fs.existsSync(pnpmBuild)) {
+          _nextSourceBuildDir = pnpmBuild;
+          return;
+        }
+      }
     }
   }
-  throw new Error("next package not found in node_modules (no pnpm entry)");
+  throw new Error("next/dist/build/ not found in root node_modules — run next build first");
 }
 
-function restoreNextBuildDir(targetNodeModulesDir, sourceNodeModulesDir) {
-  const sourceDir = findNextDir(sourceNodeModulesDir);
-  const sourceBuild = path.join(sourceDir, "dist", "build");
-  if (!fs.existsSync(sourceBuild)) {
-    throw new Error("next/dist/build/ missing from source — run next build first");
+function restoreNextBuildDir() {
+  if (!_nextSourceBuildDir) {
+    throw new Error("saveNextBuildDir() must be called before restoreNextBuildDir()");
   }
 
-  const targetDir = findNextDir(targetNodeModulesDir);
-  const buildDir = path.join(targetDir, "dist", "build");
+  // Find all next package directories in the dist node_modules
+  const distNm = path.join(distDir, "node_modules");
+  var found = 0;
+  // 1. pnpm store entries
+  const pnpmDir = path.join(distNm, ".pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith("next@")) {
+        const nextDir = path.join(pnpmDir, entry.name, "node_modules", "next");
+        const buildDir = path.join(nextDir, "dist", "build");
+        copyBuildDir(_nextSourceBuildDir, buildDir);
+        found++;
+      }
+    }
+  }
+  // 2. Flat next/ (might be symlink to pnpm store, skip if we already restored it)
+  const flat = path.join(distNm, "next");
+  if (fs.existsSync(path.join(flat, "package.json"))) {
+    // Resolve through possible symlink to check if we already handled it
+    const realNext = fs.realpathSync(flat);
+    const alreadyDone = found > 0 && fs.realpathSync(path.join(distNm, ".pnpm")).startsWith(path.dirname(path.dirname(path.dirname(path.dirname(path.dirname(realNext))))));
+    // Simplified: check if flat resolves to a pnpm entry we already processed
+    const isPnpmEntry = realNext.includes(path.sep + ".pnpm" + path.sep + "next@");
+    if (!isPnpmEntry || found === 0) {
+      const buildDir = path.join(flat, "dist", "build");
+      copyBuildDir(_nextSourceBuildDir, buildDir);
+      found++;
+    }
+  }
 
-  // Remove stale partial build dir and recreate, then copy
+  if (found === 0) {
+    throw new Error("No next package found in dist node_modules to restore build dir");
+  }
+  console.log("Restored next/dist/build/ into " + found + " next package(s)");
+}
+
+function copyBuildDir(sourceBuild, buildDir) {
   fs.rmSync(buildDir, { recursive: true, force: true });
   fs.mkdirSync(buildDir, { recursive: true });
   execSync(`cp -a "${sourceBuild}/." "${buildDir}/"`, { stdio: "inherit" });
-  console.log("Restored next/dist/build/ into dist");
-
-  // Verify critical runtime files exist after restore
+  // Verify critical files
   const requiredFiles = [
     path.join(buildDir, "output", "log.js"),
     path.join(buildDir, "next-config-ts", "transpile-config.js"),
@@ -264,9 +308,8 @@ function restoreNextBuildDir(targetNodeModulesDir, sourceNodeModulesDir) {
       `Next.js runtime build restore incomplete: ${missing.join(", ")} missing after copy`,
     );
   }
-  console.log("  Verified: required runtime files present");
 }
-restoreNextBuildDir(path.join(distDir, "node_modules"), path.join(rootDir, "node_modules"));
+restoreNextBuildDir();
 
 // Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
 // all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
