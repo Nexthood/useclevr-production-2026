@@ -20,6 +20,7 @@ moving work between states.
 
 ## Label: ci-build
 
+- T-791. Supply a deterministic CI-only authentication secret to source validation and generated deployment builds so required environment validation and smoke tests complete. (labels: ci-build, auth, deployment; commit: worktree)
 - T-783. Keep the Next.js production proxy entry intact so webpack builds complete middleware finalization. (labels: ci-build, deployment; commit: worktree)
 - T-739. Add workflow check-name golden validation, bot-driven golden refresh, and fail-fast pre-push workflow guarding against stale required job names. (labels: ci-build, deployment, workflow; commit: worktree)
 
@@ -58,7 +59,7 @@ moving work between states.
 
 ## Label: auth
 
-- T-790. Keep Railway credential login on the public request host and confirm the authenticated session before the login page reports invalid credentials. (labels: auth, deployment, security; commit: worktree)
+- T-790. Keep Railway credential login on the public request host and confirm the authenticated session before the login page reports invalid credentials. (labels: auth, deployment, security; commit: 26e5fc63)
 - T-787. Stop signed-out dashboard rendering before nested layouts access session data and prevent the datasets page from loading another account as demo content. (labels: auth, data, security; commit: worktree)
 - T-499. AI trace retention policy — configurable via superadmin `GET/POST /api/admin/ai-trace-retention`, stored in `appSettings` table. (labels: auth, ai, api, dashboard; commit: 545be481)
 - T-600. Remove unused imports and dead code — cleaned up unused imports and unused variables like `oauthAccount` in actions. (labels: auth, accessibility; commit: 5b62cb31)

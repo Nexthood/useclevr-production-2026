@@ -20,6 +20,7 @@ permissions:
   contents: write
 
 env:
+  AUTH_SECRET: ${{ format('{0}:{1}', github.sha, github.run_id) }}
   NO_COLOR: "1"
   FORCE_COLOR: "0"
   TERM: dumb

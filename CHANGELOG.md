@@ -80,6 +80,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Generate an isolated authentication secret for validation and deployment builds so required environment checks and generated-server smoke tests complete.
 - Add Git-tracked REST Client API request files and shared VS Code environments for health, auth, upload, analyze, business profile, billing, Railway smoke, and MCP checks.
 - Add a workflow check-name golden file, local pre-push validation, and a non-blocking GitHub refresh workflow so branch protection cannot wait on stale required job names.
 - Add Payload Phase 0 migration scripts, generated types, and PostgreSQL migration files for the new admin content schema.
