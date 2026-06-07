@@ -13,6 +13,7 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   MCP_SERVICE_TOKEN: z.string().min(32).optional(),
   MCP_ADMIN_TOKEN: z.string().min(32).optional(),
+  MCP_URL: z.string().url().optional(),
 })
 
 export const config = envSchema.parse(process.env)

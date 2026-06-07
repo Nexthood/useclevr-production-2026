@@ -14,10 +14,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - MCP audit trail records tool invocations, auth failures, and token management events for compliance
 - MCP tool invocations appear in AI interaction traces for unified analytics across chat and tool interactions
 - FAQ content management available via Payload admin with field validation
+- Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
 - Give new Free accounts a 14-day analyst trial while preserving two free analyst credits for use after the trial.
-- Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
-- Show built-in base and superadmin demo credentials on the login page for app and admin testing, with password visibility toggle.
-- Publish a public News section with five starter updates and individual article pages.
+- Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
 - Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.

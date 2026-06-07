@@ -10,6 +10,8 @@
 - [Local Ping Process](#local-ping-process)
 - [Terminal Test Process](#terminal-test-process)
 - [Shared API Test Files](#shared-api-test-files)
+- [Subdomain Verification](#subdomain-verification)
+- [MCP Subdomain Setup](#mcp-subdomain-setup)
 - [Available Tools](#available-tools)
 - [Available Resources](#available-resources)
 - [ChatGPT Web MCP Support](#chatgpt-web-mcp-support)
@@ -193,6 +195,39 @@ as the shared MCP and API testing path.
 - Use `docs/api-tests/mcp.http` for route reachability, signed-in tool listing, dataset resource listing, and tool invocation.
 - Keep secrets manual and temporary.
 - Keep Thunder Client as a personal manual tool only, not the shared project source of truth.
+
+## Subdomain Verification
+
+The MCP endpoint at `/api/mcp` accepts requests from any `*.useclevr.com` origin when configured. Route requests directly to the same `/api/mcp` endpoint on either the production or test host.
+
+### DNS Configuration
+
+In Railway or your DNS provider, configure CNAME records pointing subdomains to the app host:
+
+- `mcp.useclevr.com` → CNAME to production Railway hostname (e.g., `useclevr.up.railway.app`)
+- `mcp-test.useclevr.com` → CNAME to test Railway hostname (e.g., `test.useclevr.up.railway.app`)
+
+DNS cannot point to URL paths — it points only to hostnames. The backend router handles subdomain routing to the `/api/mcp` endpoint.
+
+### Verification Steps
+
+After DNS propagates, verify:
+
+```bash
+# Verify unsigned access is rejected
+curl -i https://mcp.useclevr.com/api/mcp
+
+# Verify with service token
+curl -H "x-mcp-service-token: $TOKEN" https://mcp.useclevr.com/api/mcp
+
+# Verify CORS header for subdomain
+curl -I -H "Origin: https://mcp.useclevr.com" https://mcp.useclevr.com/api/mcp
+```
+
+Expected responses:
+- Unsigned: `401 Unauthorized`
+- With token: `200 OK` with tools array
+- CORS header: `Access-Control-Allow-Origin: https://mcp.useclevr.com`
 
 ## Available Tools
 
@@ -716,3 +751,12 @@ Popular VS Code extensions that expose IDE capabilities as an MCP server to exte
 - Add rate limiting and audit logging before MCP expands beyond the current internal session-based route.
 - Return clear errors for invalid JSON, unknown tools, unauthorized access.
 - Update AI tracing structure when MCP tools change the AI context, prompt inputs, provider-visible metadata, or trace fields.
+
+## MCP Subdomain Setup
+
+The MCP endpoint stays internal to the UseClevr app. Configure subdomains via DNS routing to the existing app hosts:
+
+- `mcp.useclevr.com` → CNAME to production Railway hostname
+- `mcp-test.useclevr.com` → CNAME to test/Next.js dev hostname
+
+No code changes required — the `/api/mcp` route already accepts `*.useclevr.com` origins via CORS. Requests to MCP subdomains serve the same endpoint without redirects. No separate MCP service or branch needed until scale demands independent scaling, monitoring, or auth.

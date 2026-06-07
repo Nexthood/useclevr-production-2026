@@ -11,6 +11,28 @@ MCP lets connected tools use trusted dashboard data for analysis support. It rea
 
 **Current access:** Signed-in users only. Requests from `mcp.useclevr.com` are supported when the subdomain is configured.
 
+## Subdomain Verification
+
+After Railway DNS is configured for `mcp.useclevr.com`, verify:
+
+1. **Unsigned request returns 401:**
+   ```bash
+   curl -i https://mcp.useclevr.com/api/mcp
+   ```
+   Expected: `HTTP/1.1 401 Unauthorized`
+
+2. **With service token returns tools:**
+   ```bash
+   curl -H "x-mcp-service-token: $TOKEN" https://mcp.useclevr.com/api/mcp
+   ```
+   Expected: JSON with `tools` array
+
+3. **CORS header is present:**
+   ```bash
+   curl -I https://mcp.useclevr.com/api/mcp -H "Origin: https://mcp.useclevr.com"
+   ```
+   Expected: `Access-Control-Allow-Origin: https://mcp.useclevr.com`
+
 ## Available MCP Tools
 
 | Tool                      | Description                                        | Input                              |

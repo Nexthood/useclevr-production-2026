@@ -26,7 +26,7 @@ moving work between states.
 
 ## Label: mcp
 
-- T-807. Add MCP_URL env config for subdomain, set up Railway DNS for mcp.useclevr.com, and document subdomain access in mcp.md user guide. (labels: mcp, deployment, docs)
+- T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to `/api/mcp` endpoint. (labels: mcp, deployment, docs)
 - T-808. Add FAQ seed data to Payload Faqs collection and wire MCP getFaqs tool to fall back to Payload content when no static FAQ cache is available. (labels: mcp, content, workflow)
 - T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via the new /api/mcp/tokens endpoint. (labels: mcp, testing, security)
 

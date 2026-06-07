@@ -222,71 +222,49 @@ for (const f of ["vercel.json", "railway.json"]) {
 
 // Restore pruned `next/dist/build/` — Next.js standalone tracing removes this directory,
 // but `next/dist/server/next.js` dynamically requires `../build/output/log` at runtime.
+function findNextDir(nodeModulesDir) {
+  // Check flat next/ first (resolves through pnpm symlinks)
+  const flat = path.join(nodeModulesDir, "next");
+  if (fs.existsSync(path.join(flat, "package.json"))) return flat;
+  // Fallback: search .pnpm/next@*/node_modules/next/
+  const pnpmDir = path.join(nodeModulesDir, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) throw new Error("next package not found in node_modules");
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith("next@")) {
+      return path.join(pnpmDir, entry.name, "node_modules", "next");
+    }
+  }
+  throw new Error("next package not found in node_modules (no pnpm entry)");
+}
+
 function restoreNextBuildDir(targetNodeModulesDir, sourceNodeModulesDir) {
-  const candidates = [];
-  // pnpm: check .pnpm/next@*/node_modules/next/
-  const pnpmDir = path.join(targetNodeModulesDir, ".pnpm");
-  if (fs.existsSync(pnpmDir)) {
-    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
-      if (entry.isDirectory() && entry.name.startsWith("next@")) {
-        candidates.push(path.join(pnpmDir, entry.name, "node_modules", "next"));
-      }
-    }
-  }
-  // flat: check next/ directly
-  const flatNext = path.join(targetNodeModulesDir, "next");
-  if (fs.existsSync(path.join(flatNext, "package.json"))) {
-    candidates.push(flatNext);
+  const sourceDir = findNextDir(sourceNodeModulesDir);
+  const sourceBuild = path.join(sourceDir, "dist", "build");
+  if (!fs.existsSync(sourceBuild)) {
+    throw new Error("next/dist/build/ missing from source — run next build first");
   }
 
-  const sourceCandidates = [];
-  const sourcePnpmDir = path.join(sourceNodeModulesDir, ".pnpm");
-  if (fs.existsSync(sourcePnpmDir)) {
-    for (const entry of fs.readdirSync(sourcePnpmDir, { withFileTypes: true })) {
-      if (entry.isDirectory() && entry.name.startsWith("next@")) {
-        sourceCandidates.push(path.join(sourcePnpmDir, entry.name, "node_modules", "next"));
-      }
-    }
-  }
-  const sourceFlatNext = path.join(sourceNodeModulesDir, "next");
-  if (fs.existsSync(path.join(sourceFlatNext, "package.json"))) {
-    sourceCandidates.push(sourceFlatNext);
-  }
+  const targetDir = findNextDir(targetNodeModulesDir);
+  const buildDir = path.join(targetDir, "dist", "build");
 
-  for (const pkgDir of candidates) {
-    const packageDirName = path.basename(path.dirname(path.dirname(pkgDir)));
-    const matchingSource = sourceCandidates.find(
-      (candidate) => path.basename(path.dirname(path.dirname(candidate))) === packageDirName,
+  // Remove stale partial build dir and recreate, then copy
+  fs.rmSync(buildDir, { recursive: true, force: true });
+  fs.mkdirSync(buildDir, { recursive: true });
+  execSync(`cp -a "${sourceBuild}/." "${buildDir}/"`, { stdio: "inherit" });
+  console.log("Restored next/dist/build/ into dist");
+
+  // Verify critical runtime files exist after restore
+  const requiredFiles = [
+    path.join(buildDir, "output", "log.js"),
+    path.join(buildDir, "next-config-ts", "transpile-config.js"),
+  ];
+  const missing = requiredFiles.filter((f) => !fs.existsSync(f));
+  if (missing.length > 0) {
+    throw new Error(
+      `Next.js runtime build restore incomplete: ${missing.join(", ")} missing after copy`,
     );
-    const sourceBuild = matchingSource
-      ? path.join(matchingSource, "dist", "build")
-      : sourceCandidates
-          .map((candidate) => path.join(candidate, "dist", "build"))
-          .find((candidate) => fs.existsSync(candidate));
-
-    if (!sourceBuild || !fs.existsSync(sourceBuild)) {
-      throw new Error(`Next.js runtime build directory not found for ${packageDirName}`);
-    }
-
-    const buildDir = path.join(pkgDir, "dist", "build");
-    fs.rmSync(buildDir, { recursive: true, force: true });
-    // Use cp -a to preserve relative symlinks (fs.cpSync resolves them to absolute paths)
-    execSync(`cp -a "${sourceBuild}/." "${buildDir}/"`, { stdio: "inherit" });
-    console.log(`Restored complete next/dist/build/ into ${path.relative(targetNodeModulesDir, pkgDir)}`);
-
-    // Verify critical runtime files exist after restore
-    const requiredFiles = [
-      path.join(buildDir, "output", "log.js"),
-      path.join(buildDir, "next-config-ts", "transpile-config.js"),
-    ];
-    const missing = requiredFiles.filter((f) => !fs.existsSync(f));
-    if (missing.length > 0) {
-      throw new Error(
-        `Next.js runtime build restore incomplete: ${missing.join(", ")} missing after copy`,
-      );
-    }
-    console.log("  Verified: required runtime files present");
   }
+  console.log("  Verified: required runtime files present");
 }
 restoreNextBuildDir(path.join(distDir, "node_modules"), path.join(rootDir, "node_modules"));
 

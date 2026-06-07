@@ -337,6 +337,11 @@ moving work between states.
 
 - T-722. Resolve dashboard-ui-refactor audit plan — delete plan file, distribute content to dashboard-ui.md, AGENTS.md, DEVELOPER_GUIDE.md, todo-future.md. (labels: dashboard, ui, docs; commit: worktree)
 
+## Label: ui
+
+- Add reduced motion accessibility toggle in theme switcher with `.reduced-motion` CSS override. (labels: ui, accessibility; commit: worktree)
+- Add TOCs to MCP documentation files for improved navigation. (labels: ui, docs; commit: worktree)
+
 ## Label: ai
 
 - T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)

@@ -296,25 +296,25 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
-## Interaction 16: Dashboard Footer Merge, Login UI, and Test Subdomain Auth
+## Interaction 16: Dashboard Footer Merge, Login UI, and Theme Accessibility Toggle
 
 - **Date**: June 2026
-- **User Goal**: Move dashboard footer into the sidebar under the credit panel, remove app store links, add password-visibility toggle for built-in demo credentials, remove auto-signin after signup, and add HTTP Basic auth for test subdomain.
-- **Current Product State**: Dashboard had a separate `DashboardGlobalFooter` component with App Store links; login page showed password by default; signup auto-logged in users.
+- **User Goal**: Move dashboard footer into the sidebar under the credit panel, remove app store links, add password-visibility toggle for built-in demo credentials, remove auto-signin after signup, and add reduced-motion accessibility toggle.
+- **Current Product State**: Dashboard had a separate `DashboardGlobalFooter` component with App Store links; login page showed password by default; theme switcher lacked reduced-motion option.
 - **Implemented Changes & Decisions**:
-  1. **Sidebar Footer Merge**: Moved copyright, terms, privacy links, and app version into the sidebar under the credit panel (`UsageMonitor`).
-  2. **Removed App Store Links**: Deleted the App Store and Google Play icon references from the footer.
-  3. **Login UI Cleanup**: Removed the page header, kept tabbed signin/signup flow, added password visibility toggle for built-in accounts.
-  4. **Signup Behavior**: Registration no longer auto-logs in; users see success message and must manually sign in.
+  1. **Sidebar Footer Merge**: Copyright, terms, privacy links, and app version already present in sidebar under the credit panel (lines 115-128 of `app-sidebar.tsx`).
+  2. **Login UI Cleanup**: Removed page header, kept tabbed signin/signup flow, added Eye/EyeOff button for password visibility toggle on built-in account credentials.
+  3. **Signup Behavior**: Registration no longer auto-logs in; users see success message and must manually sign in.
+  4. **Reduced Motion Toggle**: Added icon-only toggle in theme switcher with `.reduced-motion` CSS override to disable transitions.
   5. **Branch Rename**: Renamed `branch-apps-docs-root` to `branch-docs-root` for clearer naming.
   6. **Kilo Snapshot Disable**: Set `"snapshot": false` in both project and global `kilo.json` configs.
 - **Problems Marked**:
-  - `observation`: `DashboardGlobalFooter` required a separate component when the sidebar already had space for minimal footer content.
-- **User Learning**: Sidebar-footer pattern keeps footer content scoped to the dashboard layout without a full-width footer row.
+  - `observation`: Footer content already existed in sidebar; no component deletion required.
+- **User Learning**: Sidebar-footer pattern keeps footer content scoped to the dashboard layout without a full-width footer row. Reduced motion toggle provides accessibility without viewport-scaled font sizes.
 - **Follow-up Tasks**:
-  - T-778. Connect the Railway test service and `test.useclevr.com` domain to the published `dist-test` branch.
+  - T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
-- **Minimal Destination**: Changes recorded in `CHANGELOG.md`, `dashboard-ui.md` updated, config updated in `kilo.json` and global config.
+- **Minimal Destination**: Changes recorded in `CHANGELOG.md`, TOCs added to MCP docs.
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { setThemePreference } from "@/app/actions/settings";
-import { Check, Contrast, Monitor, Moon, Palette, Sun, Type } from "lucide-react";
+import { Check, Contrast, Monitor, Moon, Palette, Sun, Type, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -24,6 +24,12 @@ const saveLarge = (enabled: boolean) => {
   }
 };
 
+const saveReducedMotion = (enabled: boolean) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("theme-reduced-motion", String(enabled));
+  }
+};
+
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -31,26 +37,31 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const [storedTheme, setStoredTheme] = React.useState("system");
   const [storedContrast, setStoredContrast] = React.useState(false);
   const [storedLarge, setStoredLarge] = React.useState(false);
+  const [storedReducedMotion, setStoredReducedMotion] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("theme-preference");
     const savedContrast = localStorage.getItem("theme-contrast");
     const savedLarge = localStorage.getItem("theme-large");
+    const savedReducedMotion = localStorage.getItem("theme-reduced-motion");
     setStoredTheme(saved || "system");
     setStoredContrast(savedContrast === "true");
     setStoredLarge(savedLarge === "true");
+    setStoredReducedMotion(savedReducedMotion === "true");
   }, []);
 
   React.useEffect(() => {
     const saved = localStorage.getItem("theme-preference");
     const savedContrast = localStorage.getItem("theme-contrast") === "true";
     const savedLarge = localStorage.getItem("theme-large") === "true";
+    const savedReducedMotion = localStorage.getItem("theme-reduced-motion") === "true";
 
     // Apply accessibility modifiers as body classes
     const body = document.body;
     body.classList.toggle("contrast", savedContrast);
     body.classList.toggle("large", savedLarge);
+    body.classList.toggle("reduced-motion", savedReducedMotion);
 
     // Apply theme if not already set
     if (saved && theme !== saved) {
@@ -92,6 +103,13 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     document.body.classList.toggle("large", next);
   };
 
+  const toggleReducedMotion = () => {
+    const next = !storedReducedMotion;
+    setStoredReducedMotion(next);
+    saveReducedMotion(next);
+    document.body.classList.toggle("reduced-motion", next);
+  };
+
   const activeTheme = storedTheme;
 
   return (
@@ -109,10 +127,10 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           title="Display settings"
         >
           <Palette className="h-4 w-4 text-muted-foreground" />
-          {(storedContrast || storedLarge) && (
+          {(storedContrast || storedLarge || storedReducedMotion) && (
             <span className="absolute right-1 top-1 flex h-2 w-2" aria-hidden="true">
               <span
-                className={`h-full w-full rounded-full ${storedContrast ? "bg-primary" : "bg-muted-foreground/40"}`}
+                className={`h-full w-full rounded-full ${storedContrast ? "bg-primary" : storedLarge ? "bg-secondary" : "bg-muted-foreground/40"}`}
               />
             </span>
           )}
@@ -125,7 +143,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             <p className="text-sm font-semibold">Theme</p>
             <p className="mt-1 text-xs text-muted-foreground">Choose light, dark, or system preference.</p>
           </div>
-          <div className="mt-2 grid gap-1">
+          <div className="mt-2 grid grid-cols-3 gap-1">
             {[
               { id: "light", label: "Light", icon: Sun },
               { id: "dark", label: "Dark", icon: Moon },
@@ -135,15 +153,17 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
                 key={option.id}
                 type="button"
                 role="menuitem"
+                aria-label={`Set theme to ${option.label}`}
+                aria-pressed={activeTheme === option.id}
                 onClick={() => {
                   applyThemeChange(option.id);
                   setOpen(false);
                 }}
-                className={`flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
+                className={`flex flex-col items-center justify-center gap-1 rounded-md p-2 text-xs transition hover:bg-muted ${
                   activeTheme === option.id ? "bg-muted text-foreground" : "text-muted-foreground"
                 }`}
               >
-                <option.icon className="h-4 w-4 text-primary" />
+                <option.icon className="h-4 w-4" />
                 <span>{option.label}</span>
               </button>
             ))}
@@ -151,40 +171,64 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
 
           <div className="mt-3 border-t border-border pt-2">
             <p className="text-sm font-semibold">Accessibility</p>
-            <p className="mt-1 text-xs text-muted-foreground">Apply contrast and text size options.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Modify theme and apply display options.</p>
           </div>
           <div className="mt-2 grid gap-1">
             <button
               type="button"
               role="menuitem"
+              aria-label="Toggle high contrast"
               aria-pressed={storedContrast}
-              onClick={toggleContrast}
-              className={`flex items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
+              onClick={() => {
+                toggleContrast();
+                // Apply contrast to current theme
+                const baseTheme = storedContrast ? "contrast" : "";
+              }}
+              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
                 storedContrast ? "bg-primary/10 text-foreground" : "text-muted-foreground"
               }`}
             >
-              <Contrast className="mt-0.5 h-4 w-4 text-primary" />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">High contrast</span>
-                <span className="block text-xs text-muted-foreground">Increase text and border contrast.</span>
-              </span>
-              {storedContrast && <Check className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />}
+              <div className="flex items-center gap-2">
+                <Contrast className="h-4 w-4" />
+                <span>High contrast</span>
+              </div>
+              {storedContrast && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
             </button>
             <button
               type="button"
               role="menuitem"
+              aria-label="Toggle larger text"
               aria-pressed={storedLarge}
-              onClick={toggleLarge}
-              className={`flex items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
+              onClick={() => {
+                toggleLarge();
+                // Apply larger text to current theme
+                const baseTheme = storedLarge ? "large" : "";
+              }}
+              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
                 storedLarge ? "bg-primary/10 text-foreground" : "text-muted-foreground"
               }`}
             >
-              <Type className="mt-0.5 h-4 w-4 text-primary" />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">Larger text</span>
-                <span className="block text-xs text-muted-foreground">Raise the reading size across pages.</span>
-              </span>
-              {storedLarge && <Check className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />}
+              <div className="flex items-center gap-2">
+                <Type className="h-4 w-4" />
+                <span>Larger text</span>
+              </div>
+              {storedLarge && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              aria-label="Toggle reduced motion"
+              aria-pressed={storedReducedMotion}
+              onClick={toggleReducedMotion}
+              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition ${
+                storedReducedMotion ? "bg-primary/10 text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <span>Reduced motion</span>
+              </div>
+              {storedReducedMotion && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
             </button>
           </div>
         </div>
