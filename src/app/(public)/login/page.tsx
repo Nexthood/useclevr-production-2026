@@ -155,23 +155,9 @@ function LoginForm() {
         return
       }
 
-      const signInResult = await signIn("credentials", {
-        email: signUpEmail.trim().toLowerCase(),
-        password: signUpPassword,
-        redirect: false,
-        callbackUrl: dashboardCallbackUrl(),
-      })
-      const blockedStatus = signInResult?.status === 401 || signInResult?.status === 403
-      const authenticatedSession =
-        signInResult && !signInResult.error && !blockedStatus ? await getSession() : null
-      const signInSucceeded = Boolean(authenticatedSession?.user?.id)
-
-      if (!signInSucceeded) {
-        setAuthError("Account created. Please sign in with your credentials.")
-        return
-      }
-
-      goToDashboard()
+      setAuthError("Account created successfully. Please sign in with your credentials.")
+      setSignInEmail(signUpEmail)
+      router.push("/login?tab=signin")
     } catch {
       setAuthError("Account setup failed. Please try again.")
     } finally {

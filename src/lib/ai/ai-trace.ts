@@ -381,6 +381,29 @@ export async function deleteOldTraces(retentionDays: number): Promise<number> {
   }
 }
 
+export async function recordMCPTrace(input: {
+  userId?: string | null
+  tokenId?: string | null
+  tokenName?: string | null
+  toolName: string
+  input: string
+  output: string
+  latencyMs?: number | null
+  error?: string | null
+}): Promise<TraceRecord | null> {
+  const userId = input.userId || `mcp-token-${input.tokenName || input.tokenId || "unknown"}`
+  return createTrace({
+    userId,
+    prompt: `MCP tool invocation: ${input.toolName}\n\nInput:\n${input.input}`,
+    response: input.error ? `Error: ${input.error}` : `Output:\n${input.output}`,
+    providerName: "MCP",
+    modelName: `tool:${input.toolName}`,
+    promptVersion: PROMPT_VERSION,
+    latencyMs: input.latencyMs ?? null,
+    error: input.error || null,
+  })
+}
+
 export async function recordMentoringTrace(input: {
   userId: string
   sessionType: string

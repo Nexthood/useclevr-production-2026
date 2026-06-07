@@ -1,6 +1,6 @@
 {
   "currentTaskPrefix": "T-",
-  "nextTaskNumber": 792,
+  "nextTaskNumber": 810,
   "todoFiles": {
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",
@@ -41,6 +41,7 @@
     "sales",
     "search",
     "security",
+    "stability",
     "testing",
     "todo",
     "ui",

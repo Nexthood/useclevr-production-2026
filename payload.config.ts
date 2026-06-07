@@ -2,6 +2,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
+import { Faqs } from "@/lib/cms/collections/Faqs"
 import { CmsUsers } from "@/lib/payload/collections/CmsUsers"
 import { NewsPosts } from "@/lib/payload/collections/NewsPosts"
 import { HomePageContent } from "@/lib/payload/globals/HomePageContent"
@@ -38,12 +39,13 @@ export default buildConfig({
       titleSuffix: "UseClevr Admin",
       description: "Minimal content admin for UseClevr public news and page content.",
     },
+    autoLogin: false,
   },
   routes: {
     admin: "/admin",
     api: "/api/payload",
   },
-  collections: [CmsUsers, NewsPosts],
+  collections: [CmsUsers, NewsPosts, Faqs],
   globals: [HomePageContent, PrivacyPageContent, TermsPageContent],
   plugins: [
     ...(stripeSecretKey

@@ -1,3 +1,9 @@
 #!/usr/bin/env sh
+set -e
 
-# Keep commits fast. Full validation runs before push.
+# AI-governance checks: ensure AI agents updated TODOs, changelog, and
+# didn't leak secrets before committing. Full validation runs before push.
+pnpm lint:todos
+pnpm lint:changelog
+pnpm lint:secrets
+pnpm lint:package

@@ -1,11 +1,14 @@
 import { auth } from "@/lib/auth/auth";
 import { config as appConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
-import { datasets } from "@/lib/db/schema";
-import { getResource, invokeTool, listResources, listTools } from "@/lib/mcp/server";
+import { datasets, mcpAuditLogs, mcpTokens } from "@/lib/db/schema";
+import { recordMCPTrace } from "@/lib/ai/ai-trace";
+import { getResource, invokeTool, listResources, listTools, listToolsByScope } from "@/lib/mcp/server";
+import type { MCPScope } from "@/lib/mcp/tools";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { and, eq } from "drizzle-orm";
+import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -13,39 +16,150 @@ export const runtime = "nodejs";
 
 const ADMIN_ONLY_TOOLS = ["compareDatasets", "getCostBreakdown"];
 
-// ============================================================================
-// MCP AUDIT LOGGER
-// ============================================================================
-function logMCPAudit(action: string, details: Record<string, unknown>) {
-  // Ensure we do NOT log any raw data or full datasets
-  const safeDetails = { ...details };
-  delete safeDetails.data;
-  delete safeDetails.results;
-  delete safeDetails.rows;
-  delete safeDetails.result;
-  debugLog(`[MCP-AUDIT] Action: ${action} | Details: ${JSON.stringify(safeDetails)}`);
+const ALLOWED_ORIGINS = [
+  process.env.AUTH_URL || "",
+  process.env.NEXT_PUBLIC_APP_URL || "",
+  "http://localhost:3000",
+  "http://localhost:8080",
+].filter(Boolean);
+
+function addCorsHeaders(response: NextResponse, request: NextRequest): NextResponse {
+  const origin = request.headers.get("origin") || "";
+  if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".useclevr.com")) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-mcp-service-token, x-mcp-admin-token, x-mcp-token");
+    response.headers.set("Access-Control-Max-Age", "86400");
+  }
+  return response;
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const response = NextResponse.json({}, { status: 204 });
+  return addCorsHeaders(response, request);
 }
 
 // ============================================================================
-// TOKEN AND SESSION AUTHENTICATION
+// MCP AUDIT LOGGER (DB-backed)
 // ============================================================================
-async function validateMCPAuth(request: NextRequest) {
-  // 1. Check for token headers
+async function logMCPAudit(
+  action: string,
+  details: {
+    tokenId?: string;
+    tokenName?: string;
+    userId?: string;
+    toolName?: string;
+    datasetId?: string;
+    success?: boolean;
+    errorMessage?: string;
+    durationMs?: number;
+  },
+) {
+  const db = getDb();
+  if (!db) return;
+
+  const safe = { ...details };
+  delete (safe as Record<string, unknown>).data;
+  delete (safe as Record<string, unknown>).results;
+  delete (safe as Record<string, unknown>).rows;
+
+  try {
+    await db.insert(mcpAuditLogs).values({
+      id: randomUUID(),
+      action: action as any,
+      ...safe,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    debugError("[MCP] Audit log insert failed:", err);
+  }
+
+  debugLog(`[MCP-AUDIT] Action: ${action} | ${JSON.stringify(safe)}`);
+}
+
+// ============================================================================
+// TOKEN AND SESSION AUTHENTICATION (DB-backed + env fallback)
+// ============================================================================
+interface MCPAuthContext {
+  authenticated: boolean;
+  role: string;
+  userId?: string;
+  clientId: string | null;
+  scopes: MCPScope[];
+  tokenId?: string;
+  tokenName?: string;
+}
+
+async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
+  const db = getDb();
+
+  // 1. Check for token header
+  const tokenHeader =
+    request.headers.get("x-mcp-token") ||
+    request.headers.get("x-mcp-service-token") ||
+    request.headers.get("x-mcp-admin-token");
+
+  if (tokenHeader && db) {
+    const hash = createHash("sha256").update(tokenHeader).digest("hex");
+    const storedToken = await db.query.mcpTokens.findFirst({
+      where: and(eq(mcpTokens.tokenHash, hash), eq(mcpTokens.status, "active")),
+    });
+
+    if (storedToken) {
+      const isExpired = storedToken.expiresAt && new Date(storedToken.expiresAt) < new Date();
+      if (isExpired) {
+        await db.update(mcpTokens)
+          .set({ status: "expired", updatedAt: new Date() })
+          .where(eq(mcpTokens.id, storedToken.id));
+        return {
+          authenticated: false,
+          role: "guest",
+          clientId: null,
+          scopes: [],
+        };
+      }
+
+      await db.update(mcpTokens)
+        .set({ lastUsedAt: new Date(), updatedAt: new Date() })
+        .where(eq(mcpTokens.id, storedToken.id));
+
+      const role = storedToken.scopes.includes("admin") ? "admin" : "service";
+      return {
+        authenticated: true,
+        role,
+        clientId: `token-${storedToken.tokenPrefix}`,
+        scopes: storedToken.scopes as MCPScope[],
+        tokenId: storedToken.id,
+        tokenName: storedToken.name,
+      };
+    }
+  }
+
+  // 2. Fallback to env var tokens
   const serviceToken = request.headers.get("x-mcp-service-token");
   const adminToken = request.headers.get("x-mcp-admin-token");
-
   const envServiceToken = appConfig.MCP_SERVICE_TOKEN;
   const envAdminToken = appConfig.MCP_ADMIN_TOKEN;
 
   if (adminToken && envAdminToken && adminToken === envAdminToken) {
-    return { authenticated: true, role: "admin", clientId: "internal-admin-client" };
+    return {
+      authenticated: true,
+      role: "admin",
+      clientId: "internal-admin-client",
+      scopes: ["dataset:read", "dataset:write", "admin", "faq:read"],
+    };
   }
 
   if (serviceToken && envServiceToken && serviceToken === envServiceToken) {
-    return { authenticated: true, role: "service", clientId: "internal-service-client" };
+    return {
+      authenticated: true,
+      role: "service",
+      clientId: "internal-service-client",
+      scopes: ["dataset:read", "faq:read"],
+    };
   }
 
-  // 2. Fall back to standard session auth
+  // 3. Fall back to session auth
   const session = await auth();
   if (session?.user?.id) {
     return {
@@ -53,10 +167,18 @@ async function validateMCPAuth(request: NextRequest) {
       role: session.user.role === "superadmin" ? "admin" : "user",
       userId: session.user.id,
       clientId: `user-${session.user.id}`,
+      scopes: session.user.role === "superadmin"
+        ? ["dataset:read", "faq:read", "admin"]
+        : ["dataset:read", "faq:read"],
     };
   }
 
-  return { authenticated: false, role: "guest", clientId: null };
+  return {
+    authenticated: false,
+    role: "guest",
+    clientId: null,
+    scopes: [],
+  };
 }
 
 // ============================================================================
@@ -71,7 +193,7 @@ function datasetIdFromInput(input: Record<string, unknown>) {
   return typeof input.datasetId === "string" ? input.datasetId : null;
 }
 
-async function canAccessDataset(authContext: { authenticated: boolean; role: string; userId?: string }, datasetId: string) {
+async function canAccessDataset(authContext: MCPAuthContext, datasetId: string) {
   if (!authContext.authenticated) return false;
   if (authContext.role === "admin") return true;
 
@@ -79,7 +201,7 @@ async function canAccessDataset(authContext: { authenticated: boolean; role: str
   if (!db) return false;
 
   const record = await db.query.datasets.findFirst({
-    where: authContext.userId 
+    where: authContext.userId
       ? and(eq(datasets.id, datasetId), eq(datasets.userId, authContext.userId))
       : eq(datasets.id, datasetId),
     columns: { id: true },
@@ -93,6 +215,11 @@ function isToolAllowedForRole(toolName: string, role: string): boolean {
     return role === "admin";
   }
   return true;
+}
+
+function hasRequiredScopes(authContext: MCPAuthContext, toolName: string): boolean {
+  const toolList = listToolsByScope(authContext.scopes);
+  return toolList.some((t) => t.name === toolName);
 }
 
 function unauthorized() {
@@ -109,12 +236,20 @@ function forbidden() {
 
 export async function GET(request: NextRequest) {
   const authContext = await validateMCPAuth(request);
-  if (!authContext.authenticated) return unauthorized();
+  if (!authContext.authenticated) {
+    await logMCPAudit("auth_failure", { success: false, errorMessage: "Unauthorized" });
+    return addCorsHeaders(unauthorized(), request);
+  }
 
-  // Rate limit: 50 requests per minute per client
   const rateLimitKey = `mcp:${authContext.clientId || "anonymous"}`;
-  if (!checkRateLimit(rateLimitKey, 50, 60_000)) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  if (!checkRateLimit(rateLimitKey, 100, 60_000)) {
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      success: false,
+      errorMessage: "Rate limit exceeded",
+    });
+    return addCorsHeaders(NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 }), request);
   }
 
   const datasetId = request.nextUrl.searchParams.get("datasetId");
@@ -124,70 +259,153 @@ export async function GET(request: NextRequest) {
     if (resourceUri) {
       const resourceDatasetId = datasetIdFromResource(resourceUri);
       if (resourceDatasetId && !(await canAccessDataset(authContext, resourceDatasetId))) {
-        return forbidden();
+        return addCorsHeaders(forbidden(), request);
       }
 
-      logMCPAudit("read_resource", { clientId: authContext.clientId, resource: resourceUri });
-      return NextResponse.json({ resource: getResource(resourceUri) });
+      await logMCPAudit("read_resource", {
+        tokenId: authContext.tokenId,
+        tokenName: authContext.tokenName,
+        userId: authContext.userId,
+        datasetId: resourceDatasetId || undefined,
+        success: true,
+      });
+      return addCorsHeaders(NextResponse.json({ resource: getResource(resourceUri) }), request);
     }
 
     if (datasetId && !(await canAccessDataset(authContext, datasetId))) {
-      return forbidden();
+      return addCorsHeaders(forbidden(), request);
     }
 
-    logMCPAudit("list_tools_and_resources", { clientId: authContext.clientId, datasetId });
-
-    return NextResponse.json({
-      tools: listTools(),
-      resources: datasetId ? listResources(datasetId) : [],
+    await logMCPAudit("list_tools", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      userId: authContext.userId,
+      datasetId: datasetId || undefined,
+      success: true,
     });
+
+    return addCorsHeaders(
+      NextResponse.json({
+        tools: listToolsByScope(authContext.scopes),
+        resources: datasetId ? listResources(datasetId) : [],
+      }),
+      request,
+    );
   } catch (error) {
     debugError("[MCP] GET failed:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "MCP request failed" },
-      { status: 400 },
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : "MCP request failed",
+    });
+    return addCorsHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : "MCP request failed" },
+        { status: 400 },
+      ),
+      request,
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   const authContext = await validateMCPAuth(request);
-  if (!authContext.authenticated) return unauthorized();
+  if (!authContext.authenticated) {
+    await logMCPAudit("auth_failure", { success: false, errorMessage: "Unauthorized" });
+    return addCorsHeaders(unauthorized(), request);
+  }
 
-  // Rate limit: 50 requests per minute per client
   const rateLimitKey = `mcp:${authContext.clientId || "anonymous"}`;
-  if (!checkRateLimit(rateLimitKey, 50, 60_000)) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  if (!checkRateLimit(rateLimitKey, 100, 60_000)) {
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      success: false,
+      errorMessage: "Rate limit exceeded",
+    });
+    return addCorsHeaders(NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 }), request);
   }
 
   let body: { name?: unknown; input?: unknown };
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return addCorsHeaders(NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }), request);
   }
 
   if (typeof body.name !== "string") {
-    return NextResponse.json({ error: "Tool name is required" }, { status: 400 });
+    return addCorsHeaders(NextResponse.json({ error: "Tool name is required" }, { status: 400 }), request);
   }
 
   const toolName = body.name;
   if (!isToolAllowedForRole(toolName, authContext.role)) {
-    return forbidden();
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      toolName,
+      success: false,
+      errorMessage: "Forbidden: insufficient role",
+    });
+    return addCorsHeaders(forbidden(), request);
+  }
+
+  if (!hasRequiredScopes(authContext, toolName)) {
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      toolName,
+      success: false,
+      errorMessage: "Forbidden: missing required scopes",
+    });
+    return addCorsHeaders(forbidden(), request);
   }
 
   const input = body.input && typeof body.input === "object" ? body.input : {};
   const datasetId = datasetIdFromInput(input as Record<string, unknown>);
   if (datasetId && !(await canAccessDataset(authContext, datasetId))) {
-    return forbidden();
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      toolName,
+      datasetId,
+      success: false,
+      errorMessage: "Forbidden: cannot access dataset",
+    });
+    return addCorsHeaders(forbidden(), request);
   }
 
-  logMCPAudit("invoke_tool", { clientId: authContext.clientId, tool: toolName, datasetId });
-
+  const startMs = Date.now();
   const result = await invokeTool({
     name: toolName,
     input: input as Record<string, unknown>,
   });
+  const durationMs = Date.now() - startMs;
 
-  return NextResponse.json(result, { status: result.success ? 200 : 400 });
+  await logMCPAudit("invoke_tool", {
+    tokenId: authContext.tokenId,
+    tokenName: authContext.tokenName,
+    userId: authContext.userId,
+    toolName,
+    datasetId: datasetId ?? undefined,
+    success: result.success,
+    errorMessage: result.success ? undefined : result.error,
+    durationMs,
+  });
+
+  recordMCPTrace({
+    userId: authContext.userId,
+    tokenId: authContext.tokenId,
+    tokenName: authContext.tokenName,
+    toolName,
+    input: JSON.stringify(input).slice(0, 10000),
+    output: result.success ? JSON.stringify(result.result).slice(0, 50000) : "",
+    latencyMs: durationMs,
+    error: result.success ? null : (result.error || "Unknown error"),
+  });
+
+  return addCorsHeaders(
+    NextResponse.json(result, { status: result.success ? 200 : 400 }),
+    request,
+  );
 }

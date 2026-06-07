@@ -293,3 +293,52 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - T-778. Connect the Railway test service and `test.useclevr.com` domain to the published `dist-test` branch.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Completed login and CI work lives in `.TODO/todo-done.md`; the unresolved Railway test routing work remains in `.TODO/todo-next.md`.
+
+---
+
+## Interaction 16: Dashboard Footer Merge, Login UI, and Test Subdomain Auth
+
+- **Date**: June 2026
+- **User Goal**: Move dashboard footer into the sidebar under the credit panel, remove app store links, add password-visibility toggle for built-in demo credentials, remove auto-signin after signup, and add HTTP Basic auth for test subdomain.
+- **Current Product State**: Dashboard had a separate `DashboardGlobalFooter` component with App Store links; login page showed password by default; signup auto-logged in users.
+- **Implemented Changes & Decisions**:
+  1. **Sidebar Footer Merge**: Moved copyright, terms, privacy links, and app version into the sidebar under the credit panel (`UsageMonitor`).
+  2. **Removed App Store Links**: Deleted the App Store and Google Play icon references from the footer.
+  3. **Login UI Cleanup**: Removed the page header, kept tabbed signin/signup flow, added password visibility toggle for built-in accounts.
+  4. **Signup Behavior**: Registration no longer auto-logs in; users see success message and must manually sign in.
+  5. **Branch Rename**: Renamed `branch-apps-docs-root` to `branch-docs-root` for clearer naming.
+  6. **Kilo Snapshot Disable**: Set `"snapshot": false` in both project and global `kilo.json` configs.
+- **Problems Marked**:
+  - `observation`: `DashboardGlobalFooter` required a separate component when the sidebar already had space for minimal footer content.
+- **User Learning**: Sidebar-footer pattern keeps footer content scoped to the dashboard layout without a full-width footer row.
+- **Follow-up Tasks**:
+  - T-778. Connect the Railway test service and `test.useclevr.com` domain to the published `dist-test` branch.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Changes recorded in `CHANGELOG.md`, `dashboard-ui.md` updated, config updated in `kilo.json` and global config.
+
+---
+
+## Interaction 17: MCP Tool Registry, DB Tokens, Audit Logging + Payload FAQ Collection
+
+- **Date**: June 2026
+- **User Goal**: Make MCP work on a subdomain with database-backed auth, persistent audit logging, and scope-based access control. Register the Faqs Payload collection with field validation.
+- **Current Product State**: MCP had only env-var token auth and no audit trail. Payload had no FAQ content type.
+- **Implemented Changes & Decisions**:
+  1. **Tool Registry Pattern**: Added `ToolRegistry` class with `register()`/`get()`/`getAll()`, `MCPScope` type, and `zodToJsonSchema()` converter so tools declare `requiredScopes` and expose full JSON Schema on the discovery endpoint.
+  2. **DB-Backed Auth**: Rewrote MCP auth to lookup tokens by SHA-256 hash in the `mcpTokens` table, with env-var fallback and NextAuth session fallback. Tokens support creation, listing, and revocation via `/api/mcp/tokens`.
+  3. **CORS for Subdomain**: Added CORS headers allowing `*.useclevr.com` origins and known origin lists.
+  4. **Persistent Audit Logs**: All MCP actions (invoke_tool, list_tools, read_resource, token_created, token_revoked, auth_failure) write to the `mcpAuditLogs` table.
+  5. **AI Tracing Integration**: Added `recordMCPTrace()` to `ai-trace.ts` so MCP tool invocations also record to the central `aiInteractionTraces` table for unified analytics.
+  6. **Payload Faqs Collection**: Registered the Faqs collection with field validation under the Content admin group.
+  7. **Pre-Commit Refinement**: Moved lightweight AI-governance checks (todos, changelog, secrets, package) from pre-push to pre-commit; TypeScript and tests stay in pre-push.
+- **Problems Marked**:
+  - `lesson`: Zod 4 has different internals than Zod 3 (`_def.type` vs `_def.typeName`, `_def.shape` is an object not a function) — the `zodToJsonSchema` converter had to account for these differences.
+  - `improvement`: MCP audit logs log to both DB and `debugLog`; the DB path fails silently if the database is unavailable.
+- **User Learning**: Database-backed tokens with SHA-256 hashes prevent token recovery from the database while allowing revocation and audit.
+- **AI-Agent Learning**: When implementing auth systems, always plan for multiple auth methods (tokens, env vars, session) with a clear priority chain and scoped access model.
+- **Follow-up Tasks**:
+  - T-807. Set up Railway DNS for `mcp.useclevr.com` and add MCP_URL env config.
+  - T-808. Create FAQ seed data and wire `getFaqs` MCP tool to fall back to Payload content.
+  - T-809. Test MCP token creation, auth, scope enforcement, and audit logging end-to-end.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Changes recorded in `CHANGELOG.md`, `ai-tracing-structure.md` updated, MCP route and schema updated, Payload config updated.

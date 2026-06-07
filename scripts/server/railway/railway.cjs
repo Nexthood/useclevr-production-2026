@@ -23,7 +23,7 @@ if (existsSync(dotenv)) {
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
-    if (key === "RAILWAY_API_TOKEN" || key === "RAILWAY_TOKEN") {
+    if ((key === "RAILWAY_API_TOKEN" || key === "RAILWAY_TOKEN") && !process.env[key]) {
       process.env[key] = val;
     }
   }
@@ -85,6 +85,31 @@ function readProjectLink() {
 function writeProjectLink(data) {
   if (!existsSync(RAILWAY_DIR)) mkdirSync(RAILWAY_DIR, { recursive: true });
   writeFileSync(PROJECT_FILE, JSON.stringify(data, null, 2) + "\n");
+}
+
+function getLinkedProjectId() {
+  return readProjectLink()?.projectId || null;
+}
+
+function requireLinkedProjectId() {
+  const projectId = getLinkedProjectId();
+  if (!projectId) {
+    console.error("No project linked. Run: pnpm railway:link");
+    exit(1);
+  }
+  return projectId;
+}
+
+function parseJsonFlag(args) {
+  return args.includes("--json");
+}
+
+function print(data, asJson = false) {
+  if (asJson) {
+    console.log(JSON.stringify(data, null, 2));
+    return;
+  }
+  console.log(data);
 }
 
 async function cmdLogin() {
@@ -210,6 +235,137 @@ async function cmdStatus() {
   }
 }
 
+async function cmdInspect(args) {
+  requireToken();
+  const projectId = requireLinkedProjectId();
+  const asJson = parseJsonFlag(args);
+
+  const query = `
+    query InspectProject($id: String!) {
+      project(id: $id) {
+        id
+        name
+        description
+        environments {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
+        services {
+          edges {
+            node {
+              id
+              name
+              serviceInstances {
+                edges {
+                  node {
+                    id
+                    environmentId
+                    serviceId
+                    domains {
+                      customDomains {
+                        id
+                        domain
+                      }
+                      serviceDomains {
+                        id
+                        domain
+                      }
+                    }
+                    latestDeployment {
+                      id
+                      status
+                      createdAt
+                      staticUrl
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const { project } = await gql(query, { id: projectId });
+  if (!project) {
+    console.error("Linked Railway project could not be loaded.");
+    exit(1);
+  }
+
+  const environments =
+    project.environments?.edges?.map(({ node }) => ({
+      id: node.id,
+      name: node.name,
+    })) || [];
+
+  const services =
+    project.services?.edges?.map(({ node }) => ({
+      id: node.id,
+      name: node.name,
+      instances:
+        node.serviceInstances?.edges?.map(({ node: instance }) => ({
+          id: instance.id,
+          environmentId: instance.environmentId,
+          serviceId: instance.serviceId,
+          customDomains: instance.domains?.customDomains || [],
+          generatedDomains: instance.domains?.serviceDomains || [],
+          latestDeployment: instance.latestDeployment || null,
+        })) || [],
+    })) || [];
+
+  const summary = {
+    project: {
+      id: project.id,
+      name: project.name,
+      description: project.description || "",
+    },
+    linked: readProjectLink(),
+    environments,
+    services,
+  };
+
+  if (asJson) {
+    print(summary, true);
+    return;
+  }
+
+  console.log(`Project: ${summary.project.name} (${summary.project.id})`);
+  if (summary.linked?.environmentName) {
+    console.log(`Linked environment: ${summary.linked.environmentName} (${summary.linked.environmentId || "unknown"})`);
+  }
+  if (environments.length) {
+    console.log("Environments:");
+    for (const environment of environments) {
+      console.log(`  - ${environment.name} (${environment.id})`);
+    }
+  }
+  if (services.length) {
+    console.log("Services:");
+    for (const service of services) {
+      console.log(`  - ${service.name} (${service.id})`);
+      for (const instance of service.instances) {
+        console.log(`      instance ${instance.id} env=${instance.environmentId}`);
+        for (const domain of instance.customDomains) {
+          console.log(`        custom ${domain.domain}`);
+        }
+        for (const domain of instance.generatedDomains) {
+          console.log(`        generated ${domain.domain}`);
+        }
+        if (instance.latestDeployment) {
+          console.log(
+            `        latest ${instance.latestDeployment.status} ${instance.latestDeployment.id} ${instance.latestDeployment.createdAt}`,
+          );
+        }
+      }
+    }
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const cmd = args[0];
@@ -226,6 +382,8 @@ async function main() {
       return cmdLink();
     case "status":
       return cmdStatus();
+    case "inspect":
+      return cmdInspect(args.slice(1));
     case "help":
     case "--help":
     case "-h":
@@ -238,6 +396,7 @@ Commands:
   list|ls    List projects
   link       Link current directory to a project
   status     Show linked project status
+  inspect    Show linked project environments, services, domains, and latest deployments
   logs       (falls through to native railway)
   deploy     (falls through to native railway)
 

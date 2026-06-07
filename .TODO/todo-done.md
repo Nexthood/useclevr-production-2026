@@ -369,6 +369,13 @@ moving work between states.
 - T-773. Add MCP FAQ query tool with category filtering and keyword search, wired through tools.ts, handlers.ts, server.ts, integration.ts. (labels: ai, mcp, faq; commit: 6ccd0b84)
 - T-774. Add Railway CLI usage guidance for AI agents across AGENTS.md, ai-agent-guide.md, railway-deploy-review.md, and RAILWAY_DEPLOYMENT.md. (labels: ai, docs; commit: b9ccda2b)
 - T-775. Update consolidated-interactions-log.md with MCP FAQ tool and Railway CLI workflow interaction. (labels: ai, docs; commit: b2409b83)
+- T-749. Add tool scope declarations and convert static tool array to registry pattern with registerTool() and getRegisteredTools(). (labels: mcp, api, ai; commit: worktree)
+- T-795. Expose full JSON Schema per tool via MCP discovery endpoint and add CORS headers for subdomain access. (labels: mcp, api, ai; commit: worktree)
+- T-796. Create mcp_tokens DB table with scoped permissions and replace env-var-only auth with DB-backed token validation. (labels: mcp, auth, security; commit: worktree)
+- T-797. Create mcp_audit_logs DB table, persist audit logs instead of console, add per-token rate limiting with DB storage, and add usage stats endpoint. (labels: mcp, monitoring, security; commit: worktree)
+- T-804. Register Faqs Payload collection in payload.config.ts and consolidate CMS content types under /src/lib/cms/collections. (labels: deployment, content, workflow; commit: worktree)
+- T-805. Add field validation rules (required, format, min/max, unique) to all Payload collection fields with user-friendly error messages. (labels: deployment, content, workflow; commit: worktree)
+- T-806. Fix Payload admin logout redirect and session expiration by configuring Payload routes and session TTL correctly. (labels: deployment, auth, ui; commit: worktree)
 
 ## Label: workflow
 

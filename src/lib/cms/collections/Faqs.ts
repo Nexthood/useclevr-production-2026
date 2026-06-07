@@ -22,11 +22,23 @@ export const Faqs: CollectionConfig = {
       admin: {
         description: "FAQ category label (e.g. Getting Started, Plans & Billing)",
       },
+      validate: (val: string | null | undefined) => {
+        if (!val || val.trim().length === 0) return "Category is required"
+        if (val.trim().length < 2) return "Category must be at least 2 characters"
+        if (val.trim().length > 100) return "Category must be under 100 characters"
+        return true
+      },
     },
     {
       name: "question",
       type: "text",
       required: true,
+      validate: (val: string | null | undefined) => {
+        if (!val || val.trim().length === 0) return "Question is required"
+        if (val.trim().length < 5) return "Question must be at least 5 characters"
+        if (val.trim().length > 500) return "Question must be under 500 characters"
+        return true
+      },
     },
     {
       name: "answer",
@@ -39,6 +51,10 @@ export const Faqs: CollectionConfig = {
       admin: {
         description: "Optional tag for filtering (e.g. 'pricing')",
       },
+      validate: (val: string | null | undefined) => {
+        if (val && val.trim().length > 50) return "Tag must be under 50 characters"
+        return true
+      },
     },
     {
       name: "sortOrder",
@@ -46,6 +62,12 @@ export const Faqs: CollectionConfig = {
       defaultValue: 0,
       admin: {
         description: "Display order within category",
+      },
+      validate: (val: number | null | undefined) => {
+        if (val !== null && val !== undefined && (typeof val !== "number" || !Number.isInteger(val))) {
+          return "Sort order must be a whole number"
+        }
+        return true
       },
     },
     {

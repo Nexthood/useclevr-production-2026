@@ -9,6 +9,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- MCP subdomain exposes tool schemas with scoped access for service tokens
+- Database-backed MCP tokens support creation, listing, and revocation for service authentication
+- MCP audit trail records tool invocations, auth failures, and token management events for compliance
+- MCP tool invocations appear in AI interaction traces for unified analytics across chat and tool interactions
+- FAQ content management available via Payload admin with field validation
 - Give new Free accounts a 14-day analyst trial while preserving two free analyst credits for use after the trial.
 - Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
 - Show built-in base and superadmin demo credentials on the login page for app and admin testing, with password visibility toggle.
@@ -29,6 +34,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Payload admin workspace requires explicit login instead of auto-authenticating on first load
 - Keep successful administrator login on the public UseClevr host and confirm the authenticated session before showing a credential error.
 - Complete email registration only when both account and profile setup succeed, then sign the new user into the dashboard.
 - Keep signed-out dashboard requests from rendering account data or loading another user's datasets as demo content.
@@ -58,6 +64,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Topbar panels use clean popover backgrounds without backdrop blur for consistent UI styling.
 - Sidebar toggle moved from topbar to the AppSidebar for desktop view, keeping mobile toggle in the header.
 - Login uses compact inner labels, short tab flow, and forgot-password access directly under the password input.
+- Signup creates account and shows success message; users sign in separately.
 - Chat inputs use larger composing areas with clearer send actions.
 - Floating help chat keeps the launcher aligned to the right while the panel is open.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
@@ -80,6 +87,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Move lightweight AI-governance checks (TODO, changelog, secrets, package lint) to pre-commit while tests stay in pre-push
 - Generate an isolated authentication secret for validation and deployment builds so required environment checks and generated-server smoke tests complete.
 - Add Git-tracked REST Client API request files and shared VS Code environments for health, auth, upload, analyze, business profile, billing, Railway smoke, and MCP checks.
 - Add a workflow check-name golden file, local pre-push validation, and a non-blocking GitHub refresh workflow so branch protection cannot wait on stale required job names.

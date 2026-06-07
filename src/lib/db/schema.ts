@@ -552,3 +552,60 @@ export const mentoringSessions = pgTable(
     scheduledAtIdx: index('MentoringSession_scheduledAt_idx').on(table.scheduledAt),
   })
 )
+
+// ============================================================================
+// MCP TABLES
+// ============================================================================
+
+export const mcpTokenScopes = ['dataset:read', 'dataset:write', 'admin', 'faq:read'] as const
+export type McpTokenScope = typeof mcpTokenScopes[number]
+export const mcpTokenStatuses = ['active', 'revoked', 'expired'] as const
+export type McpTokenStatus = typeof mcpTokenStatuses[number]
+
+export const mcpTokens = pgTable(
+  'MCPToken',
+  {
+    id: text('id').primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    tokenHash: varchar('tokenHash', { length: 255 }).notNull(),
+    tokenPrefix: varchar('tokenPrefix', { length: 10 }).notNull(),
+    scopes: text('scopes').array().notNull().$type<McpTokenScope[]>(),
+    status: varchar('status', { length: 30 }).default('active').notNull().$type<McpTokenStatus>(),
+    lastUsedAt: timestamp('lastUsedAt'),
+    expiresAt: timestamp('expiresAt'),
+    createdByUserId: text('createdByUserId'),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    tokenHashIdx: uniqueIndex('MCPToken_tokenHash_key').on(table.tokenHash),
+    statusIdx: index('MCPToken_status_idx').on(table.status),
+  }),
+)
+
+export const mcpAuditActions = ['invoke_tool', 'list_tools', 'read_resource', 'token_created', 'token_revoked', 'auth_failure'] as const
+export type McpAuditAction = typeof mcpAuditActions[number]
+
+export const mcpAuditLogs = pgTable(
+  'MCPAuditLog',
+  {
+    id: text('id').primaryKey(),
+    action: varchar('action', { length: 50 }).notNull().$type<McpAuditAction>(),
+    tokenId: text('tokenId'),
+    tokenName: varchar('tokenName', { length: 255 }),
+    userId: text('userId'),
+    toolName: varchar('toolName', { length: 100 }),
+    datasetId: text('datasetId'),
+    ipAddress: varchar('ipAddress', { length: 45 }),
+    userAgent: text('userAgent'),
+    success: boolean('success').notNull().default(true),
+    errorMessage: text('errorMessage'),
+    durationMs: integer('durationMs'),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+  },
+  (table) => ({
+    actionIdx: index('MCPAuditLog_action_idx').on(table.action),
+    tokenIdIdx: index('MCPAuditLog_tokenId_idx').on(table.tokenId),
+    createdAtIdx: index('MCPAuditLog_createdAt_idx').on(table.createdAt),
+  }),
+)
