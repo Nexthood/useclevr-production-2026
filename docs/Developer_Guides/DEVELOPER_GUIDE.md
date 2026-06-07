@@ -1,5 +1,24 @@
 # Developer Guide
 
+## Table of Contents
+
+- [Setup](#setup)
+- [Technical Requirements](#technical-requirements)
+- [Project Structure](#project-structure)
+- [Environment Variables](#environment-variables)
+- [Scripts](#scripts)
+- [Shared API Testing](#shared-api-testing)
+- [Database](#database)
+- [Release](#release)
+- [Development Conventions](#development-conventions)
+- [Verified Computation](#verified-computation)
+- [Smoke Tests](#smoke-tests)
+- [CI / GitHub Actions](#ci--github-actions)
+- [Security](#security)
+- [Contributing](#contributing)
+- [Troubleshooting](#troubleshooting)
+- [Deployment](#deployment)
+
 ## Setup
 
 ```bash

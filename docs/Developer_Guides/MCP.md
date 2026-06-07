@@ -1,5 +1,25 @@
 # MCP Developer Guide
 
+## Table of Contents
+
+- [File Structure](#file-structure)
+- [Access Model](#access-model)
+- [API Routes](#api-routes)
+- [Routing Boundary](#routing-boundary)
+- [Authentication Boundary](#authentication-boundary)
+- [Local Ping Process](#local-ping-process)
+- [Terminal Test Process](#terminal-test-process)
+- [Shared API Test Files](#shared-api-test-files)
+- [Available Tools](#available-tools)
+- [Available Resources](#available-resources)
+- [ChatGPT Web MCP Support](#chatgpt-web-mcp-support)
+- [Local MCP in OpenCode](#local-mcp-in-opencode)
+- [VS Code Native MCP Support](#vs-code-native-mcp-support)
+- [Terminal MCP Clients](#terminal-mcp-clients)
+- [VS Code MCP Extensions](#vs-code-mcp-extensions-marketplace)
+- [Quick Reference](#quick-reference-which-mcp-client-to-use)
+- [Implementation Rules](#implementation-rules)
+
 UseClevr exposes a small authenticated MCP interface for trusted dataset analysis tools and resources. The interface gives internal clients a consistent way to list available tools, read cached analysis resources, and invoke deterministic analysis helpers.
 
 MCP stays internal under the app API. The product does not expose a public MCP catalog or a dedicated `mcp.useclevr.com` service.
@@ -33,22 +53,17 @@ The MCP interface follows the dashboard visibility rules:
 
 ## Routing Boundary
 
-- Use `/api/mcp` for the current authenticated MCP interface.
+- Use `/api/mcp` for the current authenticated MCP interface, reachable from `mcp.useclevr.com` when configured.
 - Keep MCP route discovery unavailable to unauthenticated users.
-- Do not add `mcp.useclevr.com` until MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership.
 - Keep FAQ routes separate from MCP routes.
 - Do not rely on hidden URLs as security. Hidden endpoints are only an extra layer.
 
 ## Authentication Boundary
 
-- Current MCP requests require a signed-in user session.
-- Future service-to-service MCP access uses signed service tokens.
-- Future internal operator MCP access uses admin-only tokens.
+- MCP requests accept signed-in user sessions, service tokens, or admin tokens.
+- Service/admin tokens use `x-mcp-token`, `x-mcp-service-token`, or `x-mcp-admin-token` headers.
 - Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
-- Current global proxy behavior keeps the MCP route protected, but leaves app-auth routes and
-  Payload CMS auth routes reachable before login.
-- In the current app state, a local positive MCP ping succeeds only when the client already has a
-  signed-in app session cookie.
+- Current configuration allows the MCP route and required auth endpoints before login.
 
 ## Local Ping Process
 

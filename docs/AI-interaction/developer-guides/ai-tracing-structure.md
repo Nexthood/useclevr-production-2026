@@ -1,5 +1,11 @@
 # AI Tracing Structure
 
+## Table of Contents
+
+- [Product Trace Structure](#product-trace-structure)
+- [Instruction Structure](#instruction-structure)
+- [Update Rules](#update-rules)
+
 Use this guide when AI prompts, assistant routes, trace storage, feedback, export, or analytics change.
 
 ## Product Trace Structure

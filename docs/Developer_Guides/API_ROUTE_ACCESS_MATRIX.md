@@ -21,6 +21,8 @@ This document defines the security boundaries, authentication requirements, auth
 | `/api/local-ai-install` | **Development or Super-Admin** | `requireDevelopmentOrSuperAdmin` helper                | Development runtime only, or super-admin on shared deploy | Manual operator use only                                   | System log output                    |
 | `/api/agent/install-runtime` | **Development or Super-Admin** | `requireDevelopmentOrSuperAdmin` helper                | Development runtime only, or super-admin on shared deploy | Manual operator use only                                   | System log output                    |
 | `/api/debug/*`     | **Development-Only**  | Environment guard                                      | Returns 404 in production                                 | None                                                       | Development log output               |
+| `/api/mcp`         | **Signed-In or Token** | `validateMCPAuth` helper                                | Session ownership check, or token scope check             | 100 requests/minute per client                              | Audit trail to `mcpAuditLogs`        |
+| `/api/mcp/tokens/*` | **Super-Admin**      | `requireAdmin` helper                                   | Token management restricted to super-admin role           | Manual operator use only                                    | Token creation/revocation logged     |
 
 ---
 

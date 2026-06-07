@@ -26,3 +26,30 @@ Cookie: authjs.session-token=<paste-local-session-cookie>
     "datasetId": "<paste-owned-dataset-id>"
   }
 }
+
+### MCP tool invocation with service token
+# Expected: 200 OK with tool result
+POST {{baseUrl}}/api/mcp
+Content-Type: application/json
+x-mcp-service-token: <paste-service-token>
+
+{
+  "name": "getDatasetSchema",
+  "input": {
+    "datasetId": "<paste-owned-dataset-id>"
+  }
+}
+
+### MCP admin token invocation
+# Expected: 200 OK (admin scope allows compareDatasets)
+POST {{baseUrl}}/api/mcp
+Content-Type: application/json
+x-mcp-admin-token: <paste-admin-token>
+
+{
+  "name": "compareDatasets",
+  "input": {
+    "datasetIdA": "<paste-dataset-id-a>",
+    "datasetIdB": "<paste-dataset-id-b>"
+  }
+}
