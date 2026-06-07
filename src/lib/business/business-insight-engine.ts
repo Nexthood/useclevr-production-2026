@@ -8,8 +8,8 @@ import { debugError } from "@/lib/utils/debug";
  */
 
 import { db } from '@/lib/db';
-import { datasets } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { datasetRows, datasets } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 export interface InsightResult {
   insight: string;
@@ -68,34 +68,6 @@ function normalizeValue(value: any): number {
     if (!isNaN(num)) return num;
   }
   return 0;
-}
-
-/**
- * Calculate profit with proper cost deductions
- * profit = revenue - cogs - discount - tax - shipping - refund
- * If no cost column, use proxy: profit = revenue * 0.7 (30% COGS assumed)
- */
-function _calculateProfit(row: any, revenueCol: string, columns: string[]): number {
-  const revenue = normalizeValue(row[revenueCol]);
-  
-  // Find cost-related columns
-  const costCol = columns.find(c => /cost|cogs|expense/.test(c.toLowerCase()));
-  const discountCol = columns.find(c => /discount|rebate/.test(c.toLowerCase()));
-  const taxCol = columns.find(c => /tax|vat|gst/.test(c.toLowerCase()));
-  const shippingCol = columns.find(c => /shipping|delivery|freight/.test(c.toLowerCase()));
-  const refundCol = columns.find(c => /refund|return/.test(c.toLowerCase()));
-  
-  // Calculate deductions
-  const cost = costCol ? normalizeValue(row[costCol]) : revenue * 0.3; // 30% COGS if no cost column
-  const discount = discountCol ? normalizeValue(row[discountCol]) : 0;
-  const tax = taxCol ? normalizeValue(row[taxCol]) : 0;
-  const shipping = shippingCol ? normalizeValue(row[shippingCol]) : 0;
-  const refund = refundCol ? normalizeValue(row[refundCol]) : 0;
-  
-  // Calculate profit
-  const profit = revenue - cost - discount - tax - shipping - refund;
-  
-  return Math.max(0, profit); // No negative profit for display
 }
 
 /**
@@ -488,11 +460,12 @@ function _formatPercentage(value: number): string {
  */
 export async function getBusinessInsight(
   datasetId: string,
-  question: string
+  question: string,
+  userId: string,
 ): Promise<InsightResult> {
   // Get dataset from database
   const dataset = await db.query.datasets.findFirst({
-    where: eq(datasets.id, datasetId),
+    where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
   });
 
   if (!dataset) {
@@ -506,7 +479,15 @@ export async function getBusinessInsight(
   }
 
   // Get data
-  const data = (dataset.data as Record<string, any>[]) || [];
+  let data = (dataset.data as Record<string, any>[]) || [];
+  if (data.length === 0) {
+    const rows = await db.query.datasetRows.findMany({
+      where: eq(datasetRows.datasetId, datasetId),
+      columns: { data: true },
+      orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+    });
+    data = rows.map((row) => row.data as Record<string, any>);
+  }
   const columns = (dataset.columns as string[]) || [];
 
   if (data.length === 0) {

@@ -19,12 +19,19 @@ export default async function Topbar() {
   const usage = await getAnalystCreditUsage(userId);
 
   const remainingCredits =
-    usage.subscriptionTier === "superadmin" || usage.subscriptionTier === "pro"
+    usage.trialActive ||
+    usage.subscriptionTier === "superadmin" ||
+    usage.subscriptionTier === "pro" ||
+    usage.subscriptionTier === "business"
       ? "Unlimited"
       : Math.max(0, usage.total - usage.analysisCount).toString();
 
   const levelLabel =
-    usage.subscriptionTier === "superadmin" ? "Admin" : usage.subscriptionTier || "Free";
+    usage.subscriptionTier === "superadmin"
+      ? "Admin"
+      : usage.trialActive
+        ? `Trial: ${usage.trialDaysRemaining}d`
+        : usage.subscriptionTier || "Free";
 
   return (
     <div className="app-topbar sticky top-0 z-[110] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">

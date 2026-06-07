@@ -30,9 +30,16 @@ Text rules for this file:
 - Show uploaded datasets in structured tables with row counts.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Ask AI questions about uploaded datasets and receive structured answers.
+- Require a signed-in user for dataset upload, analysis, query, dashboard, prediction, investigation, and suggestion operations.
+- Scope every persisted dataset read and calculation to the owning user.
+- Never substitute another account's datasets when the current request has no signed-in owner.
+- Keep each analysis request isolated from dataset state used by other requests.
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
 - Keep AI answers within the uploaded dataset scope.
+- Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
+- Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
+- Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
 - Store AI answer feedback on the saved answer history item.
 - Explain efficient AI usage for public users, dashboard users, and operators.
 - Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
@@ -60,6 +67,9 @@ Text rules for this file:
 - Verify checkout redirects with signed, time-limited server tokens.
 - Apply the annual Pro discount at checkout.
 - Sync subscription status from the payment provider.
+- Give new Free accounts 14 days of unlimited analyst access from account creation without consuming their two post-trial free credits.
+- Let Stripe webhook requests reach signature verification without requiring a browser session.
+- Return an unavailable-checkout error when a paid plan has no configured payment price instead of reporting an unpersisted checkout success.
 - Open the hosted billing portal for users with linked payment customers.
 - Let users manage subscription, usage, downgrade, and cancellation from account billing.
 - Limit free analyst credits and prompt upgrades when credits run out.
@@ -106,12 +116,15 @@ Text rules for this file:
 ## Support
 
 - Create usable local accounts during social login and registration.
+- Create the user and profile as one successful account setup outcome, and remove the user record when profile creation fails.
+- Sign users in and open the dashboard immediately after successful email registration.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
+- Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Keep topbar items on one line with consistent icon color and compact hover targets.

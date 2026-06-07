@@ -11,7 +11,7 @@ import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
 import { debugError, debugLog } from '@/lib/utils/debug';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { validateDatasetId } from '@/lib/chat/validation';
@@ -175,6 +175,15 @@ export async function POST(request: Request) {
     }
 
     const { messages, datasetId, processedData, stream } = validation.data;
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const lastMessage = messages[messages.length - 1]?.content || '';
     const isAnalyticalQuery = /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
@@ -191,16 +200,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = await auth();
-    const userId = session?.user?.id;
-    const appSearchResults = userId
-      ? await searchApp({
-          query: lastMessage,
-          userId,
-          role: session?.user?.role,
-          limit: 6,
-        })
-      : [];
+    const appSearchResults = await searchApp({
+      query: lastMessage,
+      userId,
+      role: session.user.role,
+      limit: 6,
+    });
 
     if (userId && !isBuiltinUserId(userId)) {
       const usage = await getAnalystCreditUsage(userId);
@@ -223,7 +228,7 @@ export async function POST(request: Request) {
     if (datasetId) {
       debugLog('[CHAT] Validating datasetId:', datasetId);
       const dataset = await db!.query.datasets.findFirst({
-        where: eq(datasets.id, datasetId),
+        where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
       });
 
       if (!dataset) {

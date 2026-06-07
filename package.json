@@ -15,7 +15,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "AUTH_TRUST_HOST=true next dev --hostname 0.0.0.0 --port ${PORT:-3000}",
-    "build": "next build",
+    "build": "next build --webpack",
     "prod:build": "node ./scripts/package-dist/clean-generated.cjs --prod && NEXT_TELEMETRY_DISABLED=1 pnpm build && node ./scripts/package-dist/create-dist.cjs",
     "start": "USECLEVR_SERVER_TARGET=local node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "preview": "pnpm prod:build && pnpm start",

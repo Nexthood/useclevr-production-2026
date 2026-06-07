@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Give new Free accounts a 14-day analyst trial while preserving two free analyst credits for use after the trial.
 - Show a minimal `/admin` content workspace with editable homepage, privacy, terms, and seeded news updates.
 - Show built-in base and superadmin demo credentials on the login page for app and admin testing, with password visibility toggle.
 - Publish a public News section with five starter updates and individual article pages.
@@ -28,10 +29,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Complete email registration only when both account and profile setup succeed, then sign the new user into the dashboard.
+- Keep signed-out dashboard requests from rendering account data or loading another user's datasets as demo content.
+- Let signed Stripe webhooks update subscriptions while unavailable paid checkout returns a clear setup error instead of a false success.
+- Remove unused comparison, alert, and live-refresh endpoints that returned non-persistent or no-op production behavior.
+- Keep uploaded datasets, analysis, dashboards, predictions, suggestions, and queries scoped to the signed-in owner.
+- Classify CSV dates, text, numbers, booleans, and identifiers without treating unique business values as IDs.
+- Leave profit, margin, ROAS, net profit, and LTV unavailable when required source columns are missing instead of inventing proxy values.
+- Complete production middleware packaging without splitting the protected route entry into incompatible build chunks.
 - Keep Payload admin pages on the Payload root runtime so the admin login and content workspace open instead of failing during boot.
 - Keep local app login, Payload admin login, and signed-in MCP checks reachable by allowing the required auth endpoints before a session exists.
 - Keep Payload Phase 0 local startup from attempting destructive automatic schema push during normal admin access.
 - Stripe service initialization now matches the current Stripe SDK constructor so checkout, webhook, and replay paths compile and run.
+- Runtime install routes now require development mode or explicit super-admin access, and server secret validation no longer accepts legacy auth aliases or hardcoded fallback tokens.
 - Business profile row links open the matching business profile and new business creation opens a blank profile.
 - AI Assistant feedback attaches to the saved answer history so helpful and not-helpful ratings are recorded on the right response.
 - Dashboard topbar items stay compact, one-line, and visually consistent across search, setup progress, help, display controls, notices, and account actions.

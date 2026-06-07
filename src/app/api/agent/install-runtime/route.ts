@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { requireDevelopmentOrSuperAdmin } from "@/lib/auth/require-session"
 
 const DEFAULT_AGENT_BASE = "http://127.0.0.1:5143"
 const INSTALL_PATH = "/install-runtime"
@@ -7,6 +8,9 @@ const TIMEOUT_MS = 5000
 type AgentInstallState = 'accepted' | 'unsupported' | 'agent_unavailable' | 'already_installed' | 'error' | 'queued' | 'installing'
 
 export async function POST() {
+  const access = await requireDevelopmentOrSuperAdmin()
+  if (!access.success) return access.error
+
   const agentBase = process.env.USECLEVR_AGENT_BASE?.trim() || DEFAULT_AGENT_BASE
   const url = `${agentBase.replace(/\/$/, '')}${INSTALL_PATH}`
 

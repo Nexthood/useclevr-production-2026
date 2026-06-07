@@ -140,7 +140,25 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
-## Interaction 8: Shared REST Client API Tests + MCP Request Files
+## Interaction 8: Runtime Install Route Lockdown + Secret Validation Cleanup
+
+- **Date**: June 2026
+- **User Goal**: Fix the remaining security tasks without keeping backward-compatibility fallbacks for older auth naming or hardcoded secret defaults.
+- **Current Product State**: The route-access audit already existed, but runtime install endpoints still needed an explicit shared helper and one checkout-signing path still accepted a fallback local secret.
+- **Implemented Changes & Decisions**:
+  1. **Runtime Install Guard**: Added `requireDevelopmentOrSuperAdmin` and applied it to `/api/local-ai-install` and `/api/agent/install-runtime`.
+  2. **Secret Validation**: Validated `AUTH_SECRET`, `AUTH_URL`, `MCP_SERVICE_TOKEN`, and `MCP_ADMIN_TOKEN` through the shared runtime config and removed old auth-name aliases from auth and startup paths.
+  3. **Checkout Signing Rule**: Removed the hardcoded checkout-token fallback secret so checkout signing now depends on current server-only secrets.
+  4. **Security Records**: Updated the API route access matrix, retired the matching TODO tasks, and recorded the change in the changelog.
+- **Problems Marked**:
+  - `risk`: Signed-in non-admin users could previously trigger runtime-install routes on shared deployments if the route was reachable.
+  - `risk`: A fallback signing secret weakens token trust because it can stay active after environment drift.
+- **User Learning**: Current security rules are clearer when the helper, the route matrix, and the secret-validation path all use the same names with no compatibility alias layer.
+- **AI-Agent Learning**: When the user says not to keep old-system fallbacks, remove the compatibility layer itself instead of only adding a stronger preferred path beside it.
+
+---
+
+## Interaction 9: Shared REST Client API Tests + MCP Request Files
 
 - **Date**: June 2026
 - **User Goal**: Add a shared REST Client testing kit, test the current MCP route, update docs, and record the durable post-interaction learning.
@@ -157,7 +175,7 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
-## Interaction 9: Future Docs Branch Audience Separation
+## Interaction 10: Future Docs Branch Audience Separation
 
 - **Date**: June 2026
 - **User Goal**: Keep the future docs-branch plan explicit that user-facing docs stay separate from operator docs, even when both live on one docs host with operator login.
@@ -173,7 +191,7 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
-## Interaction 10: Payload Login and MCP Auth Boundary Fix
+## Interaction 11: Payload Login and MCP Auth Boundary Fix
 
 - **Date**: June 2026
 - **User Goal**: Fix Payload admin login and MCP authenticated testing, then record the durable rule in docs and post-interaction files.
@@ -190,7 +208,7 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
-## Interaction 11: Payload Admin Root Runtime Recovery
+## Interaction 12: Payload Admin Root Runtime Recovery
 
 - **Date**: June 2026
 - **User Goal**: Fix the remaining Payload admin caveat and keep the docs and post-interaction records aligned with the actual runtime behavior.
@@ -204,3 +222,30 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - `risk`: A partial fix that restores only the login API can hide a second failure at the admin page boot layer.
 - **User Learning**: When the Payload login API succeeds but `/admin/login` still fails, treat the next check as a layout-runtime handoff problem before changing credentials, cookies, or CMS user records.
 - **AI-Agent Learning**: When a framework-owned admin route crashes after auth is restored, verify the route is still using the framework's required root runtime before replacing deeper view logic.
+
+---
+
+## Interaction 13: Production MVP Core, Account, and Isolation Pass
+
+- **Date**: June 2026
+- **User Goal**: Finish the production MVP by prioritizing reliable CSV analysis, dataset-grounded AI, authentication, trial access, user isolation, and Railway-ready packaging without redesigning working architecture.
+- **Current Product State**: CSV analysis and packaged runtime checks pass. The repository still reports 291 lint warnings and one opaque Next.js compile warning, so the no-warning release requirement remains open.
+- **Implemented Changes & Decisions**:
+  1. **Dataset Accuracy**: CSV type inference separates dates, numbers, text, booleans, and identifiers, while financial outputs stay unavailable when source columns are absent.
+  2. **AI Grounding**: Assistant and query paths use owner-scoped request data and reject invented proxy costs, margins, lifespans, and performance values.
+  3. **Account Flow**: Email signup normalizes addresses, validates account setup, removes partial users when profile creation fails, and signs successful registrations into the dashboard.
+  4. **Trial and Billing**: Free accounts receive a 14-day analyst trial without consuming two post-trial credits. Stripe webhooks reach signature verification, and unconfigured checkout returns an error.
+  5. **Isolation and Dead Routes**: Signed-out dashboard rendering stops before account data loads, datasets never fall back to another user, and orphaned no-op APIs are removed.
+  6. **Verification**: Type checks, CSV tests, deployment-config validation, production packaging, health checks, auth redirects, usage auth, and webhook signature boundaries pass.
+- **Problems Marked**:
+  - `blocker`: Full lint reports 291 warnings.
+  - `blocker`: Next.js prints one compile warning without exposing it through debug or webpack warning hooks.
+  - `observation`: No live Railway deployment runs during this local completion pass.
+- **User Learning**: The MVP core path is locally package-ready, while warning cleanup and test deployment remain explicit release gates.
+- **AI-Agent Learning**: Test protected pages from the packaged server because nested layouts render in parallel and can access null sessions or data before an outer redirect completes.
+- **Follow-up Tasks**:
+  - T-788. Remove the existing ESLint warning backlog without broad product refactors.
+  - T-789. Isolate the Next.js or Payload compile warning through upstream tooling or a minimal reproduction.
+  - T-778. Run the beta to dist-test Railway deployment loop and verify `/api/health`.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; completed implementation lives in `.TODO/todo-done.md`; unresolved release gates remain in the active queue.

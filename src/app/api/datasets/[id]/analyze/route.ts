@@ -8,8 +8,8 @@ import { analyzeCSV } from "@/lib/data/csv-analyzer";
 import type { DatasetAnalysis } from "@/lib/data/dataset-analyzer";
 import { analyzeDataset, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
 import { db } from "@/lib/db";
-import { datasets } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { datasetRows, datasets } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 // ============================================================================
@@ -127,26 +127,9 @@ export async function POST(
     // Accept any valid ID format (UUID, ds_xxx format, etc.)
     debugLog('[ANALYZE] Processing dataset ID:', id);
 
-    let userId: string | null = null;
-
-    const authHeader: string | null = request.headers.get("Authorization");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token: string = authHeader.slice(7);
-      if (token) {
-        userId = token;
-      }
-    }
-
+    const session = await auth();
+    const userId = session?.user?.id;
     if (!userId) {
-      const session: unknown = await auth();
-      const sessionData = session as { user?: { id?: string } | null };
-      userId = sessionData?.user?.id ?? null;
-    }
-
-    // Allow anonymous access for testing
-    const isDemoMode = process.env.DEMO_MODE === "true" || !userId;
-
-    if (!userId && !isDemoMode) {
       return NextResponse.json<ErrorResponse>(
         { error: "Unauthorized" },
         { status: 401 }
@@ -170,7 +153,7 @@ export async function POST(
     const limit: number = body.limit ?? -1; // -1 means no limit
 
     const dataset: unknown = await db.query.datasets.findFirst({
-      where: eq(datasets.id, id),
+      where: and(eq(datasets.id, id), eq(datasets.userId, userId)),
     });
 
     if (!dataset) {
@@ -212,7 +195,15 @@ export async function POST(
 
     // Read data from dataset.data column (single source of truth)
     // Use all data for analysis (limit === -1 means no limit)
-    const allData = (datasetData as any).data || [];
+    let allData = (datasetData as any).data || [];
+    if (allData.length === 0) {
+      const rows = await db.query.datasetRows.findMany({
+        where: eq(datasetRows.datasetId, id),
+        columns: { data: true },
+        orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+      });
+      allData = rows.map((row) => row.data as DatasetRecord);
+    }
     const data: DatasetRecord[] = limit > 0 ? allData.slice(0, limit) : allData;
     
     // DEBUG: Log detailed query info
@@ -387,7 +378,7 @@ export async function POST(
           analysis: analysis as any,
           updatedAt: new Date()
         })
-        .where(eq(datasets.id, id));
+        .where(and(eq(datasets.id, id), eq(datasets.userId, userId)));
       debugLog('[ANALYZE] Analysis saved to database for dataset:', id);
       if (userId) {
         await recordActivity({

@@ -155,10 +155,27 @@ function LoginForm() {
         return
       }
 
-      // Account created - user must sign in manually
-      setAuthError("Account created. Please sign in with your credentials.")
+      const signInResult = await signIn("credentials", {
+        email: signUpEmail.trim().toLowerCase(),
+        password: signUpPassword,
+        redirect: false,
+        callbackUrl: dashboardCallbackUrl(),
+      })
+      const signInSucceeded = Boolean(
+        signInResult &&
+        !signInResult.error &&
+        signInResult.status !== 401 &&
+        signInResult.status !== 403,
+      )
+
+      if (!signInSucceeded) {
+        setAuthError("Account created. Please sign in with your credentials.")
+        return
+      }
+
+      goToDashboard()
     } catch {
-      setAuthError("Account created. Please sign in with your new credentials.")
+      setAuthError("Account setup failed. Please try again.")
     } finally {
       setIsLoading(false)
       setAuthAction(null)

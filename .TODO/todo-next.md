@@ -20,6 +20,7 @@ moving work between states.
 
 ## Label: ci-build
 
+- T-789. Identify and remove the Next.js or Payload compile warning that production builds currently report without warning details. (labels: ci-build, quality, content)
 - T-622. Add bundle analysis to CI pipeline to monitor and reduce JavaScript bundle size. (labels: ci-build, data, performance)
 - T-680. Set NEXT_PUBLIC_APP_VERSION env var for version display. (labels: ci-build, deployment)
 - T-705. Add build metadata to Docker image labels for traceability. (labels: ci-build, deployment)
@@ -65,6 +66,10 @@ moving work between states.
 - T-693. Add server-side caching with Redis for expensive database queries. (labels: performance, data, caching)
 - T-727. Reduce dashboard memory pressure by unloading inactive panels, trimming oversized client stores, and limiting repeated fetch payloads. (labels: performance, dashboard, data)
 - T-728. Serve faster first responses by prioritizing above-the-fold dashboard data and deferring low-value background requests. (labels: performance, ui, dashboard)
+
+## Label: quality
+
+- T-788. Remove the existing ESLint warning backlog so the production validation gate completes with zero warnings. (labels: quality, ci-build, workflow)
 
 ## Label: reports
 

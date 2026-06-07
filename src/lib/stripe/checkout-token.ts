@@ -10,12 +10,11 @@ interface CheckoutTokenData {
 const TOKEN_TTL_MS = 60 * 60 * 1000
 
 function getSecret() {
-  return (
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    process.env.STRIPE_SECRET_KEY ||
-    "useclevr-local-checkout-token"
-  )
+  const secret = process.env.AUTH_SECRET || process.env.STRIPE_SECRET_KEY
+  if (!secret) {
+    throw new Error("Missing AUTH_SECRET or STRIPE_SECRET_KEY for checkout token signing")
+  }
+  return secret
 }
 
 function encode(value: string) {

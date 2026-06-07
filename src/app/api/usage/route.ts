@@ -15,16 +15,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const session = await auth()
-    
-    return Response.json(await getAnalystCreditUsage(session?.user?.id))
+    if (!session?.user?.id) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    return Response.json(await getAnalystCreditUsage(session.user.id))
   } catch (error) {
     debugError("[USAGE] Error fetching usage:", error)
-    return Response.json({
-      analysisCount: 0,
-      total: 2,
-      subscriptionTier: "free",
-      canAnalyze: true,
-      limitReached: false,
-    })
+    return Response.json({ error: "Failed to fetch usage" }, { status: 500 })
   }
 }

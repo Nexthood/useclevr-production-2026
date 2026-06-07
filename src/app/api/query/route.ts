@@ -2,17 +2,23 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 
 // app/api/query/route.ts - Direct SQL execution for analytical questions
 import { processQuestion } from '@/lib/ai/ai-query-generator';
+import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
-import { datasets } from '@/lib/db/schema';
+import { datasetRows, datasets } from '@/lib/db/schema';
 import { aggregateData, findColumn } from '@/lib/data/queryEngine';
 import { queryRequestSchema, validateOrError } from '@/lib/validation';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   debugLog('========== QUERY REQUEST START ==========');
   
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const validation = validateOrError(queryRequestSchema, body);
     if (!validation.success) {
@@ -26,7 +32,7 @@ export async function POST(request: Request) {
 
     // 2. Get dataset
     const dataset = await db.query.datasets.findFirst({
-      where: eq(datasets.id, datasetId),
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, session.user.id)),
     });
 
     if (!dataset) {
@@ -38,8 +44,17 @@ export async function POST(request: Request) {
     }
 
     // 3. Get data from datasets.data column
-    const data = (dataset.data as Record<string, any>[]) || [];
+    let data = (dataset.data as Record<string, any>[]) || [];
     const columns = (dataset.columns as string[]) || [];
+
+    if (data.length === 0) {
+      const rows = await db.query.datasetRows.findMany({
+        where: eq(datasetRows.datasetId, datasetId),
+        columns: { data: true },
+        orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+      });
+      data = rows.map((row) => row.data as Record<string, any>);
+    }
     
     debugLog('Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
 
@@ -66,7 +81,7 @@ export async function POST(request: Request) {
         debugLog('SQL Result:', result);
       }
       // TOTAL / SUM (revenue, sales, etc)
-      else if (q.includes('total') || q.includes('sum') || q.includes('revenue') || q.includes('sales') || q.includes('profit')) {
+      else if (q.includes('total') || q.includes('sum') || q.includes('revenue') || q.includes('sales')) {
         const valueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'total', 'price', 'cost', 'profit']);
         if (valueCol) {
           const total = data.reduce((sum, row) => sum + (parseFloat(String(row[valueCol]).replace(/[^0-9.-]/g, '')) || 0), 0);
@@ -85,48 +100,32 @@ export async function POST(request: Request) {
         // Keywords match actual dataset columns (case insensitive)
         const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'order_total', 'total', 'order_value']);
         const costCol = findColumn(columns, ['cost', 'unit_cost', 'cogs', 'cost_of_goods']);
-        const discountCol = findColumn(columns, ['discount', 'discount_amount', 'discount_percent', 'discount_rate']);
-        const shippingCol = findColumn(columns, ['shipping', 'shipping_cost', 'delivery_cost']);
-        const taxCol = findColumn(columns, ['tax', 'taxes', 'tax_amount', 'tax_percent', 'tax_rate', 'vat']);
-        const unitsCol = findColumn(columns, ['units', 'quantity', 'qty', 'units_sold', 'order_quantity']);
-        const priceCol = findColumn(columns, ['price', 'unit_price', 'sale_price', 'item_price']);
-        const refundCol = findColumn(columns, ['refund', 'refund_amount', 'returns']);
+        const profitCol = findColumn(columns, ['profit', 'net_profit', 'gross_profit', 'earnings']);
         
-        debugLog('Profit calculation - found columns:', { revenueCol, costCol, discountCol, shippingCol, taxCol, unitsCol, priceCol, refundCol });
+        debugLog('Profit calculation - found columns:', { revenueCol, costCol, profitCol });
         
         // Get grouping column
         const groupCol = findColumn(columns, ['product', 'product_id', 'product_name', 'region', 'country', 'category', 'segment', 'channel', 'customer_segment']);
-        
-// Calculate profit for each row
-         if (groupCol) {
+
+        if (!profitCol && !(revenueCol && costCol)) {
+          result = {
+            error: 'Profit calculation requires a profit column or both revenue and cost columns',
+            availableColumns: columns,
+            missingColumns: ['profit or revenue + cost'],
+          };
+        } else if (groupCol) {
           // Group by product/region and calculate profit
           const agg: Record<string, number> = {};
           for (const row of data) {
             const key = row[groupCol] || 'Unknown';
             let profit = 0;
             
-            // Method 1: revenue - cost (if both exist)
-            if (revenueCol && costCol) {
+            if (profitCol) {
+              profit = parseFloat(String(row[profitCol]).replace(/[^0-9.-]/g, '')) || 0;
+            } else if (revenueCol && costCol) {
               const revenue = parseFloat(String(row[revenueCol]).replace(/[^0-9.-]/g, '')) || 0;
               const cost = parseFloat(String(row[costCol]).replace(/[^0-9.-]/g, '')) || 0;
               profit = revenue - cost;
-            }
-            // Method 2: (price * quantity) - discount - shipping - tax - refund
-            else if (priceCol && unitsCol) {
-              const price = parseFloat(String(row[priceCol]).replace(/[^0-9.-]/g, '')) || 0;
-              const units = parseFloat(String(row[unitsCol]).replace(/[^0-9.-]/g, '')) || 0;
-              let revenue = price * units;
-              const discount = discountCol ? (parseFloat(String(row[discountCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const shipping = shippingCol ? (parseFloat(String(row[shippingCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const tax = taxCol ? (parseFloat(String(row[taxCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              // If tax is percentage, convert
-              const taxAmount = tax > 1 ? tax : revenue * (tax / 100);
-              const refund = refundCol ? (parseFloat(String(row[refundCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              profit = revenue - discount - shipping - taxAmount - refund;
-            }
-            // Method 3: Just revenue as proxy
-            else if (revenueCol) {
-              profit = parseFloat(String(row[revenueCol]).replace(/[^0-9.-]/g, '')) || 0;
             }
             
             agg[key] = (agg[key] || 0) + profit;
@@ -166,32 +165,16 @@ export async function POST(request: Request) {
           };
           debugLog('Generated SQL:', generatedSql);
           debugLog('SQL Result:', JSON.stringify(grouped).slice(0, 200));
-        } else if (!revenueCol && !priceCol) {
-          // Cannot calculate profit without revenue or price - but give more helpful message
-          debugLog('ERROR: Cannot calculate profit - no revenue or price column');
-          result = { 
-            error: 'Calculation not possible – dataset lacks required columns (price, quantity, discount, tax, shipping, refund)' ,
-            availableColumns: columns,
-            suggestion: 'Ensure your dataset has price and quantity columns, or revenue and cost columns'
-          };
         } else {
           // No grouping - just calculate total profit
           let totalProfit = 0;
           for (const row of data) {
-            if (revenueCol && costCol) {
+            if (profitCol) {
+              totalProfit += parseFloat(String(row[profitCol]).replace(/[^0-9.-]/g, '')) || 0;
+            } else if (revenueCol && costCol) {
               const revenue = parseFloat(String(row[revenueCol]).replace(/[^0-9.-]/g, '')) || 0;
               const cost = parseFloat(String(row[costCol]).replace(/[^0-9.-]/g, '')) || 0;
               totalProfit += revenue - cost;
-            } else if (priceCol && unitsCol) {
-              const price = parseFloat(String(row[priceCol]).replace(/[^0-9.-]/g, '')) || 0;
-              const units = parseFloat(String(row[unitsCol]).replace(/[^0-9.-]/g, '')) || 0;
-              let revenue = price * units;
-              const discount = discountCol ? (parseFloat(String(row[discountCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const shipping = shippingCol ? (parseFloat(String(row[shippingCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const tax = taxCol ? (parseFloat(String(row[taxCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const taxAmount = tax > 1 ? tax : revenue * (tax / 100);
-              const refund = refundCol ? (parseFloat(String(row[refundCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              totalProfit += revenue - discount - shipping - taxAmount - refund;
             }
           }
           generatedSql = `SELECT computed_profit FROM dataset`;
@@ -309,89 +292,68 @@ export async function POST(request: Request) {
           result = { error: 'No numeric column found', availableColumns: columns };
         }
       }
-      // PROFIT MARGIN - with fallback for missing cost column
+      // PROFIT MARGIN
       else if ((q.includes('profit') || q.includes('margin')) && (q.includes('percent') || q.includes('%'))) {
         const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'order_total', 'total', 'order_value', 'net_revenue']);
         const costCol = findColumn(columns, ['cost', 'unit_cost', 'cogs', 'cost_of_goods']);
-        const discountCol = findColumn(columns, ['discount', 'discount_amount', 'discount_percent']);
-        const shippingCol = findColumn(columns, ['shipping', 'shipping_cost']);
-        const taxCol = findColumn(columns, ['tax', 'tax_amount', 'taxes', 'vat']);
-        const refundCol = findColumn(columns, ['refund', 'refund_amount', 'returns']);
-        const unitsCol = findColumn(columns, ['quantity', 'qty', 'units']);
-        const priceCol = findColumn(columns, ['price', 'unit_price', 'sale_price']);
+        const profitCol = findColumn(columns, ['profit', 'net_profit', 'gross_profit', 'earnings']);
         
-        if (revenueCol) {
+        if (revenueCol && (profitCol || costCol)) {
           let totalRevenue = 0;
           let totalCost = 0;
-          let estimatedCost = 0; // Use 15% of revenue as default if no cost column
-          let computedProfit = 0;
+          let totalProfit = 0;
           
           for (const row of data) {
             const revenue = parseFloat(String(row[revenueCol]).replace(/[^0-9.-]/g, '')) || 0;
             totalRevenue += revenue;
             
-            // Use actual cost if available
-            if (costCol) {
+            if (profitCol) {
+              totalProfit += parseFloat(String(row[profitCol]).replace(/[^0-9.-]/g, '')) || 0;
+            } else if (costCol) {
               const cost = parseFloat(String(row[costCol]).replace(/[^0-9.-]/g, '')) || 0;
               totalCost += cost;
-            } else {
-              // Fallback: estimate cost as 15% of revenue (typical margin assumption)
-              estimatedCost += revenue * 0.15;
-            }
-            
-            // Try to compute profit from components
-            if (priceCol && unitsCol) {
-              const price = parseFloat(String(row[priceCol]).replace(/[^0-9.-]/g, '')) || 0;
-              const units = parseFloat(String(row[unitsCol]).replace(/[^0-9.-]/g, '')) || 0;
-              const grossRevenue = price * units;
-              const discount = discountCol ? (parseFloat(String(row[discountCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const shipping = shippingCol ? (parseFloat(String(row[shippingCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const tax = taxCol ? (parseFloat(String(row[taxCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              const refund = refundCol ? (parseFloat(String(row[refundCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
-              // If tax is a percentage (>1), convert to amount
-              const taxAmount = tax > 1 ? tax : grossRevenue * (tax / 100);
-              computedProfit += grossRevenue - discount - shipping - taxAmount - refund;
             }
           }
           
-          // Use actual cost if available, otherwise use estimated 15%
-          const finalCost = costCol ? totalCost : estimatedCost;
-          
-          // Use computed profit if available from components, otherwise use revenue - cost
-          const finalProfit = computedProfit !== 0 ? computedProfit : (totalRevenue - finalCost);
+          const finalProfit = profitCol ? totalProfit : totalRevenue - totalCost;
           const margin = totalRevenue > 0 ? (finalProfit / totalRevenue) * 100 : 0;
           
-          const costMethod = costCol ? 'using actual cost data' : 'using estimated cost (30% of revenue)';
-          generatedSql = `SELECT ((SUM(revenue) - SUM(estimated_cost)) / SUM(revenue)) * 100 as margin FROM dataset`;
+          generatedSql = profitCol
+            ? `SELECT (SUM(${profitCol}) / SUM(${revenueCol})) * 100 as margin FROM dataset`
+            : `SELECT ((SUM(${revenueCol}) - SUM(${costCol})) / SUM(${revenueCol})) * 100 as margin FROM dataset`;
           result = { 
             profitMargin: margin, 
             revenue: totalRevenue, 
-            cost: finalCost, 
-            estimated: !costCol,
-            costMethod,
+            profit: finalProfit,
+            cost: costCol ? totalCost : undefined,
+            estimated: false,
             operation: 'margin' 
           };
           debugLog('Generated SQL:', generatedSql);
           debugLog('Margin calculation:', result);
         } else {
           debugLog('ERROR: Could not find revenue column');
-          result = { error: 'Calculation not possible – dataset lacks required columns (price, quantity, discount, tax, shipping, refund)', availableColumns: columns };
+          result = {
+            error: 'Profit margin requires revenue plus either profit or cost columns',
+            availableColumns: columns,
+            missingColumns: ['revenue', 'profit or cost'],
+          };
         }
       }
-      // ROAS CALCULATION - with fallback for missing cost
+      // ROAS CALCULATION
       else if (q.includes('ROAS') || q.includes('roas') || q.includes('return on ad spend')) {
         const revenueCol = findColumn(columns, ['revenue', 'sales', 'amount', 'order_total']);
         const channelCol = findColumn(columns, ['channel', 'utm_source', 'source', 'medium', 'campaign', 'traffic_source']);
         const costCol = findColumn(columns, ['ad_spend', 'advertising_cost', 'marketing_cost', 'spend']);
         
-        if (revenueCol && channelCol) {
+        if (revenueCol && channelCol && costCol) {
           // Group by channel and calculate ROAS
           const channelData: Record<string, { revenue: number; cost: number }> = {};
           
           for (const row of data) {
             const channel = row[channelCol] || 'Unknown';
             const revenue = parseFloat(String(row[revenueCol]).replace(/[^0-9.-]/g, '')) || 0;
-            const cost = costCol ? (parseFloat(String(row[costCol]).replace(/[^0-9.-]/g, '')) || 0) : 0;
+            const cost = parseFloat(String(row[costCol]).replace(/[^0-9.-]/g, '')) || 0;
             
             if (!channelData[channel]) {
               channelData[channel] = { revenue: 0, cost: 0 };
@@ -402,17 +364,19 @@ export async function POST(request: Request) {
           
           // Calculate ROAS for each channel
           const roasData = Object.entries(channelData).map(([channel, vals]) => {
-            // If no cost column, estimate cost as 15% of revenue (typical ad efficiency)
-            const estimatedCost = costCol ? vals.cost : vals.revenue * 0.15;
-            const roas = estimatedCost > 0 ? vals.revenue / estimatedCost : vals.revenue / (vals.revenue * 0.15);
-            return { channel, revenue: vals.revenue, cost: estimatedCost, roas, estimated: !costCol };
+            const roas = vals.cost > 0 ? vals.revenue / vals.cost : 0;
+            return { channel, revenue: vals.revenue, cost: vals.cost, roas, estimated: false };
           }).sort((a, b) => b.roas - a.roas);
           
-          generatedSql = `SELECT channel, SUM(revenue) / (SUM(COALESCE(ad_spend, revenue * 0.15))) as roAS FROM dataset GROUP BY channel`;
+          generatedSql = `SELECT ${channelCol}, SUM(${revenueCol}) / SUM(${costCol}) as roas FROM dataset GROUP BY ${channelCol}`;
           result = { type: 'roas_analysis', data: roasData, operation: 'roas' };
           debugLog('ROAS calculation:', result);
         } else {
-          result = { error: 'ROAS calculation requires revenue and channel columns', availableColumns: columns };
+          result = {
+            error: 'ROAS calculation requires revenue, channel, and ad spend columns',
+            availableColumns: columns,
+            missingColumns: ['revenue', 'channel', 'ad_spend'],
+          };
         }
       }
       // Default - try AI for complex queries
@@ -536,6 +500,11 @@ export async function POST(request: Request) {
 
 // Debug endpoint
 export async function GET(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const datasetId = searchParams.get('datasetId');
 
@@ -545,7 +514,7 @@ export async function GET(request: Request) {
 
   try {
     const dataset = await db.query.datasets.findFirst({
-      where: eq(datasets.id, datasetId),
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, session.user.id)),
     });
 
     if (!dataset) {

@@ -17,6 +17,7 @@ import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import LinkedIn from "next-auth/providers/linkedin"
 import { z } from "zod"
+import "@/lib/config"
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog("[Auth] Module loading - initializing NextAuth v5");
@@ -49,15 +50,15 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-const linkedinClientId = process.env.AUTH_LINKEDIN_ID || process.env.LINKEDIN_ID || process.env.LINKEDIN_CLIENT_ID;
-const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET || process.env.LINKEDIN_SECRET || process.env.LINKEDIN_CLIENT_SECRET;
+const googleClientId = process.env.AUTH_GOOGLE_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
+const linkedinClientId = process.env.AUTH_LINKEDIN_ID;
+const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET;
 
 normalizeLocalAuthUrlEnv();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET,
   // Use a simple JWT adapter-like configuration without PrismaAdapter
   // to avoid database connections during module initialization
   providers: [
@@ -342,12 +343,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 function normalizeLocalAuthUrlEnv() {
   if (process.env.NODE_ENV === "production") return;
 
-  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+  const configuredUrl = process.env.AUTH_URL;
   if (!configuredUrl || isLocalAuthUrl(configuredUrl)) return;
 
   debugWarn("[Auth] Ignoring non-local auth URL during local development.");
   delete process.env.AUTH_URL;
-  delete process.env.NEXTAUTH_URL;
   process.env.AUTH_TRUST_HOST ||= "true";
 }
 

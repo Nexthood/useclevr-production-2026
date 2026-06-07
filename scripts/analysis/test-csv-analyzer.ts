@@ -48,6 +48,45 @@ async function runTest() {
   debugLog("Running CSV analysis...\n");
   const result = await analyzeCSV(testData);
 
+  const expectedTypes = {
+    order_date: "date",
+    product: "text",
+    revenue: "numeric",
+    quantity: "numeric",
+    country: "text",
+    customer_id: "numeric",
+    is_return: "boolean",
+  };
+
+  for (const [column, expectedType] of Object.entries(expectedTypes)) {
+    if (result.column_types[column] !== expectedType) {
+      throw new Error(
+        `${column}: expected ${expectedType}, got ${result.column_types[column]}`,
+      );
+    }
+  }
+
+  const customerIdSemantic = result.dataset_summary?.columnSemantics.find(
+    (column) => column.columnName === "customer_id",
+  );
+  if (customerIdSemantic?.dataRole !== "identifier") {
+    throw new Error("customer_id: expected identifier semantic role");
+  }
+
+  if (
+    result.business_kpis.gross_profit !== undefined ||
+    result.business_kpis.margin_pct !== undefined
+  ) {
+    throw new Error("profit KPIs must remain unavailable when the dataset has no cost or profit column");
+  }
+
+  if (
+    result.financial_metrics.net_profit_estimate !== null ||
+    result.financial_metrics.ltv_to_cac_ratio !== null
+  ) {
+    throw new Error("financial metrics must not invent operating costs or customer lifespan");
+  }
+
   // Output result as formatted JSON
   debugLog(JSON.stringify(result, null, 2));
 }

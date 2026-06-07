@@ -16,6 +16,7 @@ export default async function SubscriptionSettingsPage() {
   const billingSettings = await getBillingSettings();
   const remaining = Math.max(0, usage.total - usage.analysisCount);
   const isUnlimited =
+    usage.trialActive ||
     usage.subscriptionTier === "pro" ||
     usage.subscriptionTier === "business" ||
     usage.subscriptionTier === "superadmin";
@@ -44,6 +45,8 @@ export default async function SubscriptionSettingsPage() {
           <p className="text-sm text-muted-foreground">
             {usage.subscriptionTier === "superadmin"
               ? "Super admin"
+              : usage.trialActive
+                ? "14-day trial"
               : isUnlimited
                 ? "Pro tier"
                 : "Free tier"}
@@ -64,7 +67,9 @@ export default async function SubscriptionSettingsPage() {
           </div>
           <p className="text-sm text-muted-foreground">
             {isUnlimited
-              ? "Unlimited analyst usage"
+              ? usage.trialActive
+                ? `Unlimited analyst usage for ${usage.trialDaysRemaining} more ${usage.trialDaysRemaining === 1 ? "day" : "days"}`
+                : "Unlimited analyst usage"
               : `${usage.analysisCount} / ${usage.total} free credits used`}
           </p>
           {!isUnlimited && (

@@ -8,9 +8,18 @@ import { createStripeCheckoutSession } from "@/services/stripe/checkout";
 import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  const user = session?.user;
+
+  if (!user?.email || !user?.id) {
+    return NextResponse.json(
+      { error: "Please sign in again before completing checkout." },
+      { status: 401 },
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const plan = await getConfiguredBillingPlan(body.planId);
 
@@ -19,16 +28,6 @@ export async function POST(request: NextRequest) {
 
   // Step 2 – T&C accepted and a Stripe price ID is configured: open real checkout
   if (reviewAccepted && plan.stripePriceId) {
-    const session = await auth();
-    const user = session?.user;
-
-    if (!user?.email || !user?.id) {
-      return NextResponse.json(
-        { error: "Please sign in again before completing checkout." },
-        { status: 401 },
-      );
-    }
-
     const origin = request.nextUrl.origin;
     const checkoutToken = issueCheckoutToken(null, user.id);
     const successUrl = `${origin}/checkout/success?t=${checkoutToken}&s={CHECKOUT_SESSION_ID}`;
@@ -77,12 +76,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Free tier / no Stripe price configured: save a local review
-  return NextResponse.json({
-    success: true,
-    checkoutId: `checkout_${randomUUID().replace(/-/g, "").slice(0, 12)}`,
-    plan,
-    status: "saved_payment_provider_not_connected",
-    message: "Checkout review saved. Connect a payment provider to collect cards automatically.",
-  });
+  if (plan.tier === "free") {
+    return NextResponse.json(
+      { error: "The Free plan does not require checkout." },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json(
+    { error: "Card checkout is not configured for this plan. Contact support." },
+    { status: 503 },
+  );
 }

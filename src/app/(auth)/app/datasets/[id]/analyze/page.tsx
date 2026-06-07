@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { datasetRows, datasets } from "@/lib/db/schema"
+import { and, eq } from "drizzle-orm"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -17,8 +17,11 @@ type AnalysisResult = Record<string, unknown>
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const session = await auth()
+  if (!session?.user?.id) return { title: "Analyze" }
+
   const dataset = await db.query.datasets.findFirst({
-    where: eq(datasets.id, id),
+    where: and(eq(datasets.id, id), eq(datasets.userId, session.user.id)),
     columns: { name: true },
   })
   return { title: dataset ? `Analyze: ${dataset.name}` : "Analyze" }
@@ -32,11 +35,15 @@ export default async function AnalyzePage({
   const { id } = await params
 
   const session = await auth()
-  const _userId = (session?.user as { id?: string })?.id
+  const userId = (session?.user as { id?: string })?.id
+
+  if (!userId) {
+    notFound()
+  }
 
   // Get dataset using Drizzle - read data directly from dataset.data column
   const dataset = await db.query.datasets.findFirst({
-    where: eq(datasets.id, id),
+    where: and(eq(datasets.id, id), eq(datasets.userId, userId)),
   })
 
   if (!dataset) {
@@ -44,7 +51,15 @@ export default async function AnalyzePage({
   }
 
   // Read rows from the data column in Dataset table (full dataset)
-  const data = (dataset as any).data || []
+  let data = ((dataset as any).data || []) as Record<string, unknown>[]
+  if (data.length === 0) {
+    const rows = await db.query.datasetRows.findMany({
+      where: eq(datasetRows.datasetId, id),
+      columns: { data: true },
+      orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+    })
+    data = rows.map((row) => row.data as Record<string, unknown>)
+  }
   const columns = (dataset as any).columns || []
   // Use dataset.rowCount for total
   const rowCount = (dataset as any).rowCount || data.length

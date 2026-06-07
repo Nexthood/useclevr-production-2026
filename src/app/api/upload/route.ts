@@ -13,10 +13,11 @@ export async function POST(request: Request) {
     const result = await uploadCSV(formData)
     
     if (!result.success) {
+      const unauthorized = result.error?.startsWith("Unauthorized|")
       return NextResponse.json({
-        error: result.error || "Upload failed",
+        error: unauthorized ? result.error?.split("|", 2)[1] : result.error || "Upload failed",
         usage: result.usage,
-      }, { status: 400 })
+      }, { status: unauthorized ? 401 : 400 })
     }
 
     return NextResponse.json(result)

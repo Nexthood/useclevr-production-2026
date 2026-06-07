@@ -279,8 +279,8 @@ function isTechnicalIdColumn(columnName: string, stats: ColumnStatistics): boole
   const nameMatches = ID_COLUMN_PATTERNS.some(pattern => pattern.test(columnName));
   if (nameMatches) return true;
 
-  // If it's numeric and unique count equals row count, it's likely an ID
-  if (stats.type === "numeric" && stats.unique === stats.nullCount + (stats as any).count) {
+  const nonNullCount = Math.max(0, (stats.count ?? 0) - stats.nullCount);
+  if (stats.type === "numeric" && nonNullCount >= 20 && stats.unique === nonNullCount) {
     return true;
   }
 
@@ -763,8 +763,26 @@ function calculateStandardDeviation(values: number[]): number {
 
 function isNumericValue(value: unknown): boolean {
   if (value === null || value === undefined || value === "") return false;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
   try {
-    const normalized = normalizeNumberString(String(value));
+    const raw = String(value).trim();
+    const withoutCurrencyCode = raw
+      .replace(/^(USD|EUR|GBP|JPY|CNY|INR|AUD|CAD|CHF|KRW|RUB|BRL|MXN)\s*/i, "")
+      .replace(/\s*(USD|EUR|GBP|JPY|CNY|INR|AUD|CAD|CHF|KRW|RUB|BRL|MXN)$/i, "");
+
+    if (
+      !/\d/.test(withoutCurrencyCode) ||
+      /[A-Za-z]/.test(withoutCurrencyCode) ||
+      !/^[\s+\-()$€£¥₹₩₽R%,.\d]+$/.test(withoutCurrencyCode)
+    ) {
+      return false;
+    }
+
+    const normalized = normalizeNumberString(withoutCurrencyCode);
     const num = parseFloat(normalized);
     return !isNaN(num) && isFinite(num);
   } catch {
@@ -781,17 +799,18 @@ function detectColumnType(values: unknown[]): "numeric" | "text" | "boolean" | "
   );
   if (booleanValues.length === nonNullValues.length) return "boolean";
 
-  const numericValues = nonNullValues.filter(isNumericValue);
-  if (numericValues.length / nonNullValues.length > 0.8 && numericValues.length > 0) return "numeric";
-
   const dateValues = nonNullValues.filter((v) => {
     if (typeof v === "string") {
-      const parsed = new Date(v);
-      return !isNaN(parsed.getTime());
+      const trimmed = v.trim();
+      if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:[T\s].*)?$/.test(trimmed)) return false;
+      return !isNaN(Date.parse(trimmed));
     }
     return false;
   });
   if (dateValues.length / nonNullValues.length > 0.8) return "date";
+
+  const numericValues = nonNullValues.filter(isNumericValue);
+  if (numericValues.length / nonNullValues.length > 0.8 && numericValues.length > 0) return "numeric";
 
   return "text";
 }
@@ -1830,12 +1849,6 @@ function generateFinancialMetrics(
       metrics.gross_margin_pct = null;
     }
 
-    // Only estimate net profit if we have gross profit from actual data
-    if (metrics.gross_profit !== null) {
-      const estimatedOpCosts = revenue * 0.2;
-      metrics.net_profit_estimate = Math.round((metrics.gross_profit - estimatedOpCosts) * 100) / 100;
-      metrics.net_margin_pct = Math.round((metrics.net_profit_estimate / revenue) * 10000) / 100;
-    }
   }
 
   // Only calculate ROI if explicit ad spend exists
@@ -1850,13 +1863,6 @@ function generateFinancialMetrics(
     const uniqueCustomers = categoricalStats[customerCol].unique;
     const adSpend = numericStats[adSpendCol].total;
     metrics.cac_estimate = uniqueCustomers > 0 ? Math.round((adSpend / uniqueCustomers) * 100) / 100 : null;
-  }
-
-  // Only calculate LTV:CAC if we have actual CAC data
-  if (metrics.cac_estimate && revenueCol && numericStats[revenueCol]) {
-    const avgOrderValue = numericStats[revenueCol].mean;
-    const estimatedLTV = avgOrderValue * 5;
-    metrics.ltv_to_cac_ratio = metrics.cac_estimate > 0 ? Math.round((estimatedLTV / metrics.cac_estimate) * 100) / 100 : null;
   }
 
   // Generate insights only from confirmed data
@@ -2278,7 +2284,9 @@ export async function analyzeCSV(data: DatasetRecord[], baseCurrency: string = '
     stats.count = values.length;
 
     if (stats.type === "numeric") {
-      const numericValues = values.filter(isNumericValue).map(Number);
+      const numericValues = values
+        .filter(isNumericValue)
+        .map((value) => parseNormalizedNumber(String(value)));
       numericStats[column] = calculateNumericColumnStats(numericValues) || {
         total: 0,
         mean: 0,

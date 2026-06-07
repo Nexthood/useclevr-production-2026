@@ -4,6 +4,7 @@ const apiPrefix = "/api"
 const publicApiPrefixes = ["/api/auth"]
 const publicApiPaths = [
   "/api/health",
+  "/api/webhooks/stripe",
   "/api/payload/cms-users/login",
   "/api/payload/cms-users/refresh-token",
   "/api/payload/cms-users/forgot-password",

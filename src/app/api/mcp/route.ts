@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { config as appConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { datasets } from "@/lib/db/schema";
 import { getResource, invokeTool, listResources, listTools } from "@/lib/mcp/server";
@@ -33,14 +34,14 @@ async function validateMCPAuth(request: NextRequest) {
   const serviceToken = request.headers.get("x-mcp-service-token");
   const adminToken = request.headers.get("x-mcp-admin-token");
 
-  const envServiceToken = process.env.MCP_SERVICE_TOKEN || "mcp_service_fallback_secret_2026";
-  const envAdminToken = process.env.MCP_ADMIN_TOKEN || "mcp_admin_fallback_secret_2026";
+  const envServiceToken = appConfig.MCP_SERVICE_TOKEN;
+  const envAdminToken = appConfig.MCP_ADMIN_TOKEN;
 
-  if (adminToken && adminToken === envAdminToken) {
+  if (adminToken && envAdminToken && adminToken === envAdminToken) {
     return { authenticated: true, role: "admin", clientId: "internal-admin-client" };
   }
 
-  if (serviceToken && serviceToken === envServiceToken) {
+  if (serviceToken && envServiceToken && serviceToken === envServiceToken) {
     return { authenticated: true, role: "service", clientId: "internal-service-client" };
   }
 

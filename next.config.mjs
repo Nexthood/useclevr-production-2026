@@ -28,15 +28,6 @@ const nextConfig = {
     if (!dev && config.cache) {
       config.cache = false;
     }
-    if (!dev && config.optimization?.splitChunks) {
-      Object.assign(config.optimization.splitChunks, {
-        chunks: "all",
-        maxInitialRequests: 25,
-        maxAsyncRequests: 25,
-        minSize: 20000,
-        maxSize: 244000,
-      });
-    }
     return config;
   },
   // Security headers

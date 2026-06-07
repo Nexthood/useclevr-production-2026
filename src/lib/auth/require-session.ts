@@ -30,3 +30,21 @@ export async function requireSuperAdmin(): Promise<SuperAdminResult> {
   }
   return result
 }
+
+type DevelopmentOrSuperAdminResult = SuperAdminResult | { success: true; mode: "development" | "superadmin"; session?: Session; userId?: string }
+
+export async function requireDevelopmentOrSuperAdmin(): Promise<DevelopmentOrSuperAdminResult> {
+  if (process.env.NODE_ENV === "development") {
+    return { success: true, mode: "development" }
+  }
+
+  const result = await requireSuperAdmin()
+  if (!result.success) return result
+
+  return {
+    success: true,
+    mode: "superadmin",
+    session: result.session,
+    userId: result.userId,
+  }
+}

@@ -1,4 +1,5 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
+import { auth } from '@/lib/auth/auth';
 
 // app/api/datasets/[id]/suggestions/route.ts
 // Get smart question suggestions for a dataset
@@ -6,8 +7,8 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
 import { buildDatasetIntelligence, generateSuggestions } from '@/lib/data/dataset-intelligence';
 import { db } from '@/lib/db';
-import { datasets } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { datasetRows, datasets } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -16,11 +17,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     debugLog('[SUGGESTIONS] Getting suggestions for dataset:', id);
 
     // Get dataset
     const dataset = await db.query.datasets.findFirst({
-      where: eq(datasets.id, id),
+      where: and(eq(datasets.id, id), eq(datasets.userId, session.user.id)),
     });
 
     if (!dataset) {
@@ -30,7 +36,15 @@ export async function GET(
       );
     }
 
-    const data = (dataset.data as Record<string, unknown>[]) || [];
+    let data = (dataset.data as Record<string, unknown>[]) || [];
+    if (data.length === 0) {
+      const rows = await db.query.datasetRows.findMany({
+        where: eq(datasetRows.datasetId, id),
+        columns: { data: true },
+        orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+      });
+      data = rows.map((row) => row.data as Record<string, unknown>);
+    }
     
     if (data.length === 0) {
       return NextResponse.json({

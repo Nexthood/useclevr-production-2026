@@ -1,8 +1,9 @@
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
-import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
 import { debugLog, debugError } from '@/lib/utils/debug';
 import { eq } from 'drizzle-orm';
+import { google } from '@ai-sdk/google';
+import { generateText, streamText } from 'ai';
 import { normalizeDataset, generateAggregatedContext } from './sql-executor';
 import { formatAIResponse } from './explanation';
 import type { AppSearchResult } from '@/lib/search/app-search';
@@ -52,43 +53,22 @@ function buildSystemPrompt(
   datasetRows: any[],
   appSearchResults: AppSearchResult[]
 ): string {
-  let systemContent = `You are Clevr, elite AI analyst for startup founders and investors.
+  let systemContent = `You are Clevr, a business intelligence analyst for startup founders and small businesses.
 
-Your ONLY rule for analytical/numeric questions: ALWAYS compute using available data – no excuses, no "need more data", no "not supported".
+For analytical or numeric questions:
 
-For ANY question with ROAS, CAC, LTV, profit, margin, revenue attribution, channel performance, campaign ROI:
-
-1. Use utm_source, utm_medium, utm_campaign for attribution when available.
-2. Calculate ROAS as: ROAS = SUM(net_revenue) / SUM(estimated_ad_spend) per channel
-   - If no direct ad_spend: use proxy (e.g. 10% of net_revenue as estimated cost, or average CPA from known data)
-3. Calculate CAC as: total marketing_cost / new customers acquired per channel
-4. Calculate LTV as: average net_revenue per customer * estimated lifespan (use 12 months default if unknown)
-5. Profit: (unit_price * quantity) - discount_amount - tax - shipping - refund_amount
-6. Margin %: (Profit / Gross Revenue) * 100
-
-ALWAYS generate and EXECUTE real SQL to compute it (use datasetId from request).
-
-If calculation impossible (no revenue, no quantity, no attribution columns):
-Return ONLY: { error: "Calculation not possible – dataset lacks required columns (revenue, quantity, utm, etc.)" }
-
-NEVER say:
-- "no cost data"
-- "need ad spend"
-- "cannot calculate ROAS"
-- "operation not supported"
-- "upload dataset with..."
+1. Use only the verified dataset context supplied below.
+2. Calculate a metric only when the required columns exist in the dataset.
+3. Never invent proxy costs, ad spend, customer lifespan, benchmarks, forecasts, or missing values.
+4. When a calculation is unavailable, name the exact missing columns and explain which metric they enable.
+5. Keep every numeric claim traceable to the supplied aggregate or column summary.
 
 Response structure:
-- Direct answer first (e.g. "Best ROAS is Google Ads with 4.2x")
-- Breakdown/table with real numbers
-- Founder action: "Double budget on X, kill Y"
-- If visualization: suggest chart type
+- Direct answer first.
+- Short evidence with the metric, segment, or period used.
+- One practical next action supported by the result.
 
-IMPORTANT: Compute ROAS, CAC, LTV, profit, margin using available columns. Use proxies if needed. NEVER refuse with 'need more data' if calculation possible. Execute SQL first. If impossible, return exact error.
-
-Accuracy overrides fluency.
-Never guess or approximate.
-Never hallucinate.
+Accuracy overrides fluency. Never guess or approximate.
 
 IMPORTANT DOCUMENT GENERATION RULE:
 If user requests: generate report, create report, download report, export report, make PDF, create presentation, PowerPoint, Word document, Excel summary, investor report, board report, management report
@@ -252,19 +232,19 @@ export async function handleRegularChat(
   }
 
   try {
-    const content = await generateAntigravityCompletion({
-      model: 'gemini-2.5-flash',
-      messages: buildMessages(messages, systemContent),
+    const { text } = await generateText({
+      model: google('gemini-2.5-flash'),
+      messages: buildMessages(messages, systemContent) as any,
       temperature: 0.3,
-      max_tokens: 1500,
+      maxOutputTokens: 1500,
     });
 
-    return { success: true, content: formatAIResponse(content) };
-  } catch (antigravityError) {
-    debugError('[ANTIGRAVITY ERROR]', antigravityError);
+    return { success: true, content: formatAIResponse(text) };
+  } catch (aiError) {
+    debugError('[AI ERROR]', aiError);
     return {
       success: false,
-      content: `AI service error: ${antigravityError instanceof Error ? antigravityError.message : 'Unknown error'}`,
+      content: `AI service error: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`,
     };
   }
 }
@@ -284,10 +264,12 @@ export async function handleRegularChatStream(
 
   const systemContent = buildSystemPrompt(datasetInfo, datasetRowsData, appSearchResults);
 
-  return generateAntigravityStream({
-    model: 'gemini-2.5-flash',
-    messages: buildMessages(messages, systemContent),
+  const result = streamText({
+    model: google('gemini-2.5-flash'),
+    messages: buildMessages(messages, systemContent) as any,
     temperature: 0.3,
-    max_tokens: 1500,
+    maxOutputTokens: 1500,
   });
+
+  return result.textStream as unknown as ReadableStream<string>;
 }

@@ -60,33 +60,25 @@ const port = process.env.PORT || "8080";
 const serverTarget = process.env.USECLEVR_SERVER_TARGET || process.env.SERVER_TARGET || "";
 
 process.env.NEXT_TELEMETRY_DISABLED ||= "1";
-process.env.AUTH_SECRET ||= process.env.NEXTAUTH_SECRET || "";
 process.env.AUTH_TRUST_HOST ||= "true";
 process.env.PORT = port;
 
 if (process.env.RAILWAY_ENVIRONMENT_ID || serverTarget === "railway") {
   if (process.env.USECLEVR_AUTH_URL_STRICT !== "true") {
     delete process.env.AUTH_URL;
-    delete process.env.NEXTAUTH_URL;
-  } else {
-    process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || "";
   }
   process.env.HOSTNAME = "0.0.0.0";
 } else if (process.env.VERCEL || serverTarget === "vercel") {
-  if (!process.env.AUTH_URL && !process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
+  if (!process.env.AUTH_URL && process.env.VERCEL_URL) {
     process.env.AUTH_URL = `https://${process.env.VERCEL_URL}`;
-  } else {
-    process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || "";
   }
   process.env.HOSTNAME = "0.0.0.0";
 } else {
   const localAuthUrl = `http://localhost:${port}`;
-  if (!isLocalHttpUrl(process.env.AUTH_URL) && !isLocalHttpUrl(process.env.NEXTAUTH_URL)) {
+  if (!isLocalHttpUrl(process.env.AUTH_URL)) {
     process.env.AUTH_URL = localAuthUrl;
-    process.env.NEXTAUTH_URL = localAuthUrl;
   } else {
-    process.env.AUTH_URL ||= process.env.NEXTAUTH_URL || localAuthUrl;
-    process.env.NEXTAUTH_URL ||= process.env.AUTH_URL;
+    process.env.AUTH_URL ||= localAuthUrl;
   }
   process.env.HOSTNAME ||= "127.0.0.1";
 }

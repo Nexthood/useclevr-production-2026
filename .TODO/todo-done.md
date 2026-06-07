@@ -20,10 +20,13 @@ moving work between states.
 
 ## Label: ci-build
 
+- T-783. Keep the Next.js production proxy entry intact so webpack builds complete middleware finalization. (labels: ci-build, deployment; commit: worktree)
 - T-739. Add workflow check-name golden validation, bot-driven golden refresh, and fail-fast pre-push workflow guarding against stale required job names. (labels: ci-build, deployment, workflow; commit: worktree)
 
 ## Label: ai
 
+- T-781. Keep each analysis request scoped to the signed-in user's selected dataset without shared server memory between requests. (labels: ai, auth, data, api; commit: worktree)
+- T-784. Keep assistant calculations limited to verified dataset values and name missing columns instead of inventing proxy costs, lifespans, or performance values. (labels: ai, data, quality; commit: worktree)
 - T-435. AI interaction docs define the all-text-files current-state language rule and instruction maintenance checklist. (labels: ai, data, upload, docs; commit: 53deaed7)
 - T-411. The last inline table in `ResultPreview` (`ai-assistant-workspace.tsx`) refactored to use the shared `DataTable` component. (labels: ai, dashboard, ui, data; commit: 53deaed7)
 - T-363. Per-page loading and error states added for datasets, settings, business, assistant, tickets, accountancy, and admin sections. (labels: ai, dashboard, ui, business; commit: 53deaed7)
@@ -47,12 +50,15 @@ moving work between states.
 
 ## Label: api
 
+- T-786. Remove orphaned dataset comparison, alert, and live-refresh API routes that expose non-persistent or no-op production behavior. (labels: api, data, quality; commit: worktree)
+- T-782. Require authentication and dataset ownership for upload and direct dataset query operations. (labels: api, auth, upload, security; commit: worktree)
 - T-598. Remove remaining `any` types in API routes — replaced `any` types in `src/app/api/analyze/route.ts` with proper types. (labels: api, workflow; commit: 5b62cb31)
 - T-428. Add streaming responses to `/api/chat` using `ReadableStream` and `TextEncoder` for incremental display and abort support. (labels: api; commit: 53deaed7)
 - T-309. Language context enhanced with `translate` function using Google Translation API. (labels: api; commit: 53deaed7)
 
 ## Label: auth
 
+- T-787. Stop signed-out dashboard rendering before nested layouts access session data and prevent the datasets page from loading another account as demo content. (labels: auth, data, security; commit: worktree)
 - T-499. AI trace retention policy — configurable via superadmin `GET/POST /api/admin/ai-trace-retention`, stored in `appSettings` table. (labels: auth, ai, api, dashboard; commit: 545be481)
 - T-600. Remove unused imports and dead code — cleaned up unused imports and unused variables like `oauthAccount` in actions. (labels: auth, accessibility; commit: 5b62cb31)
 - T-589. Create shared `requireAuth()` helper — created `src/lib/auth/require-auth.ts` containing throwing `requireAuth` and functional `requireAuthResult` helper functions, and updated all server action call sites. (labels: auth, api, data, faq; commit: 72b947d6)
@@ -75,6 +81,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-785. Give signed-in accounts a 14-day analyst trial from account creation, preserve two free credits after the trial, and require authentication for usage and checkout account actions. (labels: billing, auth, security; commit: worktree)
 - T-540. Sales one-pager created from project brief, business case, product description, and marketing plan. (labels: billing, business, reports, sales; commit: 3e8d4602)
 - T-429. Split 906-line chat route into focused modules: validation, SQL executor, explanation, fallback, and utils. (labels: billing, api, data, testing; commit: 53deaed7)
 - T-403. Superadmin `Admin` section added to topbar before Credits section, conditionally rendered via `session?.user?.role`. (labels: billing, auth, dashboard, ui; commit: 53deaed7)
@@ -159,6 +166,7 @@ moving work between states.
 
 ## Label: data
 
+- T-780. Classify numeric, text, date, boolean, identifier, and mixed CSV columns from representative values without treating every unique value as an identifier. (labels: data, upload, testing; commit: worktree)
 - T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable. (labels: data, reports, search, sales; commit: 53deaed7)
 - T-582. Merge duplicate upload implementations — made the server action `uploadCSV` in `src/app/actions/upload.ts` canonical, merged database retry logic and processRows types, and delegated the API route `/api/upload` to call it. (labels: api, data, upload, performance; commit: 72b947d6)
 - T-587. Consolidate CSV parsing into one canonical module — replaced split-by-newline-split-by-comma manual parsers with robust PapaParse-backed `parseCSVString` calls across upload actions and handlers. (labels: data, upload; commit: 72b947d6)
@@ -244,6 +252,11 @@ moving work between states.
 - T-570. Help chat toggle enlarged on right side with wider input field for better usability. (labels: faq; commit: 56fce428)
 - T-358. All bare `console.error` and `console.warn` calls across API routes and hooks replaced with gated `debugError`/`debugWarn` helpers. (labels: api, faq; commit: 53deaed7)
 - T-601. Add an API route access matrix — created `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md` covering access classifications, expected helpers, ownership checks, rate limits, and audit tracking. (labels: api, faq, performance, docs; commit: 5b62cb31)
+
+## Label: security
+
+- T-602. Restrict local AI install and agent runtime install routes to development mode or explicit super-admin operations on shared deployments. (labels: security, local-ai, auth, api; commit: worktree)
+- T-603. Validate authentication, Stripe signing, and MCP service secrets from current server-only environment variables at startup without old compatibility aliases or hardcoded fallback tokens. (labels: security, auth, payment, mcp; commit: worktree)
 
 ## Label: local-ai
 

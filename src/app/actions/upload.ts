@@ -10,7 +10,7 @@ import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { db } from "@/lib/db"
 import { datasetRows, datasets, users } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
 
@@ -89,23 +89,26 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Check authentication
     const session = await auth()
+    const sessionUserId = session?.user?.id
+
+    if (!sessionUserId) {
+      return {
+        success: false,
+        error: "Unauthorized|Please sign in before uploading a dataset.",
+      }
+    }
     
     debugLog("[UPLOAD] Session:", session ? { userId: session.user?.id, email: session.user?.email } : null)
     debugLog("[UPLOAD] FormData keys:", Array.from(formData.keys()))
     
-    // FIXED: Check for demo-user-id specifically and force demo mode
-    const sessionUserId = session?.user?.id
     const isDemoUserId = sessionUserId === 'demo-user-id'
-    // FIX: DEMO_MODE env var is NOT set, so this should be false for logged-in users
-    // The issue is likely that !sessionUserId is true because session is null for unauthenticated users
     const envDemoMode = process.env.DEMO_MODE === "true"
-    const isDemoMode = envDemoMode || !sessionUserId || isDemoUserId
+    const isDemoMode = envDemoMode || isDemoUserId
     
     debugLog("[UPLOAD] ========== DEBUG MODE CHECK ==========")
     debugLog("[UPLOAD] process.env.DEMO_MODE:", process.env.DEMO_MODE)
     debugLog("[UPLOAD] envDemoMode (process.env.DEMO_MODE === 'true'):", envDemoMode)
     debugLog("[UPLOAD] sessionUserId:", sessionUserId)
-    debugLog("[UPLOAD] !sessionUserId (no user):", !sessionUserId)
     debugLog("[UPLOAD] isDemoUserId (userId === 'demo-user-id'):", isDemoUserId)
     debugLog("[UPLOAD] isDemoMode FINAL:", isDemoMode)
     debugLog("[UPLOAD] ======================================")
@@ -187,8 +190,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
     }
     
-    // Authenticated user path - use demo user as fallback for standard uploads
-    let effectiveUserId = session?.user?.id
+    let effectiveUserId = sessionUserId
     debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
 
     if (effectiveUserId && isBuiltinUserId(effectiveUserId)) {
@@ -209,61 +211,6 @@ export async function uploadCSV(formData: FormData): Promise<{
       debugLog("[UPLOAD] Using persisted built-in demo user for standard upload")
     }
 
-    // For standard uploads, if no user is logged in, we MUST find a real demo user from DB
-    // We CANNOT use a fake user ID or the insert will fail with FK violation
-    if (!effectiveUserId) {
-      debugLog("[UPLOAD] No user session - searching for real demo user in DB...")
-      try {
-        const demoUser = await db.query.users.findFirst({
-          where: eq(users.email, 'demo@useclevr.app'),
-        })
-        
-        if (demoUser) {
-          effectiveUserId = demoUser.id
-          debugLog("[UPLOAD] Found REAL demo user in DB:", effectiveUserId)
-        } else {
-          // CRITICAL: No demo user exists - we cannot insert with a fake ID
-          // Fall back to non-persistent demo mode for standard uploads
-          debugLog("[UPLOAD] ERROR: No demo user found in DB!")
-          debugLog("[UPLOAD] Falling back to non-persistent mode for standard upload")
-          
-          // Parse file for preview (we already have it in formData)
-          const file = formData.get("file") as File | null
-          let preview = null
-          
-          if (file) {
-            try {
-              const text = await file.text()
-              const parsedPreview = parseCSVString(text)
-              if (parsedPreview.rowCount > 0) {
-                const headers = parsedPreview.columns
-                const previewRows = parsedPreview.rows.slice(0, 5)
-                preview = { headers, rows: previewRows }
-              }
-            } catch (e) {
-              debugLog("[UPLOAD] Could not parse preview:", e)
-            }
-          }
-          
-          return {
-            success: true,
-            datasetId: `demo_${Date.now()}`,
-            redirectTo: `/app/datasets/demo_${Date.now()}`,
-            fileName: file?.name || 'unknown.csv',
-            preview: preview || undefined
-          }
-        }
-      } catch (e) {
-        debugLog("[UPLOAD] Error finding demo user:", e)
-        // Database error - return error instead of using fake ID
-        return { 
-          success: false, 
-          error: "Unable to create dataset. Please try again or sign in." 
-        }
-      }
-    }
-
-    // If we get here, we have a valid userId (either from session or real demo user from DB)
     debugLog("[UPLOAD] FINAL effectiveUserId:", effectiveUserId)
     
     // PROOF LOGGING: Confirm we're using a REAL user ID, not "demo-user-id"
@@ -493,7 +440,7 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Fire suggestion regeneration (best-effort, non-blocking)
     try {
-      const origin = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000"
+      const origin = process.env.AUTH_URL || "http://localhost:3000"
       fetch(`${origin}/api/suggestions/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -552,8 +499,8 @@ export async function getDataset(datasetId: string) {
       return { error: "Unauthorized" }
     }
 
-    const dataset = await (db as any).query.datasets.findFirst({
-      where: (datasets as any).id === datasetId,
+    const dataset = await db.query.datasets.findFirst({
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, session.user.id)),
     })
 
     if (!dataset) {

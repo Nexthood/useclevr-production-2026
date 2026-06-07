@@ -10,7 +10,7 @@ import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
-interface Dataset {
+export interface DatasetListItem {
   id: string
   name: string
   fileName: string
@@ -24,11 +24,11 @@ interface Dataset {
 }
 
 interface DatasetsClientProps {
-  initialDatasets: Dataset[]
+  initialDatasets: DatasetListItem[]
 }
 
 export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
-  const [datasets] = React.useState<Dataset[]>(initialDatasets)
+  const [datasets] = React.useState<DatasetListItem[]>(initialDatasets)
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
 
   const getStatusBadge = (status: string | null) => {
