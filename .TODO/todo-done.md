@@ -20,7 +20,7 @@ moving work between states.
 
 ## Label: ci-build
 
-- T-791. Supply a deterministic CI-only authentication secret to source validation and generated deployment builds so required environment validation and smoke tests complete. (labels: ci-build, auth, deployment; commit: worktree)
+- T-791. Supply a deterministic CI-only authentication secret to source validation and generated deployment builds so required environment validation and smoke tests complete. (labels: ci-build, auth, deployment; commit: 4b99e59d)
 - T-783. Keep the Next.js production proxy entry intact so webpack builds complete middleware finalization. (labels: ci-build, deployment; commit: worktree)
 - T-739. Add workflow check-name golden validation, bot-driven golden refresh, and fail-fast pre-push workflow guarding against stale required job names. (labels: ci-build, deployment, workflow; commit: worktree)
 

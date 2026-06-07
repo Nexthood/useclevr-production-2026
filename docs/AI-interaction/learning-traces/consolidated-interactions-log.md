@@ -271,3 +271,25 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - T-778. Publish through beta to dist-test and verify browser login on the Railway test host.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Login behavior lives in `requirements.md` and `CHANGELOG.md`; deployment host rules live in `docs/Developer_Guides/RAILWAY_DEPLOYMENT.md`; completed work lives in `.TODO/todo-done.md`.
+
+---
+
+## Interaction 15: Superadmin Login CI And Test Publish
+
+- **Date**: June 2026
+- **User Goal**: Restore administrator login for `superadmin@useclevr.app` and carry the fix through the beta deployment pipeline.
+- **Current Product State**: Credential login, session role, administrator route access, source validation, production packaging, generated-server smoke testing, and `dist-test` publication pass. Railway still returns its platform-level 404 for `test.useclevr.com`.
+- **Implemented Changes & Decisions**:
+  1. **Login Recovery**: The login page confirms the authenticated session, Auth.js keeps trusted UseClevr redirects on the public host, and Railway startup selects the Railway server target.
+  2. **Regression Coverage**: Auth redirect tests cover production, test, local, and untrusted origins; a packaged browser test reaches the administrator customer page with the superadmin session.
+  3. **CI Environment**: Validation and deployment workflows derive an isolated build-only authentication secret from GitHub run metadata.
+  4. **Pipeline Result**: Source validation and the beta-to-`dist-test` publisher pass, including the generated server health smoke test.
+- **Problems Marked**:
+  - `blocker`: Railway returns `Application not found` for `test.useclevr.com` before the UseClevr server receives the request.
+  - `observation`: The native Railway CLI requires an interactive login even though the project wrapper confirms API connectivity.
+- **User Learning**: The administrator account and packaged application login path work; the remaining test-host failure is Railway service or domain routing.
+- **AI-Agent Learning**: Supply every required runtime variable to build collection and smoke-test stages, and distinguish platform fallback responses from application failures.
+- **Follow-up Tasks**:
+  - T-778. Connect the Railway test service and `test.useclevr.com` domain to the published `dist-test` branch.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Completed login and CI work lives in `.TODO/todo-done.md`; the unresolved Railway test routing work remains in `.TODO/todo-next.md`.
