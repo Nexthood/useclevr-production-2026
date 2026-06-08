@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const MCP_SUBDOMAIN_PATTERN = /^mcp(?:-test)?\.useclevr\.com(:?\d+)?$/;
+
 const apiPrefix = "/api"
 const publicApiPrefixes = ["/api/auth"]
 const publicApiPaths = [
@@ -22,6 +24,12 @@ function hasSessionCookie(request: NextRequest) {
 
 export default function proxy(request: NextRequest) {
   const { nextUrl } = request
+  const host = request.headers.get("host") || ""
+  const isMcpSubdomain = MCP_SUBDOMAIN_PATTERN.test(host)
+  if (isMcpSubdomain && nextUrl.pathname !== "/api/mcp") {
+    return new NextResponse("Not Found", { status: 404 })
+  }
+
   const isLoggedIn = hasSessionCookie(request)
   const pathname = nextUrl.pathname
 
