@@ -20,6 +20,12 @@ moving work between states.
 - T-823. Run end-to-end MCP token auth and tool invocation tests via REST Client files in `docs/api-tests/mcp.http`. (labels: mcp, testing, security)
 - T-824. Add "What types of questions can I ask?" example to the MCP FAQ collection showing dataset column queries, aggregation requests, and chart suggestions. (labels: mcp, faq, docs)
 
+## Label: ui
+
+- T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard)
+- T-829. Add smooth theme transition with fade-in-out animation on root layout for light/dark mode changes. (labels: ui, accessibility, workflow)
+- T-830. Add dark-mode-aware accessibility icons grid including eye-dropper, zoom-in, zoom-out, a11y, and voice-control icons. (labels: ui, accessibility, dashboard)
+
 ## Deferred
 
 ## Suggestions

@@ -1,11 +1,5 @@
+import { runLLM } from "@/lib/ai/llmAdapter";
 import { debugError } from "@/lib/utils/debug";
-
-/**
- * Report AI Chat
- * 
- * Provides AI chat capabilities for report pages.
- * Uses only the stored report snapshot context - no access to full dataset.
- */
 
 import type { Report } from './report-generator';
 
@@ -20,9 +14,6 @@ export interface ReportChatResult {
   sources?: string[];
 }
 
-/**
- * Generate a context prompt from the report snapshot
- */
 function generateReportContext(report: Report): string {
   let context = `You are analyzing a shared report for dataset: ${report.datasetName}\n\n`;
   
@@ -91,9 +82,6 @@ function generateReportContext(report: Report): string {
   return context;
 }
 
-/**
- * Answer a question about the report
- */
 export async function answerReportQuestion(
   report: Report,
   question: string
@@ -103,29 +91,15 @@ export async function answerReportQuestion(
   const prompt = `${context}\n\nUSER QUESTION:\n${question}\n\n`;
   
   try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: [],
-        sampleData: [],
-        rowCount: report.rowCount
-      })
-    });
-    
-    if (response.ok) {
-      const text = await response.text();
-      return {
-        response: text,
-        sources: ['Executive Summary', 'Findings', 'KPIs', 'Insights']
-      };
-    }
+    const answer = await runLLM(prompt, "deepseek-coder");
+    return {
+      response: answer,
+      sources: ['Executive Summary', 'Findings', 'KPIs', 'Insights']
+    };
   } catch (error) {
     debugError('[REPORT-CHAT] Error:', error);
   }
   
-  // Fallback response
   return {
     response: `I can help you understand the report "${report.datasetName}". ` +
       `The report includes ${report.findings?.length || 0} key findings, ` +
