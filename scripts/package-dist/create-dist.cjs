@@ -323,6 +323,7 @@ copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
+RUN node scripts/runtime/railway-predeploy.cjs
 EXPOSE 8080
 CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]
 `;

@@ -84,6 +84,10 @@ moving work between states.
 - T-613. Implement JWT token rotation and refresh token invalidation on password change. (labels: security, testing)
 - T-616. Add password breach detection using HaveIBeenPwned API during registration and password change. (labels: security, api)
 
+## Label: mcp
+
+- T-810. Add MCP endpoint at subdomain root (e.g., `mcp.useclevr.com/` serves `/api/mcp` without redirect) when MCP becomes an external customer-facing service. (labels: mcp, deployment, api)
+
 ## Additional
 
 - T-689. Add distributed tracing with OpenTelemetry for all service interactions. (labels: monitoring, observability)
