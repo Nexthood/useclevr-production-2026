@@ -7,6 +7,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Railway build container restores `next/dist/build/` at Docker image build time via `RUN` step, preventing `Cannot find module '../build/output/log'` crash
+- Deployment pipeline no longer syncs beta from main on production deploy, preventing premature production publish before dist-test verification
+
+### Changed
+
+- `scripts/runtime/railway-predeploy.cjs` skips database schema sync when `DATABASE_URL` is absent, allowing it to run as Docker `RUN` step without a database connection
+- `scripts/runtime/start-dist.cjs` restores `next/dist/build/` at startup as runtime safety net when pnpm store entry lacks the build directory
+
 ### Added
 
 - MCP subdomain exposes tool schemas with scoped access for service tokens
@@ -16,8 +26,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - FAQ content management available via Payload admin with field validation
 - Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
 - Give new Free accounts a 14-day analyst trial while preserving two free analyst credits for use after the trial.
-- Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
-- Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
+- Railway build container restores `next/dist/build/` at Docker image build time via `RUN` step, preventing `Cannot find module '../build/output/log'` crash
+- Deployment pipeline no longer syncs beta from main on production deploy, preventing premature production publish before dist-test verification
+
+### Changed
+
+- Login page shows built-in demo accounts as one-liners under the sign-in form instead of in a separate panel
+- Login page removed page footer, keeping only terms link in signup notice
+- Login page simplified card styling without backdrop blur
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
 - Business mentoring dashboard widget showing next scheduled session and booking options.

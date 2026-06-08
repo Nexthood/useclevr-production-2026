@@ -342,3 +342,30 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - T-809. Test MCP token creation, auth, scope enforcement, and audit logging end-to-end.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Changes recorded in `CHANGELOG.md`, `ai-tracing-structure.md` updated, MCP route and schema updated, Payload config updated.
+
+---
+
+## Interaction 18: Railway Deploy Fix — next/dist/build/ Restore in Docker Build
+
+- **Date**: June 2026
+- **User Goal**: Fix Railway deploy crash (`Cannot find module '../build/output/log'`) by making `next/dist/build/` restore work inside Railway's Docker build container.
+- **Current Product State**: `restoreNextBuildDir()` ran in CI `create-dist.cjs` but files were silently dropped by git during the orphan-branch dist-test publish. Railway deployed without `next/dist/build/` and crashed at startup.
+- **Implemented Changes & Decisions**:
+  1. **Spare Copy Outside pnpm Store**: Added `copyBuildDir()` to `create-dist.cjs` that saves `next/dist/build/` to `dist/next-build-extra/` — a regular path that survives git commit (pnpm store files were being dropped).
+  2. **Dockerfile RUN Step**: Added `RUN node scripts/runtime/railway-predeploy.cjs` to the generated `dist/Dockerfile` so the restore runs inside Railway's build container BEFORE the image is finalized.
+  3. **Predeploy Script Restore**: Added `restoreNextBuildDir()` function to `scripts/runtime/railway-predeploy.cjs` that copies `next-build-extra/` into any pnpm store entry missing `next/dist/build/` at container build time.
+  4. **Runtime Fallback**: Added the same restore logic to `start-dist.cjs` as a runtime safety net.
+  5. **No DB No Fail**: Made predeploy script skip database schema sync (and exit cleanly) when `DATABASE_URL` is absent — needed so the Docker `RUN` step works during image build where no database exists.
+  6. **Production Deploy Prevention**: Removed `sync-beta` job from `branch-maintenance.yml` (was fast-forwarding beta to main on main merge, triggering production publish without dist-test verification).
+  7. **Cancelled Premature Production Deploy**: Canceled the `Sync Beta And Publish Dist` workflow that auto-triggered on PR merge before dist-test was verified.
+- **Problems Marked**:
+  - `blocker`: CI's `restoreNextBuildDir()` logged success but files never appeared in the published `dist-test` branch. Root cause not fully determined — likely git orphan-branch creation or `.pnpm/` directory handling drops files during the `cp -a` + `git commit-tree` pipeline.
+  - `blocker`: Dockerfile `RUN` step needs `railway-predeploy.cjs` to not fail when `DATABASE_URL` is absent (no DB during Docker build). Fixed by making DB schema sync optional.
+  - `risk`: The generated `dist/Dockerfile` uses `COPY . .` (branch root) while the root `dist-root/Dockerfile` uses `COPY dist/ .` — two different path layouts that must stay consistent.
+- **User Learning**: Railway does not re-run `pnpm build` or `create-dist.cjs` during deploy — it only uses files published to the deployment branch. Any build-time fix must either survive git commit or run inside Docker.
+- **AI-Agent Learning**: When debugging CI artifacts that exist at smoke-test time but disappear from git, check for git filter/drop mechanisms in orphan-branch creation. As a practical workaround, save critical files outside pnpm store directories to a regular path that git always commits.
+- **Follow-up Tasks**:
+  - T-810. Verify next Railway dist-test deploy succeeds by checking for "Restored next/dist/build/" in Railway build logs.
+  - T-811. Create `docs/Developer_Guides/RAILWAY_DEPLOYMENT.md` entry documenting the two Dockerfile layout patterns and the `next-build-extra/` restore mechanism.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Changes recorded in `CHANGELOG.md`, `create-dist.cjs` updated, `railway-predeploy.cjs` updated, `start-dist.cjs` updated, `branch-maintenance.yml` updated, `beta-maintenance.yml` updated.
