@@ -9,8 +9,11 @@ Use this guide when a user asks for implementation, review, validation, release 
 3. Preserve staged and unstaged work from the user or other agents.
 4. Make focused edits that match existing project patterns.
 5. Run the smallest useful validation first.
-6. Update requirements, changelog, TODO files, docs, and prompt files when durable behavior changes.
-7. Report the result with concise success, failure, validation, and remaining-risk notes.
+6. Update requirements, changelog, TODO files, the owning feature guide, and prompt files when
+   durable behavior changes.
+7. Update `project-logs/interactive-log.md`, `project-logs/activity-log.md`, and
+   `docs/AI-interaction/interaction-status.md` after every completed AI interaction.
+8. Report the result with concise success, failure, validation, and remaining-risk notes.
 
 ## Status Updates
 
@@ -38,7 +41,9 @@ Use this guide when a user asks for implementation, review, validation, release 
 ## Interaction Learning
 
 - Convert loose AI interaction notes into the durable docs folder that matches the audience.
-- Store reusable prompts in `docs/AI-interaction/prompt-library/`.
+- Store reusable prompts in `project-prompts/`.
+- Store detailed session records in `project-logs/interactive-log.md`.
+- Store current activity summaries in `project-logs/activity-log.md`.
 - Store agent-facing rules in this folder and `AGENTS.md`.
 - Store user-facing request guidance in `docs/AI-interaction/user-guides/`.
 - Store implementation plans in `.TODO/.PLAN/` only while they are active planning references.

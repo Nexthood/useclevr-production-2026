@@ -8,8 +8,10 @@ Update this folder whenever durable AI instructions change.
 - Store TODO wording and task-number rules in `.TODO/config.json`.
 - Store user-facing collaboration guidance in [../user-guides/user-guide.md](../user-guides/user-guide.md).
 - Store AI-agent collaboration guidance in [../developer-guides/ai-agent-guide.md](../developer-guides/ai-agent-guide.md).
-- Store reusable prompt files and the prompt index in [../prompt-library/](../prompt-library/README.md).
-- Run post-interaction memory capture after each completed request/response cycle and keep only durable learning in project records.
+- Store reusable prompt files and the prompt index in [../../../project-prompts/](../../../project-prompts/README.md).
+- Run post-interaction memory capture after each completed request/response cycle.
+- Update `project-logs/interactive-log.md`, `project-logs/activity-log.md`, and
+  `docs/AI-interaction/interaction-status.md` after every completed AI interaction.
 - Store bookkeeping user and developer mirrors in this folder when bookkeeping guidance changes.
 
 ## Text Language Rule
@@ -31,4 +33,5 @@ Update this folder whenever durable AI instructions change.
 - Update AI-agent guidance when the instruction changes how agents should work.
 - Update prompt examples when the instruction changes prompt style.
 - Update individual prompt files when a durable prompt pattern changes.
+- Update both project logs and the AI interaction status file.
 - Update bookkeeping guides when the instruction changes accounting or bookkeeping behavior.

@@ -11,9 +11,10 @@ if [ "$CURRENT_NODE" != "$REQUIRED_NODE" ]; then
   exit 1
 fi
 
-# AI-governance checks: ensure AI agents updated TODOs, changelog, and
-# didn't leak secrets before committing. Full validation runs before push.
-pnpm lint:todos
-pnpm lint:changelog
-pnpm lint:secrets
-pnpm lint:package
+# Pre-commit checklist:
+# - changelog updated
+# - project-logs/interactive-log.md records the completed session
+# - project-logs/activity-log.md summarizes current activity
+# - docs/AI-interaction/interaction-status.md records the latest AI interaction
+# - durable documentation changes are stored in the owning guide
+pnpm validate:precommit

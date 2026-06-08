@@ -5,6 +5,7 @@ import {
   GetCostBreakdownInput,
   GetDatasetSchemaInput,
   GetFaqsInput,
+  GetNewsInput,
   GetPrecomputedKpisInput,
   GetProfitMarginTrendInput,
   GetProfitabilitySummaryInput,
@@ -22,6 +23,7 @@ import {
   getCostBreakdownFromCache,
   getDatasetSchema,
   getFaqs,
+  getNews,
   getPrecomputedKpis,
   getProfitMarginTrend,
   getProfitabilitySummary,
@@ -68,6 +70,19 @@ export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPTool
             validatedInput.category,
             validatedInput.query,
             validatedInput.limit,
+          ),
+        };
+      }
+
+      case "getNews": {
+        const validatedInput = GetNewsInput.parse(input);
+        return {
+          success: true,
+          result: await getNews(
+            validatedInput.slug,
+            validatedInput.query,
+            validatedInput.limit,
+            validatedInput.includeContent,
           ),
         };
       }

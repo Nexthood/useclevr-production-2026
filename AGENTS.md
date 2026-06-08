@@ -60,6 +60,7 @@ pnpm health           # validate + tests + docs + audit
 - Never read `dist/`, `.git/`, `.next/`, or `node_modules/` (saves tokens)
 - Never edit output in `.next/` or `dist/` unless making production bundle artifacts
 - Never reverse another agent's worktree changes
+- Use `pnpm` package manager, never `npx` or `npm run` — `pnpm exec` for ad-hoc commands
 - Use existing components/patterns before adding new abstractions
 - Keep UI accessible in light and dark themes
 - Use `src/assets/` for static assets; `src/app/assets/` is route handler
@@ -75,9 +76,14 @@ pnpm health           # validate + tests + docs + audit
 - This AI agent must treat `AGENTS.md`, `.kilo/agent/changelog.md`,
   `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the post-interaction
   instruction sources. This AI agent must run
-  `docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md` after each
-  completed request/response cycle and route durable learning into the correct destination file.
-- Convert useful learning from other AI chats with `docs/AI-interaction/prompt-library/ai-memory-collection.md`.
+  `project-prompts/ai-memory-collection-post-interaction.md` after each completed
+  request/response cycle, update `project-logs/interactive-log.md`,
+  `project-logs/activity-log.md`, and `docs/AI-interaction/interaction-status.md`, and route
+  durable learning into the correct destination file.
+- Convert useful learning from other AI chats with `project-prompts/ai-memory-collection.md`.
+- Keep reusable prompt files in `project-prompts/`, detailed session records in
+  `project-logs/interactive-log.md`, and compact activity summaries in
+  `project-logs/activity-log.md`.
 
 ## Script Rules
 
@@ -276,6 +282,7 @@ pnpm railway:login           # Verify token (reads RAILWAY_API_TOKEN from .env)
 pnpm railway:status          # Show project name, ID, connectivity
 pnpm railway:logs            # View deploy/runtime logs (falls through to native binary)
 railway deployment list      # List recent deployments with statuses
+pnpm railway:cleanup         # Mark every deployment in the linked project as REMOVED
 ```
 
 The API token is set in `.env` as `RAILWAY_API_TOKEN`. The local link file

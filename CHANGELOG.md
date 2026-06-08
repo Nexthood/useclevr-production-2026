@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Published product news is searchable through MCP by slug or keyword, with optional full article content.
 - MCP subdomain exposes tool schemas with scoped access for service tokens.
 - Database-backed MCP tokens support creation, listing, and revocation for service authentication.
 - MCP audit trail records tool invocations, authentication failures, and token management events for compliance.
@@ -92,6 +93,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Add full-project Railway deployment-history cleanup through the authenticated project wrapper.
+- Add Railway environment-variable management without printing variable values, and expose the
+  configured MCP server URL in authenticated MCP discovery responses.
+- Separate reusable prompts and project logs from AI guidance, and require current changelog,
+  interaction, activity, and AI-status records before each commit.
 - Skip deployment schema synchronization when a build container has no database connection, while retaining runtime schema synchronization in configured environments.
 - Move lightweight AI-governance checks (TODO, changelog, secrets, package lint) to pre-commit while tests stay in pre-push
 - Generate an isolated authentication secret for validation and deployment builds so required environment checks and generated-server smoke tests complete.

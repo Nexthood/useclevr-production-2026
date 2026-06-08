@@ -7,7 +7,8 @@
 - [Subdomain Access](#subdomain-access)
 - [Usage Examples](#usage-examples)
 
-MCP lets connected tools use trusted dashboard data for analysis support. It reads the same prepared metrics that the dashboard shows: dataset schema, KPIs, top regions, revenue trends, and profitability summaries.
+MCP lets connected tools use trusted dashboard data and published UseClevr content. It reads the
+same prepared metrics that the dashboard shows and published news stored in Payload.
 
 **Current access:** Signed-in users only. Requests from `mcp.useclevr.com` are supported when the subdomain is configured.
 
@@ -38,6 +39,7 @@ After Railway DNS is configured for `mcp.useclevr.com`, verify:
 | Tool                      | Description                                        | Input                              |
 | ------------------------- | -------------------------------------------------- | ---------------------------------- |
 | `getFaqs`                 | FAQ entries by category or keyword search            | `category?`, `query?`, `limit?`     |
+| `getNews`                 | Published news by slug or keyword                   | `slug?`, `query?`, `limit?`, `includeContent?` |
 | `getDatasetSchema`        | Dataset structure: columns, types, business fields | `datasetId`                        |
 | `getPrecomputedKpis`      | KPI values: revenue, expenses, profit, margin      | `datasetId`                        |
 | `getTopRegions`           | Ranked region data with totals and shares          | `datasetId`, `metric`, `limit`     |
@@ -76,6 +78,13 @@ POST /api/mcp
 ```
 POST /api/mcp
 { "name": "getTopRegions", "input": { "datasetId": "your-id", "metric": "revenue", "limit": 10 } }
+```
+
+**Search published news:**
+
+```
+POST /api/mcp
+{ "name": "getNews", "input": { "query": "launch", "limit": 5, "includeContent": false } }
 ```
 
 **Read a resource:**

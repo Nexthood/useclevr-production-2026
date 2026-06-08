@@ -26,7 +26,7 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Store user-facing trace guidance in `docs/AI-interaction/user-guides/`.
 - Store agent and developer trace rules in `docs/AI-interaction/developer-guides/`.
 - Store trace-learning and problem-marker rules in `docs/AI-interaction/learning-traces/`.
-- Store reusable trace prompts in `docs/AI-interaction/prompt-library/`.
+- Store reusable trace prompts in `project-prompts/`.
 - Keep `AGENTS.md` aligned with durable trace behavior.
 
 ## Update Rules

@@ -12,7 +12,10 @@ This AI agent must apply the instruction in:
 - docs/AI-interaction/user-guides/ when user-facing guidance changes
 - docs/AI-interaction/developer-guides/ when agent or developer guidance changes
 - docs/AI-interaction/governance/ when maintenance, project learning, or trace-control rules change
-- docs/AI-interaction/prompt-library/ when prompt examples change
+- project-prompts/ when prompt examples change
+- project-logs/interactive-log.md for the detailed session record
+- project-logs/activity-log.md for the current activity summary
+- docs/AI-interaction/interaction-status.md for the latest AI interaction
 
 Rules:
 - This AI agent must use current-state language in every text file.

@@ -115,6 +115,7 @@ pnpm railway:link -- --project <project-id-or-name> --environment <environment-i
 pnpm railway:status
 pnpm railway inspect
 pnpm railway:logs
+pnpm railway:cleanup
 ```
 
 List recent deployments with statuses:
@@ -162,6 +163,10 @@ local token file.
 status. Do not hand-craft GraphQL queries against the Railway API — the schema changes frequently
 and direct queries are brittle. The wrapper at `scripts/server/railway/railway.cjs` handles auth,
 token loading, and error formatting.
+
+`pnpm railway:cleanup` marks every deployment across every service and environment in the linked
+project as `REMOVED`. Run it only after the user explicitly requests full deployment-history
+cleanup. Railway keeps removed entries in API history and provides no permanent-delete operation.
 
 ## Railpack Configuration
 

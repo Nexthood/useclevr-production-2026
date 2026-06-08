@@ -35,7 +35,7 @@ export interface TraceRecord {
   createdAt: Date
 }
 
-const PROMPT_VERSION = "1.0"
+const PROMPT_VERSION = "1.1"
 const TRACE_TEXT_LIMIT = 10000
 const TRACE_RESPONSE_LIMIT = 50000
 

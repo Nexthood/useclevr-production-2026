@@ -28,6 +28,9 @@ Write the result as current project learning with these sections:
 9. Follow-up tasks
 10. Suggested destination
     - docs/AI-interaction/
+    - project-logs/interactive-log.md
+    - project-logs/activity-log.md
+    - docs/AI-interaction/interaction-status.md
     - requirements.md
     - CHANGELOG.md
     - .TODO/todo-next.md
@@ -43,4 +46,5 @@ Use direct current-state language.
 - Paste this prompt into the other AI chat.
 - Ask the other AI chat to summarize only what it can see.
 - Bring the returned summary back to this project.
-- Convert durable findings into docs, TODO queues, requirements, changelog, or prompt-library entries.
+- Update the required interaction records, then convert durable findings into docs, TODO queues,
+  requirements, changelog, or project-prompts entries.

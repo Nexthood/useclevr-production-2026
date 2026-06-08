@@ -37,10 +37,10 @@ Use this guide when auditing UseClevr from a clean checkout through production r
 
 ## 4A. AI Interaction Evaluation
 
-- Use [Work classification](../AI-interaction/prompt-library/work-classification.md) for broad mixed requests.
-- Use [Feature restoration check](../AI-interaction/prompt-library/feature-restoration-check.md) for restored features.
-- Use [TODO retirement check](../AI-interaction/prompt-library/todo-retirement-check.md) before moving tasks between queues.
-- Use [AI memory collection](../AI-interaction/prompt-library/ai-memory-collection.md) for visible learning from other AI chats.
+- Use [Work classification](../../project-prompts/work-classification.md) for broad mixed requests.
+- Use [Feature restoration check](../../project-prompts/feature-restoration-check.md) for restored features.
+- Use [TODO retirement check](../../project-prompts/todo-retirement-check.md) before moving tasks between queues.
+- Use [AI memory collection](../../project-prompts/ai-memory-collection.md) for visible learning from other AI chats.
 
 ## 5. Billing And Admin
 

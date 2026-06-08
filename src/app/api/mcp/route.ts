@@ -146,7 +146,7 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       authenticated: true,
       role: "admin",
       clientId: "internal-admin-client",
-      scopes: ["dataset:read", "dataset:write", "admin", "faq:read"],
+      scopes: ["dataset:read", "dataset:write", "admin", "faq:read", "news:read"],
     };
   }
 
@@ -155,7 +155,7 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       authenticated: true,
       role: "service",
       clientId: "internal-service-client",
-      scopes: ["dataset:read", "faq:read"],
+      scopes: ["dataset:read", "faq:read", "news:read"],
     };
   }
 
@@ -168,8 +168,8 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       userId: session.user.id,
       clientId: `user-${session.user.id}`,
       scopes: session.user.role === "superadmin"
-        ? ["dataset:read", "faq:read", "admin"]
-        : ["dataset:read", "faq:read"],
+        ? ["dataset:read", "faq:read", "news:read", "admin"]
+        : ["dataset:read", "faq:read", "news:read"],
     };
   }
 
@@ -284,10 +284,13 @@ export async function GET(request: NextRequest) {
       success: true,
     });
 
+    const mcpUrl = appConfig.MCP_URL || undefined;
+
     return addCorsHeaders(
       NextResponse.json({
         tools: listToolsByScope(authContext.scopes),
         resources: datasetId ? listResources(datasetId) : [],
+        ...(mcpUrl && { serverUrl: mcpUrl }),
       }),
       request,
     );

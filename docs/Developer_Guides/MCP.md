@@ -43,7 +43,7 @@ The MCP interface follows the dashboard visibility rules:
 
 - Authenticated users access their own datasets, reports, tickets, settings, and business profile.
 - Superadmin users can access operator-wide administration views.
-- Public FAQ content stays available through `/faq`, homepage FAQ sections, and public help chat, not through MCP.
+- Published FAQ and news content is available through read-scoped MCP tools.
 
 ## API Routes
 
@@ -57,7 +57,7 @@ The MCP interface follows the dashboard visibility rules:
 
 - Use `/api/mcp` for the current authenticated MCP interface, reachable from `mcp.useclevr.com` when configured.
 - Keep MCP route discovery unavailable to unauthenticated users.
-- Keep FAQ routes separate from MCP routes.
+- Keep public FAQ and news page routes separate from MCP transport routes.
 - Do not rely on hidden URLs as security. Hidden endpoints are only an extra layer.
 
 ## Authentication Boundary
@@ -109,7 +109,8 @@ Expected signed-in result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." }
+    { "name": "getFaqs", "description": "..." },
+    { "name": "getNews", "description": "..." }
   ],
   "resources": []
 }
@@ -155,6 +156,7 @@ Expected result shape:
 {
   "tools": [
     { "name": "getFaqs", "description": "..." },
+    { "name": "getNews", "description": "..." },
     { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []

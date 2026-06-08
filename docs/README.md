@@ -8,6 +8,8 @@ Use this page as the documentation entry point.
 - [User guides](User_Guides/README.md)
 - [Developer guides](Developer_Guides/README.md)
 - [AI interaction knowledge base](AI-interaction/README.md)
+- [Project prompts](../project-prompts/README.md)
+- [Project logs](../project-logs/README.md)
 - [Sales documents](Sales/README.md)
 
 ## External Source References

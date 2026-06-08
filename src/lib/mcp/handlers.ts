@@ -4,6 +4,11 @@ import { datasets, datasetRows } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 
 import { allFaqCategories } from "@/lib/content/faq";
+import {
+  getNewsPostBySlug,
+  getNewsPosts,
+  type NewsPostSummary,
+} from "@/lib/payload/content";
 
 import type { PrecomputedMetrics } from "../utils/pipeline-types";
 import type {
@@ -12,6 +17,7 @@ import type {
   DatasetSchemaOutput,
   FaqItemOutput,
   GetFaqsOutput,
+  GetNewsOutput,
   PrecomputedKpisOutput,
   ProfitMarginTrendOutput,
   ProfitabilitySummaryOutput,
@@ -501,6 +507,45 @@ export function getFaqs(
     faqs: faqs.slice(0, limit),
     totalCount: faqs.length,
     categories,
+  };
+}
+
+export async function getNews(
+  slug?: string,
+  query?: string,
+  limit: number = 10,
+  includeContent: boolean = false,
+): Promise<GetNewsOutput> {
+  const normalizedSlug = slug?.trim();
+  let posts: NewsPostSummary[];
+
+  if (normalizedSlug) {
+    const post = await getNewsPostBySlug(normalizedSlug);
+    posts = post ? [post] : [];
+  } else {
+    posts = await getNewsPosts(50);
+  }
+
+  const normalizedQuery = query?.trim().toLowerCase();
+  const matchingPosts = normalizedQuery
+    ? posts.filter((post) =>
+        [post.title, post.summary, post.content].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        ),
+      )
+    : posts;
+
+  return {
+    news: matchingPosts.slice(0, limit).map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      summary: post.summary,
+      publishedAt: post.publishedAt,
+      url: `/news/${post.slug}`,
+      ...(includeContent ? { content: post.content } : {}),
+    })),
+    totalCount: matchingPosts.length,
   };
 }
 

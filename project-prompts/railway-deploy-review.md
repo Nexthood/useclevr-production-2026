@@ -38,6 +38,13 @@ CLI deploy status:
 - Use pnpm railway:logs to view deploy/runtime logs
 - Do NOT hand-craft Railway GraphQL API queries — use the wrapper at scripts/server/railway/railway.cjs instead
 
+CLI deploy history cleanup:
+- Use `pnpm railway:cleanup` only when the user explicitly requests removal of every deployment in
+  every service and environment in the linked project.
+- Treat cleanup as a bulk destructive operation even though Railway keeps `REMOVED` history entries.
+- Use the project wrapper instead of direct GraphQL or hand-built API requests.
+- Railway has no permanent deployment-history deletion API.
+
 Validate:
 - pnpm validate:dist
 - pnpm prod:build when packaging can be affected

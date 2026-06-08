@@ -10,7 +10,7 @@ Use this plan to collect useful project learning from other AI chats and turn it
 
 ## Current Sources
 
-- [AI memory collection prompt](../../docs/AI-interaction/prompt-library/ai-memory-collection.md)
+- [AI memory collection prompt](../../project-prompts/ai-memory-collection.md)
 - [Interaction trace guide](../../docs/AI-interaction/learning-traces/interaction-trace-guide.md)
 - [AI interaction request guide](../../docs/AI-interaction/user-guides/interaction-request-guide.md)
 - [AI interaction workflow guide](../../docs/AI-interaction/developer-guides/interaction-workflow-guide.md)
@@ -22,7 +22,10 @@ Use this plan to collect useful project learning from other AI chats and turn it
 3. Bring the returned summary back into this repository.
 4. Classify each finding as current behavior, active work, deferred work, ignored decision, risk, issue, lesson, or prompt pattern.
 5. Update the matching destination:
-   - `docs/AI-interaction/` for durable AI behavior, prompt, trace, and learning rules.
+   - `docs/AI-interaction/` for durable AI behavior, trace, and learning rules.
+   - `project-prompts/` for reusable prompts.
+   - `project-logs/interactive-log.md` for detailed session records.
+   - `project-logs/activity-log.md` for compact activity summaries.
    - `requirements.md` for user-visible product behavior.
    - `CHANGELOG.md` for release-facing behavior or developer workflow changes.
    - `.TODO/todo-next.md` for active implementation.
@@ -40,5 +43,6 @@ Use this plan to collect useful project learning from other AI chats and turn it
 ## Future Implementation
 
 - Add an app-side import assistant for pasted AI memory summaries.
-- Add a review screen that lets the user classify findings into docs, TODO queues, requirements, changelog, or prompt-library entries.
+- Add a review screen that lets the user classify findings into docs, TODO queues, requirements,
+  changelog, or project prompt entries.
 - Add redaction checks before saving imported summaries.

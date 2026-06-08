@@ -170,7 +170,7 @@ moving work between states.
 
 ## Label: mcp
 
-- T-813. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
+- T-815. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
 
 ## Label: performance
 

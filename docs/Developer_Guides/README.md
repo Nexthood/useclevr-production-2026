@@ -21,6 +21,7 @@
 | **[DASHBOARD_SITEMAP.md](DASHBOARD_SITEMAP.md)**                 | Mermaid sitemap for dashboard routes                           |
 | **[PROJECT_AUDIT_GUIDE.md](PROJECT_AUDIT_GUIDE.md)**             | Start-to-finish project audit workflow                         |
 | **[PROJECT_TESTING_GUIDE.md](PROJECT_TESTING_GUIDE.md)**         | Start-to-finish project testing workflow                       |
+| **[PRE_COMMIT_CHECKLIST.md](PRE_COMMIT_CHECKLIST.md)**           | Required changelog, project-log, and AI-interaction records    |
 
 ## Workflow References
 
