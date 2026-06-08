@@ -19,7 +19,6 @@
     "branch-maintenance.yml": {
       "workflowName": "Sync Beta And Publish Dist",
       "checkRuns": [
-        "Sync beta with main",
         "Publish dist deployment folder"
       ]
     },
