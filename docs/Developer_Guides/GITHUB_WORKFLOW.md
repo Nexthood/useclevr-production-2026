@@ -97,6 +97,45 @@ Use this flow when testing a change before release:
 
 Do not merge `dist` into `main` or open pull requests from `dist`.
 
+## Hotfix Path
+
+Use this flow when a production bug needs immediate deployment without waiting for the normal test cycle:
+
+1. Create a hotfix branch from `main`.
+2. Commit the fix with `fix:` or `perf:` conventional commit type.
+3. Open a pull request into `main` with `hotfix:` or `fix:` prefix in the title.
+4. Request expedited review — the change must pass CI and have at least one approval.
+5. Merge into `main` — do NOT bypass CI even for hotfixes.
+6. After merge, monitor the `branch-maintenance.yml` workflow — it publishes the fix to `dist`.
+7. If the fix was already committed on `beta` and needs to go to production faster than the normal PR cycle, cherry-pick the commit to a hotfix branch from `main` instead of opening a beta-to-main PR.
+
+Hotfixes still run through the full CI pipeline. Do not use `--no-verify`, `[skip ci]`, or force-push to `main`. If the fix is time-sensitive but the full CI pipeline is the bottleneck, consider running a focused build check locally before opening the PR.
+
+## Emergency Rollback Procedure
+
+When a deployment causes service degradation and must be reverted immediately:
+
+1. **Identify the bad deployment**: Check Railway dashboard for the most recent deployment. Note its commit message (e.g. `PR-123: fix: ...`) to identify the source PR.
+2. **Roll back the Railway deployment**:
+   - In Railway dashboard, open the production service.
+   - Find the last known-good deployment (the one before the bad one).
+   - Click "Redeploy" on that deployment to restore the previous version.
+   - Railway deploys the previous `dist` branch state — no git revert needed.
+3. **Prevent the bad code from re-deploying**:
+   - Open a revert PR: `git revert <merge-commit-sha>` on a branch from `main`.
+   - Push the revert branch, open a PR into `main`, and merge when CI passes.
+   - After merge, `branch-maintenance.yml` publishes the reverted code to `dist`.
+4. **Verify rollback**:
+   - Check `/api/health` returns `{"status":"ok"}`.
+   - Sign in and confirm the dashboard loads with correct session data.
+   - Test the specific feature that was broken before the rollback.
+5. **Post-incident**: Open a follow-up PR with the proper fix, documenting the root cause in the PR body. Update `.TODO/todo-ignore.md` if the fix was a one-time configuration issue.
+
+Do NOT:
+- Force-push to `main` or `dist` to "undo" a deployment.
+- Edit `dist` branch files by hand — regenerated output replaces them.
+- Revert the `dist` branch — Railway redeploy from a previous `dist` commit is the correct rollback mechanism.
+
 ## Required Local Checks
 
 Run the focused checks before opening a pull request:

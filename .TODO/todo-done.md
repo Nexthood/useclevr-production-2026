@@ -14,6 +14,40 @@ moving work between states.
 - [TODO-future.md](todo-future.md)
 - [.TODO/config.json](config.json)
 
+## Label: deployment
+
+- T-776. Wrap Payload CMS seed onInit with graceful table-existence check before querying cms-users collection, so static page generation succeeds on fresh databases without relying on generic try/catch. (labels: deployment, content, ci-build; commit: worktree)
+
+## Label: monitoring
+
+- T-793. Add Docker HEALTHCHECK instruction to dist-root/Dockerfile and generated Dockerfile, checking /api/health every 30s with 3 retries. (labels: monitoring, deployment, stability; commit: worktree)
+- T-794. Add SIGTERM/SIGINT graceful shutdown handler to start-dist.cjs that forwards the signal to the child Next.js server process before exiting. (labels: monitoring, deployment, data; commit: worktree)
+
+## Label: mcp
+
+- T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via /api/mcp/tokens endpoint — all verified working with getFaqs tool. (labels: mcp, testing, security; commit: worktree)
+- T-816. Add FAQ seed data to Payload Faqs collection with 5 categories and 25 questions. Wire MCP getFaqs handler to read from Payload with static fallback. Add getFaqsFromPayload function to content.ts. (labels: mcp, content, faq; commit: worktree)
+
+## Label: docs
+
+- T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
+
+## Label: workflow
+
+- T-703. Add pre-commit hooks (lint:todos, lint:changelog, lint:secrets, lint:package) and pre-push hooks (types, dist validate, lint, workflows). Verified fully implemented. (labels: workflow, ci-build; commit: worktree)
+
+## Label: auth
+
+- T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
+
+## Label: deployment
+
+- T-814. Add two-line README.md for dist branch explaining deployment structure and recovery procedures. (labels: deployment, docs, workflow; commit: worktree)
+
+## Label: mcp
+
+- T-820. Add MCP token management UI in superadmin panel for creating and revoking service tokens. Includes list view with DataTable, stat cards, create dialog with scope checkboxes and expiry, raw token copy dialog, and per-row revoke action. (labels: mcp, ui, security; commit: worktree)
+
 ## Label: content
 
 - T-737. Set up Payload Phase 0 with minimal admin content editing for news, homepage, privacy, terms, demo CMS accounts, and shared PostgreSQL migration flow. (labels: content, auth, payment, deployment; commit: worktree)
@@ -273,7 +307,7 @@ moving work between states.
 
 ## Label: mcp
 
-- T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via the new /api/mcp/tokens endpoint. (labels: mcp, testing, security; commit: worktree)
+>>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
 - T-817. Expose published Payload news posts through a scoped MCP tool with slug and keyword filtering. (labels: mcp, content, api; commit: worktree)
 - T-533. MCP tool `getProfitMarginTrend` added: combines profit margin calculation with growth trend direction in handlers.ts, tools.ts, server.ts, integration.ts. (labels: mcp, ai, data, workflow; commit: 3e8d4602)
 - T-532. MCP resource `revenue-by-region` added with ranked rows and share percentages (already existed as `getTopRegions` in resources.ts). (labels: mcp, ai, data, workflow; commit: 3e8d4602)

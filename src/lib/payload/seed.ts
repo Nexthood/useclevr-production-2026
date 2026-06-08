@@ -17,6 +17,184 @@ const cmsUsers = [
   },
 ]
 
+const faqSeed = [
+  {
+    category: "Getting Started",
+    question: "How does UseClevr turn CSV data into answers?",
+    answer: "Upload a CSV file and ask questions in plain English. UseClevr's AI reads your table headers and data types, runs verified calculations (sum, average, top-N, group-by, etc.), and returns both the computed result and a plain-language explanation.",
+    sortOrder: 1,
+    scope: "public" as const,
+  },
+  {
+    category: "Getting Started",
+    question: "Do I need SQL or data science skills?",
+    answer: "No. UseClevr translates natural language into structured queries and deterministic calculations. You only need to understand your own data — the platform handles the rest.",
+    sortOrder: 2,
+    scope: "public" as const,
+  },
+  {
+    category: "Getting Started",
+    question: "How do I upload a dataset?",
+    answer: "Go to the Datasets page from the sidebar and click \"Upload dataset\". Supported format is CSV (up to 50 MB per file). Once uploaded, the column headers are parsed and the dataset is ready for analysis.",
+    sortOrder: 3,
+    scope: "public" as const,
+  },
+  {
+    category: "Getting Started",
+    question: "What file formats are supported?",
+    answer: "CSV files are fully supported for upload, analysis, and report generation. We recommend UTF-8 encoded CSVs with a header row.",
+    sortOrder: 4,
+    scope: "public" as const,
+  },
+  {
+    category: "Getting Started",
+    question: "How long does setup take?",
+    answer: "Most users are analysing their first dataset within five minutes. Create an account, upload a CSV, and type your first question — no configuration required.",
+    sortOrder: 5,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "How do payments and subscriptions work?",
+    answer: "UseClevr uses Stripe Checkout for secure subscription payments. When you choose a paid plan, you are redirected to Stripe's secure checkout page to enter your payment details. After payment, you are redirected back to UseClevr and your subscription is activated automatically.",
+    sortOrder: 1,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "What payment methods are supported?",
+    answer: "We support all major credit and debit cards through Stripe. Enterprise invoices are available on the Business plan.",
+    sortOrder: 2,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "Does UseClevr store my card details?",
+    answer: "No. UseClevr does not store your card details. Payments are processed securely by Stripe.",
+    sortOrder: 3,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "Can I upgrade or downgrade my plan at any time?",
+    answer: "Yes. Plan changes take effect at the start of the next billing cycle. Go to Settings → Subscription to switch plans instantly.",
+    sortOrder: 4,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "Can I cancel my subscription?",
+    answer: "Yes. You can cancel your subscription from your billing settings. Your paid access remains active until the end of your current billing period.",
+    sortOrder: 5,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "What happens to my data when I downgrade or cancel?",
+    answer: "Your data remains accessible until the end of the current billing period. After cancellation, you can re-subscribe at any time to restore full access.",
+    sortOrder: 6,
+    scope: "public" as const,
+  },
+  {
+    category: "Plans & Billing",
+    question: "Is there a free plan?",
+    answer: "Yes — the Free plan includes 1 dataset and limited AI questions so you can try the platform before upgrading. No credit card required.",
+    sortOrder: 7,
+    scope: "public" as const,
+  },
+  {
+    category: "AI & Analysis",
+    question: "Which AI models does UseClevr use?",
+    answer: "UseClevr uses Google Gemini via the AI SDK for cloud analysis. Hybrid AI Lite runs a local model in your browser for sensitive datasets — your data never leaves your device during local analysis.",
+    sortOrder: 1,
+    scope: "public" as const,
+  },
+  {
+    category: "AI & Analysis",
+    question: "What kinds of questions can I ask?",
+    answer: "Any question your structured data can answer: totals, averages, top-N rankings, group-by summaries, comparisons over time, trend analysis, and more. The AI will confirm if a question cannot be answered with the available columns.",
+    sortOrder: 2,
+    scope: "public" as const,
+  },
+  {
+    category: "AI & Analysis",
+    question: "How do I get the best answer from the AI assistant?",
+    answer: "Ask one clear question, name the dataset or metric when it matters, and ask for the direct result first. Add context such as period, region, product, or customer segment when you need a focused answer.",
+    sortOrder: 3,
+    scope: "public" as const,
+  },
+  {
+    category: "AI & Analysis",
+    question: "Is Hybrid AI really local?",
+    answer: "Yes. Hybrid AI connects to the local UseClevr runtime on your device. Local analysis keeps your data on your machine instead of sending it to the cloud AI provider.",
+    sortOrder: 4,
+    scope: "public" as const,
+  },
+  {
+    category: "Data & Privacy",
+    question: "Is my data secure?",
+    answer: "UseClevr is GDPR-compliant and aligned with SOC 2 principles. Uploaded datasets and generated reports are your property. We never train external models on your data.",
+    sortOrder: 1,
+    scope: "public" as const,
+  },
+  {
+    category: "Data & Privacy",
+    question: "Where is my data stored?",
+    answer: "Your datasets are stored in your configured database (Neon PostgreSQL). Reports are generated on demand and served to your browser. No persistent cloud AI storage is used.",
+    sortOrder: 2,
+    scope: "public" as const,
+  },
+  {
+    category: "Data & Privacy",
+    question: "Can I delete my data?",
+    answer: "Yes. You can delete individual datasets from the Datasets page, or request full account deletion by contacting support. All data is removed within 30 days.",
+    sortOrder: 3,
+    scope: "public" as const,
+  },
+  {
+    category: "Data & Privacy",
+    question: "Do you use my data to train models?",
+    answer: "No. UseClevr never uses your uploaded data, questions, or generated reports to train or fine-tune any external model.",
+    sortOrder: 4,
+    scope: "public" as const,
+  },
+  {
+    category: "Technical",
+    question: "Which browsers are supported?",
+    answer: "UseClevr works on all modern browsers: Chrome, Firefox, Safari, and Edge (latest two stable versions). Hybrid AI Lite requires a browser with WebAssembly support.",
+    sortOrder: 1,
+    scope: "public" as const,
+  },
+  {
+    category: "Technical",
+    question: "Is there an API?",
+    answer: "Yes. UseClevr provides REST API endpoints for queries and chat completions. See the Developer Guide for authentication, rate limits, and example requests.",
+    sortOrder: 2,
+    scope: "public" as const,
+  },
+  {
+    category: "Technical",
+    question: "What is Hybrid AI Lite vs Mega?",
+    answer: "Hybrid AI Lite is the recommended option for everyday use on most devices. Hybrid AI MEGA is designed for business workstations with higher capacity requirements.",
+    sortOrder: 3,
+    scope: "public" as const,
+  },
+  {
+    category: "Technical",
+    question: "Can I self-host UseClevr?",
+    answer: "Self-hosting is available on the Business / Custom plan. Contact sales@useclevr.com to discuss private deployment options for your organisation.",
+    sortOrder: 4,
+    scope: "public" as const,
+  },
+  {
+    category: "Technical",
+    question: "Can I change theme, contrast, or text size?",
+    answer: "Yes. Use the display settings icon to choose Light, Dark, or System theme. High contrast increases visual separation, and Larger text raises the reading size across pages.",
+    sortOrder: 5,
+    scope: "public" as const,
+  },
+]
+
 const newsSeed = [
   {
     slug: "useclevr-launch-readiness",
@@ -137,6 +315,33 @@ async function ensureGlobalSeed(payload: Payload, slug: "homepage-content" | "pr
   })
 }
 
+async function ensureFaqsSeed(payload: Payload) {
+  const p = payload as any
+  for (const item of faqSeed) {
+    const existing = await p.find({
+      collection: "faqs",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: {
+        question: {
+          equals: item.question,
+        },
+      },
+    })
+
+    if (existing.docs[0]) {
+      continue
+    }
+
+    await p.create({
+      collection: "faqs",
+      data: item,
+      overrideAccess: true,
+    })
+  }
+}
+
 async function ensureNewsSeed(payload: Payload) {
   for (const item of newsSeed) {
     const existing = await payload.find({
@@ -170,6 +375,7 @@ async function ensureNewsSeed(payload: Payload) {
 
 export async function seedPayloadPhaseZero(payload: Payload) {
   await ensureCmsUsers(payload)
+  await ensureFaqsSeed(payload)
   await ensureGlobalSeed(payload, "homepage-content", homepageSeed)
   await ensureGlobalSeed(payload, "privacy-page-content", privacySeed)
   await ensureGlobalSeed(payload, "terms-page-content", termsSeed)

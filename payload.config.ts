@@ -61,6 +61,17 @@ export default buildConfig({
   onInit: async (payload) => {
     if (hasSeeded) return
     hasSeeded = true
+
+    let tablesReady = false
+    try {
+      await payload.find({ collection: "cms-users", limit: 0, overrideAccess: true })
+      tablesReady = true
+    } catch {
+      payload.logger.warn("Database tables not ready — seed skipped (expected during build against fresh databases)")
+    }
+
+    if (!tablesReady) return
+
     try {
       await seedPayloadPhaseZero(payload)
       payload.logger.info(
@@ -69,7 +80,7 @@ export default buildConfig({
     } catch (cause) {
       payload.logger.warn(
         { err: cause },
-        "Seed skipped — database tables not ready (expected during build against fresh databases)",
+        "Seed failed after table-existence check — unexpected error",
       )
     }
   },

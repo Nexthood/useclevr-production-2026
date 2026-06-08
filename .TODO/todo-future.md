@@ -170,7 +170,9 @@ moving work between states.
 
 ## Label: mcp
 
-- T-815. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
+- T-818. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
+- T-819. Create separate MCP Railway service with independent scaling and monitoring when MCP demand grows. (labels: mcp, deployment, monitoring)
+- T-825. Add MCP rate limiting dashboards showing per-client usage, throttling events, and response time metrics. (labels: mcp, monitoring, metrics)
 
 ## Label: performance
 
@@ -271,3 +273,7 @@ moving work between states.
 - T-731. Track slow developer workflows and remove repeated manual steps from local setup, build packaging, and deploy verification. (labels: workflow, performance, deployment)
 - T-770. Add automated dependency licensing compliance checks. (labels: workflow, ci-build)
 - T-771. Implement feature flag lifecycle management with automated cleanup. (labels: workflow, testing)
+- T-826. Add MCP audit log viewer in superadmin panel for tracing tool invocations, auth attempts, and rate limit events. (labels: mcp, monitoring, security, ui)
+- T-827. Implement MCP tool invocation streaming with progressive result delivery for long-running dataset queries. (labels: mcp, api, performance)
+
+## Suggestions

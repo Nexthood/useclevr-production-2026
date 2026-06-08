@@ -10,6 +10,7 @@ import {
   Database,
   FileText,
   Gift,
+  KeyRound,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -41,6 +42,7 @@ const adminNavigation = [
   { name: "Billing Settings", href: "/app/admin/billing-settings", icon: CreditCard },
   { name: "AI Traces", href: "/app/admin/ai-traces", icon: BarChart3 },
   { name: "AI Benchmarking", href: "/app/admin/ai-benchmarking", icon: BarChart3 },
+  { name: "MCP Tokens", href: "/app/admin/mcp-tokens", icon: KeyRound },
 ];
 
 type AppSidebarProps = {

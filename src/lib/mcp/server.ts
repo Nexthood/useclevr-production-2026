@@ -66,7 +66,7 @@ export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPTool
         const validatedInput = GetFaqsInput.parse(input);
         return {
           success: true,
-          result: getFaqs(
+          result: await getFaqs(
             validatedInput.category,
             validatedInput.query,
             validatedInput.limit,

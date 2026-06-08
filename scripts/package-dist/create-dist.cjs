@@ -196,13 +196,9 @@ for (const targetDir of [distDir]) {
   }
 }
 
-// Remove package-manager indicators so Railpack uses the prebuilt standalone bundle without
-// trying to install dependencies in the generated deployment folder.
-// Note: pnpm-lock.yaml and other lockfiles are removed because Railway Dockerfile uses npm install
-// with the precompiled standalone bundle. The lockfiles are kept in .aiignore for token optimization
-// during AI development work, not for deployment considerations.
+// Keep pnpm-lock.yaml for deterministic installs in the Dockerfile (pnpm install --prod).
+// Remove other package-manager lockfiles and configs that are not needed.
 const packageManagerFiles = [
-  "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "package-lock.json",
   "yarn.lock",
@@ -317,14 +313,15 @@ restoreNextBuildDir();
 const nextBuildExtra = path.join(distDir, "next-build-extra");
 copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
 
-// Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
-// all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
-// image copies the entire prebuilt dist directory — no npm install needed.
+// Railway uses DOCKERFILE builder (not Railpack). pnpm install --prod covers peer dependencies
+// like 'pg' that Next.js tracing may not pull into the standalone build.
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
+RUN corepack enable && pnpm install --prod 2>&1
 RUN node scripts/runtime/railway-predeploy.cjs
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD node -e "require('http').get('http://localhost:8080/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
