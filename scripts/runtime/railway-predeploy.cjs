@@ -10,11 +10,6 @@ try {
 
 const databaseUrl = (process.env.DIRECT_URL || process.env.DATABASE_URL || "").trim();
 
-if (!databaseUrl) {
-  console.error("DATABASE_URL or DIRECT_URL is required for Railway predeploy.");
-  process.exit(1);
-}
-
 const shouldUseSsl =
   databaseUrl.includes("sslmode=require") ||
   databaseUrl.includes("sslmode=verify-full") ||
@@ -278,6 +273,11 @@ async function main() {
   console.log("DATABASE_URL present:", Boolean(process.env.DATABASE_URL));
   console.log("DIRECT_URL present:", Boolean(process.env.DIRECT_URL));
 
+  if (!databaseUrl) {
+    console.log("No database URL — skipping schema sync.");
+    return;
+  }
+
   const client = new Client({
     connectionString: databaseUrl,
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,
@@ -332,7 +332,7 @@ async function main() {
     console.log("Railway predeploy schema sync complete.");
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Railway predeploy failed:");
+    console.error("Railway predeploy schema sync failed:");
     console.error(error instanceof Error ? error.stack || error.message : error);
     process.exit(1);
   } finally {
