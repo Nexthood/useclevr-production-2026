@@ -47,6 +47,31 @@ if (!fs.existsSync(nextBuildDir) && fs.existsSync(nextBuildRestoreDir)) {
   fs.cpSync(nextBuildRestoreDir, nextBuildDir, { recursive: true });
 }
 
+// Restore next/dist/build/ from spare copy if the pnpm store entry lacks it
+const buildExtra = path.join(process.cwd(), "next-build-extra");
+if (fs.existsSync(buildExtra)) {
+  const nm = path.join(process.cwd(), "node_modules");
+  const pnpmDir = path.join(nm, ".pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith("next@")) {
+        const nextDir = path.join(pnpmDir, entry.name, "node_modules", "next");
+        const buildDir = path.join(nextDir, "dist", "build");
+        const logFile = path.join(buildDir, "output", "log.js");
+        if (!fs.existsSync(logFile)) {
+          try {
+            fs.rmSync(buildDir, { recursive: true, force: true });
+            fs.mkdirSync(buildDir, { recursive: true });
+            fs.cpSync(buildExtra, buildDir, { recursive: true });
+          } catch {
+            // Non-critical — server may still work without build/ depending on runtime path resolution
+          }
+        }
+      }
+    }
+  }
+}
+
 const serverCandidates = [
   path.join(process.cwd(), "server.js"),
   path.join(process.cwd(), "dist", "server.js"),

@@ -37,7 +37,6 @@ function LoginForm() {
   const [signUpPassword, setSignUpPassword] = useState("")
   const [showSignInPassword, setShowSignInPassword] = useState(false)
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
-  const [showBuiltInPasswords, setShowBuiltInPasswords] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -226,22 +225,22 @@ function LoginForm() {
       password: DEMO_PASS,
     },
     {
-      label: "Superadmin role",
+      label: "Superadmin",
       email: BUILTIN_SUPER_ADMIN_USER.email,
       password: DEMO_PASS,
     },
   ]
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-background">
       <header className="absolute right-4 top-4 z-10">
         <ThemeToggle />
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border border-border/80 bg-card/95 shadow-2xl backdrop-blur-sm">
+        <Card className="w-full max-w-md border border-border bg-card shadow-lg">
           <CardContent>
-            <Tabs defaultValue={defaultTab} className="space-y-5">
+            <Tabs defaultValue={defaultTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign in</TabsTrigger>
                 <TabsTrigger value="signup">Sign up</TabsTrigger>
@@ -253,57 +252,7 @@ function LoginForm() {
                 </div>
               )}
 
-              <div className="rounded-lg border border-border/70 bg-muted/30 p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Built-in accounts</p>
-                    <p className="text-xs text-muted-foreground">
-                      Use the same username and password for app sign-in and the CMS admin at <code>/admin</code>.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowBuiltInPasswords(!showBuiltInPasswords)}
-                  >
-                    {showBuiltInPasswords ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {builtInAccounts.map((account) => (
-                    <div
-                      key={account.email}
-                      className="rounded-md border border-border/60 bg-background px-3 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1 text-sm">
-                          <p className="font-medium text-foreground">{account.label}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{account.email}</p>
-                          {showBuiltInPasswords && (
-                            <p className="font-mono text-xs text-muted-foreground">{account.password}</p>
-                          )}
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={isLoading}
-                          onClick={() => {
-                            setSignInEmail(account.email)
-                            setSignInPassword(account.password)
-                            setAuthError(null)
-                          }}
-                        >
-                          Use
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <TabsContent value="signin" className="mt-0">
+              <TabsContent value="signin" className="mt-0 space-y-4">
                 <form onSubmit={handleSignInSubmit} className="space-y-4">
                   <InnerLabelInput
                     id="signin-email"
@@ -331,7 +280,7 @@ function LoginForm() {
                         <PasswordToggle showPassword={showSignInPassword} setShowPassword={setShowSignInPassword} />
                       }
                     />
-                    <Link href="#" className="mt-1 block text-sm text-primary hover:underline">
+                    <Link href="#" className="mt-1 block text-xs text-primary hover:underline">
                       Forgot password?
                     </Link>
                   </div>
@@ -350,9 +299,27 @@ function LoginForm() {
                     )}
                   </Button>
                 </form>
+
+                {builtInAccounts.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => {
+                      setSignInEmail(account.email)
+                      setSignInPassword(account.password)
+                      setAuthError(null)
+                    }}
+                    disabled={isLoading}
+                    className="w-full rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-left text-xs transition hover:bg-muted disabled:opacity-50"
+                  >
+                    <span className="font-medium text-foreground">{account.label}:</span>{" "}
+                    <span className="font-mono text-muted-foreground">{account.email}</span>
+                    {" / "}<span className="font-mono text-muted-foreground">{account.password}</span>
+                  </button>
+                ))}
               </TabsContent>
 
-              <TabsContent value="signup" className="mt-0">
+              <TabsContent value="signup" className="mt-0 space-y-4">
                 <form onSubmit={handleSignUpSubmit} className="space-y-4">
                   <InnerLabelInput
                     id="signup-name"
@@ -433,23 +400,21 @@ function LoginForm() {
                   </p>
                 </form>
               </TabsContent>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+
+              {providerButtons}
             </Tabs>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            {providerButtons}
           </CardContent>
         </Card>
       </main>
-
-      <PublicFooter />
     </div>
   )
 }

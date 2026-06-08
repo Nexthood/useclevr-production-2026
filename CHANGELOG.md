@@ -9,15 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- MCP subdomain exposes tool schemas with scoped access for service tokens
-- Database-backed MCP tokens support creation, listing, and revocation for service authentication
-- MCP audit trail records tool invocations, auth failures, and token management events for compliance
-- MCP tool invocations appear in AI interaction traces for unified analytics across chat and tool interactions
-- FAQ content management available via Payload admin with field validation
+- MCP subdomain exposes tool schemas with scoped access for service tokens.
+- Database-backed MCP tokens support creation, listing, and revocation for service authentication.
+- MCP audit trail records tool invocations, authentication failures, and token management events for compliance.
+- MCP tool invocations appear in AI interaction traces for unified analytics across chat and tool interactions.
+- FAQ content management is available through the content admin with field validation.
 - Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
 - Give new Free accounts a 14-day analyst trial while preserving two free analyst credits for use after the trial.
-- Reduced motion accessibility toggle in the theme switcher disables CSS transitions for users sensitive to animation.
-- Accessibility guide explains theme, contrast, larger text, keyboard labels, and support paths.
 - Business Mentoring feature: book expert sessions for fundraising, growth strategy, operations, financial planning, and product development.
 - Business mentoring public landing page highlighting mentor expertise and session types for founders and SMEs.
 - Business mentoring dashboard widget showing next scheduled session and booking options.
@@ -31,9 +29,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - File size check, rate limiting, and improved dirty-CSV error messages added to the upload API route.
 - Rate limiting added to the analyze API route (30 requests/minute).
 
+### Changed
+
+- Show built-in demo accounts as compact lines under the sign-in form.
+- Keep the login footer focused on the terms link in the signup notice.
+- Use simple login card styling without backdrop blur.
+- Publish production only from the verified release branch instead of synchronizing beta during production deployment.
+
 ### Fixed
 
-- Payload admin workspace requires explicit login instead of auto-authenticating on first load
+- Restore required Next.js runtime files during Railway image creation and startup so generated deployments boot successfully.
+- Payload admin workspace requires explicit login instead of auto-authenticating on first load.
 - Keep successful administrator login on the public UseClevr host and confirm the authenticated session before showing a credential error.
 - Complete email registration only when both account and profile setup succeed, then sign the new user into the dashboard.
 - Keep signed-out dashboard requests from rendering account data or loading another user's datasets as demo content.
@@ -86,6 +92,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Skip deployment schema synchronization when a build container has no database connection, while retaining runtime schema synchronization in configured environments.
 - Move lightweight AI-governance checks (TODO, changelog, secrets, package lint) to pre-commit while tests stay in pre-push
 - Generate an isolated authentication secret for validation and deployment builds so required environment checks and generated-server smoke tests complete.
 - Add Git-tracked REST Client API request files and shared VS Code environments for health, auth, upload, analyze, business profile, billing, Railway smoke, and MCP checks.

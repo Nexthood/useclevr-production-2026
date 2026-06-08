@@ -57,9 +57,10 @@ After Railway DNS is configured for `mcp.useclevr.com`, verify:
 
 ## Subdomain Access
 
-The MCP route `/api/mcp` responds to requests from the `mcp.useclevr.com` subdomain when:
-- Railway DNS is configured for the subdomain (T-807)
-- The request includes valid service/admin token auth via `x-mcp-token` header, or a session cookie
+The MCP route `/api/mcp` responds to requests from `mcp.useclevr.com` and `mcp-test.useclevr.com` when configured:
+- Configure CNAME records pointing subdomains to the Railway hostnames
+- DNS points to hostnames only, not URL paths — backend routing sends subdomain requests to `/api/mcp`
+- Requests require valid service/admin token auth via `x-mcp-token` header or a session cookie
 
 ## Usage Examples
 

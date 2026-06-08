@@ -190,6 +190,9 @@ moving work between states.
 
 ## Label: deployment
 
+- T-810. Verify the Railway test deployment starts with the restored Next.js runtime build files and serves a ready health response. (labels: deployment, ci-build, monitoring; commit: b30cd54d)
+- T-792. Restore required Next.js runtime build files during Railway packaging and startup so generated deployments boot successfully. (labels: deployment, ci-build, stability; commit: b30cd54d)
+- T-778. Serve the beta build from the Railway test service with a ready database health response. (labels: deployment, ci-build; commit: b30cd54d)
 - T-584. Use route groups to simplify middleware auth — restructured `src/app/` into `(public)` and `(auth)` route groups, moved the authenticated layout check to `(auth)/layout.tsx`, and simplified the middleware logic. (labels: deployment, auth, api, ui; commit: 72b947d6)
 - T-583. Replace barrel proxy files with direct imports — updated callers in api routes and chat helper to import directly from queryEngine and queryIntentPrompt. (labels: deployment, ai, api, data; commit: 72b947d6)
 - T-577. Fix Node.js version mismatch in generated Dockerfile — changed to node:26-alpine matching package.json engine requirements. (labels: deployment, ci-build, data, upload; commit: 72b947d6)

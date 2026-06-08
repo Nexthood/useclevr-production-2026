@@ -33,7 +33,6 @@ moving work between states.
 ## Label: auth
 
 - T-772. Allow signed internal MCP token access through the global proxy or narrow the proxy bypass for trusted MCP headers so documented token-based MCP calls can run without a browser session. (labels: auth, mcp, security, workflow)
-- T-594. Evaluate a dedicated MCP subdomain only when MCP becomes an external customer-facing service with separate auth, rate limits, logs, and service ownership. (labels: auth, mcp, ai, performance)
 - T-180. Add OAuth providers if the product roadmap requires them. (labels: auth, ai, workflow)
 - T-447. OAuth user ID generation uses Date.now() + Math.random() — switch to uuid for collision resistance. (labels: auth)
 - T-673. Add a development settings toggle for switching between real local AI and Mock AI during local-only sessions. (labels: auth, local-ai, ai, dashboard)
@@ -168,6 +167,10 @@ moving work between states.
 - T-464. Create one central billing config for plan names, prices, Stripe Price IDs, intervals, and descriptions. Remove hardcoded prices from UI. Add customer portal, cancellation flow, invoice view, and payment failure handling. (labels: payment, billing, ui, workflow)
 - T-506. Add PayPal payment provider support when checkout needs a second provider beside Stripe. (labels: payment, billing, ai, workflow)
 - T-754. Add support for multiple payment providers (PayPal, Stripe, etc.). (labels: payment, billing)
+
+## Label: mcp
+
+- T-813. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
 
 ## Label: performance
 

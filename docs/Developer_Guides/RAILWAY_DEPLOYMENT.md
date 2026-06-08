@@ -94,6 +94,17 @@ script uses POSIX `sh` and then runs `node -r ./scripts/runtime/load-env.cjs
 ./scripts/runtime/start-dist.cjs`. The runtime helper binds to Railway `$PORT`, forces `0.0.0.0`,
 and lets Auth.js infer the active public host from Railway proxy headers.
 
+Generated Railway output also stores a regular-file copy of the required Next.js runtime build
+directory under `next-build-extra/`. The generated deployment Dockerfile copies the deployment
+branch root with `COPY . .` and runs the predeploy helper during image creation; the source-side
+Dockerfile copies `dist/` with `COPY dist/ .`. In both layouts, the helper restores the saved files
+into the packaged Next.js installation before startup. The runtime start helper repeats the restore
+as a safety check.
+
+The image-build predeploy step has no database connection, so it performs only file restoration when
+`DATABASE_URL` and `DIRECT_URL` are absent. Railway's configured predeploy command performs the
+database schema sync before runtime startup.
+
 ## Railway CLI
 
 Fastest safe local operator flow:

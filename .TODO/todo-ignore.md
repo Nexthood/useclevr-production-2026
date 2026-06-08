@@ -84,6 +84,9 @@ moving work between states.
 - T-613. Implement JWT token rotation and refresh token invalidation on password change. (labels: security, testing)
 - T-616. Add password breach detection using HaveIBeenPwned API during registration and password change. (labels: security, api)
 
+## Label: mcp
+
+
 ## Additional
 
 - T-689. Add distributed tracing with OpenTelemetry for all service interactions. (labels: monitoring, observability)

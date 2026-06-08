@@ -1,3 +1,5 @@
+const path = require("node:path");
+const fs = require("node:fs");
 const { Client } = require("pg");
 
 try {
@@ -7,11 +9,6 @@ try {
 }
 
 const databaseUrl = (process.env.DIRECT_URL || process.env.DATABASE_URL || "").trim();
-
-if (!databaseUrl) {
-  console.error("DATABASE_URL or DIRECT_URL is required for Railway predeploy.");
-  process.exit(1);
-}
 
 const shouldUseSsl =
   databaseUrl.includes("sslmode=require") ||
@@ -234,10 +231,52 @@ async function constraintExists(client, constraintName) {
   return result.rowCount > 0;
 }
 
+function restoreNextBuildDir() {
+  // Restore next/dist/build/ from next-build-extra spare copy into any pnpm store
+  // entry that lacks it. Next.js standalone needs ../build/output/log at runtime
+  // but the CI publish step may drop files inside .pnpm/ during git branch creation.
+  const buildExtra = path.join(__dirname, "..", "..", "next-build-extra");
+  if (!fs.existsSync(buildExtra)) return;
+  const nm = path.join(__dirname, "..", "..", "node_modules");
+  const pnpmDir = path.join(nm, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) return;
+  let restored = 0;
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith("next@")) {
+      const nextDir = path.join(pnpmDir, entry.name, "node_modules", "next");
+      const buildDir = path.join(nextDir, "dist", "build");
+      const logFile = path.join(buildDir, "output", "log.js");
+      if (!fs.existsSync(logFile)) {
+        try {
+          fs.rmSync(buildDir, { recursive: true, force: true });
+          fs.mkdirSync(buildDir, { recursive: true });
+          fs.cpSync(buildExtra, buildDir, { recursive: true });
+          restored++;
+        } catch {
+          // Non-critical — runtime fallback in start-dist.cjs handles this too
+        }
+      }
+    }
+  }
+  if (restored > 0) {
+    console.log("Restored next/dist/build/ into " + restored + " next package(s)");
+  }
+}
+
 async function main() {
   console.log("Railway predeploy starting...");
+
+  // Restore next/dist/build/ before any database work — this ensures the Next.js
+  // runtime files are present in the pnpm store even if CI publishing dropped them.
+  restoreNextBuildDir();
+
   console.log("DATABASE_URL present:", Boolean(process.env.DATABASE_URL));
   console.log("DIRECT_URL present:", Boolean(process.env.DIRECT_URL));
+
+  if (!databaseUrl) {
+    console.log("No database URL — skipping schema sync.");
+    return;
+  }
 
   const client = new Client({
     connectionString: databaseUrl,
@@ -293,7 +332,7 @@ async function main() {
     console.log("Railway predeploy schema sync complete.");
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Railway predeploy failed:");
+    console.error("Railway predeploy schema sync failed:");
     console.error(error instanceof Error ? error.stack || error.message : error);
     process.exit(1);
   } finally {

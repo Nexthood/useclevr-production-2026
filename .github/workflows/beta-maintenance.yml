@@ -62,7 +62,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref == 'refs/heads/beta' && 'beta' || 'main' }}
+          ref: beta
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
