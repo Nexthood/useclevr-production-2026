@@ -48,6 +48,10 @@ AVAILABLE MCP TOOLS (Use these for accurate data):
     Input: { category: "Getting Started", query: "upload", limit: 5 }
     (category and query are optional; omit to list all FAQs)
 
+11. getNews - Search published UseClevr news from Payload
+    Input: { query: "launch", limit: 5, includeContent: false }
+    (slug and query are optional; set includeContent to true for full article text)
+
 IMPORTANT:
 - Use these tools to get accurate data values
 - Do NOT invent numbers or metrics
@@ -133,6 +137,21 @@ export async function getTrustedFaqs(
   limit?: number,
 ): Promise<any> {
   const result = await callMCPToolSafely('getFaqs', { category, query, limit });
+  return result.success ? result.data : null;
+}
+
+export async function getTrustedNews(
+  slug?: string,
+  query?: string,
+  limit?: number,
+  includeContent?: boolean,
+): Promise<any> {
+  const result = await callMCPToolSafely('getNews', {
+    slug,
+    query,
+    limit,
+    includeContent,
+  });
   return result.success ? result.data : null;
 }
 

@@ -28,6 +28,7 @@
     "railway:list": "node ./scripts/server/railway/railway.cjs list",
     "railway:status": "node ./scripts/server/railway/railway.cjs status",
     "railway:logs": "node ./scripts/server/railway/railway.cjs logs",
+    "railway:cleanup": "node ./scripts/server/railway/railway.cjs cleanup",
     "deploy:railway:sync": "node ./scripts/server/railway/sync-config.cjs --check",
     "deploy:railway:check": "node ./scripts/server/railway/sync-config.cjs --check",
     "deploy:vercel:sync": "node ./scripts/server/vercel/sync-config.cjs",

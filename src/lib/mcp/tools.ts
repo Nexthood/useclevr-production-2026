@@ -8,7 +8,7 @@ interface JsonSchema {
   enum?: string[];
 }
 
-export type MCPScope = "dataset:read" | "dataset:write" | "admin" | "faq:read";
+export type MCPScope = "dataset:read" | "dataset:write" | "admin" | "faq:read" | "news:read";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isZodDefault(schema: any): boolean {
@@ -239,6 +239,30 @@ export interface GetFaqsOutput {
   categories: string[];
 }
 
+export const GetNewsInput = z.object({
+  slug: z.string().min(1).optional(),
+  query: z.string().min(1).optional(),
+  limit: z.number().min(1).max(50).default(10),
+  includeContent: z.boolean().default(false),
+});
+
+export type GetNewsInput = z.infer<typeof GetNewsInput>;
+
+export interface NewsItemOutput {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  publishedAt: string;
+  url: string;
+  content?: string;
+}
+
+export interface GetNewsOutput {
+  news: NewsItemOutput[];
+  totalCount: number;
+}
+
 export const CompareDatasetsInput = z.object({
   datasetIdA: z.string(),
   datasetIdB: z.string(),
@@ -296,6 +320,14 @@ function defineTools(): MCPTool[] {
       inputSchema: GetFaqsInput,
       outputSchema: {} as GetFaqsOutput,
       requiredScopes: ["faq:read"],
+    },
+    {
+      name: "getNews",
+      description:
+        "Returns published UseClevr news posts from Payload, filtered by exact slug, keyword search, or both.",
+      inputSchema: GetNewsInput,
+      outputSchema: {} as GetNewsOutput,
+      requiredScopes: ["news:read"],
     },
     {
       name: "getDatasetSchema",

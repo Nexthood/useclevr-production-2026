@@ -336,7 +336,9 @@ async function cmdInspect(args) {
 
   console.log(`Project: ${summary.project.name} (${summary.project.id})`);
   if (summary.linked?.environmentName) {
-    console.log(`Linked environment: ${summary.linked.environmentName} (${summary.linked.environmentId || "unknown"})`);
+    console.log(
+      `Linked environment: ${summary.linked.environmentName} (${summary.linked.environmentId || "unknown"})`,
+    );
   }
   if (environments.length) {
     console.log("Environments:");
@@ -364,6 +366,74 @@ async function cmdInspect(args) {
       }
     }
   }
+}
+
+async function cmdCleanup() {
+  requireToken();
+  const link = readProjectLink();
+  if (!link) {
+    console.error("No project linked. Run: pnpm railway:link");
+    exit(1);
+  }
+
+  const { project } = await gql(
+    `query InspectProject($id: String!) {
+      project(id: $id) {
+        id
+        environments { edges { node { id name } } }
+        services { edges { node { id name serviceInstances { edges { node { id environmentId serviceId } } } } } }
+      }
+    }`,
+    { id: link.projectId },
+  );
+
+  if (!project) {
+    console.error("Could not load project info");
+    exit(1);
+  }
+
+  const environments = project.environments.edges.map((e) => e.node);
+  const services = project.services.edges.map((e) => e.node);
+
+  let totalRemoved = 0;
+
+  for (const svc of services) {
+    for (const instance of svc.serviceInstances.edges.map((e) => e.node)) {
+      const env = environments.find((e) => e.id === instance.environmentId);
+      const envName = env ? env.name : instance.environmentId;
+
+      // Query all deployments for this service instance
+      const { deployments } = await gql(
+        `query($input: DeploymentListInput!) {
+          deployments(input: $input) { edges { node { id status } } }
+        }`,
+        {
+          input: {
+            projectId: link.projectId,
+            serviceId: instance.serviceId,
+            environmentId: instance.environmentId,
+          },
+        },
+      );
+
+      const edges = deployments?.edges || [];
+      if (edges.length === 0) {
+        console.log(`  ${svc.name} (${envName}): no deployments`);
+        continue;
+      }
+
+      console.log(`  ${svc.name} (${envName}): ${edges.length} deployment(s) to remove`);
+
+      for (const { node } of edges) {
+        process.stdout.write(".");
+        await gql(`mutation($id: String!) { deploymentRemove(id: $id) }`, { id: node.id });
+        totalRemoved++;
+      }
+      console.log("");
+    }
+  }
+
+  console.log(`\nRemoved ${totalRemoved} deployment(s)`);
 }
 
 async function cmdVariable(args) {
@@ -418,7 +488,9 @@ async function cmdVariable(args) {
     }
     const pair = remaining[0];
     if (!pair || !pair.includes("=")) {
-      console.error("Usage: variable set NAME=value [--environment id] [--service id] [--skip-deploys]");
+      console.error(
+        "Usage: variable set NAME=value [--environment id] [--service id] [--skip-deploys]",
+      );
       exit(1);
     }
     const eqIdx = pair.indexOf("=");
@@ -475,6 +547,8 @@ async function main() {
       return cmdLink();
     case "status":
       return cmdStatus();
+    case "cleanup":
+      return cmdCleanup();
     case "inspect":
       return cmdInspect(args.slice(1));
     case "variable":
@@ -492,6 +566,7 @@ Commands:
   link       Link current directory to a project
   status     Show linked project status
   inspect    Show linked project environments, services, domains, and latest deployments
+  cleanup    Remove all deployments from all service instances
   variable   Manage environment variables (list, set)
   logs       (falls through to native railway)
   deploy     (falls through to native railway)

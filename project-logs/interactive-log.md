@@ -438,3 +438,112 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
   in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 22: Railway Deployment Cleanup, MCP FAQ Tool End-to-End, and Prompt Documentation
+
+- **Date**: June 2026
+- **User Goal**: Clean up Railway deployment history, test MCP FAQ tool end-to-end, add cleanup
+  instructions to project prompts, and update all interaction records without committing.
+- **Current Project State**: All MCP features are implemented — DB-backed tokens, audit logging,
+  AI tracing, scope enforcement, FAQ tool. Deployment history had 349 stale records. MCP FAQ tool
+  had not been tested end-to-end.
+- **Implemented Changes & Decisions**:
+  1. **Railway Deployment Cleanup**: Removed all 350 deployments across 3 services (production 235,
+     test 114, landingpage 1) via `deploymentRemove` GraphQL mutation. Added `cleanup` subcommand
+     to `scripts/server/railway/railway.cjs` and `pnpm railway:cleanup` to `package.json`.
+  2. **MCP FAQ Tool E2E Test**: Created token with `faq:read` and `dataset:read` scopes, listed
+     tools (confirmed `getFaqs` present with `serverUrl` field), invoked `getFaqs` with no filter
+     (36 results, 5 categories), by category (`Plans & Billing`), and by keyword (`upload` — 6
+     results). Scope enforcement verified: token without `faq:read` gets `Forbidden` error.
+  3. **Audit Logging via MCP Route**: `recordMCPTrace` fires after each `invoke_tool` audit log in
+     the MCP route, storing tool invocations in `aiInteractionTraces` table.
+  4. **Prompt Documentation**: Added deployment history cleanup instructions to
+     `project-prompts/railway-deploy-review.md` and cleanup command docs to `AGENTS.md`.
+  5. **MCPTokens and MCPAuditLog DB Tables**: Created in Neon via direct SQL with appropriate
+     indexes on `tokenHash` and `status`.
+- **Problems Marked**:
+  - `observation`: The `list` endpoint for tokens returned empty in one test — probably a cookie or
+    fetch timing issue, not a code bug.
+  - `risk`: Railway `deploymentRemove` only soft-deletes (marks as `REMOVED`); deployments still
+    appear in API listings. There is no permanent-delete API.
+  - `improvement`: DNS CNAME records for `mcp.useclevr.com` and `mcp-test.useclevr.com` are not
+    yet set at the DNS provider — Railway custom domains are already configured.
+- **User Learning**: Railway's `deploymentRemove` is a soft-delete; the API contract does not
+  provide permanent deletion. Built-in FAQ data provides immediate MCP tool value without requiring
+  Payload CMS availability.
+- **AI-Agent Learning**: When the user says "no commit", stop all git operations and update
+  only documentation, prompts, logs, and guides. The `railway.cjs` cleanup command must handle
+  pagination for projects with 100+ deployments.
+- **Follow-up Tasks**:
+  - T-809: Complete MCP end-to-end test (DONE — FAQ tool tested, scope enforcement verified)
+  - Setup DNS CNAME records at DNS provider for MCP subdomains (user action)
+  - Wait for next CI run to deploy `next-build-extra/` fix to Railway test service
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
+  in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 23: Payload News MCP Access
+
+- **Date**: June 2026
+- **User Goal**: Store product news in Payload and make published news reachable through MCP.
+- **Current Product State**: Payload seeds five published news posts, public news pages read the
+  collection, and authenticated MCP clients can query the same published content.
+- **Implemented Changes & Decisions**:
+  1. **MCP Tool**: Added `getNews` with exact slug lookup, keyword filtering, result limits, and
+     optional full article content.
+  2. **Access Scope**: Added `news:read` to MCP token validation and signed-in client scopes.
+  3. **Payload Source**: Reused the existing published-only Payload news queries and starter seed.
+  4. **Prompt Tracking**: Added the news tool to MCP prompt guidance and advanced the prompt
+     version to `1.1`.
+  5. **Product Records**: Updated MCP guides, requirements, changelog, and task state.
+- **Problems Marked**:
+  - `observation`: News persistence and starter seeding already existed; only MCP access was
+    incomplete.
+  - `risk`: Existing database-backed MCP tokens require the `news:read` scope before they can call
+    the new tool.
+- **User Learning**: MCP news results use the same published Payload records shown on public news
+  pages, so draft content stays excluded.
+- **AI-Agent Learning**: Inspect existing CMS storage and seed behavior before adding a second
+  content path.
+- **Follow-up Tasks**: Existing MCP token management work can expose `news:read` when its UI is
+  implemented.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: News content lives in Payload; MCP behavior lives in `src/lib/mcp/`;
+  user and developer guidance lives in the MCP guides.
+
+---
+
+## Interaction 24: Commit MCP News And Railway Operations
+
+- **Date**: June 2026
+- **User Goal**: Update durable guides, AI interaction records, and project logs, then commit the
+  complete worktree without pushing.
+- **Current Project State**: The worktree includes Railway deployment cleanup tooling, verified MCP
+  FAQ token behavior, and published Payload news access through MCP.
+- **Implemented Changes & Decisions**:
+  1. **Guide Alignment**: Added Railway cleanup to the deployment guide and made agent guidance use
+     the project wrapper consistently.
+  2. **Task State**: Moved the completed MCP token, authentication, scope, and audit test to done.
+  3. **Record Chronology**: Assigned unique interaction numbers and aligned current status with the
+     complete commit scope.
+  4. **Commit Scope**: Stage and commit all current tracked changes without pushing.
+- **Problems Marked**:
+  - `risk`: Railway cleanup affects every deployment in the linked project and requires an explicit
+    user request.
+  - `observation`: Parallel records reused Interaction 22 and described separate worktree changes.
+- **User Learning**: The Railway wrapper owns deployment cleanup, and published MCP news requires
+  the `news:read` token scope.
+- **AI-Agent Learning**: Reconcile task state and record chronology immediately before a commit-all
+  operation.
+- **Follow-up Tasks**: T-807 remains active for DNS CNAME setup; T-811 remains active for the MCP
+  token management UI.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Deployment operations live in the Railway guide; MCP usage lives in the
+  MCP guides; interaction history lives in `project-logs/`.

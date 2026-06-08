@@ -282,6 +282,7 @@ pnpm railway:login           # Verify token (reads RAILWAY_API_TOKEN from .env)
 pnpm railway:status          # Show project name, ID, connectivity
 pnpm railway:logs            # View deploy/runtime logs (falls through to native binary)
 railway deployment list      # List recent deployments with statuses
+pnpm railway:cleanup         # Mark every deployment in the linked project as REMOVED
 ```
 
 The API token is set in `.env` as `RAILWAY_API_TOKEN`. The local link file

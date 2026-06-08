@@ -67,7 +67,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "At least one scope is required" }, { status: 400 });
   }
 
-  const validScopes: McpTokenScope[] = ["dataset:read", "dataset:write", "admin", "faq:read"];
+  const validScopes: McpTokenScope[] = [
+    "dataset:read",
+    "dataset:write",
+    "admin",
+    "faq:read",
+    "news:read",
+  ];
   const scopes: McpTokenScope[] = body.scopes.filter((s: string) =>
     validScopes.includes(s as McpTokenScope),
   ) as McpTokenScope[];

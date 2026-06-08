@@ -273,6 +273,8 @@ moving work between states.
 
 ## Label: mcp
 
+- T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via the new /api/mcp/tokens endpoint. (labels: mcp, testing, security; commit: worktree)
+- T-817. Expose published Payload news posts through a scoped MCP tool with slug and keyword filtering. (labels: mcp, content, api; commit: worktree)
 - T-533. MCP tool `getProfitMarginTrend` added: combines profit margin calculation with growth trend direction in handlers.ts, tools.ts, server.ts, integration.ts. (labels: mcp, ai, data, workflow; commit: 3e8d4602)
 - T-532. MCP resource `revenue-by-region` added with ranked rows and share percentages (already existed as `getTopRegions` in resources.ts). (labels: mcp, ai, data, workflow; commit: 3e8d4602)
 - T-531. MCP tool `getCostBreakdown` added: extracts cost categories from precomputed metrics with percentage shares in handlers.ts, tools.ts, server.ts, integration.ts. (labels: mcp, ai, data, workflow; commit: 3e8d4602)

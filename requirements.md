@@ -249,6 +249,7 @@ Text rules for this file:
 - Expose MCP tools only to signed-in users.
 - Scope MCP dataset resources and tool calls to the signed-in user's datasets.
 - Let super-admins access MCP resources and tools across platform datasets.
+- Expose published Payload news through MCP with slug and keyword filtering.
 - Keep MCP under the authenticated app API and separate from public FAQ routes.
 - Keep unauthenticated MCP discovery unavailable.
 - Keep a dedicated MCP subdomain out of scope until MCP becomes an external customer-facing service.
