@@ -179,6 +179,11 @@ const rootDistPackage = {
 // Remove packageManager so npm doesn't detect pnpm
 delete rootDistPackage.packageManager;
 
+// Allow build scripts for packages that need them in pnpm v11+
+rootDistPackage.pnpm = {
+  onlyBuiltDependencies: ["core-js", "esbuild", "sharp"],
+};
+
 fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
