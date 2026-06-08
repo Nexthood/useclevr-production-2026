@@ -11,11 +11,6 @@ import {
   type NewsPostSummary,
 } from "@/lib/payload/content";
 import { allFaqCategories } from "@/lib/content/faq";
-import {
-  getNewsPostBySlug,
-  getNewsPosts,
-  type NewsPostSummary,
-} from "@/lib/payload/content";
 
 import type { PrecomputedMetrics } from "../utils/pipeline-types";
 import type {
