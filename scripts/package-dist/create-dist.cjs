@@ -311,6 +311,12 @@ function copyBuildDir(sourceBuild, buildDir) {
 }
 restoreNextBuildDir();
 
+// Spare copy outside the pnpm store — CI publish steps may silently drop files
+// inside .pnpm/ during branch creation. Runtime (start-dist.cjs) restores from
+// this path if the pnpm store entry is missing build/.
+const nextBuildExtra = path.join(distDir, "next-build-extra");
+copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
+
 // Railway uses DOCKERFILE builder (not Railpack). The standalone build already includes
 // all production dependencies in node_modules/ (from pnpm + Next.js tracing). The Docker
 // image copies the entire prebuilt dist directory — no npm install needed.
