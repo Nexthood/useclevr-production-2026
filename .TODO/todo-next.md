@@ -16,8 +16,6 @@ moving work between states.
 ## Label: deployment
 
 - T-776. Fix Payload CMS seed crash during next build by wrapping onInit cms_users query with graceful table-existence check, so static page generation succeeds on fresh databases. (labels: deployment, content, ci-build)
-- T-778. Fix Railway test service deploy so test.useclevr.com serves the beta build instead of returning 404. (labels: deployment, ci-build)
-- T-792. Fix Railway production deploy crash from missing next/dist/build/output/log.js in standalone output by restoring build directory at packaging time and adding runtime fallback shim. (labels: deployment, ci-build, stability)
 
 ## Label: monitoring
 
@@ -27,11 +25,9 @@ moving work between states.
 ## Label: mcp
 
 - T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to `/api/mcp` endpoint. (labels: mcp, deployment, docs)
-- T-808. Add FAQ seed data to Payload Faqs collection and wire MCP getFaqs tool to fall back to Payload content when no static FAQ cache is available. (labels: mcp, content, workflow)
+- T-808. Add five starter FAQ categories with 20 questions to the Payload Faqs collection and make the MCP FAQ tool use that content when the static FAQ cache is unavailable. (labels: mcp, content, workflow)
 - T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via the new /api/mcp/tokens endpoint. (labels: mcp, testing, security)
 - T-812. Add MCP token management UI in superadmin panel for creating and revoking service tokens. (labels: mcp, ui, security)
-- T-810. Verify next Railway dist-test deploy succeeds by checking for 'Restored next/dist/build/' in Railway build logs. (labels: deployment, ci-build, monitoring)
-- T-811. Add FAQ seed data to Payload Faqs collection with 5 starter categories and 20 questions. (labels: mcp, content)
 
 ## Label: workflow
 
