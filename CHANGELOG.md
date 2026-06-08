@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Block non-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via middleware, returning 404 for all paths except /api/mcp.
 - Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
 >>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
 - Published product news is searchable through MCP by slug or keyword, with optional full article content.
@@ -43,6 +44,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Include `pg` package in Railway Docker image by keeping pnpm-lock.yaml and adding `pnpm install --prod` to the Dockerfile, fixing railway-predeploy.cjs crashes at container start.
 - Restore login on Railway deployments by setting `AUTH_SECRET` env var and accepting `NEXTAUTH_SECRET` as fallback when `AUTH_SECRET` is missing.
 - Prevent Payload CMS seed crash on fresh databases with explicit table-existence check before running seed queries.
 - Add Docker HEALTHCHECK instruction to container images so Railway detects application readiness automatically.

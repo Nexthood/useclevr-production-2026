@@ -18,9 +18,11 @@ moving work between states.
 - T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to `/api/mcp` endpoint. (labels: mcp, deployment, docs)
 - T-822. Test MCP endpoint accessibility on `mcp-test.useclevr.com` after DNS configuration. (labels: mcp, testing, deployment)
 - T-823. Run end-to-end MCP token auth and tool invocation tests via REST Client files in `docs/api-tests/mcp.http`. (labels: mcp, testing, security)
->>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
+- T-824. Add "What types of questions can I ask?" example to the MCP FAQ collection showing dataset column queries, aggregation requests, and chart suggestions. (labels: mcp, faq, docs)
 
 ## Deferred
+
+## Suggestions
 
 ## Suggestions
 

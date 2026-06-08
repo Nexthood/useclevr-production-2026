@@ -22,6 +22,7 @@ This file summarizes current project activity. Detailed session records live in
 - Add FAQ seed data to Payload Faqs collection (5 categories, 25 questions) and wire MCP handler to read from Payload with fallback.
 - Fix Auth.js 500 on `/api/auth/session` by setting `AUTH_SECRET` on Railway services and accepting `NEXTAUTH_SECRET` fallback.
 - Add superadmin MCP token management page with create/revoke/list UI and sidebar nav entry.
->>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
+- Add middleware blocking non-MCP routes on MCP subdomains (404 for everything except /api/mcp).
+- Fix Railway deploy crash: add pnpm install --prod to Dockerfile so pg is available for railway-predeploy.cjs.
 - Expose published Payload news through the scoped MCP news tool.
 - Align Railway cleanup guidance, MCP task state, and AI interaction records for commit.

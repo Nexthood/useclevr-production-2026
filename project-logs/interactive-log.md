@@ -631,3 +631,27 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
   in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 27: Dockerfile pnpm Install and MCP Subdomain Middleware
+
+- **Date**: June 2026
+- **User Goal**: Fix Railway deploy crash (pg not found) and lock MCP subdomain to only serve /api/mcp.
+- **Current Project State**: Railway test deployment works but production deploy fails because
+  railway-predeploy.cjs requires `pg` not in standalone build. MCP test subdomain serves full app.
+- **Implemented Changes & Decisions**:
+  1. **pg install fix**: Dockerfile had no install step — standalone tracing doesn't pull peer deps.
+     Added `RUN corepack enable && pnpm install --prod` to both Dockerfiles. Kept pnpm-lock.yaml.
+  2. **MCP subdomain middleware**: New `src/middleware.ts` — returns 404 for any path except
+     `/api/mcp` when host matches `mcp*.useclevr.com`.
+- **Problems Marked**:
+  - `root-cause`: No dependency install step in Dockerfile
+  - `risk`: pnpm install adds ~30s to Docker build
+- **Follow-up Tasks**:
+  - Wait for CI to publish dist-test, verify Railway test deploy succeeds
+  - PR to main for production deploy
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
+  in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.
