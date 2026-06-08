@@ -390,3 +390,51 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Follow-up Tasks**: None from this documentation pass.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Current deployment guidance lives in `docs/Developer_Guides/RAILWAY_DEPLOYMENT.md`; task state lives in `.TODO/`; release wording lives in `CHANGELOG.md`.
+
+---
+
+## Interaction 20: Project Records And Prompt Structure
+
+- **Date**: June 2026
+- **User Goal**: Move logs and prompts out of the AI documentation folder, then align pre-commit and feature documentation rules with the new structure.
+- **Current Project State**: Reusable prompts live in `project-prompts/`, detailed sessions and activity summaries live in `project-logs/`, and AI behavior guidance remains in `docs/AI-interaction/`.
+- **Implemented Changes & Decisions**:
+  1. **Project Logs**: Moved the consolidated session ledger to `project-logs/interactive-log.md` and added `project-logs/activity-log.md`.
+  2. **Prompt Library**: Moved reusable prompt files to `project-prompts/` and updated agent configuration references.
+  3. **Interaction Status**: Added `docs/AI-interaction/interaction-status.md` as the current AI interaction record.
+  4. **Pre-Commit Checklist**: Added structural and staged-file checks for changelog, interaction log, activity log, and AI interaction status.
+  5. **Feature Records**: Documented requirements, owning-guide, TODO, and changelog updates for durable feature changes.
+- **Problems Marked**:
+  - `observation`: Prompt examples and session logs were mixed with durable AI guidance, which blurred ownership.
+  - `risk`: A commit can omit project history unless the hook checks the required staged records.
+- **User Learning**: Project logs, reusable prompts, and durable AI guidance have distinct owners and update rhythms.
+- **AI-Agent Learning**: Stop active commit or push work immediately when the user changes git-operation constraints.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Session detail lives in `project-logs/interactive-log.md`; current activity lives in `project-logs/activity-log.md`; AI behavior lives in `docs/AI-interaction/`.
+
+---
+
+## Interaction 21: Commit Complete Worktree
+
+- **Date**: June 2026
+- **User Goal**: Commit all current changes.
+- **Current Project State**: The worktree combines project-record restructuring, pre-commit checks,
+  Railway variable management, MCP discovery metadata, and task-queue decisions.
+- **Implemented Changes & Decisions**:
+  1. **Commit Scope**: Include all staged and unstaged changes in one repository commit.
+  2. **Credential Safety**: Railway variable updates confirm the variable name without printing any
+     part of its value.
+  3. **Project Records**: Changelog, interaction log, activity log, and AI interaction status cover
+     the complete commit scope.
+- **Problems Marked**:
+  - `risk`: Printing even a prefix of a Railway variable can expose credential material in logs.
+- **User Learning**: The project-record checklist keeps mixed code and documentation commits
+  traceable without exposing environment values.
+- **AI-Agent Learning**: Review existing worktree additions for secret output before honoring a
+  commit-all request.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
+  in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.

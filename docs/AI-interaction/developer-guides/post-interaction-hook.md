@@ -43,9 +43,13 @@ These files receive the outcome. They are not the instruction source.
 - Product rules: `requirements.md`
 - Release notes: `CHANGELOG.md`
 - Active or deferred work: `.TODO/`
+- Detailed session record: `project-logs/interactive-log.md`
+- Current activity summary: `project-logs/activity-log.md`
+- Latest AI interaction status: `docs/AI-interaction/interaction-status.md`
 
 ## Immediate Actions After Docs Changes
 
+- This AI agent must update all three interaction records after every completed AI interaction.
 - This AI agent must update the smallest matching docs instead of adding a duplicate summary file.
 - This AI agent must update `requirements.md` when docs clarify durable product rules.
 - This AI agent must update `CHANGELOG.md` only when the change affects current product or

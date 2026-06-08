@@ -319,8 +319,12 @@ Do not keep custom scripts in `.git/hooks` beyond Git sample files.
 Current hooks:
 
 - `commit-msg` — runs commitlint and allows `PR:` commit titles used by generated dist commits.
-- `pre-commit` — keeps commits fast and leaves validation to commit message and push gates.
+- `pre-commit` — checks the changelog, project interaction records, AI interaction status, TODO
+  metadata, secret exposure, and package scripts.
 - `pre-push` — runs TypeScript, deploy config checks, linting, production packaging, workflow validation, and workflow check-name golden validation.
+
+See [Pre-commit checklist](PRE_COMMIT_CHECKLIST.md) for required staged records and feature
+documentation rules.
 
 Setup and checks:
 
@@ -419,10 +423,10 @@ push, build with DB imports) can execute without a permanent database. Productio
 deployments connect to an external Neon PostgreSQL instance — the CI ephemeral Postgres is
 build-time only.
 
-| Job                                    | Runs    | Steps                                            |
-| -------------------------------------- | ------- | ------------------------------------------------ |
+| Job                                               | Runs    | Steps                                            |
+| ------------------------------------------------- | ------- | ------------------------------------------------ |
 | `Validate source and production build / validate` | Always  | types, dist-check, lint, tests, production build |
-| `Documentation checks`                 | PR only | `pnpm docs:check`                                |
+| `Documentation checks`                            | PR only | `pnpm docs:check`                                |
 
 ## Security
 

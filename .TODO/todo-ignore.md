@@ -92,3 +92,5 @@ moving work between states.
 - T-689. Add distributed tracing with OpenTelemetry for all service interactions. (labels: monitoring, observability)
 - T-690. Implement custom metrics collection for business KPIs and system performance. (labels: monitoring, metrics)
 - T-691. Add log aggregation and structured logging for all application components. (labels: monitoring, logging)
+- T-802. Create a branch management guide documenting the deploy circulation loop, who pushes where, and how to unblock a failed publish. (labels: workflow, docs, deployment)
+- T-803. Implement automated stale branch cleanup that deletes merged feature branches and warns about abandoned beta branches after 14 days. (labels: workflow, devops, deployment)

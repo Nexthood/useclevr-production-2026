@@ -366,6 +366,99 @@ async function cmdInspect(args) {
   }
 }
 
+async function cmdVariable(args) {
+  requireToken();
+  const link = readProjectLink();
+  if (!link) {
+    console.error("No project linked. Run: pnpm railway:link");
+    exit(1);
+  }
+
+  const subcmd = args[0];
+  const projectId = link.projectId;
+
+  // Parse --environment, --service flags
+  let environmentId = "";
+  let serviceId = "";
+  let skipDeploys = false;
+  const remaining = [];
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--environment" || a === "-e") {
+      environmentId = args[++i] || "";
+    } else if (a === "--service" || a === "-s") {
+      serviceId = args[++i] || "";
+    } else if (a === "--skip-deploys") {
+      skipDeploys = true;
+    } else {
+      remaining.push(a);
+    }
+  }
+
+  if (subcmd === "list" || subcmd === "ls") {
+    // List variables — requires environment + service
+    if (!environmentId || !serviceId) {
+      console.error("Both --environment and --service are required");
+      exit(1);
+    }
+    const { variables } = await gql(
+      `query($projectId: String!, $environmentId: String!, $serviceId: String!) {
+        variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)
+      }`,
+      { projectId, environmentId, serviceId },
+    );
+    console.log(variables);
+    return;
+  }
+
+  if (subcmd === "set") {
+    if (!environmentId || !serviceId) {
+      console.error("Both --environment and --service are required");
+      exit(1);
+    }
+    const pair = remaining[0];
+    if (!pair || !pair.includes("=")) {
+      console.error("Usage: variable set NAME=value [--environment id] [--service id] [--skip-deploys]");
+      exit(1);
+    }
+    const eqIdx = pair.indexOf("=");
+    const name = pair.slice(0, eqIdx);
+    const value = pair.slice(eqIdx + 1);
+
+    const result = await gql(
+      `mutation($input: VariableUpsertInput!) { variableUpsert(input: $input) }`,
+      {
+        input: {
+          projectId,
+          environmentId,
+          serviceId,
+          name,
+          value,
+          skipDeploys,
+        },
+      },
+    );
+    if (result?.variableUpsert === true) {
+      console.log(`Set ${name}`);
+    }
+    return;
+  }
+
+  // If no recognized subcommand, show help
+  console.log(`Railway variable management
+Usage: pnpm railway variable <subcommand> [options]
+
+Subcommands:
+  list|ls       List variables for a service
+  set           Set a variable (NAME=value)
+
+Options:
+  -s, --service <id>        Service ID (required)
+  -e, --environment <id>    Environment ID (required)
+  --skip-deploys            Skip triggering deploys
+`);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const cmd = args[0];
@@ -384,6 +477,8 @@ async function main() {
       return cmdStatus();
     case "inspect":
       return cmdInspect(args.slice(1));
+    case "variable":
+      return cmdVariable(args.slice(1));
     case "help":
     case "--help":
     case "-h":
@@ -397,6 +492,7 @@ Commands:
   link       Link current directory to a project
   status     Show linked project status
   inspect    Show linked project environments, services, domains, and latest deployments
+  variable   Manage environment variables (list, set)
   logs       (falls through to native railway)
   deploy     (falls through to native railway)
 

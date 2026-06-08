@@ -19,7 +19,7 @@ Write the result as current project learning with these sections:
    - improvement:
    - observation:
 5. User learning
-6. AI-agent learning  
+6. AI-agent learning
 7. Follow-up tasks (one per bullet, prefixed with T- when the task is already assigned)
 8. Instruction sources
    - AGENTS.md
@@ -34,6 +34,9 @@ Write the result as current project learning with these sections:
    - active/deferred/no-fix work: .TODO/ queue files only as destinations
    - product requirement updates: requirements.md
    - release notes: CHANGELOG.md
+   - detailed session record: project-logs/interactive-log.md
+   - activity summary: project-logs/activity-log.md
+   - latest interaction status: docs/AI-interaction/interaction-status.md
 
 Keep the summary concise (under 400 words).
 Use direct current-state language.
@@ -53,8 +56,6 @@ Never include secrets, tokens, keys, or customer data.
 ## Integration
 
 AI agents run this capture automatically after each completed request/response cycle, unless the
-user explicitly says not to. Keep only durable learning. If the cycle contains no durable project
-learning, record no project-memory update and continue. Treat the hook files as instruction
-sources, then update the smallest matching destination files, including requirements when
-product-facing wording changes. When another AI agent is working in parallel, update only the
-instruction and learning destinations owned by your own completed change.
+user explicitly says not to. Update the three required interaction records, then route durable
+learning to the smallest matching destination files. When another AI agent is working in parallel,
+update only the instruction and learning destinations owned by its own completed change.

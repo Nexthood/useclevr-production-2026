@@ -284,10 +284,13 @@ export async function GET(request: NextRequest) {
       success: true,
     });
 
+    const mcpUrl = appConfig.MCP_URL || undefined;
+
     return addCorsHeaders(
       NextResponse.json({
         tools: listToolsByScope(authContext.scopes),
         resources: datasetId ? listResources(datasetId) : [],
+        ...(mcpUrl && { serverUrl: mcpUrl }),
       }),
       request,
     );

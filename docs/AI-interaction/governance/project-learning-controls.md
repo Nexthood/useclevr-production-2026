@@ -27,19 +27,22 @@ Use this guide to turn AI interactions into useful project learning without conf
 4. Capture AI-agent learning as operational improvements.
 5. Link the trace to a TODO, requirement, changelog entry, or guide only when the finding changes durable project state.
 6. Write the learning with super-precise language that names who must act, what must change, and where the durable update belongs.
-7. Run post-interaction memory capture after each completed request/response cycle and skip empty updates when there is no durable learning.
+7. Run post-interaction memory capture after each completed request/response cycle, update the
+   required interaction records, and skip extra durable-guide changes when the interaction adds no
+   durable rule.
 
 ## Evaluation Prompts
 
-- Use [Work classification](../prompt-library/work-classification.md) when a request mixes product work, developer maintenance, deployment work, docs, TODO cleanup, or release tasks.
-- Use [Feature restoration check](../prompt-library/feature-restoration-check.md) when bringing back or auditing a restored feature.
-- Use [TODO retirement check](../prompt-library/todo-retirement-check.md) when moving tasks to done, future, or ignore.
-- Use [Post-interaction memory collection](../prompt-library/ai-memory-collection-post-interaction.md) after each completed request/response cycle.
-- Use [AI memory collection](../prompt-library/ai-memory-collection.md) when project learning comes from another visible AI chat or exported transcript.
+- Use [Work classification](../../../project-prompts/work-classification.md) when a request mixes product work, developer maintenance, deployment work, docs, TODO cleanup, or release tasks.
+- Use [Feature restoration check](../../../project-prompts/feature-restoration-check.md) when bringing back or auditing a restored feature.
+- Use [TODO retirement check](../../../project-prompts/todo-retirement-check.md) when moving tasks to done, future, or ignore.
+- Use [Post-interaction memory collection](../../../project-prompts/ai-memory-collection-post-interaction.md) after each completed request/response cycle.
+- Use [AI memory collection](../../../project-prompts/ai-memory-collection.md) when project learning comes from another visible AI chat or exported transcript.
 
 ## Project Control Alignment
 
-- Lessons log: Store reusable AI-work learnings in this folder or relevant guides.
+- Interactive log: Store detailed session learning in `project-logs/interactive-log.md`.
+- Activity log: Store the compact current summary in `project-logs/activity-log.md`.
 - Issue register: Move actionable problems into `.TODO/todo-next.md`.
 - Risk register: Move valid deferred risk prevention work into `.TODO/todo-future.md`.
 - Decision log: Move deliberate no-fix or boundary decisions into `.TODO/todo-ignore.md`.

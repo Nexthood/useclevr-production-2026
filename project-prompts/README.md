@@ -1,4 +1,4 @@
-# AI Prompt Files
+# Project Prompts
 
 This folder stores reusable AI prompts as separate files.
 
@@ -27,4 +27,6 @@ This folder stores reusable AI prompts as separate files.
 - Add a new file for each durable prompt pattern.
 - Keep prompts direct and current-state.
 - Update this index when this folder changes.
-- Update [../governance/instruction-maintenance.md](../governance/instruction-maintenance.md) when prompt maintenance rules change.
+- Update
+  [instruction maintenance](../docs/AI-interaction/governance/instruction-maintenance.md)
+  when prompt maintenance rules change.

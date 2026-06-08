@@ -64,4 +64,5 @@ flowchart TD
 - Update related TODO items and changelog when plans are completed
 - Keep plan files focused on single features or concepts
 - Use Mermaid diagrams for flows and architecture
-- Retire fully distributed plan files by moving durable content into docs, prompt-library files, requirements, changelog, and TODO queues.
+- Retire fully distributed plan files by moving durable content into docs, project prompt files,
+  requirements, changelog, and TODO queues.

@@ -33,8 +33,8 @@ moving work between states.
 
 - T-703. Add pre-commit hooks for code quality and formatting checks. (labels: workflow, ci-build)
 - T-801. Define and document the branch strategy for beta → main → dist release workflow including hotfix path and emergency rollback procedure. (labels: workflow, deployment, devops)
-- T-802. Create a branch management guide documenting the deploy circulation loop, who pushes where, and how to unblock a failed publish. (labels: workflow, docs, deployment)
-- T-803. Implement automated stale branch cleanup that deletes merged feature branches and warns about abandoned beta branches after 14 days. (labels: workflow, devops, deployment)
+- T-815. Add MCP token management UI in superadmin panel for creating and revoking service tokens. (labels: mcp, ui, security)
+- T-814. Add five starter FAQ categories with 20 questions to the Payload Faqs collection and wire MCP FAQ tool to use that content. (labels: mcp, content, workflow)
 
 ## Deferred
 

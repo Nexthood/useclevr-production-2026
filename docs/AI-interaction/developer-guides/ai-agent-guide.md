@@ -18,11 +18,13 @@ folder during the same task cycle.
 - Mention past or future states only when the detail prevents a concrete risk.
 - Keep user guides separate from developer guides.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
-- Keep reusable prompt files in `docs/AI-interaction/prompt-library/`.
+- Keep reusable prompt files in `project-prompts/`.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
 - Use compact status updates during long-running validation, deploy checks, and broad implementation work.
-- Use [AI memory collection](../prompt-library/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
-- This AI agent must run [post-interaction memory capture](../prompt-library/ai-memory-collection-post-interaction.md) after each completed request/response cycle and keep only durable learning.
+- Use [AI memory collection](../../../project-prompts/ai-memory-collection.md) when the user brings learning from another AI chat into this project.
+- This AI agent must run [post-interaction memory capture](../../../project-prompts/ai-memory-collection-post-interaction.md) after each completed request/response cycle.
+- Update `project-logs/interactive-log.md`, `project-logs/activity-log.md`, and
+  `docs/AI-interaction/interaction-status.md` after every completed AI interaction.
 - This AI agent must treat `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the instruction sources for post-interaction behavior.
 - This AI agent must use [Post-interaction hook](post-interaction-hook.md) to choose the smallest matching destination files for persona, guides, FAQ, prompt files, TODOs, requirements, or changelog updates instead of one technical summary file.
 - Prepare future developers by recording concise AI-collaboration lessons that explain correction patterns, expectations, and reusable working habits.
@@ -31,7 +33,7 @@ folder during the same task cycle.
 - Keep public user docs and protected operator docs as separate audiences when planning future docs branches, docs hosts, navigation, search scopes, or sitemap rules.
 - Read [dev-persona.md](dev-persona.md) before starting work with the project owner — follow their communication style and expectations.
 - Follow the [AI memory collection guide](ai-memory-collection-guide.md) for the collection flow and classification rules.
-- Run `pnpm lint:secrets` after docs, prompt-library, trace, deployment, or credential guidance changes.
+- Run `pnpm lint:secrets` after docs, project-prompts, trace, deployment, or credential guidance changes.
 - Keep real API keys, tokens, passwords, webhook secrets, and private keys out of docs, prompts, traces, TODOs, logs, and final summaries.
 
 ## Work Cycle
@@ -43,6 +45,7 @@ folder during the same task cycle.
 - Add new dashboard UI work to `.TODO/todo-next.md` only when a concrete current behavior is missing — keep resolved audit notes as current-state references.
 - Update requirements for user-observable product behavior.
 - Update changelog with active, release-facing language.
+- Update the owning feature guide when a durable feature rule, workflow, or operator procedure changes.
 - Report remaining risks or deferred work without marking it complete.
 - Prefer a concise final summary with changed areas, validation, and remaining risks.
 
@@ -107,4 +110,4 @@ folder during the same task cycle.
 - The `createTrace` utility is fire-and-forget — it never blocks the response or throws.
 - Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.
 - Update the prompt version constant when prompt templates change to correlate trace quality.
-- Use [Interaction trace learning](../prompt-library/interaction-trace-learning.md) when a user asks the AI to leave useful traces, mark problems, educate the user, or collect learning suggestions.
+- Use [Interaction trace learning](../../../project-prompts/interaction-trace-learning.md) when a user asks the AI to leave useful traces, mark problems, educate the user, or collect learning suggestions.

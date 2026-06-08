@@ -2,7 +2,11 @@ const { existsSync, readFileSync } = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
-const files = execFileSync("git", ["ls-files", "*.md"], { encoding: "utf8" })
+const files = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md"],
+  { encoding: "utf8" },
+)
   .split("\n")
   .filter(Boolean);
 
