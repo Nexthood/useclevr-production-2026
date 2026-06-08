@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
+>>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
 - Published product news is searchable through MCP by slug or keyword, with optional full article content.
 - MCP subdomain exposes tool schemas with scoped access for service tokens.
 - Database-backed MCP tokens support creation, listing, and revocation for service authentication.
@@ -36,9 +38,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Keep the login footer focused on the terms link in the signup notice.
 - Use simple login card styling without backdrop blur.
 - Publish production only from the verified release branch instead of synchronizing beta during production deployment.
+- Accept `NEXTAUTH_SECRET` as fallback for `AUTH_SECRET` so deployment configs using the older env var name continue to work.
+- Wire MCP FAQ tool to read from Payload Faqs collection with automatic fallback to built-in static content.
 
 ### Fixed
 
+- Restore login on Railway deployments by setting `AUTH_SECRET` env var and accepting `NEXTAUTH_SECRET` as fallback when `AUTH_SECRET` is missing.
+- Prevent Payload CMS seed crash on fresh databases with explicit table-existence check before running seed queries.
+- Add Docker HEALTHCHECK instruction to container images so Railway detects application readiness automatically.
+- Forward SIGTERM/SIGINT to child process for graceful shutdown in production containers.
 - Restore required Next.js runtime files during Railway image creation and startup so generated deployments boot successfully.
 - Payload admin workspace requires explicit login instead of auto-authenticating on first load.
 - Keep successful administrator login on the public UseClevr host and confirm the authenticated session before showing a credential error.

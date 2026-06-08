@@ -170,7 +170,9 @@ moving work between states.
 
 ## Label: mcp
 
-- T-815. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
+- T-818. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
+- T-819. Create separate MCP Railway service with independent scaling and monitoring when MCP demand grows. (labels: mcp, deployment, monitoring)
+>>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
 
 ## Label: performance
 

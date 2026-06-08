@@ -42,8 +42,17 @@ export const Faqs: CollectionConfig = {
     },
     {
       name: "answer",
-      type: "richText",
+      type: "textarea",
       required: true,
+      admin: {
+        rows: 6,
+        description: "Plain-text answer (supports line breaks)",
+      },
+      validate: (val: string | null | undefined) => {
+        if (!val || val.trim().length === 0) return "Answer is required"
+        if (val.trim().length < 10) return "Answer must be at least 10 characters"
+        return true
+      },
     },
     {
       name: "tag",

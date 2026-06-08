@@ -3,6 +3,13 @@ import { getDb } from "@/lib/db";
 import { datasets, datasetRows } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 
+import {
+  getFaqsFromPayload,
+  getNewsPostBySlug,
+  getNewsPosts,
+  type FaqItem,
+  type NewsPostSummary,
+} from "@/lib/payload/content";
 import { allFaqCategories } from "@/lib/content/faq";
 import {
   getNewsPostBySlug,
@@ -471,11 +478,30 @@ export function getRevenueTrends(
   };
 }
 
-export function getFaqs(
+export async function getFaqs(
   category?: string,
   query?: string,
   limit: number = 20,
-): GetFaqsOutput {
+): Promise<GetFaqsOutput> {
+  // Try Payload first, fall back to built-in static data
+  try {
+    const payloadResult = await getFaqsFromPayload(category, query, limit);
+    if (payloadResult.faqs.length > 0) {
+      return {
+        faqs: payloadResult.faqs.map((f) => ({
+          category: f.category,
+          question: f.question,
+          answer: f.answer,
+          tag: f.tag || undefined,
+        })),
+        totalCount: payloadResult.totalCount,
+        categories: payloadResult.categories,
+      };
+    }
+  } catch {
+    // Fall through to static data
+  }
+
   let faqs: FaqItemOutput[] = allFaqCategories.flatMap((cat) =>
     cat.items.map((item) => ({
       category: cat.category,

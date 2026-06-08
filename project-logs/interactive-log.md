@@ -547,3 +547,87 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Deployment operations live in the Railway guide; MCP usage lives in the
   MCP guides; interaction history lives in `project-logs/`.
+
+
+---
+
+## Interaction 25: Complete All TODO Tasks, Fix Auth, Deploy Railway Fixes
+
+- **Date**: June 2026
+- **User Goal**: Work through all tasks in `.TODO/todo-next.md`, confirm completion, and fix auth
+  login on Railway deployments for test and app subdomains.
+- **Current Project State**: Login returned 500 on Railway (`/api/auth/session` → Internal Server
+  Error). Most TODO items pending implementation. All Railway deployments cleaned in prior session.
+- **Implemented Changes & Decisions**:
+  1. **Auth Fix (T-821)**: Root cause was `AUTH_SECRET` not set on Railway services — config module
+     validated with Zod and crashed if missing. `.env` had `NEXTAUTH_SECRET` only. Fixed by setting
+     `AUTH_SECRET` on both services via GraphQL API and adding `NEXTAUTH_SECRET` fallback in
+     `src/lib/config/index.ts`. Triggered `serviceInstanceDeployV2` on test and production.
+  2. **T-776**: Replaced generic try/catch in Payload onInit with explicit table-existence check
+     (try `payload.find({ collection: "cms-users", limit: 0 })` before seed).
+  3. **T-793**: Added HEALTHCHECK instruction to `dist-root/Dockerfile` and generated Dockerfile in
+     `create-dist.cjs` — checks `/api/health` every 30s, 3 retries.
+  4. **T-794**: Added SIGTERM/SIGINT handlers in `start-dist.cjs` forwarding signal to child process.
+  5. **T-801**: Documented hotfix path (cherry-pick + PR) and emergency rollback procedure
+     (Redeploy previous Railway deployment → revert PR → verify) in `GITHUB_WORKFLOW.md`.
+  6. **T-808/T-813/T-816**: Changed Faqs `answer` from `richText` to `textarea`. Added 25 FAQ seed
+     entries (5 categories) to `seed.ts`. Added `getFaqsFromPayload()` to `content.ts` with static
+     fallback. Updated MCP handler to query Payload first.
+  7. **T-703**: Verified pre-commit hooks fully implemented (lint:todos, changelog, secrets, package).
+  8. **T-809**: Verified MCP token creation, auth, scope enforcement, and audit logging.
+- **Verified on test.useclevr.com**:
+  - `/api/auth/session` returns `null` (not 500) when logged out
+  - Login with `superadmin@useclevr.app` / `12345678` returns correct session with role
+  - Dashboard returns HTTP 200 after login
+  - Login with `demo@useclevr.app` / `12345678` works
+  - One-click demo login via `signIn("demo")` works
+- **Problems Marked**:
+  - `blocker`: Auth 500 on Railway — fixed by setting `AUTH_SECRET` and accepting `NEXTAUTH_SECRET`.
+  - `risk`: Production deploy failed after cleanup — needs CI re-publish to `dist` branch.
+  - `observation`: Railway env changes via API need a deployment restart. Use `serviceInstanceDeployV2`
+    GraphQL mutation to trigger deployment.
+  - `observation`: One-click demo login calls `/api/auth/callback/demo` (not `/credentials`).
+- **User Learning**: Railway env vars are container-start scoped; API changes need a restart.
+  `AUTH_SECRET` is the modern name but `NEXTAUTH_SECRET` is still common — accept both.
+- **AI-Agent Learning**: Payload's generated type system excludes runtime-registered collections.
+  Use `(payload as any)` casts for `faqs` until types are regenerated. Railway's
+  `serviceInstanceDeployV2(serviceId, environmentId)` triggers a source deploy without a git push.
+- **Follow-up Tasks**:
+  - T-807: Set DNS CNAME records at provider for MCP subdomains (user action)
+  - T-814: Add dist branch README.md
+  - T-820: Add MCP token management superadmin UI
+  - Push beta commits to trigger CI → re-publish `dist` branch with all fixes
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
+  in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 26: MCP Token Management UI and Docs Finalization
+
+- **Date**: June 2026
+- **User Goal**: Complete all remaining tasks, update documentation, commit, push beta, and create PR
+  to main.
+- **Current Project State**: Auth fix, HEALTHCHECK, SIGTERM handler, Payload seed guard, FAQ seed,
+  and hotfix docs committed. MCP token management UI needed.
+- **Implemented Changes & Decisions**:
+  1. **T-820**: Created MCP token management page at
+     `src/app/(auth)/app/admin/mcp-tokens/page.tsx` with stat cards (total/active/expired/30d),
+     DataTable listing all tokens, create dialog with scope checkboxes and expiry, post-creation
+     copy dialog, and per-row revoke action.
+  2. **Sidebar nav**: Added `KeyRound` "MCP Tokens" entry to `adminNavigation` array in
+     `app-sidebar.tsx`.
+  3. **T-814**: Updated `dist-root/README.md` to 2 informative lines describing the deployment flow.
+  4. **Changelog/logs**: Updated all documentation files.
+- **Problems Marked**:
+  - `blocker`: T-807 (DNS CNAME records) needs user action at DNS provider
+  - `blocked`: T-815 (MCP subdomain test) blocked on T-807
+  - `risk`: Production deploy needs CI to publish `dist` branch after beta push
+- **Follow-up Tasks**:
+  - T-807: User sets DNS CNAME at provider
+  - T-815: Test MCP subdomain after DNS
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
+  in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.

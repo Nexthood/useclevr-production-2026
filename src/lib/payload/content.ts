@@ -145,6 +145,71 @@ export async function getNewsPosts(limit = 10): Promise<NewsPostSummary[]> {
   }
 }
 
+export type FaqItem = {
+  id: string
+  category: string
+  question: string
+  answer: string
+  tag?: string | null
+  sortOrder: number
+}
+
+const faqFallback: FaqItem[] = []
+
+export async function getFaqsFromPayload(
+  category?: string,
+  query?: string,
+  limit = 20,
+): Promise<{ faqs: FaqItem[]; totalCount: number; categories: string[] }> {
+  try {
+    const payload = await getPayloadClient()
+
+    const filter: Record<string, unknown> = {}
+    if (category) {
+      filter.category = { equals: category }
+    }
+    if (query) {
+      filter.or = [
+        { question: { contains: query } },
+        { answer: { contains: query } },
+      ]
+    }
+
+    const result = await (payload.find as any)({
+      collection: "faqs",
+      depth: 0,
+      limit,
+      sort: "sortOrder",
+      where: Object.keys(filter).length > 0 ? filter : undefined,
+    })
+
+    const faqs: FaqItem[] = (result.docs as any[]).map((doc: Record<string, unknown>) => ({
+      id: String(doc.id || ""),
+      category: String(doc.category || ""),
+      question: String(doc.question || ""),
+      answer: String(doc.answer || ""),
+      tag: doc.tag ? String(doc.tag) : null,
+      sortOrder: Number(doc.sortOrder) || 0,
+    }))
+
+    const allResult = await (payload.find as any)({
+      collection: "faqs",
+      depth: 0,
+      limit: 100,
+      sort: "sortOrder",
+    })
+    const categories = [...new Set((allResult.docs as any[]).map((doc: Record<string, unknown>) => String(doc.category || "")))]
+
+    return {
+      faqs,
+      totalCount: result.docs.length,
+      categories,
+    }
+  } catch {
+    return { faqs: faqFallback, totalCount: 0, categories: [] }
+  }
+}
+
 export async function getNewsPostBySlug(slug: string): Promise<NewsPostSummary | null> {
   try {
     const payload = await getPayloadClient()

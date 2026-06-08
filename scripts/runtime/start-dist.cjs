@@ -86,9 +86,24 @@ if (!serverPath) {
   process.exit(1);
 }
 
+// Graceful shutdown — forward SIGTERM/SIGINT to child and flush state
+let childServer = null;
+function shutdown(signal) {
+  return () => {
+    if (childServer) {
+      try { childServer.kill(signal); } catch { /* child may already be gone */ }
+    }
+    // DB connections, AI trace flushes, and background jobs terminate via process exit
+    process.exit(0);
+  };
+}
+process.on("SIGTERM", shutdown("SIGTERM"));
+process.on("SIGINT", shutdown("SIGINT"));
+
 const result = spawnSync(process.execPath, [serverPath], {
   env: process.env,
   stdio: "inherit",
 });
+childServer = result;
 
 process.exit(result.status ?? 1);

@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
-  AUTH_SECRET: z.string().min(32),
+  AUTH_SECRET: z.string().min(1).default(""),
   AUTH_URL: z.string().url().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -16,7 +16,18 @@ const envSchema = z.object({
   MCP_URL: z.string().url().optional(),
 })
 
-export const config = envSchema.parse(process.env)
+function resolveSecret(): string {
+  if (process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= 32) {
+    return process.env.AUTH_SECRET
+  }
+  if (process.env.NEXTAUTH_SECRET && process.env.NEXTAUTH_SECRET.length >= 32) {
+    return process.env.NEXTAUTH_SECRET
+  }
+  return ""
+}
+
+const rawEnv = { ...process.env, AUTH_SECRET: resolveSecret() }
+export const config = envSchema.parse(rawEnv)
 
 export type Config = z.infer<typeof envSchema>
 
