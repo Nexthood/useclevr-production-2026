@@ -326,10 +326,14 @@ CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
 
-// Copy pnpm-lock.yaml from repo root for deterministic installs in Dockerfile
+// Copy pnpm-lock.yaml and .pnpmfile.cjs from repo root for deterministic installs in Dockerfile
 const lockfile = path.join(rootDir, "pnpm-lock.yaml");
 if (fs.existsSync(lockfile)) {
   fs.copyFileSync(lockfile, path.join(distDir, "pnpm-lock.yaml"));
+}
+const pnpmfile = path.join(rootDir, ".pnpmfile.cjs");
+if (fs.existsSync(pnpmfile)) {
+  fs.copyFileSync(pnpmfile, path.join(distDir, ".pnpmfile.cjs"));
 }
 
 // Keep node_modules in the build context — the standalone bundle contains the correct
