@@ -86,7 +86,7 @@ moving work between states.
 
 ## Label: mcp
 
-- T-810. Add MCP endpoint at subdomain root (e.g., `mcp.useclevr.com/` serves `/api/mcp` without redirect) when MCP becomes an external customer-facing service. (labels: mcp, deployment, api)
+- T-813. Add MCP endpoint at subdomain root (e.g., `mcp.useclevr.com/` serves `/api/mcp` without redirect) when MCP becomes an external customer-facing service. (labels: mcp, deployment, api)
 
 ## Additional
 

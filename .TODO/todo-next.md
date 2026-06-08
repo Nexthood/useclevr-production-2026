@@ -29,6 +29,9 @@ moving work between states.
 - T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to `/api/mcp` endpoint. (labels: mcp, deployment, docs)
 - T-808. Add FAQ seed data to Payload Faqs collection and wire MCP getFaqs tool to fall back to Payload content when no static FAQ cache is available. (labels: mcp, content, workflow)
 - T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via the new /api/mcp/tokens endpoint. (labels: mcp, testing, security)
+- T-812. Add MCP token management UI in superadmin panel for creating and revoking service tokens. (labels: mcp, ui, security)
+- T-810. Verify next Railway dist-test deploy succeeds by checking for 'Restored next/dist/build/' in Railway build logs. (labels: deployment, ci-build, monitoring)
+- T-811. Add FAQ seed data to Payload Faqs collection with 5 starter categories and 20 questions. (labels: mcp, content)
 
 ## Label: workflow
 
