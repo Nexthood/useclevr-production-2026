@@ -127,9 +127,8 @@ jobs:
           STAGING=$(mktemp -d)
           echo "STAGING=$STAGING" >> "$GITHUB_ENV"
 
-          # Remove lock files and packageManager from dist package.json
-          rm -f dist/pnpm-workspace.yaml dist/pnpm-lock.yaml dist/yarn.lock
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('dist/package.json','utf8')); delete p.packageManager; fs.writeFileSync('dist/package.json', JSON.stringify(p, null, 2) + '\n');"
+          # Remove unnecessary lock files from dist
+          rm -f dist/pnpm-workspace.yaml dist/pnpm-lock.yaml.bak dist/yarn.lock
 
           # Remove generated cache and heavy build artifacts from dist
           rm -rf dist/.next/cache dist/.cache dist/cache dist/.turbo dist/.vercel dist/node_modules

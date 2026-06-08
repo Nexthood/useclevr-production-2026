@@ -318,13 +318,19 @@ copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
-RUN corepack enable && pnpm install --prod 2>&1
+RUN npm install -g pnpm@11.5.0 && pnpm install --prod --frozen-lockfile 2>&1
 RUN node scripts/runtime/railway-predeploy.cjs
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD node -e "require('http').get('http://localhost:8080/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
+
+// Copy pnpm-lock.yaml from repo root for deterministic installs in Dockerfile
+const lockfile = path.join(rootDir, "pnpm-lock.yaml");
+if (fs.existsSync(lockfile)) {
+  fs.copyFileSync(lockfile, path.join(distDir, "pnpm-lock.yaml"));
+}
 
 // Keep node_modules in the build context — the standalone bundle contains the correct
 // dependency tree (from pnpm + Next.js tracing). .git is unnecessary in the image.
