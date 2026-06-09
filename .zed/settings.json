@@ -1,0 +1,29 @@
+{
+  "assistant": {
+    "default_model": {
+      "provider": "google",
+      "model": "gemini-2.5-flash"
+    },
+    "version": "2"
+  },
+  "language_models": {
+    "google": {
+      "api_url": "https://generativelanguage.googleapis.com/v1beta",
+      "available_models": [
+        {
+          "name": "gemini-2.5-flash",
+          "display_name": "Gemini Flash 2.5",
+          "max_tokens": 8192
+        }
+      ]
+    }
+  },
+  "project_panel": {
+    "dock": "left"
+  },
+  "format_on_save": "on",
+  "autosave": "on_focus_change",
+  "terminal": {
+    "shell": "system"
+  }
+}

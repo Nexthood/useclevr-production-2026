@@ -1,8 +1,7 @@
 # AI Development Tools Installation Guide
 
-This document describes the installation and configuration of three free AI development tools:
+This document describes the installation and configuration of two free AI development tools:
 - Kodu AI (MCP-native coding assistant)
-- Continue.dev (open-source AI coding assistant)
 - Zed (AI-powered editor)
 
 ## Installation Summary
@@ -10,7 +9,6 @@ This document describes the installation and configuration of three free AI deve
 | Tool | Installation Path | Version | Status |
 |------|-------------------|---------|--------|
 | Kodu AI | `~/.local/share/pnpm/bin/kodu` | 2.1.3 | ✅ Installed |
-| Continue.dev | `~/.vscode/extensions/continue.continue-1.2.22/` | 1.2.22 | ✅ Installed |
 | Zed | `~/.local/zed/` | v1.5.4 | ✅ Installed |
 
 ## 1. Kodu AI
@@ -37,26 +35,7 @@ kodu clean         # Remove comments from code
 - Command: `tkodu-local init` then `tkodu-local start`
 - Config: `~/.continue/config.ts`
 
-## 2. Continue.dev
-
-**Installation Method:** VSIX from GitHub releases
-
-**Version:** 1.2.22
-
-**Configuration Files:**
-- `~/.continue/config.yaml` - Main configuration with model providers
-- `~/.continue/.continuerc.json` - Continue-specific settings
-
-**Configured Models:**
-- Ollama (local): `phi3:mini`
-- Gemini: `gemini-2.0-flash-exp`, `gemini-1.5-flash`
-
-**VS Code Integration:**
-- Extension auto-activates on restart
-- Use `Ctrl+L` to select code for context
-- Use `Ctrl+I` for edit mode
-
-## 3. Zed Editor
+## 2. Zed Editor
 
 **Installation Method:** Manual tarball extraction to `~/.local/zed`
 
@@ -87,6 +66,6 @@ zed --help              # Show CLI help
 - Registered servers: Neon, T-Kodu
 
 **To Start Using:**
-1. Restart VS Code to activate Continue extension and MCP servers
+1. Restart VS Code to activate MCP servers
 2. Run `ollama serve` for local model access
 3. Launch Zed with `zed /home/csaba/Documents/Useclever-2026`

@@ -58,37 +58,13 @@ html[data-theme="dark"] .payload-useclevr-logo__image--dark {
   text-underline-offset: 0.2rem;
 }
 
-.template-minimal {
-  background: var(--theme-bg);
-}
-
-.template-minimal .template-minimal__wrap {
-  width: min(100%, 30rem);
-}
-
-.template-minimal form {
+.payload-useclevr-credentials {
+  background: var(--theme-elevation-50);
   border: 1px solid var(--theme-elevation-150);
-  border-radius: 0.5rem;
-  background: var(--theme-elevation-0);
-  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--theme-elevation-1000) 10%, transparent);
-  padding: 1.5rem;
-}
-
-.template-minimal input {
   border-radius: 0.375rem;
+  padding: 0.75rem;
 }
 
-.template-minimal button[type="submit"] {
-  border-radius: 0.375rem;
-}
-
-@media (max-width: 600px) {
-  .payload-useclevr-auth nav {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .template-minimal form {
-    padding: 1.25rem;
-  }
+.payload-useclevr-credentials .font-mono {
+  color: var(--theme-elevation-700);
 }

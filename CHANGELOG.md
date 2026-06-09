@@ -11,6 +11,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Auto-merge chain now dispatches dist publish after PR merge, fixing the `GITHUB_TOKEN` limitation that prevented `branch-maintenance.yml` from triggering on auto-merge push events
 - Remove `pnpm install --prod` from Dockerfiles — dist already contains complete `node_modules` from Next.js standalone tracing, eliminating `ERR_PNPM_IGNORED_BUILDS` and preventing overwrite of traced Next.js internals
+- Keep `node_modules` in dist branch commits so Railway Docker build has all required dependencies at build time
 
 ### Added
 
