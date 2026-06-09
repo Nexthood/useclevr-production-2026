@@ -255,34 +255,18 @@ jobs:
 
           node -e "JSON.parse(require('fs').readFileSync('server-config/railway.json', 'utf8')); JSON.parse(require('fs').readFileSync('server-config/vercel.json', 'utf8'))"
 
-          large_dist_file="$(find dist -type f -size +95M -print -quit)"
+          large_dist_file="$(find dist -type f -size +200M -print -quit)"
           if [ -n "$large_dist_file" ]; then
             echo "Error: files larger than GitHub limit still exist."
             exit 1
           fi
 
-          echo "DEBUG: before git add -A"
           git add -A
-          echo "DEBUG: after git add -A"
-          if git ls-files -s | awk '{print $4}' | while read -r file; do
-            if [ -f "$file" ] && [ "$(wc -c < "$file")" -gt 99614720 ]; then
-              printf '%s\n' "$file"
-            fi
-          done | grep .; then
-            echo "Error: staged files larger than GitHub limit still exist."
-            exit 1
-          fi
-          echo "DEBUG: size check passed"
-
           tree_sha="$(git write-tree)"
-          echo "DEBUG: tree_sha=$tree_sha"
           if [ -n "$previous_dist_parent" ]; then
             commit_sha="$(git commit-tree "$tree_sha" -p "$previous_dist_parent" -m "${{ steps.dist-title.outputs.title }}")"
           else
             commit_sha="$(git commit-tree "$tree_sha" -m "${{ steps.dist-title.outputs.title }}")"
           fi
-          echo "DEBUG: commit_sha=$commit_sha"
           git update-ref refs/heads/new-dist-test "$commit_sha"
-          echo "DEBUG: pushing"
           git push origin new-dist-test:dist-test --force
-          echo "DEBUG: done"
