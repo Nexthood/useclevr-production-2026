@@ -5,6 +5,8 @@ This file summarizes current project activity. Detailed session records live in
 
 ## 2026-06-08
 
+- Align the Payload login surface with UseClevr app authentication and simplify the sidebar
+  collapse control.
 - Restore Railway test deployment health and document packaged Next.js runtime recovery.
 - Restore administrator credential login and public-host redirects.
 - Consolidate duplicate TODO identifiers and stale deployment status records.

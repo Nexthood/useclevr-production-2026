@@ -7,11 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Auto-merge chain now dispatches dist publish after PR merge, fixing the `GITHUB_TOKEN` limitation that prevented `branch-maintenance.yml` from triggering on auto-merge push events
+
 ### Added
 
 - Block non-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via proxy.ts, returning 404 for all paths except /api/mcp.
 - Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
->>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
 - Published product news is searchable through MCP by slug or keyword, with optional full article content.
 - MCP subdomain exposes tool schemas with scoped access for service tokens.
 - Database-backed MCP tokens support creation, listing, and revocation for service authentication.
@@ -35,6 +38,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Show the content admin login with UseClevr branding and direct app sign-in and signup links.
+- Use a compact icon control to collapse or expand the dashboard sidebar.
 - Show built-in demo accounts as compact lines under the sign-in form.
 - Keep the login footer focused on the terms link in the signup notice.
 - Use simple login card styling without backdrop blur.

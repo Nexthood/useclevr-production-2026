@@ -3,7 +3,7 @@ name: Auto-merge PRs from beta to main
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, closed]
 
 permissions:
   actions: write
@@ -16,7 +16,8 @@ jobs:
     if: >
       github.event.pull_request.head.ref == 'beta' &&
       github.event.pull_request.base.ref == 'main' &&
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Format PR title with PR number
@@ -35,3 +36,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --merge --auto
+
+  dispatch-publish:
+    name: Dispatch dist publish after merge
+    if: >
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'beta' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Sync Beta And Publish Dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run branch-maintenance.yml --ref main

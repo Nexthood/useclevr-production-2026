@@ -655,3 +655,30 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Release impact lives in `CHANGELOG.md`; session detail and activity live
   in `project-logs/`; current AI status lives in `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 28: Sidebar Control and Payload Authentication Presentation
+
+- **Date**: June 9, 2026
+- **User Goal**: Simplify the sidebar collapse control and align Payload login and signup navigation
+  with the current dashboard authentication experience.
+- **Implemented Changes & Decisions**:
+  1. Replace the desktop sidebar's large panel control with a compact icon-only control in the
+     sidebar footer.
+  2. Register UseClevr logo and login-introduction components through Payload's supported admin
+     component configuration.
+  3. Keep CMS authentication native to Payload and route app account creation to the existing
+     signup tab.
+  4. Regenerate the Payload import map and verify TypeScript and focused ESLint checks.
+- **Problems Marked**:
+  - `observation`: App signup and Payload CMS access serve different permission boundaries.
+- **User Learning**: The shared visual identity does not require opening public CMS registration.
+- **AI-Agent Learning**: Customize Payload authentication through supported component hooks and
+  regenerate its import map after changing component registration.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release impact lives in `CHANGELOG.md`; Payload maintenance guidance
+  lives in the developer guide; interaction records live in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.

@@ -239,6 +239,10 @@ Current local safety rules:
   protected API routes behind authentication.
 - Keep `/admin` requests on the Payload root layout so the admin login and admin workspace boot
   with the required Payload providers and server functions.
+- Register Payload login branding through `admin.components`, then regenerate the admin import map
+  with `node ./node_modules/payload/bin.js generate:importmap`.
+- Route public account creation through `/login?tab=signup`; Payload CMS accounts remain controlled
+  content-administration identities.
 
 ### Clean
 
