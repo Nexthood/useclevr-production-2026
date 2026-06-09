@@ -275,5 +275,6 @@ moving work between states.
 - T-771. Implement feature flag lifecycle management with automated cleanup. (labels: workflow, testing)
 - T-826. Add MCP audit log viewer in superadmin panel for tracing tool invocations, auth attempts, and rate limit events. (labels: mcp, monitoring, security, ui)
 - T-827. Implement MCP tool invocation streaming with progressive result delivery for long-running dataset queries. (labels: mcp, api, performance)
+- T-831. Create reusable accessibility icon set component supporting dark mode variants for eye-dropper, zoom, voice-control, and screen-reader icons. (labels: ui, accessibility, dashboard)
 
 ## Suggestions

@@ -179,6 +179,11 @@ const rootDistPackage = {
 // Remove packageManager so npm doesn't detect pnpm
 delete rootDistPackage.packageManager;
 
+// Allow build scripts for packages that need them in pnpm v11+
+rootDistPackage.pnpm = {
+  onlyBuiltDependencies: ["core-js", "esbuild", "sharp"],
+};
+
 fs.writeFileSync(
   path.join(distDir, "package.json"),
   `${JSON.stringify(rootDistPackage, null, 2)}\n`,
@@ -318,13 +323,23 @@ copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
-RUN corepack enable && pnpm install --prod 2>&1
+RUN npm install -g pnpm@11.5.0 && pnpm install --prod 2>&1
 RUN node scripts/runtime/railway-predeploy.cjs
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD node -e "require('http').get('http://localhost:8080/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
+
+// Copy pnpm-lock.yaml and .pnpmfile.cjs from repo root for deterministic installs in Dockerfile
+const lockfile = path.join(rootDir, "pnpm-lock.yaml");
+if (fs.existsSync(lockfile)) {
+  fs.copyFileSync(lockfile, path.join(distDir, "pnpm-lock.yaml"));
+}
+const pnpmfile = path.join(rootDir, ".pnpmfile.cjs");
+if (fs.existsSync(pnpmfile)) {
+  fs.copyFileSync(pnpmfile, path.join(distDir, ".pnpmfile.cjs"));
+}
 
 // Keep node_modules in the build context — the standalone bundle contains the correct
 // dependency tree (from pnpm + Next.js tracing). .git is unnecessary in the image.

@@ -54,6 +54,11 @@ const statements = [
   `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "website" text`,
   `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "businessDescription" text`,
 
+  `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "companyNumber" text`,
+  `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "companySetup" jsonb DEFAULT '{}'::jsonb NOT NULL`,
+  `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "archivedAt" timestamp`,
+  `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "archiveExpiresAt" timestamp`,
+
   `CREATE TABLE IF NOT EXISTS "ReferralEvent" (
     "id" text PRIMARY KEY NOT NULL,
     "code" varchar(32) NOT NULL,
