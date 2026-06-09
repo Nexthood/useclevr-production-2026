@@ -162,6 +162,11 @@ jobs:
           rm -f railpack.json
 
           # Copy only deploy-required files from staging
+          for f in Dockerfile .dockerignore .gitignore README.md; do
+            if [ -f "$STAGING/$f" ]; then
+              cp "$STAGING/$f" ./
+            fi
+          done
           mkdir -p dist
           cp -a "$STAGING/dist/." dist/
           if [ -d "$STAGING/server-config" ]; then
