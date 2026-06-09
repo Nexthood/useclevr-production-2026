@@ -3,7 +3,7 @@ name: Auto-merge PRs from beta to main
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review, closed]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   actions: write
@@ -16,8 +16,7 @@ jobs:
     if: >
       github.event.pull_request.head.ref == 'beta' &&
       github.event.pull_request.base.ref == 'main' &&
-      github.event.pull_request.draft == false &&
-      github.event.action != 'closed'
+      github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Format PR title with PR number
@@ -31,21 +30,44 @@ jobs:
             gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --repo "${{ github.repository }}"
           fi
 
-      - name: Enable auto-merge if checks pass
+      - name: Wait for checks, merge, and dispatch production deploy
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --merge --auto
+        run: |
+          echo "Waiting for required checks to pass..."
+          for i in {1..40}; do
+            state=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json state,merged --jq '{state, merged}' 2>/dev/null || echo '{"state":"OPEN","merged":false}')
+            merged=$(echo "$state" | jq -r '.merged // false')
+            pr_state=$(echo "$state" | jq -r '.state // "OPEN"')
 
-  dispatch-publish:
-    name: Dispatch dist publish after merge
-    if: >
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.head.ref == 'beta' &&
-      github.event.pull_request.base.ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Sync Beta And Publish Dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run branch-maintenance.yml --ref main
+            if [ "$merged" = "true" ]; then
+              echo "PR already merged. Dispatching production build..."
+              gh workflow run branch-maintenance.yml --ref main
+              exit 0
+            fi
+
+            if [ "$pr_state" = "CLOSED" ]; then
+              echo "PR closed without merge. Exiting."
+              exit 0
+            fi
+
+            mergeState=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json mergeStateStatus --jq '.mergeStateStatus' 2>/dev/null || echo "UNKNOWN")
+
+            case "$mergeState" in
+              CLEAN|UNSTABLE|HAS_HOOKS)
+                echo "Checks passed (status: $mergeState). Merging PR..."
+                if gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --merge; then
+                  echo "PR merged! Dispatching production build..."
+                  gh workflow run branch-maintenance.yml --ref main
+                  exit 0
+                fi
+                echo "Merge command failed, retrying..."
+                ;;
+            esac
+
+            echo "Status: $mergeState (attempt $i/40)"
+            sleep 15
+          done
+          echo "Timeout: checks did not pass within 10 minutes"
+          exit 1
