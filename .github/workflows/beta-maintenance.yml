@@ -135,7 +135,7 @@ jobs:
       - name: Stage generated output
         run: |
           mv dist /tmp/useclevr-dist-output
-          cp -a dist-root /tmp/useclevr-dist-root
+          cp -a dist-root/. /tmp/useclevr-dist-root
 
       - name: Prepare dist-test commit title from PR
         id: dist-title

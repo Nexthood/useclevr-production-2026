@@ -698,5 +698,6 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - Fix auto-merge chain: add `closed` event handler to dispatch `branch-maintenance.yml` after PR merge
    - Remove `pnpm install --prod` from Dockerfiles — dist has complete node_modules from Next.js standalone tracing
    - Stop deleting node_modules from CI workflows — CI was removing node_modules before committing to dist branch, so Docker build had no deps. Railway predeploy script requires pg which was lost.
+   - Fix dist-root copy in beta CI: `cp -a dist-root /tmp/` created dist-root subdirectory, so .gitignore never landed at repo root. Fallback .gitignore (with node_modules) was generated. Changed to `cp -a dist-root/.` to copy contents directly.
 - **Blocked (RESOLVED)**: Railway Metal builder incident (June 9 16:52 UTC — 17:35 UTC) resolved; incident moved to Monitoring at 17:35 UTC
 - **Next**: Rebuild dist, push, trigger production deploy now that node_modules is committed to dist branch
