@@ -682,3 +682,20 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Release impact lives in `CHANGELOG.md`; Payload maintenance guidance
   lives in the developer guide; interaction records live in `project-logs/` and
   `docs/AI-interaction/interaction-status.md`.
+
+## Interaction 2: Railway Deploy Fix — Dockerfile, Auto-Merge Chain, and Incident Recovery
+
+- **Date**: 2026-06-09
+- **User Goal**: Fix all Railway deploy failures (corepack, lockfile, pnpm build scripts, missing root Dockerfile in dist branch), report AI chat payload, proxy.ts vs middleware.ts, and deploy production successfully.
+- **Changes**:
+  - Fix Dockerfile: replace `corepack` with `npm install -g pnpm` (Alpine has no corepack binary)
+  - Copy `pnpm-lock.yaml` and `.pnpmfile.cjs` to dist for deterministic installs
+  - Remove `--frozen-lockfile` from Docker (lockfile has devDeps that mismatch `--prod` scope)
+  - Add `onlyBuiltDependencies` to dist `package.json` for pnpm v11 build script approval
+  - Copy root-level files (Dockerfile, .dockerignore, .gitignore, README.md) from `dist-root/` to dist branch in both CI staging and publish steps
+  - Fix report AI chat: `answerReportQuestion()` calls `runLLM()` directly instead of proxying through `/api/analyze`
+  - Move MCP subdomain logic from `middleware.ts` to `proxy.ts` (Next.js 16 cannot have both)
+  - Fix auto-merge chain: add `closed` event handler to dispatch `branch-maintenance.yml` after PR merge
+  - Remove `pnpm install --prod` from Dockerfiles — dist has complete node_modules from Next.js standalone tracing
+- **Blocked**: Railway Metal builder incident (June 9 16:52 UTC — 17:35+ UTC) prevents production deploy; incident moved to Monitoring at 17:35 UTC
+- **Next**: Rebuild dist, push, trigger production deploy now that builder is recovered

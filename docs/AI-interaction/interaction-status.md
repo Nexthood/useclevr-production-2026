@@ -12,3 +12,4 @@ Update this file after every completed AI interaction.
   screen without changing CMS account permissions.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
+- **Follow-up interaction**: 2026-06-09 — Railway Deploy Fix: Dockerfile pnpm removal, auto-merge chain, incident monitoring. See project-logs/interactive-log.md for full detail.
