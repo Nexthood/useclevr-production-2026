@@ -8,8 +8,6 @@ export function TopbarSection({
   icon,
   label,
   value,
-  header,
-  description,
   children,
   align = "left",
   noBorder = false,
@@ -18,8 +16,6 @@ export function TopbarSection({
   icon: React.ReactNode;
   label: string;
   value?: string;
-  header: string;
-  description: string;
   children?: React.ReactNode;
   align?: "left" | "right";
   noBorder?: boolean;
@@ -47,15 +43,9 @@ export function TopbarSection({
       </PopoverTrigger>
       <PopoverContent
         align={align === "right" ? "end" : "start"}
-        className="w-72 rounded-lg border border-border/60 bg-popover p-0 shadow-lg"
+        className="w-64 rounded-lg border border-border/60 bg-popover p-0 shadow-lg"
       >
-        <div className="p-4">
-          <div className="border-b border-border/50 pb-3">
-            <p className="text-sm font-semibold text-foreground">{header}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground/90">{description}</p>
-          </div>
-          {children && <div className="mt-3 space-y-2">{children}</div>}
-        </div>
+        {children && <div className="p-2">{children}</div>}
       </PopoverContent>
     </Popover>
   );
@@ -65,7 +55,7 @@ export function TopbarPanelLink({ href, children }: { href: string; children: Re
   return (
     <Link
       href={href}
-      className="block text-sm font-medium text-primary transition hover:text-primary/80"
+      className="block px-2 py-1.5 text-sm font-medium text-primary transition hover:bg-muted/50 hover:text-primary/80 rounded"
     >
       {children}
     </Link>

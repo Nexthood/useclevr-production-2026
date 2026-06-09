@@ -136,6 +136,13 @@ jobs:
           # Copy deploy-required files to staging (allowlist approach)
           cp -a dist/. "$STAGING/dist/"
 
+          # Root-level files for Railway Docker build context
+          for f in Dockerfile .dockerignore .gitignore README.md; do
+            if [ -f "dist-root/$f" ]; then
+              cp "dist-root/$f" "$STAGING/$f"
+            fi
+          done
+
           # Copy server configs (Railway/Vercel) to staging root
           if [ -d "dist-root/server-config" ]; then
             cp -a dist-root/server-config "$STAGING/server-config"

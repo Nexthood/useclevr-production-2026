@@ -58,8 +58,6 @@ export default async function Topbar() {
           <TopbarSection
             icon={<HelpCircle className="h-4 w-4" />}
             label="Help"
-            header="Help"
-            description="Find answers, open tickets, or start chat support."
             iconOnly
           >
             <TopbarPanelLink href="/app/faq">Dashboard FAQ</TopbarPanelLink>
@@ -71,19 +69,15 @@ export default async function Topbar() {
             icon={<BriefcaseBusiness className="h-4 w-4" />}
             label="Business"
             value={levelLabel}
-            header="Business workspace"
-            description="Manage profile details, business settings, and review readiness."
           >
-            <TopbarPanelLink href="/app/business">Business overview</TopbarPanelLink>
-            <TopbarPanelLink href="/app/business/profile">Business profile</TopbarPanelLink>
-            <TopbarPanelLink href="/app/business/review">Review readiness</TopbarPanelLink>
+            <TopbarPanelLink href="/app/business">Business</TopbarPanelLink>
+            <TopbarPanelLink href="/app/business/profile">Profile</TopbarPanelLink>
+            <TopbarPanelLink href="/app/business/review">Review</TopbarPanelLink>
           </TopbarSection>
 
             <TopbarSection
               icon={<GraduationCap className="h-4 w-4" />}
               label="Mentoring"
-              header="Business Mentoring"
-              description="Book expert sessions for growth, fundraising, and strategy."
             >
               <TopbarPanelLink href="/app/mentoring">My sessions</TopbarPanelLink>
               <TopbarPanelLink href="/mentoring">Public page</TopbarPanelLink>
@@ -93,15 +87,13 @@ export default async function Topbar() {
             <TopbarSection
               icon={<Shield className="h-4 w-4" />}
               label="Admin"
-              header="Admin panel"
-              description="Manage customers, levels, discounts, billing, and AI trace analytics."
             >
               <TopbarPanelLink href="/app/admin/customers">Customers</TopbarPanelLink>
-              <TopbarPanelLink href="/app/admin/levels">Customer Levels</TopbarPanelLink>
-              <TopbarPanelLink href="/app/admin/discounts">Discount Rules</TopbarPanelLink>
-              <TopbarPanelLink href="/app/admin/billing-settings">Billing Settings</TopbarPanelLink>
-              <TopbarPanelLink href="/app/admin/ai-traces">AI Trace Analytics</TopbarPanelLink>
-              <TopbarPanelLink href="/app/admin/ai-benchmarking">AI Benchmarking</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/levels">Levels</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/discounts">Discounts</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/billing-settings">Billing</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/ai-traces">AI Traces</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/ai-benchmarking">Benchmarking</TopbarPanelLink>
             </TopbarSection>
           )}
 
@@ -109,24 +101,20 @@ export default async function Topbar() {
             icon={<CreditCard className="h-4 w-4" />}
             label="Credits"
             value={`${remainingCredits} ${levelLabel}`}
-            header="Credits and billing"
-            description="Review analyst credits, subscription settings, and billing details."
           >
             <TopbarPanelLink href="/app/settings/subscription">Subscription</TopbarPanelLink>
             <TopbarPanelLink href="/app/settings/billing">Billing</TopbarPanelLink>
-            <TopbarPanelLink href="/app/settings/credits">Credit rules</TopbarPanelLink>
+            <TopbarPanelLink href="/app/settings/credits">Rules</TopbarPanelLink>
           </TopbarSection>
 
           <TopbarSection
             icon={<UserCircle className="h-4 w-4" />}
             label={session?.user?.name || "Profile"}
             value={levelLabel}
-            header="Account"
-            description="Open profile settings, preferences, and activity."
             align="right"
             noBorder
           >
-            <TopbarPanelLink href="/app/settings/profile">Profile settings</TopbarPanelLink>
+            <TopbarPanelLink href="/app/settings/profile">Profile</TopbarPanelLink>
             <TopbarPanelLink href="/app/settings/preferences">Preferences</TopbarPanelLink>
             <TopbarPanelLink href="/app/settings/activity">Activity</TopbarPanelLink>
           </TopbarSection>
