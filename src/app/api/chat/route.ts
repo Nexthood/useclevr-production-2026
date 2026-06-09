@@ -21,21 +21,21 @@ import { handleRegularChat, handleRegularChatStream } from '@/lib/chat/fallback'
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
 
 function streamResponse(readable: ReadableStream<string>): Response {
-  const encoder = new TextEncoder();
+  const encoder = new TextEncoder()
   const transformed = readable.pipeThrough(new TransformStream({
     transform(chunk, controller) {
       if (typeof chunk === 'string') {
-        controller.enqueue(encoder.encode(chunk));
+        controller.enqueue(encoder.encode(chunk))
       }
     },
-  }));
+  }))
   return new Response(transformed, {
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      'X-Content-Type-Options': 'nosniff',
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Content-Type-Options": "nosniff",
     },
-  });
+  })
 }
 
 async function handleAnalyticalQuery(

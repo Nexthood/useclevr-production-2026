@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "useclevr-test-direct": {
+      "type": "http",
+      "url": "https://test.useclevr.com/api/mcp"
+    },
+    "useclevr-production-direct": {
+      "type": "http",
+      "url": "https://app.useclevr.com/api/mcp"
+    }
+  }
+}

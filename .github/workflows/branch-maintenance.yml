@@ -131,7 +131,7 @@ jobs:
           rm -f dist/pnpm-workspace.yaml dist/pnpm-lock.yaml.bak dist/yarn.lock
 
           # Remove generated cache and heavy build artifacts from dist
-          rm -rf dist/.next/cache dist/.cache dist/cache dist/.turbo dist/.vercel dist/node_modules
+          rm -rf dist/.next/cache dist/.cache dist/cache dist/.turbo dist/.vercel
 
           # Copy deploy-required files to staging (allowlist approach)
           cp -a dist/. "$STAGING/dist/"
@@ -173,8 +173,8 @@ jobs:
             cp -a "$STAGING/server-config/." server-config/
           fi
 
-          # Safety: ensure no node_modules or cache artifacts snuck in
-          rm -rf node_modules dist/node_modules .pnpm-store .next
+          # Safety: ensure no cache artifacts snuck in
+          rm -rf .next
 
           git add -A
           git commit -m "${{ steps.dist-title.outputs.title }}"

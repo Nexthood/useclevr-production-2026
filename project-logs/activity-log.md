@@ -34,3 +34,5 @@ This file summarizes current project activity. Detailed session records live in
 - Fix auto-merge chain so PR merges trigger dist publish via workflow_dispatch.
 - Remove pnpm install from Dockerfiles — standalone node_modules is complete.
 - Railway Metal builder incident identified, then moved to monitoring. Production deploy pending.
+- Keep node_modules in dist branch commits (stop CI from deleting them). Railway Docker build needs pg for predeploy script.
+- Fix beta CI dist-root copy (cp -a copied dir not contents, fallback .gitignore with node_modules generated).
