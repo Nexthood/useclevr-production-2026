@@ -201,8 +201,7 @@ for (const targetDir of [distDir]) {
   }
 }
 
-// Keep pnpm-lock.yaml for deterministic installs in the Dockerfile (pnpm install --prod).
-// Remove other package-manager lockfiles and configs that are not needed.
+// Remove package-manager lockfiles and configs that are not needed.
 const packageManagerFiles = [
   "pnpm-workspace.yaml",
   "package-lock.json",
@@ -318,28 +317,17 @@ restoreNextBuildDir();
 const nextBuildExtra = path.join(distDir, "next-build-extra");
 copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
 
-// Railway uses DOCKERFILE builder (not Railpack). pnpm install --prod covers peer dependencies
-// like 'pg' that Next.js tracing may not pull into the standalone build.
+// Railway uses DOCKERFILE builder (not Railpack). The dist folder contains the complete
+// node_modules from Next.js standalone tracing. No pnpm/npm install needed.
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
-RUN npm install -g pnpm@11.5.0 && pnpm install --prod 2>&1
 RUN node scripts/runtime/railway-predeploy.cjs
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD node -e "require('http').get('http://localhost:8080/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]
 `;
 fs.writeFileSync(path.join(distDir, "Dockerfile"), dockerfile);
-
-// Copy pnpm-lock.yaml and .pnpmfile.cjs from repo root for deterministic installs in Dockerfile
-const lockfile = path.join(rootDir, "pnpm-lock.yaml");
-if (fs.existsSync(lockfile)) {
-  fs.copyFileSync(lockfile, path.join(distDir, "pnpm-lock.yaml"));
-}
-const pnpmfile = path.join(rootDir, ".pnpmfile.cjs");
-if (fs.existsSync(pnpmfile)) {
-  fs.copyFileSync(pnpmfile, path.join(distDir, ".pnpmfile.cjs"));
-}
 
 // Keep node_modules in the build context — the standalone bundle contains the correct
 // dependency tree (from pnpm + Next.js tracing). .git is unnecessary in the image.

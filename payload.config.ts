@@ -35,6 +35,20 @@ export default buildConfig({
   }),
   admin: {
     user: CmsUsers.slug,
+    components: {
+      beforeLogin: [
+        {
+          path: "@/components/payload/payload-auth-brand",
+          exportName: "PayloadLoginIntro",
+        },
+      ],
+      graphics: {
+        Logo: {
+          path: "@/components/payload/payload-auth-brand",
+          exportName: "PayloadAdminLogo",
+        },
+      },
+    },
     meta: {
       titleSuffix: "UseClevr Admin",
       description: "Minimal content admin for UseClevr public news and page content.",

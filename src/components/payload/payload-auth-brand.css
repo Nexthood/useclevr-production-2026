@@ -1,0 +1,94 @@
+.payload-useclevr-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--theme-elevation-600);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.payload-useclevr-logo__image {
+  display: block;
+  width: min(12rem, 72vw);
+  height: auto;
+}
+
+.payload-useclevr-logo__image--dark {
+  display: none;
+}
+
+html[data-theme="dark"] .payload-useclevr-logo__image--light {
+  display: none;
+}
+
+html[data-theme="dark"] .payload-useclevr-logo__image--dark {
+  display: block;
+}
+
+.payload-useclevr-auth {
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.payload-useclevr-auth p {
+  margin: 0;
+  color: var(--theme-elevation-600);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.payload-useclevr-auth nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.payload-useclevr-auth a {
+  color: var(--theme-text);
+  text-decoration: none;
+}
+
+.payload-useclevr-auth a:hover {
+  color: var(--theme-success-500);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.template-minimal {
+  background: var(--theme-bg);
+}
+
+.template-minimal .template-minimal__wrap {
+  width: min(100%, 30rem);
+}
+
+.template-minimal form {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 0.5rem;
+  background: var(--theme-elevation-0);
+  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--theme-elevation-1000) 10%, transparent);
+  padding: 1.5rem;
+}
+
+.template-minimal input {
+  border-radius: 0.375rem;
+}
+
+.template-minimal button[type="submit"] {
+  border-radius: 0.375rem;
+}
+
+@media (max-width: 600px) {
+  .payload-useclevr-auth nav {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .template-minimal form {
+    padding: 1.25rem;
+  }
+}

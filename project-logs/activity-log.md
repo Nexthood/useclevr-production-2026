@@ -5,6 +5,8 @@ This file summarizes current project activity. Detailed session records live in
 
 ## 2026-06-08
 
+- Align the Payload login surface with UseClevr app authentication and simplify the sidebar
+  collapse control.
 - Restore Railway test deployment health and document packaged Next.js runtime recovery.
 - Restore administrator credential login and public-host redirects.
 - Consolidate duplicate TODO identifiers and stale deployment status records.
@@ -26,3 +28,9 @@ This file summarizes current project activity. Detailed session records live in
 - Fix Railway deploy crash: add pnpm install --prod to Dockerfile so pg is available for railway-predeploy.cjs.
 - Expose published Payload news through the scoped MCP news tool.
 - Align Railway cleanup guidance, MCP task state, and AI interaction records for commit.
+
+## 2026-06-09
+
+- Fix auto-merge chain so PR merges trigger dist publish via workflow_dispatch.
+- Remove pnpm install from Dockerfiles — standalone node_modules is complete.
+- Railway Metal builder incident identified, then moved to monitoring. Production deploy pending.

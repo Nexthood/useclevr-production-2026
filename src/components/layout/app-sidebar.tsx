@@ -128,6 +128,28 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </p>
           </div>
         )}
+        <div className={`hidden md:flex ${isCollapsed ? "justify-center" : "justify-end"}`}>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !isCollapsed
+              setIsCollapsed(next)
+              localStorage.setItem("useclevr_sidebar_collapsed", String(next))
+              window.dispatchEvent(
+                new CustomEvent("useclevr:sidebar-toggle", { detail: { collapsed: next } }),
+              )
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/65 transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
     </>
   );
@@ -146,24 +168,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </button>
 
       <aside className="fixed left-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-[var(--app-sidebar-width)] flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex">
-      <div className="relative h-full">
-        {sidebarContent}
-        {/* Desktop sidebar toggle - positioned within sidebar */}
-        <button
-          type="button"
-          onClick={() => {
-            const next = !isCollapsed
-            setIsCollapsed(next)
-            localStorage.setItem("useclevr_sidebar_collapsed", String(next))
-            window.dispatchEvent(new CustomEvent("useclevr:sidebar-toggle", { detail: { collapsed: next } }))
-          }}
-          className="absolute right-2 top-4 z-50 hidden h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted md:inline-flex"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-        </button>
-        </div>
+        <div className="relative h-full">{sidebarContent}</div>
       </aside>
 
       {isMobileOpen && (
