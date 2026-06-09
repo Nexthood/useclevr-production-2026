@@ -1,7 +1,7 @@
 "use client";
 
 import { setThemePreference } from "@/app/actions/settings";
-import { Check, Contrast, Monitor, Moon, Palette, Sun, Type, Zap } from "lucide-react";
+import { Check, Contrast, Monitor, Moon, Palette, Sun, Type, Zap, ZoomIn, ZoomOut, Accessibility, Mic } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -143,93 +143,53 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             <p className="text-sm font-semibold">Theme</p>
             <p className="mt-1 text-xs text-muted-foreground">Choose light, dark, or system preference.</p>
           </div>
-          <div className="mt-2 grid grid-cols-3 gap-1">
+          <div className="mt-2 grid grid-cols-4 gap-1">
             {[
               { id: "light", label: "Light", icon: Sun },
               { id: "dark", label: "Dark", icon: Moon },
+              { id: "eyedropper", label: "Color", icon: Palette },
+              { id: "zoom-in", label: "Zoom in", icon: ZoomIn },
+              { id: "zoom-out", label: "Zoom out", icon: ZoomOut },
+              { id: "a11y", label: "A11y", icon: Accessibility },
+              { id: "voice", label: "Voice", icon: Mic },
               { id: "system", label: "System", icon: Monitor },
+              { id: "contrast", label: "Contrast", icon: Contrast },
+              { id: "large", label: "Large", icon: Type },
+              { id: "motion", label: "Motion", icon: Zap },
             ].map((option) => (
               <button
                 key={option.id}
                 type="button"
                 role="menuitem"
-                aria-label={`Set theme to ${option.label}`}
-                aria-pressed={activeTheme === option.id}
+                aria-label={option.id === "light" || option.id === "dark" || option.id === "system"
+                  ? `Set theme to ${option.label}`
+                  : option.label}
+                aria-pressed={option.id === "contrast" ? storedContrast : option.id === "large" ? storedLarge : option.id === "motion" ? storedReducedMotion : activeTheme === option.id}
                 onClick={() => {
-                  applyThemeChange(option.id);
-                  setOpen(false);
+                  if (option.id === "light" || option.id === "dark" || option.id === "system") {
+                    applyThemeChange(option.id)
+                  } else if (option.id === "contrast") {
+                    toggleContrast()
+                  } else if (option.id === "large") {
+                    toggleLarge()
+                  } else if (option.id === "motion") {
+                    toggleReducedMotion()
+                  }
                 }}
                 className={`flex flex-col items-center justify-center gap-1 rounded-md p-2 text-xs transition hover:bg-muted ${
-                  activeTheme === option.id ? "bg-muted text-foreground" : "text-muted-foreground"
+                  (option.id === "light" || option.id === "dark" || option.id === "system") && activeTheme === option.id
+                    ? "bg-muted text-foreground"
+                    : (option.id === "contrast" && storedContrast) ||
+                      (option.id === "large" && storedLarge) ||
+                      (option.id === "motion" && storedReducedMotion)
+                    ? "bg-primary/10 text-foreground"
+                    : "text-muted-foreground"
                 }`}
               >
                 <option.icon className="h-4 w-4" />
-                <span>{option.label}</span>
+                <span className="sr-only">{option.label}</span>
               </button>
             ))}
-          </div>
-
-          <div className="mt-3 border-t border-border pt-2">
-            <p className="text-sm font-semibold">Accessibility</p>
-            <p className="mt-1 text-xs text-muted-foreground">Modify theme and apply display options.</p>
-          </div>
-          <div className="mt-2 grid gap-1">
-            <button
-              type="button"
-              role="menuitem"
-              aria-label="Toggle high contrast"
-              aria-pressed={storedContrast}
-              onClick={() => {
-                toggleContrast();
-                // Apply contrast to current theme
-                const baseTheme = storedContrast ? "contrast" : "";
-              }}
-              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
-                storedContrast ? "bg-primary/10 text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Contrast className="h-4 w-4" />
-                <span>High contrast</span>
-              </div>
-              {storedContrast && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              aria-label="Toggle larger text"
-              aria-pressed={storedLarge}
-              onClick={() => {
-                toggleLarge();
-                // Apply larger text to current theme
-                const baseTheme = storedLarge ? "large" : "";
-              }}
-              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted ${
-                storedLarge ? "bg-primary/10 text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Type className="h-4 w-4" />
-                <span>Larger text</span>
-              </div>
-              {storedLarge && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              aria-label="Toggle reduced motion"
-              aria-pressed={storedReducedMotion}
-              onClick={toggleReducedMotion}
-              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition ${
-                storedReducedMotion ? "bg-primary/10 text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                <span>Reduced motion</span>
-              </div>
-              {storedReducedMotion && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
-            </button>
           </div>
         </div>
       </PopoverContent>

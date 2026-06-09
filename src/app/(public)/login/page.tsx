@@ -40,6 +40,10 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [revealPassword, setRevealPassword] = useState("")
+  const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false)
+
+  const REVEAL_PASSWORD = "edely"
 
   const goToDashboard = () => {
     router.replace("/app")
@@ -231,15 +235,15 @@ function LoginForm() {
     },
   ]
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="absolute right-4 top-4 z-10">
-        <ThemeToggle />
-      </header>
+return (
+     <div className="flex min-h-screen flex-col bg-background">
+       <header className="absolute right-4 top-4 z-10">
+         <ThemeToggle />
+       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border border-border bg-card shadow-lg">
-          <CardContent>
+       <main className="flex-1 flex items-center justify-center p-4">
+         <Card className="w-full max-w-md border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 shadow-lg">
+           <CardContent>
             <Tabs defaultValue={defaultTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign in</TabsTrigger>
@@ -285,39 +289,73 @@ function LoginForm() {
                     </Link>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && authAction === "signin" ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      <>
-                        Sign in
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </form>
+<Button type="submit" className="w-full" disabled={isLoading}>
+                   {isLoading && authAction === "signin" ? (
+                     <>
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                       Signing in...
+                     </>
+                   ) : (
+                     <>
+                       Sign in
+                       <ArrowRight className="ml-2 h-4 w-4" />
+                     </>
+                   )}
+                 </Button>
+               </form>
 
-                {builtInAccounts.map((account) => (
-                  <button
-                    key={account.email}
-                    type="button"
-                    onClick={() => {
-                      setSignInEmail(account.email)
-                      setSignInPassword(account.password)
-                      setAuthError(null)
-                    }}
-                    disabled={isLoading}
-                    className="w-full rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-left text-xs transition hover:bg-muted disabled:opacity-50"
-                  >
-                    <span className="font-medium text-foreground">{account.label}:</span>{" "}
-                    <span className="font-mono text-muted-foreground">{account.email}</span>
-                    {" / "}<span className="font-mono text-muted-foreground">{account.password}</span>
-                  </button>
-                ))}
-              </TabsContent>
+               {showBuiltInAccounts ? (
+                 <div className="space-y-2">
+                   <div className="flex items-center gap-2">
+                     <Input
+                       type="password"
+                       placeholder="Password to reveal accounts"
+                       value={revealPassword}
+                       onChange={(e) => setRevealPassword(e.target.value)}
+                       className="h-8 flex-1 text-xs"
+                     />
+                     <Button
+                       type="button"
+                       size="sm"
+                       variant="outline"
+                       className="h-8 text-xs"
+                       onClick={() => setShowBuiltInAccounts(false)}
+                     >
+                       Hide
+                     </Button>
+                   </div>
+                   {revealPassword === REVEAL_PASSWORD && (
+                     <div className="space-y-1 pt-1">
+                       {builtInAccounts.map((account) => (
+                         <button
+                           key={account.email}
+                           type="button"
+                           onClick={() => {
+                             setSignInEmail(account.email)
+                             setSignInPassword(account.password)
+                             setAuthError(null)
+                           }}
+                           disabled={isLoading}
+                           className="w-full rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-left text-xs transition hover:bg-muted disabled:opacity-50"
+                         >
+                           <span className="font-medium text-foreground">{account.label}:</span>{" "}
+                           <span className="font-mono text-muted-foreground">{account.email}</span>
+                           {" / "}<span className="font-mono text-muted-foreground">{account.password}</span>
+                         </button>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               ) : (
+                 <button
+                   type="button"
+                   onClick={() => setShowBuiltInAccounts(true)}
+                   className="mt-2 w-full text-xs text-primary hover:underline"
+                 >
+                   Show built-in accounts
+                 </button>
+               )}
+               </TabsContent>
 
               <TabsContent value="signup" className="mt-0 space-y-4">
                 <form onSubmit={handleSignUpSubmit} className="space-y-4">

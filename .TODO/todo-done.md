@@ -44,9 +44,13 @@ moving work between states.
 
 - T-814. Add two-line README.md for dist branch explaining deployment structure and recovery procedures. (labels: deployment, docs, workflow; commit: worktree)
 
-## Label: mcp
+## Label: ui
 
-- T-820. Add MCP token management UI in superadmin panel for creating and revoking service tokens. Includes list view with DataTable, stat cards, create dialog with scope checkboxes and expiry, raw token copy dialog, and per-row revoke action. (labels: mcp, ui, security; commit: worktree)
+- T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard; commit: worktree)
+- T-829. Add smooth theme transition with fade-in-out animation on root layout for light/dark mode changes. (labels: ui, accessibility, workflow; commit: worktree)
+- T-830. Add dark-mode-aware accessibility icons grid including eye-dropper, zoom-in, zoom-out, a11y, and voice-control icons. (labels: ui, accessibility, dashboard; commit: worktree)
+- T-832. Simplify topbar section panels to show only action links without header or description sections. (labels: ui, dashboard, accessibility; commit: worktree)
+- T-834. Add password-reveal for built-in accounts on login page - hidden by default, shows with "edely" password. (labels: ui, auth, security; commit: worktree)
 
 ## Label: content
 
@@ -307,7 +311,6 @@ moving work between states.
 
 ## Label: mcp
 
->>>>>> 037a73b6 (feat: add MCP token management UI and update docs)
 - T-817. Expose published Payload news posts through a scoped MCP tool with slug and keyword filtering. (labels: mcp, content, api; commit: worktree)
 - T-533. MCP tool `getProfitMarginTrend` added: combines profit margin calculation with growth trend direction in handlers.ts, tools.ts, server.ts, integration.ts. (labels: mcp, ai, data, workflow; commit: 3e8d4602)
 - T-532. MCP resource `revenue-by-region` added with ranked rows and share percentages (already existed as `getTopRegions` in resources.ts). (labels: mcp, ai, data, workflow; commit: 3e8d4602)
