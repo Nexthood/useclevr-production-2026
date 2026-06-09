@@ -59,7 +59,7 @@ jobs:
                 echo "Checks passed (status: $mergeState). Merging PR..."
                 if gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --merge; then
                   echo "PR merged! Dispatching production build..."
-                  gh workflow run branch-maintenance.yml --ref main
+                  gh workflow run branch-maintenance.yml --ref main --repo "${{ github.repository }}"
                   exit 0
                 fi
                 echo "Merge command failed, retrying..."
