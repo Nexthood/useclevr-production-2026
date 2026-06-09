@@ -261,6 +261,12 @@ jobs:
             exit 1
           fi
 
+          # Remove source node_modules (from pnpm install) — untracked and preserved by
+          # orphan checkout; would otherwise be staged by git add -A
+          rm -rf node_modules
+          # Remove source .pnpm-store (pnpm package cache) if present
+          rm -rf .pnpm-store 2>/dev/null || true
+
           git add -A
           tree_sha="$(git write-tree)"
           if [ -n "$previous_dist_parent" ]; then
