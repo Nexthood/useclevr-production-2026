@@ -176,22 +176,6 @@ export default function AdminLevelsPage() {
         description="Define customer tiers and the activity thresholds that unlock each level."
         breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customer Levels" }]}
         icon={Award}
-        actions={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addLevel}
-              className="gap-1.5 bg-transparent"
-            >
-              <Plus className="h-4 w-4" />
-              Add level
-            </Button>
-            <Button size="sm" onClick={save} disabled={isLoading}>
-              {isLoading ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        }
       />
 
       <main className="px-5 py-5">
@@ -253,6 +237,18 @@ export default function AdminLevelsPage() {
             columns={levelColumns(removeLevel)}
             rowKey={(row) => String(row.id)}
             minWidth="min-w-[980px]"
+            selectable
+            actions={
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={addLevel} className="gap-1.5 bg-transparent">
+                  <Plus className="h-4 w-4" />
+                  Add level
+                </Button>
+                <Button size="sm" onClick={save} disabled={isLoading}>
+                  {isLoading ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            }
           />
         </div>
       </main>

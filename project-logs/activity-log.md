@@ -39,11 +39,16 @@ This file summarizes current project activity. Detailed session records live in
 
 ## 2026-06-11
 
+- Separate dashboard theme and accessibility controls and align page bodies around center workspaces with optional sidebars.
+- Move Business and Dataset summaries to right sidebars and keep table actions in selectable table headers.
+- Prevent topbar popovers from being clipped and make the main sidebar navigation independently scrollable.
 - Make topbar sections icon-only (Business, Mentoring, Credits, Admin, Profile). Hybrid AI, Search, Onboarding keep labels.
 - Fix login page: top padding, use `result.ok` instead of `getSession()` for reliable sign-in flow.
 - Add sign-up/sign-in nav links to Payload admin login, style to match app login page.
 - Fix middleware blocking MCP token auth: add `/api/mcp` to public API paths so token headers reach the route handler.
 - Test MCP test subdomain FAQ tool: create DB token, verify endpoint reachable, identify middleware auth gap.
+- Add MCP write tools: createFaq, updateFaq, deleteFaq (faq:write + admin scope), createNews, updateNews, deleteNews (news:write + admin scope), listDatasets (dataset:read, user-scoped).
+- Add faq:write and news:write scopes to schema, token creation, and auth context.
 - Wrap business profile db updates in try/catch to prevent server action crashes.
 - Fix Stripe checkout success URL param name (`s` → `session_id`).
 - Remove `superadmin` from admin plan dropdown — only billing plans listed.

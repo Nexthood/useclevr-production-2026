@@ -135,22 +135,6 @@ export default function AdminDiscountsPage() {
         description="Manage free, percentage, referral, and stacking discounts across checkout."
         breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Discount Rules" }]}
         icon={Tag}
-        actions={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addRule}
-              className="gap-1.5 bg-transparent"
-            >
-              <Plus className="h-4 w-4" />
-              Add rule
-            </Button>
-            <Button size="sm" onClick={save} disabled={isLoading}>
-              {isLoading ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        }
       />
 
       <main className="px-5 py-5">
@@ -212,6 +196,18 @@ export default function AdminDiscountsPage() {
             columns={discountColumns(removeRule)}
             rowKey={(row) => String(row.id)}
             minWidth="min-w-[1040px]"
+            selectable
+            actions={
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={addRule} className="gap-1.5 bg-transparent">
+                  <Plus className="h-4 w-4" />
+                  Add rule
+                </Button>
+                <Button size="sm" onClick={save} disabled={isLoading}>
+                  {isLoading ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            }
           />
         </div>
       </main>

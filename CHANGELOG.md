@@ -23,6 +23,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- MCP write tools: createFaq, updateFaq, deleteFaq (faq:write + admin scope), createNews, updateNews, deleteNews (news:write + admin scope), listDatasets (dataset:read, user-scoped)
+- faq:write and news:write scopes for database-backed MCP tokens
 - Block non-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via proxy.ts, returning 404 for all paths except /api/mcp.
 - Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
 - Published product news is searchable through MCP by slug or keyword, with optional full article content.
@@ -48,6 +50,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Separate theme selection from icon-based text size, zoom, and contrast controls.
+- Show listing actions and bulk controls in selectable table headers while supporting information stays in page sidebars.
+- Keep dashboard topbar panels visible outside the one-line topbar and allow the main sidebar menu to scroll independently.
 - Show the content admin login with UseClevr branding and direct app sign-in and signup links.
 - Use a compact icon control to collapse or expand the dashboard sidebar.
 - Show built-in demo accounts as compact lines under the sign-in form.

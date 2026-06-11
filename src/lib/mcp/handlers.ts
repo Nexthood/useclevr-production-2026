@@ -10,22 +10,30 @@ import {
   type FaqItem,
   type NewsPostSummary,
 } from "@/lib/payload/content";
+import { getPayloadClient } from "@/lib/payload/get-payload";
 import { allFaqCategories } from "@/lib/content/faq";
 
 import type { PrecomputedMetrics } from "../utils/pipeline-types";
 import type {
   CompareDatasetsOutput,
   CostBreakdownOutput,
+  CreateFaqOutput,
+  CreateNewsOutput,
   DatasetSchemaOutput,
+  DeleteFaqOutput,
+  DeleteNewsOutput,
   FaqItemOutput,
   GetFaqsOutput,
   GetNewsOutput,
+  ListDatasetsOutput,
   PrecomputedKpisOutput,
   ProfitMarginTrendOutput,
   ProfitabilitySummaryOutput,
   RevenueTrendsOutput,
   TopProductsOutput,
   TopRegionsOutput,
+  UpdateFaqOutput,
+  UpdateNewsOutput,
 } from "./tools";
 
 type ChartData = PrecomputedMetrics["chartData"];
@@ -623,5 +631,163 @@ export function getProfitabilitySummary(datasetId: string): ProfitabilitySummary
     revenueByRegion,
     revenueByProduct,
     revenueVsExpenses,
+  };
+}
+
+// ============================================================================
+// MCP WRITE HANDLERS (Payload CMS)
+// ============================================================================
+
+export async function createFaq(
+  category: string,
+  question: string,
+  answer: string,
+  tag?: string,
+): Promise<CreateFaqOutput> {
+  const payload = await getPayloadClient();
+  const doc = await payload.create({
+    collection: "faqs",
+    data: {
+      category,
+      question,
+      answer,
+      ...(tag ? { tag } : {}),
+      sortOrder: Date.now(),
+    },
+  }) as unknown as Record<string, unknown>;
+
+  return {
+    id: String(doc.id),
+    category: String(doc.category || category),
+    question: String(doc.question || question),
+    answer: String(doc.answer || answer),
+    tag: doc.tag ? String(doc.tag) : null,
+  };
+}
+
+export async function updateFaq(
+  id: string,
+  category?: string,
+  question?: string,
+  answer?: string,
+  tag?: string | null,
+): Promise<UpdateFaqOutput> {
+  const payload = await getPayloadClient();
+  const updateData: Record<string, unknown> = {};
+  if (category !== undefined) updateData.category = category;
+  if (question !== undefined) updateData.question = question;
+  if (answer !== undefined) updateData.answer = answer;
+  if (tag !== undefined) updateData.tag = tag;
+
+  const doc = await payload.update({
+    collection: "faqs",
+    id,
+    data: updateData,
+  }) as unknown as Record<string, unknown>;
+
+  return {
+    id: String(doc.id),
+    category: String(doc.category || ""),
+    question: String(doc.question || ""),
+    answer: String(doc.answer || ""),
+    tag: doc.tag ? String(doc.tag) : null,
+  };
+}
+
+export async function deleteFaq(id: string): Promise<DeleteFaqOutput> {
+  const payload = await getPayloadClient();
+  await payload.delete({ collection: "faqs", id });
+  return { success: true, id };
+}
+
+export async function createNews(
+  title: string,
+  slug: string,
+  summary: string,
+  content?: string,
+): Promise<CreateNewsOutput> {
+  const payload = await getPayloadClient();
+  const doc = await payload.create({
+    collection: "news-posts",
+    data: {
+      title,
+      slug,
+      summary,
+      ...(content ? { content } : {}),
+      publishedAt: new Date().toISOString(),
+    },
+  }) as unknown as Record<string, unknown>;
+
+  return {
+    id: String(doc.id),
+    title: String(doc.title || title),
+    slug: String(doc.slug || slug),
+  };
+}
+
+export async function updateNews(
+  id: string,
+  title?: string,
+  slug?: string,
+  summary?: string,
+  content?: string,
+): Promise<UpdateNewsOutput> {
+  const payload = await getPayloadClient();
+  const updateData: Record<string, unknown> = {};
+  if (title !== undefined) updateData.title = title;
+  if (slug !== undefined) updateData.slug = slug;
+  if (summary !== undefined) updateData.summary = summary;
+  if (content !== undefined) updateData.content = content;
+
+  const doc = await payload.update({
+    collection: "news-posts",
+    id,
+    data: updateData,
+  }) as unknown as Record<string, unknown>;
+
+  return {
+    id: String(doc.id),
+    title: String(doc.title || ""),
+    slug: String(doc.slug || ""),
+  };
+}
+
+export async function deleteNews(id: string): Promise<DeleteNewsOutput> {
+  const payload = await getPayloadClient();
+  await payload.delete({ collection: "news-posts", id });
+  return { success: true, id };
+}
+
+export async function listDatasets(userId?: string): Promise<ListDatasetsOutput> {
+  const db = getDb();
+  if (!db || !userId) {
+    return { datasets: [], totalCount: 0 };
+  }
+
+  const rows = await db.query.datasets.findMany({
+    where: eq(datasets.userId, userId),
+    columns: {
+      id: true,
+      name: true,
+      fileName: true,
+      rowCount: true,
+      columnCount: true,
+      createdAt: true,
+      analysisStatus: true,
+    },
+    orderBy: (fields, { desc }) => [desc(fields.createdAt)],
+  });
+
+  return {
+    datasets: rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      fileName: r.fileName,
+      rowCount: r.rowCount,
+      columnCount: r.columnCount,
+      createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+      analysisStatus: r.analysisStatus || "",
+    })),
+    totalCount: rows.length,
   };
 }

@@ -2,6 +2,10 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 
 import {
   CompareDatasetsInput,
+  CreateFaqInput,
+  CreateNewsInput,
+  DeleteFaqInput,
+  DeleteNewsInput,
   GetCostBreakdownInput,
   GetDatasetSchemaInput,
   GetFaqsInput,
@@ -13,13 +17,20 @@ import {
   getToolByName,
   GetTopProductsInput,
   GetTopRegionsInput,
+  ListDatasetsInput,
   mcpTools,
   type MCPScope,
+  UpdateFaqInput,
+  UpdateNewsInput,
   zodToJsonSchema,
 } from "./tools";
 
 import {
   compareDatasets,
+  createFaq,
+  createNews,
+  deleteFaq,
+  deleteNews,
   getCostBreakdownFromCache,
   getDatasetSchema,
   getFaqs,
@@ -30,9 +41,17 @@ import {
   getRevenueTrends,
   getTopProducts,
   getTopRegions,
+  listDatasets,
+  updateFaq,
+  updateNews,
 } from "./handlers";
 
 import { getAvailableResources, readResource } from "./resources";
+
+export interface MCPAuthInfo {
+  userId?: string;
+  role?: string;
+}
 
 export interface MCPToolInvocation {
   name: string;
@@ -45,7 +64,10 @@ export interface MCPToolResult {
   error?: string;
 }
 
-export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPToolResult> {
+export async function invokeTool(
+  invocation: MCPToolInvocation,
+  auth?: MCPAuthInfo,
+): Promise<MCPToolResult> {
   const { name, input } = invocation;
 
   debugLog(`[MCP] Invoking tool: ${name}`);
@@ -171,6 +193,84 @@ export async function invokeTool(invocation: MCPToolInvocation): Promise<MCPTool
         return {
           success: true,
           result: getProfitabilitySummary(validatedInput.datasetId),
+        };
+      }
+
+      case "createFaq": {
+        const validatedInput = CreateFaqInput.parse(input);
+        return {
+          success: true,
+          result: await createFaq(
+            validatedInput.category,
+            validatedInput.question,
+            validatedInput.answer,
+            validatedInput.tag,
+          ),
+        };
+      }
+
+      case "updateFaq": {
+        const validatedInput = UpdateFaqInput.parse(input);
+        return {
+          success: true,
+          result: await updateFaq(
+            validatedInput.id,
+            validatedInput.category,
+            validatedInput.question,
+            validatedInput.answer,
+            validatedInput.tag,
+          ),
+        };
+      }
+
+      case "deleteFaq": {
+        const validatedInput = DeleteFaqInput.parse(input);
+        return {
+          success: true,
+          result: await deleteFaq(validatedInput.id),
+        };
+      }
+
+      case "createNews": {
+        const validatedInput = CreateNewsInput.parse(input);
+        return {
+          success: true,
+          result: await createNews(
+            validatedInput.title,
+            validatedInput.slug,
+            validatedInput.summary,
+            validatedInput.content,
+          ),
+        };
+      }
+
+      case "updateNews": {
+        const validatedInput = UpdateNewsInput.parse(input);
+        return {
+          success: true,
+          result: await updateNews(
+            validatedInput.id,
+            validatedInput.title,
+            validatedInput.slug,
+            validatedInput.summary,
+            validatedInput.content,
+          ),
+        };
+      }
+
+      case "deleteNews": {
+        const validatedInput = DeleteNewsInput.parse(input);
+        return {
+          success: true,
+          result: await deleteNews(validatedInput.id),
+        };
+      }
+
+      case "listDatasets": {
+        ListDatasetsInput.parse(input);
+        return {
+          success: true,
+          result: await listDatasets(auth?.userId),
         };
       }
 

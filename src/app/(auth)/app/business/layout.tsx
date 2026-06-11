@@ -5,7 +5,7 @@ import type React from "react"
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
       <AppPageHeader
         title="Business"
         description="Manage business profiles, operating details, and review readiness."
@@ -16,10 +16,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
         icon={Building2}
       />
       <BusinessNav />
-
-      <main className="px-5 py-5">
-        <div className="mx-auto max-w-6xl">{children}</div>
-      </main>
+      {children}
     </div>
   )
 }

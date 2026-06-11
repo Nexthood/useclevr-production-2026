@@ -1,4 +1,5 @@
 import { StatCard } from "@/components/ui/stat-card"
+import { DashboardContent } from "@/components/layout/dashboard-subpage-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
@@ -21,19 +22,20 @@ export default async function BusinessFinancialPage() {
     : null
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <CardTitle>Financial settings</CardTitle>
-        <CardDescription>Review currency and number formatting before report generation.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-3 md:grid-cols-2">
-          <StatCard icon={BadgeDollarSign} label="Currency" value={profile?.preferredCurrency || "EUR"} />
-          <StatCard icon={Globe2} label="Number format" value={profile?.numberFormat || "Auto"} />
-        </div>
-      </CardContent>
-    </Card>
+    <DashboardContent>
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle>Financial settings</CardTitle>
+          <CardDescription>Review currency and number formatting before report generation.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2">
+            <StatCard icon={BadgeDollarSign} label="Currency" value={profile?.preferredCurrency || "EUR"} />
+            <StatCard icon={Globe2} label="Number format" value={profile?.numberFormat || "Auto"} />
+          </div>
+        </CardContent>
+      </Card>
+    </DashboardContent>
   )
 }
-
 

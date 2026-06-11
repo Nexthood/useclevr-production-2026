@@ -180,12 +180,6 @@ export default function AdminMcpTokensPage() {
         description="Manage API tokens for MCP service access."
         breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "MCP Tokens" }]}
         icon={KeyRound}
-        actions={
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create token
-          </Button>
-        }
       />
 
       <main className="space-y-6 px-5 py-5">
@@ -251,6 +245,13 @@ export default function AdminMcpTokensPage() {
             columns={columns(handleRevoke)}
             rowKey={(row) => String(row.id)}
             minWidth="min-w-[1000px]"
+            selectable
+            actions={
+              <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create token
+              </Button>
+            }
           />
         )}
       </main>

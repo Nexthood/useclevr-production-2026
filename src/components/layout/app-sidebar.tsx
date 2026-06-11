@@ -91,7 +91,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
         {navigationItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
@@ -168,7 +168,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </button>
 
       <aside className="fixed left-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-[var(--app-sidebar-width)] flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex">
-        <div className="relative h-full">{sidebarContent}</div>
+        <div className="relative flex h-full min-h-0 flex-col">{sidebarContent}</div>
       </aside>
 
       {isMobileOpen && (

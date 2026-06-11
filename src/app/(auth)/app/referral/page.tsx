@@ -1,6 +1,6 @@
 "use client"
 
-import { AppPageHeader } from "@/components/layout/app-page-header"
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { debugLog } from "@/lib/utils/debug"
@@ -97,18 +97,51 @@ export default function ReferralCenter() {
     }
   }
 
+  const rightSidebar = (
+    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="flex h-full flex-col overflow-y-auto p-4">
+        <div className="space-y-4">
+          <Card className="p-4 bg-card border-border">
+            <h3 className="text-sm font-semibold text-foreground">Referral guide</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Share your link, QR code, or signup code to earn credits when referred users become paid customers.
+            </p>
+          </Card>
+
+          <Card className="p-4 bg-card border-border">
+            <h3 className="text-sm font-semibold text-foreground">Best channels</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                <span>Post your QR code at events and meetings.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                <span>Share the link in newsletters or partner communities.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                <span>Use the copy button for quick DMs and support replies.</span>
+              </li>
+            </ul>
+          </Card>
+        </div>
+      </div>
+    </aside>
+  )
+
   return (
-    <div className="flex-1 bg-background">
-      <AppPageHeader
-        title="Referral Center"
-        description="Invite others and earn rewards."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/app" },
-          { label: "Referral" },
-        ]}
-        icon={Gift}
-      />
-      <main className="px-5 py-5">
+    <DashboardSubpageLayout
+      title="Referral Center"
+      description="Invite others and earn rewards."
+      breadcrumbs={[
+        { label: "Dashboard", href: "/app" },
+        { label: "Referral" },
+      ]}
+      icon={Gift}
+      rightSidebar={rightSidebar}
+    >
+      <main className="flex-1 overflow-y-auto px-5 py-5">
         <div className="max-w-4xl mx-auto space-y-8">
 
           {/* Main Card - Referral Link */}
@@ -340,6 +373,6 @@ export default function ReferralCenter() {
           </Card>
         </div>
       </main>
-    </div>
+    </DashboardSubpageLayout>
   )
 }

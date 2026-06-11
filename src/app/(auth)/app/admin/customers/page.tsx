@@ -1,6 +1,6 @@
 "use client";
 
-import { AppPageHeader } from "@/components/layout/app-page-header";
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -234,22 +234,65 @@ export default function AdminCustomersPage() {
     }).length,
   };
 
-  return (
-    <div className="flex-1 bg-background">
-      <AppPageHeader
-        title="Customers"
-        description="Review registered customers, static demo accounts, plans, and account activity."
-        breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customers" }]}
-        icon={Users}
-        actions={
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add customer
-          </Button>
-        }
-      />
+  const rightSidebar = (
+    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="flex h-full flex-col overflow-y-auto p-4">
+        <div className="space-y-4">
+          <Card className="p-4 bg-card border-border">
+            <h3 className="text-sm font-semibold text-foreground">Customer overview</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total customers</span>
+                <span className="font-medium">{totals.customers}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Pro / Business</span>
+                <span className="font-medium">{totals.pro}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Free</span>
+                <span className="font-medium">{totals.free}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Active 30d</span>
+                <span className="font-medium">{totals.active30d}</span>
+              </div>
+            </div>
+          </Card>
 
-      <main className="space-y-6 px-5 py-5">
+          <Card className="p-4 bg-card border-border">
+            <h3 className="text-sm font-semibold text-foreground">Admin actions</h3>
+            <div className="mt-3 space-y-2">
+              <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowAddDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add customer
+              </Button>
+              <Button variant="outline" size="sm" className="w-full justify-start">
+                <Send className="mr-2 h-4 w-4" />
+                Queue invites
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </aside>
+  )
+
+  return (
+    <DashboardSubpageLayout
+      title="Customers"
+      description="Review registered customers, static demo accounts, plans, and account activity."
+      breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customers" }]}
+      icon={Users}
+      rightSidebar={rightSidebar}
+      actions={
+        <Button size="sm" onClick={() => setShowAddDialog(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add customer
+        </Button>
+      }
+    >
+      <main className="flex-1 overflow-y-auto space-y-6 px-5 py-5">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
             {
@@ -313,6 +356,13 @@ export default function AdminCustomersPage() {
             columns={customerColumns(handleInviteClick, handleDeleteClick)}
             rowKey={(row) => String(row.id)}
             minWidth="min-w-[1100px]"
+            selectable
+            actions={
+              <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add customer
+              </Button>
+            }
           />
         )}
       </main>
@@ -382,7 +432,7 @@ export default function AdminCustomersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardSubpageLayout>
   );
 }
 

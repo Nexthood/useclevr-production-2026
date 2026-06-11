@@ -146,7 +146,7 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       authenticated: true,
       role: "admin",
       clientId: "internal-admin-client",
-      scopes: ["dataset:read", "dataset:write", "admin", "faq:read", "news:read"],
+      scopes: ["dataset:read", "dataset:write", "admin", "faq:read", "faq:write", "news:read", "news:write"],
     };
   }
 
@@ -168,7 +168,7 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       userId: session.user.id,
       clientId: `user-${session.user.id}`,
       scopes: session.user.role === "superadmin"
-        ? ["dataset:read", "faq:read", "news:read", "admin"]
+        ? ["dataset:read", "faq:read", "faq:write", "news:read", "news:write", "admin"]
         : ["dataset:read", "faq:read", "news:read"],
     };
   }
@@ -379,10 +379,13 @@ export async function POST(request: NextRequest) {
   }
 
   const startMs = Date.now();
-  const result = await invokeTool({
-    name: toolName,
-    input: input as Record<string, unknown>,
-  });
+  const result = await invokeTool(
+    {
+      name: toolName,
+      input: input as Record<string, unknown>,
+    },
+    { userId: authContext.userId, role: authContext.role },
+  );
   const durationMs = Date.now() - startMs;
 
   await logMCPAudit("invoke_tool", {

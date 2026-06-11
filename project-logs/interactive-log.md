@@ -718,4 +718,26 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   7. **Railway audit**: Verified Dockerfile, predeploy schema sync script, health endpoint, start command all correct.
 - **Improvement**: `checkout-token.ts` still falls back to `STRIPE_SECRET_KEY` for HMAC signing when `AUTH_SECRET` is unset — should use separate secret.
 - **Blocked**: Middleware blocks token-based MCP auth on MCP subdomains — `/api/mcp` not in publicApiPaths, so 401 returned before route handler can validate token. Fixed by adding `/api/mcp` to public paths.
-- **Next**: Commit fix, push to beta, wait for CI → dist-test deploy, then retest MCP FAQ tool on `mcp-test.useclevr.com`.
+- **Changes**: Added MCP write tools for FAQ and News (create/update/delete), listDatasets tool for user's own datasets. Added `faq:write`, `news:write` scopes. Wired auth context through invokeTool. Updated middleware to allow MCP token auth on subdomains.
+- **Next**: Commit, push to beta, CI deploy.
+
+---
+
+## Interaction 29: Dashboard Display Controls and Workspace Structure
+
+- **Date**: 2026-06-11
+- **User Goal**: Separate theme and accessibility controls, review dashboard navigation, and make page headers, body sidebars, and management tables consistent.
+- **Changes**:
+  1. Separate Light, Dark, and System selection from icon-only text size, zoom, and contrast state controls.
+  2. Keep topbar items on one line without clipping their popovers and let the main sidebar navigation scroll independently.
+  3. Separate route-level titles, breadcrumbs, and subpage navigation from center page workspaces.
+  4. Keep AI Assistant left and right sidebars and move Business and Dataset summaries into right sidebars.
+  5. Start Business, Dataset, and Download table rows with selection controls and place bulk and primary actions in table headers.
+- **Problems Marked**:
+  - `observation`: A horizontal overflow container clips topbar popovers even when vertical overflow is declared visible.
+  - `improvement`: Remaining management lists can adopt the shared selection and action-header contract during their next focused update.
+- **User Learning**: Supporting information stays easier to scan when the center workspace contains only the primary table or form.
+- **AI-Agent Learning**: Route layouts own headers and subpage navigation; page components own center workspaces and optional sidebars.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; display guidance and dashboard structure live in their user and developer guides; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.

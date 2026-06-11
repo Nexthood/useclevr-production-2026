@@ -35,7 +35,7 @@ export default async function Topbar() {
 
   return (
     <div className="app-topbar sticky top-0 z-[110] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">
-      <div className="flex min-h-16 min-w-0 flex-1 items-center gap-5 overflow-visible px-4">
+      <div className="flex min-h-16 min-w-0 flex-1 items-center gap-3 overflow-visible px-4">
         <Link href="/app" className="flex shrink-0 items-center gap-2">
           <Logo className="h-12 w-auto" />
           <span className="self-start pt-1 text-[10px] text-muted-foreground/60">
@@ -43,7 +43,7 @@ export default async function Topbar() {
           </span>
         </Link>
 
-        <nav className="flex min-w-0 flex-1 items-stretch gap-5 overflow-x-auto overflow-y-visible">
+        <nav className="flex min-w-0 flex-1 items-stretch justify-end gap-0 overflow-visible">
           <HybridAiButton
             subscriptionTier={usage.subscriptionTier}
             className="flex h-full items-center gap-2 whitespace-nowrap rounded-none border-0 bg-transparent px-2.5 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"

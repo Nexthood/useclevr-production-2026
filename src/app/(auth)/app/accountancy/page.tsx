@@ -1,6 +1,6 @@
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
@@ -86,150 +86,168 @@ export default async function AccountancyPage() {
     },
   ]
 
-  return (
-    <div className="space-y-5">
-      <PageActionRow description="Keep bookkeeping records, tax checks, and monthly reporting in one accounting workspace.">
-        <Link href="/app/upload">
-          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
-            <Upload className="h-4 w-4" />
-            Upload statement
-          </span>
-        </Link>
-        <Link href="/app/accountancy/compliance">
-          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground">
-            <CheckCircle2 className="h-4 w-4" />
-            Review close
-          </span>
-        </Link>
-      </PageActionRow>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-5 bg-card border-border">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-green-800 dark:text-green-100" />
+  const rightSidebar = (
+    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="flex h-full flex-col overflow-y-auto p-4">
+        <div className="space-y-4">
+          <Card className="border-border bg-card p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Monthly close</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Current readiness for accounting review.</p>
+              </div>
+              <Landmark className="h-5 w-5 flex-shrink-0 text-primary" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{totalBusinesses}</p>
-              <p className="text-sm text-muted-foreground">Business profiles</p>
+            <div className="space-y-3">
+              <CloseStep label="Business profile" complete={totalBusinesses > 0} href="/app/business" />
+              <CloseStep label="Financial dataset" complete={activeDatasets > 0} href="/app/upload" />
+              <CloseStep label="Tax context" complete={totalBusinesses > 0} href="/app/accountancy/tax" />
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-5 bg-card border-border">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-blue-800 dark:text-blue-100" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{activeDatasets}</p>
-              <p className="text-sm text-muted-foreground">Connected datasets</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-5 bg-card border-border">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <MapPin className="h-6 w-6 text-purple-800 dark:text-purple-100" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{readiness}%</p>
-              <p className="text-sm text-muted-foreground">Ready for analysis</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-        <Card className="border-border bg-card p-5">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Bookkeeping workspace</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Track bank reconciliation, expense coding, monthly close, and tax-ready records.
-              </p>
-            </div>
-            <BookOpenCheck className="h-5 w-5 flex-shrink-0 text-primary" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <BookkeepingFeature icon={Banknote} title="Cash movement" text="Review bank, card, revenue, and expense imports." />
-            <BookkeepingFeature icon={ReceiptText} title="Receipts" text="Keep source documents tied to imported records." />
-            <BookkeepingFeature icon={Scale} title="Reconciliation" text="Compare statement totals with uploaded business data." />
-            <BookkeepingFeature icon={Calculator} title="Tax prep" text="Surface VAT, sales tax, and filing context from profile data." />
-          </div>
-        </Card>
-
-        <Card className="border-border bg-card p-5">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Monthly close</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Current readiness for accounting review.</p>
-            </div>
-            <Landmark className="h-5 w-5 flex-shrink-0 text-primary" />
-          </div>
-          <div className="space-y-3">
-            <CloseStep label="Business profile" complete={totalBusinesses > 0} href="/app/business" />
-            <CloseStep label="Financial dataset" complete={activeDatasets > 0} href="/app/upload" />
-            <CloseStep label="Tax context" complete={totalBusinesses > 0} href="/app/accountancy/tax" />
-          </div>
-        </Card>
-      </div>
-
-      <DataTable
-        title="Bookkeeping queue"
-        description="Current bookkeeping work with direct links to the next action."
-        emptyMessage="No bookkeeping tasks available."
-        rows={bookkeepingRows}
-        columns={bookkeepingColumns}
-        rowKey={(row) => String(row.id)}
-        minWidth="min-w-[760px]"
-      />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-5 bg-card border-border">
-          <h2 className="text-lg font-semibold text-foreground mb-3">Financial overview</h2>
-          <p className="text-sm text-muted-foreground mb-3">
-            Connect financial data for bookkeeping, tax calculations, and reporting.
-          </p>
-          <div className="space-y-2">
-            <Link
-              href="/app/accountancy/reporting"
-              className="block text-sm text-primary hover:underline"
-            >
-              Monthly reporting dashboard
-            </Link>
-            <Link
-              href="/app/accountancy/tax"
-              className="block text-sm text-primary hover:underline"
-            >
-              Tax calculation tools
-            </Link>
-            <Link
-              href="/app/accountancy/compliance"
-              className="block text-sm text-primary hover:underline"
-            >
-              Compliance checklist
-            </Link>
-          </div>
-        </Card>
-
-        <Card className="p-5 bg-card border-border">
-          <h2 className="text-lg font-semibold text-foreground mb-3">Quick actions</h2>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Upload profit/loss statements, bank exports, receipts, or accounting data for automated bookkeeping insights.
+          <Card className="p-5 bg-card border-border">
+            <h2 className="text-sm font-semibold text-foreground mb-3">Financial overview</h2>
+            <p className="text-xs text-muted-foreground mb-3">
+              Connect financial data for bookkeeping, tax calculations, and reporting.
             </p>
-            <Link
-              href="/app/upload"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-            >
-              Upload financial data
-            </Link>
-          </div>
-        </Card>
+            <div className="space-y-2">
+              <Link
+                href="/app/accountancy/reporting"
+                className="block text-sm text-primary hover:underline"
+              >
+                Monthly reporting dashboard
+              </Link>
+              <Link
+                href="/app/accountancy/tax"
+                className="block text-sm text-primary hover:underline"
+              >
+                Tax calculation tools
+              </Link>
+              <Link
+                href="/app/accountancy/compliance"
+                className="block text-sm text-primary hover:underline"
+              >
+                Compliance checklist
+              </Link>
+            </div>
+          </Card>
+
+          <Card className="p-5 bg-card border-border">
+            <h2 className="text-sm font-semibold text-foreground mb-3">Quick actions</h2>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Upload profit/loss statements, bank exports, receipts, or accounting data for automated bookkeeping insights.
+              </p>
+              <Link
+                href="/app/upload"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+              >
+                Upload financial data
+              </Link>
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
+    </aside>
+  )
+
+  return (
+    <DashboardSubpageLayout
+      title="Accountancy"
+      description="Keep bookkeeping records, tax checks, and monthly reporting in one accounting workspace."
+      breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Accountancy" }]}
+      icon={BookOpenCheck}
+      rightSidebar={rightSidebar}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/app/upload">
+            <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
+              <Upload className="h-4 w-4" />
+              Upload statement
+            </span>
+          </Link>
+          <Link href="/app/accountancy/compliance">
+            <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground">
+              <CheckCircle2 className="h-4 w-4" />
+              Review close
+            </span>
+          </Link>
+        </div>
+      }
+    >
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="max-w-6xl mx-auto space-y-5">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="p-5 bg-card border-border">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-green-800 dark:text-green-100" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{totalBusinesses}</p>
+                  <p className="text-sm text-muted-foreground">Business profiles</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-card border-border">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-blue-800 dark:text-blue-100" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{activeDatasets}</p>
+                  <p className="text-sm text-muted-foreground">Connected datasets</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-card border-border">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <MapPin className="h-6 w-6 text-purple-800 dark:text-purple-100" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{readiness}%</p>
+                  <p className="text-sm text-muted-foreground">Ready for analysis</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+            <Card className="border-border bg-card p-5">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Bookkeeping workspace</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Track bank reconciliation, expense coding, monthly close, and tax-ready records.
+                  </p>
+                </div>
+                <BookOpenCheck className="h-5 w-5 flex-shrink-0 text-primary" />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <BookkeepingFeature icon={Banknote} title="Cash movement" text="Review bank, card, revenue, and expense imports." />
+                <BookkeepingFeature icon={ReceiptText} title="Receipts" text="Keep source documents tied to imported records." />
+                <BookkeepingFeature icon={Scale} title="Reconciliation" text="Compare statement totals with uploaded business data." />
+                <BookkeepingFeature icon={Calculator} title="Tax prep" text="Surface VAT, sales tax, and filing context from profile data." />
+              </div>
+            </Card>
+          </div>
+
+          <DataTable
+            title="Bookkeeping queue"
+            description="Current bookkeeping work with direct links to the next action."
+            emptyMessage="No bookkeeping tasks available."
+            rows={bookkeepingRows}
+            columns={bookkeepingColumns}
+            rowKey={(row) => String(row.id)}
+            minWidth="min-w-[760px]"
+            selectable
+          />
+        </div>
+      </div>
+    </DashboardSubpageLayout>
   )
 }
 

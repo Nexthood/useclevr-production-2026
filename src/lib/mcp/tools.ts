@@ -8,7 +8,7 @@ interface JsonSchema {
   enum?: string[];
 }
 
-export type MCPScope = "dataset:read" | "dataset:write" | "admin" | "faq:read" | "news:read";
+export type MCPScope = "dataset:read" | "dataset:write" | "admin" | "faq:read" | "faq:write" | "news:read" | "news:write";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isZodDefault(schema: any): boolean {
@@ -263,6 +263,113 @@ export interface GetNewsOutput {
   totalCount: number;
 }
 
+export const CreateFaqInput = z.object({
+  category: z.string().min(1),
+  question: z.string().min(1),
+  answer: z.string().min(1),
+  tag: z.string().optional(),
+});
+
+export type CreateFaqInput = z.infer<typeof CreateFaqInput>;
+
+export interface CreateFaqOutput {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  tag?: string | null;
+}
+
+export const UpdateFaqInput = z.object({
+  id: z.string().min(1),
+  category: z.string().optional(),
+  question: z.string().optional(),
+  answer: z.string().optional(),
+  tag: z.string().optional().nullable(),
+});
+
+export type UpdateFaqInput = z.infer<typeof UpdateFaqInput>;
+
+export interface UpdateFaqOutput {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  tag?: string | null;
+}
+
+export const DeleteFaqInput = z.object({
+  id: z.string().min(1),
+});
+
+export type DeleteFaqInput = z.infer<typeof DeleteFaqInput>;
+
+export interface DeleteFaqOutput {
+  success: boolean;
+  id: string;
+}
+
+export const CreateNewsInput = z.object({
+  title: z.string().min(1),
+  slug: z.string().min(1),
+  summary: z.string().min(1),
+  content: z.string().optional(),
+});
+
+export type CreateNewsInput = z.infer<typeof CreateNewsInput>;
+
+export interface CreateNewsOutput {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+export const UpdateNewsInput = z.object({
+  id: z.string().min(1),
+  title: z.string().optional(),
+  slug: z.string().optional(),
+  summary: z.string().optional(),
+  content: z.string().optional(),
+});
+
+export type UpdateNewsInput = z.infer<typeof UpdateNewsInput>;
+
+export interface UpdateNewsOutput {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+export const DeleteNewsInput = z.object({
+  id: z.string().min(1),
+});
+
+export type DeleteNewsInput = z.infer<typeof DeleteNewsInput>;
+
+export interface DeleteNewsOutput {
+  success: boolean;
+  id: string;
+}
+
+export const ListDatasetsInput = z.object({});
+
+export type ListDatasetsInput = z.infer<typeof ListDatasetsInput>;
+
+export interface ListDatasetsOutputItem {
+  id: string;
+  name: string;
+  fileName: string;
+  rowCount: number;
+  columnCount: number;
+  createdAt: string;
+  analysisStatus: string;
+}
+
+export interface ListDatasetsOutput {
+  datasets: ListDatasetsOutputItem[];
+  totalCount: number;
+}
+
 export const CompareDatasetsInput = z.object({
   datasetIdA: z.string(),
   datasetIdB: z.string(),
@@ -328,6 +435,62 @@ function defineTools(): MCPTool[] {
       inputSchema: GetNewsInput,
       outputSchema: {} as GetNewsOutput,
       requiredScopes: ["news:read"],
+    },
+    {
+      name: "createFaq",
+      description:
+        "Creates a new FAQ entry in Payload CMS. Requires admin scope and faq:write scope.",
+      inputSchema: CreateFaqInput,
+      outputSchema: {} as CreateFaqOutput,
+      requiredScopes: ["faq:write", "admin"],
+    },
+    {
+      name: "updateFaq",
+      description:
+        "Updates an existing FAQ entry by ID. Requires admin scope and faq:write scope.",
+      inputSchema: UpdateFaqInput,
+      outputSchema: {} as UpdateFaqOutput,
+      requiredScopes: ["faq:write", "admin"],
+    },
+    {
+      name: "deleteFaq",
+      description:
+        "Deletes an FAQ entry by ID. Requires admin scope and faq:write scope.",
+      inputSchema: DeleteFaqInput,
+      outputSchema: {} as DeleteFaqOutput,
+      requiredScopes: ["faq:write", "admin"],
+    },
+    {
+      name: "createNews",
+      description:
+        "Creates a new news post in Payload CMS. Requires admin scope and news:write scope.",
+      inputSchema: CreateNewsInput,
+      outputSchema: {} as CreateNewsOutput,
+      requiredScopes: ["news:write", "admin"],
+    },
+    {
+      name: "updateNews",
+      description:
+        "Updates an existing news post by ID. Requires admin scope and news:write scope.",
+      inputSchema: UpdateNewsInput,
+      outputSchema: {} as UpdateNewsOutput,
+      requiredScopes: ["news:write", "admin"],
+    },
+    {
+      name: "deleteNews",
+      description:
+        "Deletes a news post by ID. Requires admin scope and news:write scope.",
+      inputSchema: DeleteNewsInput,
+      outputSchema: {} as DeleteNewsOutput,
+      requiredScopes: ["news:write", "admin"],
+    },
+    {
+      name: "listDatasets",
+      description:
+        "Lists the authenticated user's datasets with id, name, fileName, rowCount, columnCount, createdAt, and analysisStatus. Requires dataset:read scope.",
+      inputSchema: ListDatasetsInput,
+      outputSchema: {} as ListDatasetsOutput,
+      requiredScopes: ["dataset:read"],
     },
     {
       name: "getDatasetSchema",

@@ -1,11 +1,10 @@
 "use client"
 
-import { AppPageHeader } from "@/components/layout/app-page-header"
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { BatchDeleteButton } from "@/components/dataset/batch-delete-button"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { PageActionRow } from "@/components/ui/page-action-row"
 import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -60,27 +59,6 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
 
   const datasetColumns: DataTableColumn<Record<string, unknown>>[] = [
     {
-      key: "select",
-      header: "Select",
-      align: "center",
-      render: (row) => (
-        <input
-          type="checkbox"
-          checked={selectedIds.has(String(row.id))}
-          onChange={(e) => {
-            const newSelected = new Set(selectedIds)
-            if (e.target.checked) {
-              newSelected.add(String(row.id))
-            } else {
-              newSelected.delete(String(row.id))
-            }
-            setSelectedIds(newSelected)
-          }}
-          className="h-4 w-4 rounded border border-input"
-        />
-      ),
-    },
-    {
       key: "name",
       header: "Dataset",
       render: (row) => (
@@ -130,105 +108,92 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
     setSelectedIds(new Set())
   }
 
+  const rightSidebar = (
+    <aside className="hidden w-72 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="h-full space-y-3 overflow-y-auto p-4">
+        <h2 className="text-sm font-semibold text-foreground">Dataset overview</h2>
+        <Card className="border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-cyan-500/10">
+              <Database className="h-4 w-4 text-cyan-800 dark:text-cyan-100" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">{datasets.length}</p>
+              <p className="text-xs text-muted-foreground">Total datasets</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">
+                €{Math.round(averageRevenue).toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">Average monthly revenue</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-500/10">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-800 dark:text-emerald-100" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">{readyCount} / {datasets.length}</p>
+              <p className="text-xs text-muted-foreground">Ready for analysis</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </aside>
+  )
+
   return (
-    <div>
-      <AppPageHeader
-        title="Datasets"
-        description="Manage uploaded files and analysis-ready data."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/app" },
-          { label: "Datasets" },
-        ]}
-        icon={Database}
-      />
-
-      <PageActionRow description="Upload CSV files before analysis, reports, or assistant questions.">
-        <Link href="/app/upload">
-          <Button size="sm">
-            <Upload className="mr-2 h-4 w-4" />
-            Upload dataset
-          </Button>
-        </Link>
-        {selectedIds.size > 0 && (
-          <BatchDeleteButton
-            datasetIds={Array.from(selectedIds)}
-            onDeleted={handleBulkDelete}
+    <DashboardSubpageLayout
+      title="Datasets"
+      description="Manage uploaded files and analysis-ready data."
+      breadcrumbs={[
+        { label: "Dashboard", href: "/app" },
+        { label: "Datasets" },
+      ]}
+      icon={Database}
+      rightSidebar={rightSidebar}
+    >
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="mx-auto max-w-6xl">
+          <DataTable
+            title="Dataset library"
+            description="All uploaded data files with processing status and actions."
+            emptyMessage="No datasets yet. Upload a CSV file to start analysis."
+            rows={datasets as unknown as Record<string, unknown>[]}
+            columns={datasetColumns}
+            rowKey={(row) => String(row.id)}
+            minWidth="min-w-[800px]"
+            selectable
+            selectedRows={selectedIds}
+            onSelectedRowsChange={setSelectedIds}
+            bulkActions={
+              selectedIds.size > 0 && (
+                <BatchDeleteButton
+                  datasetIds={Array.from(selectedIds)}
+                  onDeleted={handleBulkDelete}
+                />
+              )
+            }
+            actions={
+              <Link href="/app/upload">
+                <Button size="sm">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload dataset
+                </Button>
+              </Link>
+            }
           />
-        )}
-      </PageActionRow>
-
-      <div className="flex-1 p-5">
-        <div className="max-w-6xl mx-auto space-y-5">
-          {datasets.length === 0 ? (
-            <Card className="p-12 bg-card border-border">
-              <div className="text-center space-y-4">
-                <div className="h-16 w-16 rounded-2xl bg-gradient-primary mx-auto flex items-center justify-center">
-                  <Database className="h-8 w-8 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold text-foreground">No datasets yet</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Upload your first CSV file to start generating insights with AI.
-                  </p>
-                </div>
-                <Link href="/app/upload">
-                  <Button size="lg" className="bg-gradient-primary hover:opacity-90">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload your first dataset
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          ) : (
-            <>
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card className="p-4 bg-card border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-                      <Database className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-foreground">{datasets.length}</p>
-                      <p className="text-xs text-muted-foreground">Total datasets</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card className="p-4 bg-card border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                      <BarChart3 className="h-5 w-5 text-primary dark:text-cyan-100" />
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-foreground">€{Math.round(averageRevenue).toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Avg monthly revenue</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card className="p-4 bg-card border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <FileSpreadsheet className="h-5 w-5 text-emerald-800 dark:text-emerald-100" />
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-foreground">{readyCount} / {datasets.length}</p>
-                      <p className="text-xs text-muted-foreground">Ready for analysis</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              <DataTable
-                title="Dataset library"
-                description="All uploaded data files with processing status and actions."
-                rows={datasets as unknown as Record<string, unknown>[]}
-                columns={datasetColumns}
-                rowKey={(row) => String(row.id)}
-                minWidth="min-w-[800px]"
-              />
-            </>
-          )}
         </div>
       </div>
-    </div>
+    </DashboardSubpageLayout>
   )
 }
