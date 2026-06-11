@@ -11,6 +11,7 @@ export const CmsUsers: CollectionConfig = {
     description: "CMS admin accounts for news and public page content.",
   },
   access: {
+    admin: ({ req }) => Boolean(req.user),
     read: isCmsSuperAdmin,
     create: isCmsSuperAdmin,
     update: isCmsSuperAdmin,

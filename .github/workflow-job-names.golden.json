@@ -7,8 +7,7 @@
     "auto-merge.yml": {
       "workflowName": "Auto-merge PRs from beta to main",
       "checkRuns": [
-        "Auto-merge PR from beta to main",
-        "Dispatch dist publish after merge"
+        "Auto-merge PR from beta to main"
       ]
     },
     "beta-maintenance.yml": {

@@ -59,6 +59,44 @@ Phase 0 uses Payload for news only.
 - Sales one-pager sections and presentation source content.
 - Blog or resource posts if marketing content becomes active.
 
+## Plugin Recommendations
+
+Use first-party Payload plugins only after the collection that needs the plugin enters the active
+migration phase. Pin every Payload package to the same version as `payload`.
+
+### Add During Content Migration
+
+- Add `@payloadcms/plugin-import-export` when an approved collection needs repeatable CSV or JSON
+  transfer. Restrict import and export access to superadmins, test an export before each import, and
+  use stable match fields such as `slug` instead of database IDs.
+- Add `@payloadcms/plugin-seo` when news and public pages own editable metadata. Keep application
+  defaults as fallback values until every migrated document has validated title and description.
+- Add `@payloadcms/plugin-redirects` before changing any public content slug or route. Resolve
+  redirects in the Next.js request path and preserve existing URLs during migration.
+
+### Add When Media Enters Scope
+
+- Add one official storage adapter, preferably `@payloadcms/storage-s3` for S3-compatible durable
+  storage, before enabling a media collection. Keep Railway filesystem storage disabled.
+
+### Evaluate After Core Migration
+
+- Evaluate `@payloadcms/plugin-search` for CMS-owned news, FAQ, and page search only after those
+  collections are stable. Keep the existing application and Meilisearch planning boundaries
+  separate until one search owner is approved.
+- Evaluate `@payloadcms/plugin-form-builder` only for public marketing or lead forms. Keep support
+  tickets, business workflows, and authenticated product forms in the application layer.
+- Evaluate `@payloadcms/plugin-nested-docs` only if public pages require editor-managed hierarchy
+  and breadcrumbs.
+
+### Do Not Add During This Migration
+
+- Do not add the ecommerce plugin; Stripe and the existing billing layer remain the payment source
+  of truth.
+- Do not add the multi-tenant plugin; existing workspace and business ownership remain in the
+  application schema.
+- Do not add the Payload MCP plugin; UseClevr keeps its existing scoped MCP service and audit model.
+
 ## AI Migration Prompt
 
 Use this prompt when activating Payload migration work:

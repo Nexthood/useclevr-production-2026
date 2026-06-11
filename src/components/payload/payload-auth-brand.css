@@ -28,41 +28,49 @@ html[data-theme="dark"] .payload-useclevr-logo__image--dark {
 }
 
 .payload-useclevr-auth {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   text-align: center;
 }
 
 .payload-useclevr-auth > p {
-  margin: 0 0 0.75rem;
+  margin: 1rem 0 0;
   color: var(--theme-elevation-600);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 
-.payload-useclevr-auth nav {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
+.payload-useclevr-auth__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  background: var(--theme-elevation-100);
+  font-size: 0.875rem;
 }
 
-.payload-useclevr-auth nav a {
-  display: inline-flex;
+.payload-useclevr-auth__tabs a,
+.payload-useclevr-auth__tabs span {
+  display: flex;
   align-items: center;
+  justify-content: center;
+  min-height: 2rem;
   padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   font-weight: 600;
-  font-size: 0.8125rem;
   color: var(--theme-text);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
-  background: var(--theme-elevation-50);
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
-.payload-useclevr-auth nav a:hover {
+.payload-useclevr-auth__tabs span {
+  background: var(--theme-elevation-0);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--theme-elevation-1000) 12%, transparent);
+}
+
+.payload-useclevr-auth__tabs a:hover {
   background: var(--theme-elevation-150);
-  color: var(--theme-success-500);
+  color: var(--theme-text);
 }
 
 .payload-useclevr-credentials {
@@ -95,4 +103,59 @@ html[data-theme="dark"] .payload-useclevr-logo__image--dark {
 
 .payload-useclevr-credentials .font-medium {
   color: var(--theme-text);
+}
+
+body:has(.payload-useclevr-auth) {
+  background: var(--theme-bg);
+}
+
+body:has(.payload-useclevr-auth) main {
+  width: min(100%, 30rem);
+}
+
+body:has(.payload-useclevr-auth) form {
+  padding: 1.5rem;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--theme-success-500) 8%, var(--theme-elevation-0)),
+      color-mix(in srgb, #8b5cf6 7%, var(--theme-elevation-0))
+    );
+  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--theme-elevation-1000) 10%, transparent);
+}
+
+body:has(.payload-useclevr-auth) .login-fields {
+  gap: 1rem;
+}
+
+body:has(.payload-useclevr-auth) .field-type.email,
+body:has(.payload-useclevr-auth) .field-type.password {
+  margin: 0;
+}
+
+body:has(.payload-useclevr-auth) .field-type.email input,
+body:has(.payload-useclevr-auth) .field-type.password input {
+  min-height: 3.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+body:has(.payload-useclevr-auth) .btn--style-primary {
+  width: 100%;
+  border-radius: 0.375rem;
+  --bg-color: var(--theme-success-600);
+  --hover-bg: var(--theme-success-500);
+  --color: white;
+}
+
+body:has(.payload-useclevr-auth) .btn--style-primary .btn__content {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  body:has(.payload-useclevr-auth) form {
+    padding: 1.25rem;
+  }
 }

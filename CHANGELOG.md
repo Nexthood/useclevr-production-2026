@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Middleware passes `/api/mcp` through without session cookie check, enabling token-based MCP auth on MCP subdomains
 - Topbar sections now show icons only, keeping Hybrid AI, Search, and Onboarding button with full labels
 - Login flow uses `result.ok` instead of `getSession()` for reliable post-sign-in redirect
 - Payload admin login shows sign-up and sign-in nav links matching app login style

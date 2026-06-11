@@ -29,11 +29,13 @@ export function PayloadLoginIntro() {
   const isTestSubdomain = getIsTestSubdomain()
   return (
     <div className="payload-useclevr-auth">
-      <p>Manage public news, FAQs, and legal pages.</p>
-      <nav>
-        <a href="/login" target="_parent">Sign in to UseClevr</a>
-        <a href="/login?tab=signup" target="_parent">Sign up</a>
+      <nav className="payload-useclevr-auth__tabs" aria-label="Account access">
+        <span aria-current="page">Sign in</span>
+        <a href="/login?tab=signup" target="_parent">
+          Sign up
+        </a>
       </nav>
+      <p>Sign in to manage UseClevr public content.</p>
       {isTestSubdomain && (
         <div className="payload-useclevr-credentials">
           <p className="payload-useclevr-credentials__title">Test accounts:</p>

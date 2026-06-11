@@ -717,4 +717,5 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   6. **Superadmin role picker**: Removed `"superadmin"` from plan dropdown options in `admin/edit/page.tsx`. Only billing plans (`free`, `pro`, `business`) are shown.
   7. **Railway audit**: Verified Dockerfile, predeploy schema sync script, health endpoint, start command all correct.
 - **Improvement**: `checkout-token.ts` still falls back to `STRIPE_SECRET_KEY` for HMAC signing when `AUTH_SECRET` is unset — should use separate secret.
-- **Next**: Verify all changes via type check and pnpm dev testing.
+- **Blocked**: Middleware blocks token-based MCP auth on MCP subdomains — `/api/mcp` not in publicApiPaths, so 401 returned before route handler can validate token. Fixed by adding `/api/mcp` to public paths.
+- **Next**: Commit fix, push to beta, wait for CI → dist-test deploy, then retest MCP FAQ tool on `mcp-test.useclevr.com`.

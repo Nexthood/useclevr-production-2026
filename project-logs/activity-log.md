@@ -42,6 +42,8 @@ This file summarizes current project activity. Detailed session records live in
 - Make topbar sections icon-only (Business, Mentoring, Credits, Admin, Profile). Hybrid AI, Search, Onboarding keep labels.
 - Fix login page: top padding, use `result.ok` instead of `getSession()` for reliable sign-in flow.
 - Add sign-up/sign-in nav links to Payload admin login, style to match app login page.
+- Fix middleware blocking MCP token auth: add `/api/mcp` to public API paths so token headers reach the route handler.
+- Test MCP test subdomain FAQ tool: create DB token, verify endpoint reachable, identify middleware auth gap.
 - Wrap business profile db updates in try/catch to prevent server action crashes.
 - Fix Stripe checkout success URL param name (`s` → `session_id`).
 - Remove `superadmin` from admin plan dropdown — only billing plans listed.
