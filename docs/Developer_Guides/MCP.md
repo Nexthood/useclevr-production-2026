@@ -244,6 +244,15 @@ Expected responses:
 | `getProfitMarginTrend`    | Profit margin and growth trend analysis                        | `datasetId`                        |
 | `compareDatasets`         | Compare two datasets for metric differences                    | `datasetIdA`, `datasetIdB`         |
 | `getTopProducts`          | Ranked products with revenue/profit percentages                | `datasetId`, `metric`, `limit`     |
+| `listDatasets`            | List the authenticated user's datasets with metadata           | *(none)*                            |
+| `getFaqs`                 | FAQ entries by category or keyword search                      | `category?`, `query?`, `limit?`     |
+| `getNews`                 | Published news by slug or keyword                              | `slug?`, `query?`, `limit?`, `includeContent?` |
+| `createFaq`               | Create a new FAQ entry (admin + faq:write)                     | `category`, `question`, `answer`, `tag?` |
+| `updateFaq`               | Update an existing FAQ entry (admin + faq:write)               | `id`, `category?`, `question?`, `answer?`, `tag?` |
+| `deleteFaq`               | Delete an FAQ entry (admin + faq:write)                        | `id`                                |
+| `createNews`              | Create a new news post (admin + news:write)                    | `title`, `slug`, `summary`, `content?` |
+| `updateNews`              | Update an existing news post (admin + news:write)              | `id`, `title?`, `slug?`, `summary?`, `content?` |
+| `deleteNews`              | Delete a news post (admin + news:write)                        | `id`                                |
 
 ## Available Resources
 

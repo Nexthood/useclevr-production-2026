@@ -10,7 +10,7 @@
 MCP lets connected tools use trusted dashboard data and published UseClevr content. It reads the
 same prepared metrics that the dashboard shows and published news stored in Payload.
 
-**Current access:** Signed-in users only. Requests from `mcp.useclevr.com` are supported when the subdomain is configured.
+**Access:** Signed-in users for read tools (datasets, FAQ, news). Admin tokens or superadmin sessions required for write tools (create/update/delete FAQ and news). Token scopes control available tools.
 
 ## Subdomain Verification
 
@@ -49,13 +49,21 @@ After Railway DNS is configured for `mcp.useclevr.com`, verify:
 | `getProfitMarginTrend`    | Profit margin and growth analysis                  | `datasetId`                        |
 | `compareDatasets`         | Compare two datasets for metric differences        | `datasetIdA`, `datasetIdB`         |
 | `getTopProducts`          | Ranked products with revenue/profit shares         | `datasetId`, `metric`, `limit`     |
+| `listDatasets`            | List your datasets with metadata                   | *(none)*                            |
+| `createFaq`               | Create a FAQ entry (admin only)                    | `category`, `question`, `answer`, `tag?` |
+| `updateFaq`               | Update a FAQ entry (admin only)                    | `id`, `category?`, `question?`, `answer?`, `tag?` |
+| `deleteFaq`               | Delete a FAQ entry (admin only)                    | `id`                                |
+| `createNews`              | Create a news post (admin only)                    | `title`, `slug`, `summary`, `content?` |
+| `updateNews`              | Update a news post (admin only)                    | `id`, `title?`, `slug?`, `summary?`, `content?` |
+| `deleteNews`              | Delete a news post (admin only)                    | `id`                                |
 
 ## Access Levels
 
 | Level          | Access                                   |
 | -------------- | ---------------------------------------- |
-| Signed-in user | Own datasets, reports, tickets, settings |
-| Superadmin     | All user data plus admin views           |
+| Token (read scopes)    | Datasets (own), FAQ, news                     |
+| Token (write scopes)   | Datasets (own), FAQ, news, create/update/delete FAQ and news |
+| Superadmin session     | All user data, admin views, write FAQ/news    |
 
 ## Subdomain Access
 
