@@ -36,3 +36,13 @@ This file summarizes current project activity. Detailed session records live in
 - Railway Metal builder incident identified, then moved to monitoring. Production deploy pending.
 - Keep node_modules in dist branch commits (stop CI from deleting them). Railway Docker build needs pg for predeploy script.
 - Fix beta CI dist-root copy (cp -a copied dir not contents, fallback .gitignore with node_modules generated).
+
+## 2026-06-11
+
+- Make topbar sections icon-only (Business, Mentoring, Credits, Admin, Profile). Hybrid AI, Search, Onboarding keep labels.
+- Fix login page: top padding, use `result.ok` instead of `getSession()` for reliable sign-in flow.
+- Add sign-up/sign-in nav links to Payload admin login, style to match app login page.
+- Wrap business profile db updates in try/catch to prevent server action crashes.
+- Fix Stripe checkout success URL param name (`s` → `session_id`).
+- Remove `superadmin` from admin plan dropdown — only billing plans listed.
+- Audit Railway config, Dockerfile, predeploy, health endpoint — all correct.

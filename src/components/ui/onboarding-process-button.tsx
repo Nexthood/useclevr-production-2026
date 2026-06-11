@@ -79,7 +79,7 @@ export function OnboardingProcessButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-full items-center gap-2 whitespace-nowrap border-l border-border/50 px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50 active:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-full items-center gap-2 whitespace-nowrap px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50 active:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         title="Open setup progress"
         aria-label={`Setup progress ${completionPercent}% complete`}
       >

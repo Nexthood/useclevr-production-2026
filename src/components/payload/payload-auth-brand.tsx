@@ -30,17 +30,21 @@ export function PayloadLoginIntro() {
   return (
     <div className="payload-useclevr-auth">
       <p>Manage public news, FAQs, and legal pages.</p>
+      <nav>
+        <a href="/login" target="_parent">Sign in to UseClevr</a>
+        <a href="/login?tab=signup" target="_parent">Sign up</a>
+      </nav>
       {isTestSubdomain && (
-        <div className="payload-useclevr-credentials mt-2 space-y-2">
-          <p className="text-xs font-medium text-cyan-500">Test accounts:</p>
-          <div className="space-y-1 text-left text-xs">
+        <div className="payload-useclevr-credentials">
+          <p className="payload-useclevr-credentials__title">Test accounts:</p>
+          <div className="payload-useclevr-credentials__list">
             <div>
               <span className="font-medium">Base:</span>{" "}
-              <span className="font-mono">base@useclevr.app / 12345678</span>
+              <span className="payload-useclevr-credentials__mono">base@useclevr.app / 12345678</span>
             </div>
             <div>
               <span className="font-medium">Superadmin:</span>{" "}
-              <span className="font-mono">superadmin@useclevr.app / 12345678</span>
+              <span className="payload-useclevr-credentials__mono">superadmin@useclevr.app / 12345678</span>
             </div>
           </div>
         </div>

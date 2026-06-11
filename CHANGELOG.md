@@ -9,6 +9,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Topbar sections now show icons only, keeping Hybrid AI, Search, and Onboarding button with full labels
+- Login flow uses `result.ok` instead of `getSession()` for reliable post-sign-in redirect
+- Payload admin login shows sign-up and sign-in nav links matching app login style
+- Business profile updates wrapped in try/catch to prevent server action crashes
+- Stripe checkout success URL uses correct `session_id` parameter
+- Superadmin plan dropdown only shows billing plans (`free`, `pro`, `business`)
 - Auto-merge chain now dispatches dist publish after PR merge, fixing the `GITHUB_TOKEN` limitation that prevented `branch-maintenance.yml` from triggering on auto-merge push events
 - Remove `pnpm install --prod` from Dockerfiles — dist already contains complete `node_modules` from Next.js standalone tracing, eliminating `ERR_PNPM_IGNORED_BUILDS` and preventing overwrite of traced Next.js internals
 - Keep `node_modules` in dist branch commits so Railway Docker build has all required dependencies at build time

@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, User } from "lucide-react"
-import { getSession, signIn } from "next-auth/react"
+import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
@@ -64,9 +64,7 @@ function LoginForm() {
           callbackUrl: dashboardCallbackUrl(),
         })
 
-        const authenticatedSession = result && !result.error ? await getSession() : null
-        const signInSucceeded = Boolean(authenticatedSession?.user?.id)
-        if (!signInSucceeded) {
+        if (!result?.ok) {
           setAuthError("Demo sign-in failed. Please try again.")
           return
         }
@@ -102,12 +100,7 @@ function LoginForm() {
         callbackUrl: dashboardCallbackUrl(),
       })
 
-      const blockedStatus = result?.status === 401 || result?.status === 403
-      const authenticatedSession =
-        result && !result.error && !blockedStatus ? await getSession() : null
-      const signInSucceeded = Boolean(authenticatedSession?.user?.id)
-
-      if (!signInSucceeded) {
+      if (!result?.ok) {
         setAuthError("Sign-in failed. Check your email and password.")
         return
       }
@@ -241,9 +234,9 @@ return (
          <ThemeToggle />
        </header>
 
-       <main className="flex-1 flex items-center justify-center p-4">
-         <Card className="w-full max-w-md border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 shadow-lg">
-           <CardContent>
+        <main className="flex-1 flex items-start justify-center px-4 pt-16 md:pt-24">
+          <Card className="w-full max-w-md border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 shadow-lg">
+            <CardContent className="pt-6">
             <Tabs defaultValue={defaultTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign in</TabsTrigger>

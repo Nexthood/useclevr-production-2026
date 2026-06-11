@@ -294,7 +294,7 @@ function CustomerFields({
       <SelectField
         label="Plan"
         value={value.plan}
-        options={["free", "pro", "business", "superadmin"]}
+        options={["free", "pro", "business"]}
         onChange={(plan) => onChange({ ...value, plan })}
       />
       <TextField

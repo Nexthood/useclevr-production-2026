@@ -701,3 +701,20 @@ This log documents all major AI agent interactions, user goals, decisions, imple
    - Fix dist-root copy in beta CI: `cp -a dist-root /tmp/` created dist-root subdirectory, so .gitignore never landed at repo root. Fallback .gitignore (with node_modules) was generated. Changed to `cp -a dist-root/.` to copy contents directly.
 - **Blocked (RESOLVED)**: Railway Metal builder incident (June 9 16:52 UTC — 17:35 UTC) resolved; incident moved to Monitoring at 17:35 UTC
 - **Next**: Rebuild dist, push, trigger production deploy now that node_modules is committed to dist branch
+
+---
+
+## Interaction 4: UI Fixes, Login Auth, Business Profile Error Handling, Stripe Checkout, Superadmin Role Picker
+
+- **Date**: 2026-06-11
+- **User Goal**: Fix multiple UI and backend issues across the app: topbar icons-only mode, login page padding and auth flow, business profile db error handling, Stripe checkout URL param mismatch, superadmin role picker, Payload admin login style.
+- **Changes**:
+  1. **Topbar icons only**: Added `iconOnly` prop to Business, Mentoring, Credits, Admin, Profile TopbarSection components in `topbar.tsx`. Hybrid AI, Search, Onboarding button keep full labels.
+  2. **Login page padding & flow**: Changed login card layout from vertically centered to top-aligned with `pt-16 md:pt-24`. Added `pt-6` to `CardContent`. Replaced `getSession()` calls with `result?.ok` to fix timing issues where the session cookie wasn't immediately available after sign-in.
+  3. **Payload admin login**: Added "Sign in to UseClevr" and "Sign up" nav links to `PayloadLoginIntro` component. Restyled CSS with button-like nav links. Fixed test credentials box layout with BEM classes.
+  4. **Business profile error handling**: Wrapped `upsertBusinessDetails()` and legacy profile path in `settings.ts` with try/catch, returning `failure()` with the error message instead of crashing the server action.
+  5. **Stripe checkout URL**: Fixed param name mismatch in `checkout/confirm/route.ts` — changed `s={CHECKOUT_SESSION_ID}` to `session_id={CHECKOUT_SESSION_ID}` so the success page correctly reads it.
+  6. **Superadmin role picker**: Removed `"superadmin"` from plan dropdown options in `admin/edit/page.tsx`. Only billing plans (`free`, `pro`, `business`) are shown.
+  7. **Railway audit**: Verified Dockerfile, predeploy schema sync script, health endpoint, start command all correct.
+- **Improvement**: `checkout-token.ts` still falls back to `STRIPE_SECRET_KEY` for HMAC signing when `AUTH_SECRET` is unset — should use separate secret.
+- **Next**: Verify all changes via type check and pnpm dev testing.

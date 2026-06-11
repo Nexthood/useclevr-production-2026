@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     'cms-users': CmsUser;
     'news-posts': NewsPost;
+    faqs: Faq;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,6 +79,7 @@ export interface Config {
   collectionsSelect: {
     'cms-users': CmsUsersSelect<false> | CmsUsersSelect<true>;
     'news-posts': NewsPostsSelect<false> | NewsPostsSelect<true>;
+    faqs: FaqsSelect<false> | FaqsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -175,6 +177,38 @@ export interface NewsPost {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Public FAQ entries shown on the /faq page and homepage accordion.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs".
+ */
+export interface Faq {
+  id: number;
+  /**
+   * FAQ category label (e.g. Getting Started, Plans & Billing)
+   */
+  category: string;
+  question: string;
+  /**
+   * Plain-text answer (supports line breaks)
+   */
+  answer: string;
+  /**
+   * Optional tag for filtering (e.g. 'pricing')
+   */
+  tag?: string | null;
+  /**
+   * Display order within category
+   */
+  sortOrder?: number | null;
+  /**
+   * Where this FAQ entry appears
+   */
+  scope?: ('public' | 'dashboard' | 'operator') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -205,6 +239,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'news-posts';
         value: number | NewsPost;
+      } | null)
+    | ({
+        relationTo: 'faqs';
+        value: number | Faq;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -285,6 +323,20 @@ export interface NewsPostsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs_select".
+ */
+export interface FaqsSelect<T extends boolean = true> {
+  category?: T;
+  question?: T;
+  answer?: T;
+  tag?: T;
+  sortOrder?: T;
+  scope?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
