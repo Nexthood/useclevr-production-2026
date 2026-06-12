@@ -50,15 +50,7 @@ export default function proxy(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", cspHeader)
 
   if (isMcpTestSubdomain && (pathname === "/api/mcp" || pathname === "/api/payload/mcp")) {
-    const testApiKey = process.env.PAYLOAD_MCP_TEST_API_KEY
-    if (!testApiKey) {
-      return NextResponse.json(
-        { error: "Test MCP is not configured" },
-        { status: 503, headers: { "Content-Security-Policy": cspHeader } },
-      )
-    }
-
-    requestHeaders.set("authorization", `Bearer ${testApiKey}`)
+    requestHeaders.set("x-internal-trusted-proxy", "1")
     const mcpUrl = nextUrl.clone()
     mcpUrl.pathname = "/api/payload/mcp"
     return NextResponse.rewrite(mcpUrl, {

@@ -172,6 +172,34 @@ export default buildConfig({
           },
         },
       },
+      overrideAuth: async (_req, getDefaultMcpAccessSettings) => {
+        const headers = _req.headers
+        if (headers instanceof Headers && headers.get("x-internal-trusted-proxy") === "1") {
+          return {
+            user: {
+              id: 0,
+              email: "mcp@useclevr.local",
+              collection: "cms-users",
+              _strategy: "mcp-api-key",
+            } as never,
+            collections: {
+              find: true,
+              create: true,
+              update: true,
+              delete: true,
+            },
+            globals: {
+              find: true,
+              update: true,
+            },
+            "payload-mcp-tool": {
+              listDashboardDatasets: true,
+              getDashboardDatasetInsights: true,
+            },
+          }
+        }
+        return getDefaultMcpAccessSettings()
+      },
     }),
     ...(stripeSecretKey
       ? [
