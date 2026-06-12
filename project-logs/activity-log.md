@@ -71,3 +71,5 @@ This file summarizes current project activity. Detailed session records live in
   successful deployments.
 - Validate and prepare dashboard persistence, Payload design, documentation, and AI interaction
   records as one commit.
+- Verify that the UseClevr test MCP endpoint is not ready for ChatGPT developer mode and queue the
+  required standard MCP transport and OAuth work.

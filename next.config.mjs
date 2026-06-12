@@ -18,7 +18,12 @@ const nextConfig = {
     },
   },
   outputFileTracingIncludes: {
-    "**/*": ["./node_modules/next/dist/build/**"],
+    "**/*": [
+      "./node_modules/next/dist/build/**",
+      "./node_modules/@aws-crypto/**",
+      "./node_modules/@aws-sdk/**",
+      "./node_modules/@smithy/**",
+    ],
   },
   webpack: (config, { dev }) => {
     config.resolve.alias = {

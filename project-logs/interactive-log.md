@@ -854,3 +854,29 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Release behavior lives in `CHANGELOG.md`; operator and product behavior
   lives in the matching guides and `requirements.md`; interaction records live in `project-logs/`
   and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 34: ChatGPT Developer Mode MCP Readiness
+
+- **Date**: 2026-06-12
+- **User Goal**: Add the UseClevr test MCP service as a ChatGPT developer-mode app.
+- **Findings**:
+  1. `https://mcp-test.useclevr.com/api/mcp` returns HTTP 500 for discovery and MCP initialization.
+  2. The route accepts custom GET responses and `{ name, input }` POST bodies instead of standard
+     remote MCP initialization, `tools/list`, and `tools/call`.
+  3. The route requires custom `x-mcp-token` headers or a browser session.
+  4. ChatGPT developer mode requires a remote Streamable HTTP or SSE MCP endpoint and cannot present
+     a custom API key; private UseClevr dataset access therefore requires per-user OAuth.
+- **Problems Marked**:
+  - `blocker`: The endpoint cannot complete ChatGPT's tool scan.
+  - `security`: Anonymous test access would expose user-owned datasets and is not an acceptable
+    substitute for OAuth.
+- **Follow-up Tasks**:
+  - T-839. Implement Streamable HTTP MCP and OAuth, deploy to `beta` and `dist-test`, verify the
+    test endpoint, then create the ChatGPT draft app from the workspace UI.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Active implementation stays in `.TODO/todo-next.md`; protocol guidance
+  lives in the MCP developer and user guides; interaction state lives in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.
