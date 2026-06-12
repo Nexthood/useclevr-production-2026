@@ -85,6 +85,8 @@ const statements = [
   `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "archivedAt" timestamp`,
   `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "archiveExpiresAt" timestamp`,
   `ALTER TABLE IF EXISTS "Dataset" ALTER COLUMN "updatedAt" SET DEFAULT now()`,
+  `ALTER TABLE IF EXISTS "payload_mcp_api_keys" ADD COLUMN IF NOT EXISTS "payload_mcp_tool_list_dashboard_datasets" boolean DEFAULT false`,
+  `ALTER TABLE IF EXISTS "payload_mcp_api_keys" ADD COLUMN IF NOT EXISTS "payload_mcp_tool_get_dashboard_dataset_insights" boolean DEFAULT false`,
 
   `CREATE TABLE IF NOT EXISTS "ReferralEvent" (
     "id" text PRIMARY KEY NOT NULL,

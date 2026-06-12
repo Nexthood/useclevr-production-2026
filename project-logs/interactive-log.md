@@ -548,7 +548,6 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Deployment operations live in the Railway guide; MCP usage lives in the
   MCP guides; interaction history lives in `project-logs/`.
 
-
 ---
 
 ## Interaction 25: Complete All TODO Tasks, Fix Auth, Deploy Railway Fixes
@@ -696,9 +695,9 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - Fix report AI chat: `answerReportQuestion()` calls `runLLM()` directly instead of proxying through `/api/analyze`
   - Move MCP subdomain logic from `middleware.ts` to `proxy.ts` (Next.js 16 cannot have both)
   - Fix auto-merge chain: add `closed` event handler to dispatch `branch-maintenance.yml` after PR merge
-   - Remove `pnpm install --prod` from Dockerfiles — dist has complete node_modules from Next.js standalone tracing
-   - Stop deleting node_modules from CI workflows — CI was removing node_modules before committing to dist branch, so Docker build had no deps. Railway predeploy script requires pg which was lost.
-   - Fix dist-root copy in beta CI: `cp -a dist-root /tmp/` created dist-root subdirectory, so .gitignore never landed at repo root. Fallback .gitignore (with node_modules) was generated. Changed to `cp -a dist-root/.` to copy contents directly.
+  - Remove `pnpm install --prod` from Dockerfiles — dist has complete node_modules from Next.js standalone tracing
+  - Stop deleting node_modules from CI workflows — CI was removing node_modules before committing to dist branch, so Docker build had no deps. Railway predeploy script requires pg which was lost.
+  - Fix dist-root copy in beta CI: `cp -a dist-root /tmp/` created dist-root subdirectory, so .gitignore never landed at repo root. Fallback .gitignore (with node_modules) was generated. Changed to `cp -a dist-root/.` to copy contents directly.
 - **Blocked (RESOLVED)**: Railway Metal builder incident (June 9 16:52 UTC — 17:35 UTC) resolved; incident moved to Monitoring at 17:35 UTC
 - **Next**: Rebuild dist, push, trigger production deploy now that node_modules is committed to dist branch
 
@@ -880,3 +879,34 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Active implementation stays in `.TODO/todo-next.md`; protocol guidance
   lives in the MCP developer and user guides; interaction state lives in `project-logs/` and
   `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 35: Payload Dashboard MCP Adapter
+
+- **Date**: 2026-06-12
+- **User Goal**: Use Payload as the primary test MCP and expose dashboard dataset information for
+  ChatGPT developer mode.
+- **Changes**:
+  1. Register `listDashboardDatasets` and `getDashboardDatasetInsights` as Payload MCP tools.
+  2. Scope both tools to the locked superadmin test identity and omit uploaded rows.
+  3. Route the test MCP host to Payload Streamable HTTP MCP with a server-held restricted key.
+  4. Add Payload capability columns, generated types, Railway additive schema sync, and a
+     repeatable database-backed smoke test.
+- **Problems Marked**:
+  - `risk`: The test Payload key must enable only the two dashboard read tools.
+  - `blocker`: Live ChatGPT registration requires the source deployment and Railway test key.
+  - `observation`: Private customer dataset access still requires OAuth.
+- **Verification**: Type validation, deployment config validation, pre-commit checks, clean
+  production build, proxy rewrite test, tool registration test, and a database-backed smoke test
+  with 11 locked test datasets pass. A later database retry failed during an external Neon
+  connectivity interruption.
+- **Follow-up Tasks**:
+  - T-840. Add OAuth authorization before exposing private customer datasets.
+  - T-841. Configure and deploy the Railway test connector, verify JSON-RPC, and create the
+    ChatGPT draft app.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; MCP and
+  deployment guidance lives in the matching developer and user guides; pending operations live in
+  `.TODO/todo-next.md`.

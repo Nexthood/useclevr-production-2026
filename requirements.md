@@ -262,6 +262,8 @@ Text rules for this file:
 - Let super-admins access MCP resources and tools across platform datasets.
 - Keep UseClevr MCP limited to product datasets and analysis tools.
 - Expose Payload News and FAQ through Payload-native MCP with per-key tool permissions.
-- Keep Payload MCP under `/api/payload/mcp` and separate from `/api/mcp`.
-- Keep unauthenticated MCP discovery unavailable.
-- Keep a dedicated MCP subdomain out of scope until MCP becomes an external customer-facing service.
+- Keep authenticated Payload MCP under `/api/payload/mcp`.
+- Route `mcp-test.useclevr.com/api/mcp` to Payload Streamable HTTP MCP with a server-held API key.
+- Expose only locked demo-account dataset metadata and stored analysis through the public test
+  connector; never expose uploaded rows or customer-owned datasets.
+- Require OAuth before the ChatGPT MCP app accesses private customer datasets.

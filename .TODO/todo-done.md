@@ -25,6 +25,7 @@ moving work between states.
 
 ## Label: mcp
 
+- T-839. Expose locked demo-account dataset metadata and stored insights through Payload Streamable HTTP MCP for ChatGPT developer-mode testing. (labels: mcp, auth, api, testing, security; commit: worktree)
 - T-809. Verify UseClevr MCP token creation, dataset scope enforcement, and audit logging through the app MCP routes. (labels: mcp, testing, security; commit: worktree)
 - T-816. Store seeded public, dashboard, and operator FAQ content in the Payload FAQ collection. (labels: mcp, content, faq; commit: worktree)
 - T-817. Expose Payload News and FAQ tools through Payload-native MCP API keys while `/api/mcp` serves product datasets only. (labels: mcp, content, api; commit: worktree)

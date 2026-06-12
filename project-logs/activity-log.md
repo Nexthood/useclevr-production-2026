@@ -73,3 +73,6 @@ This file summarizes current project activity. Detailed session records live in
   records as one commit.
 - Verify that the UseClevr test MCP endpoint is not ready for ChatGPT developer mode and queue the
   required standard MCP transport and OAuth work.
+- Register read-only locked test-account dataset tools in Payload MCP, route the test MCP host
+  through Payload with a server-held restricted key, and keep private customer access behind
+  deferred OAuth.

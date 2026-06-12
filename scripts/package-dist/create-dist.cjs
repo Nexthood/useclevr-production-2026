@@ -258,7 +258,7 @@ function fixAwsSdkPackages(distNmDir) {
       fs.mkdirSync(scopeDir, { recursive: true });
     }
 
-    const pnpmPrefix = scope.replace("@", "") + "+";
+    const pnpmPrefix = scope + "+";
     for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
       if (!entry.name.startsWith(pnpmPrefix)) continue;

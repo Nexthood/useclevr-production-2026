@@ -5,6 +5,7 @@ import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-
 import { Faqs } from "@/lib/cms/collections/Faqs"
 import { CmsUsers } from "@/lib/payload/collections/CmsUsers"
 import { Media } from "@/lib/payload/collections/Media"
+import { dashboardMcpTools } from "@/lib/payload/mcp-dashboard-tools"
 import { NewsPosts } from "@/lib/payload/collections/NewsPosts"
 import { HomePageContent } from "@/lib/payload/globals/HomePageContent"
 import { PrivacyPageContent } from "@/lib/payload/globals/PrivacyPageContent"
@@ -163,9 +164,10 @@ export default buildConfig({
         },
       },
       mcp: {
+        tools: dashboardMcpTools as never,
         serverOptions: {
           serverInfo: {
-            name: "UseClevr Content",
+            name: "UseClevr",
             version: "1.0.0",
           },
         },

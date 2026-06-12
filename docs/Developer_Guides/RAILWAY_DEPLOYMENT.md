@@ -79,6 +79,8 @@ metadata, and dependency folders that are not part of the standalone runtime con
 - Keep a private restore-ready copy of `.railway/project.json` outside the repo so a fresh checkout
   can reconnect to the right Railway project without guesswork.
 - Keep real tokens and environment files in private local storage only, never in source control.
+- Set `PAYLOAD_MCP_TEST_API_KEY` only on the Railway test service. The matching Payload MCP API key
+  must enable only `listDashboardDatasets` and `getDashboardDatasetInsights`.
 
 ## Runtime Commands
 

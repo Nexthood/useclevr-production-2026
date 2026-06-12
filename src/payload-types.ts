@@ -333,6 +333,16 @@ export interface PayloadMcpApiKey {
      */
     delete?: boolean | null;
   };
+  'payload-mcp-tool'?: {
+    /**
+     * Lists datasets available in the locked UseClevr test account. Returns metadata only and never returns uploaded rows.
+     */
+    listDashboardDatasets?: boolean | null;
+    /**
+     * Returns stored KPIs, chart summaries, rankings, risks, opportunities, and AI insights for one dataset in the locked UseClevr test account. Never returns uploaded rows.
+     */
+    getDashboardDatasetInsights?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -554,6 +564,12 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         create?: T;
         update?: T;
         delete?: T;
+      };
+  'payload-mcp-tool'?:
+    | T
+    | {
+        listDashboardDatasets?: T;
+        getDashboardDatasetInsights?: T;
       };
   updatedAt?: T;
   createdAt?: T;

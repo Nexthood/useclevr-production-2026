@@ -32,6 +32,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-840. Add OAuth authorization for private customer datasets before the ChatGPT MCP app supports non-demo UseClevr accounts. (labels: auth, mcp, security, api)
 - T-772. Allow signed internal MCP token access through the global proxy or narrow the proxy bypass for trusted MCP headers so documented token-based MCP calls can run without a browser session. (labels: auth, mcp, security, workflow)
 - T-180. Add OAuth providers if the product roadmap requires them. (labels: auth, ai, workflow)
 - T-447. OAuth user ID generation uses Date.now() + Math.random() — switch to uuid for collision resistance. (labels: auth)

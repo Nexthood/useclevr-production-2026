@@ -26,6 +26,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Let ChatGPT developer-mode tests read locked demo-account dataset metadata and stored insights
+  through the Payload MCP connector without exposing uploaded rows.
 - Manage Payload News cover images through durable S3-compatible storage.
 - Connect authorised content tools to News and FAQ through Payload-native MCP API keys.
 - List signed-in users' datasets through the UseClevr MCP service.

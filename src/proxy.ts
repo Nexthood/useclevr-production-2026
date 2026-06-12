@@ -1,12 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const MCP_SUBDOMAIN_PATTERN = /^mcp(?:-test)?\.useclevr\.com(:?\d+)?$/;
+const MCP_TEST_SUBDOMAIN_PATTERN = /^mcp-test\.useclevr\.com(:?\d+)?$/
 
 const apiPrefix = "/api"
 const publicApiPrefixes = ["/api/auth"]
 const publicApiPaths = [
   "/api/health",
   "/api/mcp",
+  "/api/payload/mcp",
   "/api/webhooks/stripe",
   "/api/payload/cms-users/login",
   "/api/payload/cms-users/refresh-token",
@@ -28,7 +30,8 @@ export default function proxy(request: NextRequest) {
   const pathname = nextUrl.pathname
   const host = request.headers.get("host") || ""
   const isMcpSubdomain = MCP_SUBDOMAIN_PATTERN.test(host)
-  if (isMcpSubdomain && pathname !== "/api/mcp") {
+  const isMcpTestSubdomain = MCP_TEST_SUBDOMAIN_PATTERN.test(host)
+  if (isMcpSubdomain && pathname !== "/api/mcp" && pathname !== "/api/payload/mcp") {
     return new NextResponse("Not Found", { status: 404 })
   }
 
@@ -45,6 +48,25 @@ export default function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce)
   requestHeaders.set("x-useclevr-pathname", pathname)
   requestHeaders.set("Content-Security-Policy", cspHeader)
+
+  if (isMcpTestSubdomain && (pathname === "/api/mcp" || pathname === "/api/payload/mcp")) {
+    const testApiKey = process.env.PAYLOAD_MCP_TEST_API_KEY
+    if (!testApiKey) {
+      return NextResponse.json(
+        { error: "Test MCP is not configured" },
+        { status: 503, headers: { "Content-Security-Policy": cspHeader } },
+      )
+    }
+
+    requestHeaders.set("authorization", `Bearer ${testApiKey}`)
+    const mcpUrl = nextUrl.clone()
+    mcpUrl.pathname = "/api/payload/mcp"
+    return NextResponse.rewrite(mcpUrl, {
+      request: {
+        headers: requestHeaders,
+      },
+    })
+  }
 
   const isPublicApiPrefix = publicApiPrefixes.some((prefix) => pathname.startsWith(prefix))
   const isPublicApiPath = publicApiPaths.includes(pathname)
