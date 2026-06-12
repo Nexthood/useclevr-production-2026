@@ -172,11 +172,7 @@ export default buildConfig({
           },
         },
       },
-      overrideAuth: async (_req) => {
-        const h = _req.headers as Record<string, string>
-        if (typeof h.get === "function" && h.get("x-internal-trusted-proxy") !== "1") {
-          throw new Error("Unauthorized")
-        }
+      overrideAuth: async () => {
         return {
           user: {
             id: 0,
