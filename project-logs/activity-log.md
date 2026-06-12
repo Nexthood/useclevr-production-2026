@@ -39,6 +39,8 @@ This file summarizes current project activity. Detailed session records live in
 
 ## 2026-06-11
 
+- Add durable Payload Media storage and move News and FAQ MCP ownership to Payload-native API keys.
+- Keep UseClevr MCP scopes and tools limited to product datasets and analysis.
 - Separate dashboard theme and accessibility controls and align page bodies around center workspaces with optional sidebars.
 - Move Business and Dataset summaries to right sidebars and keep table actions in selectable table headers.
 - Prevent topbar popovers from being clipped and make the main sidebar navigation independently scrollable.

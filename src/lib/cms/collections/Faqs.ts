@@ -1,6 +1,8 @@
 import type { CollectionConfig } from "payload"
 
-export const Faqs: CollectionConfig = {
+import { isCmsSuperAdmin, withCollectionGroup } from "@/lib/payload/access"
+
+export const Faqs: CollectionConfig = withCollectionGroup({
   slug: "faqs",
   admin: {
     useAsTitle: "question",
@@ -10,9 +12,9 @@ export const Faqs: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: isCmsSuperAdmin,
+    update: isCmsSuperAdmin,
+    delete: isCmsSuperAdmin,
   },
   fields: [
     {
@@ -94,4 +96,4 @@ export const Faqs: CollectionConfig = {
     },
   ],
   timestamps: true,
-}
+})

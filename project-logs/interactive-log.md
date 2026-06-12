@@ -741,3 +741,32 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Follow-up Tasks**: None.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
 - **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; display guidance and dashboard structure live in their user and developer guides; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 30: Payload Storage and MCP Ownership
+
+- **Date**: 2026-06-11
+- **User Goal**: Continue the Payload setup, add durable storage, move News and FAQ MCP access to
+  Payload, update Kilo endpoint references, and commit the work.
+- **Changes**:
+  1. Add a Media collection and S3-compatible storage for AWS S3 or Cloudflare R2.
+  2. Block Media mutations when durable storage credentials are incomplete.
+  3. Add Payload-native MCP tools for News and FAQ under `/api/payload/mcp`.
+  4. Remove News and FAQ tools and scopes from the UseClevr dataset MCP service.
+  5. Generate and apply the Media, News cover relation, and Payload MCP API-key migration.
+  6. Align Payload packages and Next.js with their current compatible releases.
+- **Problems Marked**:
+  - `observation`: Payload migration generation fails under Node 26 because the loader attempts to
+    open a namespaced `node:crypto` URL as a file.
+  - `risk`: The Payload MCP dependency currently reports an upstream MCP SDK peer-version mismatch.
+- **User Learning**: Product-data MCP and content MCP use separate credentials, permissions, and
+  endpoints.
+- **AI-Agent Learning**: Keep Payload content tools in the Payload plugin and preserve the custom
+  app MCP for ownership-aware product data.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; MCP and
+  Payload operations live in developer and user guides; session records live in `project-logs/`
+  and `docs/AI-interaction/interaction-status.md`.

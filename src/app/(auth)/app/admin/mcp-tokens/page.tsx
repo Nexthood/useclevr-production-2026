@@ -30,8 +30,6 @@ const ALL_SCOPES = [
   "dataset:read",
   "dataset:write",
   "admin",
-  "faq:read",
-  "news:read",
 ] as const;
 
 interface TokenRow {

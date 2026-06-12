@@ -12,6 +12,11 @@
       "local": "http://localhost:3000/api/mcp",
       "test": "https://test.useclevr.com/api/mcp",
       "production": "https://app.useclevr.com/api/mcp"
+    },
+    "payloadEndpoints": {
+      "local": "http://localhost:3000/api/payload/mcp",
+      "test": "https://test.useclevr.com/api/payload/mcp",
+      "production": "https://app.useclevr.com/api/payload/mcp"
     }
   },
   "permission": {

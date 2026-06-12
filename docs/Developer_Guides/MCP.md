@@ -22,7 +22,8 @@
 - [Quick Reference](#quick-reference-which-mcp-client-to-use)
 - [Implementation Rules](#implementation-rules)
 
-UseClevr exposes a small authenticated MCP interface for trusted dataset analysis tools and resources. The interface gives internal clients a consistent way to list available tools, read cached analysis resources, and invoke deterministic analysis helpers.
+UseClevr exposes separate MCP interfaces for product data and Payload-managed content. The app
+interface provides trusted dataset tools and resources. Payload provides native News and FAQ tools.
 
 MCP stays internal under the app API. The product does not expose a public MCP catalog or a dedicated `mcp.useclevr.com` service.
 
@@ -43,7 +44,7 @@ The MCP interface follows the dashboard visibility rules:
 
 - Authenticated users access their own datasets, reports, tickets, settings, and business profile.
 - Superadmin users can access operator-wide administration views.
-- Published FAQ and news content is available through read-scoped MCP tools.
+- Payload API keys control News and FAQ find, create, update, and delete tools separately.
 
 ## API Routes
 
@@ -52,12 +53,14 @@ The MCP interface follows the dashboard visibility rules:
 | GET    | `/api/mcp`                        | List available tools; add `datasetId` for resources |
 | GET    | `/api/mcp?resource=dataset://...` | Read one MCP resource                               |
 | POST   | `/api/mcp`                        | Invoke a named MCP tool                             |
+| POST   | `/api/payload/mcp`                | Invoke Payload-native News and FAQ tools            |
 
 ## Routing Boundary
 
 - Use `/api/mcp` for the current authenticated MCP interface, reachable from `mcp.useclevr.com` when configured.
+- Use `/api/payload/mcp` for Payload-native JSON-RPC MCP requests with a Payload MCP API key.
 - Keep MCP route discovery unavailable to unauthenticated users.
-- Keep public FAQ and news page routes separate from MCP transport routes.
+- Keep public FAQ and News page routes separate from both MCP transports.
 - Do not rely on hidden URLs as security. Hidden endpoints are only an extra layer.
 
 ## Authentication Boundary
@@ -66,6 +69,22 @@ The MCP interface follows the dashboard visibility rules:
 - Service/admin tokens use `x-mcp-token`, `x-mcp-service-token`, or `x-mcp-admin-token` headers.
 - Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
 - Current configuration allows the MCP route and required auth endpoints before login.
+- Payload MCP requests use `Authorization: Bearer <payload-mcp-api-key>` and tool permissions stored
+  in Payload.
+
+## Payload Content MCP
+
+Payload exposes only the `news-posts` and `faqs` collections. CMS users, Media, and page globals do
+not expose MCP tools.
+
+```bash
+curl -i "http://127.0.0.1:3000/api/payload/mcp" \
+  -X POST \
+  -H "Authorization: Bearer <paste-payload-mcp-api-key>" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
+```
 
 ## Local Ping Process
 
@@ -109,8 +128,8 @@ Expected signed-in result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." },
-    { "name": "getNews", "description": "..." }
+    { "name": "listDatasets", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
 }
@@ -155,8 +174,7 @@ Expected result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." },
-    { "name": "getNews", "description": "..." },
+    { "name": "listDatasets", "description": "..." },
     { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
@@ -245,14 +263,8 @@ Expected responses:
 | `compareDatasets`         | Compare two datasets for metric differences                    | `datasetIdA`, `datasetIdB`         |
 | `getTopProducts`          | Ranked products with revenue/profit percentages                | `datasetId`, `metric`, `limit`     |
 | `listDatasets`            | List the authenticated user's datasets with metadata           | *(none)*                            |
-| `getFaqs`                 | FAQ entries by category or keyword search                      | `category?`, `query?`, `limit?`     |
-| `getNews`                 | Published news by slug or keyword                              | `slug?`, `query?`, `limit?`, `includeContent?` |
-| `createFaq`               | Create a new FAQ entry (admin + faq:write)                     | `category`, `question`, `answer`, `tag?` |
-| `updateFaq`               | Update an existing FAQ entry (admin + faq:write)               | `id`, `category?`, `question?`, `answer?`, `tag?` |
-| `deleteFaq`               | Delete an FAQ entry (admin + faq:write)                        | `id`                                |
-| `createNews`              | Create a new news post (admin + news:write)                    | `title`, `slug`, `summary`, `content?` |
-| `updateNews`              | Update an existing news post (admin + news:write)              | `id`, `title?`, `slug?`, `summary?`, `content?` |
-| `deleteNews`              | Delete a news post (admin + news:write)                        | `id`                                |
+Payload discovers News and FAQ collection tools dynamically from `/api/payload/mcp`. Payload MCP
+API-key permissions determine which find, create, update, and delete tools each client receives.
 
 ## Available Resources
 
@@ -434,7 +446,8 @@ Expected result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." }
+    { "name": "listDatasets", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
 }
@@ -480,7 +493,8 @@ Expected signed-in result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." }
+    { "name": "listDatasets", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
 }

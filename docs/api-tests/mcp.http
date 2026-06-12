@@ -53,3 +53,17 @@ x-mcp-admin-token: <paste-admin-token>
     "datasetIdB": "<paste-dataset-id-b>"
   }
 }
+
+### Payload MCP tools list
+# Expected: 200 OK with JSON-RPC tool data when the Payload MCP API key is valid
+POST {{baseUrl}}/api/payload/mcp
+Authorization: Bearer <paste-payload-mcp-api-key>
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "method": "tools/list",
+  "params": {}
+}

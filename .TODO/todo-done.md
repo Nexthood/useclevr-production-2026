@@ -25,8 +25,10 @@ moving work between states.
 
 ## Label: mcp
 
-- T-809. Test MCP token creation, authentication, scope enforcement, and audit logging end-to-end via /api/mcp/tokens endpoint — all verified working with getFaqs tool. (labels: mcp, testing, security; commit: worktree)
-- T-816. Add FAQ seed data to Payload Faqs collection with 5 categories and 25 questions. Wire MCP getFaqs handler to read from Payload with static fallback. Add getFaqsFromPayload function to content.ts. (labels: mcp, content, faq; commit: worktree)
+- T-809. Verify UseClevr MCP token creation, dataset scope enforcement, and audit logging through the app MCP routes. (labels: mcp, testing, security; commit: worktree)
+- T-816. Store seeded public, dashboard, and operator FAQ content in the Payload FAQ collection. (labels: mcp, content, faq; commit: worktree)
+- T-817. Expose Payload News and FAQ tools through Payload-native MCP API keys while `/api/mcp` serves product datasets only. (labels: mcp, content, api; commit: worktree)
+- T-836. Store Payload News cover media through S3-compatible durable storage and apply the Media and MCP API-key migration. (labels: content, upload, data; commit: worktree)
 
 ## Label: docs
 
@@ -311,7 +313,6 @@ moving work between states.
 
 ## Label: mcp
 
-- T-817. Expose published Payload news posts through a scoped MCP tool with slug and keyword filtering. (labels: mcp, content, api; commit: worktree)
 - T-533. MCP tool `getProfitMarginTrend` added: combines profit margin calculation with growth trend direction in handlers.ts, tools.ts, server.ts, integration.ts. (labels: mcp, ai, data, workflow; commit: 3e8d4602)
 - T-532. MCP resource `revenue-by-region` added with ranked rows and share percentages (already existed as `getTopRegions` in resources.ts). (labels: mcp, ai, data, workflow; commit: 3e8d4602)
 - T-531. MCP tool `getCostBreakdown` added: extracts cost categories from precomputed metrics with percentage shares in handlers.ts, tools.ts, server.ts, integration.ts. (labels: mcp, ai, data, workflow; commit: 3e8d4602)

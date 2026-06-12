@@ -16,7 +16,10 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Users can review, search, re-run, export, and rate their own AI history.
 - Super-admins can review aggregate trace analytics, benchmarking, provider distribution, error rate, and top queries.
 - Business Profile and Company Setup changes that alter AI context update trace guidance so future traces explain which business context shaped an answer.
-- MCP tool invocations record traces to `aiInteractionTraces` via `recordMCPTrace` (fire-and-forget, non-blocking). Provider is `MCP`, model is `tool:{toolName}`. Token-based auth uses `mcp-token-{name}` as user identifier when no session exists.
+- UseClevr dataset MCP tool invocations record traces to `aiInteractionTraces` via
+  `recordMCPTrace` (fire-and-forget, non-blocking). Provider is `MCP`, model is
+  `tool:{toolName}`. Payload News and FAQ MCP requests use Payload API-key controls and do not enter
+  the UseClevr dataset trace path.
 - MCP tool changes that alter AI context, prompt inputs, provider-visible metadata, audit logs, or trace fields update trace guidance.
 - Local Mock AI traces use provider `Mock AI` and model `mock-local-development` so development responses stay distinguishable from Gemini, Antigravity, and local model traces.
 - Local Mock AI status, model-list, pull, and verification routes are development-only helpers for localhost UI testing and do not create production provider traces.

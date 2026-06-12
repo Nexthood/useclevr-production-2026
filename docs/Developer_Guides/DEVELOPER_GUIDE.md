@@ -226,15 +226,24 @@ Payload Phase 0 currently serves:
 
 - `/admin`
 - `/api/payload`
+- `/api/payload/mcp` for Payload-native News and FAQ MCP tools
 - public homepage content
 - public privacy page content
 - public terms page content
 - public news posts
+- FAQ content
+- durable News cover media through configured S3-compatible storage
 
 Current local safety rules:
 
 - Keep Payload database schema auto-push disabled during normal local startup.
 - Use explicit migration commands when Payload schema work is intentional.
+- Configure `UPLOAD_PROVIDER=s3` with `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, and
+  `AWS_SECRET_ACCESS_KEY`, or configure `UPLOAD_PROVIDER=r2` with `R2_BUCKET`, `R2_ENDPOINT`,
+  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and optional `R2_PUBLIC_URL`.
+- Payload blocks media mutations when durable S3-compatible storage is not fully configured.
+- Create Payload MCP API keys in the Payload admin and grant only the required News or FAQ tools.
+- Keep `/api/mcp` for UseClevr dataset tools and `/api/payload/mcp` for Payload content tools.
 - Keep app auth routes and Payload auth routes reachable before login, while keeping other
   protected API routes behind authentication.
 - Keep `/admin` requests on the Payload root layout so the admin login and admin workspace boot

@@ -23,11 +23,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- MCP write tools: createFaq, updateFaq, deleteFaq (faq:write + admin scope), createNews, updateNews, deleteNews (news:write + admin scope), listDatasets (dataset:read, user-scoped)
-- faq:write and news:write scopes for database-backed MCP tokens
+- Manage Payload News cover images through durable S3-compatible storage.
+- Connect authorised content tools to News and FAQ through Payload-native MCP API keys.
+- List signed-in users' datasets through the UseClevr MCP service.
 - Block non-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via proxy.ts, returning 404 for all paths except /api/mcp.
 - Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
-- Published product news is searchable through MCP by slug or keyword, with optional full article content.
 - MCP subdomain exposes tool schemas with scoped access for service tokens.
 - Database-backed MCP tokens support creation, listing, and revocation for service authentication.
 - MCP audit trail records tool invocations, authentication failures, and token management events for compliance.
@@ -50,6 +50,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Separate Payload News and FAQ tools from the UseClevr dataset MCP service.
 - Separate theme selection from icon-based text size, zoom, and contrast controls.
 - Show listing actions and bulk controls in selectable table headers while supporting information stays in page sidebars.
 - Keep dashboard topbar panels visible outside the one-line topbar and allow the main sidebar menu to scroll independently.
@@ -60,7 +61,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Use simple login card styling without backdrop blur.
 - Publish production only from the verified release branch instead of synchronizing beta during production deployment.
 - Accept `NEXTAUTH_SECRET` as fallback for `AUTH_SECRET` so deployment configs using the older env var name continue to work.
-- Wire MCP FAQ tool to read from Payload Faqs collection with automatic fallback to built-in static content.
 
 ### Fixed
 
