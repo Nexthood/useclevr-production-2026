@@ -5,11 +5,7 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-12
-- **Goal**: Use Payload as the primary test MCP and expose locked dashboard dataset information to
-  ChatGPT developer mode.
-- **Durable change**: Payload registers read-only dataset listing and stored-insight tools scoped to
-  the locked superadmin test account, excludes raw rows, and accepts the test-host `/api/mcp` path
-  through a server-held restricted Payload key. T-841 owns Railway test configuration, deployment,
-  endpoint verification, and ChatGPT draft-app creation. T-840 owns future private-account OAuth.
+- **Goal**: Fix Railway test deployment — Payload routes return 500 due to missing `@aws-crypto/crc32c` module stripped by over-broad `.gitignore` patterns.
+- **Durable change**: `dist-root/.gitignore` patterns `build/` and `out/` prefixed with `/` so they only match at root level — restores compiled JS in pnpm store entries for all AWS SDK transitive deps.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

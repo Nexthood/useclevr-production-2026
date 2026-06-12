@@ -76,3 +76,6 @@ This file summarizes current project activity. Detailed session records live in
 - Register read-only locked test-account dataset tools in Payload MCP, route the test MCP host
   through Payload with a server-held restricted key, and keep private customer access behind
   deferred OAuth.
+- Fix dist-root `.gitignore` patterns `build/` and `out/` matching any directory (not just root),
+  which stripped compiled JS from pnpm store entries and caused runtime `MODULE_NOT_FOUND` for
+  `@aws-crypto/crc32c` on Railway

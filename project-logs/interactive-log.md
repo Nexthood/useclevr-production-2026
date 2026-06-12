@@ -910,3 +910,4 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; MCP and
   deployment guidance lives in the matching developer and user guides; pending operations live in
   `.TODO/todo-next.md`.
+

@@ -9,6 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Scope dist-root gitignore patterns with `/` prefix so `build/` and `out/` only match root level, preventing git from stripping compiled JS from pnpm store entries (e.g., `@aws-crypto/crc32c`) in the dist-test branch
 - Connect dataset bulk deletion to the ownership-scoped dataset API and report failed deletions.
 - Require owned secondary businesses to pass archive, restore, and permanent-delete state checks.
 - Persist dashboard updates and every dataset upload for locked built-in accounts, including the production profile and business data required by those writes.
