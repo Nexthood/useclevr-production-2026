@@ -911,3 +911,33 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   deployment guidance lives in the matching developer and user guides; pending operations live in
   `.TODO/todo-next.md`.
 
+---
+
+## Interaction 20: Bare Transitive Dep Resolution for AWS SDK in Dist Build
+
+- **Date**: 2026-06-12
+- **User Goal**: Fix Railway test deployment where Payload routes (`/admin`, `/api/payload/*`) return
+  500 while `/api/health` works.
+- **Current Product State**: After fixing the `.gitignore` to not strip `@aws-crypto/crc32c/build/`,
+  a new `MODULE_NOT_FOUND` for `tslib` appears in the dist-test branch. The
+  `fixAwsSdkPackages` function in `create-dist.cjs` only handles scoped packages
+  (`@aws-sdk/*`, `@smithy/*`, `@aws-crypto/*`) but not non-scoped transitive deps like `tslib`.
+- **Implemented Changes & Decisions**:
+  1. Added step 3 to `fixAwsSdkPackages`: iterate copied pnpm store entries, scan their
+     `node_modules/` for non-scoped children (e.g. `tslib`, `fast-xml-parser`), and create
+     top-level symlinks for any missing bare deps.
+  2. Added `findPnpmEntry()` helper to locate the pnpm store entry for a bare module name.
+  3. This is a general fix that handles any bare dep that AWS SDK packages need, not just
+     `tslib`.
+- **Problems Marked**:
+  - `resolved`: `@aws-crypto/crc32c/build/` stripped by over-broad `.gitignore` patterns.
+    Fixed by root-anchoring `build/` and `out/` in `dist-root/.gitignore`.
+  - `resolved`: `tslib` missing from dist top-level `node_modules`. Fixed by step 3 in
+    `fixAwsSdkPackages`.
+  - `risk`: If `fast-xml-parser` is not in the dist's pnpm store when AWS SDK XML parsing
+    is triggered, it will fail. The fix mechanism handles it if the pnpm entry exists.
+- **User Learning**: pnpm store entries have sibling non-scoped deps that need top-level
+  symlinks for Node.js module resolution to work with degraded symlink-to-directory copies.
+- **AI-Agent Learning**: `node -c <file>` syntax-checks CommonJS files; project record files must
+  always be staged with code changes or commits are rejected by pre-commit hooks.
+

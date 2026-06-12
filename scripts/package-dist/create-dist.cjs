@@ -276,6 +276,51 @@ function fixAwsSdkPackages(distNmDir) {
       }
     }
   }
+
+  // 3. Create top-level symlinks for non-scoped transitive deps (e.g. tslib, fast-xml-parser)
+  // that sibling pnpm entries bring in. Next.js standalone tracing often omits these.
+  const seenBare = new Set();
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!missingPrefixes.some((p) => entry.name.startsWith(p))) continue;
+
+    const entryNmDir = path.join(pnpmDir, entry.name, "node_modules");
+    if (!fs.existsSync(entryNmDir)) continue;
+
+    for (const child of fs.readdirSync(entryNmDir, { withFileTypes: true })) {
+      const isScoped = child.name.startsWith("@");
+      if (isScoped) continue;
+      if (!child.isDirectory() && !child.isSymbolicLink()) continue;
+      if (seenBare.has(child.name)) continue;
+      seenBare.add(child.name);
+
+      const topLink = path.join(distNmDir, child.name);
+      if (fs.existsSync(topLink)) continue;
+
+      // Find the pnpm store entry for this bare module
+      const bareEntry = findPnpmEntry(pnpmDir, child.name);
+      if (bareEntry) {
+        const target = path.join("..", ".pnpm", bareEntry, "node_modules", child.name);
+        fs.symlinkSync(target, topLink, "junction");
+      }
+    }
+  }
+}
+
+function findPnpmEntry(pnpmDir, bareName) {
+  if (!fs.existsSync(pnpmDir)) return null;
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith("node_modules")) continue;
+    // Match exact bareName@version or bareName+… patterns
+    const base = entry.name.split("@")[0];
+    if (!entry.name.startsWith(base + "@")) continue;
+    const candidatePkg = path.join(pnpmDir, entry.name, "node_modules", bareName);
+    if (fs.existsSync(candidatePkg)) {
+      return entry.name;
+    }
+  }
+  return null;
 }
 
 // --- Next.js build directory restore ---

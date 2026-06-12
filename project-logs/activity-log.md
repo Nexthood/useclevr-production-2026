@@ -79,3 +79,6 @@ This file summarizes current project activity. Detailed session records live in
 - Fix dist-root `.gitignore` patterns `build/` and `out/` matching any directory (not just root),
   which stripped compiled JS from pnpm store entries and caused runtime `MODULE_NOT_FOUND` for
   `@aws-crypto/crc32c` on Railway
+- Extend `fixAwsSdkPackages` in `create-dist.cjs` to create top-level symlinks for bare transitive
+  deps (tslib, fast-xml-parser) that the scoped AWS SDK packages depend on but Next.js standalone
+  tracing omits
