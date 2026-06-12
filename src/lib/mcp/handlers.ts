@@ -713,9 +713,10 @@ export async function createNews(
       title,
       slug,
       summary,
-      ...(content ? { content } : {}),
-      publishedAt: new Date().toISOString(),
-    },
+      content: content || summary,
+      _status: "published",
+    } as any,
+    draft: false,
   }) as unknown as Record<string, unknown>;
 
   return {
