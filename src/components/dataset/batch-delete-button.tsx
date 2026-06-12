@@ -17,15 +17,19 @@ export function BatchDeleteButton({
     if (!confirm(`Delete ${datasetIds.length} selected dataset(s)?`)) return
 
     try {
-      await fetch("/api/datasets/bulk-delete", {
+      const response = await fetch("/api/datasets", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: datasetIds }),
+        body: JSON.stringify({ datasetIds }),
       })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete datasets")
+      }
       onDeleted?.()
       router.refresh()
-    } catch {
-      alert("Failed to delete datasets")
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to delete datasets")
     }
   }
 

@@ -40,7 +40,12 @@ moving work between states.
 
 ## Label: auth
 
+- T-837. Persist locked built-in accounts as database-backed identities for dashboard updates and all upload workflows. (labels: auth, upload, dashboard, data; commit: worktree)
 - T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
+
+## Label: dashboard
+
+- T-838. Complete ownership-safe dashboard data mutation flows and align Payload admin surfaces with dashboard design tokens. (labels: dashboard, data, business, content, ui, testing; commit: worktree)
 
 ## Label: deployment
 

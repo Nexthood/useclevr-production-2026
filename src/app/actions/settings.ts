@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
@@ -33,7 +34,7 @@ export async function updateProfile(formData: FormData): Promise<Result<ProfileD
   }
 
   if (isBuiltinUserId(userId)) {
-    return success({ message: "Built-in account loaded. Changes are not saved for shared built-in accounts." })
+    return success({ message: "Built-in account identity is locked." })
   }
 
   const db = getDb()
@@ -110,12 +111,14 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
 
   if (!userId) return failure("Please sign in again.")
 
-  if (isBuiltinUserId(userId)) {
-    return success({ message: "Built-in account loaded. Changes are not saved for shared built-in accounts." })
-  }
-
   const db = getDb()
   if (!db) return failure("Database connection is unavailable.")
+
+  try {
+    await requireBuiltinUserRecord(userId)
+  } catch {
+    return failure("Database connection is unavailable.")
+  }
 
   const businessName        = String(formData.get("businessName") ?? "").trim()
   const businessEmail       = String(formData.get("businessEmail") ?? "").trim().toLowerCase()
@@ -232,12 +235,14 @@ export async function setThemePreference(theme: string): Promise<Result<{ messag
 
   if (!userId) return failure("Please sign in again.")
 
-  if (isBuiltinUserId(userId)) {
-    return success({ message: "Theme preference updated for this session only." })
-  }
-
   const db = getDb()
   if (!db) return failure("Database connection is unavailable.")
+
+  try {
+    await requireBuiltinUserRecord(userId)
+  } catch {
+    return failure("Database connection is unavailable.")
+  }
 
   if (!validThemes.includes(theme as ThemeValue)) {
     return failure("Invalid theme value.")

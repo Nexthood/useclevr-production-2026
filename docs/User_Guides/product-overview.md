@@ -22,6 +22,16 @@ reports.
 | Downloads | Stores generated reports and files.                      |
 | Settings  | Holds account and product preferences.                   |
 
+## Data Management
+
+- Business profiles save to the signed-in account. Secondary profiles can be archived, restored, and
+  permanently deleted after archival; the primary profile remains the account's protected business
+  context.
+- Dataset rows support individual and selected bulk deletion from the Datasets workspace.
+- Settings, onboarding progress, and company setup save to the signed-in account.
+- Support tickets support creation and status updates, and generated reports support creation and
+  deletion.
+
 ## Display
 
 - Use the display menu to select Light, Dark, or System theme.
@@ -39,5 +49,11 @@ reports.
 ## Admin Areas
 
 - Super-admins can review customers, including built-in demo and super-admin accounts.
+- Payload content admin uses the same typography, cyan accent, rounded controls, workspace surfaces,
+  and light/dark presentation as the dashboard.
+- Use Back to dashboard in Payload navigation to return to the application workspace.
+- Built-in accounts keep fixed sign-in identities while saving dashboard settings, business details,
+  onboarding progress, and uploaded datasets normally.
+- Built-in accounts can upload and analyze datasets without analyst credit limits.
 - Customer levels and discount rules use table rows so thresholds, rewards, codes, and status can be
   scanned and edited quickly.

@@ -9,7 +9,7 @@ function getIsTestSubdomain(): boolean {
 
 export function PayloadAdminLogo() {
   return (
-    <div className="payload-useclevr-logo" aria-label="UseClevr content admin">
+    <a className="payload-useclevr-logo" href="/app" target="_parent" aria-label="Open UseClevr dashboard">
       <img
         src="/assets/images/logos/useclevr-wordmark-dark.png"
         alt="UseClevr"
@@ -21,7 +21,15 @@ export function PayloadAdminLogo() {
         className="payload-useclevr-logo__image payload-useclevr-logo__image--dark"
       />
       <span>Content admin</span>
-    </div>
+    </a>
+  )
+}
+
+export function PayloadDashboardLink() {
+  return (
+    <a className="payload-useclevr-dashboard-link" href="/app" target="_parent">
+      Back to dashboard
+    </a>
   )
 }
 

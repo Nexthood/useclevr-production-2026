@@ -48,6 +48,7 @@
     "test:auth": "node -r tsx/esm scripts/auth/test-auth-redirect.ts",
     "test:csv-analyzer": "node -r tsx/esm scripts/analysis/test-csv-analyzer.ts",
     "test:csv-edge-cases": "node -r tsx/esm scripts/analysis/test-csv-edge-cases.ts",
+    "test:dashboard-crud": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dashboard-crud.ts",
     "test:neon": "bash scripts/health/test-neon-connection.sh",
     "test": "pnpm test:all",
     "clean:dev": "node ./scripts/package-dist/clean-generated.cjs",

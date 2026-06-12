@@ -82,6 +82,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   const navigationItems =
     user.role === "superadmin" ? [...primaryNavigation, ...adminNavigation] : primaryNavigation;
+  const dashboardItem = navigationItems[0];
+  const remainingNavigationItems = navigationItems.slice(1);
 
   const sidebarContent = (
     <>
@@ -92,7 +94,45 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </div>
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
-        {navigationItems.map((item) => {
+        {dashboardItem && (
+          <div className="flex items-center gap-2">
+            <Link
+              href={dashboardItem.href}
+              title={isCollapsed ? dashboardItem.name : undefined}
+              className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                pathname === dashboardItem.href
+                  ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              }`}
+            >
+              <dashboardItem.icon
+                className={`h-4 w-4 flex-shrink-0 ${
+                  pathname === dashboardItem.href ? "text-primary" : "text-sidebar-foreground"
+                }`}
+              />
+              {!isCollapsed && <span className="truncate">{dashboardItem.name}</span>}
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                const next = !isCollapsed
+                setIsCollapsed(next)
+                localStorage.setItem("useclevr_sidebar_collapsed", String(next))
+                window.dispatchEvent(
+                  new CustomEvent("useclevr:sidebar-toggle", { detail: { collapsed: next } }),
+                )
+              }}
+              className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-sidebar-foreground/65 transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
+
+        {remainingNavigationItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
@@ -128,28 +168,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </p>
           </div>
         )}
-        <div className={`hidden md:flex ${isCollapsed ? "justify-center" : "justify-end"}`}>
-          <button
-            type="button"
-            onClick={() => {
-              const next = !isCollapsed
-              setIsCollapsed(next)
-              localStorage.setItem("useclevr_sidebar_collapsed", String(next))
-              window.dispatchEvent(
-                new CustomEvent("useclevr:sidebar-toggle", { detail: { collapsed: next } }),
-              )
-            }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/65 transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </button>
-        </div>
       </div>
     </>
   );

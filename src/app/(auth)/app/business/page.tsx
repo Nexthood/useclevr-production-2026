@@ -1,4 +1,4 @@
-import { archiveBusinessAction, restoreBusinessAction } from "@/app/actions/business"
+import { archiveBusinessAction, deleteBusinessAction, restoreBusinessAction } from "@/app/actions/business"
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Card } from "@/components/ui/card"
@@ -285,21 +285,43 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
     align: "right",
     render: (row) => {
       const status = String(row.status || "draft")
-      const action = status === "archived" ? restoreBusinessAction : archiveBusinessAction
-      const label = status === "archived" ? "Restore" : "Archive"
-
       if (row.canArchive === false) {
-        return <span className="text-sm text-muted-foreground">Profile source</span>
+        return <span className="text-sm text-muted-foreground">Primary profile</span>
+      }
+
+      if (status === "archived") {
+        return (
+          <div className="flex justify-end gap-2">
+            <form action={restoreBusinessAction}>
+              <input type="hidden" name="id" value={String(row.id)} />
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+              >
+                Restore
+              </button>
+            </form>
+            <form action={deleteBusinessAction}>
+              <input type="hidden" name="id" value={String(row.id)} />
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-destructive/40 bg-background px-3 text-sm font-medium text-destructive transition hover:bg-destructive/10"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )
       }
 
       return (
-        <form action={action}>
+        <form action={archiveBusinessAction}>
           <input type="hidden" name="id" value={String(row.id)} />
           <button
             type="submit"
             className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
           >
-            {label}
+            Archive
           </button>
         </form>
       )

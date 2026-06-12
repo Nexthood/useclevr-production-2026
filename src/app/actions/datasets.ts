@@ -19,12 +19,15 @@ export async function deleteDataset(datasetId: string): Promise<Result<true>> {
   const session = authResult.data
 
   try {
-    await db.delete(datasets).where(
+    const [deleted] = await db.delete(datasets).where(
       and(
         eq(datasets.id, datasetId),
         eq(datasets.userId, session.user.id)
       )
-    )
+    ).returning()
+    if (!deleted) {
+      return failure("Dataset not found")
+    }
     revalidatePath("/app/datasets")
     return success(true)
   } catch (error) {

@@ -84,6 +84,8 @@ Text rules for this file:
 - Start a guided setup tour from the topbar progress panel.
 - Include business profile, location, tax, financial, and overview visits in setup progress.
 - Open Business as a top-level workspace with the businesses listing first.
+- Create and update owned business profiles, archive and restore secondary profiles, and permanently
+  delete an owned secondary profile only after it is archived.
 - Show profile, location, tax, financial, and review subpages inside the Business workspace.
 - Open business row edit links on the matching business profile.
 - Open new business creation as a blank business profile.
@@ -122,6 +124,9 @@ Text rules for this file:
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Authenticate the built-in superadmin account with the `superadmin` session role and allow protected administrator pages.
+- Keep built-in base, demo, and superadmin identities locked to fixed IDs, emails, roles, and credentials.
+- Persist built-in account dashboard preferences, onboarding, business setup, and uploaded datasets in the database.
+- Give built-in accounts unrestricted dataset upload and analysis access for product testing.
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
@@ -138,7 +143,7 @@ Text rules for this file:
 - Search app pages, datasets, reports, and FAQ answers from the dashboard search overlay.
 - Limit operator-only search results to super-admin users.
 - Use dashboard search context in chat support.
-- Collapse and expand the desktop sidebar.
+- Collapse and expand the desktop sidebar from the compact control beside Dashboard.
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.
@@ -192,6 +197,9 @@ Text rules for this file:
 - Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.
 - Open Payload admin at `/admin`.
 - Keep Payload admin focused on minimal content editing for CMS users, news, homepage, privacy, and terms.
+- Match Payload admin typography, colors, control radius, navigation surfaces, and light/dark
+  backgrounds to the dashboard design system.
+- Link Payload admin navigation directly back to the signed-in dashboard.
 - Allow only superadmin CMS users to edit Phase 0 public content.
 
 ## Payment Provider Setup

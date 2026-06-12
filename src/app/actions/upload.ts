@@ -6,9 +6,10 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 import { parseCSVString } from "@/lib/data/csvLoader"
 import { auth } from "@/lib/auth/auth"
-import { BUILTIN_USERS, isBuiltinUserId } from "@/lib/auth/builtin-users"
-import { db } from "@/lib/db"
-import { datasetRows, datasets, users } from "@/lib/db/schema"
+import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
+import { getDb } from "@/lib/db"
+import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -48,6 +49,7 @@ async function executeWithRetry<T>(
 
 // Minimal DB availability probe to avoid broken downstream logic
 async function isDbAvailable(): Promise<boolean> {
+  const db = getDb()
   if (!db) {
     debugError("[UPLOAD] DB health check failed: database client is not configured")
     return false
@@ -80,6 +82,7 @@ export async function uploadCSV(formData: FormData): Promise<{
   step?: string
 }> {
   try {
+    const db = getDb()
     if (!db) {
       return {
         success: false,
@@ -101,16 +104,12 @@ export async function uploadCSV(formData: FormData): Promise<{
     debugLog("[UPLOAD] Session:", session ? { userId: session.user?.id, email: session.user?.email } : null)
     debugLog("[UPLOAD] FormData keys:", Array.from(formData.keys()))
     
-    const isDemoUserId = sessionUserId === 'demo-user-id'
     const envDemoMode = process.env.DEMO_MODE === "true"
-    const isDemoMode = envDemoMode || isDemoUserId
     
     debugLog("[UPLOAD] ========== DEBUG MODE CHECK ==========")
     debugLog("[UPLOAD] process.env.DEMO_MODE:", process.env.DEMO_MODE)
     debugLog("[UPLOAD] envDemoMode (process.env.DEMO_MODE === 'true'):", envDemoMode)
     debugLog("[UPLOAD] sessionUserId:", sessionUserId)
-    debugLog("[UPLOAD] isDemoUserId (userId === 'demo-user-id'):", isDemoUserId)
-    debugLog("[UPLOAD] isDemoMode FINAL:", isDemoMode)
     debugLog("[UPLOAD] ======================================")
     
     // Check if this is a profitability analysis upload (by checking for fileType)
@@ -120,12 +119,10 @@ export async function uploadCSV(formData: FormData): Promise<{
     debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)
     debugLog("[UPLOAD] file received:", formData.get("file") instanceof File)
     
-    // Demo mode should ONLY apply to profitability uploads - NOT standard uploads
-    // For standard uploads, we should always try to insert into the database
-    const shouldUseDemoMode = (isDemoMode || isBuiltinUserId(sessionUserId)) && isProfitabilityUpload
+    // Explicit demo mode may bypass persistence only for non-built-in profitability uploads.
+    const shouldUseDemoMode =
+      envDemoMode && !isBuiltinUserId(sessionUserId) && isProfitabilityUpload
     
-    // Demo mode: skip normal Dataset insert, return success with demo result
-    // Only for profitability analysis - NOT for standard CSV uploads
     if (shouldUseDemoMode) {
       debugLog("[UPLOAD] === DEMO MODE - Using non-persistent profitability flow ===")
       const file = formData.get("file") as File | null
@@ -157,7 +154,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
       
       debugLog("[UPLOAD] AI/explanation layer called: false")
-      debugLog("[UPLOAD] result saved: non-persistent built-in profitability result")
+      debugLog("[UPLOAD] result saved: non-persistent demo profitability result")
       debugLog("[UPLOAD] Demo mode - returning demo result (no DB insert)")
       return {
         success: true,
@@ -193,37 +190,13 @@ export async function uploadCSV(formData: FormData): Promise<{
     let effectiveUserId = sessionUserId
     debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
 
-    if (effectiveUserId && isBuiltinUserId(effectiveUserId)) {
-      const builtinUser = BUILTIN_USERS.find((user) => user.id === effectiveUserId)
-
-      if (builtinUser) {
-        await db.insert(users).values({
-          id: builtinUser.id,
-          email: builtinUser.email,
-          name: builtinUser.name,
-        }).onConflictDoNothing()
-      }
-    }
-    
-    // HARD GUARD: If session user is "demo-user-id", this is NOT a real user
-    // We must NOT insert with this fake ID - either find real demo user or use non-persistent mode
-    if (effectiveUserId === 'demo-user-id') {
-      debugLog("[UPLOAD] Using persisted built-in demo user for standard upload")
-    }
+    await requireBuiltinUserRecord(effectiveUserId)
 
     debugLog("[UPLOAD] FINAL effectiveUserId:", effectiveUserId)
     
-    // PROOF LOGGING: Confirm we're using a REAL user ID, not "demo-user-id"
-    if (effectiveUserId && effectiveUserId !== 'demo-user-id') {
+    if (effectiveUserId) {
       debugLog("[UPLOAD] CHOSEN PATH: real-db-insert")
       debugLog("[UPLOAD] FINAL USER ID IS REAL - proceeding with Dataset insert")
-    } else {
-      // This should never happen if guards above are working correctly
-      debugLog("[UPLOAD] ERROR: EffectiveUserId is still invalid!")
-      return { 
-        success: false, 
-        error: "Unable to create dataset. Please sign in." 
-      }
     }
     
     if (!effectiveUserId) {
@@ -379,7 +352,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       
       // PROOF LOGGING: Log exact userId being used for insert
       debugLog("[UPLOAD] ========== PROOF ==========")
-      debugLog("[UPLOAD] isDemoMode:", isDemoMode)
+      debugLog("[UPLOAD] persistentUpload:", !shouldUseDemoMode)
       debugLog("[UPLOAD] effectiveUserId being used:", effectiveUserId)
       debugLog("[UPLOAD] isProfitabilityAnalysis:", isProfitabilityAnalysis)
       debugLog("[UPLOAD] Will insert into Dataset with userId:", effectiveUserId)
@@ -494,6 +467,11 @@ export async function uploadCSV(formData: FormData): Promise<{
  */
 export async function getDataset(datasetId: string) {
   try {
+    const db = getDb()
+    if (!db) {
+      return { error: "Database connection is unavailable" }
+    }
+
     const session = await auth()
     if (!session?.user?.id) {
       return { error: "Unauthorized" }

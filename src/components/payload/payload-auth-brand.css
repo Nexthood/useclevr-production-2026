@@ -7,6 +7,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0;
+  text-decoration: none;
 }
 
 .payload-useclevr-logo__image {
@@ -30,6 +31,92 @@ html[data-theme="dark"] .payload-useclevr-logo__image--dark {
 .payload-useclevr-auth {
   margin-bottom: 1rem;
   text-align: center;
+}
+
+.payload-useclevr-dashboard-link {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+  margin: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 0.5rem;
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+
+.payload-useclevr-dashboard-link:hover {
+  border-color: #078fa1;
+  background: color-mix(in srgb, #078fa1 9%, var(--theme-elevation-0));
+  color: #047d8d;
+}
+
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.nav {
+  border-right: 1px solid var(--theme-elevation-150);
+  background: var(--theme-elevation-0);
+}
+
+.app-header {
+  border-bottom: 1px solid var(--theme-elevation-150);
+  background: color-mix(in srgb, var(--theme-elevation-0) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.template-default,
+.template-minimal {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #078fa1 4%, var(--theme-bg)), var(--theme-bg) 32rem);
+}
+
+.btn,
+.pill,
+.search-filter,
+.field-type input,
+.field-type textarea,
+.field-type select,
+.react-select__control {
+  border-radius: 0.5rem;
+}
+
+.btn--style-primary {
+  --bg-color: #078fa1;
+  --hover-bg: #067b8b;
+  --color: white;
+}
+
+.card,
+.collection-list,
+.table {
+  border-color: var(--theme-elevation-150);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--theme-elevation-1000) 7%, transparent);
+}
+
+.nav a:hover,
+.nav a:focus-visible {
+  color: #047d8d;
+}
+
+html[data-theme="dark"] .payload-useclevr-dashboard-link:hover,
+html[data-theme="dark"] .nav a:hover,
+html[data-theme="dark"] .nav a:focus-visible {
+  color: #67e8f9;
+}
+
+html[data-theme="dark"] .template-default,
+html[data-theme="dark"] .template-minimal {
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, #22d3ee 12%, transparent), transparent 32rem),
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, #a78bfa 10%, transparent), transparent 30rem),
+    var(--theme-bg);
 }
 
 .payload-useclevr-auth > p {

@@ -89,7 +89,9 @@ node ./scripts/runtime/railway-predeploy.cjs
 sh start.sh
 ```
 
-The predeploy command runs an idempotent additive schema sync for generated deployments. The start
+The predeploy command runs an idempotent additive schema sync for generated deployments. It creates
+the Business table and required Profile preference fields when an existing production database
+lacks them, and supplies timestamp defaults required by dashboard and dataset writes. The start
 script uses POSIX `sh` and then runs `node -r ./scripts/runtime/load-env.cjs
 ./scripts/runtime/start-dist.cjs`. The runtime helper binds to Railway `$PORT`, forces `0.0.0.0`,
 and lets Auth.js infer the active public host from Railway proxy headers.
@@ -116,6 +118,7 @@ pnpm railway:status
 pnpm railway inspect
 pnpm railway:logs
 pnpm railway:cleanup
+pnpm railway:cleanup -- --keep-success
 ```
 
 List recent deployments with statuses:
@@ -165,8 +168,9 @@ and direct queries are brittle. The wrapper at `scripts/server/railway/railway.c
 token loading, and error formatting.
 
 `pnpm railway:cleanup` marks every deployment across every service and environment in the linked
-project as `REMOVED`. Run it only after the user explicitly requests full deployment-history
-cleanup. Railway keeps removed entries in API history and provides no permanent-delete operation.
+project as `REMOVED`. `pnpm railway:cleanup -- --keep-success` removes only deployments whose
+status is not `SUCCESS`. Confirm the linked project before either command. Railway keeps removed
+entries in API history and provides no permanent-delete operation.
 
 ## Railpack Configuration
 

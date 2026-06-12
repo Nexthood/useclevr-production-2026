@@ -250,6 +250,10 @@ Current local safety rules:
   with the required Payload providers and server functions.
 - Register Payload login branding through `admin.components`, then regenerate the admin import map
   with `node ./node_modules/payload/bin.js generate:importmap`.
+- Keep Payload admin shell overrides in the shared Payload branding stylesheet and align typography,
+  cyan primary controls, 8px radii, navigation borders, workspace surfaces, and dark backgrounds
+  with dashboard tokens.
+- Register the dashboard return link through `admin.components.afterNavLinks`.
 - Route public account creation through `/login?tab=signup`; Payload CMS accounts remain controlled
   content-administration identities.
 

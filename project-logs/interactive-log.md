@@ -770,3 +770,87 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; MCP and
   Payload operations live in developer and user guides; session records live in `project-logs/`
   and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 31: Built-In Account Database Persistence
+
+- **Date**: 2026-06-12
+- **User Goal**: Fix dashboard database updates and allow every built-in account to upload and
+  analyze datasets as a real locked account.
+- **Changes**:
+  1. Materialize built-in base, demo, and superadmin identities as fixed database-backed users and
+     profiles without allowing identity edits.
+  2. Route built-in onboarding, business setup, settings, and dataset uploads through normal
+     user-owned persistence.
+  3. Give built-in accounts unrestricted analyst access and keep explicit non-persistent demo mode
+     limited to non-built-in profitability uploads.
+  4. Add the missing Business table, Profile preference fields, and timestamp defaults to the
+     configured database and Railway predeploy schema repair.
+- **Problems Marked**:
+  - `root-cause`: Upload and settings paths treated built-in user IDs as disposable demo sessions.
+  - `root-cause`: The configured database lacked schema elements required by dashboard writes.
+- **Verification**: Type validation passes; all three built-in identities persist; company setup
+  and dataset creation persist against the configured database; the temporary verification data is
+  removed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`;
+  deployment behavior lives in the Railway guide; session records live in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 32: Dashboard CRUD and Payload Design Alignment
+
+- **Date**: 2026-06-12
+- **User Goal**: Verify dashboard data creation, updating, and deletion and make Payload admin feel
+  continuous with the dashboard.
+- **Changes**:
+  1. Connect selected dataset deletion to the existing authenticated dataset endpoint and surface
+     failed API responses.
+  2. Require ownership and valid state for business archive, restore, and deletion; allow permanent
+     deletion only for archived secondary businesses.
+  3. Add a reusable configured-database health test for built-in business create, update, archive,
+     restore, delete, and cross-user rejection.
+  4. Align Payload typography, cyan controls, 8px radii, navigation, workspace surfaces, and dark
+     backgrounds with the dashboard and add a dashboard return link.
+  5. Regenerate the Payload admin import map.
+- **Problems Marked**:
+  - `root-cause`: Dataset bulk deletion called an API route that does not exist.
+  - `risk`: Business mutation helpers swallowed database failures and did not verify changed rows.
+  - `observation`: The primary business remains protected account context; archived secondary
+    businesses provide the permanent deletion workflow.
+- **Verification**: Type validation and live configured-database business CRUD ownership checks
+  pass; temporary verification data is removed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; user and
+  Payload maintenance guidance live in product and developer guides; interaction records live in
+  `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 33: Commit Documentation and AI Trace Alignment
+
+- **Date**: 2026-06-12
+- **User Goal**: Update documentation and AI interaction records, then commit the completed work.
+- **Changes**:
+  1. Document Railway cleanup that retains successful deployments with `--keep-success`.
+  2. Record the compact sidebar collapse control beside Dashboard.
+  3. Align the current AI interaction status, detailed session log, activity summary, requirements,
+     changelog, user guide, developer guides, and completed TODO state.
+  4. Prepare the validated dashboard persistence and Payload design changes as one commit.
+- **Problems Marked**:
+  - `observation`: The worktree contains related changes completed across consecutive dashboard,
+    deployment, documentation, and AI interaction requests.
+- **Verification**: Production build, TypeScript, tests, live dashboard CRUD ownership checks,
+  deployment config checks, project records, TODO, changelog, package, secret, and diff checks pass.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release behavior lives in `CHANGELOG.md`; operator and product behavior
+  lives in the matching guides and `requirements.md`; interaction records live in `project-logs/`
+  and `docs/AI-interaction/interaction-status.md`.

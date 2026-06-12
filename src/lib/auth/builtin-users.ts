@@ -35,8 +35,12 @@ export function findBuiltinUserByCredentials(email: string, password: string) {
   )
 }
 
+export function findBuiltinUserById(userId?: string | null) {
+  return BUILTIN_USERS.find((user) => user.id === userId)
+}
+
 export function isBuiltinUserId(userId?: string | null) {
-  return BUILTIN_USERS.some((user) => user.id === userId)
+  return Boolean(findBuiltinUserById(userId))
 }
 
 export function isSuperAdminUserId(userId?: string | null) {

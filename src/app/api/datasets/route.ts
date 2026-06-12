@@ -2,6 +2,7 @@ import { debugError } from "@/lib/utils/debug"
 
 import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
@@ -23,6 +24,8 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    await requireBuiltinUserRecord(session.user.id)
 
     const userDatasets = await db.query.datasets.findMany({
       where: eq(datasets.userId, session.user.id),
@@ -52,6 +55,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    await requireBuiltinUserRecord(session.user.id)
+
     const body = await request.json()
     const validation = validateOrError(datasetCreateSchema, body)
     if (!validation.success) {
@@ -71,6 +76,7 @@ export async function POST(request: Request) {
 
     // Create dataset record
     const datasetId = `ds_${uuidv4()}`
+    const now = new Date()
     
     await db.insert(datasets).values({
       id: datasetId,
@@ -81,6 +87,8 @@ export async function POST(request: Request) {
       columnCount: columns?.length || 0,
       columns: columns || [],
       rowCount: rows?.length || 0,
+      createdAt: now,
+      updatedAt: now,
     })
 
     // Insert rows if provided
@@ -115,7 +123,7 @@ export async function POST(request: Request) {
       dataset: {
         id: datasetId,
         name: name || fileName,
-        createdAt: new Date(),
+        createdAt: now,
       },
       usage,
     })

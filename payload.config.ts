@@ -73,6 +73,12 @@ export default buildConfig({
           exportName: "PayloadAdminLogo",
         },
       },
+      afterNavLinks: [
+        {
+          path: "@/components/payload/payload-auth-brand",
+          exportName: "PayloadDashboardLink",
+        },
+      ],
     },
     meta: {
       titleSuffix: "UseClevr Admin",

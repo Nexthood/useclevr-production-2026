@@ -65,7 +65,7 @@ export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormP
 
       {isDemo && (
         <div className="rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-foreground">
-          Demo account — profile changes are not saved.
+          Built-in account identity is locked. Dashboard data and uploads save normally.
         </div>
       )}
 
@@ -97,7 +97,7 @@ export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormP
       </div>
 
       <Button type="submit" disabled={isSaving || isDemo} className="bg-gradient-primary hover:opacity-90">
-        {isSaving ? "Saving..." : isDemo ? "Demo account" : "Save profile"}
+        {isSaving ? "Saving..." : isDemo ? "Built-in identity locked" : "Save profile"}
       </Button>
     </form>
   )

@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Connect dataset bulk deletion to the ownership-scoped dataset API and report failed deletions.
+- Require owned secondary businesses to pass archive, restore, and permanent-delete state checks.
+- Persist dashboard updates and every dataset upload for locked built-in accounts, including the production profile and business data required by those writes.
 - Middleware passes `/api/mcp` through without session cookie check, enabling token-based MCP auth on MCP subdomains
 - Topbar sections now show icons only, keeping Hybrid AI, Search, and Onboarding button with full labels
 - Login flow uses `result.ok` instead of `getSession()` for reliable post-sign-in redirect
@@ -50,6 +53,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Keep successful Railway deployments when operators run cleanup with the `--keep-success` option.
+- Place the compact desktop sidebar toggle beside Dashboard for immediate access.
+- Align Payload admin navigation, typography, controls, surfaces, and light/dark backgrounds with the dashboard and add a dashboard return link.
 - Separate Payload News and FAQ tools from the UseClevr dataset MCP service.
 - Separate theme selection from icon-based text size, zoom, and contrast controls.
 - Show listing actions and bulk controls in selectable table headers while supporting information stays in page sidebars.

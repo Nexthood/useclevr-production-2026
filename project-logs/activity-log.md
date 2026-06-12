@@ -55,3 +55,19 @@ This file summarizes current project activity. Detailed session records live in
 - Fix Stripe checkout success URL param name (`s` → `session_id`).
 - Remove `superadmin` from admin plan dropdown — only billing plans listed.
 - Audit Railway config, Dockerfile, predeploy, health endpoint — all correct.
+
+## 2026-06-12
+
+- Persist dashboard updates, business setup, onboarding, and every dataset upload for locked
+  built-in accounts.
+- Repair configured database and Railway predeploy schema coverage for Business, Profile, and
+  dataset timestamp writes.
+- Give built-in accounts unrestricted upload and analysis access while keeping their identities
+  fixed.
+- Verify dashboard data mutation ownership and add repeatable built-in business CRUD coverage.
+- Fix dataset bulk deletion and add archived secondary-business permanent deletion.
+- Align Payload admin navigation and workspace styling with the dashboard design system.
+- Place the sidebar collapse control beside Dashboard and document Railway cleanup that retains
+  successful deployments.
+- Validate and prepare dashboard persistence, Payload design, documentation, and AI interaction
+  records as one commit.
