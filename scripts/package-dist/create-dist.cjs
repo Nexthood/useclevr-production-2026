@@ -87,6 +87,9 @@ if (fs.existsSync(standaloneDistInDist)) {
   fs.rmSync(standaloneDistInDist, { recursive: true, force: true });
 }
 
+// Copy missing AWS SDK transitive deps that Next.js tracing misses
+fixAwsSdkPackages(path.join(distDir, "node_modules"));
+
 // Copy Next.js static assets
 if (fs.existsSync(nextStaticDir)) {
   copyDir(nextStaticDir, path.join(distDir, ".next", "static"));
@@ -221,6 +224,58 @@ for (const f of packageManagerFiles) {
 for (const f of ["vercel.json", "railway.json"]) {
   const fp = path.join(distDir, f);
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
+}
+
+// --- AWS SDK package fix ---
+// Next.js standalone build tracing only symlinks @aws-sdk/client-s3 but skips
+// many transitive @aws-sdk/*, @smithy/*, and @aws-crypto/* packages. Copy the
+// missing entries from the root node_modules/.pnpm store and recreate symlinks.
+function fixAwsSdkPackages(distNmDir) {
+  const pnpmDir = path.join(distNmDir, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) return;
+  const rootPnpm = path.join(rootDir, "node_modules", ".pnpm");
+
+  const missingPrefixes = ["@aws-sdk+", "@smithy+", "@aws-crypto+"];
+  const scopes = ["@aws-sdk", "@smithy", "@aws-crypto"];
+
+  // 1. Copy missing entries from root pnpm store
+  for (const entry of fs.readdirSync(rootPnpm, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const shouldCopy = missingPrefixes.some((p) => entry.name.startsWith(p));
+    if (!shouldCopy) continue;
+
+    const src = path.join(rootPnpm, entry.name);
+    const dest = path.join(pnpmDir, entry.name);
+    if (!fs.existsSync(dest)) {
+      execSync(`cp -a "${src}" "${dest}"`, { stdio: "ignore" });
+    }
+  }
+
+  // 2. Create symlinks for each scope directory
+  for (const scope of scopes) {
+    const scopeDir = path.join(distNmDir, scope);
+    if (!fs.existsSync(scopeDir)) {
+      fs.mkdirSync(scopeDir, { recursive: true });
+    }
+
+    const pnpmPrefix = scope.replace("@", "") + "+";
+    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (!entry.name.startsWith(pnpmPrefix)) continue;
+
+      const pkgPath = path.join(pnpmDir, entry.name, "node_modules", scope);
+      if (!fs.existsSync(pkgPath)) continue;
+
+      for (const pkg of fs.readdirSync(pkgPath, { withFileTypes: true })) {
+        if (!pkg.isDirectory() && !pkg.isSymbolicLink()) continue;
+        const linkPath = path.join(scopeDir, pkg.name);
+        if (!fs.existsSync(linkPath)) {
+          const target = path.join("..", ".pnpm", entry.name, "node_modules", scope, pkg.name);
+          fs.symlinkSync(target, linkPath, "junction");
+        }
+      }
+    }
+  }
 }
 
 // --- Next.js build directory restore ---
