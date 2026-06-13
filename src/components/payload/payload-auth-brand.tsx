@@ -1,4 +1,6 @@
 import "./payload-auth-brand.css"
+import { PayloadThemeToggle } from "./payload-theme-toggle"
+import { TailwindThemeSync } from "./payload-theme-sync"
 
 const TEST_SUBDOMAIN = "test.useclevr.com"
 
@@ -9,19 +11,22 @@ function getIsTestSubdomain(): boolean {
 
 export function PayloadAdminLogo() {
   return (
-    <a className="payload-useclevr-logo" href="/app" target="_parent" aria-label="Open UseClevr dashboard">
-      <img
-        src="/assets/images/logos/useclevr-wordmark-dark.png"
-        alt="UseClevr"
-        className="payload-useclevr-logo__image payload-useclevr-logo__image--light"
-      />
-      <img
-        src="/assets/images/logos/useclevr-wordmark-light.png"
-        alt="UseClevr"
-        className="payload-useclevr-logo__image payload-useclevr-logo__image--dark"
-      />
-      <span>Content admin</span>
-    </a>
+    <>
+      <TailwindThemeSync />
+      <a className="payload-useclevr-logo" href="/app" target="_parent" aria-label="Open UseClevr dashboard">
+        <img
+          src="/assets/images/logos/useclevr-wordmark-dark.png"
+          alt="UseClevr"
+          className="payload-useclevr-logo__image payload-useclevr-logo__image--light"
+        />
+        <img
+          src="/assets/images/logos/useclevr-wordmark-light.png"
+          alt="UseClevr"
+          className="payload-useclevr-logo__image payload-useclevr-logo__image--dark"
+        />
+        <span>Content admin</span>
+      </a>
+    </>
   )
 }
 
@@ -37,6 +42,9 @@ export function PayloadLoginIntro() {
   const isTestSubdomain = getIsTestSubdomain()
   return (
     <div className="payload-useclevr-auth">
+      <div className="payload-useclevr-auth__theme">
+        <PayloadThemeToggle />
+      </div>
       <nav className="payload-useclevr-auth__tabs" aria-label="Account access">
         <span aria-current="page">Sign in</span>
         <a href="/login?tab=signup" target="_parent">

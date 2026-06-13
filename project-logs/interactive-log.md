@@ -968,3 +968,126 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Product behavior lives in `requirements.md`, `CHANGELOG.md`, and the
   product overview; interaction records live in `project-logs/` and
   `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 37: Payload Product Operations
+
+- **Date**: 2026-06-13
+- **User Goal**: Move administrator business profiles, support issues, dataset uploads, and AI
+  entry points into Payload while keeping the dashboard AI and Hybrid AI workflows.
+- **Changes**:
+  1. Add Payload custom views for business profiles, support issues, and owner-assigned CSV uploads.
+  2. Add Payload-superadmin endpoints backed by existing Drizzle business, ticket, dataset, and
+     dataset-row storage.
+  3. Parse operator CSV uploads with the canonical parser and preserve standard dataset ownership.
+  4. Add Payload topbar modal actions for the AI Assistant and Hybrid AI.
+  5. Update requirements, release notes, developer guidance, and the product overview.
+- **Problems Marked**:
+  - `observation`: The installed Payload plugins do not include an issue-management plugin that
+    matches the existing support-ticket workflow.
+  - `risk`: Payload and dashboard authentication remain separate, so the AI Assistant opens the
+    dashboard session instead of accepting cross-user dataset context from Payload.
+  - `observation`: Production build static generation logs an external PostgreSQL `ECONNRESET` and
+    still completes successfully.
+- **Verification**: TypeScript, focused ESLint, Payload import-map generation, TODO validation,
+  changelog validation, secret checks, documentation links, and the production build pass.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`;
+  operator guidance lives in the developer guide and product overview; completed work lives in
+  `.TODO/todo-done.md`.
+
+---
+
+## Interaction 38: Payload Documentation And Access Alignment
+
+- **Date**: 2026-06-13
+- **User Goal**: Update documentation and requirements, fix Payload inconsistencies, and keep the
+  work uncommitted.
+- **Changes**:
+  1. Align requirements, migration guidance, API access rules, testing steps, and sales project
+     records with the active Payload operator workspace.
+  2. Define Payload as the content owner and operator interface while application stores remain the
+     source of truth for auth, billing, businesses, tickets, datasets, reports, and traces.
+  3. Hide product-operation navigation and AI actions from base CMS users through Payload
+     authentication state.
+  4. Show a permission state on direct product-operation URLs without requesting customer data.
+  5. Keep async form errors visible in active modals and reset successful upload forms reliably.
+- **Problems Marked**:
+  - `resolved`: Planning and sales records described Payload as future or content-only.
+  - `resolved`: Base CMS users could see links for endpoints that always rejected their role.
+  - `resolved`: The first role-gating approach depended on an undeclared Payload UI package.
+- **Verification**: TypeScript, focused ESLint, TODO validation, changelog validation, secret
+  checks, package validation, focused Markdown lint, documentation links, and the production build
+  pass. Static generation logs an external PostgreSQL `ECONNRESET`, then completes all 123 pages.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Current product rules live in `requirements.md`; operator and security
+  guidance lives in developer and user guides; planning boundaries live in the Payload migration
+  plan and sales project records.
+
+---
+
+## Interaction 39: Payload MCP Documentation Migration
+
+- **Date**: 2026-06-13
+- **User Goal**: Add focused MCP migration tasks and update documentation so Payload MCP is the
+  canonical connector while dashboard MCP references are removed.
+- **Changes**:
+  1. Add active MCP migration tasks T-845 through T-848 to `.TODO/todo-next.md` and advance
+     `.TODO/config.json` to `849`.
+  2. Rewrite user and developer MCP guidance around `/api/payload/mcp`, Bearer API-key auth,
+     JSON-RPC discovery, and locked demo-account read tools.
+  3. Replace dashboard MCP REST Client checks with Payload MCP checks in `docs/api-tests/mcp.http`.
+  4. Update API access, requirements, changelog, Payload migration prompts, and current planning
+     records to reference Payload MCP instead of a dashboard MCP connector.
+- **Problems Marked**:
+  - `observation`: Full `pnpm lint:docs` still reports pre-existing Markdown lint errors outside the
+    changed MCP documentation.
+  - `risk`: Historical project logs still describe earlier dashboard MCP work, but current guidance
+    no longer documents that connector.
+- **Verification**: `pnpm lint:todos`, `pnpm link:docs`, focused Markdown lint on changed
+  documentation files, and changed-file Markdown lint pass except for pre-existing
+  `.TODO/plan_project_stability.md` ordered-list warnings.
+- **Follow-up Tasks**:
+  - T-845. Replace dashboard MCP references in markdown docs with Payload MCP migration wording and remove `/api/mcp` dashboard connector examples.
+  - T-846. Update MCP REST Client examples to call Payload Streamable HTTP MCP with Bearer API-key auth and JSON-RPC discovery.
+  - T-847. Verify production and test MCP subdomains route only to Payload MCP, not dashboard MCP.
+  - T-848. Document ChatGPT developer-mode setup for Payload MCP and remove dashboard MCP setup instructions.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: MCP product rules live in `requirements.md`; user and developer MCP
+  guidance lives in `docs/User_Guides/mcp.md` and `docs/Developer_Guides/MCP.md`; test guidance
+  lives in `docs/api-tests/mcp.http`; active work lives in `.TODO/todo-next.md`; interaction records
+  live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 40: Payload Admin Shell Enhancements
+
+- **Date**: 2026-06-13
+- **User Goal**: Enhance Payload admin UI with nav footer (search/theme/logout), Lucide icons on all nav links, breadcrumbs on admin views, and review login page styling.
+- **Changes**:
+  1. Created `PayloadNavFooter` in `afterNavLinks` slot with admin search modal, theme toggle, and logout button.
+  2. Added Lucide icons (Building2, Ticket, Upload, Users, Percent, Layers, BarChart3) to custom nav sections.
+  3. Added CSS `::before` SVG data URI icons for built-in Payload collection nav links (CMS Users, News Posts, FAQs, Media).
+  4. Added breadcrumb nav (Admin / Section) to `OperationHeader` in both operational and admin management views.
+  5. Styled nav icons, breadcrumbs, and collection link icons in `payload-auth-brand.css` with dark-mode support.
+  6. Created `PayloadThemeToggle` (Light/Dark/System) and `TailwindThemeSync` (MutationObserver) for theme persistence.
+  7. Redesigned Payload admin login page with dashboard-style radial gradients, card form with blur/glow, and teal buttons.
+- **Problems Marked**:
+  - `resolved`: Logged out admin pages (`/admin/login`, `/admin/logout`) don't run client components, so theme toggle and sync needed careful slot placement in `graphics.Logo` and `beforeLogin`.
+  - `resolved`: Payload 3 styling conflicts with Tailwind dark class — MutationObserver on `data-theme` → class bridge works reliably.
+  - `observation`: Full `next build` exceeds 5-minute timeout locally but `tsc --noEmit` passes.
+- **Verification**: `tsc --noEmit` passes cleanly. All admin views registered and navigable.
+- **Follow-up Tasks**:
+  - Verify Railway test and app deploys after push.
+  - Review business profiles view in Payload admin for CRUD completeness.
+  - Add Google/LinkedIn OAuth to login page if not present.
+  - Verify 14-day demo credit system works end-to-end.
+  - Add credits/credit system UI to Payload admin topbar and sidebar.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Payload admin component code lives in `src/components/payload/`; styling in `payload-auth-brand.css`; nav configuration in `payload.config.ts`; admin operation and management views in `payload-operational-views.tsx` and `payload-admin-management-views.tsx`.

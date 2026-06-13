@@ -80,7 +80,8 @@ metadata, and dependency folders that are not part of the standalone runtime con
   can reconnect to the right Railway project without guesswork.
 - Keep real tokens and environment files in private local storage only, never in source control.
 - Set `PAYLOAD_MCP_TEST_API_KEY` only on the Railway test service. The matching Payload MCP API key
-  must enable only `listDashboardDatasets` and `getDashboardDatasetInsights`.
+  must enable only `listDashboardDatasets` and `getDashboardDatasetInsights` at
+  `https://mcp-test.useclevr.com/api/payload/mcp`.
 
 ## Runtime Commands
 

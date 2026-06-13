@@ -23,7 +23,7 @@ export function PayloadDashboardHeader() {
       <span className="payload-admin-page-header__icon" aria-hidden="true">C</span>
       <div>
         <h1>Content admin</h1>
-        <p>Manage public pages, news, FAQs, media, and content access.</p>
+        <p>Manage product operations, public content, media, and content access.</p>
       </div>
     </header>
   )
@@ -38,10 +38,10 @@ export function PayloadDashboardInfo() {
         <p>Use the main menu to open a content area. Review drafts and public copy before publishing.</p>
       </section>
       <section className="payload-admin-info-panel">
-        <span className="payload-admin-info-panel__eyebrow">Dashboard</span>
+        <span className="payload-admin-info-panel__eyebrow">Operations</span>
         <h2>Product data</h2>
-        <p>Customer, dataset, billing, and AI administration remain in the main UseClevr dashboard.</p>
-        <a href="/app" target="_parent">Open dashboard</a>
+        <p>Use the product operations menu for business profiles, customer issues, and administrator dataset uploads.</p>
+        <a href="/admin/business-profiles">Open operations</a>
       </section>
     </aside>
   )

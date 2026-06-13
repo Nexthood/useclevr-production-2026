@@ -5,6 +5,7 @@ import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-
 import { Faqs } from "@/lib/cms/collections/Faqs"
 import { CmsUsers } from "@/lib/payload/collections/CmsUsers"
 import { Media } from "@/lib/payload/collections/Media"
+import { payloadAdminOperationEndpoints } from "@/lib/payload/admin-operations"
 import { dashboardMcpTools } from "@/lib/payload/mcp-dashboard-tools"
 import { NewsPosts } from "@/lib/payload/collections/NewsPosts"
 import { HomePageContent } from "@/lib/payload/globals/HomePageContent"
@@ -62,6 +63,12 @@ export default buildConfig({
   admin: {
     user: CmsUsers.slug,
     components: {
+      actions: [
+        {
+          path: "@/components/payload/payload-operational-views",
+          exportName: "PayloadAiActions",
+        },
+      ],
       beforeDashboard: [
         {
           path: "@/components/payload/payload-admin-shell",
@@ -91,13 +98,76 @@ export default buildConfig({
           path: "@/components/payload/payload-admin-shell",
           exportName: "PayloadNavHeader",
         },
+        {
+          path: "@/components/payload/payload-operational-views",
+          exportName: "PayloadOperationsNav",
+        },
+        {
+          path: "@/components/payload/payload-admin-management-views",
+          exportName: "PayloadAdminManagementNav",
+        },
       ],
       afterNavLinks: [
         {
           path: "@/components/payload/payload-auth-brand",
           exportName: "PayloadDashboardLink",
         },
+        {
+          path: "@/components/payload/payload-admin-shell-footer",
+          exportName: "PayloadNavFooter",
+        },
       ],
+      views: {
+        businessProfiles: {
+          Component: {
+            path: "@/components/payload/payload-operational-views",
+            exportName: "PayloadBusinessProfilesView",
+          },
+          path: "/business-profiles",
+        },
+        supportIssues: {
+          Component: {
+            path: "@/components/payload/payload-operational-views",
+            exportName: "PayloadSupportIssuesView",
+          },
+          path: "/support-issues",
+        },
+        datasetUpload: {
+          Component: {
+            path: "@/components/payload/payload-operational-views",
+            exportName: "PayloadDatasetUploadView",
+          },
+          path: "/dataset-upload",
+        },
+        customers: {
+          Component: {
+            path: "@/components/payload/payload-admin-management-views",
+            exportName: "PayloadCustomersView",
+          },
+          path: "/customers",
+        },
+        discounts: {
+          Component: {
+            path: "@/components/payload/payload-admin-management-views",
+            exportName: "PayloadDiscountsView",
+          },
+          path: "/discounts",
+        },
+        levels: {
+          Component: {
+            path: "@/components/payload/payload-admin-management-views",
+            exportName: "PayloadLevelsView",
+          },
+          path: "/levels",
+        },
+        progress: {
+          Component: {
+            path: "@/components/payload/payload-admin-management-views",
+            exportName: "PayloadProgressView",
+          },
+          path: "/progress",
+        },
+      },
     },
     meta: {
       titleSuffix: "UseClevr Admin",
@@ -109,6 +179,7 @@ export default buildConfig({
     admin: "/admin",
     api: "/api/payload",
   },
+  endpoints: payloadAdminOperationEndpoints,
   collections: [CmsUsers, Media, NewsPosts, Faqs],
   globals: [HomePageContent, PrivacyPageContent, TermsPageContent],
   plugins: [

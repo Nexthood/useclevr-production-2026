@@ -213,23 +213,23 @@ Then save:
 Future analysis of that dataset should use the correction.
 
 11. MCP rule
-    Keep MCP internal for now.
+    Use Payload MCP as the documented connector.
 
-Do not create `mcp.useclevr.com` yet.
+Payload MCP lives at:
 
-If MCP endpoints exist, keep them under:
+- `/api/payload/mcp`
+- `mcp.useclevr.com/api/payload/mcp`
+- `mcp-test.useclevr.com/api/payload/mcp`
 
-- `/api/mcp/*`
+Do not document a separate dashboard MCP connector. Payload MCP must require:
 
-MCP must require:
-
-- authenticated session or signed service token
-- role check
-- business/workspace ownership check
-- dataset access check
+- valid Payload MCP API key
 - tool allowlist
 - rate limiting
 - audit logging
+- locked demo-account scope for the public test connector
+
+Do not expose public tool discovery. Unauthenticated requests must not reveal tool names, schemas, dataset names, file paths, or business IDs.
 
 Do not expose public tool discovery. Unauthenticated requests must not reveal tool names, schemas, dataset names, file paths, or business IDs.
 

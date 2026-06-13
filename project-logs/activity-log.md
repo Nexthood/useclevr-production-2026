@@ -87,3 +87,19 @@ This file summarizes current project activity. Detailed session records live in
 
 - Align Payload content admin with the dashboard shell using a main-menu rail, topbar, page and
   body headers, focused center workspace, and responsive right information panels.
+- Move business-profile administration, support issue review, and owner-assigned CSV uploads into
+  Payload custom views backed by existing Drizzle records.
+- Add Payload modal entry points for the dataset-aware AI Assistant and Hybrid AI controls.
+- Align Payload requirements, migration guidance, API access documentation, testing guidance, and
+  sales planning with the active operator workspace and existing application data ownership.
+- Hide Payload product operations and AI actions from base CMS accounts through the official
+  Payload authentication hook.
+- Add focused Payload MCP migration tasks and update MCP docs, REST Client checks, access rules,
+  requirements, changelog, and planning records to use `/api/payload/mcp` as the canonical connector.
+- Remove current dashboard MCP documentation and keep historical project logs as historical records.
+- Add theme sync and Payload-native theme toggle to admin pages and login.
+- Redesign Payload admin login with dashboard-style gradient backgrounds, card form, and teal buttons.
+- Add nav footer with admin search modal, theme toggle, and logout to Payload sidebar.
+- Add Lucide SVG icons to custom nav sections and CSS `::before` icons for built-in collection links.
+- Add breadcrumb navigation to admin view page headers.
+- Add 4 admin management views (Customers, Discounts, Levels, Progress) with CRUD via API routes.

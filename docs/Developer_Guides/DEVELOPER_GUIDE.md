@@ -225,8 +225,12 @@ model `mock-local-development`.
 Payload Phase 0 currently serves:
 
 - `/admin`
+- `/admin/business-profiles` for cross-user business-profile operations
+- `/admin/support-issues` for the support queue
+- `/admin/dataset-upload` for owner-assigned CSV uploads
 - `/api/payload`
-- `/api/payload/mcp` for Payload-native News and FAQ MCP tools
+- `/api/payload/admin-operations/*` for Payload-session-protected product operations
+- `/api/payload/mcp` for Payload-native News, FAQ, and locked demo-account read MCP tools
 - public homepage content
 - public privacy page content
 - public terms page content
@@ -242,8 +246,8 @@ Current local safety rules:
   `AWS_SECRET_ACCESS_KEY`, or configure `UPLOAD_PROVIDER=r2` with `R2_BUCKET`, `R2_ENDPOINT`,
   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and optional `R2_PUBLIC_URL`.
 - Payload blocks media mutations when durable S3-compatible storage is not fully configured.
-- Create Payload MCP API keys in the Payload admin and grant only the required News or FAQ tools.
-- Keep `/api/mcp` for UseClevr dataset tools and `/api/payload/mcp` for Payload content tools.
+- Create Payload MCP API keys in the Payload admin and grant only the required News, FAQ, or locked demo-account read tools.
+- Keep `/api/payload/mcp` for Payload-owned MCP tools and locked demo-account dataset reads.
 - Keep app auth routes and Payload auth routes reachable before login, while keeping other
   protected API routes behind authentication.
 - Keep `/admin` requests on the Payload root layout so the admin login and admin workspace boot
@@ -256,9 +260,25 @@ Current local safety rules:
 - Register reusable admin shell slots in `src/components/payload/payload-admin-shell.tsx`. Keep
   the menu label, dashboard header, collection subheaders, and right information panels in those
   slots while Payload retains its native tables, forms, filters, and save actions.
+- Register product-operation views through `admin.components.views` and keep their endpoints under
+  `/api/payload/admin-operations/*`.
+- Require the Payload `superadmin` role for every product-operation endpoint. Require an explicit
+  dashboard user owner for business creation and dataset upload.
+- Use Payload's `useAuth` hook from the version-matched `@payloadcms/ui` package to hide
+  product-operation navigation and AI actions from base CMS users. Keep endpoint authorization as
+  the server-side enforcement boundary.
+- Keep Drizzle as the source of truth for business profiles, support tickets, datasets, and dataset
+  rows. Payload custom views operate on those records without creating parallel collections.
+- Use the canonical CSV parser for Payload administrator uploads and write the standard Dataset and
+  DatasetRow records.
+- Keep dataset-aware AI requests in the dashboard session. The Payload AI Assistant modal opens
+  `/app/assistant` so dashboard ownership and AI trace attribution remain active.
+- Use the shared Hybrid AI modal control in the Payload topbar instead of creating a separate local
+  AI configuration path.
 - Use a 220px desktop menu rail, 64px topbar, focused center workspace, and 272px right information
   rail. Stack information panels below content at tablet widths and into one column on mobile.
 - Run `pnpm exec payload generate:importmap` after adding or renaming Payload admin components.
+- Pin `@payloadcms/ui` to the same exact version as `payload` and every other Payload package.
 - Register the dashboard return link through `admin.components.afterNavLinks`.
 - Route public account creation through `/login?tab=signup`; Payload CMS accounts remain controlled
   content-administration identities.

@@ -19,6 +19,8 @@ VS Code reads safe shared base URLs from [.vscode/settings.json](../../.vscode/s
 - `local` -> `http://localhost:3000`
 - `staging` -> `https://CHANGE_ME_STAGING_URL`
 - `production` -> `https://CHANGE_ME_PRODUCTION_URL`
+- `mcpUrl` -> `https://mcp.useclevr.com`
+- `mcpTestUrl` -> `https://mcp-test.useclevr.com`
 
 Update the staging and production URLs locally before use. Do not commit secrets.
 
@@ -50,14 +52,14 @@ This folder covers the current important API areas that already exist in the app
 - business profile and setup
 - billing and checkout
 - Railway smoke checks
-- MCP reachability and signed-in MCP calls
+- MCP reachability and Payload MCP API-key calls
 
 ## MCP Testing
 
-Use [mcp.http](mcp.http) for the current app-state MCP checks.
+Use [mcp.http](mcp.http) for Payload MCP checks.
 
-- Unsigned `GET /api/mcp` currently returns `401 Unauthorized`.
-- Signed-in MCP requests require a real session cookie because the current proxy blocks unauthenticated `/api/*` requests before MCP token headers are evaluated.
+- Unsigned `POST /api/payload/mcp` is rejected without a valid Payload MCP API key.
+- Payload MCP requests use Bearer API-key auth and JSON-RPC tool discovery.
 
 ## Manual Limits
 

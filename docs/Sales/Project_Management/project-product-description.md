@@ -38,6 +38,8 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - AI trace analytics.
 - AI benchmarking.
 - Operator FAQ and support controls.
+- Payload operator admin for public content, business profiles, support issues, and owner-assigned
+  dataset uploads.
 
 ### Support Product Surface
 
@@ -81,5 +83,6 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - UseClevr provides estimates and decision-support context.
 - UseClevr does not replace professional advice.
 - UseClevr does not become an ERP, payroll system, policy-management system, lending platform, or tax filing system.
-- Payload CMS remains a future content-management layer only.
+- Payload manages public content and supplies selected superadmin operator views without replacing
+  application data ownership.
 - PayPal remains deferred until a second payment provider is needed.

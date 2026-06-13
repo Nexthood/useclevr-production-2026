@@ -202,29 +202,17 @@ Rules:
 
 ## Current MCP Rule
 
-MCP should remain internal for now.
+Payload MCP is the documented connector.
 
 Preferred current path:
 
 ```txt
-/api/mcp/*
+/api/payload/mcp
+mcp.useclevr.com/api/payload/mcp
+mcp-test.useclevr.com/api/payload/mcp
 ```
 
-or:
-
-```txt
-/app/api/mcp/*
-```
-
-Do not create:
-
-```txt
-mcp.useclevr.com
-```
-
-yet.
-
-A separate MCP subdomain is only justified later if MCP becomes a public/external service.
+Do not document a separate dashboard MCP connector. Payload MCP API keys control tool access, and the test connector exposes only locked demo-account metadata and stored insights.
 
 ---
 

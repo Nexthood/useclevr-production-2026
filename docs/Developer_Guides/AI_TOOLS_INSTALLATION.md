@@ -7,9 +7,10 @@ This document describes the installation and configuration of two free AI develo
 ## Installation Summary
 
 | Tool | Installation Path | Version | Status |
-|------|-------------------|---------|--------|
-| Kodu AI | `~/.local/share/pnpm/bin/kodu` | 2.1.3 | ✅ Installed |
-| Zed | `~/.local/zed/` | v1.5.4 | ✅ Installed |
+| Tool    | Installation Path              | Version   | Status      |
+| ------  | -------------------            | --------- | --------    |
+| Kodu AI | `~/.local/share/pnpm/bin/kodu` | 2.1.3     | ✅ Installed |
+| Zed     | `~/.local/zed/`                | v1.5.4    | ✅ Installed |
 
 ## 1. Kodu AI
 
@@ -24,6 +25,7 @@ This document describes the installation and configuration of two free AI develo
 - Comment removal
 
 **Usage:**
+
 ```bash
 kodu pack          # Collect project context into a single file
 kodu init          # Initialize kodu configuration
@@ -50,6 +52,7 @@ kodu clean         # Remove comments from code
 - Ollama model integration
 
 **Launch:**
+
 ```bash
 zed /path/to/project    # Open project in Zed
 zed --help              # Show CLI help

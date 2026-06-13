@@ -46,6 +46,8 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-843. Move operator business-profile, support-issue, and dataset-upload controls into authenticated Payload admin views backed by the existing Drizzle stores. (labels: dashboard, business, upload, ui; commit: worktree)
+- T-844. Add Payload admin modal entry points for the dataset-aware AI Assistant and Hybrid AI workflows. (labels: dashboard, ai, local-ai, ui; commit: worktree)
 - T-838. Complete ownership-safe dashboard data mutation flows and align Payload admin surfaces with dashboard design tokens. (labels: dashboard, data, business, content, ui, testing; commit: worktree)
 
 ## Label: deployment

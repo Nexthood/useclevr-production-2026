@@ -111,3 +111,10 @@ folder during the same task cycle.
 - Prompt versions are tracked via a `PROMPT_VERSION` constant in `src/lib/ai/ai-trace.ts`.
 - Update the prompt version constant when prompt templates change to correlate trace quality.
 - Use [Interaction trace learning](../../../project-prompts/interaction-trace-learning.md) when a user asks the AI to leave useful traces, mark problems, educate the user, or collect learning suggestions.
+
+## Payload Admin Customization Patterns
+
+- Theme sync between Payload (`data-theme`) and Tailwind (`class="dark"`) uses a MutationObserver in a client component placed in `graphics.Logo` — renders on all admin pages.
+- Payload nav sidebar customization uses `beforeNavLinks`/`afterNavLinks` slots; CSS `::before` with SVG data URIs adds icons to built-in collection links.
+- Payload admin views fetch from existing Next.js API routes — avoid creating duplicate Payload endpoints.
+- The `graphics.Logo` slot is the only slot that renders on both login and admin pages — use it for global client-side logic.

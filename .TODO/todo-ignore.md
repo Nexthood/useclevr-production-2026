@@ -24,7 +24,7 @@ moving work between states.
 
 ## Label: billing
 
-- T-199. Do not replace the current app, auth, billing, datasets, reports, tickets, AI traces, workspaces, or business records with Payload CMS; keep Payload limited to a future editable-content layer. (labels: billing, auth, ai, dashboard)
+- T-199. Do not replace app auth, billing, datasets, reports, tickets, AI traces, workspaces, or business records with Payload collections; use Payload for public content and superadmin operator views over existing application stores. (labels: billing, auth, ai, dashboard)
 - T-485. Test subscription access limits. (labels: billing, testing)
 
 ## Label: business
@@ -85,7 +85,6 @@ moving work between states.
 - T-616. Add password breach detection using HaveIBeenPwned API during registration and password change. (labels: security, api)
 
 ## Label: mcp
-
 
 ## Additional
 
