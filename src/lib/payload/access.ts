@@ -29,6 +29,23 @@ export function withCollectionGroup<T extends CollectionConfig>(config: T, group
     admin: {
       ...config.admin,
       group,
+      components: {
+        ...config.admin?.components,
+        beforeList: [
+          ...(config.admin?.components?.beforeList || []),
+          {
+            path: "@/components/payload/payload-admin-shell",
+            exportName: "PayloadListSubheader",
+          },
+        ],
+        afterList: [
+          ...(config.admin?.components?.afterList || []),
+          {
+            path: "@/components/payload/payload-admin-shell",
+            exportName: "PayloadListInfo",
+          },
+        ],
+      },
     },
   }
 }

@@ -253,6 +253,12 @@ Current local safety rules:
 - Keep Payload admin shell overrides in the shared Payload branding stylesheet and align typography,
   cyan primary controls, 8px radii, navigation borders, workspace surfaces, and dark backgrounds
   with dashboard tokens.
+- Register reusable admin shell slots in `src/components/payload/payload-admin-shell.tsx`. Keep
+  the menu label, dashboard header, collection subheaders, and right information panels in those
+  slots while Payload retains its native tables, forms, filters, and save actions.
+- Use a 220px desktop menu rail, 64px topbar, focused center workspace, and 272px right information
+  rail. Stack information panels below content at tablet widths and into one column on mobile.
+- Run `pnpm exec payload generate:importmap` after adding or renaming Payload admin components.
 - Register the dashboard return link through `admin.components.afterNavLinks`.
 - Route public account creation through `/login?tab=signup`; Payload CMS accounts remain controlled
   content-administration identities.

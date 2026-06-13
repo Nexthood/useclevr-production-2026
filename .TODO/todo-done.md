@@ -54,6 +54,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-842. Align the Payload admin shell with the dashboard hierarchy using a left main-menu sidebar, topbar, page header, body subheader, centered content area, and responsive right information panels. (labels: ui, content, dashboard, accessibility; commit: worktree)
 - T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard; commit: worktree)
 - T-829. Add smooth theme transition with fade-in-out animation on root layout for light/dark mode changes. (labels: ui, accessibility, workflow; commit: worktree)
 - T-830. Add dark-mode-aware accessibility icons grid including eye-dropper, zoom-in, zoom-out, a11y, and voice-control icons. (labels: ui, accessibility, dashboard; commit: worktree)

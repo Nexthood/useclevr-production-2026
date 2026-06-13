@@ -9,6 +9,20 @@ export const CmsUsers: CollectionConfig = {
     useAsTitle: "email",
     defaultColumns: ["email", "role", "updatedAt"],
     description: "CMS admin accounts for news and public page content.",
+    components: {
+      beforeList: [
+        {
+          path: "@/components/payload/payload-admin-shell",
+          exportName: "PayloadListSubheader",
+        },
+      ],
+      afterList: [
+        {
+          path: "@/components/payload/payload-admin-shell",
+          exportName: "PayloadListInfo",
+        },
+      ],
+    },
   },
   access: {
     admin: ({ req }) => Boolean(req.user),

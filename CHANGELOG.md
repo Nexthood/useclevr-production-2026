@@ -57,6 +57,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Organize the content admin around the dashboard's menu rail, topbar, page header, focused
+  workspace, and responsive information panels.
 - Keep successful Railway deployments when operators run cleanup with the `--keep-success` option.
 - Place the compact desktop sidebar toggle beside Dashboard for immediate access.
 - Align Payload admin navigation, typography, controls, surfaces, and light/dark backgrounds with the dashboard and add a dashboard return link.

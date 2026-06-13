@@ -51,6 +51,8 @@ reports.
 - Super-admins can review customers, including built-in demo and super-admin accounts.
 - Payload content admin uses the same typography, cyan accent, rounded controls, workspace surfaces,
   and light/dark presentation as the dashboard.
+- Payload content admin follows the dashboard layout with a left main menu, topbar, page header,
+  focused work area, and supporting information panels on the right.
 - Use Back to dashboard in Payload navigation to return to the application workspace.
 - Built-in accounts keep fixed sign-in identities while saving dashboard settings, business details,
   onboarding progress, and uploaded datasets normally.

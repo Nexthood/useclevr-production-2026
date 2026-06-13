@@ -941,3 +941,30 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **AI-Agent Learning**: `node -c <file>` syntax-checks CommonJS files; project record files must
   always be staged with code changes or commits are rejected by pre-commit hooks.
 
+---
+
+## Interaction 36: Payload Admin Dashboard Shell
+
+- **Date**: 2026-06-13
+- **User Goal**: Continue matching Payload admin with the dashboard using a left main menu,
+  topbar, page header, body subheader, center work area, and right information panels.
+- **Changes**:
+  1. Add Payload-native component slots for the menu label, dashboard header, collection
+     subheaders, and information panels.
+  2. Apply dashboard proportions to the Payload navigation, topbar, headers, content grid, cards,
+     and right information rail.
+  3. Stack information panels below content at tablet widths and into one column on mobile.
+  4. Regenerate the Payload admin import map.
+- **Problems Marked**:
+  - `observation`: Payload's native tables, filters, forms, permissions, and save controls remain
+    unchanged.
+  - `blocker`: Authenticated browser inspection could not complete because Payload initialization
+    encountered an external PostgreSQL `ECONNRESET`.
+- **Verification**: TypeScript, focused ESLint, TODO checks, pre-commit checks, import-map
+  generation, and the production build pass.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`, `CHANGELOG.md`, and the
+  product overview; interaction records live in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.

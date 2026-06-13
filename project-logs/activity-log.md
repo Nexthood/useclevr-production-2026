@@ -82,3 +82,8 @@ This file summarizes current project activity. Detailed session records live in
 - Extend `fixAwsSdkPackages` in `create-dist.cjs` to create top-level symlinks for bare transitive
   deps (tslib, fast-xml-parser) that the scoped AWS SDK packages depend on but Next.js standalone
   tracing omits
+
+## 2026-06-13
+
+- Align Payload content admin with the dashboard shell using a main-menu rail, topbar, page and
+  body headers, focused center workspace, and responsive right information panels.

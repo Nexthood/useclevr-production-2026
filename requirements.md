@@ -199,6 +199,8 @@ Text rules for this file:
 - Keep Payload admin focused on minimal content editing for CMS users, news, homepage, privacy, and terms.
 - Match Payload admin typography, colors, control radius, navigation surfaces, and light/dark
   backgrounds to the dashboard design system.
+- Structure Payload admin with a left main-menu rail, topbar, compact page header, body subheader,
+  focused center workspace, and responsive right information panels.
 - Link Payload admin navigation directly back to the signed-in dashboard.
 - Allow only superadmin CMS users to edit Phase 0 public content.
 

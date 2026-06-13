@@ -62,6 +62,18 @@ export default buildConfig({
   admin: {
     user: CmsUsers.slug,
     components: {
+      beforeDashboard: [
+        {
+          path: "@/components/payload/payload-admin-shell",
+          exportName: "PayloadDashboardHeader",
+        },
+      ],
+      afterDashboard: [
+        {
+          path: "@/components/payload/payload-admin-shell",
+          exportName: "PayloadDashboardInfo",
+        },
+      ],
       beforeLogin: [
         {
           path: "@/components/payload/payload-auth-brand",
@@ -74,6 +86,12 @@ export default buildConfig({
           exportName: "PayloadAdminLogo",
         },
       },
+      beforeNavLinks: [
+        {
+          path: "@/components/payload/payload-admin-shell",
+          exportName: "PayloadNavHeader",
+        },
+      ],
       afterNavLinks: [
         {
           path: "@/components/payload/payload-auth-brand",
