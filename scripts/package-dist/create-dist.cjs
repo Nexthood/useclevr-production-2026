@@ -312,9 +312,11 @@ function findPnpmEntry(pnpmDir, bareName) {
   for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     if (entry.name.startsWith("node_modules")) continue;
-    // Match exact bareName@version or bareName+… patterns
-    const base = entry.name.split("@")[0];
-    if (!entry.name.startsWith(base + "@")) continue;
+    // Scoped pnpm entries start with @ — they are not canonical entries for bare modules
+    if (entry.name.startsWith("@")) continue;
+    // Match bareName@version pattern (e.g. tslib@2.8.1)
+    const prefix = bareName + "@";
+    if (!entry.name.startsWith(prefix)) continue;
     const candidatePkg = path.join(pnpmDir, entry.name, "node_modules", bareName);
     if (fs.existsSync(candidatePkg)) {
       return entry.name;
