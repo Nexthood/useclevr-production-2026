@@ -548,7 +548,6 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Deployment operations live in the Railway guide; MCP usage lives in the
   MCP guides; interaction history lives in `project-logs/`.
 
-
 ---
 
 ## Interaction 25: Complete All TODO Tasks, Fix Auth, Deploy Railway Fixes
@@ -696,8 +695,249 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - Fix report AI chat: `answerReportQuestion()` calls `runLLM()` directly instead of proxying through `/api/analyze`
   - Move MCP subdomain logic from `middleware.ts` to `proxy.ts` (Next.js 16 cannot have both)
   - Fix auto-merge chain: add `closed` event handler to dispatch `branch-maintenance.yml` after PR merge
-   - Remove `pnpm install --prod` from Dockerfiles — dist has complete node_modules from Next.js standalone tracing
-   - Stop deleting node_modules from CI workflows — CI was removing node_modules before committing to dist branch, so Docker build had no deps. Railway predeploy script requires pg which was lost.
-   - Fix dist-root copy in beta CI: `cp -a dist-root /tmp/` created dist-root subdirectory, so .gitignore never landed at repo root. Fallback .gitignore (with node_modules) was generated. Changed to `cp -a dist-root/.` to copy contents directly.
+  - Remove `pnpm install --prod` from Dockerfiles — dist has complete node_modules from Next.js standalone tracing
+  - Stop deleting node_modules from CI workflows — CI was removing node_modules before committing to dist branch, so Docker build had no deps. Railway predeploy script requires pg which was lost.
+  - Fix dist-root copy in beta CI: `cp -a dist-root /tmp/` created dist-root subdirectory, so .gitignore never landed at repo root. Fallback .gitignore (with node_modules) was generated. Changed to `cp -a dist-root/.` to copy contents directly.
 - **Blocked (RESOLVED)**: Railway Metal builder incident (June 9 16:52 UTC — 17:35 UTC) resolved; incident moved to Monitoring at 17:35 UTC
 - **Next**: Rebuild dist, push, trigger production deploy now that node_modules is committed to dist branch
+
+---
+
+## Interaction 4: UI Fixes, Login Auth, Business Profile Error Handling, Stripe Checkout, Superadmin Role Picker
+
+- **Date**: 2026-06-11
+- **User Goal**: Fix multiple UI and backend issues across the app: topbar icons-only mode, login page padding and auth flow, business profile db error handling, Stripe checkout URL param mismatch, superadmin role picker, Payload admin login style.
+- **Changes**:
+  1. **Topbar icons only**: Added `iconOnly` prop to Business, Mentoring, Credits, Admin, Profile TopbarSection components in `topbar.tsx`. Hybrid AI, Search, Onboarding button keep full labels.
+  2. **Login page padding & flow**: Changed login card layout from vertically centered to top-aligned with `pt-16 md:pt-24`. Added `pt-6` to `CardContent`. Replaced `getSession()` calls with `result?.ok` to fix timing issues where the session cookie wasn't immediately available after sign-in.
+  3. **Payload admin login**: Added "Sign in to UseClevr" and "Sign up" nav links to `PayloadLoginIntro` component. Restyled CSS with button-like nav links. Fixed test credentials box layout with BEM classes.
+  4. **Business profile error handling**: Wrapped `upsertBusinessDetails()` and legacy profile path in `settings.ts` with try/catch, returning `failure()` with the error message instead of crashing the server action.
+  5. **Stripe checkout URL**: Fixed param name mismatch in `checkout/confirm/route.ts` — changed `s={CHECKOUT_SESSION_ID}` to `session_id={CHECKOUT_SESSION_ID}` so the success page correctly reads it.
+  6. **Superadmin role picker**: Removed `"superadmin"` from plan dropdown options in `admin/edit/page.tsx`. Only billing plans (`free`, `pro`, `business`) are shown.
+  7. **Railway audit**: Verified Dockerfile, predeploy schema sync script, health endpoint, start command all correct.
+- **Improvement**: `checkout-token.ts` still falls back to `STRIPE_SECRET_KEY` for HMAC signing when `AUTH_SECRET` is unset — should use separate secret.
+- **Blocked**: Middleware blocks token-based MCP auth on MCP subdomains — `/api/mcp` not in publicApiPaths, so 401 returned before route handler can validate token. Fixed by adding `/api/mcp` to public paths.
+- **Changes**: Added MCP write tools for FAQ and News (create/update/delete), listDatasets tool for user's own datasets. Added `faq:write`, `news:write` scopes. Wired auth context through invokeTool. Updated middleware to allow MCP token auth on subdomains.
+- **Next**: Commit, push to beta, CI deploy.
+
+---
+
+## Interaction 29: Dashboard Display Controls and Workspace Structure
+
+- **Date**: 2026-06-11
+- **User Goal**: Separate theme and accessibility controls, review dashboard navigation, and make page headers, body sidebars, and management tables consistent.
+- **Changes**:
+  1. Separate Light, Dark, and System selection from icon-only text size, zoom, and contrast state controls.
+  2. Keep topbar items on one line without clipping their popovers and let the main sidebar navigation scroll independently.
+  3. Separate route-level titles, breadcrumbs, and subpage navigation from center page workspaces.
+  4. Keep AI Assistant left and right sidebars and move Business and Dataset summaries into right sidebars.
+  5. Start Business, Dataset, and Download table rows with selection controls and place bulk and primary actions in table headers.
+- **Problems Marked**:
+  - `observation`: A horizontal overflow container clips topbar popovers even when vertical overflow is declared visible.
+  - `improvement`: Remaining management lists can adopt the shared selection and action-header contract during their next focused update.
+- **User Learning**: Supporting information stays easier to scan when the center workspace contains only the primary table or form.
+- **AI-Agent Learning**: Route layouts own headers and subpage navigation; page components own center workspaces and optional sidebars.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; display guidance and dashboard structure live in their user and developer guides; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 30: Payload Storage and MCP Ownership
+
+- **Date**: 2026-06-11
+- **User Goal**: Continue the Payload setup, add durable storage, move News and FAQ MCP access to
+  Payload, update Kilo endpoint references, and commit the work.
+- **Changes**:
+  1. Add a Media collection and S3-compatible storage for AWS S3 or Cloudflare R2.
+  2. Block Media mutations when durable storage credentials are incomplete.
+  3. Add Payload-native MCP tools for News and FAQ under `/api/payload/mcp`.
+  4. Remove News and FAQ tools and scopes from the UseClevr dataset MCP service.
+  5. Generate and apply the Media, News cover relation, and Payload MCP API-key migration.
+  6. Align Payload packages and Next.js with their current compatible releases.
+- **Problems Marked**:
+  - `observation`: Payload migration generation fails under Node 26 because the loader attempts to
+    open a namespaced `node:crypto` URL as a file.
+  - `risk`: The Payload MCP dependency currently reports an upstream MCP SDK peer-version mismatch.
+- **User Learning**: Product-data MCP and content MCP use separate credentials, permissions, and
+  endpoints.
+- **AI-Agent Learning**: Keep Payload content tools in the Payload plugin and preserve the custom
+  app MCP for ownership-aware product data.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; MCP and
+  Payload operations live in developer and user guides; session records live in `project-logs/`
+  and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 31: Built-In Account Database Persistence
+
+- **Date**: 2026-06-12
+- **User Goal**: Fix dashboard database updates and allow every built-in account to upload and
+  analyze datasets as a real locked account.
+- **Changes**:
+  1. Materialize built-in base, demo, and superadmin identities as fixed database-backed users and
+     profiles without allowing identity edits.
+  2. Route built-in onboarding, business setup, settings, and dataset uploads through normal
+     user-owned persistence.
+  3. Give built-in accounts unrestricted analyst access and keep explicit non-persistent demo mode
+     limited to non-built-in profitability uploads.
+  4. Add the missing Business table, Profile preference fields, and timestamp defaults to the
+     configured database and Railway predeploy schema repair.
+- **Problems Marked**:
+  - `root-cause`: Upload and settings paths treated built-in user IDs as disposable demo sessions.
+  - `root-cause`: The configured database lacked schema elements required by dashboard writes.
+- **Verification**: Type validation passes; all three built-in identities persist; company setup
+  and dataset creation persist against the configured database; the temporary verification data is
+  removed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`;
+  deployment behavior lives in the Railway guide; session records live in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 32: Dashboard CRUD and Payload Design Alignment
+
+- **Date**: 2026-06-12
+- **User Goal**: Verify dashboard data creation, updating, and deletion and make Payload admin feel
+  continuous with the dashboard.
+- **Changes**:
+  1. Connect selected dataset deletion to the existing authenticated dataset endpoint and surface
+     failed API responses.
+  2. Require ownership and valid state for business archive, restore, and deletion; allow permanent
+     deletion only for archived secondary businesses.
+  3. Add a reusable configured-database health test for built-in business create, update, archive,
+     restore, delete, and cross-user rejection.
+  4. Align Payload typography, cyan controls, 8px radii, navigation, workspace surfaces, and dark
+     backgrounds with the dashboard and add a dashboard return link.
+  5. Regenerate the Payload admin import map.
+- **Problems Marked**:
+  - `root-cause`: Dataset bulk deletion called an API route that does not exist.
+  - `risk`: Business mutation helpers swallowed database failures and did not verify changed rows.
+  - `observation`: The primary business remains protected account context; archived secondary
+    businesses provide the permanent deletion workflow.
+- **Verification**: Type validation and live configured-database business CRUD ownership checks
+  pass; temporary verification data is removed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; user and
+  Payload maintenance guidance live in product and developer guides; interaction records live in
+  `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 33: Commit Documentation and AI Trace Alignment
+
+- **Date**: 2026-06-12
+- **User Goal**: Update documentation and AI interaction records, then commit the completed work.
+- **Changes**:
+  1. Document Railway cleanup that retains successful deployments with `--keep-success`.
+  2. Record the compact sidebar collapse control beside Dashboard.
+  3. Align the current AI interaction status, detailed session log, activity summary, requirements,
+     changelog, user guide, developer guides, and completed TODO state.
+  4. Prepare the validated dashboard persistence and Payload design changes as one commit.
+- **Problems Marked**:
+  - `observation`: The worktree contains related changes completed across consecutive dashboard,
+    deployment, documentation, and AI interaction requests.
+- **Verification**: Production build, TypeScript, tests, live dashboard CRUD ownership checks,
+  deployment config checks, project records, TODO, changelog, package, secret, and diff checks pass.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Release behavior lives in `CHANGELOG.md`; operator and product behavior
+  lives in the matching guides and `requirements.md`; interaction records live in `project-logs/`
+  and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 34: ChatGPT Developer Mode MCP Readiness
+
+- **Date**: 2026-06-12
+- **User Goal**: Add the UseClevr test MCP service as a ChatGPT developer-mode app.
+- **Findings**:
+  1. `https://mcp-test.useclevr.com/api/mcp` returns HTTP 500 for discovery and MCP initialization.
+  2. The route accepts custom GET responses and `{ name, input }` POST bodies instead of standard
+     remote MCP initialization, `tools/list`, and `tools/call`.
+  3. The route requires custom `x-mcp-token` headers or a browser session.
+  4. ChatGPT developer mode requires a remote Streamable HTTP or SSE MCP endpoint and cannot present
+     a custom API key; private UseClevr dataset access therefore requires per-user OAuth.
+- **Problems Marked**:
+  - `blocker`: The endpoint cannot complete ChatGPT's tool scan.
+  - `security`: Anonymous test access would expose user-owned datasets and is not an acceptable
+    substitute for OAuth.
+- **Follow-up Tasks**:
+  - T-839. Implement Streamable HTTP MCP and OAuth, deploy to `beta` and `dist-test`, verify the
+    test endpoint, then create the ChatGPT draft app from the workspace UI.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Active implementation stays in `.TODO/todo-next.md`; protocol guidance
+  lives in the MCP developer and user guides; interaction state lives in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 35: Payload Dashboard MCP Adapter
+
+- **Date**: 2026-06-12
+- **User Goal**: Use Payload as the primary test MCP and expose dashboard dataset information for
+  ChatGPT developer mode.
+- **Changes**:
+  1. Register `listDashboardDatasets` and `getDashboardDatasetInsights` as Payload MCP tools.
+  2. Scope both tools to the locked superadmin test identity and omit uploaded rows.
+  3. Route the test MCP host to Payload Streamable HTTP MCP with a server-held restricted key.
+  4. Add Payload capability columns, generated types, Railway additive schema sync, and a
+     repeatable database-backed smoke test.
+- **Problems Marked**:
+  - `risk`: The test Payload key must enable only the two dashboard read tools.
+  - `blocker`: Live ChatGPT registration requires the source deployment and Railway test key.
+  - `observation`: Private customer dataset access still requires OAuth.
+- **Verification**: Type validation, deployment config validation, pre-commit checks, clean
+  production build, proxy rewrite test, tool registration test, and a database-backed smoke test
+  with 11 locked test datasets pass. A later database retry failed during an external Neon
+  connectivity interruption.
+- **Follow-up Tasks**:
+  - T-840. Add OAuth authorization before exposing private customer datasets.
+  - T-841. Configure and deploy the Railway test connector, verify JSON-RPC, and create the
+    ChatGPT draft app.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`; MCP and
+  deployment guidance lives in the matching developer and user guides; pending operations live in
+  `.TODO/todo-next.md`.
+
+---
+
+## Interaction 20: Bare Transitive Dep Resolution for AWS SDK in Dist Build
+
+- **Date**: 2026-06-12
+- **User Goal**: Fix Railway test deployment where Payload routes (`/admin`, `/api/payload/*`) return
+  500 while `/api/health` works.
+- **Current Product State**: After fixing the `.gitignore` to not strip `@aws-crypto/crc32c/build/`,
+  a new `MODULE_NOT_FOUND` for `tslib` appears in the dist-test branch. The
+  `fixAwsSdkPackages` function in `create-dist.cjs` only handles scoped packages
+  (`@aws-sdk/*`, `@smithy/*`, `@aws-crypto/*`) but not non-scoped transitive deps like `tslib`.
+- **Implemented Changes & Decisions**:
+  1. Added step 3 to `fixAwsSdkPackages`: iterate copied pnpm store entries, scan their
+     `node_modules/` for non-scoped children (e.g. `tslib`, `fast-xml-parser`), and create
+     top-level symlinks for any missing bare deps.
+  2. Added `findPnpmEntry()` helper to locate the pnpm store entry for a bare module name.
+  3. This is a general fix that handles any bare dep that AWS SDK packages need, not just
+     `tslib`.
+- **Problems Marked**:
+  - `resolved`: `@aws-crypto/crc32c/build/` stripped by over-broad `.gitignore` patterns.
+    Fixed by root-anchoring `build/` and `out/` in `dist-root/.gitignore`.
+  - `resolved`: `tslib` missing from dist top-level `node_modules`. Fixed by step 3 in
+    `fixAwsSdkPackages`.
+  - `risk`: If `fast-xml-parser` is not in the dist's pnpm store when AWS SDK XML parsing
+    is triggered, it will fail. The fix mechanism handles it if the pnpm entry exists.
+- **User Learning**: pnpm store entries have sibling non-scoped deps that need top-level
+  symlinks for Node.js module resolution to work with degraded symlink-to-directory copies.
+- **AI-Agent Learning**: `node -c <file>` syntax-checks CommonJS files; project record files must
+  always be staged with code changes or commits are rejected by pre-commit hooks.
+

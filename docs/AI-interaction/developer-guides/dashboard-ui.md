@@ -5,10 +5,12 @@ Current dashboard layout for AI agents and developers working on UI changes.
 ## Layout Structure
 
 - Global topbar spans the dashboard above the sidebar and content area.
-- Topbar sections show logo, Hybrid AI, search, setup progress, help, business workspace, mentoring, admin tools, credits, account, notices, display settings, and sign-out.
+- Topbar sections stay on one line and show logo, Hybrid AI, search, setup progress, help, business workspace, mentoring, admin tools, credits, display settings, notices, account, and sign-out. Popovers render outside the topbar without horizontal-scroll clipping.
 - Sidebar uses one primary navigation list, expands for super-admin tools, and supports desktop collapse plus mobile drawer. Credit panel shows usage for regular accounts and unlimited for pro, and sidebar-footer shows copyright, terms, privacy links, and app version.
-- Main pages use page headers, action rows, shared table shells, row title links, supporting edit links, and row-end actions where the page has listing behavior.
-- Business workspace opens as a top-level listing and uses subpages for profile, location, tax, financial, and review.
+- Route layouts render the page title, breadcrumbs, and subpage navigation before the page body.
+- Page bodies use a center workspace with optional left and right sidebars. AI Assistant uses both sidebars; listing pages place summaries and supporting information in the right sidebar.
+- Listing pages use shared selectable table shells with bulk controls and create, upload, or refresh actions in the table header.
+- Business workspace opens as a top-level listing with profile information in the right sidebar and uses subpages for profile, location, tax, financial, and review.
 - Dashboard FAQ uses a user/operator section bar and quick action links.
 - AI Assistant keeps dataset selection, messages, suggestions, history, search, feedback, and chat input in a fixed workspace structure.
 - Notices describe page errors, failed requests, and important product events directly.

@@ -557,7 +557,7 @@ export const mentoringSessions = pgTable(
 // MCP TABLES
 // ============================================================================
 
-export const mcpTokenScopes = ['dataset:read', 'dataset:write', 'admin', 'faq:read', 'news:read'] as const
+export const mcpTokenScopes = ['dataset:read', 'dataset:write', 'admin'] as const
 export type McpTokenScope = typeof mcpTokenScopes[number]
 export const mcpTokenStatuses = ['active', 'revoked', 'expired'] as const
 export type McpTokenStatus = typeof mcpTokenStatuses[number]

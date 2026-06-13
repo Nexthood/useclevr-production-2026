@@ -2,7 +2,7 @@
 
 import { CsvUpload } from "@/components/forms/csv-upload"
 import { ProfitabilityUpload } from "@/components/forms/profitability-upload"
-import { AppPageHeader } from "@/components/layout/app-page-header"
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { CheckCircle2, FileSpreadsheet, Gauge, Lock, TrendingUp, Upload } from "lucide-react"
 import * as React from "react"
 
@@ -15,18 +15,32 @@ export default function UploadPage() {
     { icon: CheckCircle2, text: "Structured insights instantly" },
   ]
 
-  return (
-    <div className="flex-1 bg-background">
-      <AppPageHeader
-        title="Upload Dataset"
-        description="Add a CSV file and prepare it for analysis."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/app" },
-          { label: "Upload" },
-        ]}
-        icon={Upload}
-      />
+  const rightSidebar = (
+    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="flex h-full flex-col overflow-y-auto p-4">
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground">Upload guide</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Add a CSV file and prepare it for analysis. Use standard upload for general datasets or profitability analysis for financial statements.
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
 
+  return (
+    <DashboardSubpageLayout
+      title="Upload Dataset"
+      description="Add a CSV file and prepare it for analysis."
+      breadcrumbs={[
+        { label: "Dashboard", href: "/app" },
+        { label: "Upload" },
+      ]}
+      icon={Upload}
+      rightSidebar={rightSidebar}
+    >
       <main className="flex-1">
         {/* Use wide container for profitability result, narrow for upload */}
         {uploadMode === "profitability" ? (
@@ -93,6 +107,6 @@ export default function UploadPage() {
           </div>
         )}
       </main>
-    </div>
+    </DashboardSubpageLayout>
   )
 }

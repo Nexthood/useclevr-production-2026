@@ -1,124 +1,165 @@
-"use client";
+"use client"
 
-import { setThemePreference } from "@/app/actions/settings";
-import { Check, Contrast, Monitor, Moon, Palette, Sun, Type, Zap, ZoomIn, ZoomOut, Accessibility, Mic } from "lucide-react";
-import { useTheme } from "next-themes";
-import * as React from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { setThemePreference } from "@/app/actions/settings"
+import {
+  Contrast,
+  Monitor,
+  Moon,
+  Palette,
+  Scan,
+  Sun,
+  Type,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react"
+import { useTheme } from "next-themes"
+import * as React from "react"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 
-const saveTheme = (theme: string) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("theme-preference", theme);
+type TextSize = "small" | "normal" | "large"
+type ZoomLevel = "zoom-out" | "normal" | "zoom-in"
+type ContrastMode = "normal" | "high"
+
+const textSizeOptions = [
+  { id: "small" as const, label: "Small text", icon: Type, iconClass: "h-3.5 w-3.5" },
+  { id: "normal" as const, label: "Normal text", icon: Type, iconClass: "h-4 w-4" },
+  { id: "large" as const, label: "Large text", icon: Type, iconClass: "h-5 w-5" },
+]
+
+const zoomOptions = [
+  { id: "zoom-out" as const, label: "Zoom out", icon: ZoomOut },
+  { id: "normal" as const, label: "Normal zoom", icon: Scan },
+  { id: "zoom-in" as const, label: "Zoom in", icon: ZoomIn },
+]
+
+const contrastOptions = [
+  { id: "normal" as const, label: "Normal contrast", icon: Contrast },
+  { id: "high" as const, label: "High contrast", icon: Contrast },
+]
+
+function applyDocumentPreference(
+  group: "text-size" | "zoom" | "contrast",
+  value: string,
+) {
+  const root = document.documentElement
+  const prefixes = {
+    "text-size": ["text-size-small", "text-size-normal", "text-size-large"],
+    zoom: ["zoom-out", "zoom-normal", "zoom-in"],
+    contrast: ["contrast-normal", "contrast-high"],
   }
-};
 
-const saveContrast = (enabled: boolean) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("theme-contrast", String(enabled));
-  }
-};
+  root.classList.remove(...prefixes[group])
+  root.classList.add(`${group}-${value}`)
+}
 
-const saveLarge = (enabled: boolean) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("theme-large", String(enabled));
-  }
-};
-
-const saveReducedMotion = (enabled: boolean) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("theme-reduced-motion", String(enabled));
-  }
-};
+function SegmentedIconControl<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: T
+  options: Array<{
+    id: T
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+    iconClass?: string
+  }>
+  onChange: (value: T) => void
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+      <div
+        className="grid gap-1 rounded-md bg-muted/70 p-1"
+        style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      >
+        {options.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            aria-label={option.label}
+            title={option.label}
+            aria-pressed={value === option.id}
+            onClick={() => onChange(option.id)}
+            className={`inline-flex h-9 items-center justify-center rounded-sm transition ${
+              value === option.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+            }`}
+          >
+            <option.icon className={option.iconClass || "h-4 w-4"} />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-  const [open, setOpen] = React.useState(false);
-  const [storedTheme, setStoredTheme] = React.useState("system");
-  const [storedContrast, setStoredContrast] = React.useState(false);
-  const [storedLarge, setStoredLarge] = React.useState(false);
-  const [storedReducedMotion, setStoredReducedMotion] = React.useState(false);
+  const { setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+  const [themeChoice, setThemeChoice] = React.useState("system")
+  const [textSize, setTextSize] = React.useState<TextSize>("normal")
+  const [zoomLevel, setZoomLevel] = React.useState<ZoomLevel>("normal")
+  const [contrastMode, setContrastMode] = React.useState<ContrastMode>("normal")
 
   React.useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("theme-preference");
-    const savedContrast = localStorage.getItem("theme-contrast");
-    const savedLarge = localStorage.getItem("theme-large");
-    const savedReducedMotion = localStorage.getItem("theme-reduced-motion");
-    setStoredTheme(saved || "system");
-    setStoredContrast(savedContrast === "true");
-    setStoredLarge(savedLarge === "true");
-    setStoredReducedMotion(savedReducedMotion === "true");
-  }, []);
+    const savedTheme = localStorage.getItem("theme-preference") || "system"
+    const savedTextSize =
+      (localStorage.getItem("theme-text-size") as TextSize | null) || "normal"
+    const savedZoom =
+      (localStorage.getItem("theme-zoom-level") as ZoomLevel | null) || "normal"
+    const savedContrast =
+      (localStorage.getItem("theme-contrast-mode") as ContrastMode | null) || "normal"
 
-  React.useEffect(() => {
-    const saved = localStorage.getItem("theme-preference");
-    const savedContrast = localStorage.getItem("theme-contrast") === "true";
-    const savedLarge = localStorage.getItem("theme-large") === "true";
-    const savedReducedMotion = localStorage.getItem("theme-reduced-motion") === "true";
+    setThemeChoice(savedTheme)
+    setTextSize(savedTextSize)
+    setZoomLevel(savedZoom)
+    setContrastMode(savedContrast)
+    setTheme(savedTheme)
+    applyDocumentPreference("text-size", savedTextSize)
+    applyDocumentPreference("zoom", savedZoom)
+    applyDocumentPreference("contrast", savedContrast)
+    setMounted(true)
+  }, [setTheme])
 
-    // Apply accessibility modifiers as body classes
-    const body = document.body;
-    body.classList.toggle("contrast", savedContrast);
-    body.classList.toggle("large", savedLarge);
-    body.classList.toggle("reduced-motion", savedReducedMotion);
-
-    // Apply theme if not already set
-    if (saved && theme !== saved) {
-      void setTheme(saved);
-    }
-  }, [theme, setTheme]);
-
-  if (!mounted) {
-    return (
-      <button
-        className={["relative rounded-md p-2 transition-colors hover:bg-muted", className]
-          .filter(Boolean)
-          .join(" ")}
-        aria-label="Display settings"
-      >
-        <Palette className="h-4 w-4 text-muted-foreground" />
-      </button>
-    );
+  const applyTheme = (nextTheme: string) => {
+    setThemeChoice(nextTheme)
+    setTheme(nextTheme)
+    localStorage.setItem("theme-preference", nextTheme)
+    void setThemePreference(nextTheme)
   }
 
-  const applyThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
-    saveTheme(newTheme);
-    setStoredTheme(newTheme);
-    void setThemePreference(newTheme);
-  };
+  const applyTextSize = (next: TextSize) => {
+    setTextSize(next)
+    localStorage.setItem("theme-text-size", next)
+    applyDocumentPreference("text-size", next)
+  }
 
-  const toggleContrast = () => {
-    const next = !storedContrast;
-    setStoredContrast(next);
-    saveContrast(next);
-    document.body.classList.toggle("contrast", next);
-  };
+  const applyZoom = (next: ZoomLevel) => {
+    setZoomLevel(next)
+    localStorage.setItem("theme-zoom-level", next)
+    applyDocumentPreference("zoom", next)
+  }
 
-  const toggleLarge = () => {
-    const next = !storedLarge;
-    setStoredLarge(next);
-    saveLarge(next);
-    document.body.classList.toggle("large", next);
-  };
+  const applyContrast = (next: ContrastMode) => {
+    setContrastMode(next)
+    localStorage.setItem("theme-contrast-mode", next)
+    applyDocumentPreference("contrast", next)
+  }
 
-  const toggleReducedMotion = () => {
-    const next = !storedReducedMotion;
-    setStoredReducedMotion(next);
-    saveReducedMotion(next);
-    document.body.classList.toggle("reduced-motion", next);
-  };
-
-  const activeTheme = storedTheme;
+  const hasAccessibilityOverride =
+    textSize !== "normal" || zoomLevel !== "normal" || contrastMode !== "normal"
 
   return (
-    <Popover className="h-full" open={open} onOpenChange={setOpen}>
+    <Popover className="h-full">
       <PopoverTrigger asChild>
         <button
           type="button"
           className={[
-            "relative inline-flex h-16 min-w-12 items-center justify-center rounded-none p-2 text-foreground transition-colors hover:bg-muted/50",
+            "relative inline-flex h-16 min-w-10 items-center justify-center rounded-none p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
             className,
           ]
             .filter(Boolean)
@@ -126,73 +167,81 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           aria-label="Display settings"
           title="Display settings"
         >
-          <Palette className="h-4 w-4 text-muted-foreground" />
-          {(storedContrast || storedLarge || storedReducedMotion) && (
-            <span className="absolute right-1 top-1 flex h-2 w-2" aria-hidden="true">
-              <span
-                className={`h-full w-full rounded-full ${storedContrast ? "bg-primary" : storedLarge ? "bg-secondary" : "bg-muted-foreground/40"}`}
-              />
-            </span>
+          <Palette className="h-4 w-4" />
+          {mounted && hasAccessibilityOverride && (
+            <span
+              className="absolute right-1.5 top-2 h-1.5 w-1.5 rounded-full bg-primary"
+              aria-hidden="true"
+            />
           )}
         </button>
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-64 p-3">
-        <div role="menu">
-          <div className="border-b border-border pb-2">
-            <p className="text-sm font-semibold">Theme</p>
-            <p className="mt-1 text-xs text-muted-foreground">Choose light, dark, or system preference.</p>
-          </div>
-          <div className="mt-2 grid grid-cols-4 gap-1">
-            {[
-              { id: "light", label: "Light", icon: Sun },
-              { id: "dark", label: "Dark", icon: Moon },
-              { id: "eyedropper", label: "Color", icon: Palette },
-              { id: "zoom-in", label: "Zoom in", icon: ZoomIn },
-              { id: "zoom-out", label: "Zoom out", icon: ZoomOut },
-              { id: "a11y", label: "A11y", icon: Accessibility },
-              { id: "voice", label: "Voice", icon: Mic },
-              { id: "system", label: "System", icon: Monitor },
-              { id: "contrast", label: "Contrast", icon: Contrast },
-              { id: "large", label: "Large", icon: Type },
-              { id: "motion", label: "Motion", icon: Zap },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                role="menuitem"
-                aria-label={option.id === "light" || option.id === "dark" || option.id === "system"
-                  ? `Set theme to ${option.label}`
-                  : option.label}
-                aria-pressed={option.id === "contrast" ? storedContrast : option.id === "large" ? storedLarge : option.id === "motion" ? storedReducedMotion : activeTheme === option.id}
-                onClick={() => {
-                  if (option.id === "light" || option.id === "dark" || option.id === "system") {
-                    applyThemeChange(option.id)
-                  } else if (option.id === "contrast") {
-                    toggleContrast()
-                  } else if (option.id === "large") {
-                    toggleLarge()
-                  } else if (option.id === "motion") {
-                    toggleReducedMotion()
-                  }
-                }}
-                className={`flex flex-col items-center justify-center gap-1 rounded-md p-2 text-xs transition hover:bg-muted ${
-                  (option.id === "light" || option.id === "dark" || option.id === "system") && activeTheme === option.id
-                    ? "bg-muted text-foreground"
-                    : (option.id === "contrast" && storedContrast) ||
-                      (option.id === "large" && storedLarge) ||
-                      (option.id === "motion" && storedReducedMotion)
-                    ? "bg-primary/10 text-foreground"
-                    : "text-muted-foreground"
-                }`}
-              >
-                <option.icon className="h-4 w-4" />
-                <span className="sr-only">{option.label}</span>
-              </button>
-            ))}
-          </div>
+        <div className="space-y-4">
+          <section aria-labelledby="display-theme-heading">
+            <h2
+              id="display-theme-heading"
+              className="mb-2 text-xs font-semibold uppercase text-muted-foreground"
+            >
+              Theme
+            </h2>
+            <div className="grid grid-cols-3 gap-1 rounded-md bg-muted/70 p-1">
+              {[
+                { id: "light", label: "Light theme", icon: Sun },
+                { id: "dark", label: "Dark theme", icon: Moon },
+                { id: "system", label: "System theme", icon: Monitor },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-label={option.label}
+                  title={option.label}
+                  aria-pressed={themeChoice === option.id}
+                  onClick={() => applyTheme(option.id)}
+                  className={`inline-flex h-9 items-center justify-center rounded-sm transition ${
+                    themeChoice === option.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                  }`}
+                >
+                  <option.icon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="display-accessibility-heading"
+            className="space-y-3 border-t border-border pt-3"
+          >
+            <h2
+              id="display-accessibility-heading"
+              className="text-xs font-semibold uppercase text-muted-foreground"
+            >
+              Accessibility
+            </h2>
+            <SegmentedIconControl
+              label="Text size"
+              value={textSize}
+              options={textSizeOptions}
+              onChange={applyTextSize}
+            />
+            <SegmentedIconControl
+              label="Zoom"
+              value={zoomLevel}
+              options={zoomOptions}
+              onChange={applyZoom}
+            />
+            <SegmentedIconControl
+              label="Contrast"
+              value={contrastMode}
+              options={contrastOptions}
+              onChange={applyContrast}
+            />
+          </section>
         </div>
       </PopoverContent>
     </Popover>
-  );
+  )
 }

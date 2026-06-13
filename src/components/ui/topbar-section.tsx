@@ -10,7 +10,6 @@ export function TopbarSection({
   value,
   children,
   align = "left",
-  noBorder = false,
   iconOnly = false,
 }: {
   icon: React.ReactNode;
@@ -18,7 +17,6 @@ export function TopbarSection({
   value?: string;
   children?: React.ReactNode;
   align?: "left" | "right";
-  noBorder?: boolean;
   iconOnly?: boolean;
 }) {
   return (
@@ -26,7 +24,7 @@ export function TopbarSection({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`group flex h-16 min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70 ${noBorder ? "" : "border-l border-border/50"}`}
+          className="group flex h-full min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
           title={label}
           aria-label={label}
         >

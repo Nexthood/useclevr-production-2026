@@ -9,7 +9,7 @@ function getIsTestSubdomain(): boolean {
 
 export function PayloadAdminLogo() {
   return (
-    <div className="payload-useclevr-logo" aria-label="UseClevr content admin">
+    <a className="payload-useclevr-logo" href="/app" target="_parent" aria-label="Open UseClevr dashboard">
       <img
         src="/assets/images/logos/useclevr-wordmark-dark.png"
         alt="UseClevr"
@@ -21,7 +21,15 @@ export function PayloadAdminLogo() {
         className="payload-useclevr-logo__image payload-useclevr-logo__image--dark"
       />
       <span>Content admin</span>
-    </div>
+    </a>
+  )
+}
+
+export function PayloadDashboardLink() {
+  return (
+    <a className="payload-useclevr-dashboard-link" href="/app" target="_parent">
+      Back to dashboard
+    </a>
   )
 }
 
@@ -29,18 +37,24 @@ export function PayloadLoginIntro() {
   const isTestSubdomain = getIsTestSubdomain()
   return (
     <div className="payload-useclevr-auth">
-      <p>Manage public news, FAQs, and legal pages.</p>
+      <nav className="payload-useclevr-auth__tabs" aria-label="Account access">
+        <span aria-current="page">Sign in</span>
+        <a href="/login?tab=signup" target="_parent">
+          Sign up
+        </a>
+      </nav>
+      <p>Sign in to manage UseClevr public content.</p>
       {isTestSubdomain && (
-        <div className="payload-useclevr-credentials mt-2 space-y-2">
-          <p className="text-xs font-medium text-cyan-500">Test accounts:</p>
-          <div className="space-y-1 text-left text-xs">
+        <div className="payload-useclevr-credentials">
+          <p className="payload-useclevr-credentials__title">Test accounts:</p>
+          <div className="payload-useclevr-credentials__list">
             <div>
               <span className="font-medium">Base:</span>{" "}
-              <span className="font-mono">base@useclevr.app / 12345678</span>
+              <span className="payload-useclevr-credentials__mono">base@useclevr.app / 12345678</span>
             </div>
             <div>
               <span className="font-medium">Superadmin:</span>{" "}
-              <span className="font-mono">superadmin@useclevr.app / 12345678</span>
+              <span className="payload-useclevr-credentials__mono">superadmin@useclevr.app / 12345678</span>
             </div>
           </div>
         </div>

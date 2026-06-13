@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { type CompanySetupPayload, emptyCompanySetupPayload } from "@/lib/business/company-setup"
 import { getCompanySetup, saveCompanySetup } from "@/lib/business/company-setup-store"
 import { NextResponse } from "next/server"
@@ -8,6 +9,7 @@ export async function GET(request: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  await requireBuiltinUserRecord(session.user.id)
 
   const { searchParams } = new URL(request.url)
   const businessId = searchParams.get("businessId") || undefined
@@ -21,6 +23,7 @@ export async function PUT(request: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  await requireBuiltinUserRecord(session.user.id)
 
   let body: { payload?: CompanySetupPayload; businessId?: string }
   try {
@@ -46,6 +49,7 @@ export async function DELETE(request: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  await requireBuiltinUserRecord(session.user.id)
 
   const empty = emptyCompanySetupPayload()
   const ok = await saveCompanySetup(session.user.id, empty)

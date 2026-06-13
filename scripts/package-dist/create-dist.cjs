@@ -87,6 +87,10 @@ if (fs.existsSync(standaloneDistInDist)) {
   fs.rmSync(standaloneDistInDist, { recursive: true, force: true });
 }
 
+// Copy missing AWS SDK transitive deps that Next.js tracing misses
+fixAwsSdkPackages(path.join(distDir, "node_modules"));
+ensureSharpMuslPackages(path.join(distDir, "node_modules"));
+
 // Copy Next.js static assets
 if (fs.existsSync(nextStaticDir)) {
   copyDir(nextStaticDir, path.join(distDir, ".next", "static"));
@@ -221,6 +225,184 @@ for (const f of packageManagerFiles) {
 for (const f of ["vercel.json", "railway.json"]) {
   const fp = path.join(distDir, f);
   if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
+}
+
+// --- AWS SDK package fix ---
+// Next.js standalone build tracing only symlinks @aws-sdk/client-s3 but skips
+// many transitive @aws-sdk/*, @smithy/*, and @aws-crypto/* packages. Copy the
+// missing entries from the root node_modules/.pnpm store and recreate symlinks.
+function fixAwsSdkPackages(distNmDir) {
+  const pnpmDir = path.join(distNmDir, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) return;
+  const rootPnpm = path.join(rootDir, "node_modules", ".pnpm");
+
+  const missingPrefixes = ["@aws-sdk+", "@smithy+", "@aws-crypto+"];
+  const scopes = ["@aws-sdk", "@smithy", "@aws-crypto"];
+
+  // 1. Copy missing entries from root pnpm store
+  for (const entry of fs.readdirSync(rootPnpm, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const shouldCopy = missingPrefixes.some((p) => entry.name.startsWith(p));
+    if (!shouldCopy) continue;
+
+    const src = path.join(rootPnpm, entry.name);
+    const dest = path.join(pnpmDir, entry.name);
+    if (!fs.existsSync(dest)) {
+      execSync(`cp -a "${src}" "${dest}"`, { stdio: "ignore" });
+    }
+  }
+
+  // 2. Create symlinks for each scope directory
+  for (const scope of scopes) {
+    const scopeDir = path.join(distNmDir, scope);
+    if (!fs.existsSync(scopeDir)) {
+      fs.mkdirSync(scopeDir, { recursive: true });
+    }
+
+    const pnpmPrefix = scope + "+";
+    for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (!entry.name.startsWith(pnpmPrefix)) continue;
+
+      const pkgPath = path.join(pnpmDir, entry.name, "node_modules", scope);
+      if (!fs.existsSync(pkgPath)) continue;
+
+      for (const pkg of fs.readdirSync(pkgPath, { withFileTypes: true })) {
+        if (!pkg.isDirectory() && !pkg.isSymbolicLink()) continue;
+        const linkPath = path.join(scopeDir, pkg.name);
+        if (!fs.existsSync(linkPath)) {
+          const target = path.join("..", ".pnpm", entry.name, "node_modules", scope, pkg.name);
+          fs.symlinkSync(target, linkPath, "junction");
+        }
+      }
+    }
+  }
+
+  // 3. Create top-level symlinks for non-scoped transitive deps (e.g. tslib, fast-xml-parser)
+  // that sibling pnpm entries bring in. Next.js standalone tracing often omits these.
+  const seenBare = new Set();
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!missingPrefixes.some((p) => entry.name.startsWith(p))) continue;
+
+    const entryNmDir = path.join(pnpmDir, entry.name, "node_modules");
+    if (!fs.existsSync(entryNmDir)) continue;
+
+    for (const child of fs.readdirSync(entryNmDir, { withFileTypes: true })) {
+      const isScoped = child.name.startsWith("@");
+      if (isScoped) continue;
+      if (!child.isDirectory() && !child.isSymbolicLink()) continue;
+      if (seenBare.has(child.name)) continue;
+      seenBare.add(child.name);
+
+      const topLink = path.join(distNmDir, child.name);
+      if (fs.existsSync(topLink)) continue;
+
+      // Find the pnpm store entry for this bare module
+      const bareEntry = findPnpmEntry(pnpmDir, child.name);
+      if (bareEntry) {
+        // Bare modules are directly in node_modules/, not in a subdirectory like @scope/.
+        // The target relative to node_modules/ is .pnpm/..., without the ../ prefix
+        // that is needed for scoped packages (@scope/pkg → ../.pnpm/...).
+        const target = path.join(".pnpm", bareEntry, "node_modules", child.name);
+        fs.symlinkSync(target, topLink, "junction");
+      }
+    }
+  }
+}
+
+function findPnpmEntry(pnpmDir, bareName) {
+  if (!fs.existsSync(pnpmDir)) return null;
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith("node_modules")) continue;
+    // Scoped pnpm entries start with @ — they are not canonical entries for bare modules
+    if (entry.name.startsWith("@")) continue;
+    // Match bareName@version pattern (e.g. tslib@2.8.1)
+    const prefix = bareName + "@";
+    if (!entry.name.startsWith(prefix)) continue;
+    const candidatePkg = path.join(pnpmDir, entry.name, "node_modules", bareName);
+    if (fs.existsSync(candidatePkg)) {
+      return entry.name;
+    }
+  }
+  return null;
+}
+
+// --- Sharp native module fix ---
+// Railway uses Alpine Linux (musl libc) but CI builds on Ubuntu (glibc).
+// pnpm skips musl platform packages on glibc, so they must be fetched from npm
+// and placed directly into the dist pnpm store so sharp can load at runtime.
+function ensureSharpMuslPackages(distNmDir) {
+  const pnpmDir = path.join(distNmDir, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) return;
+
+  const muslPackages = [
+    { entry: "@img+sharp-linuxmusl-x64@0.34.5", npmName: "@img/sharp-linuxmusl-x64", version: "0.34.5" },
+    { entry: "@img+sharp-libvips-linuxmusl-x64@1.2.4", npmName: "@img/sharp-libvips-linuxmusl-x64", version: "1.2.4" },
+  ];
+
+  for (const pkg of muslPackages) {
+    const destEntry = path.join(pnpmDir, pkg.entry);
+    if (fs.existsSync(destEntry)) continue;
+
+    const scope = pkg.npmName.split("/")[0];
+    const bareName = pkg.npmName.split("/")[1];
+    const tmpDir = fs.mkdtempSync(path.join(pnpmDir, ".tmp-sharp-musl-"));
+
+    try {
+      const tarball = path.join(tmpDir, "pkg.tgz");
+      const url = `https://registry.npmjs.org/${pkg.npmName}/-/${bareName}-${pkg.version}.tgz`;
+      execSync(`curl -sfL -o "${tarball}" "${url}"`, { stdio: "ignore" });
+      execSync(`tar xzf "${tarball}" -C "${tmpDir}"`, { stdio: "ignore" });
+
+      const pkgDir = path.join(tmpDir, "package");
+      const storePath = path.join(pnpmDir, pkg.entry, "node_modules", scope, bareName);
+      fs.mkdirSync(path.dirname(storePath), { recursive: true });
+      fs.renameSync(pkgDir, storePath);
+
+      console.log(`  Added missing platform package: ${pkg.npmName}@${pkg.version}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Create symlink inside the sharp-linuxmusl pnpm entry so the .node binary's
+  // RPATH ($ORIGIN/../../sharp-libvips-.../lib) can find the libvips shared library.
+  // Without this, dlopen fails because the .node binary and libvips live in different
+  // pnpm entries (different versions), but the RPATH expects them under a common @img/ parent.
+  const sharpMuslEntry = path.join(pnpmDir, "@img+sharp-linuxmusl-x64@0.34.5");
+  if (fs.existsSync(sharpMuslEntry)) {
+    const muslImgDir = path.join(sharpMuslEntry, "node_modules", "@img");
+    if (!fs.existsSync(muslImgDir)) {
+      fs.mkdirSync(muslImgDir, { recursive: true });
+    }
+    const libvipsSymlinkPath = path.join(muslImgDir, "sharp-libvips-linuxmusl-x64");
+    if (!fs.existsSync(libvipsSymlinkPath)) {
+      // From: @img+sharp-linuxmusl-x64@0.34.5/node_modules/@img/
+      // To:   ../../../@img+sharp-libvips-linuxmusl-x64@1.2.4/node_modules/@img/sharp-libvips-linuxmusl-x64
+      const target = path.join("..", "..", "..", "@img+sharp-libvips-linuxmusl-x64@1.2.4", "node_modules", "@img", "sharp-libvips-linuxmusl-x64");
+      fs.symlinkSync(target, libvipsSymlinkPath, "junction");
+      console.log(`  Created libvips symlink in sharp-linuxmusl pnpm entry -> ${target}`);
+    }
+  }
+
+  // Create symlinks inside sharp@0.34.5/node_modules/@img/ for Node.js require resolution
+  const sharpPnpmDir = path.join(pnpmDir, "sharp@0.34.5");
+  if (!fs.existsSync(sharpPnpmDir)) return;
+  const imgDir = path.join(sharpPnpmDir, "node_modules", "@img");
+  if (!fs.existsSync(imgDir)) return;
+
+  for (const pkg of muslPackages) {
+    const symlinkPath = path.join(imgDir, pkg.npmName.split("/")[1]);
+    if (fs.existsSync(symlinkPath)) continue;
+    // Resolve back up to .pnpm/ then forward into the pnpm store entry
+    // From: sharp@0.34.5/node_modules/@img/
+    // To:   ../../../@img+sharp-linuxmusl-x64@0.34.5/node_modules/@img/sharp-linuxmusl-x64
+    const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
+    fs.symlinkSync(target, symlinkPath, "junction");
+    console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
+  }
 }
 
 // --- Next.js build directory restore ---

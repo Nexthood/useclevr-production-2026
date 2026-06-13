@@ -9,7 +9,6 @@ import {
   ChevronRight,
   History,
   Loader2,
-  MessageSquare,
   RefreshCw,
   Search,
   Send,
@@ -89,7 +88,6 @@ export function AiAssistantWorkspace() {
   const [inputValue, setInputValue] = React.useState("")
   const [loadingDatasets, setLoadingDatasets] = React.useState(true)
   const [isAsking, setIsAsking] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const [savedSuggestions, setSavedSuggestions] = React.useState<SavedSuggestion[]>([])
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = React.useState(false)
@@ -112,7 +110,6 @@ export function AiAssistantWorkspace() {
     let cancelled = false
     async function loadDatasets() {
       setLoadingDatasets(true)
-      setError(null)
       try {
         const response = await fetch("/api/datasets")
         const body = await response.json()
@@ -198,7 +195,6 @@ export function AiAssistantWorkspace() {
     }
 
     setInputValue("")
-    setError(null)
     setIsAsking(true)
 
     const userMessage: AssistantMessage = {
@@ -310,7 +306,7 @@ export function AiAssistantWorkspace() {
   const canAsk = Boolean(selectedDatasetId) && !isAsking
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
       {/* Left Sidebar - Datasets */}
       <aside
         className={`flex-shrink-0 border-r border-border bg-card transition-all duration-200 ${

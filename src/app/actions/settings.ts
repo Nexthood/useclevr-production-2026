@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
@@ -33,7 +34,7 @@ export async function updateProfile(formData: FormData): Promise<Result<ProfileD
   }
 
   if (isBuiltinUserId(userId)) {
-    return success({ message: "Built-in account loaded. Changes are not saved for shared built-in accounts." })
+    return success({ message: "Built-in account identity is locked." })
   }
 
   const db = getDb()
@@ -110,12 +111,14 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
 
   if (!userId) return failure("Please sign in again.")
 
-  if (isBuiltinUserId(userId)) {
-    return success({ message: "Built-in account loaded. Changes are not saved for shared built-in accounts." })
-  }
-
   const db = getDb()
   if (!db) return failure("Database connection is unavailable.")
+
+  try {
+    await requireBuiltinUserRecord(userId)
+  } catch {
+    return failure("Database connection is unavailable.")
+  }
 
   const businessName        = String(formData.get("businessName") ?? "").trim()
   const businessEmail       = String(formData.get("businessEmail") ?? "").trim().toLowerCase()
@@ -135,7 +138,12 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
   }
 
   if (businessId && businessId !== "profile-primary") {
-    await upsertBusinessDetails(userId, businessId, details)
+    try {
+      await upsertBusinessDetails(userId, businessId, details)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save business details."
+      return failure(message)
+    }
 
     await recordActivity({
       userId,
@@ -154,41 +162,46 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
     return success({ message: businessId === "new" ? "Business profile created." : "Business profile saved." })
   }
 
-  const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-    columns: {
-      userId: true,
-      email: true,
-      fullName: true,
-    },
-  })
+  try {
+    const existingProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: {
+        userId: true,
+        email: true,
+        fullName: true,
+      },
+    })
 
-  if (existingProfile) {
-    await db.update(profiles)
-      .set({
+    if (existingProfile) {
+      await db.update(profiles)
+        .set({
+          businessName,
+          businessEmail,
+          industry,
+          location,
+          website,
+          businessDescription,
+          updatedAt: new Date(),
+        })
+        .where(eq(profiles.userId, userId))
+    } else {
+      await db.insert(profiles).values({
+        id: `profile_${uuidv4()}`,
+        userId,
         businessName,
         businessEmail,
         industry,
         location,
         website,
         businessDescription,
-        updatedAt: new Date(),
       })
-      .where(eq(profiles.userId, userId))
-  } else {
-    await db.insert(profiles).values({
-      id: `profile_${uuidv4()}`,
-      userId,
-      businessName,
-      businessEmail,
-      industry,
-      location,
-      website,
-      businessDescription,
-    })
-  }
+    }
 
-  await upsertPrimaryBusinessDetails(userId, details)
+    await upsertPrimaryBusinessDetails(userId, details)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to save business details."
+    return failure(message)
+  }
 
   await recordActivity({
     userId,
@@ -222,12 +235,14 @@ export async function setThemePreference(theme: string): Promise<Result<{ messag
 
   if (!userId) return failure("Please sign in again.")
 
-  if (isBuiltinUserId(userId)) {
-    return success({ message: "Theme preference updated for this session only." })
-  }
-
   const db = getDb()
   if (!db) return failure("Database connection is unavailable.")
+
+  try {
+    await requireBuiltinUserRecord(userId)
+  } catch {
+    return failure("Database connection is unavailable.")
+  }
 
   if (!validThemes.includes(theme as ThemeValue)) {
     return failure("Invalid theme value.")

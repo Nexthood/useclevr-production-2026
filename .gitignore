@@ -4,7 +4,6 @@ package-lock.json
 
 # Next.js local dev/build cache. Created by `pnpm dev` and `pnpm build`.
 .next/
-next-env.d.ts
 out/
 build/
 

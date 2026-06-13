@@ -61,6 +61,14 @@ export const NewsPosts: CollectionConfig = withCollectionGroup({
       },
     },
     {
+      name: "coverImage",
+      type: "upload",
+      relationTo: "media",
+      admin: {
+        description: "Optional durable cover image stored through the configured Payload storage adapter.",
+      },
+    },
+    {
       name: "content",
       type: "textarea",
       required: true,

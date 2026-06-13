@@ -175,13 +175,18 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
           rows={tickets as unknown as Record<string, unknown>[]}
           columns={ticketColumns({
             isSuperAdmin,
-            allSelected,
-            selectedIds,
-            toggleAll,
-            toggleTicket,
           })}
           rowKey={(row) => String(row.id)}
           minWidth="min-w-[980px]"
+          selectable
+          selectedRows={selectedIds}
+          onSelectedRowsChange={setSelectedIds}
+          bulkActions={
+            <Button variant="outline" onClick={resolveSelected} disabled={selectedIds.size === 0 || isUpdating} className="gap-2">
+              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Resolve selected
+            </Button>
+          }
         />
       )}
     </div>
@@ -190,42 +195,10 @@ export function TicketsClient({ isSuperAdmin }: TicketsClientProps) {
 
 function ticketColumns({
   isSuperAdmin,
-  allSelected,
-  selectedIds,
-  toggleAll,
-  toggleTicket,
 }: {
   isSuperAdmin: boolean
-  allSelected: boolean
-  selectedIds: Set<string>
-  toggleAll: (checked: boolean) => void
-  toggleTicket: (id: string, checked: boolean) => void
 }): DataTableColumn<Record<string, unknown>>[] {
   return [
-    {
-      key: "select",
-      header: (
-        <input
-          type="checkbox"
-          checked={allSelected}
-          onChange={(event) => toggleAll(event.target.checked)}
-          aria-label="Select all tickets"
-          className="h-4 w-4 rounded border-border accent-primary"
-        />
-      ),
-      render: (row) => {
-        const id = String(row.id)
-        return (
-          <input
-            type="checkbox"
-            checked={selectedIds.has(id)}
-            onChange={(event) => toggleTicket(id, event.target.checked)}
-            aria-label={`Select ticket ${id}`}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-        )
-      },
-    },
     {
       key: "id",
       header: "ID",

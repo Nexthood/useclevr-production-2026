@@ -46,11 +46,11 @@ function getTrialStatus(createdAt: Date | null | undefined, subscriptionTier: st
 }
 
 export async function getAnalystCreditUsage(userId?: string | null): Promise<AnalystCreditUsage> {
-  if (isSuperAdminUserId(userId)) {
+  if (isBuiltinUserId(userId)) {
     return {
       analysisCount: 0,
       total: 0,
-      subscriptionTier: "superadmin",
+      subscriptionTier: isSuperAdminUserId(userId) ? "superadmin" : "builtin",
       canAnalyze: true,
       limitReached: false,
       trialActive: false,

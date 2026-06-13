@@ -163,6 +163,24 @@
   html {
     font-size: 87.5%;
   }
+  html.text-size-small {
+    font-size: 81.25%;
+  }
+  html.text-size-normal {
+    font-size: 87.5%;
+  }
+  html.text-size-large {
+    font-size: 100%;
+  }
+  html.zoom-out body {
+    zoom: 0.9;
+  }
+  html.zoom-normal body {
+    zoom: 1;
+  }
+  html.zoom-in body {
+    zoom: 1.1;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
@@ -180,7 +198,8 @@
       hsl(var(--background));
   }
 
-  .contrast {
+  .contrast,
+  .contrast-high {
     --background: 0 0% 100%;
     --foreground: 0 0% 0%;
     --card: 0 0% 100%;
@@ -203,11 +222,6 @@
     --sidebar-accent: 0 0% 90%;
     --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 20%;
-  }
-
-  .large body {
-    font-size: 13px;
-    line-height: 1.62;
   }
 
   .reduced-motion * {

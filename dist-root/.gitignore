@@ -2,8 +2,8 @@
 # for the standalone deployment (Railway copies dist/ contents into the Docker image).
 /.next/
 next-env.d.ts
-out/
-build/
+/out/
+/build/
 
 # Environment variables (local only)
 .env

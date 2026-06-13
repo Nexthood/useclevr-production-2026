@@ -71,8 +71,6 @@ export async function POST(request: Request) {
     "dataset:read",
     "dataset:write",
     "admin",
-    "faq:read",
-    "news:read",
   ];
   const scopes: McpTokenScope[] = body.scopes.filter((s: string) =>
     validScopes.includes(s as McpTokenScope),

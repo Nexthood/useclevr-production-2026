@@ -4,12 +4,8 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-09
-- **Goal**: Make the dashboard sidebar collapse control minimal and align Payload authentication
-  presentation with the UseClevr app.
-- **Durable change**: The desktop sidebar uses an icon-only collapse control. Payload login uses
-  UseClevr branding and routes app sign-in and signup actions to the existing app authentication
-  screen without changing CMS account permissions.
+- **Date**: 2026-06-12
+- **Goal**: Fix Railway test deployment — Payload routes return 500; first fix `@aws-crypto/crc32c` (gitignore), then `tslib` (missing top-level symlink).
+- **Durable change**: `dist-root/.gitignore` patterns `build/` and `out/` prefixed with `/` so they only match at root level; `fixAwsSdkPackages` extended with step 3 to create top-level symlinks for non-scoped transitive deps (tslib, fast-xml-parser).
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
-- **Follow-up interaction**: 2026-06-09 — Railway Deploy Fix: Dockerfile pnpm removal, auto-merge chain, incident monitoring, CI node_modules deletion fixed, dist-root copy fix. See project-logs/interactive-log.md for full detail.

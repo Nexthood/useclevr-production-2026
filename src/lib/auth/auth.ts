@@ -7,6 +7,7 @@ import {
   isBuiltinUserId,
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
+import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { isLocalAuthOrigin, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
@@ -252,7 +253,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      */
     async signIn({ user, account }) {
       if (account?.provider === "credentials" || account?.provider === "demo") {
-        // Credentials provider already validated in authorize()
+        if (isBuiltinUserId(user.id)) {
+          try {
+            await ensureBuiltinUserRecord(user.id);
+          } catch (error) {
+            debugWarn("[Auth] Built-in database identity sync failed:", error);
+          }
+        }
         return true;
       }
 

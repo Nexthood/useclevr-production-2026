@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Scope dist-root gitignore patterns with `/` prefix so `build/` and `out/` only match root level, preventing git from stripping compiled JS from pnpm store entries (e.g., `@aws-crypto/crc32c`) in the dist-test branch
+- Create top-level symlinks for non-scoped transitive dependencies (tslib, fast-xml-parser) in the dist build so AWS SDK packages resolve them even when the scoped-package symlinks degrade to directory copies
+- Connect dataset bulk deletion to the ownership-scoped dataset API and report failed deletions.
+- Require owned secondary businesses to pass archive, restore, and permanent-delete state checks.
+- Persist dashboard updates and every dataset upload for locked built-in accounts, including the production profile and business data required by those writes.
+- Middleware passes `/api/mcp` through without session cookie check, enabling token-based MCP auth on MCP subdomains
+- Topbar sections now show icons only, keeping Hybrid AI, Search, and Onboarding button with full labels
+- Login flow uses `result.ok` instead of `getSession()` for reliable post-sign-in redirect
+- Payload admin login shows sign-up and sign-in nav links matching app login style
+- Business profile updates wrapped in try/catch to prevent server action crashes
+- Stripe checkout success URL uses correct `session_id` parameter
+- Superadmin plan dropdown only shows billing plans (`free`, `pro`, `business`)
 - Auto-merge chain now dispatches dist publish after PR merge, fixing the `GITHUB_TOKEN` limitation that prevented `branch-maintenance.yml` from triggering on auto-merge push events
 - Remove `pnpm install --prod` from Dockerfiles — dist already contains complete `node_modules` from Next.js standalone tracing, eliminating `ERR_PNPM_IGNORED_BUILDS` and preventing overwrite of traced Next.js internals
 - Keep `node_modules` in dist branch commits so Railway Docker build has all required dependencies at build time
@@ -16,9 +28,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Let ChatGPT developer-mode tests read locked demo-account dataset metadata and stored insights
+  through the Payload MCP connector without exposing uploaded rows.
+- Manage Payload News cover images through durable S3-compatible storage.
+- Connect authorised content tools to News and FAQ through Payload-native MCP API keys.
+- List signed-in users' datasets through the UseClevr MCP service.
 - Block non-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via proxy.ts, returning 404 for all paths except /api/mcp.
 - Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
-- Published product news is searchable through MCP by slug or keyword, with optional full article content.
 - MCP subdomain exposes tool schemas with scoped access for service tokens.
 - Database-backed MCP tokens support creation, listing, and revocation for service authentication.
 - MCP audit trail records tool invocations, authentication failures, and token management events for compliance.
@@ -41,6 +57,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Keep successful Railway deployments when operators run cleanup with the `--keep-success` option.
+- Place the compact desktop sidebar toggle beside Dashboard for immediate access.
+- Align Payload admin navigation, typography, controls, surfaces, and light/dark backgrounds with the dashboard and add a dashboard return link.
+- Separate Payload News and FAQ tools from the UseClevr dataset MCP service.
+- Separate theme selection from icon-based text size, zoom, and contrast controls.
+- Show listing actions and bulk controls in selectable table headers while supporting information stays in page sidebars.
+- Keep dashboard topbar panels visible outside the one-line topbar and allow the main sidebar menu to scroll independently.
 - Show the content admin login with UseClevr branding and direct app sign-in and signup links.
 - Use a compact icon control to collapse or expand the dashboard sidebar.
 - Show built-in demo accounts as compact lines under the sign-in form.
@@ -48,7 +71,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Use simple login card styling without backdrop blur.
 - Publish production only from the verified release branch instead of synchronizing beta during production deployment.
 - Accept `NEXTAUTH_SECRET` as fallback for `AUTH_SECRET` so deployment configs using the older env var name continue to work.
-- Wire MCP FAQ tool to read from Payload Faqs collection with automatic fallback to built-in static content.
 
 ### Fixed
 

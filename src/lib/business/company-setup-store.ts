@@ -1,7 +1,9 @@
 import { and, eq } from "drizzle-orm"
+import { randomUUID } from "node:crypto"
 
 import { getDb } from "@/lib/db"
 import { businesses } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import {
   type CompanySetupPayload,
   buildSetupStatus,
@@ -55,16 +57,31 @@ export async function saveCompanySetup(
       conditions.push(eq(businesses.isPrimary, true))
     }
 
-    await db
+    const updated = await db
       .update(businesses)
       .set({
         companySetup: fullPayload as unknown as Record<string, unknown>,
         updatedAt: new Date(),
       })
       .where(and(...conditions))
+      .returning()
+
+    if (updated.length === 0 && !businessId) {
+      await db.insert(businesses).values({
+        id: `business_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
+        userId,
+        name: payload.companyInfo.companyName || "Primary business profile",
+        status: "draft",
+        isPrimary: true,
+        localeSettings: {},
+        invoiceSettings: {},
+        companySetup: fullPayload as unknown as Record<string, unknown>,
+      })
+    }
 
     return true
-  } catch {
+  } catch (error) {
+    debugError("[BUSINESS] Company setup save failed:", error)
     return false
   }
 }

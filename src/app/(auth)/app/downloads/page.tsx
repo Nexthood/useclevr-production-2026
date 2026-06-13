@@ -4,13 +4,13 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug"
 
 
 
-import { AppPageHeader } from "@/components/layout/app-page-header"
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
-import { AlertCircle, Download, Loader2, RefreshCw, Search } from "lucide-react"
+import { AlertCircle, Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 interface DownloadItem {
@@ -27,6 +27,14 @@ interface DownloadItem {
   createdAt?: string
 }
 
+interface ReportListItem {
+  id: string
+  datasetName?: string | null
+  localTime?: string | null
+  createdAt: string
+  timezone?: string | null
+}
+
 export default function DownloadsPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [downloads, setDownloads] = useState<DownloadItem[]>([])
@@ -39,6 +47,7 @@ export default function DownloadsPage() {
   const [downloadCount, setDownloadCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, _setFilterStatus] = useState<'all' | 'ready'>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Fetch user data and downloads in parallel
   const fetchData = useCallback(async () => {
@@ -47,7 +56,7 @@ export default function DownloadsPage() {
     try {
       // Fetch usage and reports - handle each separately to not fail the whole thing
       let usageData = { analysisCount: 0, subscriptionTier: 'free' }
-      let reportsData = { reports: [] }
+      let reportsData: { reports: ReportListItem[] } = { reports: [] }
       
       // Fetch usage
       try {
@@ -80,7 +89,7 @@ export default function DownloadsPage() {
       
       // Transform reports to download items
       if (reportsData.reports && reportsData.reports.length > 0) {
-        const items: DownloadItem[] = reportsData.reports.map((report: any) => ({
+        const items: DownloadItem[] = reportsData.reports.map((report) => ({
           id: report.id,
           name: report.datasetName || "Analysis Report",
           type: "pdf", // PDF reports are now generated
@@ -290,37 +299,15 @@ export default function DownloadsPage() {
     },
   ]
 
-  return (
-    <div className="flex-1 bg-background">
-      <AppPageHeader
-        title="Downloads"
-        description="Manage your exported files."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/app" },
-          { label: "Downloads" },
-        ]}
-        icon={Download}
-        actions={(
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={fetchData}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-        )}
-      />
-
-      <main className="p-4 sm:p-6">
-        <div className="max-w-6xl mx-auto space-y-6 pt-6">
-          {/* Usage Card - Unified with sidebar */}
+  const rightSidebar = (
+    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="flex h-full flex-col overflow-y-auto p-4">
+        <div className="space-y-4">
           <Card className="p-4 bg-card border-border">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4">
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-foreground">Analysis Credits</h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h2 className="text-sm font-semibold text-foreground">Analysis Credits</h2>
+                <p className="text-xs text-muted-foreground mt-1">
                   {isPro 
                     ? "Unlimited analyses and downloads" 
                     : `${creditsUsed} / ${creditsLimit} analyses used this month`
@@ -328,7 +315,7 @@ export default function DownloadsPage() {
                 </p>
               </div>
               {!isPro && creditsUsed >= creditsLimit && (
-                <Button 
+                <Button
                   onClick={() => setShowUpgradeModal(true)}
                   className="bg-gradient-primary hover:opacity-90"
                 >
@@ -356,6 +343,53 @@ export default function DownloadsPage() {
             </div>
           </Card>
 
+          {!isPro && (
+            <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20">
+              <div className="flex flex-col gap-4">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground">Unlock Unlimited Downloads</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Get unlimited PDF, CSV, and data exports with Pro
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="bg-gradient-primary hover:opacity-90"
+                >
+                  Upgrade to Pro
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+    </aside>
+  )
+
+  return (
+    <DashboardSubpageLayout
+      title="Downloads"
+      description="Manage your exported files."
+      breadcrumbs={[
+        { label: "Dashboard", href: "/app" },
+        { label: "Downloads" },
+      ]}
+      icon={Download}
+      rightSidebar={rightSidebar}
+      actions={(
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+      )}
+    >
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto space-y-6 pt-6">
           {/* Error display */}
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -404,29 +438,34 @@ export default function DownloadsPage() {
                 columns={downloadColumns}
                 rowKey={(row) => String(row.id)}
                 minWidth="min-w-[900px]"
+                selectable
+                selectedRows={selectedIds}
+                onSelectedRowsChange={setSelectedIds}
+                bulkActions={
+                  selectedIds.size > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-900/40 text-red-400 hover:bg-red-900/10"
+                      onClick={() => {
+                        const confirmed = window.confirm(`Remove ${selectedIds.size} downloads?`)
+                        if (!confirmed) return
+                        void Promise.all(Array.from(selectedIds).map((id) => fetch(`/api/reports?id=${encodeURIComponent(id)}`, { method: 'DELETE' })))
+                          .then(() => {
+                            setDownloads((prev) => prev.filter((d) => !selectedIds.has(d.id)))
+                            setSelectedIds(new Set())
+                          })
+                          .catch((err) => debugError('Bulk delete error:', err))
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  )
+                }
               />
             )}
           </div>
-
-          {/* Upgrade CTA for free users */}
-          {!isPro && (
-            <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground">Unlock Unlimited Downloads</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Get unlimited PDF, CSV, and data exports with Pro
-                  </p>
-                </div>
-                <Button 
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="bg-gradient-primary hover:opacity-90"
-                >
-                  Upgrade to Pro
-                </Button>
-              </div>
-            </Card>
-          )}
         </div>
       </main>
 
@@ -438,7 +477,7 @@ export default function DownloadsPage() {
       >
         <p className="text-sm text-muted-foreground">Your cart and discount are ready.</p>
       </Modal>
-    </div>
+    </DashboardSubpageLayout>
   )
 }
 

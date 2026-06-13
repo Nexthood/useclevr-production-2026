@@ -2,6 +2,23 @@
   "$schema": "https://app.kilo.ai/config.json",
   "auto_collapse_reasoning": true,
   "instructions": ["AGENTS.md", "ai-chat-behavior.config.ts", ".aiignore"],
+  "mcp": {
+    "domains": {
+      "test": "test.useclevr.com",
+      "local": "localhost:3000",
+      "production": "app.useclevr.com"
+    },
+    "endpoints": {
+      "local": "http://localhost:3000/api/mcp",
+      "test": "https://test.useclevr.com/api/mcp",
+      "production": "https://app.useclevr.com/api/mcp"
+    },
+    "payloadEndpoints": {
+      "local": "http://localhost:3000/api/payload/mcp",
+      "test": "https://test.useclevr.com/api/payload/mcp",
+      "production": "https://app.useclevr.com/api/payload/mcp"
+    }
+  },
   "permission": {
     "bash": "allow",
     "doom_loop": "allow",

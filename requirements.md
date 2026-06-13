@@ -84,6 +84,8 @@ Text rules for this file:
 - Start a guided setup tour from the topbar progress panel.
 - Include business profile, location, tax, financial, and overview visits in setup progress.
 - Open Business as a top-level workspace with the businesses listing first.
+- Create and update owned business profiles, archive and restore secondary profiles, and permanently
+  delete an owned secondary profile only after it is archived.
 - Show profile, location, tax, financial, and review subpages inside the Business workspace.
 - Open business row edit links on the matching business profile.
 - Open new business creation as a blank business profile.
@@ -122,6 +124,9 @@ Text rules for this file:
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Authenticate the built-in superadmin account with the `superadmin` session role and allow protected administrator pages.
+- Keep built-in base, demo, and superadmin identities locked to fixed IDs, emails, roles, and credentials.
+- Persist built-in account dashboard preferences, onboarding, business setup, and uploaded datasets in the database.
+- Give built-in accounts unrestricted dataset upload and analysis access for product testing.
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
@@ -131,14 +136,14 @@ Text rules for this file:
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Keep topbar items on one line with consistent icon color and compact hover targets.
 - Show a host-specific keyboard shortcut in the dashboard search trigger.
-- Support light, dark, system, high-contrast, and larger-text display modes.
-- Show accessibility state and descriptions in display settings.
+- Separate Light, Dark, and System theme selection from accessibility controls.
+- Provide icon-only state controls for text size, page zoom, and contrast with accessible labels and pressed states.
 - Use full-height hover and click targets in the dashboard topbar.
 - Use a horizontal subpage bar for account profile, preferences, subscription, billing, and activity pages.
 - Search app pages, datasets, reports, and FAQ answers from the dashboard search overlay.
 - Limit operator-only search results to super-admin users.
 - Use dashboard search context in chat support.
-- Collapse and expand the desktop sidebar.
+- Collapse and expand the desktop sidebar from the compact control beside Dashboard.
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.
@@ -150,6 +155,9 @@ Text rules for this file:
 - Support ticket row selection and bulk resolution.
 - Use the ticket subject as the edit link, show an edit link below it, and keep row actions at the end.
 - Use a consistent bordered table shell across dataset previews, admin lists, business lists, downloads, and support queues.
+- Start management table rows with selection controls and place bulk and create, upload, or refresh actions in the table header.
+- Keep page titles, breadcrumbs, and subpage navigation separate from the page body.
+- Use optional body sidebars for supporting information while the center workspace remains focused on primary data and forms.
 - Let public visitors request a demo or contact the team from the Contact page.
 - Give super-admins a ticket queue with support notes and resolution controls.
 - Persist support tickets, support notes, billing settings, and referral events in the database when database access is configured.
@@ -189,6 +197,9 @@ Text rules for this file:
 - Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.
 - Open Payload admin at `/admin`.
 - Keep Payload admin focused on minimal content editing for CMS users, news, homepage, privacy, and terms.
+- Match Payload admin typography, colors, control radius, navigation surfaces, and light/dark
+  backgrounds to the dashboard design system.
+- Link Payload admin navigation directly back to the signed-in dashboard.
 - Allow only superadmin CMS users to edit Phase 0 public content.
 
 ## Payment Provider Setup
@@ -249,7 +260,10 @@ Text rules for this file:
 - Expose MCP tools only to signed-in users.
 - Scope MCP dataset resources and tool calls to the signed-in user's datasets.
 - Let super-admins access MCP resources and tools across platform datasets.
-- Expose published Payload news through MCP with slug and keyword filtering.
-- Keep MCP under the authenticated app API and separate from public FAQ routes.
-- Keep unauthenticated MCP discovery unavailable.
-- Keep a dedicated MCP subdomain out of scope until MCP becomes an external customer-facing service.
+- Keep UseClevr MCP limited to product datasets and analysis tools.
+- Expose Payload News and FAQ through Payload-native MCP with per-key tool permissions.
+- Keep authenticated Payload MCP under `/api/payload/mcp`.
+- Route `mcp-test.useclevr.com/api/mcp` to Payload Streamable HTTP MCP with a server-held API key.
+- Expose only locked demo-account dataset metadata and stored analysis through the public test
+  connector; never expose uploaded rows or customer-owned datasets.
+- Require OAuth before the ChatGPT MCP app accesses private customer datasets.

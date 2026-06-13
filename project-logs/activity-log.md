@@ -36,3 +36,49 @@ This file summarizes current project activity. Detailed session records live in
 - Railway Metal builder incident identified, then moved to monitoring. Production deploy pending.
 - Keep node_modules in dist branch commits (stop CI from deleting them). Railway Docker build needs pg for predeploy script.
 - Fix beta CI dist-root copy (cp -a copied dir not contents, fallback .gitignore with node_modules generated).
+
+## 2026-06-11
+
+- Add durable Payload Media storage and move News and FAQ MCP ownership to Payload-native API keys.
+- Keep UseClevr MCP scopes and tools limited to product datasets and analysis.
+- Separate dashboard theme and accessibility controls and align page bodies around center workspaces with optional sidebars.
+- Move Business and Dataset summaries to right sidebars and keep table actions in selectable table headers.
+- Prevent topbar popovers from being clipped and make the main sidebar navigation independently scrollable.
+- Make topbar sections icon-only (Business, Mentoring, Credits, Admin, Profile). Hybrid AI, Search, Onboarding keep labels.
+- Fix login page: top padding, use `result.ok` instead of `getSession()` for reliable sign-in flow.
+- Add sign-up/sign-in nav links to Payload admin login, style to match app login page.
+- Fix middleware blocking MCP token auth: add `/api/mcp` to public API paths so token headers reach the route handler.
+- Test MCP test subdomain FAQ tool: create DB token, verify endpoint reachable, identify middleware auth gap.
+- Add MCP write tools: createFaq, updateFaq, deleteFaq (faq:write + admin scope), createNews, updateNews, deleteNews (news:write + admin scope), listDatasets (dataset:read, user-scoped).
+- Add faq:write and news:write scopes to schema, token creation, and auth context.
+- Wrap business profile db updates in try/catch to prevent server action crashes.
+- Fix Stripe checkout success URL param name (`s` → `session_id`).
+- Remove `superadmin` from admin plan dropdown — only billing plans listed.
+- Audit Railway config, Dockerfile, predeploy, health endpoint — all correct.
+
+## 2026-06-12
+
+- Persist dashboard updates, business setup, onboarding, and every dataset upload for locked
+  built-in accounts.
+- Repair configured database and Railway predeploy schema coverage for Business, Profile, and
+  dataset timestamp writes.
+- Give built-in accounts unrestricted upload and analysis access while keeping their identities
+  fixed.
+- Verify dashboard data mutation ownership and add repeatable built-in business CRUD coverage.
+- Fix dataset bulk deletion and add archived secondary-business permanent deletion.
+- Align Payload admin navigation and workspace styling with the dashboard design system.
+- Place the sidebar collapse control beside Dashboard and document Railway cleanup that retains
+  successful deployments.
+- Validate and prepare dashboard persistence, Payload design, documentation, and AI interaction
+  records as one commit.
+- Verify that the UseClevr test MCP endpoint is not ready for ChatGPT developer mode and queue the
+  required standard MCP transport and OAuth work.
+- Register read-only locked test-account dataset tools in Payload MCP, route the test MCP host
+  through Payload with a server-held restricted key, and keep private customer access behind
+  deferred OAuth.
+- Fix dist-root `.gitignore` patterns `build/` and `out/` matching any directory (not just root),
+  which stripped compiled JS from pnpm store entries and caused runtime `MODULE_NOT_FOUND` for
+  `@aws-crypto/crc32c` on Railway
+- Extend `fixAwsSdkPackages` in `create-dist.cjs` to create top-level symlinks for bare transitive
+  deps (tslib, fast-xml-parser) that the scoped AWS SDK packages depend on but Next.js standalone
+  tracing omits

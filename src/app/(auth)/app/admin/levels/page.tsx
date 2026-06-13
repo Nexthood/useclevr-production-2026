@@ -1,6 +1,6 @@
 "use client";
 
-import { AppPageHeader } from "@/components/layout/app-page-header";
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -169,32 +169,74 @@ export default function AdminLevelsPage() {
     champion: levels.filter((l) => l.name === "Champion").length,
   };
 
-  return (
-    <div className="flex-1 bg-background">
-      <AppPageHeader
-        title="Customer Levels"
-        description="Define customer tiers and the activity thresholds that unlock each level."
-        breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customer Levels" }]}
-        icon={Award}
-        actions={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addLevel}
-              className="gap-1.5 bg-transparent"
-            >
-              <Plus className="h-4 w-4" />
-              Add level
-            </Button>
-            <Button size="sm" onClick={save} disabled={isLoading}>
-              {isLoading ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        }
-      />
+  const rightSidebar = (
+    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+      <div className="flex h-full flex-col overflow-y-auto p-4">
+        <div className="space-y-4">
+          <Card className="p-4 bg-card border-border">
+            <h3 className="text-sm font-semibold text-foreground">Level overview</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total levels</span>
+                <span className="font-medium">{totals.levels}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Explorer</span>
+                <span className="font-medium">{totals.explorer}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Strategist</span>
+                <span className="font-medium">{totals.strategist}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Champion</span>
+                <span className="font-medium">{totals.champion}</span>
+              </div>
+            </div>
+          </Card>
 
-      <main className="px-5 py-5">
+          <Card className="p-4 bg-card border-border">
+            <h3 className="text-sm font-semibold text-foreground">Level tips</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                <span>Use higher thresholds for premium levels.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                <span>Reward credits should scale with engagement.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                <span>Save changes before leaving this page.</span>
+              </li>
+            </ul>
+          </Card>
+        </div>
+      </div>
+    </aside>
+  )
+
+  return (
+    <DashboardSubpageLayout
+      title="Customer Levels"
+      description="Define customer tiers and the activity thresholds that unlock each level."
+      breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customer Levels" }]}
+      icon={Award}
+      rightSidebar={rightSidebar}
+      actions={
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={addLevel} className="gap-1.5 bg-transparent">
+            <Plus className="h-4 w-4" />
+            Add level
+          </Button>
+          <Button size="sm" onClick={save} disabled={isLoading}>
+            {isLoading ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      }
+    >
+      <main className="flex-1 overflow-y-auto px-5 py-5">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
             {
@@ -253,10 +295,22 @@ export default function AdminLevelsPage() {
             columns={levelColumns(removeLevel)}
             rowKey={(row) => String(row.id)}
             minWidth="min-w-[980px]"
+            selectable
+            actions={
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={addLevel} className="gap-1.5 bg-transparent">
+                  <Plus className="h-4 w-4" />
+                  Add level
+                </Button>
+                <Button size="sm" onClick={save} disabled={isLoading}>
+                  {isLoading ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            }
           />
         </div>
       </main>
-    </div>
+    </DashboardSubpageLayout>
   );
 }
 

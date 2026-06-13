@@ -90,7 +90,7 @@ function toListRow(row: typeof businesses.$inferSelect): BusinessListRow {
     archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
     archiveExpiresAt: row.archiveExpiresAt ? row.archiveExpiresAt.toISOString() : null,
     updatedAt: row.updatedAt.toISOString(),
-    canArchive: true,
+    canArchive: !row.isPrimary,
   }
 }
 
@@ -364,30 +364,51 @@ export async function archiveBusiness(userId: string, id: string) {
   if (!db) throw new Error("Database connection is unavailable.")
 
   const now = new Date()
-  try {
-    await db.update(businesses).set({
+  const [updated] = await db.update(businesses).set({
       status: "archived",
       archivedAt: now,
       archiveExpiresAt: addMonths(now, 3),
       updatedAt: now,
-    }).where(and(eq(businesses.userId, userId), eq(businesses.id, id)))
-  } catch (error) {
-    debugError("[BUSINESS] Business archive failed:", error)
-  }
+    }).where(and(
+      eq(businesses.userId, userId),
+      eq(businesses.id, id),
+      eq(businesses.isPrimary, false),
+    )).returning()
+
+  return Boolean(updated)
 }
 
 export async function restoreBusiness(userId: string, id: string) {
   const db = getDb()
   if (!db) throw new Error("Database connection is unavailable.")
 
-  try {
-    await db.update(businesses).set({
+  const [updated] = await db.update(businesses).set({
       status: "draft",
       archivedAt: null,
       archiveExpiresAt: null,
       updatedAt: new Date(),
-    }).where(and(eq(businesses.userId, userId), eq(businesses.id, id)))
-  } catch (error) {
-    debugError("[BUSINESS] Business restore failed:", error)
-  }
+    }).where(and(
+      eq(businesses.userId, userId),
+      eq(businesses.id, id),
+      eq(businesses.isPrimary, false),
+    )).returning()
+
+  return Boolean(updated)
+}
+
+export async function deleteBusiness(userId: string, id: string) {
+  const db = getDb()
+  if (!db) throw new Error("Database connection is unavailable.")
+
+  const [deleted] = await db
+    .delete(businesses)
+    .where(and(
+      eq(businesses.userId, userId),
+      eq(businesses.id, id),
+      eq(businesses.isPrimary, false),
+      eq(businesses.status, "archived"),
+    ))
+    .returning()
+
+  return Boolean(deleted)
 }

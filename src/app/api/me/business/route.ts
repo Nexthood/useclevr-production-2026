@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { getBusinessDetailsById, getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { debugError } from "@/lib/utils/debug"
 import type { NextRequest } from "next/server"
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const session = await auth()
   const userId = session?.user?.id
 
-  if (!userId || isBuiltinUserId(userId)) {
+  if (!userId) {
     return NextResponse.json({
       details: {
         businessName: "",
@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
         businessDescription: "",
       },
     })
+  }
+
+  try {
+    await requireBuiltinUserRecord(userId)
+  } catch (error) {
+    debugError("[api/me/business] built-in identity sync failed:", error)
+    return NextResponse.json({ error: "Database connection is unavailable." }, { status: 503 })
   }
 
   const { searchParams } = new URL(request.url)

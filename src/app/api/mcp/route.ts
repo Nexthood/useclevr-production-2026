@@ -3,7 +3,7 @@ import { config as appConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { datasets, mcpAuditLogs, mcpTokens } from "@/lib/db/schema";
 import { recordMCPTrace } from "@/lib/ai/ai-trace";
-import { getResource, invokeTool, listResources, listTools, listToolsByScope } from "@/lib/mcp/server";
+import { getResource, invokeTool, listResources, listToolsByScope } from "@/lib/mcp/server";
 import type { MCPScope } from "@/lib/mcp/tools";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
@@ -146,7 +146,7 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       authenticated: true,
       role: "admin",
       clientId: "internal-admin-client",
-      scopes: ["dataset:read", "dataset:write", "admin", "faq:read", "news:read"],
+      scopes: ["dataset:read", "dataset:write", "admin"],
     };
   }
 
@@ -155,7 +155,7 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       authenticated: true,
       role: "service",
       clientId: "internal-service-client",
-      scopes: ["dataset:read", "faq:read", "news:read"],
+      scopes: ["dataset:read"],
     };
   }
 
@@ -168,8 +168,8 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
       userId: session.user.id,
       clientId: `user-${session.user.id}`,
       scopes: session.user.role === "superadmin"
-        ? ["dataset:read", "faq:read", "news:read", "admin"]
-        : ["dataset:read", "faq:read", "news:read"],
+        ? ["dataset:read", "dataset:write", "admin"]
+        : ["dataset:read"],
     };
   }
 
@@ -379,10 +379,13 @@ export async function POST(request: NextRequest) {
   }
 
   const startMs = Date.now();
-  const result = await invokeTool({
-    name: toolName,
-    input: input as Record<string, unknown>,
-  });
+  const result = await invokeTool(
+    {
+      name: toolName,
+      input: input as Record<string, unknown>,
+    },
+    { userId: authContext.userId, role: authContext.role },
+  );
   const durationMs = Date.now() - startMs;
 
   await logMCPAudit("invoke_tool", {

@@ -12,7 +12,6 @@
   "editor.fontSize": 14,
   "editor.fontFamily": "'Fira Code', 'Courier New', monospace",
   "editor.inlineSuggest.enabled": true,
-
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml",
     "editor.formatOnSave": true
@@ -45,10 +44,8 @@
   "[prisma]": {
     "editor.defaultFormatter": "prisma.prisma"
   },
-
   "yaml.format.enable": true,
   "yaml.validate": true,
-
   "files.exclude": {
     "**/.git": true,
     "**/.DS_Store": true,
@@ -73,11 +70,9 @@
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
-
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.importModuleSpecifierFormat": "relative",
-
   "eslint.validate": [
     "javascript",
     "javascriptreact",
@@ -85,34 +80,30 @@
     "typescriptreact"
   ],
   "eslint.format.enable": true,
-
   "git.ignoreLimitWarning": true,
   "extensions.ignoreRecommendations": true,
-
   "emmet.includeLanguages": {
     "javascript": "javascriptreact",
     "typescript": "typescriptreact"
   },
   "emmet.triggerExpansionOnTab": true,
-
   "tailwindCSS.experimental.classRegex": [
-    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+    [
+      "clsx\\(([^)]*)\\)",
+      "(?:'|\"|`)([^']*)(?:'|\"|`)"
+    ]
   ],
-
   "search.followSymlinks": false,
   "npm.exclude": "**/node_modules/**",
   "npm.runSilent": true,
-
   "workbench.editorAssociations": {
     "*.pdf": "default"
   },
-
   "github.copilot.enable": {
     "*": true,
     "plaintext": false,
     "markdown": false
   },
-
   "actions.refreshInterval": 5,
   "actions.loggingLevel": "info",
   "actions.showWorkflowRunButtons": true,
@@ -127,14 +118,17 @@
       "baseUrl": "https://CHANGE_ME_PRODUCTION_URL"
     }
   },
-
   "kilo-code.new.autoApprove.enabled": true,
-
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.profiles.linux": {
     "bash": {
       "path": "bash",
-      "args": ["-i"]
+      "args": [
+        "-i"
+      ]
     }
-  }
+  },
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/auto-merge.yml"
+  ]
 }

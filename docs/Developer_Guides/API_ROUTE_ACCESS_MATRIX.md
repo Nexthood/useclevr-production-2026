@@ -23,6 +23,7 @@ This document defines the security boundaries, authentication requirements, auth
 | `/api/debug/*`     | **Development-Only**  | Environment guard                                      | Returns 404 in production                                 | None                                                       | Development log output               |
 | `/api/mcp`         | **Signed-In or Token** | `validateMCPAuth` helper                                | Session ownership check, or token scope check             | 100 requests/minute per client                              | Audit trail to `mcpAuditLogs`        |
 | `/api/mcp/tokens/*` | **Super-Admin**      | `requireAdmin` helper                                   | Token management restricted to super-admin role           | Manual operator use only                                    | Token creation/revocation logged     |
+| `/api/payload/mcp` | **Payload API Key** | Payload MCP Bearer authentication | API-key tool permissions limit access to News and FAQ | Payload MCP transport controls | Payload MCP API-key records |
 
 ---
 

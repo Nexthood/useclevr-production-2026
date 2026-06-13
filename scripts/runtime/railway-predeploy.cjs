@@ -23,6 +23,27 @@ const statements = [
     "updatedAt" timestamp DEFAULT now() NOT NULL
   )`,
 
+  `CREATE TABLE IF NOT EXISTS "Business" (
+    "id" text PRIMARY KEY NOT NULL,
+    "userId" text NOT NULL,
+    "name" text NOT NULL,
+    "companyNumber" text,
+    "address" text,
+    "email" text,
+    "industry" text,
+    "website" text,
+    "description" text,
+    "status" varchar(30) DEFAULT 'draft' NOT NULL,
+    "isPrimary" boolean DEFAULT false NOT NULL,
+    "localeSettings" jsonb DEFAULT '{}'::jsonb NOT NULL,
+    "invoiceSettings" jsonb DEFAULT '{}'::jsonb NOT NULL,
+    "companySetup" jsonb DEFAULT '{}'::jsonb NOT NULL,
+    "archivedAt" timestamp,
+    "archiveExpiresAt" timestamp,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  )`,
+
   `ALTER TABLE IF EXISTS "Dataset" ADD COLUMN IF NOT EXISTS "mimeType" varchar(100)`,
   `ALTER TABLE IF EXISTS "Dataset" ADD COLUMN IF NOT EXISTS "storageKey" varchar(500)`,
   `ALTER TABLE IF EXISTS "Dataset" ADD COLUMN IF NOT EXISTS "checksum" varchar(64)`,
@@ -42,6 +63,11 @@ const statements = [
   `ALTER TABLE IF EXISTS "Dataset" ADD COLUMN IF NOT EXISTS "aiInsights" jsonb`,
 
   `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "analysisCount" integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "preferredCurrency" varchar(3) DEFAULT 'EUR' NOT NULL`,
+  `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "numberFormat" varchar(10) DEFAULT 'auto' NOT NULL`,
+  `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "themePreference" varchar(20) DEFAULT 'system' NOT NULL`,
+  `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "mentorshipUsed" integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE IF EXISTS "Profile" ALTER COLUMN "updatedAt" SET DEFAULT now()`,
   `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "stripeCustomerId" text`,
   `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" text`,
   `ALTER TABLE IF EXISTS "Profile" ADD COLUMN IF NOT EXISTS "stripePriceId" text`,
@@ -58,6 +84,9 @@ const statements = [
   `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "companySetup" jsonb DEFAULT '{}'::jsonb NOT NULL`,
   `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "archivedAt" timestamp`,
   `ALTER TABLE IF EXISTS "Business" ADD COLUMN IF NOT EXISTS "archiveExpiresAt" timestamp`,
+  `ALTER TABLE IF EXISTS "Dataset" ALTER COLUMN "updatedAt" SET DEFAULT now()`,
+  `ALTER TABLE IF EXISTS "payload_mcp_api_keys" ADD COLUMN IF NOT EXISTS "payload_mcp_tool_list_dashboard_datasets" boolean DEFAULT false`,
+  `ALTER TABLE IF EXISTS "payload_mcp_api_keys" ADD COLUMN IF NOT EXISTS "payload_mcp_tool_get_dashboard_dataset_insights" boolean DEFAULT false`,
 
   `CREATE TABLE IF NOT EXISTS "ReferralEvent" (
     "id" text PRIMARY KEY NOT NULL,
@@ -159,6 +188,11 @@ const statements = [
 ];
 
 const constraints = [
+  {
+    name: "Business_userId_fkey",
+    table: "Business",
+    sql: `ALTER TABLE "Business" ADD CONSTRAINT "Business_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`,
+  },
   {
     name: "UserActivity_userId_fkey",
     table: "UserActivity",

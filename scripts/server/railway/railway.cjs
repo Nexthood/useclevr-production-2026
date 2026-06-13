@@ -368,13 +368,15 @@ async function cmdInspect(args) {
   }
 }
 
-async function cmdCleanup() {
+async function cmdCleanup(args) {
   requireToken();
   const link = readProjectLink();
   if (!link) {
     console.error("No project linked. Run: pnpm railway:link");
     exit(1);
   }
+
+  const keepSuccess = args?.includes("--keep-success");
 
   const { project } = await gql(
     `query InspectProject($id: String!) {
@@ -396,6 +398,7 @@ async function cmdCleanup() {
   const services = project.services.edges.map((e) => e.node);
 
   let totalRemoved = 0;
+  let totalSkipped = 0;
 
   for (const svc of services) {
     for (const instance of svc.serviceInstances.edges.map((e) => e.node)) {
@@ -422,18 +425,29 @@ async function cmdCleanup() {
         continue;
       }
 
-      console.log(`  ${svc.name} (${envName}): ${edges.length} deployment(s) to remove`);
+      const toRemove = keepSuccess
+        ? edges.filter(({ node }) => node.status !== "SUCCESS")
+        : edges;
+      const skipped = edges.length - toRemove.length;
 
-      for (const { node } of edges) {
+      if (toRemove.length === 0) {
+        console.log(`  ${svc.name} (${envName}): 0 to remove${skipped > 0 ? ` (${skipped} SUCCESS kept)` : ""}`);
+        continue;
+      }
+
+      console.log(`  ${svc.name} (${envName}): ${toRemove.length} to remove${skipped > 0 ? ` (${skipped} SUCCESS kept)` : ""}`);
+
+      for (const { node } of toRemove) {
         process.stdout.write(".");
         await gql(`mutation($id: String!) { deploymentRemove(id: $id) }`, { id: node.id });
         totalRemoved++;
       }
+      totalSkipped += skipped;
       console.log("");
     }
   }
 
-  console.log(`\nRemoved ${totalRemoved} deployment(s)`);
+  console.log(`\nRemoved ${totalRemoved} deployment(s)${totalSkipped > 0 ? `, skipped ${totalSkipped} SUCCESS deployment(s)` : ""}`);
 }
 
 async function cmdVariable(args) {
@@ -548,7 +562,7 @@ async function main() {
     case "status":
       return cmdStatus();
     case "cleanup":
-      return cmdCleanup();
+      return cmdCleanup(args.slice(1));
     case "inspect":
       return cmdInspect(args.slice(1));
     case "variable":

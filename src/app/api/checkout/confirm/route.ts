@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   if (reviewAccepted && plan.stripePriceId) {
     const origin = request.nextUrl.origin;
     const checkoutToken = issueCheckoutToken(null, user.id);
-    const successUrl = `${origin}/checkout/success?t=${checkoutToken}&s={CHECKOUT_SESSION_ID}`;
+    const successUrl = `${origin}/checkout/success?t=${checkoutToken}&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}`;
 
     try {

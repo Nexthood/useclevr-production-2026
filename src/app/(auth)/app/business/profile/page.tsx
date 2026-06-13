@@ -1,4 +1,5 @@
 import { BusinessProfileForm } from "@/components/business/business-profile-form"
+import { DashboardContent } from "@/components/layout/dashboard-subpage-layout"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import Link from "next/link"
 
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function BusinessProfilePage() {
   return (
-    <div className="space-y-5">
+    <DashboardContent className="space-y-5">
       <PageActionRow description="Save the company details that power reports, support context, and setup progress.">
         <Link
           href="/app/business"
@@ -18,6 +19,6 @@ export default function BusinessProfilePage() {
         </Link>
       </PageActionRow>
       <BusinessProfileForm />
-    </div>
+    </DashboardContent>
   )
 }

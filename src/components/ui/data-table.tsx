@@ -15,6 +15,11 @@ interface DataTableProps<T extends Record<string, unknown>> {
   emptyMessage?: string
   rowKey?: (row: T, rowIndex: number) => React.Key
   minWidth?: string
+  selectable?: boolean
+  selectedRows?: Set<string>
+  onSelectedRowsChange?: (selectedRows: Set<string>) => void
+  bulkActions?: React.ReactNode
+  actions?: React.ReactNode
 }
 
 function formatCell(value: unknown) {
@@ -32,19 +37,71 @@ export function DataTable<T extends Record<string, unknown>>({
   emptyMessage = "No rows to display.",
   rowKey,
   minWidth = "min-w-full",
+  selectable = false,
+  selectedRows = new Set<string>(),
+  onSelectedRowsChange,
+  bulkActions,
+  actions,
 }: DataTableProps<T>) {
+  const [localSelectedRows, setLocalSelectedRows] = React.useState<Set<string>>(new Set<string>())
+  const activeSelectedRows = onSelectedRowsChange ? selectedRows : localSelectedRows
+  const setActiveSelectedRows = onSelectedRowsChange || setLocalSelectedRows
+
+  const toggleRow = (row: T, rowIndex: number) => {
+    const id = String(rowKey?.(row, rowIndex) || rowIndex)
+    const next = new Set(activeSelectedRows)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    setActiveSelectedRows(next)
+  }
+
+  const toggleAll = () => {
+    if (activeSelectedRows.size === rows.length) {
+      setActiveSelectedRows(new Set<string>())
+    } else {
+      setActiveSelectedRows(new Set(rows.map((row, rowIndex) => String(rowKey?.(row, rowIndex) || rowIndex))))
+    }
+  }
+
   return (
     <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
-      {(title || description) && (
+      {(title || description || actions || bulkActions) && (
         <div className="border-b border-border/50 bg-muted/30 px-5 py-3.5">
-          {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
-          {description && <p className="mt-1.5 text-xs text-muted-foreground/90 leading-relaxed">{description}</p>}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
+              {description && <p className="mt-1.5 text-xs text-muted-foreground/90 leading-relaxed">{description}</p>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectable && activeSelectedRows.size > 0 && (
+                <div className="flex items-center gap-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
+                  <span>{activeSelectedRows.size} selected</span>
+                  {bulkActions}
+                </div>
+              )}
+              {actions}
+            </div>
+          </div>
         </div>
       )}
       <div className="overflow-x-auto">
         <table className={`w-full ${minWidth} text-sm`}>
           <thead className="border-b border-border/50 bg-muted/40 text-muted-foreground">
             <tr>
+              {selectable && (
+                <th className="px-4 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all rows"
+                    checked={rows.length > 0 && activeSelectedRows.size === rows.length}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
@@ -62,13 +119,24 @@ export function DataTable<T extends Record<string, unknown>>({
           <tbody className="divide-y divide-border/40">
             {rows.length === 0 ? (
               <tr>
-                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={columns.length}>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={columns.length + (selectable ? 1 : 0)}>
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               rows.map((row, rowIndex) => (
                 <tr key={rowKey?.(row, rowIndex) || rowIndex} className="border-b border-transparent transition-colors hover:bg-muted/50">
+                  {selectable && (
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select row ${rowIndex + 1}`}
+                        checked={activeSelectedRows.has(String(rowKey?.(row, rowIndex) || rowIndex))}
+                        onChange={() => toggleRow(row, rowIndex)}
+                        className="h-4 w-4 rounded border-border accent-primary"
+                      />
+                    </td>
+                  )}
                   {columns.map((column) => (
                     <td
                       key={String(column.key)}

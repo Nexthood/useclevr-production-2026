@@ -22,7 +22,8 @@
 - [Quick Reference](#quick-reference-which-mcp-client-to-use)
 - [Implementation Rules](#implementation-rules)
 
-UseClevr exposes a small authenticated MCP interface for trusted dataset analysis tools and resources. The interface gives internal clients a consistent way to list available tools, read cached analysis resources, and invoke deterministic analysis helpers.
+UseClevr exposes separate MCP interfaces for product data and Payload-managed content. The app
+interface provides trusted dataset tools and resources. Payload provides native News and FAQ tools.
 
 MCP stays internal under the app API. The product does not expose a public MCP catalog or a dedicated `mcp.useclevr.com` service.
 
@@ -43,7 +44,7 @@ The MCP interface follows the dashboard visibility rules:
 
 - Authenticated users access their own datasets, reports, tickets, settings, and business profile.
 - Superadmin users can access operator-wide administration views.
-- Published FAQ and news content is available through read-scoped MCP tools.
+- Payload API keys control News and FAQ find, create, update, and delete tools separately.
 
 ## API Routes
 
@@ -52,12 +53,14 @@ The MCP interface follows the dashboard visibility rules:
 | GET    | `/api/mcp`                        | List available tools; add `datasetId` for resources |
 | GET    | `/api/mcp?resource=dataset://...` | Read one MCP resource                               |
 | POST   | `/api/mcp`                        | Invoke a named MCP tool                             |
+| POST   | `/api/payload/mcp`                | Invoke Payload-native News and FAQ tools            |
 
 ## Routing Boundary
 
 - Use `/api/mcp` for the current authenticated MCP interface, reachable from `mcp.useclevr.com` when configured.
+- Use `/api/payload/mcp` for Payload-native JSON-RPC MCP requests with a Payload MCP API key.
 - Keep MCP route discovery unavailable to unauthenticated users.
-- Keep public FAQ and news page routes separate from MCP transport routes.
+- Keep public FAQ and News page routes separate from both MCP transports.
 - Do not rely on hidden URLs as security. Hidden endpoints are only an extra layer.
 
 ## Authentication Boundary
@@ -66,6 +69,22 @@ The MCP interface follows the dashboard visibility rules:
 - Service/admin tokens use `x-mcp-token`, `x-mcp-service-token`, or `x-mcp-admin-token` headers.
 - Token-based access keeps the same ownership, role, logging, and rate-limit rules as session access.
 - Current configuration allows the MCP route and required auth endpoints before login.
+- Payload MCP requests use `Authorization: Bearer <payload-mcp-api-key>` and tool permissions stored
+  in Payload.
+
+## Payload Content MCP
+
+Payload exposes only the `news-posts` and `faqs` collections. CMS users, Media, and page globals do
+not expose MCP tools.
+
+```bash
+curl -i "http://127.0.0.1:3000/api/payload/mcp" \
+  -X POST \
+  -H "Authorization: Bearer <paste-payload-mcp-api-key>" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
+```
 
 ## Local Ping Process
 
@@ -98,7 +117,7 @@ This result confirms three things:
 - the current auth boundary rejects unauthenticated MCP access
 
 4. For a positive tools-list ping, repeat the request from a signed-in browser session or an HTTP
-client that reuses a valid UseClevr session cookie:
+   client that reuses a valid UseClevr session cookie:
 
 ```bash
 curl -b cookies.txt http://127.0.0.1:3000/api/mcp
@@ -109,8 +128,8 @@ Expected signed-in result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." },
-    { "name": "getNews", "description": "..." }
+    { "name": "listDatasets", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
 }
@@ -155,8 +174,7 @@ Expected result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." },
-    { "name": "getNews", "description": "..." },
+    { "name": "listDatasets", "description": "..." },
     { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
@@ -227,6 +245,7 @@ curl -I -H "Origin: https://mcp.useclevr.com" https://mcp.useclevr.com/api/mcp
 ```
 
 Expected responses:
+
 - Unsigned: `401 Unauthorized`
 - With token: `200 OK` with tools array
 - CORS header: `Access-Control-Allow-Origin: https://mcp.useclevr.com`
@@ -244,6 +263,10 @@ Expected responses:
 | `getProfitMarginTrend`    | Profit margin and growth trend analysis                        | `datasetId`                        |
 | `compareDatasets`         | Compare two datasets for metric differences                    | `datasetIdA`, `datasetIdB`         |
 | `getTopProducts`          | Ranked products with revenue/profit percentages                | `datasetId`, `metric`, `limit`     |
+| `listDatasets`            | List the authenticated user's datasets with metadata           | _(none)_                           |
+
+Payload discovers News and FAQ collection tools dynamically from `/api/payload/mcp`. Payload MCP
+API-key permissions determine which find, create, update, and delete tools each client receives.
 
 ## Available Resources
 
@@ -260,15 +283,26 @@ Resource URIs use the format `dataset://<datasetId>/<resource>`:
 
 ## ChatGPT Web MCP Support
 
-OpenAI's ChatGPT web supports MCP in two modes. Documentation here is for reference when building or testing MCP servers that work across platforms.
+After T-841 deploys the source and configures the Railway test service, the test connector at
+`https://mcp-test.useclevr.com/api/mcp` routes to Payload's Streamable HTTP MCP endpoint. Railway
+supplies `PAYLOAD_MCP_TEST_API_KEY` as a server-held credential; ChatGPT never receives that key.
+
+The Payload API key must enable only `listDashboardDatasets` and
+`getDashboardDatasetInsights`. Both tools are read-only, hard-scoped to the locked demo account,
+and omit uploaded dataset rows. Private customer dataset access remains disabled until T-840 adds
+OAuth.
 
 ### Developer Mode (Full Read/Write)
 
-- **Availability:** Plus, Pro, Business, Enterprise, Edu accounts (web only).
-- **Enable:** Settings → Connectors → Advanced → Developer mode.
-- **Usage:** Add a remote MCP server URL in Settings → Connectors → Create. ChatGPT discovers tools and offers them in conversation. Write actions require user confirmation by default.
+- **Availability:** Business and Enterprise/Edu workspaces for admins, owners, and authorised
+  developers on ChatGPT web.
+- **Enable:** Settings → Apps → Advanced settings → Developer mode.
+- **Usage after T-841:** Add `https://mcp-test.useclevr.com/api/mcp` in Settings → Apps → Create,
+  scan tools, and create the draft app.
 - **Transport:** Streamable HTTP or SSE. Server must be publicly accessible via HTTPS.
-- **Auth:** OAuth 2.1 (recommended), API key via headers, or none.
+- **Test auth:** The public test host injects its restricted Payload API key server-side.
+- **Private auth:** Use OAuth for customer datasets. ChatGPT does not present custom service API
+  keys.
 
 ### Connectors (Read-Only)
 
@@ -287,6 +321,7 @@ OpenAI's ChatGPT web supports MCP in two modes. Documentation here is for refere
 ### Security
 
 - Never embed API keys, tokens, or secrets in tool responses or widget state.
+- Configure the test Payload key with only the two dashboard read tools.
 - Enforce auth inside your MCP server — do not rely on ChatGPT-side hints for authorization.
 - For production, deploy to low-latency HTTPS hosts (Cloudflare Workers, Fly.io, Vercel, AWS).
 
@@ -313,13 +348,13 @@ OpenCode supports MCP servers as tools alongside built-in tools. Configure them 
 
 **Options:**
 
-| Option | Type | Required | Description |
-| ------ | ---- | -------- | ----------- |
-| `type` | string | Y | Must be `"local"` |
-| `command` | array | Y | Command + args to run the MCP server |
-| `environment` | object | | Env vars for the server process |
-| `enabled` | boolean | | Enable/disable on startup |
-| `timeout` | number | | Timeout in ms for tool fetch (default 5000) |
+| Option        | Type    | Required | Description                                 |
+| ------------- | ------- | -------- | ------------------------------------------- |
+| `type`        | string  | Y        | Must be `"local"`                           |
+| `command`     | array   | Y        | Command + args to run the MCP server        |
+| `environment` | object  |          | Env vars for the server process             |
+| `enabled`     | boolean |          | Enable/disable on startup                   |
+| `timeout`     | number  |          | Timeout in ms for tool fetch (default 5000) |
 
 ### Remote MCP Server
 
@@ -331,10 +366,10 @@ OpenCode supports MCP servers as tools alongside built-in tools. Configure them 
       "url": "https://my-mcp-server.com",
       "enabled": true,
       "headers": {
-        "Authorization": "Bearer {env:MY_API_KEY}"
-      }
-    }
-  }
+        "Authorization": "Bearer {env:MY_API_KEY}",
+      },
+    },
+  },
 }
 ```
 
@@ -351,10 +386,10 @@ OpenCode auto-detects OAuth (RFC 7591 DCR). Or configure explicitly:
       "oauth": {
         "clientId": "{env:MY_CLIENT_ID}",
         "clientSecret": "{env:MY_CLIENT_SECRET}",
-        "scope": "tools:read tools:execute"
-      }
-    }
-  }
+        "scope": "tools:read tools:execute",
+      },
+    },
+  },
 }
 ```
 
@@ -369,9 +404,9 @@ Disable globally, enable per agent:
   "tools": { "my-mcp*": false },
   "agent": {
     "my-agent": {
-      "tools": { "my-mcp*": true }
-    }
-  }
+      "tools": { "my-mcp*": true },
+    },
+  },
 }
 ```
 
@@ -413,7 +448,7 @@ Expected result:
 ```
 
 5. After signing in locally, repeat the request with the active session cookie copied from browser
-devtools into the request header:
+   devtools into the request header:
 
 ```http
 GET http://127.0.0.1:3000/api/mcp
@@ -425,7 +460,8 @@ Expected result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." }
+    { "name": "listDatasets", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
 }
@@ -471,7 +507,8 @@ Expected signed-in result shape:
 ```json
 {
   "tools": [
-    { "name": "getFaqs", "description": "..." }
+    { "name": "listDatasets", "description": "..." },
+    { "name": "getDatasetSchema", "description": "..." }
   ],
   "resources": []
 }
@@ -498,9 +535,9 @@ Create `.vscode/mcp.json` in your workspace (or use global user config via `MCP:
     "my-server": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
-    }
-  }
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+    },
+  },
 }
 ```
 
@@ -511,9 +548,9 @@ For HTTP servers:
   "servers": {
     "my-http-server": {
       "type": "http",
-      "url": "https://mcp.example.com/mcp"
-    }
-  }
+      "url": "https://mcp.example.com/mcp",
+    },
+  },
 }
 ```
 
@@ -529,16 +566,16 @@ For HTTP servers:
 
 ### Configuration Methods
 
-| Method | Description |
-| ------ | ----------- |
-| `.vscode/mcp.json` | Per-workspace config (shareable via source control) |
-| User profile | Cross-workspace via `MCP: Open User Configuration` |
-| Command palette | `MCP: Add Server` guided flow |
-| Extensions view | Search `@mcp` in marketplace for installable servers |
-| Install URL | `vscode:mcp/install` links on websites |
-| CLI | `code --add-mcp '{"name":"s","command":"npx ..."}'` |
-| Autodiscovery | Auto-discovers from Claude Desktop via `chat.mcp.discovery.enabled` |
-| Dev containers | Configured via `devcontainer.json` |
+| Method             | Description                                                         |
+| ------------------ | ------------------------------------------------------------------- |
+| `.vscode/mcp.json` | Per-workspace config (shareable via source control)                 |
+| User profile       | Cross-workspace via `MCP: Open User Configuration`                  |
+| Command palette    | `MCP: Add Server` guided flow                                       |
+| Extensions view    | Search `@mcp` in marketplace for installable servers                |
+| Install URL        | `vscode:mcp/install` links on websites                              |
+| CLI                | `code --add-mcp '{"name":"s","command":"npx ..."}'`                 |
+| Autodiscovery      | Auto-discovers from Claude Desktop via `chat.mcp.discovery.enabled` |
+| Dev containers     | Configured via `devcontainer.json`                                  |
 
 ### Management
 
@@ -567,10 +604,10 @@ Enable debugging by adding a `dev` key to the MCP server config:
       "args": ["server.js"],
       "dev": {
         "watch": "src/**/*.ts",
-        "debug": true
-      }
-    }
-  }
+        "debug": true,
+      },
+    },
+  },
 }
 ```
 
@@ -732,17 +769,17 @@ Popular VS Code extensions that expose IDE capabilities as an MCP server to exte
 
 ## Quick Reference: Which MCP Client to Use
 
-| Need | Recommendation |
-| ---- | -------------- |
-| Add MCP tools to your AI coding agent | **OpenCode** — configure in `opencode.jsonc` |
-| Use MCP tools in VS Code Copilot Chat | **VS Code native** — `.vscode/mcp.json` or `@mcp` in extensions |
-| Call MCP tools from the terminal | **mcpc** (most features) or **mcpx** (lightweight, auto-discovery) |
-| Pipe MCP tool results into jq/shell scripts | **mcp-cli** (Bun, fast) or **mcpc** (JSON code mode) |
-| Connect MCP to ChatGPT web | **Remote HTTPS server** + Developer Mode in settings |
-| Debug/inspect MCP servers in VS Code | **MCP Tool Explorer** extension |
-| Aggregate multiple MCP servers into one | **mcpmu** (multiplexer) |
-| Test MCP server connectivity | `mcpx my-server my-tool --help` or `echo $?` |
-| Expose VS Code LSP to external agents | **VSCode MCP** (tjx666) or **VSC-MCPServer** |
+| Need                                        | Recommendation                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| Add MCP tools to your AI coding agent       | **OpenCode** — configure in `opencode.jsonc`                       |
+| Use MCP tools in VS Code Copilot Chat       | **VS Code native** — `.vscode/mcp.json` or `@mcp` in extensions    |
+| Call MCP tools from the terminal            | **mcpc** (most features) or **mcpx** (lightweight, auto-discovery) |
+| Pipe MCP tool results into jq/shell scripts | **mcp-cli** (Bun, fast) or **mcpc** (JSON code mode)               |
+| Connect MCP to ChatGPT web                  | **Remote HTTPS server** + Developer Mode in settings               |
+| Debug/inspect MCP servers in VS Code        | **MCP Tool Explorer** extension                                    |
+| Aggregate multiple MCP servers into one     | **mcpmu** (multiplexer)                                            |
+| Test MCP server connectivity                | `mcpx my-server my-tool --help` or `echo $?`                       |
+| Expose VS Code LSP to external agents       | **VSCode MCP** (tjx666) or **VSC-MCPServer**                       |
 
 ## Implementation Rules
 

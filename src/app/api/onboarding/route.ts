@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
 import { getOnboardingStatus } from "@/lib/onboarding/status"
 import { NextResponse } from "next/server"
@@ -8,10 +8,11 @@ export async function GET() {
   const session = await auth()
   const userId = session?.user?.id
 
-  if (!userId || isBuiltinUserId(userId)) {
+  if (!userId) {
     return NextResponse.json(await getOnboardingStatus(null))
   }
 
+  await requireBuiltinUserRecord(userId)
   return NextResponse.json(await getOnboardingStatus(userId))
 }
 
@@ -19,9 +20,9 @@ export async function POST(request: Request) {
   const session = await auth()
   const userId = session?.user?.id
 
-  if (!userId || isBuiltinUserId(userId)) {
-    return NextResponse.json({ ok: true })
-  }
+  if (!userId) return NextResponse.json({ ok: true })
+
+  await requireBuiltinUserRecord(userId)
 
   let body: { action?: string; path?: string } = {}
   try {
