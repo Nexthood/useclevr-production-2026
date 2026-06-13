@@ -89,6 +89,7 @@ if (fs.existsSync(standaloneDistInDist)) {
 
 // Copy missing AWS SDK transitive deps that Next.js tracing misses
 fixAwsSdkPackages(path.join(distDir, "node_modules"));
+ensureSharpMuslPackages(path.join(distDir, "node_modules"));
 
 // Copy Next.js static assets
 if (fs.existsSync(nextStaticDir)) {
@@ -326,6 +327,62 @@ function findPnpmEntry(pnpmDir, bareName) {
     }
   }
   return null;
+}
+
+// --- Sharp native module fix ---
+// Railway uses Alpine Linux (musl libc) but CI builds on Ubuntu (glibc).
+// pnpm skips musl platform packages on glibc, so they must be fetched from npm
+// and placed directly into the dist pnpm store so sharp can load at runtime.
+function ensureSharpMuslPackages(distNmDir) {
+  const pnpmDir = path.join(distNmDir, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) return;
+
+  const muslPackages = [
+    { entry: "@img+sharp-linuxmusl-x64@0.34.5", npmName: "@img/sharp-linuxmusl-x64", version: "0.34.5" },
+    { entry: "@img+sharp-libvips-linuxmusl-x64@1.2.4", npmName: "@img/sharp-libvips-linuxmusl-x64", version: "1.2.4" },
+  ];
+
+  for (const pkg of muslPackages) {
+    const destEntry = path.join(pnpmDir, pkg.entry);
+    if (fs.existsSync(destEntry)) continue;
+
+    const scope = pkg.npmName.split("/")[0];
+    const bareName = pkg.npmName.split("/")[1];
+    const tmpDir = fs.mkdtempSync(path.join(pnpmDir, ".tmp-sharp-musl-"));
+
+    try {
+      const tarball = path.join(tmpDir, "pkg.tgz");
+      const url = `https://registry.npmjs.org/${pkg.npmName}/-/${bareName}-${pkg.version}.tgz`;
+      execSync(`curl -sfL -o "${tarball}" "${url}"`, { stdio: "ignore" });
+      execSync(`tar xzf "${tarball}" -C "${tmpDir}"`, { stdio: "ignore" });
+
+      const pkgDir = path.join(tmpDir, "package");
+      const storePath = path.join(pnpmDir, pkg.entry, "node_modules", scope, bareName);
+      fs.mkdirSync(path.dirname(storePath), { recursive: true });
+      fs.renameSync(pkgDir, storePath);
+
+      console.log(`  Added missing platform package: ${pkg.npmName}@${pkg.version}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Create symlink inside sharp's node_modules/@img/ for each musl package
+  const sharpPnpmDir = path.join(pnpmDir, "sharp@0.34.5");
+  if (!fs.existsSync(sharpPnpmDir)) return;
+  const imgDir = path.join(sharpPnpmDir, "node_modules", "@img");
+  if (!fs.existsSync(imgDir)) return;
+
+  for (const pkg of muslPackages) {
+    const symlinkPath = path.join(imgDir, pkg.npmName.split("/")[1]);
+    if (fs.existsSync(symlinkPath)) continue;
+    // Resolve back up to .pnpm/ then forward into the pnpm store entry
+    // From: sharp@0.34.5/node_modules/@img/
+    // To:   ../../../@img+sharp-linuxmusl-x64@0.34.5/node_modules/@img/sharp-linuxmusl-x64
+    const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
+    fs.symlinkSync(target, symlinkPath, "junction");
+    console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
+  }
 }
 
 // --- Next.js build directory restore ---
