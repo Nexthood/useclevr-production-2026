@@ -367,7 +367,27 @@ function ensureSharpMuslPackages(distNmDir) {
     }
   }
 
-  // Create symlink inside sharp's node_modules/@img/ for each musl package
+  // Create symlink inside the sharp-linuxmusl pnpm entry so the .node binary's
+  // RPATH ($ORIGIN/../../sharp-libvips-.../lib) can find the libvips shared library.
+  // Without this, dlopen fails because the .node binary and libvips live in different
+  // pnpm entries (different versions), but the RPATH expects them under a common @img/ parent.
+  const sharpMuslEntry = path.join(pnpmDir, "@img+sharp-linuxmusl-x64@0.34.5");
+  if (fs.existsSync(sharpMuslEntry)) {
+    const muslImgDir = path.join(sharpMuslEntry, "node_modules", "@img");
+    if (!fs.existsSync(muslImgDir)) {
+      fs.mkdirSync(muslImgDir, { recursive: true });
+    }
+    const libvipsSymlinkPath = path.join(muslImgDir, "sharp-libvips-linuxmusl-x64");
+    if (!fs.existsSync(libvipsSymlinkPath)) {
+      // From: @img+sharp-linuxmusl-x64@0.34.5/node_modules/@img/
+      // To:   ../../../@img+sharp-libvips-linuxmusl-x64@1.2.4/node_modules/@img/sharp-libvips-linuxmusl-x64
+      const target = path.join("..", "..", "..", "@img+sharp-libvips-linuxmusl-x64@1.2.4", "node_modules", "@img", "sharp-libvips-linuxmusl-x64");
+      fs.symlinkSync(target, libvipsSymlinkPath, "junction");
+      console.log(`  Created libvips symlink in sharp-linuxmusl pnpm entry -> ${target}`);
+    }
+  }
+
+  // Create symlinks inside sharp@0.34.5/node_modules/@img/ for Node.js require resolution
   const sharpPnpmDir = path.join(pnpmDir, "sharp@0.34.5");
   if (!fs.existsSync(sharpPnpmDir)) return;
   const imgDir = path.join(sharpPnpmDir, "node_modules", "@img");
