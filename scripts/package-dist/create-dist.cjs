@@ -300,7 +300,10 @@ function fixAwsSdkPackages(distNmDir) {
       // Find the pnpm store entry for this bare module
       const bareEntry = findPnpmEntry(pnpmDir, child.name);
       if (bareEntry) {
-        const target = path.join("..", ".pnpm", bareEntry, "node_modules", child.name);
+        // Bare modules are directly in node_modules/, not in a subdirectory like @scope/.
+        // The target relative to node_modules/ is .pnpm/..., without the ../ prefix
+        // that is needed for scoped packages (@scope/pkg → ../.pnpm/...).
+        const target = path.join(".pnpm", bareEntry, "node_modules", child.name);
         fs.symlinkSync(target, topLink, "junction");
       }
     }
