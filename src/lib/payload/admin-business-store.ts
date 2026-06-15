@@ -1,8 +1,18 @@
 import { getDb } from "@/lib/db"
 import { businesses, businessEntities, users } from "@/lib/db/schema"
-import { desc, eq, and, inArray } from "drizzle-orm"
+import { desc, eq, inArray } from "drizzle-orm"
 
-type BusinessRow = typeof businesses.$inferSelect
+type CompanySetupRecord = {
+  companyInfo?: Record<string, unknown>
+  taxSettings?: Record<string, unknown>
+  currencySettings?: Record<string, unknown>
+}
+
+function setupText(setup: unknown, section: keyof CompanySetupRecord, field: string) {
+  if (!setup || typeof setup !== "object") return ""
+  const value = (setup as CompanySetupRecord)[section]?.[field]
+  return typeof value === "string" ? value : ""
+}
 
 export type AdminBusinessView = {
   id: string
@@ -22,6 +32,39 @@ export type AdminBusinessView = {
   createdAt: string
   updatedAt: string
   archivedAt: string | null
+  completionPercent: number
+  countryOfRegistration: string
+  taxResidenceCountry: string
+  legalStructure: string
+  accountingMethod: string
+  taxRegistered: string
+  taxType: string
+  standardTaxRate: string
+  primaryCurrency: string
+  reportingCurrency: string
+}
+
+const BUSINESS_COMPLETION_FIELDS: { field: "name" | "email" | "industry" | "address" | "website" | "description"; section: string }[] = [
+  { field: "name", section: "Identity" },
+  { field: "industry", section: "Identity" },
+  { field: "description", section: "Identity" },
+  { field: "email", section: "Contact" },
+  { field: "website", section: "Contact" },
+  { field: "address", section: "Operations" },
+]
+
+function computeCompletionPercent(business: {
+  name: string | null
+  email: string | null
+  industry: string | null
+  address: string | null
+  website: string | null
+  description: string | null
+}) {
+  const filled = BUSINESS_COMPLETION_FIELDS.filter(
+    (f) => String(business[f.field] || "").trim().length > 0,
+  ).length
+  return Math.round((filled / BUSINESS_COMPLETION_FIELDS.length) * 100)
 }
 
 export type AdminDashboardUser = {
@@ -55,14 +98,14 @@ export async function listBusinesses(): Promise<{
       .orderBy(users.email),
   ])
 
-  const userIds = [...new Set(businessRows.map((b) => b.userId))]
+  const businessIds = businessRows.map((business) => business.id)
   const entityCounts = new Map<string, number>()
 
-  if (userIds.length > 0) {
+  if (businessIds.length > 0) {
     const counts = await db
       .select({ businessId: businessEntities.businessId })
       .from(businessEntities)
-      .where(inArray(businessEntities.businessId, userIds))
+      .where(inArray(businessEntities.businessId, businessIds))
 
     for (const c of counts) {
       entityCounts.set(c.businessId, (entityCounts.get(c.businessId) || 0) + 1)
@@ -87,9 +130,19 @@ export async function listBusinesses(): Promise<{
       status: b.status as "draft" | "active" | "archived",
       isPrimary: b.isPrimary,
       entityCount: entityCounts.get(b.id) || 0,
+      completionPercent: computeCompletionPercent(b),
       createdAt: b.createdAt.toISOString(),
       updatedAt: b.updatedAt.toISOString(),
       archivedAt: b.archivedAt?.toISOString() || null,
+      countryOfRegistration: setupText(b.companySetup, "companyInfo", "countryOfRegistration"),
+      taxResidenceCountry: setupText(b.companySetup, "companyInfo", "taxResidenceCountry"),
+      legalStructure: setupText(b.companySetup, "companyInfo", "legalStructure"),
+      accountingMethod: setupText(b.companySetup, "companyInfo", "accountingMethod"),
+      taxRegistered: setupText(b.companySetup, "taxSettings", "taxRegistered"),
+      taxType: setupText(b.companySetup, "taxSettings", "taxType"),
+      standardTaxRate: setupText(b.companySetup, "taxSettings", "standardTaxRate"),
+      primaryCurrency: setupText(b.companySetup, "currencySettings", "primaryCurrency"),
+      reportingCurrency: setupText(b.companySetup, "currencySettings", "reportingCurrency"),
     })),
     users: userRows
       .filter((u) => Boolean(u.email))
@@ -97,7 +150,7 @@ export async function listBusinesses(): Promise<{
         id: u.id,
         email: u.email,
         name: u.name,
-        businessCount: 0,
+      businessCount: businessRows.filter((business) => business.userId === u.id).length,
       })),
   }
 }
@@ -275,6 +328,7 @@ export async function getBusinessById(id: string) {
       companyNumber: businesses.companyNumber,
       status: businesses.status,
       isPrimary: businesses.isPrimary,
+      companySetup: businesses.companySetup,
       createdAt: businesses.createdAt,
       updatedAt: businesses.updatedAt,
       archivedAt: businesses.archivedAt,
@@ -293,9 +347,11 @@ export async function getBusinessById(id: string) {
 
   return {
     ...row,
+    companySetup: row.companySetup as Record<string, unknown> | null,
     ownerEmail: owner?.email || "Unknown",
     ownerName: owner?.name || null,
     status: row.status as "draft" | "active" | "archived",
+    completionPercent: computeCompletionPercent(row),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     archivedAt: row.archivedAt?.toISOString() || null,

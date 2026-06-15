@@ -125,6 +125,8 @@ Text rules for this file:
 ## Accountancy
 
 - Show Accountancy as a dashboard workspace with overview, reporting, tax, and compliance sections.
+- Show the same owner-selected overview, reporting, tax, and compliance context in Payload for
+  superadmin operators.
 - Show bookkeeping actions for bank reconciliation, expense coding, monthly close, and tax preparation.
 - Show a bookkeeping queue with current status and direct action links.
 - Show monthly close readiness for business profile, financial dataset, and tax context.
@@ -215,7 +217,12 @@ Text rules for this file:
 - Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.
 - Open Payload admin at `/admin`.
 - Use Payload admin as the operator workspace for CMS content, dashboard business profiles,
-  support issues, and administrator dataset uploads.
+  accountancy review, support issues, and administrator dataset uploads.
+- Combine Payload operator sign-in and sign-up in tabs on the same login page.
+- Create self-registered Payload operator accounts with the base role.
+- Let configured Google and LinkedIn dashboard sessions provision and authenticate a matching
+  base-role Payload operator account.
+- Preserve the built-in superadmin role when its dashboard session authenticates through Payload.
 - Match Payload admin typography, colors, control radius, navigation surfaces, and light/dark
   backgrounds to the dashboard design system.
 - Structure Payload admin with a left main-menu rail, topbar, compact page header, body subheader,
@@ -229,6 +236,9 @@ Text rules for this file:
   uploading a dataset.
 - Keep business and dataset records in their existing owner-scoped Drizzle tables when operators
   manage them through Payload.
+- Let Payload superadmins edit business identity, location, legal structure, accounting method,
+  tax registration, tax type, tax rate, and reporting currencies in the existing company setup
+  record.
 - Store support issues in the Payload Issues collection and use the same records for dashboard
   ticket creation, customer status updates, and operator review.
 - Open the dataset-aware AI Assistant from a Payload modal into the dashboard user session so

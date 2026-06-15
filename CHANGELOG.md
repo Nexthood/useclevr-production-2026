@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Add a Payload accountancy workspace for owner-selected reporting, tax, compliance, and close
+  readiness review.
+- Add tabbed Payload operator registration and sign-in with Google and LinkedIn account access.
 - Add Payload admin nav footer with search modal, theme toggle, and logout
 - Add admin topbar with logo, search, credit badge, theme toggle, and sign out controls
 - Add Google and LinkedIn OAuth buttons to the Payload admin login page
@@ -83,6 +86,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Let Payload superadmins maintain business tax, accounting, legal, and currency context in the
+  same records used by the dashboard.
 - Keep business and dataset records in their existing account-scoped storage while administrators
   manage them through Payload, and store support issues in the Payload-managed issue queue.
 - Organize the content admin around the dashboard's menu rail, topbar, page header, focused

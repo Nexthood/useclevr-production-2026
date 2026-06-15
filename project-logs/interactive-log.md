@@ -1261,3 +1261,40 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Follow-up Tasks**: Push to beta, verify CI green, verify Railway deploys, test live Payload admin datasets/businesses views.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
 - **Minimal Destination**: Business store at `src/lib/payload/admin-business-store.ts`; dataset store at `src/lib/payload/admin-dataset-store.ts`; API endpoints in `admin-operations.ts`; views in `payload-operational-views.tsx`; CSS in `payload-auth-brand.css`; config in `payload.config.ts`; importMap in `src/app/(payload)/admin/importMap.js`.
+
+---
+
+## Interaction 47: Payload Business, Accountancy, and Authentication Migration
+
+- **Date**: 2026-06-15
+- **User Goal**: Move business profile and accountancy workflows into Payload, preserve the current
+  design, restore one-page tabbed operator authentication, and support Google and LinkedIn access.
+- **Changes**:
+  1. Add a Payload accountancy view with dashboard-account and business selectors for overview,
+     reporting, tax, and compliance context.
+  2. Keep businesses, company setup, profiles, datasets, and dataset rows in their existing
+     owner-scoped Drizzle records.
+  3. Extend Payload business editing with legal structure, accounting method, tax registration,
+     tax type, tax rate, and currency fields.
+  4. Fix business entity counts to query business IDs and let operators clear optional profile
+     values.
+  5. Combine Payload sign-in and base-role registration in tabs with the shared password policy.
+  6. Authenticate configured Google and LinkedIn sessions through a Payload custom strategy that
+     provisions matching base-role CMS accounts and preserves the fixed built-in superadmin role.
+- **Problems Marked**:
+  - `risk`: Social provider access requires the existing Auth.js Google or LinkedIn credentials.
+  - `observation`: Product-operation endpoints remain superadmin-only even when base-role operator
+    registration is available.
+- **User Learning**: Payload can host operator workflows without duplicating dashboard business or
+  accountancy records.
+- **AI-Agent Learning**: Use a Payload custom authentication strategy when an Auth.js provider must
+  authorize Payload requests; a redirect alone does not create a Payload-authenticated request.
+- **Follow-up Tasks**: T-861 verifies the final Payload login and operator UI in the release
+  candidate.
+- **Verification**: TypeScript, TODO validation, focused lint, docs, secrets, and build validation
+  run after implementation.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`; operator implementation
+  guidance lives in `docs/Developer_Guides/DEVELOPER_GUIDE.md`; release behavior lives in
+  `CHANGELOG.md`; active verification remains in `.TODO/todo-next.md`.

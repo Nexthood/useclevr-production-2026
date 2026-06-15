@@ -1,10 +1,13 @@
 import type { CollectionConfig } from "payload"
 
 import { isCmsSuperAdmin } from "@/lib/payload/access"
+import { dashboardSessionStrategy } from "@/lib/payload/dashboard-auth-strategy"
 
 export const CmsUsers: CollectionConfig = {
   slug: "cms-users",
-  auth: true,
+  auth: {
+    strategies: [dashboardSessionStrategy],
+  },
   admin: {
     useAsTitle: "email",
     defaultColumns: ["email", "role", "updatedAt"],

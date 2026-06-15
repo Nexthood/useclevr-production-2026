@@ -5,8 +5,13 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-15
-- **Goal**: Complete Payload admin shell with topbar controls, OAuth login, credit badge, datasets management, business profile full CRUD, AI modals, and fix CI pipeline failure.
-- **Durable change**: Topbar controls, OAuth buttons, credit badge, datasets list/detail/delete view, business archive/restore/delete, Payload native AI modals, consolidated admin-business-store and admin-dataset-store, CSV upload with drag-and-drop zone, migration `__name` placeholder fixed.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes. CI pending after commit push.
+- **Goal**: Move business and accountancy operator workflows into Payload and restore tabbed
+  credentials, Google, and LinkedIn operator access.
+- **Durable change**: Payload superadmins can review owner-selected accountancy context and edit
+  business tax, legal, accounting, and currency setup in the existing dashboard records. Payload
+  login combines sign-in and base-role registration, and social sessions authenticate through a
+  Payload custom strategy.
+- **Verification**: TypeScript passes; focused lint, docs, TODO, secrets, and build checks run
+  before completion.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
