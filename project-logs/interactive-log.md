@@ -1133,15 +1133,44 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
 - **Minimal Destination**: Payload admin component code in `src/components/payload/`; styling in `payload-auth-brand.css`; nav config in `payload.config.ts`; migration index at `src/migrations/index.ts`.
 
-- **Date**: 2026-06-13
-- **User Goal**: Fix Markdown lint failures across documentation and project Markdown files without committing.
+---
+
+## Interaction 43: Payload Product Operations Completion
+
+- **Date**: 2026-06-15
+- **User Goal**: Update guides, commit, and complete Payload operator support for business profiles,
+  issues, dataset uploads, AI Assistant, and Hybrid AI with dashboard-consistent presentation.
 - **Changes**:
-  1. Fixed table pipe alignment in AI tools, founder, sales, and project-controls docs.
-  2. Added blank-line spacing around Markdown tables.
-  3. Fixed fenced-code spacing and nested REST Client prompt code fences.
+  1. Store support issues in a native Payload collection while dashboard ticket routes use the same
+     owner-scoped records.
+  2. Add an explicit Payload migration that creates the issue schema and copies legacy tickets
+     without duplicate IDs.
+  3. Run Railway's additive schema helper before standalone startup and include the Payload issue
+     schema in that helper.
+  4. Keep business profiles and datasets in existing owner-scoped Drizzle tables through
+     superadmin-only Payload views.
+  5. Keep AI Assistant and Hybrid AI as Payload modal handoffs into existing dashboard workflows.
+  6. Replace fabricated login metrics with direct descriptions of content, support, upload, and AI
+     operations.
+  7. Align requirements, changelog, migration guidance, deployment guidance, project phases, user
+     guidance, developer guidance, and sales planning with current ownership and MCP behavior.
 - **Problems Marked**:
-  - `observation`: Markdown lint failures were formatting-only and did not change product behavior.
-- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check -- "*.md" .TODO/*.md project-prompts/*.md` passed.
-- **Follow-up Tasks**: None.
+  - `blocker`: Payload migration generation fails under Node 26 because TSX resolves a built-in
+    module as a file URL; generation succeeds under Node 22 and the resulting migration validates
+    under the project runtime.
+  - `risk`: Railway previously started without its documented predeploy schema command.
+  - `observation`: Concurrent agent changes modified TODO guidance during validation; the final
+    queue rules and checker now agree.
+- **User Learning**: Payload can own support issues without moving business profiles or datasets
+  out of their existing account-scoped storage.
+- **AI-Agent Learning**: Re-read branch and staged state before final validation because another
+  agent can commit or stage work during an active request.
+- **Follow-up Tasks**: T-841 remains responsible for test-host MCP deployment and ChatGPT
+  developer-mode verification.
+- **Verification**: `pnpm validate:types`, `pnpm lint:docs`, `pnpm lint:todos`,
+  `pnpm lint:secrets`, `pnpm validate:dist`, focused ESLint, and `pnpm build` pass. The production
+  build reports the existing generic compile warning without a warning detail.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
-- **Minimal Destination**: Documentation formatting lives in the updated Markdown files; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`; release behavior lives in
+  `CHANGELOG.md`; operator and deployment guidance lives in developer and user guides; detailed and
+  compact records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.

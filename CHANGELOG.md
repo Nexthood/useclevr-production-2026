@@ -156,6 +156,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Keep active and completed task IDs stable while deferred and ignored queues use labeled,
+  ID-free entries.
 - Add full-project Railway deployment-history cleanup through the authenticated project wrapper.
 - Add Railway environment-variable management without printing variable values, and expose the
   configured MCP server URL in authenticated MCP discovery responses.

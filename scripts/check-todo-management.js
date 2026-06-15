@@ -33,11 +33,6 @@ function readText(filePath) {
   }
 }
 
-function hasLinksSection(text, linksHeader) {
-  const escapedHeader = linksHeader.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^##\\s+${escapedHeader}\\s*$`, "m").test(text);
-}
-
 function taskLinePattern(queueName, config) {
   if (queueName === "future" || queueName === "ignore") {
     return /^[-*]\s+(?!T-\d+\.)(.+)$/i;
@@ -143,7 +138,7 @@ if (!config) {
   process.exit(1);
 }
 
-for (const field of ["currentTaskPrefix", "nextTaskNumber", "todoFiles", "linksHeader"]) {
+for (const field of ["currentTaskPrefix", "nextTaskNumber", "todoFiles"]) {
   if (!(field in config)) {
     fail(`${repoRelative(todoConfigPath)} is missing "${field}".`);
   }
@@ -181,10 +176,6 @@ for (const queueName of requiredQueues) {
   validateTaskLanguage(filePath, text, queueName, config);
   validateTaskLabels(filePath, text, queueName, config);
 
-  if (!hasLinksSection(text, config.linksHeader)) {
-    fail(`${repoRelative(filePath)} must include a "## ${config.linksHeader}" section.`);
-  }
-
   const queueIds = [];
   const lines = text.split(/\r?\n/);
   for (let index = 0; index < lines.length; index += 1) {
@@ -206,12 +197,6 @@ for (const queueName of requiredQueues) {
 
 const nextIds = idsByQueue.get("next") || [];
 const doneIds = idsByQueue.get("done") || [];
-const doneIdSet = new Set(doneIds);
-for (const nextId of nextIds) {
-  if (!doneIdSet.has(nextId) && !ids.has(`${config.currentTaskPrefix}${nextId}`)) {
-    // Active IDs are allowed to have historical gaps. The lint reports them only when strict gap checks are enabled.
-  }
-}
 
 const sortedNext = [...nextIds].sort((a, b) => a - b);
 const missingNumbers = [];

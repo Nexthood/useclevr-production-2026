@@ -112,3 +112,10 @@ This file summarizes current project activity. Detailed session records live in
 - Add Google + LinkedIn OAuth buttons to Payload admin login page.
 - Verify 14-day trial in analyst-credits.ts (TRIAL_DAYS = 14).
 - Fix CI pipeline: remove stale PayloadSupportIssuesView from importMap.js, replace migration `__name` placeholder with actual collection name.
+- Store dashboard support records in the native Payload Issues collection and migrate legacy ticket
+  rows without duplicate IDs.
+- Run Railway's additive schema helper before standalone startup so Payload support tables exist in
+  generated deployments.
+- Align product, developer, deployment, sales, roadmap, and migration guidance with current CSV,
+  MCP, business-profile, dataset, and support ownership.
+- Remove fabricated admin-login metrics and describe the available operator workflows directly.

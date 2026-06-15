@@ -5,8 +5,6 @@ This retired queue stores deferred work until it becomes active enough to move i
 Use plain labeled bullets here. Assign a T-number from `.TODO/config.json` only when moving work
 into the active queue.
 
-## Links
-
 - [TODO-next.md](todo-next.md) (labels: todo)
 - [TODO-done.md](todo-done.md) (labels: todo)
 - [TODO-ignore.md](todo-ignore.md) (labels: todo)
