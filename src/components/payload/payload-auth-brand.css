@@ -89,12 +89,111 @@ body {
   backdrop-filter: blur(12px);
 }
 
+.app-header .step-nav {
+  margin-left: auto;
+}
+
+.payload-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: auto;
+}
+
+.payload-topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.35rem;
+  color: var(--theme-elevation-600);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+.payload-topbar-logo:hover {
+  background: var(--theme-elevation-100);
+  color: #047d8d;
+}
+
+html[data-theme="dark"] .payload-topbar-logo:hover {
+  color: #67e8f9;
+}
+
+.payload-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.payload-topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--theme-elevation-500);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.payload-topbar-search-btn:hover {
+  background: var(--theme-elevation-100);
+  color: #047d8d;
+}
+
+html[data-theme="dark"] .payload-topbar-search-btn:hover {
+  color: #67e8f9;
+}
+
+.payload-topbar-theme .grid {
+  background: transparent;
+}
+
+.payload-topbar-theme button {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--theme-elevation-500);
+}
+
+.payload-topbar-theme button:hover {
+  background: var(--theme-elevation-100);
+}
+
+.payload-topbar-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.35rem;
+  color: var(--theme-elevation-500);
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+.payload-topbar-logout:hover {
+  background: var(--theme-elevation-100);
+  color: var(--theme-error-500);
+}
+
+html[data-theme="dark"] .payload-topbar-logout:hover {
+  color: #f87171;
+}
+
 .template-default {
   background:
     linear-gradient(180deg, color-mix(in srgb, #078fa1 4%, var(--theme-bg)), var(--theme-bg) 32rem);
 }
 
-body:has(.payload-useclevr-auth) .template-minimal {
+body:has(.payload-useclevr-auth),
+body:has(.payload-login-page) .template-minimal {
   position: relative;
   background:
     radial-gradient(circle at 15% 15%, color-mix(in srgb, #06b6d4 22%, transparent), transparent 30%),
@@ -103,7 +202,8 @@ body:has(.payload-useclevr-auth) .template-minimal {
     var(--theme-bg);
 }
 
-body:has(.payload-useclevr-auth) .template-minimal::before {
+body:has(.payload-useclevr-auth) .template-minimal::before,
+body:has(.payload-login-page) .template-minimal::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
@@ -111,7 +211,8 @@ body:has(.payload-useclevr-auth) .template-minimal::before {
   background: linear-gradient(90deg, transparent, color-mix(in srgb, #06b6d4 40%, transparent), transparent);
 }
 
-html[data-theme="dark"] body:has(.payload-useclevr-auth) .template-minimal {
+html[data-theme="dark"] body:has(.payload-useclevr-auth) .template-minimal,
+html[data-theme="dark"] body:has(.payload-login-page) .template-minimal {
   background:
     radial-gradient(circle at 15% 15%, color-mix(in srgb, #06b6d4 28%, transparent), transparent 30%),
     radial-gradient(circle at 85% 20%, color-mix(in srgb, #a855f7 28%, transparent), transparent 32%),

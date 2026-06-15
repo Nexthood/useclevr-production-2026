@@ -7,6 +7,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add Payload admin nav footer with search modal, theme toggle, and logout
+- Add admin topbar with logo, search, credit badge, theme toggle, and sign out controls
+- Add Google and LinkedIn OAuth buttons to the Payload admin login page
+- Add credit badge component to Payload admin topbar and sidebar
+- Add Lucide icons to Payload custom nav sections and CSS icons for collection links
+- Add breadcrumb navigation to all admin view page headers
+- Add 4 admin management views (Customers, Discounts, Levels, Progress) with CRUD
+- Add Tailwind theme sync and Payload-native theme toggle for light/dark/system
+- Redesign Payload admin login with dashboard-style gradients, card form, and blur backdrop
+
 ### Fixed
 
 - Hide Payload product operations and AI operator actions from base CMS accounts while keeping

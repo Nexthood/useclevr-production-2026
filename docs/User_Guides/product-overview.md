@@ -3,6 +3,14 @@
 UseClevr helps users upload business datasets, review dashboards, ask AI questions, and download
 reports.
 
+## Current Product Phase
+
+UseClevr is in the launch-critical phase. The current product focuses on reliable CSV and Excel upload, dataset analysis, dashboard insights, AI questions, demo access, sales-ready docs, and lightweight privacy controls before advanced integrations.
+
+Payload admin is part of the current operator workspace. It supports public content management, dashboard business profiles, support issue review, and owner-assigned CSV uploads while keeping product data in the existing application database.
+
+MCP, public APIs, data connectors, and market intelligence remain roadmap items after the core product, demo flow, sales readiness, and revenue path are stable.
+
 ## Main Workflow
 
 1. Sign in.

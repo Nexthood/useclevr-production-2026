@@ -97,6 +97,7 @@ This file summarizes current project activity. Detailed session records live in
 - Add focused Payload MCP migration tasks and update MCP docs, REST Client checks, access rules,
   requirements, changelog, and planning records to use `/api/payload/mcp` as the canonical connector.
 - Remove current dashboard MCP documentation and keep historical project logs as historical records.
+- Fix Markdown table alignment, table spacing, and fenced-code formatting so `pnpm lint:docs` passes.
 - Add theme sync and Payload-native theme toggle to admin pages and login.
 - Redesign Payload admin login with dashboard-style gradient backgrounds, card form, and teal buttons.
 - Add nav footer with admin search modal, theme toggle, and logout to Payload sidebar.

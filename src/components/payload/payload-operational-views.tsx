@@ -3,8 +3,8 @@
 import HybridAiButton from "@/components/ui/hybrid-ai-button"
 import { Modal } from "@/components/ui/modal"
 import { useAuth } from "@payloadcms/ui"
-import { Building2, Ticket, Upload } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { Building2, Upload } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 
 const API_ROOT = "/api/payload/admin-operations"
 
@@ -30,18 +30,6 @@ type BusinessRow = {
   description: string | null
   status: string
   isPrimary: boolean
-  updatedAt: string
-}
-
-type TicketRow = {
-  id: string
-  userEmail: string
-  subject: string
-  message: string
-  category: string
-  priority: string
-  status: string
-  adminNote: string
   updatedAt: string
 }
 
@@ -103,7 +91,6 @@ export function PayloadOperationsNav() {
     <nav className="payload-operation-nav" aria-label="Product operations">
       <span>Product operations</span>
       <a href="/admin/business-profiles"><Building2 className="payload-nav-icon" /> Business profiles</a>
-      <a href="/admin/support-issues"><Ticket className="payload-nav-icon" /> Support issues</a>
       <a href="/admin/dataset-upload"><Upload className="payload-nav-icon" /> Dataset upload</a>
     </nav>
   )
@@ -257,131 +244,6 @@ function PayloadBusinessProfilesWorkspace() {
             <button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save business profile"}</button>
           </div>
         </form>
-      </Modal>
-    </main>
-  )
-}
-
-export function PayloadSupportIssuesView() {
-  const { user } = useAuth<CmsAdminUser>()
-  if (user?.role !== "superadmin") return <PayloadOperatorAccessDenied />
-  return <PayloadSupportIssuesWorkspace />
-}
-
-function PayloadSupportIssuesWorkspace() {
-  const [tickets, setTickets] = useState<TicketRow[]>([])
-  const [selected, setSelected] = useState<TicketRow | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState("")
-  const [message, setMessage] = useState("")
-
-  const totals = useMemo(() => ({
-    open: tickets.filter((ticket) => ticket.status === "open").length,
-    urgent: tickets.filter((ticket) => ticket.priority === "urgent" && ticket.status !== "resolved").length,
-  }), [tickets])
-
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    setError("")
-    try {
-      const response = await fetch(`${API_ROOT}/issues`, { credentials: "include", cache: "no-store" })
-      const data = await readResponse<{ tickets: TicketRow[] }>(response)
-      setTickets(data.tickets)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not load support issues.")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  async function save(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!selected) return
-    setIsSaving(true)
-    setError("")
-    const formData = new FormData(event.currentTarget)
-    try {
-      const response = await fetch(`${API_ROOT}/issues`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selected.id, ...Object.fromEntries(formData) }),
-      })
-      await readResponse(response)
-      setSelected(null)
-      setMessage("Support issue updated.")
-      await load()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not update the support issue.")
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  return (
-    <main className="payload-admin-operation-view">
-      <OperationHeader
-        eyebrow="Product operations"
-        title="Support issues"
-        description="Review customer issues, assign operator notes, and update resolution status."
-      />
-      <StatusMessage error={error} message={message} />
-      <div className="payload-operation-summary">
-        <div><strong>{tickets.length}</strong><span>Total issues</span></div>
-        <div><strong>{totals.open}</strong><span>Open</span></div>
-        <div><strong>{totals.urgent}</strong><span>Urgent</span></div>
-      </div>
-      <div className="payload-operation-table-wrap">
-        <table className="payload-operation-table">
-          <thead><tr><th>Issue</th><th>Customer</th><th>Priority</th><th>Status</th><th>Updated</th><th><span className="sr-only">Actions</span></th></tr></thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6}>Loading support issues...</td></tr>
-            ) : tickets.length === 0 ? (
-              <tr><td colSpan={6}>No support issues are available.</td></tr>
-            ) : tickets.map((ticket) => (
-              <tr key={ticket.id}>
-                <td><strong>{ticket.subject}</strong><small>{ticket.category}: {ticket.message}</small></td>
-                <td>{ticket.userEmail}</td>
-                <td>{ticket.priority}</td>
-                <td><span className="payload-operation-status">{ticket.status.replace("_", " ")}</span></td>
-                <td>{new Date(ticket.updatedAt).toLocaleDateString()}</td>
-                <td><button type="button" className="payload-operation-link" onClick={() => setSelected(ticket)}>Review</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <Modal
-        open={Boolean(selected)}
-        onOpenChange={(open) => !open && setSelected(null)}
-        title={selected?.subject || "Support issue"}
-        description={selected ? `${selected.userEmail} · ${selected.category}` : undefined}
-      >
-        {selected && (
-          <form className="payload-operation-form" onSubmit={save}>
-            <div className="payload-operation-message is-wide">{selected.message}</div>
-            <label>
-              Status
-              <select name="status" defaultValue={selected.status}>
-                <option value="open">Open</option>
-                <option value="in_progress">In progress</option>
-                <option value="resolved">Resolved</option>
-              </select>
-            </label>
-            <label className="is-wide">Operator note<textarea name="adminNote" rows={6} defaultValue={selected.adminNote} /></label>
-            <StatusMessage error={error} message="" />
-            <div className="payload-operation-form-actions">
-              <button type="button" className="is-secondary" onClick={() => setSelected(null)}>Cancel</button>
-              <button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Update issue"}</button>
-            </div>
-          </form>
-        )}
       </Modal>
     </main>
   )

@@ -6,7 +6,7 @@ UseClevr helps startup founders understand business performance, prepare for inv
 
 | Challenge | UseClevr Answer |
 | Challenge                                              | UseClevr Answer                                                                                             |
-| -----------                                            | -----------------                                                                                           |
+| Challenge                                              | UseClevr Answer                                                                                             |
 | Need to understand revenue trends but have no BI tools | Upload CSV → ask questions in plain English → get structured answers with computed metrics                  |
 | Preparing for investor meetings                        | Export analysis as PDF reports with revenue breakdown, growth trends, and KPIs                              |
 | Tracking unit economics                                | Upload sales data with revenue, cost, and quantity columns → AI computes margins, trends, and concentration |
@@ -67,7 +67,7 @@ Week 4: Upload next month's data → Compare growth trends → Update investor p
 
 | Plan | Price | What You Get |
 | Plan             | Price   | What You Get                                        |
-| ------           | ------- | --------------                                      |
+| Plan             | Price   | What You Get                                        |
 | Free             | $0      | Try upload and basic AI. 2 analyst credits.         |
 | Pro Monthly      | $29/mo  | Unlimited questions, full AI, PDF report downloads. |
 | Pro Annual       | $290/yr | Same as Pro Monthly, two months free.               |
@@ -77,9 +77,9 @@ Hybrid AI upgrade available for on-device analysis when working with sensitive s
 
 | Tier | Model | Size | Use Case |
 | Tier           | Model                  | Size   | Use Case                                                      |
-| ------         | -------                | ------ | ----------                                                    |
-| Hybrid AI Lite | `llama3.2:3b-instruct` | ~2GB   | Daily Q&A, revenue checks, basic margin analysis              |
-| Hybrid AI MEGA | `llama3:8b-instruct`   | ~5GB   | Deep dives, full reports, complex trend analysis, offline use |
+| Tier           | Model                  | Size | Use Case                                                      |
+| Hybrid AI Lite | `llama3.2:3b-instruct` | ~2GB | Daily Q&A, revenue checks, basic margin analysis              |
+| Hybrid AI MEGA | `llama3:8b-instruct`   | ~5GB | Deep dives, full reports, complex trend analysis, offline use |
 
 **When to use Hybrid AI as a founder:**
 - Your data contains customer PII, employee records, or financial details you don't want sent to cloud AI.
@@ -93,7 +93,7 @@ UseClevr uses lightweight stage controls to keep product and sales aligned. This
 
 | Control | What It Means for Founders |
 | Control             | What It Means for Founders                                                                                                                                        |
-| ---------           | ---------------------------                                                                                                                                       |
+| Control             | What It Means for Founders                                                                                                                                        |
 | Business case       | Every feature has a documented benefit and cost. The [business case](../Project_Management/business-case.md) shows what UseClevr delivers and why.                |
 | Stage gates         | New capabilities go through defined stages before reaching users — quality checks before rollout.                                                                 |
 | Risk register       | Known risks (data privacy, AI accuracy, regulated-advice boundaries) are tracked with responses. See the [risk register](../Project_Management/risk-register.md). |

@@ -6,7 +6,7 @@ This document maps UseClevr project management artefacts to lightweight controls
 
 | Theme | UseClevr Artefact | Purpose |
 | Theme         | UseClevr Artefact                                                                                                              | Purpose                                                                                              |
-| -------       | -------------------                                                                                                            | ---------                                                                                            |
+| Theme         | UseClevr Artefact                                                                                                              | Purpose                                                                                              |
 | Business Case | [Business case](../Project_Management/business-case.md)                                                                        | Justifies project viability and tracks expected benefits against costs and risks.                    |
 | Organization  | [Stakeholder & communications plan](../Project_Management/stakeholder-communications-plan.md)                                  | Defines roles, responsibilities, and communication channels across stakeholder groups.               |
 | Quality       | [Project product description](../Project_Management/project-product-description.md) + [sales-one-pager](../sales-one-pager.md) | Sets quality expectations and acceptance criteria for product and sales materials.                   |
@@ -29,12 +29,12 @@ This document maps UseClevr project management artefacts to lightweight controls
 
 | Practice | Sales Application |
 | Practice           | Sales Application                                                                                              |
-| ------------------ | -------------------                                                                                            |
-| Stage gates        | Each sales readiness milestone (demo ready, objection handling, materials complete) functions as a stage gate. |
-| Product focus      | The one-pager, demo scripts, and demo datasets are managed as project products with defined quality criteria.  |
-| Risk management    | Sales risks tracked: overpromising capabilities, regulated-advice boundaries, competitive positioning gaps.    |
-| Lessons learned    | Sales conversation feedback feeds back into demo scripts, objection handling, and messaging updates.           |
-| Quality review     | Sales materials reviewed against `requirements.md` and `CHANGELOG.md` before use in customer conversations.    |
+| Practice        | Sales Application                                                                                              |
+| Stage gates     | Each sales readiness milestone (demo ready, objection handling, materials complete) functions as a stage gate. |
+| Product focus   | The one-pager, demo scripts, and demo datasets are managed as project products with defined quality criteria.  |
+| Risk management | Sales risks tracked: overpromising capabilities, regulated-advice boundaries, competitive positioning gaps.    |
+| Lessons learned | Sales conversation feedback feeds back into demo scripts, objection handling, and messaging updates.           |
+| Quality review  | Sales materials reviewed against `requirements.md` and `CHANGELOG.md` before use in customer conversations.    |
 
 ## Hybrid AI Sales Initiative
 
@@ -42,11 +42,11 @@ The Hybrid AI feature (local on-device AI with cloud fallback) follows stage gat
 
 | Stage | Gate | Sales Milestone | Exit Criteria |
 | Stage   | Gate          | Sales Milestone       | Exit Criteria                                                                                                                  |
-| ------- | ------------- | -----------------     | ---------------                                                                                                                |
-| 1       | Initiation    | Developer preview     | Local agent installs, mock AI works, local AI route responds                                                                   |
-| 2       | Stage 1       | Internal demo ready   | One-pager covers Hybrid AI tiers, demo script includes local AI flow, screenshots updated                                      |
-| 3       | Stage 2       | Early adopter release | Installer flow works end-to-end, support content covers Hybrid AI setup, objection handling includes data-sovereignty response |
-| 4       | Stage 3       | General availability  | Pricing live, Hybrid AI in checkout, activation metrics tracked, founder and SME docs updated                                  |
+| Stage | Gate       | Sales Milestone       | Exit Criteria                                                                                                                  |
+| 1     | Initiation | Developer preview     | Local agent installs, mock AI works, local AI route responds                                                                   |
+| 2     | Stage 1    | Internal demo ready   | One-pager covers Hybrid AI tiers, demo script includes local AI flow, screenshots updated                                      |
+| 3     | Stage 2    | Early adopter release | Installer flow works end-to-end, support content covers Hybrid AI setup, objection handling includes data-sovereignty response |
+| 4     | Stage 3    | General availability  | Pricing live, Hybrid AI in checkout, activation metrics tracked, founder and SME docs updated                                  |
 
 **Key risk**: Overpromising local AI capability — local model quality differs from cloud Gemini. Mitigated by clearly marking local vs. cloud analysis in the UI and sales materials.
 
@@ -56,7 +56,7 @@ The Hybrid AI feature (local on-device AI with cloud fallback) follows stage gat
 
 | Tolerance | Threshold | Escalation Path |
 | Tolerance               | Threshold                                               | Escalation Path                              |
-| -----------             | -----------                                             | -----------------                            |
+| Tolerance               | Threshold                                               | Escalation Path                              |
 | Demo readiness delay    | >1 sprint past stage gate date                          | Log to issue register, re-plan demo scope    |
 | Objection handling gaps | >3 demos with same unanswered objection                 | Update objection handling doc, add FAQ entry |
 | Pricing confusion       | >2 checkout drop-offs citing price confusion            | Review pricing page, update one-pager        |

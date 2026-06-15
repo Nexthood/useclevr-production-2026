@@ -115,6 +115,10 @@ moving work between states.
 - T-798. Complete Payload admin content pages for news, legal, privacy, and FAQ collections with proper access control and editor workflow. (labels: deployment, content, workflow)
 - T-799. Fix Payload admin logout redirect and session expiration handling so users return to login instead of seeing a blank or broken page. (labels: deployment, auth, ui)
 - T-800. Add Payload collection field validation with user-friendly error messages for required fields, format checks, and relation constraints. (labels: deployment, content, workflow)
+- T-853. Add data connectors such as Google Sheets and Snowflake after upload, analysis, demo, sales, and payments are stable. (labels: data, api, workflow)
+- T-854. Add the UseClevr API after core customer workflows and revenue are stable. (labels: api, workflow)
+- T-855. Add market-intelligence enrichment after customer BI workflows and revenue validation are stable. (labels: ai, data, workflow)
+- T-856. Add UseClevr Intelligence Cloud only after customer data, financial data, market data, and AI reasoning foundations are validated. (labels: ai, data, workflow)
 
 ## Label: devops
 
@@ -171,6 +175,9 @@ moving work between states.
 
 ## Label: mcp
 
+- T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to the Payload MCP endpoint. (labels: mcp, deployment, docs)
+- T-822. Test Payload MCP endpoint accessibility on `mcp-test.useclevr.com` after DNS configuration. (labels: mcp, testing, deployment)
+- T-823. Run end-to-end Payload MCP API-key auth and tool invocation tests via REST Client files in `docs/api-tests/mcp.http`. (labels: mcp, testing, security)
 - T-818. Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
 - T-819. Create separate MCP Railway service with independent scaling and monitoring when MCP demand grows. (labels: mcp, deployment, monitoring)
 - T-825. Add MCP rate limiting dashboards showing per-client usage, throttling events, and response time metrics. (labels: mcp, monitoring, metrics)

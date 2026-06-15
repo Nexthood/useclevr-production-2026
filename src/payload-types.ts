@@ -72,6 +72,7 @@ export interface Config {
     media: Media;
     'news-posts': NewsPost;
     faqs: Faq;
+    'support-issues': SupportIssue;
     'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -84,6 +85,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     'news-posts': NewsPostsSelect<false> | NewsPostsSelect<true>;
     faqs: FaqsSelect<false> | FaqsSelect<true>;
+    'support-issues': SupportIssuesSelect<false> | SupportIssuesSelect<true>;
     'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -278,6 +280,31 @@ export interface Faq {
   createdAt: string;
 }
 /**
+ * Customer support issues managed by UseClevr operators.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-issues".
+ */
+export interface SupportIssue {
+  id: string;
+  /**
+   * Dashboard account ID that owns this issue.
+   */
+  userId: string;
+  userEmail: string;
+  subject: string;
+  message: string;
+  category: string;
+  priority: 'normal' | 'urgent';
+  status: 'open' | 'in_progress' | 'resolved';
+  adminNote?: string | null;
+  adminName?: string | null;
+  adminNoteUpdatedAt?: string | null;
+  resolvedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * API keys control which collections, resources, tools, and prompts MCP clients can access
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -389,6 +416,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'faqs';
         value: number | Faq;
+      } | null)
+    | ({
+        relationTo: 'support-issues';
+        value: string | SupportIssue;
       } | null)
     | ({
         relationTo: 'payload-mcp-api-keys';
@@ -538,6 +569,26 @@ export interface FaqsSelect<T extends boolean = true> {
   tag?: T;
   sortOrder?: T;
   scope?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-issues_select".
+ */
+export interface SupportIssuesSelect<T extends boolean = true> {
+  id?: T;
+  userId?: T;
+  userEmail?: T;
+  subject?: T;
+  message?: T;
+  category?: T;
+  priority?: T;
+  status?: T;
+  adminNote?: T;
+  adminName?: T;
+  adminNoteUpdatedAt?: T;
+  resolvedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

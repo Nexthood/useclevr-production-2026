@@ -1091,3 +1091,20 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   - Add credits/credit system UI to Payload admin topbar and sidebar.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
 - **Minimal Destination**: Payload admin component code lives in `src/components/payload/`; styling in `payload-auth-brand.css`; nav configuration in `payload.config.ts`; admin operation and management views in `payload-operational-views.tsx` and `payload-admin-management-views.tsx`.
+
+---
+
+## Interaction 41: Markdown Lint Cleanup
+
+- **Date**: 2026-06-13
+- **User Goal**: Fix Markdown lint failures across documentation and project Markdown files without committing.
+- **Changes**:
+  1. Fixed table pipe alignment in AI tools, founder, sales, and project-controls docs.
+  2. Added blank-line spacing around Markdown tables.
+  3. Fixed fenced-code spacing and nested REST Client prompt code fences.
+- **Problems Marked**:
+  - `observation`: Markdown lint failures were formatting-only and did not change product behavior.
+- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check -- "*.md" .TODO/*.md project-prompts/*.md` passed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Documentation formatting lives in the updated Markdown files; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.

@@ -42,12 +42,26 @@ Text rules for this file:
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
 - Store AI answer feedback on the saved answer history item.
 - Explain efficient AI usage for public users, dashboard users, and operators.
+- Keep roadmap work behind the current launch-critical product: upload, analysis, dashboard, demo flow, sales readiness, payments, and docs.
+- Treat MCP, public APIs, data connectors, and market intelligence as future roadmap items until core customer workflows and revenue are stable.
 - Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
 - Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
 - Explain Hybrid AI plan access in customer-facing plan copy.
+
+## Privacy Shield
+
+- Detect sensitive dataset columns before AI analysis by column name and simple regex patterns.
+- Treat name, email, phone, address, customer_id, iban, tax_id, birthdate, location, salary, and similar identifiers as sensitive fields.
+- Show a small warning before AI analysis when sensitive fields are detected.
+- Offer a checkbox labeled "Anonymize sensitive data before AI analysis".
+- Replace sensitive values with stable placeholders when anonymization is enabled.
+- Use placeholder families such as Customer_001, Email_001, Phone_001, Address_001, IBAN_001, TaxID_001, Birthdate_001, Location_001, and Salary_001.
+- Continue AI analysis only with the anonymized dataset when anonymization is enabled.
+- Save a simple privacy report containing file name, detected sensitive fields, anonymization true or false, and timestamp.
+- Keep the privacy shield lightweight and avoid enterprise DLP, blockchain, or complex permission flows.
 
 ## Downloads & Reports
 

@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Setup](#setup)
+- [Project Phases](#project-phases)
 - [Technical Requirements](#technical-requirements)
 - [Project Structure](#project-structure)
 - [Environment Variables](#environment-variables)
@@ -26,6 +27,23 @@ pnpm install
 cp .env.local.example .env.local   # copy and fill in your values
 pnpm dev
 ```
+
+## Project Phases
+
+UseClevr keeps the current roadmap focused on launch-critical product work before advanced integrations.
+
+| Phase | Current focus | Defer until |
+| ----- | ------------- | ----------- |
+| Launch-critical MVP | CSV and Excel upload, analysis, dashboard insights, AI questions, demo access, docs, and privacy shield | Advanced integrations and long-term intelligence |
+| Sales and investor readiness | Demo dataset, demo video, sales materials, payments, trial flow, and repeatable onboarding | Large roadmap expansion |
+| AI differentiation | Stronger KPI detection, trend detection, anomaly detection, and executive summaries | Data connectors and public API expansion |
+| Data connectors | Google Sheets and Snowflake first, then other connectors | Core product and revenue are stable |
+| UseClevr API | `/api/analyze`, `/api/chat`, and `/api/report` for partner and SaaS use | Customer workflows are validated |
+| MCP | Payload MCP for content and locked demo-account reads | Public APIs and customer workflows are stable |
+| Market intelligence | Competitor, industry, and company enrichment | BI workflows and revenue are stable |
+| Intelligence Cloud | Customer data, financial data, market data, and AI reasoning | All earlier phases are validated |
+
+Keep active implementation tasks in `.TODO/todo-next.md` and roadmap items in `.TODO/todo-future.md`.
 
 ## Technical Requirements
 

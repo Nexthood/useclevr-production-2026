@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto"
 import { parseCSVString } from "@/lib/data/csvLoader"
 import { getDb } from "@/lib/db"
 import { businesses, datasetRows, datasets, users } from "@/lib/db/schema"
-import { listTickets, updateTicket } from "@/lib/support/ticket-store"
 import { desc, eq } from "drizzle-orm"
 import type { Endpoint, PayloadRequest } from "payload"
 
@@ -219,42 +218,6 @@ export const payloadAdminOperationEndpoints: Endpoint[] = [
         return await saveBusiness(req)
       } catch {
         return Response.json({ error: "Could not save the business profile." }, { status: 500 })
-      }
-    },
-  },
-  {
-    path: "/admin-operations/issues",
-    method: "get",
-    handler: async (req) => {
-      if (!requireSuperAdmin(req)) return Response.json({ error: "Forbidden" }, { status: 403 })
-      try {
-        return Response.json({ tickets: await listTickets({ includeAll: true }) })
-      } catch {
-        return Response.json({ error: "Could not load support issues." }, { status: 500 })
-      }
-    },
-  },
-  {
-    path: "/admin-operations/issues",
-    method: "patch",
-    handler: async (req) => {
-      const operator = requireSuperAdmin(req)
-      if (!operator) return Response.json({ error: "Forbidden" }, { status: 403 })
-      try {
-        if (!req.json) return Response.json({ error: "Request body is unavailable." }, { status: 400 })
-        const body = (await req.json()) as Record<string, unknown>
-        const ticket = await updateTicket({
-          id: body.id,
-          status: body.status,
-          adminNote: body.adminNote,
-          adminName: operator.email || "Payload admin",
-          userId: "",
-          isSuperAdmin: true,
-        })
-        return Response.json({ success: true, ticket })
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Could not update support issue."
-        return Response.json({ error: message }, { status: 400 })
       }
     },
   },

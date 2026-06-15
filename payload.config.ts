@@ -5,6 +5,7 @@ import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-
 import { Faqs } from "@/lib/cms/collections/Faqs"
 import { CmsUsers } from "@/lib/payload/collections/CmsUsers"
 import { Media } from "@/lib/payload/collections/Media"
+import { SupportIssues } from "@/lib/payload/collections/SupportIssues"
 import { payloadAdminOperationEndpoints } from "@/lib/payload/admin-operations"
 import { dashboardMcpTools } from "@/lib/payload/mcp-dashboard-tools"
 import { NewsPosts } from "@/lib/payload/collections/NewsPosts"
@@ -99,6 +100,10 @@ export default buildConfig({
           exportName: "PayloadNavHeader",
         },
         {
+          path: "@/components/payload/payload-admin-topbar",
+          exportName: "PayloadTopbarControls",
+        },
+        {
           path: "@/components/payload/payload-operational-views",
           exportName: "PayloadOperationsNav",
         },
@@ -118,19 +123,20 @@ export default buildConfig({
         },
       ],
       views: {
+        login: {
+          Component: {
+            path: "@/components/payload/payload-login-view",
+            exportName: "PayloadLoginView",
+          },
+          path: "/login",
+          exact: true,
+        },
         businessProfiles: {
           Component: {
             path: "@/components/payload/payload-operational-views",
             exportName: "PayloadBusinessProfilesView",
           },
           path: "/business-profiles",
-        },
-        supportIssues: {
-          Component: {
-            path: "@/components/payload/payload-operational-views",
-            exportName: "PayloadSupportIssuesView",
-          },
-          path: "/support-issues",
         },
         datasetUpload: {
           Component: {
@@ -171,7 +177,7 @@ export default buildConfig({
     },
     meta: {
       titleSuffix: "UseClevr Admin",
-      description: "Minimal content admin for UseClevr public news and page content.",
+      description: "UseClevr operator admin for content and product operations.",
     },
     autoLogin: false,
   },
@@ -180,7 +186,7 @@ export default buildConfig({
     api: "/api/payload",
   },
   endpoints: payloadAdminOperationEndpoints,
-  collections: [CmsUsers, Media, NewsPosts, Faqs],
+  collections: [CmsUsers, Media, NewsPosts, Faqs, SupportIssues],
   globals: [HomePageContent, PrivacyPageContent, TermsPageContent],
   plugins: [
     s3Storage({
@@ -239,6 +245,9 @@ export default buildConfig({
             update: true,
             delete: true,
           },
+        },
+        "support-issues": {
+          enabled: false,
         },
       },
       globals: {

@@ -8,9 +8,9 @@ This document describes the installation and configuration of two free AI develo
 
 | Tool | Installation Path | Version | Status |
 | Tool    | Installation Path              | Version   | Status      |
-| ------  | -------------------            | --------- | --------    |
-| Kodu AI | `~/.local/share/pnpm/bin/kodu` | 2.1.3     | ✅ Installed |
-| Zed     | `~/.local/zed/`                | v1.5.4    | ✅ Installed |
+| Tool    | Installation Path              | Version | Status      |
+| Kodu AI | `~/.local/share/pnpm/bin/kodu` | 2.1.3   | ✅ Installed |
+| Zed     | `~/.local/zed/`                | v1.5.4  | ✅ Installed |
 
 ## 1. Kodu AI
 

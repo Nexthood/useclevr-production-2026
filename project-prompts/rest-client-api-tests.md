@@ -53,7 +53,7 @@ Tasks:
 
    Add safe non-secret REST Client environment variables:
 
-   ```json
+     ```json
    {
      "rest-client.environmentVariables": {
        "local": {
@@ -67,7 +67,7 @@ Tasks:
        }
      }
    }
-   ```
+    ```
 
    Do not include tokens, cookies, API keys, session secrets, Stripe secrets, Gemini keys, OpenAI keys, or database URLs.
 
@@ -75,13 +75,13 @@ Tasks:
 
    Example:
 
-   ```http
+    ```http
    @baseUrl = {{baseUrl}}
 
    ### Example protected request
    GET {{baseUrl}}/api/example
    Cookie: next-auth.session-token=<paste-local-session-cookie>
-   ```
+    ```
 
    Secrets stay as manual placeholders.
 
@@ -96,11 +96,11 @@ Tasks:
 
    Example style:
 
-   ```http
+    ```http
    ### Health check
    # Expected: 200 OK
    GET {{baseUrl}}/api/health
-   ```
+    ```
 
 3. Add `docs/api-tests/README.md`.
 
