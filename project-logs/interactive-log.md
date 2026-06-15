@@ -1174,3 +1174,90 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Product behavior lives in `requirements.md`; release behavior lives in
   `CHANGELOG.md`; operator and deployment guidance lives in developer and user guides; detailed and
   compact records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 44: Project Phase Distribution
+
+- **Date**: 2026-06-15
+- **User Goal**: Review the internal project phase plan, distribute current and future work into
+  TODO queues, align current descriptions and sales guidance, and keep the phase document concise.
+- **Changes**:
+  1. Consolidate delivery into Usable MVP, Sales Validation, AI Differentiation, and Platform
+     Expansion with explicit exit or activation gates.
+  2. Keep CSV as the current upload format and Payload MCP as limited active infrastructure for
+     approved content and locked demo-account summaries.
+  3. Replace phase-documentation tasks with concrete acceptance, privacy, demo-kit, activation,
+     billing, and Railway test-release tasks.
+  4. Gate AI differentiation, connectors, public API productization, private customer MCP, market
+     intelligence, and Intelligence Cloud in the future queue.
+  5. Align requirements, README, developer and user guides, sales plan, marketing guidance, project
+     brief, product description, business case, issue register, risk register, and stage plan.
+  6. Repair duplicated sales-plan table headers and remove active MCP tasks duplicated in the
+     future queue.
+- **Problems Marked**:
+  - `risk`: Current and future capability claims diverged across CSV/Excel, MCP, Payload, and sales
+    documents.
+  - `improvement`: Phase tasks now describe measurable exit work instead of documentation intent.
+  - `observation`: An unrelated untracked Payload business-store file exists and remains untouched.
+- **User Learning**: Phase gates let current sales and product work remain ambitious without
+  presenting unvalidated platform expansion as available.
+- **AI-Agent Learning**: Distribute planning information by audience and action: requirements state
+  product rules, TODO queues state work, sales docs state proof and claims, and the phase guide stays
+  concise.
+- **Follow-up Tasks**: T-849, T-850, and T-853 through T-856 define the active phase exit work.
+- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, `pnpm lint:todos`,
+  `pnpm lint:secrets`, and `git diff --check` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Internal phase rules live in `.TODO/.PLAN/project-phases.md`; concise
+  developer gates live in `docs/Developer_Guides/PROJECT_PHASES.md`; current and deferred work lives
+  in `.TODO/`; commercial gates live in `docs/Sales/`; interaction records live in `project-logs/`
+  and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 45: Current Phase TODO Expansion
+
+- **Date**: 2026-06-15
+- **User Goal**: Add meaningful current-phase TODO tasks without committing, then update docs and AI interaction records.
+- **Changes**:
+  1. Add active tasks for Excel upload parity, privacy shield acceptance, analysis quality, Payload admin login review, and release-candidate checklist.
+  2. Keep current-phase work in `.TODO/todo-next.md` and future platform expansion out of active work.
+  3. Update phase docs and product overview to include the expanded current-phase checklist.
+  4. Refresh AI interaction status with the new active phase work and validation result.
+- **Problems Marked**:
+  - `observation`: Current-phase work should stay measurable and release-oriented.
+  - `risk`: Advanced platform work can distract from the usable MVP and sales-validation gates.
+- **Follow-up Tasks**: T-857 through T-862 define the added current-phase tasks.
+- **Verification**: `pnpm lint:todos`, `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Active work lives in `.TODO/todo-next.md`; phase guidance lives in `docs/Developer_Guides/PROJECT_PHASES.md`; product wording lives in `docs/User_Guides/product-overview.md`; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 46: Payload Product Operations Full CRUD & Dataset Management
+
+- **Date**: 2026-06-15
+- **User Goal**: Move business profiles, dataset upload, and AI features to Payload admin with full CRUD and Payload-native presentation.
+- **Changes**:
+  1. Created `admin-business-store.ts` with consolidated full CRUD: list with entity counts, create, update, archive, restore, delete (with archive-only, non-primary guards), get by ID, list entities.
+  2. Created `admin-dataset-store.ts` with list, get by ID, upload (CSV parse, batch insert), delete, preview (paginated row data).
+  3. Rewrote `admin-operations.ts` to use the new stores and expose endpoints: GET/POST/DELETE businesses, archive/restore, GET entities, GET/POST/DELETE datasets, GET preview.
+  4. Rewrote `payload-operational-views.tsx`:
+     - Business profiles: search bar, full table (name, owner, industry, entities, status, updated), row actions (view detail, edit, archive/restore, delete), create/edit form modal, detail modal with all fields.
+     - Datasets view: list table (name, owner, size, rows/columns, status, uploaded), detail modal with data preview table, column chips, delete confirmation.
+     - Dataset upload: drag-and-drop zone, owner select, upload progress.
+     - AI modals: Payload-native modal overlay for AI Assistant (features, open dashboard link) and Hybrid AI (Lite/MEGA tiers, configure link).
+  5. Registered `PayloadDatasetsView` in payload.config.ts and importMap.js.
+  6. Added nav footer quick link for datasets management.
+  7. Added ~300 lines of CSS for: spinner, badges, toolbar, search, status badges (draft/active/archived), row actions, detail grid, preview table, upload zone, button styles, AI modals.
+  8. Updated project records, changelog, and interaction status.
+  9. Ran typecheck — passes cleanly.
+- **Problems Marked**:
+  - `observation`: Business data stays in Drizzle tables (dashboard continues to use them directly); Payload admin bridges through the new store layer.
+  - `observation`: ImportMap needs manual edits between `payload dev` runs because view registration in payload.config.ts doesn't auto-register in importMap until next dev build.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes. Full project validation pending commit.
+- **Follow-up Tasks**: Push to beta, verify CI green, verify Railway deploys, test live Payload admin datasets/businesses views.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Business store at `src/lib/payload/admin-business-store.ts`; dataset store at `src/lib/payload/admin-dataset-store.ts`; API endpoints in `admin-operations.ts`; views in `payload-operational-views.tsx`; CSS in `payload-auth-brand.css`; config in `payload.config.ts`; importMap in `src/app/(payload)/admin/importMap.js`.

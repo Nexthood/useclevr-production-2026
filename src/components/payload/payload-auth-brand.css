@@ -1046,3 +1046,485 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
     padding: 1.25rem;
   }
 }
+
+/* ─── Shared utilities ──────────────────────────────────────── */
+
+.payload-empty {
+  color: var(--theme-elevation-400);
+  font-style: italic;
+}
+
+.payload-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--theme-elevation-200);
+  border-top-color: var(--theme-success-500);
+  border-radius: 50%;
+  animation: payload-spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+
+@keyframes payload-spin {
+  to { transform: rotate(360deg); }
+}
+
+.payload-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  background: var(--theme-success-100);
+  color: var(--theme-success-600);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-left: 0.35rem;
+}
+
+/* ─── Operation toolbar ─────────────────────────────────────── */
+
+.payload-operation-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.payload-operation-search {
+  flex: 1;
+  min-width: 200px;
+}
+
+.payload-operation-search input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 0.35rem;
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  font-size: 0.85rem;
+}
+
+.payload-operation-search input:focus {
+  outline: none;
+  border-color: var(--theme-success-500);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-success-500) 20%, transparent);
+}
+
+.payload-operation-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.payload-operation-count {
+  color: var(--theme-elevation-500);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* ─── Operation table ───────────────────────────────────────── */
+
+.payload-operation-table tr.is-inactive {
+  opacity: 0.6;
+}
+
+.payload-operation-table tr.is-inactive:hover {
+  opacity: 0.85;
+}
+
+/* ─── Status badges ─────────────────────────────────────────── */
+
+.payload-operation-status {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.payload-operation-status.is-draft {
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-600);
+}
+
+.payload-operation-status.is-active {
+  background: var(--theme-success-100);
+  color: var(--theme-success-600);
+}
+
+.payload-operation-status.is-archived {
+  background: var(--theme-warning-100);
+  color: var(--theme-warning-600);
+}
+
+/* ─── Row actions ───────────────────────────────────────────── */
+
+.payload-operation-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.payload-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: var(--theme-elevation-500);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.payload-action-icon:hover {
+  background: var(--theme-elevation-100);
+  color: var(--theme-text);
+}
+
+.payload-action-icon.is-warning:hover {
+  background: var(--theme-warning-100);
+  color: var(--theme-warning-600);
+}
+
+.payload-action-icon.is-danger:hover {
+  background: var(--theme-error-100);
+  color: var(--theme-error-500);
+}
+
+.payload-action-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Detail card ───────────────────────────────────────────── */
+
+.payload-detail-card {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.payload-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .payload-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.payload-detail-grid dt,
+.payload-detail-section dt {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--theme-elevation-500);
+  margin-bottom: 0.15rem;
+}
+
+.payload-detail-grid dd,
+.payload-detail-section dd {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--theme-text);
+  line-height: 1.5;
+}
+
+.payload-detail-section {
+  border-top: 1px solid var(--theme-elevation-100);
+  padding-top: 1rem;
+}
+
+/* ─── Column chips ──────────────────────────────────────────── */
+
+.payload-column-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.payload-chip {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-600);
+  font-family: var(--theme-font-mono);
+}
+
+/* ─── Preview table ─────────────────────────────────────────── */
+
+.payload-preview-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.payload-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.payload-preview-table th {
+  background: var(--theme-elevation-50);
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--theme-elevation-200);
+  text-align: left;
+  white-space: nowrap;
+  color: var(--theme-elevation-600);
+}
+
+.payload-preview-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--theme-elevation-100);
+  color: var(--theme-text);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payload-preview-table tbody tr:hover td {
+  background: var(--theme-elevation-50);
+}
+
+/* ─── Upload zone ───────────────────────────────────────────── */
+
+.payload-upload-zone {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem !important;
+  border: 2px dashed var(--theme-elevation-200);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+  text-align: center;
+}
+
+.payload-upload-zone:hover,
+.payload-upload-zone.is-dragover {
+  border-color: var(--theme-success-500);
+  background: color-mix(in srgb, var(--theme-success-500) 6%, var(--theme-elevation-0));
+}
+
+.payload-upload-zone input[type="file"] {
+  display: none;
+}
+
+.payload-upload-icon {
+  color: var(--theme-elevation-400);
+}
+
+.payload-upload-zone:hover .payload-upload-icon,
+.payload-upload-zone.is-dragover .payload-upload-icon {
+  color: var(--theme-success-500);
+}
+
+.payload-upload-text {
+  font-size: 0.85rem;
+  color: var(--theme-text);
+  font-weight: 500;
+}
+
+.payload-upload-hint {
+  font-size: 0.72rem;
+  color: var(--theme-elevation-400);
+}
+
+/* ─── Button styles ─────────────────────────────────────────── */
+
+.payload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  border: none;
+}
+
+a.payload-button {
+  color: var(--theme-text);
+  background: var(--theme-elevation-100);
+}
+
+a.payload-button:hover {
+  background: var(--theme-elevation-150);
+}
+
+a.payload-button.is-secondary {
+  background: transparent;
+  color: var(--theme-elevation-500);
+}
+
+a.payload-button.is-secondary:hover {
+  background: var(--theme-elevation-50);
+}
+
+/* ─── AI modals ─────────────────────────────────────────────── */
+
+.payload-ai-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.payload-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--theme-elevation-200);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.payload-ai-btn:hover {
+  border-color: var(--theme-success-500);
+  background: color-mix(in srgb, var(--theme-success-500) 6%, var(--theme-elevation-0));
+}
+
+.payload-ai-btn.is-hybrid {
+  border-color: color-mix(in srgb, #8b5cf6 40%, var(--theme-elevation-200));
+  color: #8b5cf6;
+}
+
+.payload-ai-btn.is-hybrid:hover {
+  border-color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 8%, var(--theme-elevation-0));
+}
+
+/* ─── Modal overlay ⎯ AI modals ─────────────────────────────── */
+
+.payload-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.payload-ai-modal {
+  background: var(--theme-elevation-0);
+  border-radius: 0.6rem;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.payload-ai-modal-header {
+  padding: 1.25rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--theme-elevation-100);
+}
+
+.payload-ai-modal-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  color: var(--theme-text);
+}
+
+.payload-ai-modal-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--theme-elevation-500);
+}
+
+.payload-ai-modal-body {
+  padding: 1rem 1.25rem;
+}
+
+.payload-ai-modal-body p {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  color: var(--theme-elevation-600);
+  line-height: 1.5;
+}
+
+.payload-ai-modal-features {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.payload-ai-feature {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.35rem;
+  background: var(--theme-elevation-50);
+  border: 1px solid var(--theme-elevation-100);
+}
+
+.payload-ai-feature strong {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--theme-text);
+  margin-bottom: 0.15rem;
+}
+
+.payload-ai-feature span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--theme-elevation-500);
+  line-height: 1.4;
+}
+
+.payload-ai-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--theme-elevation-100);
+}
+
+.payload-ai-modal-footer .payload-button {
+  background: var(--theme-success-500);
+  color: white;
+}
+
+.payload-ai-modal-footer .payload-button:hover {
+  background: var(--theme-success-600);
+}
+
+/* ─── Operation card ⎯ for upload ────────────────────────────── */
+
+.payload-operation-card {
+  padding: 1.5rem;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 0.5rem;
+  background: var(--theme-elevation-0);
+}

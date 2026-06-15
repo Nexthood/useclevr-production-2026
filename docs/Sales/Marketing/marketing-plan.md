@@ -134,7 +134,12 @@ Upload business data, ask questions in plain language, review structured insight
 ## Roadmap Messaging Rules
 
 - Present Business Profile, Accountancy, AI Assistant, datasets, reports, support, and Stripe billing as current product areas.
-- Present insurance, financing, assets, payroll, inventory, risk scoring, forecast scenarios, PayPal, and Payload CMS as roadmap or future work unless implemented.
+- Present Payload content administration, support issues, business-profile operations, and
+  owner-assigned dataset uploads as current operator capabilities.
+- Present insurance, financing, assets, payroll, inventory, risk scoring, forecast scenarios, and
+  PayPal as future work unless requirements activate them.
+- Present private customer MCP, broader public APIs, data connectors, market intelligence, and
+  Intelligence Cloud as Platform Expansion work.
 - Avoid promising regulated advice.
 - Avoid implying UseClevr replaces accountants, lawyers, insurance brokers, or financial advisors.
 - Keep sales copy aligned with `requirements.md`.

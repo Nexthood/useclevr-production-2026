@@ -18,6 +18,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add 4 admin management views (Customers, Discounts, Levels, Progress) with CRUD
 - Add Tailwind theme sync and Payload-native theme toggle for light/dark/system
 - Redesign Payload admin login with dashboard-style gradients, card form, and blur backdrop
+- Add Payload datasets management view with list, detail modal, data preview, and delete
+- Add full business profile CRUD in Payload with archive, restore, and permanent delete
+- Add Payload native-style modals for AI Assistant and Hybrid AI feature descriptions
+- Add drag-and-drop CSV upload zone with improved Payload admin styling
+- Add dataset admin store with preview, pagination, and entity relationship counts
 
 ### Fixed
 
@@ -39,6 +44,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Remove `pnpm install --prod` from Dockerfiles — dist already contains complete `node_modules` from Next.js standalone tracing, eliminating `ERR_PNPM_IGNORED_BUILDS` and preventing overwrite of traced Next.js internals
 - Keep `node_modules` in dist branch commits so Railway Docker build has all required dependencies at build time
 - Fix beta CI publish: copy `dist-root` contents (not directory) to temp root so `.gitignore` lands at repo root and fallback `.gitignore` with `node_modules` is not generated
+- Fix Payload admin operations API to use the consolidated business store instead of inline Drizzle queries, returning entity counts and owner names
+- Fix migration `__name` placeholder in migration index to resolve Payload auto-generated template value
 
 ### Added
 

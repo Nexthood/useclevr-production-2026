@@ -1,127 +1,83 @@
 # UseClevr Stage Plan
 
-## Stage 1: Current Product Stabilisation
+This plan translates the product phases into commercial delivery gates.
 
-### Objective
+## Phase 1: Usable MVP
 
-Keep the current app reliable enough for demos, user testing, support review, and sales conversations.
+### Outcome
 
-### Scope
+A new user completes signup, CSV upload, verified analysis, dashboard review, a dataset-specific AI
+question, report review, support access, and plan selection without developer intervention.
 
-- Public pages.
-- Dashboard navigation.
-- Dataset upload and tables.
-- AI Assistant.
-- Lightweight privacy shield for uploaded CSV files.
-- Downloads and reports.
-- Business Profile.
-- Accountancy.
-- Tickets and FAQ.
-- Stripe checkout.
-- Railway deployment.
+### Current Work
 
-### Controls
+- Validate numeric, text, date, boolean, identifier, and mixed CSV columns.
+- Verify KPI calculations, charts, trends, rankings, risks, opportunities, and missing-data
+  explanations.
+- Complete the lightweight privacy warning and optional anonymization flow.
+- Verify responsive dashboard, loading, error, and empty states.
+- Verify reports, support tickets, trial credits, Stripe checkout, billing portal, and upgrades.
+- Deploy through beta and dist-test and run the complete smoke journey on Railway.
 
-- TypeScript validation.
-- Dist config validation.
-- Docs link validation.
-- TODO validation.
-- Changelog wording validation.
-- Production packaging.
-- Test host health review.
+### Exit Gate
 
-### Exit Criteria
+- TypeScript, lint, documentation, deployment config, and production build checks pass.
+- `/api/health` passes on the Railway test host.
+- The complete user journey works without developer intervention.
 
-- Production package builds.
-- Test deploy health works.
-- Public and dashboard routes load.
-- Upload, analysis, AI Assistant, privacy warning, and report flows are demonstrable.
-- Checkout and support flows are demonstrable.
+## Phase 2: Sales Validation
 
-## Stage 2: Sales Readiness
+### Outcome
 
-### Objective
+A prospect or investor understands and evaluates UseClevr without a technical walkthrough.
 
-Prepare a repeatable sales story and demo flow.
+### Current Work
 
-### Scope
+- Keep one founder and one SME demo dataset privacy-safe and representative.
+- Capture current public, upload, dashboard, AI Assistant, report, support, pricing, and billing
+  screenshots.
+- Maintain one repeatable demo script and one short demo video.
+- Keep one-pager, pricing, trial, objection handling, and support guidance aligned with current
+  capability.
+- Measure signup, first upload, first AI question, report review or download, checkout review, and
+  support usage.
 
-- Project brief.
-- Business case.
-- Product description.
-- Marketing plan.
-- Demo scripts.
-- Objection handling.
-- Screenshot checklist.
-- Demo datasets.
+### Exit Gate
 
-### Controls
+- The demo completes from current materials without live technical explanation.
+- Sales claims match requirements and current product behavior.
+- First-use and conversion signals are measurable.
 
-- Sales docs align with requirements.
-- Roadmap items are labelled clearly.
-- Regulated-advice boundaries are visible.
+## Phase 3: AI Differentiation
 
-### Exit Criteria
+### Outcome
 
-- Sales deck or one-pager can be produced from Sales docs.
-- Demo flow covers upload, AI Assistant, Business Profile, Accountancy, downloads, and support.
-- Objections map to FAQ or follow-up tasks.
+Representative datasets produce accurate KPIs, trends, anomalies, top performers, risks,
+opportunities, executive summaries, recommendations, and useful follow-up questions.
 
-## Stage 3: Activation And Conversion
+### Activation Gate
 
-### Objective
+Activate this phase after the Usable MVP journey and Railway test deployment are reliable.
 
-Improve the first-use path from visitor to first upload, first AI question, first report, and paid plan review.
+## Phase 4: Platform Expansion
 
-### Scope
+### Outcome
 
-- Homepage CTA clarity.
-- Signup/login flow.
-- Demo account guidance.
-- Upload guidance.
-- AI Assistant suggestions.
-- Business Profile progress.
-- Checkout review.
+UseClevr expands through approved connectors, broader public APIs, private customer MCP access,
+market intelligence, and Intelligence Cloud services.
 
-### Controls
+### Activation Gate
 
-- Track first upload.
-- Track first AI question.
-- Track report download.
-- Track checkout review completion.
-- Review support tickets and unresolved help chat queries.
+Activate each expansion only when core workflows, authorization, operating reliability, retention,
+and revenue justify its cost and risk.
 
-### Exit Criteria
+## Scope Rules
 
-- First-use flow is clear enough for a new user demo.
-- Support content covers top first-use questions.
-- Conversion points are measurable.
-
-## Stage 4: Roadmap Preparation
-
-### Objective
-
-Prepare future work without overpromising current capability.
-
-### Scope
-
-- Business Profile expansion.
-- Payload content layer.
-- PayPal payment option.
-- Data connectors after core product stability.
-- UseClevr API after customer workflows are validated.
-- Private customer MCP access after OAuth and customer-data authorization are stable.
-- Market intelligence after BI workflows and revenue validation are stable.
-- Broader tests.
-- Insurance, financing, assets, payroll, inventory, risk scoring, and forecasting modules.
-
-### Controls
-
-- Roadmap work stays in `.TODO/todo-future.md`.
-- Sales copy labels roadmap items.
-- Product claims stay aligned with requirements.
-
-### Exit Criteria
-
-- Future work has clear task boundaries.
-- Sales materials separate current capability from roadmap.
+- Payload MCP content tools and locked demo-account dataset summaries are active limited
+  infrastructure.
+- Private customer MCP access requires OAuth and customer-data authorization.
+- Google Sheets, Snowflake, public API productization, market intelligence, and Intelligence Cloud
+  remain future work.
+- Insurance, financing, assets, payroll, inventory, risk scoring, PayPal, and broad Business Profile
+  modules remain future work unless requirements explicitly activate them.
+- Current sales copy must not present future work as available.

@@ -20,7 +20,7 @@ into the active queue.
 - Create a separate branch for the dev-AI interaction collection that gathers project learning from multiple AI agents working with the developer during this project. (labels: ai, docs, workflow)
 - Add an AI interaction memory import assistant for pasted external chat summaries, redaction checks, classification, and project-learning destinations. (labels: ai, workflow)
 - Add a review screen for imported AI memory summaries that lets the user classify findings into docs, TODO queues, requirements, changelog, or prompt-library entries before saving. (labels: ai, docs, todo, workflow)
-- Improve dataset-aware answers. The AI must use uploaded dataset context, not generic answers. Improve chart suggestions, KPI detection, summaries, and follow-up questions. (labels: ai, business, data, upload)
+- Activate AI differentiation after the usable-MVP gate passes; strengthen deterministic KPI, trend, anomaly, top-performer, risk, opportunity, executive-summary, recommendation, and follow-up-question quality against representative datasets. (labels: ai, business, data, upload)
 - Add insurance policy records with provider, coverage, premium, deductible, renewal date, covered risks, exclusions, related asset or activity, missing-coverage warnings, and renewal reminders. (labels: ai, business, notice, testing)
 - Add AI response caching layer for repeated queries. (labels: ai, performance, caching)
 
@@ -30,7 +30,7 @@ into the active queue.
 
 ## Label: auth
 
-- Add OAuth authorization for private customer datasets before the ChatGPT MCP app supports non-demo UseClevr accounts. (labels: auth, mcp, security, api)
+- Add OAuth and customer-data authorization before Payload MCP exposes private datasets to ChatGPT or other non-demo clients. (labels: auth, mcp, security, api)
 - Allow signed internal MCP token access through the global proxy or narrow the proxy bypass for trusted MCP headers so documented token-based MCP calls can run without a browser session. (labels: auth, mcp, security, workflow)
 - Add OAuth providers if the product roadmap requires them. (labels: auth, ai, workflow)
 - OAuth user ID generation uses Date.now() + Math.random() — switch to uuid for collision resistance. (labels: auth)
@@ -97,8 +97,8 @@ into the active queue.
 - Split database migrations into a separate job only if migration duration, lock risk, or background work makes the single web-service pre-deploy phase unsafe. (labels: deployment, data, workflow)
 - Add server-host templates for a second hosting destination if Railway stops being the only production host. (labels: deployment, workflow)
 - Add a Railway account-backed service checklist covering Railway, Neon, Gemini, Stripe, upload storage, and future secondary hosts. (labels: deployment, payment, ai, data)
-- Add a CMS-backed content editing path for FAQ, homepage copy, and pricing copy if non-developers need content changes without deploys. (labels: deployment, faq, content, workflow)
-- Extend Payload beyond Phase 0 news and legal pages only after the admin content flow stays stable through normal editing, logout, and re-login cycles. (labels: deployment, content, workflow)
+- Add CMS-backed pricing copy only if non-developers need pricing-language changes without deploys; keep plan values in billing configuration. (labels: deployment, content, billing, workflow)
+- Extend Payload beyond current content and support ownership only after the operator flow remains stable through editing, logout, re-login, migration, and deployment cycles. (labels: deployment, content, workflow)
 - Resolve whether Vercel remains a live deployment target or only a documented fallback. (labels: deployment, docs)
 - Resolve whether dist branch history should keep exactly two commits or use tags/releases for longer deployment audit history. (labels: deployment, ci-build, workflow)
 - Add a dist branch smoke-check workflow only if Railway needs to wait for a GitHub status check before deploying. (labels: deployment, ci-build, testing, workflow)
@@ -110,13 +110,12 @@ into the active queue.
 - Add centralized error reporting with contextual information for production debugging. (labels: deployment, reports, workflow)
 - Add health check endpoints for all external service dependencies. (labels: deployment, monitoring)
 - Implement blue-green deployment strategy for zero-downtime releases. (labels: deployment, devops)
-- Complete Payload admin content pages for news, legal, privacy, and FAQ collections with proper access control and editor workflow. (labels: deployment, content, workflow)
 - Fix Payload admin logout redirect and session expiration handling so users return to login instead of seeing a blank or broken page. (labels: deployment, auth, ui)
 - Add Payload collection field validation with user-friendly error messages for required fields, format checks, and relation constraints. (labels: deployment, content, workflow)
-- Add data connectors such as Google Sheets and Snowflake after upload, analysis, demo, sales, and payments are stable. (labels: data, api, workflow)
-- Add the UseClevr API after core customer workflows and revenue are stable. (labels: api, workflow)
-- Add market-intelligence enrichment after customer BI workflows and revenue validation are stable. (labels: ai, data, workflow)
-- Add UseClevr Intelligence Cloud only after customer data, financial data, market data, and AI reasoning foundations are validated. (labels: ai, data, workflow)
+- Add Google Sheets and Snowflake connectors only after usable-MVP reliability, sales validation, retention, and revenue satisfy the platform-expansion gate. (labels: data, api, workflow)
+- Productize analyze, chat, and report APIs only after customer workflows, authorization, operating reliability, retention, and revenue satisfy the platform-expansion gate. (labels: api, workflow)
+- Add competitor, industry, company, and startup market intelligence only after core BI workflows and revenue validation satisfy the platform-expansion gate. (labels: ai, data, workflow)
+- Add UseClevr Intelligence Cloud only after customer-data, financial-data, market-data, security, and AI-reasoning foundations pass their operating and commercial gates. (labels: ai, data, workflow)
 
 ## Label: devops
 
@@ -173,9 +172,6 @@ into the active queue.
 
 ## Label: mcp
 
-- Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to the Payload MCP endpoint. (labels: mcp, deployment, docs)
-- Test Payload MCP endpoint accessibility on `mcp-test.useclevr.com` after DNS configuration. (labels: mcp, testing, deployment)
-- Run end-to-end Payload MCP API-key auth and tool invocation tests via REST Client files in `docs/api-tests/mcp.http`. (labels: mcp, testing, security)
 - Serve the MCP endpoint at the subdomain root when MCP operates as a separate customer-facing product. (labels: mcp, deployment, api)
 - Create separate MCP Railway service with independent scaling and monitoring when MCP demand grows. (labels: mcp, deployment, monitoring)
 - Add MCP rate limiting dashboards showing per-client usage, throttling events, and response time metrics. (labels: mcp, monitoring, metrics)
@@ -209,8 +205,8 @@ into the active queue.
 
 ## Label: sales
 
-- Prepare onepager, simple demo flow, LinkedIn launch post, outreach email, and investor/startup contact list. (labels: sales, workflow)
-- Create beta feedback flow, bug board, launch checklist, and short public demo script. (labels: sales, workflow)
+- Expand launch campaigns, outreach sequences, and investor/startup contact lists after the sales-validation kit and demo flow pass review. (labels: sales, workflow)
+- Expand beta feedback and launch operations after the usable-MVP smoke journey and activation measurement are reliable. (labels: sales, workflow)
 
 ## Label: search
 

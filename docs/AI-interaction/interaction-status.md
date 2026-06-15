@@ -5,13 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-15
-- **Goal**: Finish the Payload operator migration, align guides, validate the production path, and
-  commit the completed work.
-- **Durable change**: Payload owns support issues used by dashboard tickets, Railway applies the
-  required support schema before startup, and operator/admin guidance matches current ownership and
-  MCP behavior.
-- **Verification**: TypeScript, documentation lint, TODO lint, secret scanning, Railway/Vercel
-  config validation, focused ESLint, and the production build pass. The build reports the existing
-  generic compile warning without a warning detail.
+- **Goal**: Complete Payload admin shell with topbar controls, OAuth login, credit badge, datasets management, business profile full CRUD, AI modals, and fix CI pipeline failure.
+- **Durable change**: Topbar controls, OAuth buttons, credit badge, datasets list/detail/delete view, business archive/restore/delete, Payload native AI modals, consolidated admin-business-store and admin-dataset-store, CSV upload with drag-and-drop zone, migration `__name` placeholder fixed.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes. CI pending after commit push.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

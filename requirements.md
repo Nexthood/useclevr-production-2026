@@ -26,7 +26,7 @@ Text rules for this file:
 
 ## Upload & Analysis
 
-- Upload CSV and Excel files for AI analysis.
+- Upload CSV files for AI analysis.
 - Show uploaded datasets in structured tables with row counts.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Ask AI questions about uploaded datasets and receive structured answers.
@@ -42,8 +42,12 @@ Text rules for this file:
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
 - Store AI answer feedback on the saved answer history item.
 - Explain efficient AI usage for public users, dashboard users, and operators.
-- Keep roadmap work behind the current launch-critical product: upload, analysis, dashboard, demo flow, sales readiness, payments, and docs.
-- Treat MCP, public APIs, data connectors, and market intelligence as future roadmap items until core customer workflows and revenue are stable.
+- Complete the usable-MVP and sales-validation exit gates before activating AI-differentiation or
+  platform-expansion work.
+- Keep Payload MCP limited to approved content tools and locked demo-account dataset summaries.
+- Treat private customer MCP access, broader public APIs, data connectors, market intelligence, and
+  Intelligence Cloud as future work until customer workflows, authorization, operating reliability,
+  retention, and revenue justify expansion.
 - Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
 - Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.

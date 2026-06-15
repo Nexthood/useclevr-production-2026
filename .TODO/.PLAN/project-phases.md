@@ -1,32 +1,37 @@
 # UseClevr Project Phases
 
-UseClevr prioritizes launch-critical product value before broader integrations. The current phase
-keeps the team focused on CSV upload, analysis, dashboard insights, demo flow, sales readiness,
-payments, and documentation.
+UseClevr ships the smallest reliable business-intelligence product before expanding integrations or
+platform scope.
 
-## Current Phase Map
+## Phase Map
 
-| Phase                        | Current status        | Focus                                                                                                                                                     | Defer until                                        |
-| ---------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Launch-critical MVP          | Active                | CSV upload, analysis, KPI extraction, chart generation, AI summary, recommendations, results page, demo flow, login, docs, and lightweight privacy shield | Advanced integrations                              |
-| Sales and investor readiness | Active support work   | Demo account, demo dataset, demo video, pitch materials, pricing, trial flow, sales docs, and repeatable onboarding                                       | Large roadmap expansion                            |
-| AI differentiation           | Planned improvement   | Stronger KPI detection, trend detection, anomaly detection, executive summaries, and recommendation quality                                               | Data connectors and public API expansion           |
-| Data connectors              | Future                | Google Sheets and Snowflake first, then other sources                                                                                                     | Core product, demo, sales, and payments are stable |
-| UseClevr API                 | Future                | `/api/analyze`, `/api/chat`, `/api/report` for partner and SaaS use                                                                                       | Customer workflows and revenue are validated       |
-| Payload MCP                  | Active infrastructure | Approved content tools and locked demo-account dataset summaries                                                                                          | Private customer data access requires OAuth        |
-| Market intelligence          | Future                | Competitor analysis, industry trends, company enrichment, startup intelligence                                                                            | BI workflows and revenue are stable                |
-| UseClevr Intelligence Cloud  | Long-term             | Customer data, financial data, market data, and AI reasoning                                                                                              | Earlier phases are validated                       |
+| Phase                 | Status | Required outcome                                                                                                                                                             | Exit gate                                                                                            |
+| --------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1. Usable MVP         | Active | A new user signs up, uploads CSV data, receives accurate KPIs, charts, dataset-specific AI answers, and a report without developer help.                                     | The complete user journey passes locally and on the Railway test deployment.                         |
+| 2. Sales Validation   | Active | A prospect or investor can understand, test, and evaluate UseClevr through current screenshots, demo data, a repeatable script, pricing, trial access, and support guidance. | The demo runs without a live technical walkthrough and activation signals are measurable.            |
+| 3. AI Differentiation | Next   | Deterministic analysis identifies KPIs, trends, anomalies, top performers, risks, opportunities, and clear executive actions from the uploaded dataset.                      | Representative datasets produce accurate, useful results with traceable calculations.                |
+| 4. Platform Expansion | Future | UseClevr adds approved connectors, public APIs, private customer MCP access, market intelligence, and broader intelligence services.                                         | Core workflows, retention, revenue, authorization, and operating reliability justify each expansion. |
 
-## Active Work Boundaries
+## Current Boundaries
 
-- Keep launch-critical work in `.TODO/todo-next.md`.
-- Keep deferred roadmap items in `.TODO/todo-future.md`.
-- Keep sales copy aligned with current capability and label future items as roadmap.
-- Keep product docs focused on current behavior, not speculative features.
-- Keep privacy shield lightweight: detect sensitive columns, warn users, anonymize with stable placeholders, continue AI analysis with anonymized data, and save a simple privacy report.
+- Support CSV upload as the current file-ingestion format.
+- Keep Payload MCP limited to approved content tools and locked demo-account dataset summaries.
+- Keep private customer MCP access behind OAuth and customer-data authorization.
+- Keep business profiles and datasets in owner-scoped application storage.
+- Keep support issues in Payload and expose the same records through dashboard tickets.
+- Keep the privacy shield lightweight: detect sensitive columns, warn the user, optionally
+  anonymize stable placeholders, analyze the resulting data, and save a compact privacy report.
+- Keep roadmap claims out of current product and sales descriptions.
 
-## Success Metric
+## Current Execution
 
-An SME owner uploads a CSV file, sees a clear sensitive-data warning when needed, gets useful
-analysis and dataset-specific AI answers in under 60 seconds, and follows the demo or sales path
-without developer intervention.
+- `.TODO/todo-next.md` contains Phase 1 and Phase 2 implementation and validation work.
+- `.TODO/todo-future.md` contains Phase 3 and Phase 4 work until an exit gate activates it.
+- `docs/Developer_Guides/PROJECT_PHASES.md` is the concise developer phase reference.
+- `docs/Sales/Project_Management/stage-plan.md` translates phases into sales and activation gates.
+
+## Success Measure
+
+An SME owner completes signup, CSV upload, analysis, a dataset-specific AI question, and report
+review in under 60 seconds per processing step, understands the result, and reaches support or plan
+selection without developer intervention.

@@ -30,20 +30,16 @@ pnpm dev
 
 ## Project Phases
 
-UseClevr keeps the current roadmap focused on launch-critical product work before advanced integrations.
+UseClevr works through four gated phases: Usable MVP and Sales Validation are active, AI
+Differentiation is next, and Platform Expansion is future. Do not activate connectors, broader
+public APIs, private customer MCP, market intelligence, or Intelligence Cloud work before the
+current reliability, authorization, retention, and revenue gates pass.
 
-| Phase                        | Current focus                                                                                 | Defer until                                      |
-| ---------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Launch-critical MVP          | CSV upload, analysis, dashboard insights, AI questions, demo access, docs, and privacy shield | Advanced integrations and long-term intelligence |
-| Sales and investor readiness | Demo dataset, demo video, sales materials, payments, trial flow, and repeatable onboarding    | Large roadmap expansion                          |
-| AI differentiation           | Stronger KPI detection, trend detection, anomaly detection, and executive summaries           | Data connectors and public API expansion         |
-| Data connectors              | Google Sheets and Snowflake first, then other connectors                                      | Core product and revenue are stable              |
-| UseClevr API                 | `/api/analyze`, `/api/chat`, and `/api/report` for partner and SaaS use                       | Customer workflows are validated                 |
-| Payload MCP                  | Approved content tools and locked demo-account dataset summaries                              | Private customer access requires OAuth           |
-| Market intelligence          | Competitor, industry, and company enrichment                                                  | BI workflows and revenue are stable              |
-| Intelligence Cloud           | Customer data, financial data, market data, and AI reasoning                                  | All earlier phases are validated                 |
+Payload MCP is active limited infrastructure for approved content tools and locked demo-account
+dataset summaries. It does not provide private customer-data access.
 
-Keep active implementation tasks in `.TODO/todo-next.md` and roadmap items in `.TODO/todo-future.md`.
+See [Project Phases](PROJECT_PHASES.md) for the concise gates. Keep active implementation in
+`.TODO/todo-next.md` and deferred expansion in `.TODO/todo-future.md`.
 
 ## Technical Requirements
 

@@ -5,16 +5,17 @@ reports.
 
 ## Current Product Phase
 
-UseClevr is in the launch-critical phase. The current product focuses on reliable CSV upload,
-dataset analysis, dashboard insights, AI questions, demo access, sales-ready docs, and lightweight
-privacy controls before advanced integrations.
+UseClevr is completing its Usable MVP and Sales Validation phases. The current product focuses on
+reliable CSV and Excel upload, verified analysis, responsive dashboard insights, dataset-specific AI answers,
+reports, support, trial and billing paths, demo access, privacy shield warnings, and release-candidate validation.
 
 Payload admin is part of the current operator workspace. It supports public content management,
 dashboard business profiles, Payload-managed support issues, and owner-assigned CSV uploads.
 
 Payload MCP currently exposes approved content tools and locked demo-account dataset summaries.
-Customer-data MCP access, broader public APIs, data connectors, and market intelligence remain
-roadmap items.
+AI differentiation follows after the complete user journey is reliable. Private customer MCP
+access, broader public APIs, data connectors, market intelligence, and Intelligence Cloud remain
+future platform-expansion work.
 
 ## Main Workflow
 

@@ -4,6 +4,14 @@
 
 UseClevr provides a usable business intelligence workspace for users who need answers from business data without building dashboards, SQL queries, or enterprise data pipelines.
 
+## Delivery Phase
+
+UseClevr is completing the Usable MVP and Sales Validation gates. Current delivery proves the full
+journey from signup and CSV upload through verified analysis, dataset-specific AI answers, report
+review, support, trial access, billing, and Railway test operation. AI Differentiation follows next;
+connectors, broader public APIs, private customer MCP, market intelligence, and Intelligence Cloud
+remain Platform Expansion work.
+
 ## Product Composition
 
 ### Public Product Surface
@@ -89,6 +97,6 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - Payload manages public content and support issues, and supplies superadmin operator views for
   owner-scoped business profiles and dataset uploads.
 - PayPal remains deferred until a second payment provider is needed.
-- Payload MCP supports approved content tools and locked demo-account dataset summaries. Private
-  customer MCP access, broader public APIs, data connectors, and market intelligence remain roadmap
-  items until core BI workflows and revenue validation are stable.
+- Payload MCP supports approved content tools and locked demo-account dataset summaries. Activate
+  private customer MCP access, broader public APIs, data connectors, market intelligence, and
+  Intelligence Cloud only after reliability, authorization, retention, and revenue gates pass.

@@ -69,6 +69,10 @@ UseClevr creates value by turning business datasets into accessible analysis, AI
 
 UseClevr focuses on practical SME decision support rather than enterprise BI complexity. The product has a clear path from upload to insight to report to paid plan. Business Profile and Accountancy features create stronger context and recurring business workflows. Super-admin tools support operational control.
 
+Investment follows the phase gates: complete Usable MVP and Sales Validation first, improve AI
+differentiation next, and fund platform expansion only after reliability, authorization, retention,
+and revenue evidence support it.
+
 ## Business Case Controls
 
 - Review conversion and activation metrics after each release.

@@ -138,6 +138,13 @@ export default buildConfig({
           },
           path: "/business-profiles",
         },
+        datasets: {
+          Component: {
+            path: "@/components/payload/payload-operational-views",
+            exportName: "PayloadDatasetsView",
+          },
+          path: "/datasets",
+        },
         datasetUpload: {
           Component: {
             path: "@/components/payload/payload-operational-views",

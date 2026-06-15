@@ -42,6 +42,8 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 ## Project Approach
 
 - Keep the current app architecture and deployment path stable.
+- Complete the Usable MVP and Sales Validation gates before activating AI Differentiation or
+  Platform Expansion.
 - Build dashboard and public features using existing component patterns.
 - Use Drizzle and Neon PostgreSQL for application data.
 - Use Stripe as payment source of truth.
@@ -76,6 +78,8 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 ## Success Criteria
 
 - A user can sign up, upload a dataset, ask an AI question, and download a report.
+- A prospect can evaluate the product through current demo data, screenshots, a repeatable script,
+  pricing, trial guidance, and support content without a technical walkthrough.
 - A user can complete Business Profile context enough to improve setup progress.
 - A user can open support from FAQ, help chat, or tickets.
 - A paid user can reach checkout and subscription settings.

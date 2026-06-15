@@ -18,6 +18,7 @@ const quickLinks = [
   { href: "/admin/progress", label: "Onboarding progress" },
   { href: "/admin/business-profiles", label: "Business profiles" },
   { href: "/admin/support-issues", label: "Support issues" },
+  { href: "/admin/datasets", label: "Datasets" },
   { href: "/admin/dataset-upload", label: "Dataset upload" },
 ]
 

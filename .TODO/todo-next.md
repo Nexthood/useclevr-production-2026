@@ -19,19 +19,28 @@ moving work between states.
 
 ## Label: workflow
 
-- T-849. Keep current product work focused on launch-critical upload, analysis, dashboard, demo, login, and docs before MCP, API, and market-intelligence expansion. (labels: workflow, docs)
-- T-850. Implement lightweight privacy shield for CSV and Excel AI analysis with sensitive-column detection, anonymization checkbox, anonymized AI input, and privacy report persistence. (labels: ai, data, security, upload)
-- T-851. Convert project phases into active TODO tasks and future TODO tasks with current-step and deferred roadmap boundaries. (labels: workflow, docs)
-- T-852. Update sales and developer docs to separate current MVP capability, sales-readiness work, roadmap preparation, and long-term intelligence. (labels: docs, sales, workflow)
+- T-863. Move business profile and accountancy operator workflows into Payload, preserve dashboard data ownership and calculations, and provide tabbed credentials, Google, and LinkedIn admin registration and sign-in. (labels: business, reporting, auth, ui)
+- T-849. Run the complete new-user acceptance journey through signup, CSV upload, verified KPIs and charts, dataset-specific AI answers, report review, support, and plan selection; fix every blocker that requires developer intervention. (labels: workflow, testing, upload, ai, dashboard)
+- T-850. Implement the lightweight CSV privacy shield with sensitive-column detection, a clear warning, optional stable-placeholder anonymization, anonymized AI input, and a compact privacy report. (labels: ai, data, security, upload)
+- T-853. Complete the sales-validation kit with current screenshots, privacy-safe founder and SME demo datasets, a repeatable demo script, pricing and trial guidance, and a short demo video. (labels: sales, docs, testing)
+- T-854. Verify activation measurement for signup, first upload, first AI question, report review or download, checkout review, and support usage. (labels: metrics, sales, dashboard, testing)
+- T-855. Verify trial, analyst credits, Stripe checkout, subscription state, billing portal, and upgrade prompts across Free, Pro, and Business plans. (labels: billing, payment, testing)
+- T-856. Deploy the release candidate through beta and dist-test, verify Railway predeploy and startup, test `/api/health`, and run the usable-MVP smoke journey on the test host. (labels: deployment, testing, stability)
+- T-857. Stabilize Excel upload parity with CSV parsing, preview, row counts, ownership, and clear error messages. (labels: data, upload, testing)
+- T-858. Add privacy shield acceptance coverage for sensitive-column detection, warning, anonymization checkbox, anonymized AI input, and privacy report. (labels: ai, data, security, testing)
+- T-859. Verify analysis response time and output quality on representative founder, SME, and e-commerce datasets. (labels: ai, data, quality, testing)
+- T-860. After privacy shield implementation and acceptance pass, update product, developer, and sales docs with the verified user behavior and screenshots. (labels: docs, sales, workflow)
+- T-861. Review Payload admin login and operator UI against the dashboard login and admin shell before release candidate. (labels: ui, auth, dashboard, testing)
+- T-862. Prepare the release-candidate checklist for beta and dist-test: health, smoke journey, docs, TODO, changelog, and secret scan. (labels: deployment, testing, workflow)
 
 ## Deferred
 
 ## Missing task numbers
 
 Reuse inactive number ranges for new non-sequential work when a shorter active ID is clearer:
+
 - 1 through 806
 - 808 through 821
 - 825 through 840
-- 853 through 856
 
 ## Suggestions
