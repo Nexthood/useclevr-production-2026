@@ -1108,3 +1108,40 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Follow-up Tasks**: None.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
 - **Minimal Destination**: Documentation formatting lives in the updated Markdown files; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 42: Payload Admin Topbar, OAuth Login, Credit Badge & CI Fix
+
+- **Date**: 2026-06-15
+- **User Goal**: Complete Payload admin shell with topbar controls, OAuth login buttons, credit badge, search popup, breadcrumbs, and CRUD on all views. Then fix CI pipeline failure.
+- **Changes**:
+  1. Created `PayloadTopbarControls` (`payload-admin-topbar.tsx`): portal into `.app-header` with logo badge, search button (⌘K modal), credit badge, theme toggle, sign out link.
+  2. Created `PayloadCreditBadge` (`payload-admin-credit-badge.tsx`): reads `useclevr_credits` from localStorage, links to `/app/settings/billing`.
+  3. Added credit badge to both topbar (`PayloadTopbarControls`) and sidebar footer (`PayloadNavFooter`).
+  4. Added Google + LinkedIn OAuth buttons to `PayloadLoginView` with "Or continue with" divider.
+  5. Verified 14-day trial: `TRIAL_DAYS = 14` in `analyst-credits.ts`, trial computed from user `createdAt`.
+  6. Fixed stale `PayloadSupportIssuesView` import in `importMap.js` (removed entry for dead component).
+  7. Fixed migration placeholder `__name` in `src/migrations/index.ts` — Payload auto-generated `20260615_183958___name` was committed as a template placeholder; replaced with `20260615_183958_payload_support_issues`.
+- **Problems Marked**:
+  - `blocker`: CI failed on Validate Source — stale `PayloadSupportIssuesView` import in `importMap.js` from prior local dev runs.
+  - `blocker`: CI failed on second push — `src/migrations/index.ts(5,51): error TS2307` — migration index had `__name` placeholder never replaced by developer.
+  - `observation`: `importMap.js` is auto-generated and manually edited entries get overwritten on next `payload dev`.
+  - `observation`: Local `src/migrations/index.ts` already had correct `payload_support_issues` name (auto-fixed by running `payload dev`), but committed version still had `__name`.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes on local machine.
+- **Next Steps**: Push migration fix, wait for CI green, verify Railway auto-deploys, test live Payload admin.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Payload admin component code in `src/components/payload/`; styling in `payload-auth-brand.css`; nav config in `payload.config.ts`; migration index at `src/migrations/index.ts`.
+
+- **Date**: 2026-06-13
+- **User Goal**: Fix Markdown lint failures across documentation and project Markdown files without committing.
+- **Changes**:
+  1. Fixed table pipe alignment in AI tools, founder, sales, and project-controls docs.
+  2. Added blank-line spacing around Markdown tables.
+  3. Fixed fenced-code spacing and nested REST Client prompt code fences.
+- **Problems Marked**:
+  - `observation`: Markdown lint failures were formatting-only and did not change product behavior.
+- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check -- "*.md" .TODO/*.md project-prompts/*.md` passed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Documentation formatting lives in the updated Markdown files; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.

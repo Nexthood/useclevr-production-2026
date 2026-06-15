@@ -31,4 +31,12 @@ moving work between states.
 
 ## Deferred
 
+## Missing task numbers
+
+Reuse inactive number ranges for new non-sequential work when a shorter active ID is clearer:
+- 1 through 806
+- 808 through 821
+- 825 through 840
+- 849 through 856
+
 ## Suggestions

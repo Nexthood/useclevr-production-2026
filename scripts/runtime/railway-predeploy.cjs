@@ -88,6 +88,51 @@ const statements = [
   `ALTER TABLE IF EXISTS "payload_mcp_api_keys" ADD COLUMN IF NOT EXISTS "payload_mcp_tool_list_dashboard_datasets" boolean DEFAULT false`,
   `ALTER TABLE IF EXISTS "payload_mcp_api_keys" ADD COLUMN IF NOT EXISTS "payload_mcp_tool_get_dashboard_dataset_insights" boolean DEFAULT false`,
 
+  `DO $$
+  BEGIN
+    CREATE TYPE "public"."enum_support_issues_priority" AS ENUM ('normal', 'urgent');
+  EXCEPTION
+    WHEN duplicate_object THEN NULL;
+  END $$`,
+
+  `DO $$
+  BEGIN
+    CREATE TYPE "public"."enum_support_issues_status" AS ENUM ('open', 'in_progress', 'resolved');
+  EXCEPTION
+    WHEN duplicate_object THEN NULL;
+  END $$`,
+
+  `CREATE TABLE IF NOT EXISTS "support_issues" (
+    "id" varchar PRIMARY KEY NOT NULL,
+    "user_id" varchar NOT NULL,
+    "user_email" varchar NOT NULL,
+    "subject" varchar NOT NULL,
+    "message" varchar NOT NULL,
+    "category" varchar DEFAULT 'General' NOT NULL,
+    "priority" "enum_support_issues_priority" DEFAULT 'normal' NOT NULL,
+    "status" "enum_support_issues_status" DEFAULT 'open' NOT NULL,
+    "admin_note" varchar,
+    "admin_name" varchar,
+    "admin_note_updated_at" timestamp(3) with time zone,
+    "resolved_at" timestamp(3) with time zone,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+  )`,
+
+  `ALTER TABLE IF EXISTS "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "support_issues_id" varchar`,
+  `CREATE INDEX IF NOT EXISTS "support_issues_user_id_idx" ON "support_issues" USING btree ("user_id")`,
+  `CREATE INDEX IF NOT EXISTS "support_issues_user_email_idx" ON "support_issues" USING btree ("user_email")`,
+  `CREATE INDEX IF NOT EXISTS "support_issues_status_idx" ON "support_issues" USING btree ("status")`,
+  `CREATE INDEX IF NOT EXISTS "support_issues_updated_at_idx" ON "support_issues" USING btree ("updated_at")`,
+  `CREATE INDEX IF NOT EXISTS "support_issues_created_at_idx" ON "support_issues" USING btree ("created_at")`,
+  `DO $$
+  BEGIN
+    IF to_regclass('public.payload_locked_documents_rels') IS NOT NULL THEN
+      CREATE INDEX IF NOT EXISTS "payload_locked_documents_rels_support_issues_id_idx"
+        ON "payload_locked_documents_rels" USING btree ("support_issues_id");
+    END IF;
+  END $$`,
+
   `CREATE TABLE IF NOT EXISTS "ReferralEvent" (
     "id" text PRIMARY KEY NOT NULL,
     "code" varchar(32) NOT NULL,
@@ -124,6 +169,42 @@ const statements = [
     "updatedAt" timestamp DEFAULT now() NOT NULL,
     "resolvedAt" timestamp
   )`,
+
+  `INSERT INTO "support_issues" (
+    "id",
+    "user_id",
+    "user_email",
+    "subject",
+    "message",
+    "category",
+    "priority",
+    "status",
+    "admin_note",
+    "admin_name",
+    "created_at",
+    "updated_at",
+    "resolved_at"
+  )
+  SELECT
+    "id",
+    "userId",
+    "userEmail",
+    "subject",
+    "message",
+    "category",
+    CASE WHEN "priority" = 'urgent' THEN 'urgent' ELSE 'normal' END::"enum_support_issues_priority",
+    CASE
+      WHEN "status" = 'in_progress' THEN 'in_progress'
+      WHEN "status" = 'resolved' THEN 'resolved'
+      ELSE 'open'
+    END::"enum_support_issues_status",
+    "adminNote",
+    '',
+    "createdAt",
+    "updatedAt",
+    "resolvedAt"
+  FROM "SupportTicket"
+  ON CONFLICT ("id") DO NOTHING`,
 
   `CREATE TABLE IF NOT EXISTS "UserActivity" (
     "id" text PRIMARY KEY NOT NULL,
@@ -188,6 +269,12 @@ const statements = [
 ];
 
 const constraints = [
+  {
+    name: "payload_locked_documents_rels_support_issues_fk",
+    table: "payload_locked_documents_rels",
+    targetTable: "support_issues",
+    sql: `ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_issues_fk" FOREIGN KEY ("support_issues_id") REFERENCES "public"."support_issues"("id") ON DELETE cascade ON UPDATE no action`,
+  },
   {
     name: "Business_userId_fkey",
     table: "Business",
@@ -331,13 +418,12 @@ async function main() {
       await client.query(statement);
     }
 
-    const userTableExists = await tableExists(client, "User");
-
     for (const constraint of constraints) {
       const sourceTableExists = await tableExists(client, constraint.table);
+      const targetTableExists = await tableExists(client, constraint.targetTable || "User");
       const alreadyExists = await constraintExists(client, constraint.name);
 
-      if (sourceTableExists && userTableExists && !alreadyExists) {
+      if (sourceTableExists && targetTableExists && !alreadyExists) {
         await client.query(constraint.sql);
       }
     }

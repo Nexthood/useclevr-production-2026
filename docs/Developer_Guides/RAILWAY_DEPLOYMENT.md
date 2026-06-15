@@ -89,26 +89,18 @@ Railway config uses:
 
 ```bash
 node ./scripts/runtime/railway-predeploy.cjs
-sh start.sh
+node .next/standalone/server.js
 ```
 
 The predeploy command runs an idempotent additive schema sync for generated deployments. It creates
-the Business table and required Profile preference fields when an existing production database
-lacks them, and supplies timestamp defaults required by dashboard and dataset writes. The start
-script uses POSIX `sh` and then runs `node -r ./scripts/runtime/load-env.cjs
-./scripts/runtime/start-dist.cjs`. The runtime helper binds to Railway `$PORT`, forces `0.0.0.0`,
-and lets Auth.js infer the active public host from Railway proxy headers.
+the required application fields and Payload support-issue schema when an existing production
+database lacks them, copies legacy support tickets into Payload without duplicate IDs, and supplies
+timestamp defaults required by dashboard and dataset writes. Railway starts the prebuilt Next.js
+standalone server after the schema sync completes.
 
 Generated Railway output also stores a regular-file copy of the required Next.js runtime build
-directory under `next-build-extra/`. The generated deployment Dockerfile copies the deployment
-branch root with `COPY . .` and runs the predeploy helper during image creation; the source-side
-Dockerfile copies `dist/` with `COPY dist/ .`. In both layouts, the helper restores the saved files
-into the packaged Next.js installation before startup. The runtime start helper repeats the restore
-as a safety check.
-
-The image-build predeploy step has no database connection, so it performs only file restoration when
-`DATABASE_URL` and `DIRECT_URL` are absent. Railway's configured predeploy command performs the
-database schema sync before runtime startup.
+directory under `next-build-extra/`. The predeploy helper restores that copy when the published pnpm
+store is incomplete, then applies database changes when `DATABASE_URL` or `DIRECT_URL` is present.
 
 ## Railway CLI
 

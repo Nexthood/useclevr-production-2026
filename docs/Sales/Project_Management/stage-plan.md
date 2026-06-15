@@ -12,7 +12,7 @@ Keep the current app reliable enough for demos, user testing, support review, an
 - Dashboard navigation.
 - Dataset upload and tables.
 - AI Assistant.
-- Lightweight privacy shield for uploaded CSV and Excel files.
+- Lightweight privacy shield for uploaded CSV files.
 - Downloads and reports.
 - Business Profile.
 - Accountancy.
@@ -110,7 +110,7 @@ Prepare future work without overpromising current capability.
 - PayPal payment option.
 - Data connectors after core product stability.
 - UseClevr API after customer workflows are validated.
-- MCP after public APIs and customer workflows are stable.
+- Private customer MCP access after OAuth and customer-data authorization are stable.
 - Market intelligence after BI workflows and revenue validation are stable.
 - Broader tests.
 - Insurance, financing, assets, payroll, inventory, risk scoring, and forecasting modules.

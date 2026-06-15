@@ -86,7 +86,9 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - UseClevr provides estimates and decision-support context.
 - UseClevr does not replace professional advice.
 - UseClevr does not become an ERP, payroll system, policy-management system, lending platform, or tax filing system.
-- Payload manages public content and supplies selected superadmin operator views without replacing
-  application data ownership.
+- Payload manages public content and support issues, and supplies superadmin operator views for
+  owner-scoped business profiles and dataset uploads.
 - PayPal remains deferred until a second payment provider is needed.
-- MCP, public APIs, data connectors, and market intelligence remain future roadmap items until core BI workflows and revenue validation are stable.
+- Payload MCP supports approved content tools and locked demo-account dataset summaries. Private
+  customer MCP access, broader public APIs, data connectors, and market intelligence remain roadmap
+  items until core BI workflows and revenue validation are stable.

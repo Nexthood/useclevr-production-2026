@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-13
-- **Goal**: Fix Markdown lint failures across documentation and project Markdown files without committing.
-- **Durable change**: Markdown tables, table spacing, and fenced-code formatting now satisfy `pnpm lint:docs`.
-- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check -- "*.md" .TODO/*.md project-prompts/*.md` pass.
+- **Date**: 2026-06-15
+- **Goal**: Complete Payload admin shell with topbar controls, OAuth login buttons, credit badge, and fix CI pipeline failure.
+- **Durable change**: Topbar controls (search, logo, credit badge, theme, logout), OAuth buttons on login page, credit badge in sidebar footer, migration `__name` placeholder fixed.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes locally. CI pending after migration fix push.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

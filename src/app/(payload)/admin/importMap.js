@@ -8,6 +8,7 @@ import { PayloadNavFooter as PayloadNavFooter_6b1b1dd6fd36290f2f0f6400feddc22f }
 import { PayloadDashboardHeader as PayloadDashboardHeader_7ff3c83942f86e4d0dadc6be04c1c4b5 } from '@/components/payload/payload-admin-shell'
 import { PayloadLoginIntro as PayloadLoginIntro_79108ba5474e00f2abe107cc5c104d5d } from '@/components/payload/payload-auth-brand'
 import { PayloadNavHeader as PayloadNavHeader_7ff3c83942f86e4d0dadc6be04c1c4b5 } from '@/components/payload/payload-admin-shell'
+import { PayloadTopbarControls as PayloadTopbarControls_ccaa8d67890e18386724baa0235420bd } from '@/components/payload/payload-admin-topbar'
 import { PayloadOperationsNav as PayloadOperationsNav_dbf5d2e1a2c63efdf8749ecb7188a404 } from '@/components/payload/payload-operational-views'
 import { PayloadAdminManagementNav as PayloadAdminManagementNav_96e0e6f616a3208171d6014b12ca05e3 } from '@/components/payload/payload-admin-management-views'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
@@ -32,6 +33,7 @@ export const importMap = {
   "@/components/payload/payload-admin-shell#PayloadDashboardHeader": PayloadDashboardHeader_7ff3c83942f86e4d0dadc6be04c1c4b5,
   "@/components/payload/payload-auth-brand#PayloadLoginIntro": PayloadLoginIntro_79108ba5474e00f2abe107cc5c104d5d,
   "@/components/payload/payload-admin-shell#PayloadNavHeader": PayloadNavHeader_7ff3c83942f86e4d0dadc6be04c1c4b5,
+  "@/components/payload/payload-admin-topbar#PayloadTopbarControls": PayloadTopbarControls_ccaa8d67890e18386724baa0235420bd,
   "@/components/payload/payload-operational-views#PayloadOperationsNav": PayloadOperationsNav_dbf5d2e1a2c63efdf8749ecb7188a404,
   "@/components/payload/payload-admin-management-views#PayloadAdminManagementNav": PayloadAdminManagementNav_96e0e6f616a3208171d6014b12ca05e3,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,

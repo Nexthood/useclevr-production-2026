@@ -1,40 +1,51 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import useclevrWordmarkDark from "@/assets/images/logos/useclevr-wordmark-dark.png"
-import useclevrWordmarkLight from "@/assets/images/logos/useclevr-wordmark-light.png"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users"
-import { ArrowRight, BrainCircuit, Cpu, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { useEffect, useState } from "react"
-import { FaGoogle, FaLinkedin } from "react-icons/fa6"
+import useclevrWordmarkDark from "@/assets/images/logos/useclevr-wordmark-dark.png";
+import useclevrWordmarkLight from "@/assets/images/logos/useclevr-wordmark-light.png";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users";
+import {
+  ArrowRight,
+  BrainCircuit,
+  Cpu,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  Rocket,
+  Sparkles,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { FaGoogle, FaLinkedin } from "react-icons/fa6";
 
-import { PayloadThemeToggle } from "./payload-theme-toggle"
+import { PayloadThemeToggle } from "./payload-theme-toggle";
 
 export function PayloadLoginView() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
-  const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false)
-  const [showTestControls, setShowTestControls] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false);
+  const [showTestControls, setShowTestControls] = useState(false);
 
   useEffect(() => {
-    const hostname = window.location.hostname
+    const hostname = window.location.hostname;
     setShowTestControls(
       hostname === "localhost" ||
         hostname === "127.0.0.1" ||
         hostname === "test.useclevr.com" ||
         hostname.startsWith("test."),
-    )
-  }, [])
+    );
+  }, []);
 
   const builtInAccounts = [
     {
@@ -47,12 +58,12 @@ export function PayloadLoginView() {
       email: BUILTIN_SUPER_ADMIN_USER.email,
       password: DEMO_PASS,
     },
-  ]
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthError(null);
 
     try {
       const response = await fetch("/api/payload/cms-users/login", {
@@ -62,21 +73,21 @@ export function PayloadLoginView() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
-      })
+      });
 
       if (!response.ok) {
-        setAuthError("Sign-in failed. Check your CMS email and password.")
-        return
+        setAuthError("Sign-in failed. Check your CMS email and password.");
+        return;
       }
 
-      router.replace("/admin")
-      router.refresh()
+      router.replace("/admin");
+      router.refresh();
     } catch {
-      setAuthError("Sign-in failed. Please try again.")
+      setAuthError("Sign-in failed. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="payload-login-page relative flex min-h-screen overflow-hidden bg-background">
@@ -92,8 +103,16 @@ export function PayloadLoginView() {
           <Card className="w-full max-w-md border border-cyan-500/20 bg-card/90 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
             <CardContent className="pt-8">
               <div className="mb-7 flex items-center gap-3">
-                <img src={useclevrWordmarkDark.src} alt="UseClevr" className="block h-10 w-auto dark:hidden" />
-                <img src={useclevrWordmarkLight.src} alt="UseClevr" className="hidden h-10 w-auto dark:block" />
+                <img
+                  src={useclevrWordmarkDark.src}
+                  alt="UseClevr"
+                  className="block h-10 w-auto dark:hidden"
+                />
+                <img
+                  src={useclevrWordmarkLight.src}
+                  alt="UseClevr"
+                  className="hidden h-10 w-auto dark:block"
+                />
               </div>
 
               <div className="mb-7">
@@ -138,7 +157,10 @@ export function PayloadLoginView() {
                     required
                     autoComplete="current-password"
                     trailing={
-                      <PasswordToggle showPassword={showPassword} setShowPassword={setShowPassword} />
+                      <PasswordToggle
+                        showPassword={showPassword}
+                        setShowPassword={setShowPassword}
+                      />
                     }
                   />
                   <a href="/login" className="mt-1 block text-xs text-primary hover:underline">
@@ -215,9 +237,9 @@ export function PayloadLoginView() {
                         key={account.email}
                         type="button"
                         onClick={() => {
-                          setEmail(account.email)
-                          setPassword(account.password)
-                          setAuthError(null)
+                          setEmail(account.email);
+                          setPassword(account.password);
+                          setAuthError(null);
                         }}
                         disabled={isLoading}
                         className="w-full rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-left text-xs transition hover:bg-muted disabled:opacity-50"
@@ -255,9 +277,9 @@ export function PayloadLoginView() {
                     className="w-full border-primary/40 bg-background text-foreground hover:bg-primary/10"
                     disabled={isLoading}
                     onClick={() => {
-                      setEmail(BUILTIN_SUPER_ADMIN_USER.email)
-                      setPassword(DEMO_PASS)
-                      setAuthError(null)
+                      setEmail(BUILTIN_SUPER_ADMIN_USER.email);
+                      setPassword(DEMO_PASS);
+                      setAuthError(null);
                     }}
                   >
                     <Rocket className="mr-2 h-4 w-4 text-pink-500" />
@@ -285,24 +307,29 @@ export function PayloadLoginView() {
 
             <div className="mb-8">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-                Public content workspace
+                Operator workspace
               </p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-foreground sm:text-5xl">
                 Publish. Review. Decide.
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-base text-muted-foreground sm:text-lg">
-                Manage news, FAQs, legal pages, media, and product-operation views from one admin surface.
+                Manage news, FAQs, legal pages, media, and product-operation views from one admin
+                surface.
               </p>
             </div>
 
             <div className="relative mx-auto max-w-lg rounded-[2rem] border border-white/20 bg-background/45 p-5 shadow-2xl shadow-purple-500/10 backdrop-blur-xl">
               <div className="absolute -left-8 top-10 rounded-2xl border border-pink-500/20 bg-pink-500/15 p-4 shadow-xl backdrop-blur-xl">
                 <BrainCircuit className="h-7 w-7 text-pink-500" />
-                <p className="mt-2 text-xs font-bold text-pink-600 dark:text-pink-300">Editorial AI</p>
+                <p className="mt-2 text-xs font-bold text-pink-600 dark:text-pink-300">
+                  Editorial AI
+                </p>
               </div>
               <div className="absolute -right-6 bottom-12 rounded-2xl border border-cyan-500/20 bg-cyan-500/15 p-4 shadow-xl backdrop-blur-xl">
                 <Cpu className="h-7 w-7 text-cyan-500" />
-                <p className="mt-2 text-xs font-bold text-cyan-600 dark:text-cyan-300">Live content</p>
+                <p className="mt-2 text-xs font-bold text-cyan-600 dark:text-cyan-300">
+                  Live content
+                </p>
               </div>
 
               <div className="rounded-3xl border border-cyan-500/20 bg-card/70 p-5">
@@ -312,8 +339,8 @@ export function PayloadLoginView() {
                       <BrainCircuit className="h-full w-full text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-bold text-foreground">Content insights</p>
-                      <p className="text-xs text-muted-foreground">Generated from published pages</p>
+                      <p className="font-bold text-foreground">Admin operations</p>
+                      <p className="text-xs text-muted-foreground">Content and product workflows</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
@@ -322,15 +349,27 @@ export function PayloadLoginView() {
                 </div>
 
                 <div className="space-y-3">
-                  <InsightRow label="News ready" value="12 drafts" color="from-cyan-500 to-sky-500" />
-                  <InsightRow label="FAQ coverage" value="+18.4%" color="from-purple-500 to-pink-500" />
-                  <InsightRow label="Review risk" value="Low" color="from-orange-500 to-amber-500" />
+                  <InsightRow
+                    label="Public content"
+                    value="Managed"
+                    color="from-cyan-500 to-sky-500"
+                  />
+                  <InsightRow
+                    label="Support issues"
+                    value="Tracked"
+                    color="from-purple-500 to-pink-500"
+                  />
+                  <InsightRow
+                    label="Dataset uploads"
+                    value="Owner-scoped"
+                    color="from-orange-500 to-amber-500"
+                  />
                 </div>
 
                 <div className="mt-5 grid grid-cols-3 gap-3">
-                  <MetricCard value="24/7" label="Published" color="from-cyan-400 to-sky-500" />
-                  <MetricCard value="CMS" label="Managed" color="from-purple-500 to-pink-500" />
-                  <MetricCard value="AI" label="Ready" color="from-emerald-400 to-cyan-500" />
+                  <MetricCard value="CMS" label="Content" color="from-cyan-400 to-sky-500" />
+                  <MetricCard value="CSV" label="Uploads" color="from-purple-500 to-pink-500" />
+                  <MetricCard value="AI" label="Handoff" color="from-emerald-400 to-cyan-500" />
                 </div>
               </div>
             </div>
@@ -338,18 +377,10 @@ export function PayloadLoginView() {
         </section>
       </main>
     </div>
-  )
+  );
 }
 
-function InsightRow({
-  label,
-  value,
-  color,
-}: {
-  label: string
-  value: string
-  color: string
-}) {
+function InsightRow({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/45 p-3">
       <div className="mb-2 flex items-center justify-between text-xs">
@@ -357,21 +388,16 @@ function InsightRow({
         <span className="font-bold text-foreground">{value}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className={`h-full rounded-full bg-gradient-to-r ${color}`} style={{ width: value === "Low" ? "34%" : value.includes("+") ? "78%" : "92%" }} />
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${color}`}
+          style={{ width: value === "Low" ? "34%" : value.includes("+") ? "78%" : "92%" }}
+        />
       </div>
     </div>
-  )
+  );
 }
 
-function MetricCard({
-  value,
-  label,
-  color,
-}: {
-  value: string
-  label: string
-  color: string
-}) {
+function MetricCard({ value, label, color }: { value: string; label: string; color: string }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/45 p-3 text-center">
       <p className={`text-xl font-black bg-gradient-to-r ${color} bg-clip-text text-transparent`}>
@@ -379,7 +405,7 @@ function MetricCard({
       </p>
       <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
     </div>
-  )
+  );
 }
 
 function InnerLabelInput({
@@ -390,10 +416,10 @@ function InnerLabelInput({
   trailing,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
-  id: string
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  trailing?: React.ReactNode
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  trailing?: React.ReactNode;
 }) {
   return (
     <div className="relative">
@@ -413,15 +439,15 @@ function InnerLabelInput({
       />
       {trailing}
     </div>
-  )
+  );
 }
 
 function PasswordToggle({
   showPassword,
   setShowPassword,
 }: {
-  showPassword: boolean
-  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
     <button
@@ -434,5 +460,5 @@ function PasswordToggle({
     >
       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </button>
-  )
+  );
 }

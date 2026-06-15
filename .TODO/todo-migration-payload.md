@@ -10,15 +10,16 @@ Phase 0 uses Payload for public content administration without replacing product
 - Phase 0 adds the smallest CMS footprint needed to create, edit, publish, and unpublish news
   entries.
 - Phase 0 manages News, FAQ, homepage sections, Privacy, and Terms content.
-- Phase 0 keeps auth, billing, Stripe, datasets, reports, uploads, AI traces, tickets, business
-  records, and app settings outside Payload.
+- Phase 0 keeps auth, billing, Stripe, datasets, reports, uploads, AI traces, business records, and
+  app settings outside Payload.
 
 ## Product Operations Extension
 
-Payload also supplies superadmin-only operator views without taking ownership of product records.
+Payload also supplies superadmin-only product operations.
 
 - Business profile operations read and write the existing application business tables.
-- Support issue operations read and write the existing support-ticket store.
+- The Payload Issues collection owns support records used by both operators and dashboard ticket
+  routes.
 - Administrator CSV uploads write the existing dataset and dataset-row tables for an explicitly
   selected dashboard owner.
 - AI Assistant access opens the dashboard session so dataset ownership and trace attribution remain
@@ -33,25 +34,29 @@ Payload also supplies superadmin-only operator views without taking ownership of
 - Payload product operations use `/admin/business-profiles`, `/admin/support-issues`, and
   `/admin/dataset-upload`.
 - Payload stores News, FAQ, homepage, Privacy, Terms, Media, and Payload MCP API keys.
-- Payload product-operation views access business, support, and dataset records through
-  superadmin-only custom endpoints without creating parallel Payload collections.
+- Payload product-operation views access business and dataset records through superadmin-only custom
+  endpoints. Support issue review uses the native Payload Issues collection.
 - `/api/payload/mcp` exposes Payload-native News, FAQ, and locked demo-account dataset read tools.
 - Product pricing and billing plan data live in application code and Stripe remains the payment source of truth.
-- PostgreSQL tables currently include users, auth accounts, sessions, profiles, businesses, business entities, country tax profiles, datasets, dataset rows, user activities, waitlist, workspaces, workspace members, workspace invitations, support tickets, referral stats, referral events, AI interaction traces, and app settings.
+- PostgreSQL tables currently include users, auth accounts, sessions, profiles, businesses, business
+  entities, country tax profiles, datasets, dataset rows, user activities, waitlist, workspaces,
+  workspace members, workspace invitations, Payload support issues, legacy support tickets,
+  referral stats, referral events, AI interaction traces, and app settings.
 - Railway deployment uses generated output on the `dist` branch under `/dist`; Payload integration must preserve the generated deployment shape.
 
 ## Migration Boundary
 
 - Do not move the dashboard from `/app`.
 - Do not rename the existing `/app/admin` super-admin area.
-- Do not replace Stripe billing, webhook processing, checkout, subscriptions, referrals, datasets, reports, uploads, AI traces, tickets, workspaces, auth, or business records with Payload collections.
+- Do not replace Stripe billing, webhook processing, checkout, subscriptions, referrals, datasets,
+  reports, uploads, AI traces, workspaces, auth, or business records with Payload collections.
 - Do not store CMS media on Railway disk.
 - Do not change public UI copy or routes during the infrastructure setup step unless a content collection is already wired to that page.
-- Keep Payload collection ownership limited to editable public content, its media, CMS users, and
-  Payload MCP keys.
+- Keep Payload collection ownership limited to editable public content, its media, support issues,
+  CMS users, and Payload MCP keys.
 - Allow Payload custom operator views to manage approved application records through explicit
   superadmin-only endpoints.
-- Keep product and operational records outside Payload.
+- Keep business, dataset, billing, authentication, workspace, and AI trace records outside Payload.
 
 ## Target Shape
 
@@ -70,6 +75,7 @@ Payload also supplies superadmin-only operator views without taking ownership of
 - News posts.
 - FAQ entries.
 - Media for News cover images.
+- Support issues.
 - CMS users and Payload MCP API keys.
 
 ## Later Collection Candidates
@@ -107,7 +113,8 @@ migration phase. Pin every Payload package to the same version as `payload`.
   collections are stable. Keep the existing application and Meilisearch planning boundaries
   separate until one search owner is approved.
 - Evaluate `@payloadcms/plugin-form-builder` only for public marketing or lead forms. Keep support
-  tickets, business workflows, and authenticated product forms in the application layer.
+  issues in the native Issues collection and keep authenticated business forms in the application
+  layer.
 - Evaluate `@payloadcms/plugin-nested-docs` only if public pages require editor-managed hierarchy
   and breadcrumbs.
 
@@ -135,13 +142,17 @@ Preserve current routes:
 Keep Payload admin at `/admin`, Payload REST at `/api/payload`, and Payload MCP at
 `/api/payload/mcp`.
 
-Do not replace existing application data models. Keep auth, profiles, businesses, datasets, dataset rows, tickets, referrals, billing, Stripe webhooks, AI interaction traces, workspaces, reports, uploads, and app settings in the current Drizzle/PostgreSQL application layer.
+Do not replace existing application data models. Keep auth, profiles, businesses, datasets, dataset
+rows, referrals, billing, Stripe webhooks, AI interaction traces, workspaces, reports, uploads, and
+app settings in the current Drizzle/PostgreSQL application layer.
 
-Payload owns News, FAQ, homepage, Privacy, Terms, Media, CMS users, and Payload MCP API keys.
+Payload owns News, FAQ, homepage, Privacy, Terms, Media, support issues, CMS users, and Payload MCP
+API keys.
 
-Payload may provide superadmin-only custom views for business profiles, support issues, and
-owner-assigned dataset uploads. Keep those records in the current Drizzle/PostgreSQL application
-tables and require an explicit dashboard owner for cross-user writes.
+Payload may provide superadmin-only custom views for business profiles and owner-assigned dataset
+uploads. Keep business and dataset records in the current Drizzle/PostgreSQL application tables,
+use the native Payload Issues collection for support, and require an explicit dashboard owner for
+cross-user writes.
 
 Keep Stripe as the payment source of truth. Payload may display billing-related copy but must not own prices, checkout state, subscriptions, webhook events, invoices, or customer payment records.
 
@@ -180,7 +191,7 @@ Use these focused prompts during migration planning and implementation reviews:
 3. Keep Payload migrations separate from the Drizzle application schema.
 4. Require CMS superadmin access for News, FAQ, and Media mutations.
 5. Grant Payload MCP API keys only the News or FAQ tools required by the client.
-6. Keep billing, product data, datasets, app auth, and operational records outside Payload
+6. Keep billing, business data, datasets, app auth, workspaces, and AI traces outside Payload
    collections while approved custom views operate on the existing stores.
 7. Run `pnpm payload:types`, `pnpm payload:migrate:status`, `pnpm validate:types`,
    `pnpm validate:dist`, and `pnpm lint` after Payload schema changes.
@@ -191,6 +202,8 @@ Use these focused prompts during migration planning and implementation reviews:
 - Homepage, `/app`, `/app/admin`, checkout, uploads, reports, AI Assistant, and support tickets continue to work.
 - CMS admin opens at `/admin`.
 - Payload superadmins can manage business profiles, support issues, and owner-assigned CSV uploads.
+- Dashboard ticket routes create, list, and update the same Payload support issues shown to
+  operators.
 - Base CMS users cannot see or load Payload product operations.
 - Payload REST and MCP use `/api/payload` and `/api/payload/mcp`.
 - News, FAQ, homepage, Privacy, and Terms read Payload-managed content.
@@ -199,4 +212,5 @@ Use these focused prompts during migration planning and implementation reviews:
 - Stripe remains the billing source of truth.
 - Railway production packaging still creates deployable `dist/` output.
 - No secrets or CMS media files are committed.
-- Product records, billing data, and sales content stay outside Payload collections.
+- Business, dataset, billing, authentication, workspace, AI trace, and sales records stay outside
+  Payload collections.

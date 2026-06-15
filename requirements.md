@@ -223,8 +223,10 @@ Text rules for this file:
   permission message when a non-superadmin opens an operation URL directly.
 - Require the operator to select the owning dashboard user before creating a business profile or
   uploading a dataset.
-- Keep business, support, and dataset records in their existing Drizzle tables when operators
+- Keep business and dataset records in their existing owner-scoped Drizzle tables when operators
   manage them through Payload.
+- Store support issues in the Payload Issues collection and use the same records for dashboard
+  ticket creation, customer status updates, and operator review.
 - Open the dataset-aware AI Assistant from a Payload modal into the dashboard user session so
   dataset ownership and AI trace attribution remain enforced.
 - Open Hybrid AI controls from the Payload topbar through the shared modal workflow.

@@ -7,6 +7,9 @@ folder during the same task cycle.
 ## Operating Rules
 
 - Preserve user and other-agent worktree changes.
+- Treat the worktree as shared by concurrent AI agents. Re-read current branch state, staged changes, unstaged changes, and relevant files before editing or committing.
+- Optimize memory usage when multiple agents run at the same time. Avoid heavy builds, typechecks, or full scans unless the request requires validation; reuse focused checks when possible.
+- Assume another agent may have committed while current work is open. Refresh git status and relevant docs before final validation, commit, push, or PR creation.
 - Read project instructions and inspect current worktree status before editing.
 - Identify whether changes are user-visible, developer-only, deployment-only, sales-only, or documentation-only.
 - Add a TODO task before confirmed implementation work starts when the work is active implementation.
@@ -19,6 +22,11 @@ folder during the same task cycle.
 - Keep user guides separate from developer guides.
 - Keep prompt examples in the prompt collection, not scattered through product requirements.
 - Keep reusable prompt files in `project-prompts/`.
+- Use smart TODO state handling: active tasks in `todo-next.md` and completed tasks in `todo-done.md` keep stable T-numbers; future and ignore queues stay T-number-free and still carry label suffixes.
+- Move completed work from `todo-next.md` to `todo-done.md` with the same T-number and a real short commit hash, or `commit: worktree` until the work is committed.
+- Keep future and ignore queues as plain bullets without T-numbers so the TODO lint can validate language and labels without treating them as active or completed IDs.
+- Treat TODO lint gaps as maintenance signals before broad docs or release edits; avoid renumbering active tasks unless the user explicitly asks for a renumbering pass.
+- Write TODO text with concise, goal-oriented, effect-oriented language. Avoid unnecessary file names, folder names, function names, internal IDs, or implementation details that can change; describe the required behavior and target outcome.
 - Update `AGENTS.md`, `.TODO/config.json`, and this folder when the user changes durable AI rules.
 - Use compact status updates during long-running validation, deploy checks, and broad implementation work.
 - Use [AI memory collection](../../../project-prompts/ai-memory-collection.md) when the user brings learning from another AI chat into this project.

@@ -50,8 +50,9 @@ Shared deployments allow only explicit super-admin operations.
 
 Payload product-operation endpoints must reject missing, base-role, and expired Payload sessions.
 Business-profile and dataset-upload requests must name an existing dashboard user as the owner.
-Payload supplies the operator interface only; business, support, dataset, and dataset-row records
-remain in the existing application tables.
+Payload custom views manage business, dataset, and dataset-row records in the existing application
+tables. The Payload Issues collection owns support records, while dashboard ticket routes enforce
+the signed-in owner's access to those same records.
 
 ---
 

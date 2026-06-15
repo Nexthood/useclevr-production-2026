@@ -44,6 +44,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Manage dashboard business profiles, support issues, and owner-assigned CSV uploads from the
   Payload operator workspace.
+- Keep dashboard tickets and operator issue review synchronized through the Payload-managed issue
+  queue.
 - Open the dataset-aware AI Assistant and Hybrid AI controls from Payload modal actions.
 - Let ChatGPT developer-mode tests read locked demo-account dataset metadata and stored insights
   through the Payload MCP connector without exposing uploaded rows.
@@ -74,8 +76,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Keep business, support, and dataset records in their existing account-scoped storage while
-  administrators manage them through Payload.
+- Keep business and dataset records in their existing account-scoped storage while administrators
+  manage them through Payload, and store support issues in the Payload-managed issue queue.
 - Organize the content admin around the dashboard's menu rail, topbar, page header, focused
   workspace, and responsive information panels.
 - Keep successful Railway deployments when operators run cleanup with the `--keep-success` option.

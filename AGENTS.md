@@ -73,6 +73,9 @@ pnpm health           # validate + tests + docs + audit
   prompts. Sharpen wording from current-state and concise into naming the actor, the required
   action, and the destination file or target outcome with no vagueness.
 - Prefer compact progress updates during long-running validation, deploy checks, and broad implementation work.
+- Treat the worktree as shared by concurrent AI agents. Re-read current branch state, staged changes, unstaged changes, and relevant files before editing or committing.
+- Optimize memory usage when multiple agents run at the same time. Avoid heavy builds, typechecks, or full scans unless the request requires validation; reuse focused checks when possible.
+- Assume another agent may have committed while current work is open. Refresh git status and relevant docs before final validation, commit, push, or PR creation.
 - This AI agent must treat `AGENTS.md`, `.kilo/agent/changelog.md`,
   `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts` as the post-interaction
   instruction sources. This AI agent must run

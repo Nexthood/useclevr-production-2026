@@ -104,3 +104,11 @@ This file summarizes current project activity. Detailed session records live in
 - Add Lucide SVG icons to custom nav sections and CSS `::before` icons for built-in collection links.
 - Add breadcrumb navigation to admin view page headers.
 - Add 4 admin management views (Customers, Discounts, Levels, Progress) with CRUD via API routes.
+
+## 2026-06-15
+
+- Create Payload admin topbar controls (logo badge, search button, credit badge, theme toggle, logout) injected into `.app-header` via portal.
+- Add credit badge (PayloadCreditBadge) to both topbar and sidebar footer, reads localStorage.
+- Add Google + LinkedIn OAuth buttons to Payload admin login page.
+- Verify 14-day trial in analyst-credits.ts (TRIAL_DAYS = 14).
+- Fix CI pipeline: remove stale PayloadSupportIssuesView from importMap.js, replace migration `__name` placeholder with actual collection name.
