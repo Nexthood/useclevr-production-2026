@@ -3,7 +3,7 @@
 ## Communication Style
 
 - Writes in short, direct sentences. One request per message, or a numbered list if multiple.
-- Wants result summaries, not implementation details. No file paths, function names, or internal IDs in answers.
+- Wants result summaries, not implementation details. No file paths, function names, internal IDs, or fragile implementation names in answers.
 - Prefers compact updates: what changed, what's left, in 3-5 lines.
 - Asks follow-ups to clarify when AI output drifts too technical.
 - Corrects direction explicitly when AI misses the point ("that is too tech").

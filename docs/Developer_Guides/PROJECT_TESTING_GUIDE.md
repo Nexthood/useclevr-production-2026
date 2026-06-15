@@ -74,7 +74,21 @@ pnpm dev
 - Confirm super-admins can filter operator notes from the same FAQ page.
 - Submit a compact support ticket from the FAQ or support page.
 
-## 9. Deployment Smoke Test
+## 9. Payload Operator Flow
+
+- Sign in to `/admin` with a Payload superadmin account.
+- Confirm Product operations shows Business profiles, Support issues, and Dataset upload.
+- Create or edit a business profile for a selected dashboard owner.
+- Update a support issue status and operator note.
+- Upload a valid CSV for a selected dashboard owner and confirm it appears in that owner's dataset
+  library.
+- Open the AI Assistant action and confirm it hands off to the dashboard session.
+- Open Hybrid AI and confirm the shared modal workflow renders.
+- Sign in with a base CMS account and confirm Product operations and AI actions are hidden.
+- Open a Product operations URL directly as a base CMS account and confirm the permission message
+  appears without customer data.
+
+## 10. Deployment Smoke Test
 
 - Run the production build.
 - Start the generated server locally when deployment preview is needed.

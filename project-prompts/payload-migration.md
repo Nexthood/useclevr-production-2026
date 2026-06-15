@@ -26,7 +26,7 @@ Keep Stripe as the payment source of truth. Payload may display billing-related 
 Keep Railway generated-output deployment working from the dist branch `/dist` root.
 Use S3-compatible durable object storage for CMS media and block media mutations when storage is
 not configured.
-Use `/api/payload/mcp` for Payload News and FAQ tools. Keep `/api/mcp` limited to product datasets.
+Use `/api/payload/mcp` for Payload News, FAQ, and locked demo-account dataset read tools. Do not document a separate dashboard MCP connector.
 
 Implement in small phases:
 1. Confirm the requested content belongs in Payload.

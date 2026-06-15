@@ -7,14 +7,33 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add Payload admin nav footer with search modal, theme toggle, and logout
+- Add admin topbar with logo, search, credit badge, theme toggle, and sign out controls
+- Add Google and LinkedIn OAuth buttons to the Payload admin login page
+- Add credit badge component to Payload admin topbar and sidebar
+- Add Lucide icons to Payload custom nav sections and CSS icons for collection links
+- Add breadcrumb navigation to all admin view page headers
+- Add 4 admin management views (Customers, Discounts, Levels, Progress) with CRUD
+- Add Tailwind theme sync and Payload-native theme toggle for light/dark/system
+- Redesign Payload admin login with dashboard-style gradients, card form, and blur backdrop
+- Add Payload datasets management view with list, detail modal, data preview, and delete
+- Add full business profile CRUD in Payload with archive, restore, and permanent delete
+- Add Payload native-style modals for AI Assistant and Hybrid AI feature descriptions
+- Add drag-and-drop CSV upload zone with improved Payload admin styling
+- Add dataset admin store with preview, pagination, and entity relationship counts
+
 ### Fixed
 
+- Hide Payload product operations and AI operator actions from base CMS accounts while keeping
+  direct operation URLs protected by a clear permission state.
 - Scope dist-root gitignore patterns with `/` prefix so `build/` and `out/` only match root level, preventing git from stripping compiled JS from pnpm store entries (e.g., `@aws-crypto/crc32c`) in the dist-test branch
 - Create top-level symlinks for non-scoped transitive dependencies (tslib, fast-xml-parser) in the dist build so AWS SDK packages resolve them even when the scoped-package symlinks degrade to directory copies
 - Connect dataset bulk deletion to the ownership-scoped dataset API and report failed deletions.
 - Require owned secondary businesses to pass archive, restore, and permanent-delete state checks.
 - Persist dashboard updates and every dataset upload for locked built-in accounts, including the production profile and business data required by those writes.
-- Middleware passes `/api/mcp` through without session cookie check, enabling token-based MCP auth on MCP subdomains
+- Middleware passes `/api/payload/mcp` through without dashboard session checks, enabling Payload MCP API-key auth on MCP subdomains
 - Topbar sections now show icons only, keeping Hybrid AI, Search, and Onboarding button with full labels
 - Login flow uses `result.ok` instead of `getSession()` for reliable post-sign-in redirect
 - Payload admin login shows sign-up and sign-in nav links matching app login style
@@ -25,15 +44,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Remove `pnpm install --prod` from Dockerfiles — dist already contains complete `node_modules` from Next.js standalone tracing, eliminating `ERR_PNPM_IGNORED_BUILDS` and preventing overwrite of traced Next.js internals
 - Keep `node_modules` in dist branch commits so Railway Docker build has all required dependencies at build time
 - Fix beta CI publish: copy `dist-root` contents (not directory) to temp root so `.gitignore` lands at repo root and fallback `.gitignore` with `node_modules` is not generated
+- Fix Payload admin operations API to use the consolidated business store instead of inline Drizzle queries, returning entity counts and owner names
+- Fix migration `__name` placeholder in migration index to resolve Payload auto-generated template value
 
 ### Added
 
+- Manage dashboard business profiles, support issues, and owner-assigned CSV uploads from the
+  Payload operator workspace.
+- Keep dashboard tickets and operator issue review synchronized through the Payload-managed issue
+  queue.
+- Open the dataset-aware AI Assistant and Hybrid AI controls from Payload modal actions.
 - Let ChatGPT developer-mode tests read locked demo-account dataset metadata and stored insights
   through the Payload MCP connector without exposing uploaded rows.
 - Manage Payload News cover images through durable S3-compatible storage.
 - Connect authorised content tools to News and FAQ through Payload-native MCP API keys.
-- List signed-in users' datasets through the UseClevr MCP service.
-- Block non-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via proxy.ts, returning 404 for all paths except /api/mcp.
+- List locked demo-account dataset metadata through the Payload MCP connector.
+- Block non-Payload-MCP routes on MCP subdomains (mcp.useclevr.com, mcp-test.useclevr.com) via proxy.ts, returning 404 for all paths except /api/payload/mcp.
 - Show MCP token management page in the superadmin panel sidebar with token listing, creation, and revocation dialogs.
 - MCP subdomain exposes tool schemas with scoped access for service tokens.
 - Database-backed MCP tokens support creation, listing, and revocation for service authentication.
@@ -57,6 +83,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Keep business and dataset records in their existing account-scoped storage while administrators
+  manage them through Payload, and store support issues in the Payload-managed issue queue.
+- Organize the content admin around the dashboard's menu rail, topbar, page header, focused
+  workspace, and responsive information panels.
 - Keep successful Railway deployments when operators run cleanup with the `--keep-success` option.
 - Place the compact desktop sidebar toggle beside Dashboard for immediate access.
 - Align Payload admin navigation, typography, controls, surfaces, and light/dark backgrounds with the dashboard and add a dashboard return link.
@@ -91,7 +121,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Leave profit, margin, ROAS, net profit, and LTV unavailable when required source columns are missing instead of inventing proxy values.
 - Complete production middleware packaging without splitting the protected route entry into incompatible build chunks.
 - Keep Payload admin pages on the Payload root runtime so the admin login and content workspace open instead of failing during boot.
-- Keep local app login, Payload admin login, and signed-in MCP checks reachable by allowing the required auth endpoints before a session exists.
+- Keep local app login and Payload admin login reachable by allowing the required auth endpoints before a session exists.
 - Keep Payload Phase 0 local startup from attempting destructive automatic schema push during normal admin access.
 - Stripe service initialization now matches the current Stripe SDK constructor so checkout, webhook, and replay paths compile and run.
 - Runtime install routes now require development mode or explicit super-admin access, and server secret validation no longer accepts legacy auth aliases or hardcoded fallback tokens.
@@ -115,7 +145,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Floating help chat keeps the launcher aligned to the right while the panel is open.
 - Private report search, listing, deletion, and downloads stay scoped to the owning user while super-admins keep operational access.
 - Stripe checkout redirects verify payment success with a signed server token that survives local and deployed server restarts.
-- MCP access stays scoped to signed-in users and their own datasets while super-admins keep full platform access.
+- Payload MCP access stays scoped to API-key permissions and locked demo-account reads.
 - Railway health checks keep the test app deployable while database readiness is reported separately.
 - Dashboard route guards avoid Edge runtime crashes by keeping full authentication checks in server code.
 - Railway packaged output points Edge route guard manifests at the generated middleware bundle.
@@ -133,6 +163,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Dev
 
+- Keep active and completed task IDs stable while deferred and ignored queues use labeled,
+  ID-free entries.
 - Add full-project Railway deployment-history cleanup through the authenticated project wrapper.
 - Add Railway environment-variable management without printing variable values, and expose the
   configured MCP server URL in authenticated MCP discovery responses.

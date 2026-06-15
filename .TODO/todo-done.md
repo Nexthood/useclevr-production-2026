@@ -6,8 +6,6 @@ where needed.
 Get the T-number from `.TODO/config.json` before adding new tasks. Keep task numbers stable when
 moving work between states.
 
-## Links
-
 - [TODO-next.md](todo-next.md)
 - [TODO-done.md](todo-done.md)
 - [TODO-ignore.md](todo-ignore.md)
@@ -38,6 +36,8 @@ moving work between states.
 ## Label: workflow
 
 - T-703. Add pre-commit hooks (lint:todos, lint:changelog, lint:secrets, lint:package) and pre-push hooks (types, dist validate, lint, workflows). Verified fully implemented. (labels: workflow, ci-build; commit: worktree)
+- T-851. Distribute the project phase map into active and deferred TODO queues with explicit phase gates. (labels: workflow, docs; commit: worktree)
+- T-852. Align sales, product, user, and developer descriptions with usable-MVP, sales-validation, AI-differentiation, and platform-expansion phases. (labels: docs, sales, workflow; commit: worktree)
 
 ## Label: auth
 
@@ -46,6 +46,8 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-843. Manage owner-scoped business profiles and dataset uploads through authenticated Payload views, and manage dashboard support records through the native Payload Issues collection. (labels: dashboard, business, upload, ui; commit: worktree)
+- T-844. Add Payload admin modal entry points for the dataset-aware AI Assistant and Hybrid AI workflows. (labels: dashboard, ai, local-ai, ui; commit: worktree)
 - T-838. Complete ownership-safe dashboard data mutation flows and align Payload admin surfaces with dashboard design tokens. (labels: dashboard, data, business, content, ui, testing; commit: worktree)
 
 ## Label: deployment
@@ -54,6 +56,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-842. Align the Payload admin shell with the dashboard hierarchy using a left main-menu sidebar, topbar, page header, body subheader, centered content area, and responsive right information panels. (labels: ui, content, dashboard, accessibility; commit: worktree)
 - T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard; commit: worktree)
 - T-829. Add smooth theme transition with fade-in-out animation on root layout for light/dark mode changes. (labels: ui, accessibility, workflow; commit: worktree)
 - T-830. Add dark-mode-aware accessibility icons grid including eye-dropper, zoom-in, zoom-out, a11y, and voice-control icons. (labels: ui, accessibility, dashboard; commit: worktree)

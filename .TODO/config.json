@@ -1,13 +1,12 @@
 {
   "currentTaskPrefix": "T-",
-  "nextTaskNumber": 842,
+  "nextTaskNumber": 864,
   "todoFiles": {
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",
     "ignore": ".TODO/todo-ignore.md",
     "future": ".TODO/todo-future.md"
   },
-  "linksHeader": "Links",
   "taskIdPattern": "^T-\\d{2,}$",
   "labelPattern": "^[a-z][a-z0-9-]{1,31}$",
   "labels": [
@@ -50,7 +49,7 @@
   ],
   "labelSuffixPattern": "\\(labels: ([a-z0-9-]+(?:, [a-z0-9-]+)*)\\)",
   "doneSuffixPattern": "\\(labels: ([a-z0-9-]+(?:, [a-z0-9-]+)*); commit: ([0-9a-f]{7,8}|worktree)\\)",
-  "instructions": "Get the T-number from .TODO/config.json before adding new tasks. Assign a stable T- prefixed task number to every task in todo-next.md, todo-done.md, todo-future.md, and todo-ignore.md, and keep that number unchanged when moving the task between states. Keep todo-next.md as the only active queue. Move completed tasks to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Keep one task per bullet, include a Links section for related references, and store TODO metadata in .TODO/config.json. Write task descriptions as direct present-action statements and avoid retrospective phrasing such as 'now ...'. Write TODO text with super-precise language that names the current action and avoids vague reminders, hidden actors, or optional-sounding wording. Do not duplicate tasks that already exist in todo-next.md. Add generic labels from config.json to every task. Group TODO files by primary label using ## Label: label-name sections. Use (labels: label, label) on active, future, and ignore tasks. Use (labels: label, label; commit: shortsha) on done tasks, or commit: worktree until the work is committed.",
+  "instructions": "Get the T-number from .TODO/config.json before adding new tasks. Assign a stable T- prefixed task number to every active task in todo-next.md and every completed task in todo-done.md, and keep that number unchanged when moving work between active and done. Keep todo-future.md and todo-ignore.md as T-number-free retired queues; validate them with plain bullet descriptions and label suffixes instead of task IDs. Keep todo-next.md as the only active queue. Move completed tasks from todo-next.md to todo-done.md, deferred tasks to todo-future.md, and deliberate no-fix decisions to todo-ignore.md. Keep one task per bullet and store TODO metadata in .TODO/config.json. Write task descriptions as direct present-action statements and avoid retrospective phrasing such as 'now ...'. Write TODO text with super-precise, concise, goal-oriented, effect-oriented language. Avoid unnecessary file names, folder names, function names, internal IDs, or implementation details that can change; describe the required behavior and target outcome. Do not duplicate tasks that already exist in todo-next.md. Add generic labels from config.json to every task. Group TODO files by primary label using ## Label: label-name sections. Use (labels: label, label) on active, future, and ignore tasks. Use (labels: label, label; commit: shortsha) on done tasks, or commit: worktree until the work is committed. Preserve commit numbers from the actual commit that completed the task, or use commit: worktree until the task is committed.",
   "suggestions": [
     "Keep TODO-next focused on important developer and end-user work.",
     "Use shared config under data-config/frontend_shared.json and data-config/server.json for the date/alias rule source.",
@@ -64,6 +63,11 @@
     "Use docs/AI-interaction/prompt-library/ai-memory-collection-post-interaction.md after each completed request/response cycle and keep only durable learning.",
     "Use docs/AI-interaction/prompt-library/ai-memory-collection.md to convert it into durable project records.",
     "Prefer compact status updates that state phase, action, result, and next action during long-running work.",
+    "Preserve other-agent and user worktree changes; check active work before editing or committing.",
+    "Optimize memory usage when multiple agents run at the same time; avoid starting heavy builds or typechecks unless validation requires them.",
+    "When concurrent agents may have committed, re-read relevant files and git status before final validation.",
+    "Use smart TODO state handling: active and done tasks keep stable T-numbers; future and ignore tasks stay T-number-free and still carry labels.",
+    "Use commit: worktree for completed tasks that are not committed yet, then replace it with the real short commit hash after commit.",
     "Keep Railway test deploy reviews scoped to beta and dist-test unless the user explicitly names another branch.",
     "Record broad audit findings as trace categories, then move actionable implementation into TODO-next and deferred risk prevention into TODO-future."
   ]

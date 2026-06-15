@@ -39,22 +39,13 @@ Do not implement now:
 - Do not add enterprise-style abstractions.
 
 Current MCP rule:
-Keep MCP internal under the SaaS API for now, for example:
+Use Payload MCP as the documented connector.
 
-- `/api/mcp/*`
-  or
-- `/app/api/mcp/*`
+- `/api/payload/mcp`
+- `mcp.useclevr.com/api/payload/mcp`
+- `mcp-test.useclevr.com/api/payload/mcp`
 
-Only prepare a future option for:
-
-- `mcp.useclevr.com`
-
-Use a separate MCP subdomain only later if:
-
-- external agents/tools connect directly,
-- customers receive public MCP endpoints,
-- MCP needs separate auth/rate limits/logs,
-- MCP runs as a separate Railway service.
+Do not document a separate dashboard MCP connector. Payload MCP API keys control tool access, and the test connector exposes only locked demo-account metadata and stored insights.
 
 Current Business Profile rule:
 The Business Profile must become the core identity/configuration layer for accurate analysis. It must collect enough data for:

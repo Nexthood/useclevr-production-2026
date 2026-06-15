@@ -82,3 +82,56 @@ This file summarizes current project activity. Detailed session records live in
 - Extend `fixAwsSdkPackages` in `create-dist.cjs` to create top-level symlinks for bare transitive
   deps (tslib, fast-xml-parser) that the scoped AWS SDK packages depend on but Next.js standalone
   tracing omits
+
+## 2026-06-13
+
+- Align Payload content admin with the dashboard shell using a main-menu rail, topbar, page and
+  body headers, focused center workspace, and responsive right information panels.
+- Move business-profile administration, support issue review, and owner-assigned CSV uploads into
+  Payload custom views backed by existing Drizzle records.
+- Add Payload modal entry points for the dataset-aware AI Assistant and Hybrid AI controls.
+- Align Payload requirements, migration guidance, API access documentation, testing guidance, and
+  sales planning with the active operator workspace and existing application data ownership.
+- Hide Payload product operations and AI actions from base CMS accounts through the official
+  Payload authentication hook.
+- Add focused Payload MCP migration tasks and update MCP docs, REST Client checks, access rules,
+  requirements, changelog, and planning records to use `/api/payload/mcp` as the canonical connector.
+- Remove current dashboard MCP documentation and keep historical project logs as historical records.
+- Fix Markdown table alignment, table spacing, and fenced-code formatting so `pnpm lint:docs` passes.
+- Add theme sync and Payload-native theme toggle to admin pages and login.
+- Redesign Payload admin login with dashboard-style gradient backgrounds, card form, and teal buttons.
+- Add nav footer with admin search modal, theme toggle, and logout to Payload sidebar.
+- Add Lucide SVG icons to custom nav sections and CSS `::before` icons for built-in collection links.
+- Add breadcrumb navigation to admin view page headers.
+- Add 4 admin management views (Customers, Discounts, Levels, Progress) with CRUD via API routes.
+
+## 2026-06-15
+
+- Create Payload admin topbar controls (logo badge, search button, credit badge, theme toggle, logout) injected into `.app-header` via portal.
+- Add credit badge (PayloadCreditBadge) to both topbar and sidebar footer, reads localStorage.
+- Add Google + LinkedIn OAuth buttons to Payload admin login page.
+- Verify 14-day trial in analyst-credits.ts (TRIAL_DAYS = 14).
+- Fix CI pipeline: remove stale PayloadSupportIssuesView from importMap.js, replace migration `__name` placeholder with actual collection name.
+- Create consolidated admin-business-store with full CRUD (list, create, update, archive, restore, delete, entity management).
+- Create admin-dataset-store with list, detail, preview, upload, and delete operations.
+- Expand admin-operations API with archive/restore/delete business endpoints and dataset list/detail/preview/delete endpoints.
+- Add Payload datasets management view with list table, detail modal with data preview, and delete.
+- Improve Payload business profiles view with search, archive/restore/delete actions, and detail modal.
+- Add Payload native-style modals for AI Assistant and Hybrid AI with feature descriptions and links.
+- Redesign CSV upload zone with drag-and-drop styling.
+- Update nav footer quick links, importMap, payload config, and CSS for new views.
+- Store dashboard support records in the native Payload Issues collection and migrate legacy ticket
+  rows without duplicate IDs.
+- Run Railway's additive schema helper before standalone startup so Payload support tables exist in
+  generated deployments.
+- Align product, developer, deployment, sales, roadmap, and migration guidance with current CSV,
+  MCP, business-profile, dataset, and support ownership.
+- Remove fabricated admin-login metrics and describe the available operator workflows directly.
+- Consolidate project delivery into four gated phases: Usable MVP, Sales Validation, AI
+  Differentiation, and Platform Expansion.
+- Replace phase-planning TODOs with concrete user-journey, privacy, sales-kit, activation, billing,
+  and Railway release-candidate tasks.
+- Align requirements, README, developer guidance, user guidance, sales planning, marketing,
+  project controls, risks, and issues with current CSV and limited Payload MCP capability.
+- Remove duplicate deferred MCP tasks and gate connectors, public APIs, private customer MCP,
+  market intelligence, and Intelligence Cloud behind reliability and commercial evidence.

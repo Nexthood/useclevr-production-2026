@@ -1,9 +1,4 @@
-import { randomUUID } from "node:crypto"
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
-import { getDb } from "@/lib/db"
-import { supportTickets } from "@/lib/db/schema"
-import { desc, eq } from "drizzle-orm"
-import path from "node:path"
+import { getPayloadClient } from "@/lib/payload/get-payload"
 
 export type TicketStatus = "open" | "in_progress" | "resolved"
 export type TicketPriority = "normal" | "urgent"
@@ -25,16 +20,26 @@ export interface SupportTicket {
   resolvedAt: string | null
 }
 
-interface TicketStoreFile {
-  tickets: Record<string, SupportTicket>
+type SupportIssueDocument = {
+  id: string
+  userId: string
+  userEmail: string
+  subject: string
+  message: string
+  category: string
+  priority: TicketPriority
+  status: TicketStatus
+  adminNote?: string | null
+  adminName?: string | null
+  adminNoteUpdatedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  resolvedAt?: string | null
 }
 
-const STORE_DIR = process.env.SUPPORT_TICKET_STORE_DIR || "/tmp/useclevr-support"
-const STORE_PATH = path.join(STORE_DIR, "tickets.json")
-
-function cleanText(value: unknown, fallback = "") {
+function cleanText(value: unknown, fallback = "", maxLength = 1000) {
   if (typeof value !== "string") return fallback
-  return value.trim().replace(/\s+/g, " ").slice(0, 1000)
+  return value.trim().replace(/\s+/g, " ").slice(0, maxLength)
 }
 
 function normalizeStatus(value: unknown): TicketStatus {
@@ -46,67 +51,43 @@ function normalizePriority(value: unknown): TicketPriority {
   return value === "urgent" ? "urgent" : "normal"
 }
 
-async function readStore(): Promise<TicketStoreFile> {
-  try {
-    const raw = await readFile(STORE_PATH, "utf8")
-    const parsed = JSON.parse(raw) as Partial<TicketStoreFile>
-    return { tickets: parsed.tickets || {} }
-  } catch {
-    return { tickets: {} }
-  }
-}
-
-async function writeStore(store: TicketStoreFile) {
-  await mkdir(STORE_DIR, { recursive: true })
-  const tmpPath = `${STORE_PATH}.${process.pid}.tmp`
-  await writeFile(tmpPath, JSON.stringify(store, null, 2), "utf8")
-  await rename(tmpPath, STORE_PATH)
-}
-
-function toTicket(row: typeof supportTickets.$inferSelect): SupportTicket {
+function toTicket(issue: SupportIssueDocument): SupportTicket {
   return {
-    id: row.id,
-    userId: row.userId,
-    userEmail: row.userEmail,
-    subject: row.subject,
-    message: row.message,
-    category: row.category,
-    priority: row.priority === "urgent" ? "urgent" : "normal",
-    status: normalizeStatus(row.status),
-    adminNote: row.adminNote,
-    adminName: row.adminName || "",
-    adminNoteUpdatedAt: row.adminNoteUpdatedAt ? row.adminNoteUpdatedAt.toISOString() : null,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-    resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
-  }
-}
-
-function getDbClient() {
-  try {
-    return getDb()
-  } catch {
-    return null
+    id: issue.id,
+    userId: issue.userId,
+    userEmail: issue.userEmail,
+    subject: issue.subject,
+    message: issue.message,
+    category: issue.category,
+    priority: normalizePriority(issue.priority),
+    status: normalizeStatus(issue.status),
+    adminNote: issue.adminNote || "",
+    adminName: issue.adminName || "",
+    adminNoteUpdatedAt: issue.adminNoteUpdatedAt || null,
+    createdAt: issue.createdAt,
+    updatedAt: issue.updatedAt,
+    resolvedAt: issue.resolvedAt || null,
   }
 }
 
 export async function listTickets(options: { userId?: string; includeAll?: boolean }) {
-  const db = getDbClient()
-  if (db) {
-    try {
-      const rows = options.includeAll
-        ? await db.select().from(supportTickets).orderBy(desc(supportTickets.updatedAt))
-        : await db.select().from(supportTickets).where(eq(supportTickets.userId, options.userId || "")).orderBy(desc(supportTickets.updatedAt))
-      return rows.map(toTicket)
-    } catch {
-      // Fall back to local file storage for local/offline development.
-    }
-  }
+  const payload = await getPayloadClient()
+  const result = await payload.find({
+    collection: "support-issues",
+    depth: 0,
+    overrideAccess: true,
+    pagination: false,
+    sort: "-updatedAt",
+    where: options.includeAll
+      ? undefined
+      : {
+          userId: {
+            equals: options.userId || "",
+          },
+        },
+  })
 
-  const store = await readStore()
-  return Object.values(store.tickets)
-    .filter((ticket) => options.includeAll || ticket.userId === options.userId)
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+  return result.docs.map((issue) => toTicket(issue as SupportIssueDocument))
 }
 
 export async function createTicket(input: {
@@ -117,59 +98,32 @@ export async function createTicket(input: {
   category: unknown
   priority: unknown
 }) {
-  const subject = cleanText(input.subject)
-  const message = cleanText(input.message)
+  const subject = cleanText(input.subject, "", 250)
+  const message = cleanText(input.message, "", 4000)
 
   if (!subject || !message) {
     throw new Error("Subject and message are required.")
   }
 
-  const now = new Date().toISOString()
-  const id = `ticket-${randomUUID().replace(/-/g, "").slice(0, 12)}`
-  const ticket: SupportTicket = {
-    id,
-    userId: input.userId,
-    userEmail: input.userEmail,
-    subject,
-    message,
-    category: cleanText(input.category, "General").slice(0, 80) || "General",
-    priority: normalizePriority(input.priority),
-    status: "open",
-    adminNote: "",
-    adminName: "",
-    adminNoteUpdatedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    resolvedAt: null,
-  }
+  const payload = await getPayloadClient()
+  const issue = await payload.create({
+    collection: "support-issues",
+    overrideAccess: true,
+    data: {
+      id: `ticket-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
+      userId: input.userId,
+      userEmail: input.userEmail,
+      subject,
+      message,
+      category: cleanText(input.category, "General", 80) || "General",
+      priority: normalizePriority(input.priority),
+      status: "open",
+      adminNote: "",
+      adminName: "",
+    },
+  })
 
-  const db = getDbClient()
-  if (db) {
-    try {
-      const [row] = await db.insert(supportTickets).values({
-        id,
-        userId: ticket.userId,
-        userEmail: ticket.userEmail,
-        subject,
-        message,
-        category: ticket.category,
-        priority: ticket.priority,
-        status: ticket.status,
-        adminNote: ticket.adminNote,
-        createdAt: new Date(now),
-        updatedAt: new Date(now),
-        resolvedAt: null,
-      }).returning()
-      return toTicket(row)
-    } catch {
-      // Fall back to local file storage for local/offline development.
-    }
-  }
-
-  const store = await readStore()
-  store.tickets[ticket.id] = ticket
-  await writeStore(store)
-  return ticket
+  return toTicket(issue as SupportIssueDocument)
 }
 
 export async function updateTicket(input: {
@@ -180,68 +134,40 @@ export async function updateTicket(input: {
   userId: string
   isSuperAdmin: boolean
 }) {
-  const id = cleanText(input.id)
-  const db = getDbClient()
-  if (db) {
-    try {
-      const [existing] = await db.select().from(supportTickets).where(eq(supportTickets.id, id)).limit(1)
+  const id = cleanText(input.id, "", 160)
+  const payload = await getPayloadClient()
+  const existing = await payload.findByID({
+    collection: "support-issues",
+    id,
+    depth: 0,
+    overrideAccess: true,
+  })
 
-      if (!existing) {
-        throw new Error("Ticket not found.")
-      }
-
-      if (!input.isSuperAdmin && existing.userId !== input.userId) {
-        throw new Error("You do not have access to this ticket.")
-      }
-
-      const nextStatus = input.isSuperAdmin
-        ? normalizeStatus(input.status)
-        : input.status === "resolved"
-          ? "resolved"
-          : existing.status
-      const now = new Date()
-      const nextAdminNote = input.isSuperAdmin ? cleanText(input.adminNote) : existing.adminNote
-      const [row] = await db.update(supportTickets).set({
-        status: nextStatus,
-        adminNote: nextAdminNote,
-        adminName: input.isSuperAdmin ? cleanText(input.adminName) : existing.adminName,
-        adminNoteUpdatedAt: input.isSuperAdmin && nextAdminNote ? now : existing.adminNoteUpdatedAt,
-        resolvedAt: nextStatus === "resolved" ? now : null,
-        updatedAt: now,
-      }).where(eq(supportTickets.id, id)).returning()
-
-      return toTicket(row)
-    } catch (error) {
-      if (error instanceof Error && /not found|access/.test(error.message.toLowerCase())) {
-        throw error
-      }
-      // Fall back to local file storage for local/offline development.
-    }
-  }
-
-  const store = await readStore()
-  const ticket = store.tickets[id]
-
-  if (!ticket) {
-    throw new Error("Ticket not found.")
-  }
-
-  if (!input.isSuperAdmin && ticket.userId !== input.userId) {
+  if (!input.isSuperAdmin && existing.userId !== input.userId) {
     throw new Error("You do not have access to this ticket.")
   }
 
-  if (input.isSuperAdmin) {
-    ticket.status = normalizeStatus(input.status)
-    ticket.adminNote = cleanText(input.adminNote)
-    ticket.adminName = cleanText(input.adminName)
-    ticket.adminNoteUpdatedAt = ticket.adminNote ? new Date().toISOString() : ticket.adminNoteUpdatedAt
-  } else if (input.status === "resolved") {
-    ticket.status = "resolved"
-  }
+  const nextStatus = input.isSuperAdmin
+    ? normalizeStatus(input.status)
+    : input.status === "resolved"
+      ? "resolved"
+      : normalizeStatus(existing.status)
 
-  ticket.resolvedAt = ticket.status === "resolved" ? new Date().toISOString() : null
-  ticket.updatedAt = new Date().toISOString()
-  store.tickets[ticket.id] = ticket
-  await writeStore(store)
-  return ticket
+  const issue = await payload.update({
+    collection: "support-issues",
+    id,
+    depth: 0,
+    overrideAccess: true,
+    data: {
+      status: nextStatus,
+      ...(input.isSuperAdmin
+        ? {
+            adminNote: cleanText(input.adminNote, "", 4000),
+            adminName: cleanText(input.adminName, "", 255),
+          }
+        : {}),
+    },
+  })
+
+  return toTicket(issue as SupportIssueDocument)
 }

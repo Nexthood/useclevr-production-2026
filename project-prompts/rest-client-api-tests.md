@@ -53,7 +53,7 @@ Tasks:
 
    Add safe non-secret REST Client environment variables:
 
-   ```json
+     ```json
    {
      "rest-client.environmentVariables": {
        "local": {
@@ -67,25 +67,25 @@ Tasks:
        }
      }
    }
-   ```
+    ```
 
    Do not include tokens, cookies, API keys, session secrets, Stripe secrets, Gemini keys, OpenAI keys, or database URLs.
 
-5. Use placeholders for sensitive values.
+1. Use placeholders for sensitive values.
 
    Example:
 
-   ```http
+    ```http
    @baseUrl = {{baseUrl}}
 
    ### Example protected request
    GET {{baseUrl}}/api/example
    Cookie: next-auth.session-token=<paste-local-session-cookie>
-   ```
+    ```
 
    Secrets stay as manual placeholders.
 
-6. Add request examples for each available endpoint.
+2. Add request examples for each available endpoint.
 
    Each `.http` file should include:
    - a short comment explaining what the request tests
@@ -96,13 +96,13 @@ Tasks:
 
    Example style:
 
-   ```http
+    ```http
    ### Health check
    # Expected: 200 OK
    GET {{baseUrl}}/api/health
-   ```
+    ```
 
-7. Add `docs/api-tests/README.md`.
+3. Add `docs/api-tests/README.md`.
 
    README should explain:
    - install the VS Code REST Client extension
@@ -113,7 +113,7 @@ Tasks:
    - how to test protected routes using a temporary local session cookie
    - difference between REST Client and Thunder Client
 
-8. Optional but useful:
+4. Optional but useful:
    Add a simple curl-based smoke script only if the repo already has a `scripts/smoke` or `scripts/health` pattern.
 
    Possible file:
@@ -128,13 +128,13 @@ Tasks:
 
    Do not add it if it would create unnecessary complexity.
 
-9. Add a package script only if useful and safe:
+5. Add a package script only if useful and safe:
 
    `"smoke:api": "bash scripts/smoke/api-smoke.sh"`
 
    Only add it if the script is created and works.
 
-10. Update TODO only if needed.
+6. Update TODO only if needed.
 
    If the implementation creates follow-up work, add only practical tasks to `.TODO/todo-future.md`, not active TODO, unless the task is required immediately.
 
@@ -150,4 +150,5 @@ Expected output:
 
 Important:
 This work is for reproducibility and developer collaboration. Keep it plain text, Git-tracked, minimal, and safe.
+
 ```

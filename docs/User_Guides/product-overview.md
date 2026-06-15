@@ -3,6 +3,20 @@
 UseClevr helps users upload business datasets, review dashboards, ask AI questions, and download
 reports.
 
+## Current Product Phase
+
+UseClevr is completing its Usable MVP and Sales Validation phases. The current product focuses on
+reliable CSV and Excel upload, verified analysis, responsive dashboard insights, dataset-specific AI answers,
+reports, support, trial and billing paths, demo access, privacy shield warnings, and release-candidate validation.
+
+Payload admin is part of the current operator workspace. It supports public content management,
+dashboard business profiles, Payload-managed support issues, and owner-assigned CSV uploads.
+
+Payload MCP currently exposes approved content tools and locked demo-account dataset summaries.
+AI differentiation follows after the complete user journey is reliable. Private customer MCP
+access, broader public APIs, data connectors, market intelligence, and Intelligence Cloud remain
+future platform-expansion work.
+
 ## Main Workflow
 
 1. Sign in.
@@ -49,8 +63,15 @@ reports.
 ## Admin Areas
 
 - Super-admins can review customers, including built-in demo and super-admin accounts.
-- Payload content admin uses the same typography, cyan accent, rounded controls, workspace surfaces,
+- Payload operator admin uses the same typography, cyan accent, rounded controls, workspace surfaces,
   and light/dark presentation as the dashboard.
+- Payload operator admin follows the dashboard layout with a left main menu, topbar, page header,
+  focused work area, and supporting information panels on the right.
+- Payload superadmins manage dashboard business profiles, review support issues, and upload CSV
+  datasets for a selected dashboard owner from Product operations.
+- Base CMS accounts do not see Product operations or AI operator actions.
+- Payload topbar actions open the dataset-aware AI Assistant handoff and Hybrid AI controls in
+  modal workflows.
 - Use Back to dashboard in Payload navigation to return to the application workspace.
 - Built-in accounts keep fixed sign-in identities while saving dashboard settings, business details,
   onboarding progress, and uploaded datasets normally.

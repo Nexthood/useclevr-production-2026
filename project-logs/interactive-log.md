@@ -941,3 +941,323 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **AI-Agent Learning**: `node -c <file>` syntax-checks CommonJS files; project record files must
   always be staged with code changes or commits are rejected by pre-commit hooks.
 
+---
+
+## Interaction 36: Payload Admin Dashboard Shell
+
+- **Date**: 2026-06-13
+- **User Goal**: Continue matching Payload admin with the dashboard using a left main menu,
+  topbar, page header, body subheader, center work area, and right information panels.
+- **Changes**:
+  1. Add Payload-native component slots for the menu label, dashboard header, collection
+     subheaders, and information panels.
+  2. Apply dashboard proportions to the Payload navigation, topbar, headers, content grid, cards,
+     and right information rail.
+  3. Stack information panels below content at tablet widths and into one column on mobile.
+  4. Regenerate the Payload admin import map.
+- **Problems Marked**:
+  - `observation`: Payload's native tables, filters, forms, permissions, and save controls remain
+    unchanged.
+  - `blocker`: Authenticated browser inspection could not complete because Payload initialization
+    encountered an external PostgreSQL `ECONNRESET`.
+- **Verification**: TypeScript, focused ESLint, TODO checks, pre-commit checks, import-map
+  generation, and the production build pass.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`, `CHANGELOG.md`, and the
+  product overview; interaction records live in `project-logs/` and
+  `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 37: Payload Product Operations
+
+- **Date**: 2026-06-13
+- **User Goal**: Move administrator business profiles, support issues, dataset uploads, and AI
+  entry points into Payload while keeping the dashboard AI and Hybrid AI workflows.
+- **Changes**:
+  1. Add Payload custom views for business profiles, support issues, and owner-assigned CSV uploads.
+  2. Add Payload-superadmin endpoints backed by existing Drizzle business, ticket, dataset, and
+     dataset-row storage.
+  3. Parse operator CSV uploads with the canonical parser and preserve standard dataset ownership.
+  4. Add Payload topbar modal actions for the AI Assistant and Hybrid AI.
+  5. Update requirements, release notes, developer guidance, and the product overview.
+- **Problems Marked**:
+  - `observation`: The installed Payload plugins do not include an issue-management plugin that
+    matches the existing support-ticket workflow.
+  - `risk`: Payload and dashboard authentication remain separate, so the AI Assistant opens the
+    dashboard session instead of accepting cross-user dataset context from Payload.
+  - `observation`: Production build static generation logs an external PostgreSQL `ECONNRESET` and
+    still completes successfully.
+- **Verification**: TypeScript, focused ESLint, Payload import-map generation, TODO validation,
+  changelog validation, secret checks, documentation links, and the production build pass.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md` and `CHANGELOG.md`;
+  operator guidance lives in the developer guide and product overview; completed work lives in
+  `.TODO/todo-done.md`.
+
+---
+
+## Interaction 38: Payload Documentation And Access Alignment
+
+- **Date**: 2026-06-13
+- **User Goal**: Update documentation and requirements, fix Payload inconsistencies, and keep the
+  work uncommitted.
+- **Changes**:
+  1. Align requirements, migration guidance, API access rules, testing steps, and sales project
+     records with the active Payload operator workspace.
+  2. Define Payload as the content owner and operator interface while application stores remain the
+     source of truth for auth, billing, businesses, tickets, datasets, reports, and traces.
+  3. Hide product-operation navigation and AI actions from base CMS users through Payload
+     authentication state.
+  4. Show a permission state on direct product-operation URLs without requesting customer data.
+  5. Keep async form errors visible in active modals and reset successful upload forms reliably.
+- **Problems Marked**:
+  - `resolved`: Planning and sales records described Payload as future or content-only.
+  - `resolved`: Base CMS users could see links for endpoints that always rejected their role.
+  - `resolved`: The first role-gating approach depended on an undeclared Payload UI package.
+- **Verification**: TypeScript, focused ESLint, TODO validation, changelog validation, secret
+  checks, package validation, focused Markdown lint, documentation links, and the production build
+  pass. Static generation logs an external PostgreSQL `ECONNRESET`, then completes all 123 pages.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Current product rules live in `requirements.md`; operator and security
+  guidance lives in developer and user guides; planning boundaries live in the Payload migration
+  plan and sales project records.
+
+---
+
+## Interaction 39: Payload MCP Documentation Migration
+
+- **Date**: 2026-06-13
+- **User Goal**: Add focused MCP migration tasks and update documentation so Payload MCP is the
+  canonical connector while dashboard MCP references are removed.
+- **Changes**:
+  1. Add active MCP migration tasks T-845 through T-848 to `.TODO/todo-next.md` and advance
+     `.TODO/config.json` to `849`.
+  2. Rewrite user and developer MCP guidance around `/api/payload/mcp`, Bearer API-key auth,
+     JSON-RPC discovery, and locked demo-account read tools.
+  3. Replace dashboard MCP REST Client checks with Payload MCP checks in `docs/api-tests/mcp.http`.
+  4. Update API access, requirements, changelog, Payload migration prompts, and current planning
+     records to reference Payload MCP instead of a dashboard MCP connector.
+- **Problems Marked**:
+  - `observation`: Full `pnpm lint:docs` still reports pre-existing Markdown lint errors outside the
+    changed MCP documentation.
+  - `risk`: Historical project logs still describe earlier dashboard MCP work, but current guidance
+    no longer documents that connector.
+- **Verification**: `pnpm lint:todos`, `pnpm link:docs`, focused Markdown lint on changed
+  documentation files, and changed-file Markdown lint pass except for pre-existing
+  `.TODO/plan_project_stability.md` ordered-list warnings.
+- **Follow-up Tasks**:
+  - T-845. Replace dashboard MCP references in markdown docs with Payload MCP migration wording and remove `/api/mcp` dashboard connector examples.
+  - T-846. Update MCP REST Client examples to call Payload Streamable HTTP MCP with Bearer API-key auth and JSON-RPC discovery.
+  - T-847. Verify production and test MCP subdomains route only to Payload MCP, not dashboard MCP.
+  - T-848. Document ChatGPT developer-mode setup for Payload MCP and remove dashboard MCP setup instructions.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: MCP product rules live in `requirements.md`; user and developer MCP
+  guidance lives in `docs/User_Guides/mcp.md` and `docs/Developer_Guides/MCP.md`; test guidance
+  lives in `docs/api-tests/mcp.http`; active work lives in `.TODO/todo-next.md`; interaction records
+  live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 40: Payload Admin Shell Enhancements
+
+- **Date**: 2026-06-13
+- **User Goal**: Enhance Payload admin UI with nav footer (search/theme/logout), Lucide icons on all nav links, breadcrumbs on admin views, and review login page styling.
+- **Changes**:
+  1. Created `PayloadNavFooter` in `afterNavLinks` slot with admin search modal, theme toggle, and logout button.
+  2. Added Lucide icons (Building2, Ticket, Upload, Users, Percent, Layers, BarChart3) to custom nav sections.
+  3. Added CSS `::before` SVG data URI icons for built-in Payload collection nav links (CMS Users, News Posts, FAQs, Media).
+  4. Added breadcrumb nav (Admin / Section) to `OperationHeader` in both operational and admin management views.
+  5. Styled nav icons, breadcrumbs, and collection link icons in `payload-auth-brand.css` with dark-mode support.
+  6. Created `PayloadThemeToggle` (Light/Dark/System) and `TailwindThemeSync` (MutationObserver) for theme persistence.
+  7. Redesigned Payload admin login page with dashboard-style radial gradients, card form with blur/glow, and teal buttons.
+- **Problems Marked**:
+  - `resolved`: Logged out admin pages (`/admin/login`, `/admin/logout`) don't run client components, so theme toggle and sync needed careful slot placement in `graphics.Logo` and `beforeLogin`.
+  - `resolved`: Payload 3 styling conflicts with Tailwind dark class — MutationObserver on `data-theme` → class bridge works reliably.
+  - `observation`: Full `next build` exceeds 5-minute timeout locally but `tsc --noEmit` passes.
+- **Verification**: `tsc --noEmit` passes cleanly. All admin views registered and navigable.
+- **Follow-up Tasks**:
+  - Verify Railway test and app deploys after push.
+  - Review business profiles view in Payload admin for CRUD completeness.
+  - Add Google/LinkedIn OAuth to login page if not present.
+  - Verify 14-day demo credit system works end-to-end.
+  - Add credits/credit system UI to Payload admin topbar and sidebar.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Payload admin component code lives in `src/components/payload/`; styling in `payload-auth-brand.css`; nav configuration in `payload.config.ts`; admin operation and management views in `payload-operational-views.tsx` and `payload-admin-management-views.tsx`.
+
+---
+
+## Interaction 41: Markdown Lint Cleanup
+
+- **Date**: 2026-06-13
+- **User Goal**: Fix Markdown lint failures across documentation and project Markdown files without committing.
+- **Changes**:
+  1. Fixed table pipe alignment in AI tools, founder, sales, and project-controls docs.
+  2. Added blank-line spacing around Markdown tables.
+  3. Fixed fenced-code spacing and nested REST Client prompt code fences.
+- **Problems Marked**:
+  - `observation`: Markdown lint failures were formatting-only and did not change product behavior.
+- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check -- "*.md" .TODO/*.md project-prompts/*.md` passed.
+- **Follow-up Tasks**: None.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Documentation formatting lives in the updated Markdown files; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 42: Payload Admin Topbar, OAuth Login, Credit Badge & CI Fix
+
+- **Date**: 2026-06-15
+- **User Goal**: Complete Payload admin shell with topbar controls, OAuth login buttons, credit badge, search popup, breadcrumbs, and CRUD on all views. Then fix CI pipeline failure.
+- **Changes**:
+  1. Created `PayloadTopbarControls` (`payload-admin-topbar.tsx`): portal into `.app-header` with logo badge, search button (⌘K modal), credit badge, theme toggle, sign out link.
+  2. Created `PayloadCreditBadge` (`payload-admin-credit-badge.tsx`): reads `useclevr_credits` from localStorage, links to `/app/settings/billing`.
+  3. Added credit badge to both topbar (`PayloadTopbarControls`) and sidebar footer (`PayloadNavFooter`).
+  4. Added Google + LinkedIn OAuth buttons to `PayloadLoginView` with "Or continue with" divider.
+  5. Verified 14-day trial: `TRIAL_DAYS = 14` in `analyst-credits.ts`, trial computed from user `createdAt`.
+  6. Fixed stale `PayloadSupportIssuesView` import in `importMap.js` (removed entry for dead component).
+  7. Fixed migration placeholder `__name` in `src/migrations/index.ts` — Payload auto-generated `20260615_183958___name` was committed as a template placeholder; replaced with `20260615_183958_payload_support_issues`.
+- **Problems Marked**:
+  - `blocker`: CI failed on Validate Source — stale `PayloadSupportIssuesView` import in `importMap.js` from prior local dev runs.
+  - `blocker`: CI failed on second push — `src/migrations/index.ts(5,51): error TS2307` — migration index had `__name` placeholder never replaced by developer.
+  - `observation`: `importMap.js` is auto-generated and manually edited entries get overwritten on next `payload dev`.
+  - `observation`: Local `src/migrations/index.ts` already had correct `payload_support_issues` name (auto-fixed by running `payload dev`), but committed version still had `__name`.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes on local machine.
+- **Next Steps**: Push migration fix, wait for CI green, verify Railway auto-deploys, test live Payload admin.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Payload admin component code in `src/components/payload/`; styling in `payload-auth-brand.css`; nav config in `payload.config.ts`; migration index at `src/migrations/index.ts`.
+
+---
+
+## Interaction 43: Payload Product Operations Completion
+
+- **Date**: 2026-06-15
+- **User Goal**: Update guides, commit, and complete Payload operator support for business profiles,
+  issues, dataset uploads, AI Assistant, and Hybrid AI with dashboard-consistent presentation.
+- **Changes**:
+  1. Store support issues in a native Payload collection while dashboard ticket routes use the same
+     owner-scoped records.
+  2. Add an explicit Payload migration that creates the issue schema and copies legacy tickets
+     without duplicate IDs.
+  3. Run Railway's additive schema helper before standalone startup and include the Payload issue
+     schema in that helper.
+  4. Keep business profiles and datasets in existing owner-scoped Drizzle tables through
+     superadmin-only Payload views.
+  5. Keep AI Assistant and Hybrid AI as Payload modal handoffs into existing dashboard workflows.
+  6. Replace fabricated login metrics with direct descriptions of content, support, upload, and AI
+     operations.
+  7. Align requirements, changelog, migration guidance, deployment guidance, project phases, user
+     guidance, developer guidance, and sales planning with current ownership and MCP behavior.
+- **Problems Marked**:
+  - `blocker`: Payload migration generation fails under Node 26 because TSX resolves a built-in
+    module as a file URL; generation succeeds under Node 22 and the resulting migration validates
+    under the project runtime.
+  - `risk`: Railway previously started without its documented predeploy schema command.
+  - `observation`: Concurrent agent changes modified TODO guidance during validation; the final
+    queue rules and checker now agree.
+- **User Learning**: Payload can own support issues without moving business profiles or datasets
+  out of their existing account-scoped storage.
+- **AI-Agent Learning**: Re-read branch and staged state before final validation because another
+  agent can commit or stage work during an active request.
+- **Follow-up Tasks**: T-841 remains responsible for test-host MCP deployment and ChatGPT
+  developer-mode verification.
+- **Verification**: `pnpm validate:types`, `pnpm lint:docs`, `pnpm lint:todos`,
+  `pnpm lint:secrets`, `pnpm validate:dist`, focused ESLint, and `pnpm build` pass. The production
+  build reports the existing generic compile warning without a warning detail.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`; release behavior lives in
+  `CHANGELOG.md`; operator and deployment guidance lives in developer and user guides; detailed and
+  compact records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 44: Project Phase Distribution
+
+- **Date**: 2026-06-15
+- **User Goal**: Review the internal project phase plan, distribute current and future work into
+  TODO queues, align current descriptions and sales guidance, and keep the phase document concise.
+- **Changes**:
+  1. Consolidate delivery into Usable MVP, Sales Validation, AI Differentiation, and Platform
+     Expansion with explicit exit or activation gates.
+  2. Keep CSV as the current upload format and Payload MCP as limited active infrastructure for
+     approved content and locked demo-account summaries.
+  3. Replace phase-documentation tasks with concrete acceptance, privacy, demo-kit, activation,
+     billing, and Railway test-release tasks.
+  4. Gate AI differentiation, connectors, public API productization, private customer MCP, market
+     intelligence, and Intelligence Cloud in the future queue.
+  5. Align requirements, README, developer and user guides, sales plan, marketing guidance, project
+     brief, product description, business case, issue register, risk register, and stage plan.
+  6. Repair duplicated sales-plan table headers and remove active MCP tasks duplicated in the
+     future queue.
+- **Problems Marked**:
+  - `risk`: Current and future capability claims diverged across CSV/Excel, MCP, Payload, and sales
+    documents.
+  - `improvement`: Phase tasks now describe measurable exit work instead of documentation intent.
+  - `observation`: An unrelated untracked Payload business-store file exists and remains untouched.
+- **User Learning**: Phase gates let current sales and product work remain ambitious without
+  presenting unvalidated platform expansion as available.
+- **AI-Agent Learning**: Distribute planning information by audience and action: requirements state
+  product rules, TODO queues state work, sales docs state proof and claims, and the phase guide stays
+  concise.
+- **Follow-up Tasks**: T-849, T-850, and T-853 through T-856 define the active phase exit work.
+- **Verification**: `pnpm lint:docs`, `pnpm link:docs`, `pnpm lint:todos`,
+  `pnpm lint:secrets`, and `git diff --check` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Internal phase rules live in `.TODO/.PLAN/project-phases.md`; concise
+  developer gates live in `docs/Developer_Guides/PROJECT_PHASES.md`; current and deferred work lives
+  in `.TODO/`; commercial gates live in `docs/Sales/`; interaction records live in `project-logs/`
+  and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 45: Current Phase TODO Expansion
+
+- **Date**: 2026-06-15
+- **User Goal**: Add meaningful current-phase TODO tasks without committing, then update docs and AI interaction records.
+- **Changes**:
+  1. Add active tasks for Excel upload parity, privacy shield acceptance, analysis quality, Payload admin login review, and release-candidate checklist.
+  2. Keep current-phase work in `.TODO/todo-next.md` and future platform expansion out of active work.
+  3. Update phase docs and product overview to include the expanded current-phase checklist.
+  4. Refresh AI interaction status with the new active phase work and validation result.
+- **Problems Marked**:
+  - `observation`: Current-phase work should stay measurable and release-oriented.
+  - `risk`: Advanced platform work can distract from the usable MVP and sales-validation gates.
+- **Follow-up Tasks**: T-857 through T-862 define the added current-phase tasks.
+- **Verification**: `pnpm lint:todos`, `pnpm lint:docs`, `pnpm link:docs`, and `git diff --check` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Active work lives in `.TODO/todo-next.md`; phase guidance lives in `docs/Developer_Guides/PROJECT_PHASES.md`; product wording lives in `docs/User_Guides/product-overview.md`; interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 46: Payload Product Operations Full CRUD & Dataset Management
+
+- **Date**: 2026-06-15
+- **User Goal**: Move business profiles, dataset upload, and AI features to Payload admin with full CRUD and Payload-native presentation.
+- **Changes**:
+  1. Created `admin-business-store.ts` with consolidated full CRUD: list with entity counts, create, update, archive, restore, delete (with archive-only, non-primary guards), get by ID, list entities.
+  2. Created `admin-dataset-store.ts` with list, get by ID, upload (CSV parse, batch insert), delete, preview (paginated row data).
+  3. Rewrote `admin-operations.ts` to use the new stores and expose endpoints: GET/POST/DELETE businesses, archive/restore, GET entities, GET/POST/DELETE datasets, GET preview.
+  4. Rewrote `payload-operational-views.tsx`:
+     - Business profiles: search bar, full table (name, owner, industry, entities, status, updated), row actions (view detail, edit, archive/restore, delete), create/edit form modal, detail modal with all fields.
+     - Datasets view: list table (name, owner, size, rows/columns, status, uploaded), detail modal with data preview table, column chips, delete confirmation.
+     - Dataset upload: drag-and-drop zone, owner select, upload progress.
+     - AI modals: Payload-native modal overlay for AI Assistant (features, open dashboard link) and Hybrid AI (Lite/MEGA tiers, configure link).
+  5. Registered `PayloadDatasetsView` in payload.config.ts and importMap.js.
+  6. Added nav footer quick link for datasets management.
+  7. Added ~300 lines of CSS for: spinner, badges, toolbar, search, status badges (draft/active/archived), row actions, detail grid, preview table, upload zone, button styles, AI modals.
+  8. Updated project records, changelog, and interaction status.
+  9. Ran typecheck — passes cleanly.
+- **Problems Marked**:
+  - `observation`: Business data stays in Drizzle tables (dashboard continues to use them directly); Payload admin bridges through the new store layer.
+  - `observation`: ImportMap needs manual edits between `payload dev` runs because view registration in payload.config.ts doesn't auto-register in importMap until next dev build.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes. Full project validation pending commit.
+- **Follow-up Tasks**: Push to beta, verify CI green, verify Railway deploys, test live Payload admin datasets/businesses views.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Business store at `src/lib/payload/admin-business-store.ts`; dataset store at `src/lib/payload/admin-dataset-store.ts`; API endpoints in `admin-operations.ts`; views in `payload-operational-views.tsx`; CSS in `payload-auth-brand.css`; config in `payload.config.ts`; importMap in `src/app/(payload)/admin/importMap.js`.

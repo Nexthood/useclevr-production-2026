@@ -25,6 +25,7 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 - Dashboard workspace under `/app`.
 - Dataset upload, dataset tables, AI Assistant, downloads, reports, Business Profile, Accountancy, referrals, settings, and tickets.
 - Super-admin operational pages under `/app/admin`.
+- Payload operator admin under `/admin` for public content and selected product operations.
 - Stripe payment flow and billing portal access.
 - Help chat with public, dashboard, and operator FAQ scopes.
 - AI trace history, feedback, export, search, analytics, benchmarking, and learning guidance.
@@ -41,6 +42,8 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 ## Project Approach
 
 - Keep the current app architecture and deployment path stable.
+- Complete the Usable MVP and Sales Validation gates before activating AI Differentiation or
+  Platform Expansion.
 - Build dashboard and public features using existing component patterns.
 - Use Drizzle and Neon PostgreSQL for application data.
 - Use Stripe as payment source of truth.
@@ -49,16 +52,17 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 
 ## Business Options
 
-| Option                          | Description                                                                     | Decision                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Do nothing                      | Users keep manual spreadsheet analysis.                                         | Rejected because it does not create product value.            |
-| Build enterprise BI             | Create a broad BI platform with deep setup.                                     | Rejected because the product targets practical SME workflows. |
-| Build UseClevr SME BI workspace | Provide upload, AI, reports, profile context, support, billing, and operations. | Selected.                                                     |
-| Replace app with CMS            | Use Payload or another CMS as core app.                                         | Rejected; CMS remains future editable-content layer only.     |
+| Option                          | Description                                                                     | Decision                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Do nothing                      | Users keep manual spreadsheet analysis.                                         | Rejected because it does not create product value.                             |
+| Build enterprise BI             | Create a broad BI platform with deep setup.                                     | Rejected because the product targets practical SME workflows.                  |
+| Build UseClevr SME BI workspace | Provide upload, AI, reports, profile context, support, billing, and operations. | Selected.                                                                      |
+| Replace app with CMS            | Use Payload or another CMS as the product data owner.                           | Rejected; Payload remains an admin interface over existing application stores. |
 
 ## Constraints
 
-- Current routes stay stable: public site at `/`, dashboard at `/app`, super-admin tools at `/app/admin`.
+- Current routes stay stable: public site at `/`, dashboard at `/app`, application super-admin
+  tools at `/app/admin`, and Payload operator admin at `/admin`.
 - Railway packaging stays compatible with generated `dist/` output.
 - Sensitive data stays out of docs, prompts, logs, and public assets.
 - Sales copy stays aligned with current product state.
@@ -74,6 +78,8 @@ Many small and growing businesses work from spreadsheets, CSV exports, accountin
 ## Success Criteria
 
 - A user can sign up, upload a dataset, ask an AI question, and download a report.
+- A prospect can evaluate the product through current demo data, screenshots, a repeatable script,
+  pricing, trial guidance, and support content without a technical walkthrough.
 - A user can complete Business Profile context enough to improve setup progress.
 - A user can open support from FAQ, help chat, or tickets.
 - A paid user can reach checkout and subscription settings.

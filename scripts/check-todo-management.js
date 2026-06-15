@@ -33,21 +33,38 @@ function readText(filePath) {
   }
 }
 
-function hasLinksSection(text, linksHeader) {
-  const escapedHeader = linksHeader.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^##\\s+${escapedHeader}\\s*$`, "m").test(text);
+function taskLinePattern(queueName, config) {
+  if (queueName === "future" || queueName === "ignore") {
+    return /^[-*]\s+(?!T-\d+\.)(.+)$/i;
+  }
+
+  return new RegExp(`^[-*]\\s+(${config.currentTaskPrefix}\\d{2,})\\.\\s*(.+)$`, "i");
 }
 
-function validateTaskLanguage(filePath, text) {
+function taskIdFromLine(line, queueName, config) {
+  const match = line.trim().match(taskLinePattern(queueName, config));
+  if (!match) return null;
+  if (queueName === "future" || queueName === "ignore") return null;
+  return match[1];
+}
+
+function descriptionFromLine(line, queueName, config) {
+  const match = line.trim().match(taskLinePattern(queueName, config));
+  if (!match) return "";
+  if (queueName === "future" || queueName === "ignore") return match[1];
+  return match[2];
+}
+
+function validateTaskLanguage(filePath, text, queueName, config) {
   const invalidLines = [];
   const lines = text.split(/\r?\n/);
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trim();
-    const match = line.match(/^[-*]\s+T-\d+\.\s*(.+)$/i);
-    if (!match) continue;
+    const description = descriptionFromLine(line, queueName, config);
+    if (!description) continue;
 
-    if (/^now\b/i.test(match[1].trim())) {
+    if (/^now\b/i.test(description.trim())) {
       invalidLines.push(index + 1);
     }
   }
@@ -77,10 +94,10 @@ function validateTaskLabels(filePath, text, queueName, config) {
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trim();
-    const match = line.match(/^[-*]\s+T-\d+\.\s*(.+)$/i);
-    if (!match) continue;
+    const description = descriptionFromLine(line, queueName, config);
+    if (!description) continue;
 
-    const suffixMatch = match[1].match(suffixPattern);
+    const suffixMatch = description.match(suffixPattern);
     if (!suffixMatch) {
       missingLines.push(index + 1);
       continue;
@@ -121,7 +138,7 @@ if (!config) {
   process.exit(1);
 }
 
-for (const field of ["currentTaskPrefix", "nextTaskNumber", "todoFiles", "linksHeader"]) {
+for (const field of ["currentTaskPrefix", "nextTaskNumber", "todoFiles"]) {
   if (!(field in config)) {
     fail(`${repoRelative(todoConfigPath)} is missing "${field}".`);
   }
@@ -142,6 +159,7 @@ for (const queueName of requiredQueues) {
 
 const taskPattern = new RegExp(config.taskIdPattern || `^${config.currentTaskPrefix}\\d{2,}$`);
 const ids = new Map();
+const idsByQueue = new Map();
 let maxTaskNumber = 0;
 const stateCounts = { active: 0, retired: 0 };
 
@@ -155,16 +173,14 @@ for (const queueName of requiredQueues) {
   }
 
   const text = readText(filePath);
-  validateTaskLanguage(filePath, text);
+  validateTaskLanguage(filePath, text, queueName, config);
   validateTaskLabels(filePath, text, queueName, config);
 
-  if (!hasLinksSection(text, config.linksHeader)) {
-    fail(`${repoRelative(filePath)} must include a "## ${config.linksHeader}" section.`);
-  }
-
-  const matches = text.matchAll(new RegExp(`\\b(${config.currentTaskPrefix}\\d{2,})\\b`, "g"));
-  for (const match of matches) {
-    const id = match[1];
+  const queueIds = [];
+  const lines = text.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const id = taskIdFromLine(lines[index], queueName, config);
+    if (!id) continue;
     if (!taskPattern.test(id)) {
       fail(`${repoRelative(filePath)} contains invalid task id "${id}".`);
     }
@@ -172,9 +188,28 @@ for (const queueName of requiredQueues) {
       fail(`${id} appears in both ${ids.get(id)} and ${repoRelative(filePath)}.`);
     }
     ids.set(id, repoRelative(filePath));
+    queueIds.push(Number(id.slice(config.currentTaskPrefix.length)));
     stateCounts[state] += 1;
     maxTaskNumber = Math.max(maxTaskNumber, Number(id.slice(config.currentTaskPrefix.length)));
   }
+  idsByQueue.set(queueName, queueIds);
+}
+
+const nextIds = idsByQueue.get("next") || [];
+const doneIds = idsByQueue.get("done") || [];
+
+const sortedNext = [...nextIds].sort((a, b) => a - b);
+const missingNumbers = [];
+for (let index = 0; index < sortedNext.length; index += 1) {
+  const expected = sortedNext[0] + index;
+  if (sortedNext[index] !== expected) {
+    for (let number = expected; number < sortedNext[index]; number += 1) {
+      missingNumbers.push(number);
+    }
+  }
+}
+if (missingNumbers.length > 0 && process.env.TODO_STRICT_GAPS === "1") {
+  fail(`todo-next.md has missing task numbers: ${missingNumbers.map((number) => `${config.currentTaskPrefix}${number}`).join(", ")}`);
 }
 
 if (!Number.isInteger(config.nextTaskNumber) || config.nextTaskNumber <= maxTaskNumber) {

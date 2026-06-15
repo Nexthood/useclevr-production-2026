@@ -12,7 +12,7 @@ Text rules for this file:
 ## Infrastructure
 
 - Store application data in Neon PostgreSQL.
-- Store Payload Phase 0 content tables in the same PostgreSQL database.
+- Store Payload content and administrator-authentication tables in the same PostgreSQL database.
 - Use ephemeral PostgreSQL containers for local and CI validation.
 - Manage database schema with Drizzle ORM migrations.
 - Manage Payload schema with Payload migrations and generated types.
@@ -26,7 +26,7 @@ Text rules for this file:
 
 ## Upload & Analysis
 
-- Upload CSV and Excel files for AI analysis.
+- Upload CSV files for AI analysis.
 - Show uploaded datasets in structured tables with row counts.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Ask AI questions about uploaded datasets and receive structured answers.
@@ -42,12 +42,30 @@ Text rules for this file:
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
 - Store AI answer feedback on the saved answer history item.
 - Explain efficient AI usage for public users, dashboard users, and operators.
+- Complete the usable-MVP and sales-validation exit gates before activating AI-differentiation or
+  platform-expansion work.
+- Keep Payload MCP limited to approved content tools and locked demo-account dataset summaries.
+- Treat private customer MCP access, broader public APIs, data connectors, market intelligence, and
+  Intelligence Cloud as future work until customer workflows, authorization, operating reliability,
+  retention, and revenue justify expansion.
 - Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
 - Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
 - Explain Hybrid AI plan access in customer-facing plan copy.
+
+## Privacy Shield
+
+- Detect sensitive dataset columns before AI analysis by column name and simple regex patterns.
+- Treat name, email, phone, address, customer_id, iban, tax_id, birthdate, location, salary, and similar identifiers as sensitive fields.
+- Show a small warning before AI analysis when sensitive fields are detected.
+- Offer a checkbox labeled "Anonymize sensitive data before AI analysis".
+- Replace sensitive values with stable placeholders when anonymization is enabled.
+- Use placeholder families such as Customer_001, Email_001, Phone_001, Address_001, IBAN_001, TaxID_001, Birthdate_001, Location_001, and Salary_001.
+- Continue AI analysis only with the anonymized dataset when anonymization is enabled.
+- Save a simple privacy report containing file name, detected sensitive fields, anonymization true or false, and timestamp.
+- Keep the privacy shield lightweight and avoid enterprise DLP, blockchain, or complex permission flows.
 
 ## Downloads & Reports
 
@@ -196,11 +214,27 @@ Text rules for this file:
 - Seed five starter news entries for first-use admin testing.
 - Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.
 - Open Payload admin at `/admin`.
-- Keep Payload admin focused on minimal content editing for CMS users, news, homepage, privacy, and terms.
+- Use Payload admin as the operator workspace for CMS content, dashboard business profiles,
+  support issues, and administrator dataset uploads.
 - Match Payload admin typography, colors, control radius, navigation surfaces, and light/dark
   backgrounds to the dashboard design system.
+- Structure Payload admin with a left main-menu rail, topbar, compact page header, body subheader,
+  focused center workspace, and responsive right information panels.
 - Link Payload admin navigation directly back to the signed-in dashboard.
-- Allow only superadmin CMS users to edit Phase 0 public content.
+- Require a Payload superadmin session for business-profile changes, support-issue updates, and
+  administrator dataset uploads.
+- Hide product-operation navigation and AI actions from non-superadmin CMS users, and show a clear
+  permission message when a non-superadmin opens an operation URL directly.
+- Require the operator to select the owning dashboard user before creating a business profile or
+  uploading a dataset.
+- Keep business and dataset records in their existing owner-scoped Drizzle tables when operators
+  manage them through Payload.
+- Store support issues in the Payload Issues collection and use the same records for dashboard
+  ticket creation, customer status updates, and operator review.
+- Open the dataset-aware AI Assistant from a Payload modal into the dashboard user session so
+  dataset ownership and AI trace attribution remain enforced.
+- Open Hybrid AI controls from the Payload topbar through the shared modal workflow.
+- Allow only Payload superadmins to edit public content.
 
 ## Payment Provider Setup
 
@@ -255,15 +289,11 @@ Text rules for this file:
 - Track sales material accuracy as part of the release process.
 - Manage sales artefacts (one-pager, demo scripts, demo datasets, objection handling) as project products with defined quality criteria and stage gate approvals.
 
-## MCP
+## Payload MCP
 
-- Expose MCP tools only to signed-in users.
-- Scope MCP dataset resources and tool calls to the signed-in user's datasets.
-- Let super-admins access MCP resources and tools across platform datasets.
-- Keep UseClevr MCP limited to product datasets and analysis tools.
-- Expose Payload News and FAQ through Payload-native MCP with per-key tool permissions.
+- Expose MCP tools through Payload MCP with per-key tool permissions.
 - Keep authenticated Payload MCP under `/api/payload/mcp`.
-- Route `mcp-test.useclevr.com/api/mcp` to Payload Streamable HTTP MCP with a server-held API key.
+- Route `mcp-test.useclevr.com/api/payload/mcp` to Payload Streamable HTTP MCP with a server-held API key.
 - Expose only locked demo-account dataset metadata and stored analysis through the public test
   connector; never expose uploaded rows or customer-owned datasets.
 - Require OAuth before the ChatGPT MCP app accesses private customer datasets.
