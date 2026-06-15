@@ -22,6 +22,7 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - Upload.
 - Datasets.
 - AI Assistant.
+- Lightweight privacy shield warnings and anonymization before AI analysis.
 - Reports and downloads.
 - Business workspace.
 - Accountancy workspace.
@@ -63,6 +64,8 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - Pages use clear current-state copy.
 - Tables use shared row patterns with title links and row-end actions.
 - AI answers stay tied to uploaded dataset context.
+- Sensitive dataset columns trigger a lightweight warning before AI analysis.
+- Anonymization replaces sensitive values with stable placeholders when the user enables it.
 - Private reports, datasets, MCP resources, and search results stay scoped to the signed-in user.
 - Super-admin users access operational views without exposing operator-only content to regular users.
 - Help chat uses the correct FAQ scope for public, dashboard, and super-admin users.
@@ -71,7 +74,7 @@ UseClevr provides a usable business intelligence workspace for users who need an
 ## Product Acceptance Criteria
 
 - Public users can understand the product and reach signup, contact, pricing, and FAQ.
-- Signed-in users can upload datasets, ask AI questions, and download reports.
+- Signed-in users can upload datasets, see sensitive-data warnings when needed, anonymize sensitive values before AI analysis, ask AI questions, and download reports.
 - Signed-in users can manage Business Profile and Accountancy readiness.
 - Users can open tickets and receive support guidance.
 - Super-admin users can manage customers, billing settings, discounts, levels, support, and AI traces.
@@ -86,3 +89,4 @@ UseClevr provides a usable business intelligence workspace for users who need an
 - Payload manages public content and supplies selected superadmin operator views without replacing
   application data ownership.
 - PayPal remains deferred until a second payment provider is needed.
+- MCP, public APIs, data connectors, and market intelligence remain future roadmap items until core BI workflows and revenue validation are stable.

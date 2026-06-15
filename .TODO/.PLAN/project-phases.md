@@ -1,236 +1,28 @@
-Yes. Based on your stated priorities for UseClevr (finish MVP fast, get it testable, avoid overengineering, attract investors/customers), I would reorder the roadmap significantly.
+# UseClevr Project Phases
 
-# Phase 1 — Launch-Critical (NOW)
+UseClevr prioritizes launch-critical product value before advanced integrations. The current phase keeps the team focused on upload, analysis, dashboard insights, demo flow, sales readiness, payments, and docs.
 
-Nothing else matters until this works end-to-end.
+## Current Phase Map
 
-### Must work
+| Phase | Current status | Focus | Defer until |
+| ----- | -------------- | ----- | ----------- |
+| Launch-critical MVP | Active | CSV and Excel upload, analysis, KPI extraction, chart generation, AI summary, recommendations, results page, demo flow, login, docs, and lightweight privacy shield | Advanced integrations |
+| Sales and investor readiness | Active support work | Demo account, demo dataset, demo video, pitch materials, pricing, trial flow, sales docs, and repeatable onboarding | Large roadmap expansion |
+| AI differentiation | Planned improvement | Stronger KPI detection, trend detection, anomaly detection, executive summaries, and recommendation quality | Data connectors and public API expansion |
+| Data connectors | Future | Google Sheets and Snowflake first, then other sources | Core product, demo, sales, and payments are stable |
+| UseClevr API | Future | `/api/analyze`, `/api/chat`, `/api/report` for partner and SaaS use | Customer workflows and revenue are validated |
+| MCP | Future | Payload MCP for content and locked demo-account reads | Public APIs and customer workflows are stable |
+| Market intelligence | Future | Competitor analysis, industry trends, company enrichment, startup intelligence | BI workflows and revenue are stable |
+| UseClevr Intelligence Cloud | Long-term | Customer data, financial data, market data, and AI reasoning | Earlier phases are validated |
 
-* CSV upload
-* Excel upload
-* Dataset analysis
-* KPI extraction
-* Chart generation
-* AI summary
-* AI recommendations
-* Results page
-* Demo flow
+## Active Work Boundaries
 
-User journey:
+- Keep launch-critical work in `.TODO/todo-next.md`.
+- Keep deferred roadmap items in `.TODO/todo-future.md`.
+- Keep sales copy aligned with current capability and label future items as roadmap.
+- Keep product docs focused on current behavior, not speculative features.
+- Keep privacy shield lightweight: detect sensitive columns, warn users, anonymize with stable placeholders, continue AI analysis with anonymized data, and save a simple privacy report.
 
-```text
-Upload File
-    ↓
-Analyze
-    ↓
-Dashboard
-    ↓
-Insights
-    ↓
-Ask Questions
-```
+## Success Metric
 
-Success metric:
-
-```text
-A random SME owner uploads a CSV
-and gets useful results in under 60 seconds.
-```
-
----
-
-# Phase 2 — Sales & Investor Readiness
-
-This should come BEFORE MCP.
-
-### Landing Page
-
-* What is UseClevr?
-* Demo video
-* Pricing
-* Waitlist
-* Contact
-
-### Business
-
-* Stripe/Square payments
-* Trial system
-* Subscription plans
-* Usage tracking
-
-### Investor
-
-* Demo account
-* Demo dataset
-* Pitch materials
-
-Success metric:
-
-```text
-Can an investor test UseClevr
-without talking to you?
-```
-
----
-
-# Phase 3 — AI Differentiation
-
-This is where UseClevr becomes special.
-
-### Add
-
-* Auto KPI detection
-* Auto trend detection
-* Auto anomaly detection
-* Auto executive summary
-
-Example:
-
-```text
-Revenue increased 12%.
-
-Customer churn increased 8%.
-
-Sales are concentrated in 2 clients.
-
-Risk level: Medium.
-```
-
-This is much more valuable than integrations.
-
----
-
-# Phase 4 — Data Connectors
-
-Only after people can actually use the product.
-
-### Connectors
-
-* CSV
-* Excel
-* Google Sheets
-* Snowflake
-* PostgreSQL
-* MySQL
-
-Not all at once.
-
-Start:
-
-```text
-Google Sheets
-Snowflake
-```
-
-Those give the biggest ROI.
-
----
-
-# Phase 5 — UseClevr API
-
-Move this much earlier than CB Insights style APIs, but after customers.
-
-### Endpoint
-
-```text
-/api/analyze
-/api/chat
-/api/report
-```
-
-Purpose:
-
-```text
-Other apps can use UseClevr analysis.
-```
-
-This creates future SaaS and partner opportunities.
-
----
-
-# Phase 6 — MCP
-
-After API.
-
-### Why?
-
-MCP users are still a small market.
-
-Customers need BI first.
-
-Investors want revenue first.
-
-MCP becomes:
-
-```text
-UseClevr for Claude
-UseClevr for Cursor
-UseClevr for ChatGPT
-UseClevr for AI Agents
-```
-
-Great feature.
-
-Not MVP.
-
----
-
-# Phase 7 — Market Intelligence
-
-This was too early in the original roadmap.
-
-### Add later
-
-* competitor analysis
-* industry trends
-* company enrichment
-* startup intelligence
-
-Think:
-
-```text
-Upload company data
-+
-Market context
-=
-Better decisions
-```
-
-This is where you start approaching CB Insights territory.
-
----
-
-# Phase 8 — UseClevr Intelligence Cloud
-
-Long-term vision.
-
-Combine:
-
-```text
-Customer Data
-+
-Financial Data
-+
-Market Data
-+
-AI Reasoning
-```
-
-Then UseClevr becomes:
-
-> "The affordable CB Insights + Tableau + ChatGPT for SMEs."
-
-# Next 10 Tasks
-
-1. Fix login/demo access.
-2. Stabilize upload flow.
-3. Stabilize analysis pipeline.
-4. Improve KPI extraction.
-5. Improve dashboard visuals.
-6. Improve AI recommendations.
-7. Create demo dataset.
-8. Record demo video.
-9. Add payments.
-10. Launch publicly and start getting users.
-
-For your current stage, I would put **MCP, APIs, and market intelligence behind customer acquisition**. The biggest risk for UseClevr right now is not missing features—it's spending months building advanced capabilities before getting real users and investor validation.
+A random SME owner uploads a CSV or Excel file, sees a clear sensitive-data warning when needed, gets useful analysis and AI answers in under 60 seconds, and can follow a demo or sales path without a live walkthrough.

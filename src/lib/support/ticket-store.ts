@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto"
-
 import { getPayloadClient } from "@/lib/payload/get-payload"
 
 export type TicketStatus = "open" | "in_progress" | "resolved"
@@ -112,7 +110,7 @@ export async function createTicket(input: {
     collection: "support-issues",
     overrideAccess: true,
     data: {
-      id: `ticket-${randomUUID().replaceAll("-", "").slice(0, 12)}`,
+      id: `ticket-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
       userId: input.userId,
       userEmail: input.userEmail,
       subject,

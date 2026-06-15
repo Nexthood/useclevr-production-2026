@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto"
-
 import { parseCSVString } from "@/lib/data/csvLoader"
 import { getDb } from "@/lib/db"
 import { businesses, datasetRows, datasets, users } from "@/lib/db/schema"
@@ -108,7 +106,7 @@ async function saveBusiness(req: PayloadRequest) {
     return Response.json({ success: true, id: updated.id })
   }
 
-  const newId = `business_${randomUUID().replaceAll("-", "").slice(0, 16)}`
+  const newId = `business_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`
   await db.insert(businesses).values({
     id: newId,
     ...values,
@@ -149,7 +147,7 @@ async function uploadDataset(req: PayloadRequest) {
     return Response.json({ error: "CSV file is empty." }, { status: 400 })
   }
 
-  const id = `ds_${Date.now()}_${randomUUID().slice(0, 8)}`
+  const id = `ds_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`
   const rows = parsed.rows as Record<string, string | number | boolean | null>[]
   const now = new Date()
 
