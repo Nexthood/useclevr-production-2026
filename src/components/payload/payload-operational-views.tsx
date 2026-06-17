@@ -56,8 +56,33 @@ type BusinessRow = {
   taxRegistered: string
   taxType: string
   standardTaxRate: string
+  revenueAmountType: string
+  expenseAmountType: string
+  estimateTaxes: string
   primaryCurrency: string
   reportingCurrency: string
+  otherCurrenciesUsed: string[]
+  revenueSources: string[]
+  customerType: string
+  invoiceOrPaymentBased: string
+  paymentProviders: string[]
+  hasRefundsOrChargebacks: string
+  expenseCategories: string[]
+  hasMixedBusinessPrivateExpenses: string
+  receiptsAvailable: string
+  hasRecurringExpenses: string
+  hasBusinessInsurance: string
+  insuranceTypes: string[]
+  insurancePremiumAmount: string
+  insurancePaymentFrequency: string
+  insuranceBusinessUsePercentage: string
+  hasBusinessLoans: string
+  hasLeasing: string
+  hasCreditCards: string
+  hasOverdraft: string
+  monthlyDebtPayment: string
+  loanInterestKnown: string
+  principalInterestSplitKnown: string
 }
 
 type DatasetRow = {
@@ -161,6 +186,10 @@ function StatusMessage({ error, message }: { error: string; message: string }) {
 
 function Spinner() {
   return <span className="payload-spinner" aria-label="Loading..." />
+}
+
+function listValue(value?: string[]) {
+  return value?.length ? value.join(", ") : ""
 }
 
 export function PayloadOperationsNav() {
@@ -619,13 +648,33 @@ function PayloadBusinessProfilesWorkspace() {
                       <dt>Primary currency</dt>
                       <dd>{focusBusiness.primaryCurrency || <span className="payload-empty">Not set</span>}</dd>
                     </div>
-                    <div>
-                      <dt>Reporting currency</dt>
-                      <dd>{focusBusiness.reportingCurrency || <span className="payload-empty">Not set</span>}</dd>
-                    </div>
-                  </div>
-                )}
-              </div>
+	                    <div>
+	                      <dt>Reporting currency</dt>
+	                      <dd>{focusBusiness.reportingCurrency || <span className="payload-empty">Not set</span>}</dd>
+	                    </div>
+	                    <div>
+	                      <dt>Revenue sources</dt>
+	                      <dd>{listValue(focusBusiness.revenueSources) || <span className="payload-empty">Not set</span>}</dd>
+	                    </div>
+	                    <div>
+	                      <dt>Expense categories</dt>
+	                      <dd>{listValue(focusBusiness.expenseCategories) || <span className="payload-empty">Not set</span>}</dd>
+	                    </div>
+	                    <div>
+	                      <dt>Payment providers</dt>
+	                      <dd>{listValue(focusBusiness.paymentProviders) || <span className="payload-empty">Not set</span>}</dd>
+	                    </div>
+	                    <div>
+	                      <dt>Insurance</dt>
+	                      <dd>{focusBusiness.hasBusinessInsurance || <span className="payload-empty">Not set</span>}</dd>
+	                    </div>
+	                    <div>
+	                      <dt>Loans</dt>
+	                      <dd>{focusBusiness.hasBusinessLoans || <span className="payload-empty">Not set</span>}</dd>
+	                    </div>
+	                  </div>
+	                )}
+	              </div>
             )}
           </div>
 
@@ -818,6 +867,211 @@ function PayloadBusinessProfilesWorkspace() {
           <label>
             Reporting currency
             <input name="reportingCurrency" defaultValue={selected?.reportingCurrency || ""} />
+          </label>
+          <label>
+            Revenue amounts are
+            <select name="revenueAmountType" defaultValue={selected?.revenueAmountType || ""}>
+              <option value="">Not set</option>
+              <option value="gross">Gross, tax included</option>
+              <option value="net">Net, tax excluded</option>
+              <option value="mixed">Mixed</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Expense amounts are
+            <select name="expenseAmountType" defaultValue={selected?.expenseAmountType || ""}>
+              <option value="">Not set</option>
+              <option value="gross">Gross, tax included</option>
+              <option value="net">Net, tax excluded</option>
+              <option value="mixed">Mixed</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Estimate taxes automatically
+            <select name="estimateTaxes" defaultValue={selected?.estimateTaxes || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Customer type
+            <select name="customerType" defaultValue={selected?.customerType || ""}>
+              <option value="">Not set</option>
+              <option value="b2b">B2B</option>
+              <option value="b2c">B2C</option>
+              <option value="marketplace">Marketplace</option>
+              <option value="government">Government</option>
+              <option value="mixed">Mixed</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Revenue recognition
+            <select name="invoiceOrPaymentBased" defaultValue={selected?.invoiceOrPaymentBased || ""}>
+              <option value="">Not set</option>
+              <option value="invoice">Count revenue when invoice is created</option>
+              <option value="payment">Count revenue when payment arrives</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Refunds or chargebacks
+            <select name="hasRefundsOrChargebacks" defaultValue={selected?.hasRefundsOrChargebacks || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Mixed business/private expenses
+            <select name="hasMixedBusinessPrivateExpenses" defaultValue={selected?.hasMixedBusinessPrivateExpenses || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Receipts available
+            <select name="receiptsAvailable" defaultValue={selected?.receiptsAvailable || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="partly">Partly</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Recurring expenses
+            <select name="hasRecurringExpenses" defaultValue={selected?.hasRecurringExpenses || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Business insurance
+            <select name="hasBusinessInsurance" defaultValue={selected?.hasBusinessInsurance || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Insurance payment frequency
+            <select name="insurancePaymentFrequency" defaultValue={selected?.insurancePaymentFrequency || ""}>
+              <option value="">Not set</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+              <option value="one_time">One time</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Insurance business-use percentage
+            <select name="insuranceBusinessUsePercentage" defaultValue={selected?.insuranceBusinessUsePercentage || ""}>
+              <option value="">Not set</option>
+              <option value="100">100%</option>
+              <option value="75">75%</option>
+              <option value="50">50%</option>
+              <option value="25">25%</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Business loans
+            <select name="hasBusinessLoans" defaultValue={selected?.hasBusinessLoans || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Leasing
+            <select name="hasLeasing" defaultValue={selected?.hasLeasing || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Credit cards
+            <select name="hasCreditCards" defaultValue={selected?.hasCreditCards || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Overdraft
+            <select name="hasOverdraft" defaultValue={selected?.hasOverdraft || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Loan interest known
+            <select name="loanInterestKnown" defaultValue={selected?.loanInterestKnown || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Principal/interest split known
+            <select name="principalInterestSplitKnown" defaultValue={selected?.principalInterestSplitKnown || ""}>
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="not_sure">Not sure</option>
+            </select>
+          </label>
+          <label>
+            Insurance premium amount
+            <input name="insurancePremiumAmount" inputMode="decimal" defaultValue={selected?.insurancePremiumAmount || ""} />
+          </label>
+          <label>
+            Monthly debt payment
+            <input name="monthlyDebtPayment" inputMode="decimal" defaultValue={selected?.monthlyDebtPayment || ""} />
+          </label>
+          <label className="is-wide">
+            Other currencies used
+            <textarea name="otherCurrenciesUsed" rows={2} defaultValue={listValue(selected?.otherCurrenciesUsed)} />
+            <small>Use commas or one item per line.</small>
+          </label>
+          <label className="is-wide">
+            Revenue sources
+            <textarea name="revenueSources" rows={2} defaultValue={listValue(selected?.revenueSources)} />
+            <small>Use commas or one item per line.</small>
+          </label>
+          <label className="is-wide">
+            Payment providers
+            <textarea name="paymentProviders" rows={2} defaultValue={listValue(selected?.paymentProviders)} />
+            <small>Use commas or one item per line.</small>
+          </label>
+          <label className="is-wide">
+            Expense categories
+            <textarea name="expenseCategories" rows={2} defaultValue={listValue(selected?.expenseCategories)} />
+            <small>Use commas or one item per line.</small>
+          </label>
+          <label className="is-wide">
+            Insurance types
+            <textarea name="insuranceTypes" rows={2} defaultValue={listValue(selected?.insuranceTypes)} />
+            <small>Use commas or one item per line.</small>
           </label>
           <label className="is-wide">
             Description

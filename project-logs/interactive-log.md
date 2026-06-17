@@ -1291,8 +1291,10 @@ This log documents all major AI agent interactions, user goals, decisions, imple
   authorize Payload requests; a redirect alone does not create a Payload-authenticated request.
 - **Follow-up Tasks**: T-861 verifies the final Payload login and operator UI in the release
   candidate.
-- **Verification**: TypeScript, TODO validation, focused lint, docs, secrets, and build validation
-  run after implementation.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, focused ESLint, `pnpm lint:todos`,
+  `pnpm lint:changelog`, `pnpm lint:secrets`, `pnpm lint:docs`, `pnpm link:docs`, `git diff
+  --check`, and `pnpm build` pass. The production build reports the existing generic compiled
+  warning banner without warning details.
 - **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
   `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
 - **Minimal Destination**: Product behavior lives in `requirements.md`; operator implementation

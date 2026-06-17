@@ -19,8 +19,13 @@ export const dashboardSessionStrategy: AuthStrategy = {
     })
 
     const role = isSuperAdminUserId(dashboardUser.id) ? "superadmin" : "base"
+    const existingDoc = existing.docs[0]
+    if (existingDoc?.role === "superadmin" && role !== "superadmin") {
+      return { user: null }
+    }
+
     const document =
-      existing.docs[0] ||
+      existingDoc ||
       (await payload.create({
         collection: "cms-users",
         data: {

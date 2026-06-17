@@ -27,8 +27,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add drag-and-drop CSV upload zone with improved Payload admin styling
 - Add dataset admin store with preview, pagination, and entity relationship counts
 
+### Added
+
+- Restructure Payload business profiles view with dashboard-style layout: page header, subpage tabs (Business/Setup), progress bars, and right info rail with overview, profile summary, and review flags
+- Add topbar navigation dropdown with page search for quick admin page access
+- Add profile completion percent and progress bars to Payload business profiles table and detail views
+
 ### Fixed
 
+- Replace Railway start command from removed `.next/standalone/server.js` to the active dist entrypoint (`scripts/runtime/start-dist.cjs`) so containers start correctly
 - Hide Payload product operations and AI operator actions from base CMS accounts while keeping
   direct operation URLs protected by a clear permission state.
 - Scope dist-root gitignore patterns with `/` prefix so `build/` and `out/` only match root level, preventing git from stripping compiled JS from pnpm store entries (e.g., `@aws-crypto/crc32c`) in the dist-test branch

@@ -39,6 +39,63 @@ function cleanText(value: unknown, maxLength = 1000) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : ""
 }
 
+function cleanList(value: unknown, maxItems = 40) {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, maxItems)
+  }
+
+  if (typeof value !== "string") return []
+
+  return value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, maxItems)
+}
+
+function setupInput(body: Record<string, unknown>) {
+  return {
+    countryOfRegistration: cleanText(body.countryOfRegistration, 100),
+    taxResidenceCountry: cleanText(body.taxResidenceCountry, 100),
+    legalStructure: cleanText(body.legalStructure, 80),
+    accountingMethod: cleanText(body.accountingMethod, 40),
+    taxRegistered: cleanText(body.taxRegistered, 40),
+    taxType: cleanText(body.taxType, 40),
+    standardTaxRate: cleanText(body.standardTaxRate, 20),
+    revenueAmountType: cleanText(body.revenueAmountType, 40),
+    expenseAmountType: cleanText(body.expenseAmountType, 40),
+    estimateTaxes: cleanText(body.estimateTaxes, 40),
+    primaryCurrency: cleanText(body.primaryCurrency, 10),
+    reportingCurrency: cleanText(body.reportingCurrency, 10),
+    otherCurrenciesUsed: cleanList(body.otherCurrenciesUsed),
+    revenueSources: cleanList(body.revenueSources),
+    customerType: cleanText(body.customerType, 40),
+    invoiceOrPaymentBased: cleanText(body.invoiceOrPaymentBased, 40),
+    paymentProviders: cleanList(body.paymentProviders),
+    hasRefundsOrChargebacks: cleanText(body.hasRefundsOrChargebacks, 40),
+    expenseCategories: cleanList(body.expenseCategories),
+    hasMixedBusinessPrivateExpenses: cleanText(body.hasMixedBusinessPrivateExpenses, 40),
+    receiptsAvailable: cleanText(body.receiptsAvailable, 40),
+    hasRecurringExpenses: cleanText(body.hasRecurringExpenses, 40),
+    hasBusinessInsurance: cleanText(body.hasBusinessInsurance, 40),
+    insuranceTypes: cleanList(body.insuranceTypes),
+    insurancePremiumAmount: cleanText(body.insurancePremiumAmount, 40),
+    insurancePaymentFrequency: cleanText(body.insurancePaymentFrequency, 40),
+    insuranceBusinessUsePercentage: cleanText(body.insuranceBusinessUsePercentage, 40),
+    hasBusinessLoans: cleanText(body.hasBusinessLoans, 40),
+    hasLeasing: cleanText(body.hasLeasing, 40),
+    hasCreditCards: cleanText(body.hasCreditCards, 40),
+    hasOverdraft: cleanText(body.hasOverdraft, 40),
+    monthlyDebtPayment: cleanText(body.monthlyDebtPayment, 40),
+    loanInterestKnown: cleanText(body.loanInterestKnown, 40),
+    principalInterestSplitKnown: cleanText(body.principalInterestSplitKnown, 40),
+  }
+}
+
 export const payloadAdminOperationEndpoints: Endpoint[] = [
   {
     path: "/admin-auth/signup",
@@ -134,17 +191,7 @@ export const payloadAdminOperationEndpoints: Endpoint[] = [
             status: typeof body.status === "string" ? body.status : undefined,
             userId: cleanText(body.userId, 160) || undefined,
           })
-          await updateAdminBusinessSetup(id, {
-            countryOfRegistration: cleanText(body.countryOfRegistration, 100),
-            taxResidenceCountry: cleanText(body.taxResidenceCountry, 100),
-            legalStructure: cleanText(body.legalStructure, 80),
-            accountingMethod: cleanText(body.accountingMethod, 40),
-            taxRegistered: cleanText(body.taxRegistered, 40),
-            taxType: cleanText(body.taxType, 40),
-            standardTaxRate: cleanText(body.standardTaxRate, 20),
-            primaryCurrency: cleanText(body.primaryCurrency, 10),
-            reportingCurrency: cleanText(body.reportingCurrency, 10),
-          })
+          await updateAdminBusinessSetup(id, setupInput(body))
           return Response.json({ success: true, id })
         }
 
@@ -158,17 +205,7 @@ export const payloadAdminOperationEndpoints: Endpoint[] = [
           description: cleanText(body.description, 4000) || undefined,
           companyNumber: cleanText(body.companyNumber, 100) || undefined,
         })
-        await updateAdminBusinessSetup(newId, {
-          countryOfRegistration: cleanText(body.countryOfRegistration, 100),
-          taxResidenceCountry: cleanText(body.taxResidenceCountry, 100),
-          legalStructure: cleanText(body.legalStructure, 80),
-          accountingMethod: cleanText(body.accountingMethod, 40),
-          taxRegistered: cleanText(body.taxRegistered, 40),
-          taxType: cleanText(body.taxType, 40),
-          standardTaxRate: cleanText(body.standardTaxRate, 20),
-          primaryCurrency: cleanText(body.primaryCurrency, 10),
-          reportingCurrency: cleanText(body.reportingCurrency, 10),
-        })
+        await updateAdminBusinessSetup(newId, setupInput(body))
         return Response.json({ success: true, id: newId })
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not save the business profile."

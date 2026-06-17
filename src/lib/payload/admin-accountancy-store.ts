@@ -132,8 +132,33 @@ export async function updateAdminBusinessSetup(
     taxRegistered?: string
     taxType?: string
     standardTaxRate?: string
+    revenueAmountType?: string
+    expenseAmountType?: string
+    estimateTaxes?: string
     primaryCurrency?: string
     reportingCurrency?: string
+    otherCurrenciesUsed?: string[]
+    revenueSources?: string[]
+    customerType?: string
+    invoiceOrPaymentBased?: string
+    paymentProviders?: string[]
+    hasRefundsOrChargebacks?: string
+    expenseCategories?: string[]
+    hasMixedBusinessPrivateExpenses?: string
+    receiptsAvailable?: string
+    hasRecurringExpenses?: string
+    hasBusinessInsurance?: string
+    insuranceTypes?: string[]
+    insurancePremiumAmount?: string
+    insurancePaymentFrequency?: string
+    insuranceBusinessUsePercentage?: string
+    hasBusinessLoans?: string
+    hasLeasing?: string
+    hasCreditCards?: string
+    hasOverdraft?: string
+    monthlyDebtPayment?: string
+    loanInterestKnown?: string
+    principalInterestSplitKnown?: string
   },
 ) {
   const db = getDb()
@@ -160,11 +185,48 @@ export async function updateAdminBusinessSetup(
     taxRegistered: (input.taxRegistered ?? setup.taxSettings.taxRegistered) as CompanySetupPayload["taxSettings"]["taxRegistered"],
     taxType: (input.taxType ?? setup.taxSettings.taxType) as CompanySetupPayload["taxSettings"]["taxType"],
     standardTaxRate: input.standardTaxRate ?? setup.taxSettings.standardTaxRate,
+    revenueAmountType: (input.revenueAmountType ?? setup.taxSettings.revenueAmountType) as CompanySetupPayload["taxSettings"]["revenueAmountType"],
+    expenseAmountType: (input.expenseAmountType ?? setup.taxSettings.expenseAmountType) as CompanySetupPayload["taxSettings"]["expenseAmountType"],
+    estimateTaxes: (input.estimateTaxes ?? setup.taxSettings.estimateTaxes) as CompanySetupPayload["taxSettings"]["estimateTaxes"],
   }
   setup.currencySettings = {
     ...setup.currencySettings,
     primaryCurrency: input.primaryCurrency ?? setup.currencySettings.primaryCurrency,
     reportingCurrency: input.reportingCurrency ?? setup.currencySettings.reportingCurrency,
+    otherCurrenciesUsed: input.otherCurrenciesUsed ?? setup.currencySettings.otherCurrenciesUsed,
+  }
+  setup.revenueRules = {
+    ...setup.revenueRules,
+    revenueSources: input.revenueSources ?? setup.revenueRules.revenueSources,
+    customerType: (input.customerType ?? setup.revenueRules.customerType) as CompanySetupPayload["revenueRules"]["customerType"],
+    invoiceOrPaymentBased: (input.invoiceOrPaymentBased ?? setup.revenueRules.invoiceOrPaymentBased) as CompanySetupPayload["revenueRules"]["invoiceOrPaymentBased"],
+    paymentProviders: input.paymentProviders ?? setup.revenueRules.paymentProviders,
+    hasRefundsOrChargebacks: (input.hasRefundsOrChargebacks ?? setup.revenueRules.hasRefundsOrChargebacks) as CompanySetupPayload["revenueRules"]["hasRefundsOrChargebacks"],
+  }
+  setup.expenseRules = {
+    ...setup.expenseRules,
+    expenseCategories: input.expenseCategories ?? setup.expenseRules.expenseCategories,
+    hasMixedBusinessPrivateExpenses: (input.hasMixedBusinessPrivateExpenses ?? setup.expenseRules.hasMixedBusinessPrivateExpenses) as CompanySetupPayload["expenseRules"]["hasMixedBusinessPrivateExpenses"],
+    receiptsAvailable: (input.receiptsAvailable ?? setup.expenseRules.receiptsAvailable) as CompanySetupPayload["expenseRules"]["receiptsAvailable"],
+    hasRecurringExpenses: (input.hasRecurringExpenses ?? setup.expenseRules.hasRecurringExpenses) as CompanySetupPayload["expenseRules"]["hasRecurringExpenses"],
+  }
+  setup.insuranceSettings = {
+    ...setup.insuranceSettings,
+    hasBusinessInsurance: (input.hasBusinessInsurance ?? setup.insuranceSettings.hasBusinessInsurance) as CompanySetupPayload["insuranceSettings"]["hasBusinessInsurance"],
+    insuranceTypes: input.insuranceTypes ?? setup.insuranceSettings.insuranceTypes,
+    insurancePremiumAmount: input.insurancePremiumAmount ?? setup.insuranceSettings.insurancePremiumAmount,
+    insurancePaymentFrequency: (input.insurancePaymentFrequency ?? setup.insuranceSettings.insurancePaymentFrequency) as CompanySetupPayload["insuranceSettings"]["insurancePaymentFrequency"],
+    insuranceBusinessUsePercentage: (input.insuranceBusinessUsePercentage ?? setup.insuranceSettings.insuranceBusinessUsePercentage) as CompanySetupPayload["insuranceSettings"]["insuranceBusinessUsePercentage"],
+  }
+  setup.loanLeasingSettings = {
+    ...setup.loanLeasingSettings,
+    hasBusinessLoans: (input.hasBusinessLoans ?? setup.loanLeasingSettings.hasBusinessLoans) as CompanySetupPayload["loanLeasingSettings"]["hasBusinessLoans"],
+    hasLeasing: (input.hasLeasing ?? setup.loanLeasingSettings.hasLeasing) as CompanySetupPayload["loanLeasingSettings"]["hasLeasing"],
+    hasCreditCards: (input.hasCreditCards ?? setup.loanLeasingSettings.hasCreditCards) as CompanySetupPayload["loanLeasingSettings"]["hasCreditCards"],
+    hasOverdraft: (input.hasOverdraft ?? setup.loanLeasingSettings.hasOverdraft) as CompanySetupPayload["loanLeasingSettings"]["hasOverdraft"],
+    monthlyDebtPayment: input.monthlyDebtPayment ?? setup.loanLeasingSettings.monthlyDebtPayment,
+    loanInterestKnown: (input.loanInterestKnown ?? setup.loanLeasingSettings.loanInterestKnown) as CompanySetupPayload["loanLeasingSettings"]["loanInterestKnown"],
+    principalInterestSplitKnown: (input.principalInterestSplitKnown ?? setup.loanLeasingSettings.principalInterestSplitKnown) as CompanySetupPayload["loanLeasingSettings"]["principalInterestSplitKnown"],
   }
   setup.setupStatus = buildSetupStatus(setup)
 

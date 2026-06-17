@@ -6,12 +6,22 @@ type CompanySetupRecord = {
   companyInfo?: Record<string, unknown>
   taxSettings?: Record<string, unknown>
   currencySettings?: Record<string, unknown>
+  revenueRules?: Record<string, unknown>
+  expenseRules?: Record<string, unknown>
+  insuranceSettings?: Record<string, unknown>
+  loanLeasingSettings?: Record<string, unknown>
 }
 
 function setupText(setup: unknown, section: keyof CompanySetupRecord, field: string) {
   if (!setup || typeof setup !== "object") return ""
   const value = (setup as CompanySetupRecord)[section]?.[field]
   return typeof value === "string" ? value : ""
+}
+
+function setupList(setup: unknown, section: keyof CompanySetupRecord, field: string) {
+  if (!setup || typeof setup !== "object") return []
+  const value = (setup as CompanySetupRecord)[section]?.[field]
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
 }
 
 export type AdminBusinessView = {
@@ -40,8 +50,33 @@ export type AdminBusinessView = {
   taxRegistered: string
   taxType: string
   standardTaxRate: string
+  revenueAmountType: string
+  expenseAmountType: string
+  estimateTaxes: string
   primaryCurrency: string
   reportingCurrency: string
+  otherCurrenciesUsed: string[]
+  revenueSources: string[]
+  customerType: string
+  invoiceOrPaymentBased: string
+  paymentProviders: string[]
+  hasRefundsOrChargebacks: string
+  expenseCategories: string[]
+  hasMixedBusinessPrivateExpenses: string
+  receiptsAvailable: string
+  hasRecurringExpenses: string
+  hasBusinessInsurance: string
+  insuranceTypes: string[]
+  insurancePremiumAmount: string
+  insurancePaymentFrequency: string
+  insuranceBusinessUsePercentage: string
+  hasBusinessLoans: string
+  hasLeasing: string
+  hasCreditCards: string
+  hasOverdraft: string
+  monthlyDebtPayment: string
+  loanInterestKnown: string
+  principalInterestSplitKnown: string
 }
 
 const BUSINESS_COMPLETION_FIELDS: { field: "name" | "email" | "industry" | "address" | "website" | "description"; section: string }[] = [
@@ -141,8 +176,33 @@ export async function listBusinesses(): Promise<{
       taxRegistered: setupText(b.companySetup, "taxSettings", "taxRegistered"),
       taxType: setupText(b.companySetup, "taxSettings", "taxType"),
       standardTaxRate: setupText(b.companySetup, "taxSettings", "standardTaxRate"),
+      revenueAmountType: setupText(b.companySetup, "taxSettings", "revenueAmountType"),
+      expenseAmountType: setupText(b.companySetup, "taxSettings", "expenseAmountType"),
+      estimateTaxes: setupText(b.companySetup, "taxSettings", "estimateTaxes"),
       primaryCurrency: setupText(b.companySetup, "currencySettings", "primaryCurrency"),
       reportingCurrency: setupText(b.companySetup, "currencySettings", "reportingCurrency"),
+      otherCurrenciesUsed: setupList(b.companySetup, "currencySettings", "otherCurrenciesUsed"),
+      revenueSources: setupList(b.companySetup, "revenueRules", "revenueSources"),
+      customerType: setupText(b.companySetup, "revenueRules", "customerType"),
+      invoiceOrPaymentBased: setupText(b.companySetup, "revenueRules", "invoiceOrPaymentBased"),
+      paymentProviders: setupList(b.companySetup, "revenueRules", "paymentProviders"),
+      hasRefundsOrChargebacks: setupText(b.companySetup, "revenueRules", "hasRefundsOrChargebacks"),
+      expenseCategories: setupList(b.companySetup, "expenseRules", "expenseCategories"),
+      hasMixedBusinessPrivateExpenses: setupText(b.companySetup, "expenseRules", "hasMixedBusinessPrivateExpenses"),
+      receiptsAvailable: setupText(b.companySetup, "expenseRules", "receiptsAvailable"),
+      hasRecurringExpenses: setupText(b.companySetup, "expenseRules", "hasRecurringExpenses"),
+      hasBusinessInsurance: setupText(b.companySetup, "insuranceSettings", "hasBusinessInsurance"),
+      insuranceTypes: setupList(b.companySetup, "insuranceSettings", "insuranceTypes"),
+      insurancePremiumAmount: setupText(b.companySetup, "insuranceSettings", "insurancePremiumAmount"),
+      insurancePaymentFrequency: setupText(b.companySetup, "insuranceSettings", "insurancePaymentFrequency"),
+      insuranceBusinessUsePercentage: setupText(b.companySetup, "insuranceSettings", "insuranceBusinessUsePercentage"),
+      hasBusinessLoans: setupText(b.companySetup, "loanLeasingSettings", "hasBusinessLoans"),
+      hasLeasing: setupText(b.companySetup, "loanLeasingSettings", "hasLeasing"),
+      hasCreditCards: setupText(b.companySetup, "loanLeasingSettings", "hasCreditCards"),
+      hasOverdraft: setupText(b.companySetup, "loanLeasingSettings", "hasOverdraft"),
+      monthlyDebtPayment: setupText(b.companySetup, "loanLeasingSettings", "monthlyDebtPayment"),
+      loanInterestKnown: setupText(b.companySetup, "loanLeasingSettings", "loanInterestKnown"),
+      principalInterestSplitKnown: setupText(b.companySetup, "loanLeasingSettings", "principalInterestSplitKnown"),
     })),
     users: userRows
       .filter((u) => Boolean(u.email))

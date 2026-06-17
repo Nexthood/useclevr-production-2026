@@ -142,3 +142,6 @@ This file summarizes current project activity. Detailed session records live in
 - Move owner-selected business setup and accountancy review into Payload custom views while keeping
   Drizzle product records authoritative, and align Payload credentials and social authentication
   with the dashboard tabbed login flow.
+- Restructure Payload business profiles view with dashboard layout, progress bars, and right info rail
+- Add topbar navigation dropdown and profile completion tracking
+- Fix Railway start command to use dist entrypoint instead of removed .next/standalone/server.js
