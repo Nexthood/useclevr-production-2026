@@ -4,6 +4,38 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
+## Interaction 48: App Action Button Layout Hardening
+
+- **Date**: 2026-06-20
+- **User Goal**: Fix hidden or overlapped action buttons across the app, especially Datasets and
+  Reports/Downloads, using only layout and CSS changes.
+- **Changes**:
+  1. Add `min-w-0`, `overflow-hidden`, and wrapping boundaries to shared dashboard page bodies,
+     page headers, action rows, and table headers.
+  2. Keep Datasets, dataset detail, dataset analysis, Upload, Downloads, and Profitability actions
+     visible with shrink-safe links, wrapping action groups, and no-wrap button labels.
+  3. Keep Payload operation search, upload, and row action controls visible with responsive toolbar
+     wrapping and fixed icon-button sizing.
+- **Problems Marked**:
+  - `observation`: Fixed right sidebars require the center work area to own `min-w-0`; otherwise
+    long action rows can visually slide under the sidebar.
+  - `risk`: Existing analysis files still contain lint warnings for explicit `any`; this layout fix
+    does not change those types.
+- **User Learning**: The visible-button issue is a flex/grid containment bug, not an upload,
+  analysis, API, auth, or database bug.
+- **AI-Agent Learning**: Apply the layout boundary at shared shells first, then add targeted
+  no-wrap classes only to the named action controls.
+- **Follow-up Tasks**: None.
+- **Verification**: `git diff --check` and `pnpm exec tsc --noEmit --pretty false` pass. Focused
+  ESLint reports 12 existing explicit-`any` warnings and no errors.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Layout changes live in shared dashboard UI components, Datasets,
+  Downloads, Upload, analysis, profitability, and Payload operation styling. Interaction records
+  live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
 ## Interaction 1: Codebase Restructuring, Refactoring, and Security Hardening
 
 - **Date**: June 2026

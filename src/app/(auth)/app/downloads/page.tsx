@@ -274,7 +274,7 @@ export default function DownloadsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="border-border"
+            className="shrink-0 whitespace-nowrap border-border"
             disabled={item.status !== "ready" || isDownloading}
             onClick={() => handleDownload(item)}
           >
@@ -290,7 +290,7 @@ export default function DownloadsPage() {
         <Button
           variant="outline"
           size="sm"
-          className="border-red-900/40 text-red-400 hover:bg-red-900/10"
+          className="shrink-0 whitespace-nowrap border-red-900/40 text-red-400 hover:bg-red-900/10"
           onClick={() => handleDelete(row as unknown as DownloadItem)}
         >
           Delete
@@ -300,7 +300,7 @@ export default function DownloadsPage() {
   ]
 
   const rightSidebar = (
-    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+    <aside className="hidden w-80 shrink-0 border-l border-border bg-card lg:block">
       <div className="flex h-full flex-col overflow-y-auto p-4">
         <div className="space-y-4">
           <Card className="p-4 bg-card border-border">
@@ -380,6 +380,7 @@ export default function DownloadsPage() {
           <Button
             variant="outline"
             size="sm"
+            className="shrink-0 whitespace-nowrap"
             onClick={fetchData}
             disabled={isLoading}
           >
@@ -388,8 +389,8 @@ export default function DownloadsPage() {
           </Button>
       )}
     >
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="max-w-6xl mx-auto space-y-6 pt-6">
+      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6 pt-6">
           {/* Error display */}
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -399,7 +400,7 @@ export default function DownloadsPage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setError(null)}
-                className="ml-auto"
+                className="ml-auto shrink-0 whitespace-nowrap"
               >
                 Dismiss
               </Button>
@@ -407,13 +408,13 @@ export default function DownloadsPage() {
           )}
 
           <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-foreground">Your Downloads</h2>
                 <p className="text-sm text-muted-foreground">Generated reports and export files.</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="relative w-full sm:w-auto">
+              <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                <div className="relative min-w-0 w-full sm:w-auto">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Search"
@@ -446,7 +447,7 @@ export default function DownloadsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-red-900/40 text-red-400 hover:bg-red-900/10"
+                      className="shrink-0 whitespace-nowrap border-red-900/40 text-red-400 hover:bg-red-900/10"
                       onClick={() => {
                         const confirmed = window.confirm(`Remove ${selectedIds.size} downloads?`)
                         if (!confirmed) return

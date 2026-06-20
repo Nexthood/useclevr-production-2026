@@ -28,7 +28,7 @@ export function DashboardSubpageLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-1 flex-col min-h-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <AppPageHeader
         title={title}
         description={description}
@@ -57,7 +57,7 @@ export function DashboardPageBody({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
       {leftSidebar}
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</main>
       {rightSidebar}
@@ -73,8 +73,8 @@ export function DashboardContent({
   className?: string
 }) {
   return (
-    <div className={`flex-1 overflow-y-auto p-5 ${className}`.trim()}>
-      <div className="mx-auto max-w-6xl">{children}</div>
+    <div className={`min-w-0 flex-1 overflow-y-auto p-5 ${className}`.trim()}>
+      <div className="mx-auto w-full max-w-6xl min-w-0">{children}</div>
     </div>
   )
 }
