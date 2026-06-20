@@ -67,15 +67,15 @@ export function DataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
       {(title || description || actions || bulkActions) && (
         <div className="border-b border-border/50 bg-muted/30 px-5 py-3.5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
               {description && <p className="mt-1.5 text-xs text-muted-foreground/90 leading-relaxed">{description}</p>}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
               {selectable && activeSelectedRows.size > 0 && (
                 <div className="flex items-center gap-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
                   <span>{activeSelectedRows.size} selected</span>

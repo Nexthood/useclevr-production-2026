@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Add a Payload accountancy workspace for owner-selected reporting, tax, compliance, and close
+  readiness review.
+- Add tabbed Payload operator registration and sign-in with Google and LinkedIn account access.
 - Add Payload admin nav footer with search modal, theme toggle, and logout
 - Add admin topbar with logo, search, credit badge, theme toggle, and sign out controls
 - Add Google and LinkedIn OAuth buttons to the Payload admin login page
@@ -24,8 +27,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add drag-and-drop CSV upload zone with improved Payload admin styling
 - Add dataset admin store with preview, pagination, and entity relationship counts
 
+### Added
+
+- Restructure Payload business profiles view with dashboard-style layout: page header, subpage tabs (Business/Setup), progress bars, and right info rail with overview, profile summary, and review flags
+- Add topbar navigation dropdown with page search for quick admin page access
+- Add profile completion percent and progress bars to Payload business profiles table and detail views
+
 ### Fixed
 
+- Replace Railway start command from removed `.next/standalone/server.js` to the active dist entrypoint (`scripts/runtime/start-dist.cjs`) so containers start correctly
 - Hide Payload product operations and AI operator actions from base CMS accounts while keeping
   direct operation URLs protected by a clear permission state.
 - Scope dist-root gitignore patterns with `/` prefix so `build/` and `out/` only match root level, preventing git from stripping compiled JS from pnpm store entries (e.g., `@aws-crypto/crc32c`) in the dist-test branch
@@ -83,6 +93,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Let Payload superadmins maintain business tax, accounting, legal, and currency context in the
+  same records used by the dashboard.
 - Keep business and dataset records in their existing account-scoped storage while administrators
   manage them through Payload, and store support issues in the Payload-managed issue queue.
 - Organize the content admin around the dashboard's menu rail, topbar, page header, focused

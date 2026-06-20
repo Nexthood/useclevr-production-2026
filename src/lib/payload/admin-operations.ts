@@ -1,9 +1,10 @@
-import { parseCSVString } from "@/lib/data/csvLoader"
-import { getDb } from "@/lib/db"
-import { businesses, datasetRows, datasets, users } from "@/lib/db/schema"
-import { desc, eq } from "drizzle-orm"
 import type { Endpoint, PayloadRequest } from "payload"
 
+import { validatePasswordPolicy } from "@/lib/auth/password-policy"
+import {
+  getAdminAccountancySnapshot,
+  updateAdminBusinessSetup,
+} from "./admin-accountancy-store"
 import {
   archiveBusiness,
   createBusiness,
@@ -38,7 +39,120 @@ function cleanText(value: unknown, maxLength = 1000) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : ""
 }
 
+function cleanList(value: unknown, maxItems = 40) {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, maxItems)
+  }
+
+  if (typeof value !== "string") return []
+
+  return value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, maxItems)
+}
+
+function setupInput(body: Record<string, unknown>) {
+  return {
+    countryOfRegistration: cleanText(body.countryOfRegistration, 100),
+    taxResidenceCountry: cleanText(body.taxResidenceCountry, 100),
+    legalStructure: cleanText(body.legalStructure, 80),
+    accountingMethod: cleanText(body.accountingMethod, 40),
+    taxRegistered: cleanText(body.taxRegistered, 40),
+    taxType: cleanText(body.taxType, 40),
+    standardTaxRate: cleanText(body.standardTaxRate, 20),
+    revenueAmountType: cleanText(body.revenueAmountType, 40),
+    expenseAmountType: cleanText(body.expenseAmountType, 40),
+    estimateTaxes: cleanText(body.estimateTaxes, 40),
+    primaryCurrency: cleanText(body.primaryCurrency, 10),
+    reportingCurrency: cleanText(body.reportingCurrency, 10),
+    otherCurrenciesUsed: cleanList(body.otherCurrenciesUsed),
+    revenueSources: cleanList(body.revenueSources),
+    customerType: cleanText(body.customerType, 40),
+    invoiceOrPaymentBased: cleanText(body.invoiceOrPaymentBased, 40),
+    paymentProviders: cleanList(body.paymentProviders),
+    hasRefundsOrChargebacks: cleanText(body.hasRefundsOrChargebacks, 40),
+    expenseCategories: cleanList(body.expenseCategories),
+    hasMixedBusinessPrivateExpenses: cleanText(body.hasMixedBusinessPrivateExpenses, 40),
+    receiptsAvailable: cleanText(body.receiptsAvailable, 40),
+    hasRecurringExpenses: cleanText(body.hasRecurringExpenses, 40),
+    hasBusinessInsurance: cleanText(body.hasBusinessInsurance, 40),
+    insuranceTypes: cleanList(body.insuranceTypes),
+    insurancePremiumAmount: cleanText(body.insurancePremiumAmount, 40),
+    insurancePaymentFrequency: cleanText(body.insurancePaymentFrequency, 40),
+    insuranceBusinessUsePercentage: cleanText(body.insuranceBusinessUsePercentage, 40),
+    hasBusinessLoans: cleanText(body.hasBusinessLoans, 40),
+    hasLeasing: cleanText(body.hasLeasing, 40),
+    hasCreditCards: cleanText(body.hasCreditCards, 40),
+    hasOverdraft: cleanText(body.hasOverdraft, 40),
+    monthlyDebtPayment: cleanText(body.monthlyDebtPayment, 40),
+    loanInterestKnown: cleanText(body.loanInterestKnown, 40),
+    principalInterestSplitKnown: cleanText(body.principalInterestSplitKnown, 40),
+  }
+}
+
 export const payloadAdminOperationEndpoints: Endpoint[] = [
+  {
+    path: "/admin-auth/signup",
+    method: "post",
+    handler: async (req) => {
+      try {
+        if (!req.json) {
+          return Response.json({ error: "Request body is unavailable." }, { status: 400 })
+        }
+        const body = (await req.json()) as Record<string, unknown>
+        const name = cleanText(body.name, 255)
+        const email = cleanText(body.email, 255).toLowerCase()
+        const password = cleanText(body.password, 512)
+
+        if (!email || !password) {
+          return Response.json({ error: "Email and password are required." }, { status: 400 })
+        }
+
+        const passwordPolicy = validatePasswordPolicy(password, { email, name })
+        if (!passwordPolicy.passed) {
+          return Response.json({ error: passwordPolicy.message }, { status: 400 })
+        }
+
+        const existing = await req.payload.find({
+          collection: "cms-users",
+          where: { email: { equals: email } },
+          limit: 1,
+          overrideAccess: true,
+        })
+        if (existing.docs.length > 0) {
+          return Response.json(
+            { error: "An operator account with this email already exists." },
+            { status: 409 },
+          )
+        }
+
+        await req.payload.create({
+          collection: "cms-users",
+          data: {
+            name: name || email.split("@")[0] || "UseClevr operator",
+            email,
+            password,
+            role: "base",
+          },
+          overrideAccess: true,
+        })
+
+        return Response.json({ success: true })
+      } catch (error) {
+        return Response.json(
+          { error: error instanceof Error ? error.message : "Could not create the operator account." },
+          { status: 500 },
+        )
+      }
+    },
+  },
+
   // ─── BUSINESS ENDPOINTS ────────────────────────────────────────
   {
     path: "/admin-operations/businesses",
@@ -67,16 +181,17 @@ export const payloadAdminOperationEndpoints: Endpoint[] = [
 
         if (id) {
           await updateBusiness(id, {
-            name: cleanText(body.name, 255) || undefined,
-            email: cleanText(body.email, 255) || undefined,
-            industry: cleanText(body.industry, 255) || undefined,
-            address: cleanText(body.address, 500) || undefined,
-            website: cleanText(body.website, 500) || undefined,
-            description: cleanText(body.description, 4000) || undefined,
-            companyNumber: cleanText(body.companyNumber, 100) || undefined,
+            name: cleanText(body.name, 255),
+            email: cleanText(body.email, 255),
+            industry: cleanText(body.industry, 255),
+            address: cleanText(body.address, 500),
+            website: cleanText(body.website, 500),
+            description: cleanText(body.description, 4000),
+            companyNumber: cleanText(body.companyNumber, 100),
             status: typeof body.status === "string" ? body.status : undefined,
             userId: cleanText(body.userId, 160) || undefined,
           })
+          await updateAdminBusinessSetup(id, setupInput(body))
           return Response.json({ success: true, id })
         }
 
@@ -90,10 +205,33 @@ export const payloadAdminOperationEndpoints: Endpoint[] = [
           description: cleanText(body.description, 4000) || undefined,
           companyNumber: cleanText(body.companyNumber, 100) || undefined,
         })
+        await updateAdminBusinessSetup(newId, setupInput(body))
         return Response.json({ success: true, id: newId })
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not save the business profile."
         return Response.json({ error: message }, { status: 500 })
+      }
+    },
+  },
+
+  // ─── ACCOUNTANCY ENDPOINTS ─────────────────────────────────────
+  {
+    path: "/admin-operations/accountancy",
+    method: "get",
+    handler: async (req) => {
+      if (!requireSuperAdmin(req)) return Response.json({ error: "Forbidden" }, { status: 403 })
+      try {
+        const url = new URL(req.url || "", "http://localhost")
+        const data = await getAdminAccountancySnapshot(
+          cleanText(url.searchParams.get("userId"), 160) || undefined,
+          cleanText(url.searchParams.get("businessId"), 160) || undefined,
+        )
+        return Response.json(data)
+      } catch (error) {
+        return Response.json(
+          { error: error instanceof Error ? error.message : "Could not load accountancy data." },
+          { status: 500 },
+        )
       }
     },
   },

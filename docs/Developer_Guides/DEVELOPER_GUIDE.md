@@ -240,6 +240,8 @@ Payload Phase 0 currently serves:
 
 - `/admin`
 - `/admin/business-profiles` for cross-user business-profile operations
+- `/admin/accountancy` for cross-user bookkeeping readiness, reporting, tax, and compliance review
+- `/admin/datasets` for cross-user dataset inspection and deletion
 - `/admin/support-issues` for the support queue
 - `/admin/dataset-upload` for owner-assigned CSV uploads
 - `/api/payload`
@@ -278,6 +280,11 @@ Current local safety rules:
   `/api/payload/admin-operations/*`.
 - Require the Payload `superadmin` role for every product-operation endpoint. Require an explicit
   dashboard user owner for business creation and dataset upload.
+- Keep Payload credentials registration limited to the base role. The Google and LinkedIn buttons
+  use the existing Auth.js providers, and the Payload custom authentication strategy provisions a
+  matching base CMS account from the authenticated dashboard session.
+- Preserve `superadmin` only when the fixed built-in superadmin dashboard identity authenticates
+  through the custom Payload strategy.
 - Use Payload's `useAuth` hook from the version-matched `@payloadcms/ui` package to hide
   product-operation navigation and AI actions from base CMS users. Keep endpoint authorization as
   the server-side enforcement boundary.
@@ -295,8 +302,8 @@ Current local safety rules:
 - Run `pnpm exec payload generate:importmap` after adding or renaming Payload admin components.
 - Pin `@payloadcms/ui` to the same exact version as `payload` and every other Payload package.
 - Register the dashboard return link through `admin.components.afterNavLinks`.
-- Route public account creation through `/login?tab=signup`; Payload CMS accounts remain controlled
-  content-administration identities.
+- Keep dashboard account creation at `/login?tab=signup`. Keep Payload operator sign-in and
+  base-role registration in tabs at `/admin/login`.
 
 ### Clean
 

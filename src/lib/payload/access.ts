@@ -12,7 +12,8 @@ export const isCmsSuperAdmin: Access = ({ req }) => {
 }
 
 export const publishedOrCmsUser: Access = ({ req }) => {
-  if (req.user) {
+  const user = req.user as CmsUser | null | undefined
+  if (user?.role === "superadmin") {
     return true
   }
 

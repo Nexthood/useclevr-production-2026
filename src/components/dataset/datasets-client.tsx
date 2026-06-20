@@ -109,7 +109,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   }
 
   const rightSidebar = (
-    <aside className="hidden w-72 flex-shrink-0 border-l border-border bg-card lg:block">
+    <aside className="hidden w-72 shrink-0 border-l border-border bg-card lg:block">
       <div className="h-full space-y-3 overflow-y-auto p-4">
         <h2 className="text-sm font-semibold text-foreground">Dataset overview</h2>
         <Card className="border-border bg-card p-4">
@@ -162,8 +162,8 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       icon={Database}
       rightSidebar={rightSidebar}
     >
-      <div className="flex-1 overflow-y-auto p-5">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-w-0 flex-1 overflow-y-auto p-5">
+        <div className="mx-auto w-full max-w-6xl min-w-0">
           <DataTable
             title="Dataset library"
             description="All uploaded data files with processing status and actions."
@@ -184,8 +184,8 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
               )
             }
             actions={
-              <Link href="/app/upload">
-                <Button size="sm">
+              <Link href="/app/upload" className="shrink-0">
+                <Button size="sm" className="whitespace-nowrap">
                   <Upload className="mr-2 h-4 w-4" />
                   Upload dataset
                 </Button>

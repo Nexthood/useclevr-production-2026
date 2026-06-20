@@ -2,31 +2,42 @@
 
 import { createPortal } from "react-dom"
 import { useEffect, useRef, useState } from "react"
-import { LogOut, Search } from "lucide-react"
+import { Building2, Database, LogOut, Search, Sparkles, Upload } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 import { PayloadCreditBadge } from "./payload-admin-credit-badge"
 import { PayloadThemeToggle } from "./payload-theme-toggle"
 
 const quickLinks = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/collections/cms-users", label: "CMS Users" },
-  { href: "/admin/collections/news-posts", label: "News Posts" },
-  { href: "/admin/collections/faqs", label: "FAQs" },
-  { href: "/admin/collections/media", label: "Media" },
-  { href: "/admin/customers", label: "Customers" },
-  { href: "/admin/discounts", label: "Discount rules" },
-  { href: "/admin/levels", label: "Customer levels" },
-  { href: "/admin/progress", label: "Onboarding progress" },
-  { href: "/admin/business-profiles", label: "Business profiles" },
-  { href: "/admin/support-issues", label: "Support issues" },
-  { href: "/admin/dataset-upload", label: "Dataset upload" },
+  { href: "/admin", label: "Dashboard", group: "general" },
+  { href: "/admin/collections/cms-users", label: "CMS Users", group: "cms" },
+  { href: "/admin/collections/news-posts", label: "News Posts", group: "cms" },
+  { href: "/admin/collections/faqs", label: "FAQs", group: "cms" },
+  { href: "/admin/collections/media", label: "Media", group: "cms" },
+  { href: "/admin/customers", label: "Customers", group: "admin" },
+  { href: "/admin/discounts", label: "Discount rules", group: "admin" },
+  { href: "/admin/levels", label: "Customer levels", group: "admin" },
+  { href: "/admin/progress", label: "Onboarding progress", group: "admin" },
+  { href: "/admin/business-profiles", label: "Business profiles", group: "ops" },
+  { href: "/admin/accountancy", label: "Accountancy", group: "ops" },
+  { href: "/admin/datasets", label: "Datasets", group: "ops" },
+  { href: "/admin/dataset-upload", label: "Dataset upload", group: "ops" },
+  { href: "/admin/support-issues", label: "Support issues", group: "ops" },
 ]
+
+const groupIcons: Record<string, React.ReactNode> = {
+  general: <Building2 size={14} />,
+  cms: <Database size={14} />,
+  admin: <Sparkles size={14} />,
+  ops: <Upload size={14} />,
+}
 
 export function PayloadTopbarControls() {
   const [mounted, setMounted] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [navOpen, setNavOpen] = useState(false)
   const headerRef = useRef<HTMLElement | null>(null)
+  const navRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     headerRef.current = document.querySelector(".app-header") as HTMLElement | null
@@ -43,6 +54,18 @@ export function PayloadTopbarControls() {
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setNavOpen(false)
+      }
+    }
+    if (navOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [navOpen])
 
   const filtered = searchQuery
     ? quickLinks.filter((l) => l.label.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -61,19 +84,49 @@ export function PayloadTopbarControls() {
           </svg>
           <span>Admin</span>
         </a>
+        <div className="payload-topbar-nav" ref={navRef}>
+          <button
+            type="button"
+            className={`payload-topbar-nav-btn${navOpen ? " is-open" : ""}`}
+            onClick={() => setNavOpen(!navOpen)}
+            aria-label="Navigation"
+          >
+            <Search size={14} />
+            <span>Navigate</span>
+            <kbd>⌘K</kbd>
+          </button>
+          {navOpen && (
+            <div className="payload-topbar-nav-dropdown">
+              <input
+                type="text"
+                placeholder="Search pages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              <div className="payload-topbar-nav-list">
+                {filtered.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="payload-topbar-nav-item"
+                    onClick={() => setNavOpen(false)}
+                  >
+                    {groupIcons[link.group]}
+                    {link.label}
+                  </a>
+                ))}
+                {filtered.length === 0 && (
+                  <p className="payload-topbar-nav-empty">No results found.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="payload-topbar-right">
         <PayloadCreditBadge />
-        <button
-          type="button"
-          className="payload-topbar-search-btn"
-          onClick={() => setSearchOpen(true)}
-          aria-label="Search admin"
-          title="Search admin (⌘K)"
-        >
-          <Search className="h-4 w-4" />
-        </button>
         <div className="payload-topbar-theme">
           <PayloadThemeToggle />
         </div>

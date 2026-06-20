@@ -7,7 +7,9 @@ import useclevrWordmarkLight from "@/assets/images/logos/useclevr-wordmark-light
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users";
+import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy";
 import {
   ArrowRight,
   BrainCircuit,
@@ -19,6 +21,7 @@ import {
   Mail,
   Rocket,
   Sparkles,
+  User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -29,10 +32,16 @@ import { PayloadThemeToggle } from "./payload-theme-toggle";
 
 export function PayloadLoginView() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [signUpName, setSignUpName] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authAction, setAuthAction] = useState<"signin" | "signup" | "google" | "linkedin" | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false);
   const [showTestControls, setShowTestControls] = useState(false);
@@ -63,6 +72,7 @@ export function PayloadLoginView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setAuthAction("signin");
     setAuthError(null);
 
     try {
@@ -86,6 +96,66 @@ export function PayloadLoginView() {
       setAuthError("Sign-in failed. Please try again.");
     } finally {
       setIsLoading(false);
+      setAuthAction(null);
+    }
+  };
+
+  const handleSignUp = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setAuthAction("signup");
+    setAuthError(null);
+
+    const policy = validatePasswordPolicy(signUpPassword, {
+      email: signUpEmail,
+      name: signUpName,
+    });
+    if (!policy.passed) {
+      setAuthError(policy.message);
+      setIsLoading(false);
+      setAuthAction(null);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/payload/admin-auth/signup", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signUpName,
+          email: signUpEmail,
+          password: signUpPassword,
+        }),
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        setAuthError(body.error || "Account setup failed. Please try again.");
+        return;
+      }
+
+      setEmail(signUpEmail);
+      setPassword(signUpPassword);
+      setActiveTab("signin");
+      setAuthError("Operator account created. Sign in with your credentials.");
+    } catch {
+      setAuthError("Account setup failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setAuthAction(null);
+    }
+  };
+
+  const startSocialSignIn = async (provider: "google" | "linkedin") => {
+    setIsLoading(true);
+    setAuthAction(provider);
+    setAuthError(null);
+    try {
+      await signIn(provider, { callbackUrl: "/admin", redirect: true });
+    } catch {
+      setAuthError("Social sign-in failed. Please try again.");
+      setIsLoading(false);
+      setAuthAction(null);
     }
   };
 
@@ -127,97 +197,186 @@ export function PayloadLoginView() {
                 </p>
               </div>
 
-              {authError && (
-                <div className="mb-5 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
-                  {authError}
-                </div>
-              )}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
+                <TabsList className="grid w-full grid-cols-2 bg-muted/70 p-1">
+                  <TabsTrigger value="signin">Sign in</TabsTrigger>
+                  <TabsTrigger value="signup">Sign up</TabsTrigger>
+                </TabsList>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <InnerLabelInput
-                  id="payload-admin-email"
-                  type="email"
-                  label="Email"
-                  icon={Mail}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="username"
-                />
+                {authError && (
+                  <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+                    {authError}
+                  </div>
+                )}
 
-                <div>
+                <TabsContent value="signin" className="mt-0">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <InnerLabelInput
+                      id="payload-admin-email"
+                      type="email"
+                      label="Email"
+                      icon={Mail}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="username"
+                    />
+
+                    <div>
+                      <InnerLabelInput
+                        id="payload-admin-password"
+                        type={showPassword ? "text" : "password"}
+                        label="Password"
+                        icon={Lock}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pr-11"
+                        required
+                        autoComplete="current-password"
+                        trailing={
+                          <PasswordToggle
+                            showPassword={showPassword}
+                            setShowPassword={setShowPassword}
+                          />
+                        }
+                      />
+                      <a href="/login" className="mt-1 block text-xs text-primary hover:underline">
+                        Open dashboard sign-in
+                      </a>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                      disabled={isLoading}
+                    >
+                      {isLoading && authAction === "signin" ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          Sign in
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="signup" className="mt-0">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <InnerLabelInput
+                      id="payload-admin-signup-name"
+                      type="text"
+                      label="Full name"
+                      icon={User}
+                      value={signUpName}
+                      onChange={(event) => setSignUpName(event.target.value)}
+                      required
+                      autoComplete="name"
+                    />
+                    <InnerLabelInput
+                      id="payload-admin-signup-email"
+                      type="email"
+                      label="Email"
+                      icon={Mail}
+                      value={signUpEmail}
+                      onChange={(event) => setSignUpEmail(event.target.value)}
+                      required
+                      autoComplete="email"
+                    />
                   <InnerLabelInput
-                    id="payload-admin-password"
-                    type={showPassword ? "text" : "password"}
+                    id="payload-admin-signup-password"
+                    type={showSignUpPassword ? "text" : "password"}
                     label="Password"
                     icon={Lock}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={signUpPassword}
+                    onChange={(event) => setSignUpPassword(event.target.value)}
                     className="pr-11"
                     required
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     trailing={
                       <PasswordToggle
-                        showPassword={showPassword}
-                        setShowPassword={setShowPassword}
+                        showPassword={showSignUpPassword}
+                        setShowPassword={setShowSignUpPassword}
                       />
                     }
                   />
-                  <a href="/login" className="mt-1 block text-xs text-primary hover:underline">
-                    Open dashboard sign-in
-                  </a>
+                    {signUpPassword && (
+                      <PayloadPasswordStrength
+                        password={signUpPassword}
+                        email={signUpEmail}
+                        name={signUpName}
+                      />
+                    )}
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                      disabled={
+                        isLoading ||
+                        !validatePasswordPolicy(signUpPassword, {
+                          email: signUpEmail,
+                          name: signUpName,
+                        }).passed
+                      }
+                    >
+                      {isLoading && authAction === "signup" ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        <>
+                          Create operator account
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <div className="relative my-5">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                  </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoading}
+                    onClick={() => startSocialSignIn("google")}
+                  >
+                    {authAction === "google" ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      Sign in
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
-
-              <div className="relative my-5">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                    ) : (
+                      <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
+                    )}
+                    Google
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoading}
+                    onClick={() => startSocialSignIn("linkedin")}
+                  >
+                    {authAction === "linkedin" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaLinkedin className="mr-2 h-4 w-4 text-sky-600" />
+                    )}
+                    LinkedIn
+                  </Button>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isLoading}
-                  onClick={() => signIn("google", { callbackUrl: "/admin" })}
-                >
-                  <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
-                  Google
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isLoading}
-                  onClick={() => signIn("linkedin", { callbackUrl: "/admin" })}
-                >
-                  <FaLinkedin className="mr-2 h-4 w-4 text-sky-600" />
-                  LinkedIn
-                </Button>
-              </div>
+              </Tabs>
 
               {showTestControls && showBuiltInAccounts ? (
                 <div className="mt-4 space-y-2">
@@ -460,5 +619,49 @@ function PasswordToggle({
     >
       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </button>
+  );
+}
+
+function PayloadPasswordStrength({
+  password,
+  email,
+  name,
+}: {
+  password: string;
+  email: string;
+  name: string;
+}) {
+  const criteria = getPasswordPolicyChecks(password, { email, name });
+  const passed = criteria.filter((criterion) => criterion.passed).length;
+  const strength = Math.min(Math.ceil((passed / criteria.length) * 4), 4);
+  const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
+
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="flex gap-1">
+        {[0, 1, 2, 3].map((index) => (
+          <div
+            key={index}
+            className={`h-1 flex-1 rounded-full ${
+              index < strength
+                ? colors[Math.min(strength - 1, colors.length - 1)]
+                : "bg-muted"
+            }`}
+          />
+        ))}
+      </div>
+      <ul className="space-y-1">
+        {criteria.map((criterion) => (
+          <li key={criterion.label} className="flex items-center gap-2 text-xs">
+            <span className={criterion.passed ? "text-green-500" : "text-muted-foreground"}>
+              {criterion.passed ? "✓" : "○"}
+            </span>
+            <span className={criterion.passed ? "text-foreground" : "text-muted-foreground"}>
+              {criterion.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -44,6 +44,10 @@ moving work between states.
 - T-837. Persist locked built-in accounts as database-backed identities for dashboard updates and all upload workflows. (labels: auth, upload, dashboard, data; commit: worktree)
 - T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
 
+## Label: business
+
+- T-863. Move business profile and accountancy operator workflows into Payload, preserve dashboard data ownership and calculations, and provide tabbed credentials, Google, and LinkedIn admin registration and sign-in. (labels: business, reporting, auth, ui; commit: worktree)
+
 ## Label: dashboard
 
 - T-843. Manage owner-scoped business profiles and dataset uploads through authenticated Payload views, and manage dashboard support records through the native Payload Issues collection. (labels: dashboard, business, upload, ui; commit: worktree)

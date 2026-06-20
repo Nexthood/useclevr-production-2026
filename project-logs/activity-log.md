@@ -135,3 +135,13 @@ This file summarizes current project activity. Detailed session records live in
   project controls, risks, and issues with current CSV and limited Payload MCP capability.
 - Remove duplicate deferred MCP tasks and gate connectors, public APIs, private customer MCP,
   market intelligence, and Intelligence Cloud behind reliability and commercial evidence.
+- Add current-phase TODO tasks for Excel upload parity, privacy shield acceptance, analysis quality,
+  Payload admin login review, and release-candidate checklist.
+- Refresh phase docs, product overview, AI interaction status, and detailed interaction records
+  without committing.
+- Move owner-selected business setup and accountancy review into Payload custom views while keeping
+  Drizzle product records authoritative, and align Payload credentials and social authentication
+  with the dashboard tabbed login flow.
+- Restructure Payload business profiles view with dashboard layout, progress bars, and right info rail
+- Add topbar navigation dropdown and profile completion tracking
+- Fix Railway start command to use dist entrypoint instead of removed .next/standalone/server.js
