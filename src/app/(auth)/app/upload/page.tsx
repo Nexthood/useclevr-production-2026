@@ -16,7 +16,7 @@ export default function UploadPage() {
   ]
 
   const rightSidebar = (
-    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+    <aside className="hidden w-80 shrink-0 border-l border-border bg-card lg:block">
       <div className="flex h-full flex-col overflow-y-auto p-4">
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
@@ -41,19 +41,19 @@ export default function UploadPage() {
       icon={Upload}
       rightSidebar={rightSidebar}
     >
-      <main className="flex-1">
+      <main className="min-w-0 flex-1 overflow-hidden">
         {/* Use wide container for profitability result, narrow for upload */}
         {uploadMode === "profitability" ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
             <ProfitabilityUpload />
           </div>
         ) : (
-          <div className="max-w-xl mx-auto space-y-6 px-4 py-8 sm:px-6">
+          <div className="mx-auto w-full max-w-xl min-w-0 space-y-6 px-4 py-8 sm:px-6">
             {/* Mode Selector */}
             <div className="grid grid-cols-1 gap-1 p-1 bg-muted/50 rounded-lg sm:grid-cols-2">
               <button
                 onClick={() => setUploadMode("standard")}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                className={`flex min-w-0 items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-all ${
                   uploadMode === "standard" 
                     ? "bg-background shadow-sm text-foreground" 
                     : "text-muted-foreground hover:text-foreground"
@@ -63,7 +63,7 @@ export default function UploadPage() {
               </button>
               <button
                 onClick={() => setUploadMode("profitability")}
-                className="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+                className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-foreground"
               >
                 <TrendingUp className="h-4 w-4" />
                 Profitability Analysis

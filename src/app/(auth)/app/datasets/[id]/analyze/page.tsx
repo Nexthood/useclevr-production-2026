@@ -103,15 +103,15 @@ export default async function AnalyzePage({
       />
 
       <PageActionRow description="Use analysis tools here, or return to the dataset rows for review.">
-        <Link href={`/app/datasets/${id}`}>
-          <Button size="sm" variant="outline">
+        <Link href={`/app/datasets/${id}`} className="shrink-0">
+          <Button size="sm" variant="outline" className="whitespace-nowrap">
             <Sparkles className="mr-2 h-4 w-4" />
             Dataset
           </Button>
         </Link>
       </PageActionRow>
 
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <DatasetAnalyzer
           datasetId={id}
           datasetName={(dataset as { name: string }).name}

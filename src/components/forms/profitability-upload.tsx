@@ -1028,17 +1028,17 @@ export function ProfitabilityUpload() {
       : []
 
     return (
-      <div className="flex flex-col min-h-0">
+      <div className="flex min-w-0 flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
-          <div>
+        <div className="mb-4 flex min-w-0 flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-2xl font-bold">Profitability Analysis</h2>
             <p className="text-sm text-muted-foreground">
               Revenue & Expense Analysis • {profitabilityResult.hasRevenue && profitabilityResult.hasExpenses ? 'Full Analysis' : 'Partial Data'}
             </p>
           </div>
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <Button
               onClick={() => {
                 setRevenueFile(null)
@@ -1047,12 +1047,12 @@ export function ProfitabilityUpload() {
               }}
               variant="outline"
               size="sm"
-              className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+              className="shrink-0 whitespace-nowrap border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
             >
               Analyze Another
             </Button>
             <Button
-              className="bg-gradient-primary hover:opacity-90"
+              className="shrink-0 whitespace-nowrap bg-gradient-primary hover:opacity-90"
               size="sm"
               disabled={isGeneratingReport}
               onClick={handleGenerateReport}

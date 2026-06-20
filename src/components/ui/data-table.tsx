@@ -75,10 +75,10 @@ export function DataTable<T extends Record<string, unknown>>({
               {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
               {description && <p className="mt-1.5 text-xs text-muted-foreground/90 leading-relaxed">{description}</p>}
             </div>
-            <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
               {selectable && activeSelectedRows.size > 0 && (
-                <div className="flex items-center gap-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
-                  <span>{activeSelectedRows.size} selected</span>
+                <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap">{activeSelectedRows.size} selected</span>
                   {bulkActions}
                 </div>
               )}

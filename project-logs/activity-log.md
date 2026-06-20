@@ -3,6 +3,12 @@
 This file summarizes current project activity. Detailed session records live in
 [interactive-log.md](interactive-log.md).
 
+## 2026-06-20
+
+- Prevent dashboard, dataset, downloads, upload, analysis, profitability, and Payload operation
+  action controls from hiding under fixed side panels by tightening `min-w-0`, `shrink-0`, wrapping,
+  and no-wrap button layout.
+
 ## 2026-06-08
 
 - Align the Payload login surface with UseClevr app authentication and simplify the sidebar

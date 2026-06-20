@@ -752,9 +752,9 @@ export function DatasetAnalyzer({
   
   // STATE 3: After analysis - Full dashboard
   return (
-    <div className="flex flex-col min-h-0">
+    <div className="flex min-w-0 flex-col min-h-0">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-6 flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <h2 className="break-words text-2xl font-bold">{datasetName}</h2>
           <p className="text-muted-foreground">
@@ -762,14 +762,14 @@ export function DatasetAnalyzer({
           </p>
         </div>
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
           {/* Generate Report Button */}
           {analysis?.business_analysis?.kpis && (
             <Button 
               onClick={handleGenerateReport}
               disabled={isGeneratingReport}
               variant="outline"
-              className="border-violet-500/40 text-violet-700 hover:bg-violet-500/10 dark:text-violet-300"
+              className="shrink-0 whitespace-nowrap border-violet-500/40 text-violet-700 hover:bg-violet-500/10 dark:text-violet-300"
             >
               {isGeneratingReport ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -781,7 +781,7 @@ export function DatasetAnalyzer({
               {isGeneratingReport ? 'Generating...' : reportGenerated ? 'Generated!' : 'Generate Report'}
             </Button>
           )}
-          <Button variant="outline" disabled={isForecasting} onClick={handleForecast}>
+          <Button variant="outline" disabled={isForecasting} onClick={handleForecast} className="shrink-0 whitespace-nowrap">
             {isForecasting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -1377,7 +1377,7 @@ export function DatasetAnalyzer({
               <Button 
                 onClick={handleAnalyze} 
                 disabled={isAnalyzing}
-                className="bg-violet-600 hover:bg-violet-700"
+                className="shrink-0 whitespace-nowrap bg-violet-600 hover:bg-violet-700"
               >
                 {isAnalyzing ? (
                   <>

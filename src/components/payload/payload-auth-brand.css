@@ -759,10 +759,12 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .payload-operation-toolbar {
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .payload-operation-toolbar button,
@@ -794,6 +796,7 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
 .payload-operation-table-wrap,
 .payload-operation-card {
   overflow: auto;
+  min-width: 0;
   border: 1px solid var(--theme-elevation-150);
   border-radius: 0.6rem;
   background: var(--theme-elevation-0);
@@ -1245,11 +1248,12 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
   gap: 0.75rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .payload-operation-search {
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 16rem;
+  min-width: min(100%, 200px);
 }
 
 .payload-operation-search input {
@@ -1273,7 +1277,10 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
   flex-shrink: 0;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .payload-operation-count {
@@ -1324,6 +1331,7 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  justify-content: flex-end;
   white-space: nowrap;
 }
 
@@ -1333,6 +1341,7 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
   justify-content: center;
   width: 2rem;
   height: 2rem;
+  flex: 0 0 2rem;
   padding: 0;
   border: none;
   border-radius: 0.3rem;
@@ -1511,12 +1520,15 @@ html[data-theme="dark"] .payload-breadcrumbs a:hover {
 .payload-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   gap: 0.4rem;
   padding: 0.45rem 0.9rem;
   border-radius: 0.35rem;
   font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
   border: none;

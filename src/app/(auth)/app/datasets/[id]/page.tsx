@@ -152,16 +152,16 @@ export default async function DatasetDetailPage({
       />
 
       <PageActionRow description="Review the uploaded rows and continue to analysis when the dataset is ready.">
-        <Link href={`/app/datasets/${id}/analyze`}>
-          <Button size="sm" variant="outline">
+        <Link href={`/app/datasets/${id}/analyze`} className="shrink-0">
+          <Button size="sm" variant="outline" className="whitespace-nowrap">
             <Sparkles className="mr-2 h-4 w-4" />
             View analysis
           </Button>
         </Link>
       </PageActionRow>
 
-      <main className="flex-1 p-4 sm:p-6">
-        <div className="max-w-full mx-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="mx-auto w-full max-w-full min-w-0">
           <DataTable
             title="Dataset rows"
             description={`Page ${currentPage} of ${totalPages} — ${rowCount.toLocaleString()} total rows`}

@@ -18,9 +18,9 @@ type AppPageHeaderProps = {
 export function AppPageHeader({ title, description, breadcrumbs = [], actions, icon: Icon = FileText }: AppPageHeaderProps) {
   return (
     <header className="sticky top-16 z-40 border-b border-border/60 bg-card/95 backdrop-blur-sm">
-      <div className="flex min-h-14 flex-col items-start justify-between gap-2 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
+      <div className="flex min-h-14 min-w-0 flex-col items-start justify-between gap-2 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
             <Icon className="h-4 w-4" />
           </span>
           <div className="min-w-0 space-y-0.5">
@@ -28,7 +28,7 @@ export function AppPageHeader({ title, description, breadcrumbs = [], actions, i
             {description && <p className="text-xs text-muted-foreground">{description}</p>}
           </div>
         </div>
-        <div className="flex w-full shrink-0 items-center gap-3 sm:w-auto">
+        <div className="relative z-10 flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {actions}
         </div>
       </div>
