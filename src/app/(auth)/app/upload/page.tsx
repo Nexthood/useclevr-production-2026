@@ -41,35 +41,44 @@ export default function UploadPage() {
       icon={Upload}
       rightSidebar={rightSidebar}
     >
-      <main className="min-w-0 flex-1 overflow-hidden">
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 sm:px-6">
+          {/* Mode Selector */}
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:grid-cols-2">
+            <button
+              onClick={() => setUploadMode("standard")}
+              className={`flex min-w-0 flex-col items-start gap-1.5 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition-all ${
+                uploadMode === "standard"
+                  ? "border-primary/60 bg-primary/10 text-foreground shadow-sm"
+                  : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted"
+              }`}
+            >
+              <span className="whitespace-nowrap">Standard Upload</span>
+              <span className="text-xs font-normal text-muted-foreground">Upload a general CSV dataset.</span>
+            </button>
+            <button
+              onClick={() => setUploadMode("profitability")}
+              className={`flex min-w-0 flex-col items-start gap-1.5 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition-all ${
+                uploadMode === "profitability"
+                  ? "border-primary/60 bg-primary/10 text-foreground shadow-sm"
+                  : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted"
+              }`}
+            >
+              <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <TrendingUp className="h-4 w-4" />
+                Profitability Analysis
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">Review revenue and expense files.</span>
+            </button>
+          </div>
+        </div>
         {/* Use wide container for profitability result, narrow for upload */}
         {uploadMode === "profitability" ? (
-          <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="min-w-0 px-4 pb-6 pt-4 sm:px-6">
             <ProfitabilityUpload />
           </div>
         ) : (
           <div className="mx-auto w-full max-w-xl min-w-0 space-y-6 px-4 py-8 sm:px-6">
-            {/* Mode Selector */}
-            <div className="grid grid-cols-1 gap-1 p-1 bg-muted/50 rounded-lg sm:grid-cols-2">
-              <button
-                onClick={() => setUploadMode("standard")}
-                className={`flex min-w-0 items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                  uploadMode === "standard" 
-                    ? "bg-background shadow-sm text-foreground" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Standard Upload
-              </button>
-              <button
-                onClick={() => setUploadMode("profitability")}
-                className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-foreground"
-              >
-                <TrendingUp className="h-4 w-4" />
-                Profitability Analysis
-              </button>
-            </div>
-
             {/* Hero section */}
             <div className="text-center space-y-3">
               {/* Premium icon */}

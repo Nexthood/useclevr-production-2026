@@ -3,6 +3,8 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { auth } from "@/lib/auth/auth";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
+import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
+import { getCompanySetup } from "@/lib/business/company-setup-store";
 import type { CSVAnalysisResult, DatasetRecord } from "@/lib/data/csv-analyzer";
 import { analyzeCSV } from "@/lib/data/csv-analyzer";
 import type { DatasetAnalysis } from "@/lib/data/dataset-analyzer";
@@ -330,10 +332,29 @@ export async function POST(
 
     // Run Business KPI Analysis
     const businessAnalysis = analyzeBusinessData(data, detectedColumns);
+    const businessKpisWithCosts = businessAnalysis.kpis as typeof businessAnalysis.kpis & {
+      totalCost?: number | null;
+    };
+    const datasetCosts =
+      typeof businessKpisWithCosts.totalCost === "number"
+        ? businessKpisWithCosts.totalCost
+        : typeof businessAnalysis.kpis.totalRevenue === "number" && typeof businessAnalysis.kpis.totalProfit === "number"
+          ? businessAnalysis.kpis.totalRevenue - businessAnalysis.kpis.totalProfit
+          : null;
+    const businessProfile = await getCompanySetup(userId);
+    const businessProfileContext = buildProfileCalculationLayer({
+      setup: businessProfile,
+      rows: data as Record<string, unknown>[],
+      revenue: businessAnalysis.kpis.totalRevenue,
+      datasetCosts,
+    });
     debugLog('[ANALYZE] Business analysis complete:', {
       totalRevenue: businessAnalysis.kpis.totalRevenue,
       totalProfit: businessAnalysis.kpis.totalProfit,
       profitMargin: businessAnalysis.kpis.profitMargin,
+      profileAdjustedNetMargin: businessProfileContext.kpis.netMarginAfterProfileCosts,
+      profileWarnings: businessProfileContext.warnings.length,
+      profileConflicts: businessProfileContext.conflicts.length,
       topRegions: businessAnalysis.kpis.topRegions.length,
       topProducts: businessAnalysis.kpis.topProducts.length,
       growthValid: businessAnalysis.kpis.growthValid,
@@ -345,9 +366,26 @@ export async function POST(
       kpis: businessAnalysis.kpis,
       breakdowns: businessAnalysis.breakdowns,
       risks: businessAnalysis.risks,
-      insights: businessAnalysis.insights,
-      recommendations: businessAnalysis.recommendations,
-      detectedColumns
+      insights: [
+        ...businessAnalysis.insights,
+        ...businessProfileContext.warnings.map((message) => ({ message, type: "margin" })),
+        ...businessProfileContext.conflicts.map((message) => ({ message, type: "margin" })),
+      ],
+      recommendations: [
+        ...businessAnalysis.recommendations,
+        ...businessProfileContext.recommendations.map((action) => ({
+          action,
+          reason: "Business Profile context changes the uploaded-data calculation.",
+          expectedImpact: "Improves tax, margin, payroll, cash-flow, and forecast confidence.",
+        })),
+        ...businessProfileContext.conflicts.map((action) => ({
+          action,
+          reason: "Uploaded data conflicts with Business Profile context.",
+          expectedImpact: "Ask the user to confirm which value should be used before relying on final outputs.",
+        })),
+      ],
+      detectedColumns,
+      businessProfileContext,
     };
 
     // Generate AI Executive Summary - USE business_analysis data for accurate KPIs

@@ -9,6 +9,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Add context-aware Business Profile calculations that combine uploaded financial data with confirmed
+  tax, insurance, fixed-cost, payroll, margin, currency, fiscal-year, goal, and risk inputs.
+- Add a global Business Profile wizard that captures company setup, taxes, employer
+  contributions, insurance, fixed costs, revenue model, cost structure, and goals for future
+  dataset analysis context.
 - Add a Payload accountancy workspace for owner-selected reporting, tax, compliance, and close
   readiness review.
 - Add tabbed Payload operator registration and sign-in with Google and LinkedIn account access.
