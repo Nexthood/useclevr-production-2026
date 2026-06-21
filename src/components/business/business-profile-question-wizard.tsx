@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -23,15 +22,13 @@ import {
   buildSetupStatus,
   emptyCompanySetupPayload,
   normalizeCompanySetupPayload,
-  type BusinessGoals,
   type CompanySetupPayload,
-  type CostStructure,
   type EmployerContribution,
   type FixedCostEntry,
   type InsuranceEntry,
   type TaxEntry,
 } from "@/lib/business/company-setup"
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Plus, Save, Sparkles, Trash2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Plus, Save, Sparkles, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 type QuestionId =
@@ -49,9 +46,7 @@ type QuestionId =
   | "insurance"
   | "fixedCosts"
   | "revenueModel"
-  | "costStructure"
   | "targetMargin"
-  | "growthGoal"
   | "review"
 
 type Question = {
@@ -70,15 +65,13 @@ const BASE_QUESTIONS: Question[] = [
   { id: "currency", title: "What currency do you use?", helper: "Analysis uses this for KPIs, reports, tax estimates, and margin calculations." },
   { id: "fiscalYear", title: "What is your fiscal year?", helper: "Add the start and end used for business reporting." },
   { id: "taxRegistered", title: "Are you VAT or sales-tax registered?", helper: "This controls whether VAT/sales-tax details appear in the next step.", optional: true },
-  { id: "taxEntries", title: "Add relevant taxes, one by one.", helper: "Suggestions are editable. Nothing is treated as fact until you add and confirm it.", optional: true },
   { id: "employees", title: "Do you have employees?", helper: "Payroll assumptions are used only when employees or payroll data exist.", optional: true },
+  { id: "taxEntries", title: "Add relevant taxes, one by one.", helper: "Suggestions are editable. Nothing is treated as fact until you add and confirm it.", optional: true },
   { id: "contributions", title: "Add employer contributions, one by one.", helper: "Include health, pension, social security, unemployment, or local employer costs.", optional: true },
   { id: "insurance", title: "Add business insurances, one by one.", helper: "Insurance costs improve operating cost, cashflow, and risk analysis.", optional: true },
   { id: "fixedCosts", title: "Add fixed monthly costs, one by one.", helper: "Recurring fixed costs are included even when the uploaded file omits them.", optional: true },
   { id: "revenueModel", title: "What is your revenue model?", helper: "Select the models that best describe how revenue is generated." },
-  { id: "costStructure", title: "What are your main cost categories?", helper: "Add the cost areas that materially affect margin and cashflow.", optional: true },
   { id: "targetMargin", title: "What is your target margin?", helper: "Analysis compares uploaded margins against this target.", optional: true },
-  { id: "growthGoal", title: "What is your growth goal?", helper: "Goals shape recommendations, risk framing, and forecasts.", optional: true },
   { id: "review", title: "Review and confirm.", helper: "Edit any answer before saving the Business Profile as analysis context." },
 ]
 
@@ -143,7 +136,7 @@ function selectOptions(options: string[]) {
   return options.map((option) => ({ value: option, label: option }))
 }
 
-export function CompanySetupWizard() {
+export function BusinessProfileQuestionWizard() {
   const [payload, setPayload] = useState<CompanySetupPayload>(emptyCompanySetupPayload)
   const [isLoading, setIsLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
@@ -194,7 +187,11 @@ export function CompanySetupWizard() {
         const res = await fetch("/api/business/setup")
         if (!res.ok) return
         const data = await res.json()
-        if (data.payload) setPayload(normalizeCompanySetupPayload(data.payload as Partial<CompanySetupPayload>))
+        if (data.payload) {
+          const normalized = normalizeCompanySetupPayload(data.payload as Partial<CompanySetupPayload>)
+          setPayload(normalized)
+          setCompleted(normalized.setupStatus.completed)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -413,12 +410,8 @@ export function CompanySetupWizard() {
         )
       case "revenueModel":
         return <MultiChoiceAnswer values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={(values) => update("revenueModel", { businessModels: values })} />
-      case "costStructure":
-        return <CostStructureAnswer costs={payload.costStructure} onChange={(values) => update("costStructure", values)} />
       case "targetMargin":
         return <TextAnswer value={payload.revenueModel.grossMarginTarget} onChange={(value) => update("revenueModel", { grossMarginTarget: value })} placeholder="30%" />
-      case "growthGoal":
-        return <GrowthGoalAnswer goals={payload.businessGoals} onChange={(values) => update("businessGoals", values)} />
       case "review":
         return <ReviewAnswer payload={payload} status={status} onEdit={(id) => setActiveIndex(Math.max(0, visibleQuestions.findIndex((question) => question.id === id)))} />
       default:
@@ -427,60 +420,20 @@ export function CompanySetupWizard() {
   }
 
   if (isLoading) {
-    return <Card className="border-border bg-card p-8 text-center text-sm text-muted-foreground">Loading business profile...</Card>
+    return <div className="text-center text-sm text-muted-foreground">Loading business profile...</div>
   }
 
   return (
-    <>
-      <Card className="border-border bg-card">
-        <CardHeader className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Business Profile Setup
-              </CardTitle>
-              <CardDescription>
-                Guided setup for context-aware tax, payroll, fixed-cost, margin, cashflow, risk, and KPI analysis.
-              </CardDescription>
-            </div>
-            {(completed || status.completed) && (
-              <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                <Check className="h-4 w-4" /> Complete
-              </span>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="rounded-xl border border-border bg-background p-4">
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="font-medium">Profile completion</span>
-              <span className="font-semibold text-primary">{status.setupAccuracy}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${status.setupAccuracy}%` }} />
-            </div>
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-              <span>Company: {payload.companyInfo.companyName || "Not added yet"}</span>
-              <span>Country: {payload.companyInfo.country || "Not added yet"}</span>
-              <span>Currency: {payload.currencySettings.primaryCurrency || "Not added yet"}</span>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button type="button" onClick={() => setIsOpen(true)} className="sm:w-auto">
-              {status.setupAccuracy > 0 ? "Continue setup" : "Start Business Profile Setup"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => save()} disabled={isSaving}>
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Save progress
-            </Button>
-          </div>
-          {saveMessage && <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{saveMessage}</div>}
-        </CardContent>
-      </Card>
+    <div className="space-y-4 text-center">
+      <Button type="button" onClick={() => setIsOpen(true)} size="lg" className="min-w-56">
+        <Sparkles className="mr-2 h-4 w-4" />
+        Business Profile Setup
+      </Button>
+
+      {(completed || status.completed) && <SavedProfileSummary payload={payload} status={status} />}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto p-0">
+        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-md overflow-y-auto p-0">
           <div className="border-b border-border p-5">
             <DialogHeader className="pr-8">
               <DialogTitle>Business Profile Assistant</DialogTitle>
@@ -497,6 +450,9 @@ export function CompanySetupWizard() {
                 <CheckCircle2 className="mb-3 h-14 w-14" />
                 <h3 className="text-xl font-semibold">Business Profile Completed</h3>
                 <p className="mt-2 text-sm">Saved profile values now improve future CSV and Excel analysis.</p>
+                <Button type="button" className="mt-5" onClick={() => setIsOpen(false)}>
+                  View saved profile summary
+                </Button>
               </div>
             ) : (
               <>
@@ -532,7 +488,7 @@ export function CompanySetupWizard() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
 
@@ -677,32 +633,6 @@ function SuggestionNote({ text }: { text: string }) {
   return <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">{text}</div>
 }
 
-function CostStructureAnswer({ costs, onChange }: { costs: CostStructure; onChange: (values: Partial<CostStructure>) => void }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <LabeledInput label="Material costs" value={costs.materialCosts} onChange={(value) => onChange({ materialCosts: value })} placeholder="Optional" />
-      <LabeledInput label="Inventory costs" value={costs.inventoryCosts} onChange={(value) => onChange({ inventoryCosts: value })} placeholder="Optional" />
-      <LabeledInput label="Production costs" value={costs.productionCosts} onChange={(value) => onChange({ productionCosts: value })} placeholder="Optional" />
-      <LabeledInput label="Shipping costs" value={costs.shippingCosts} onChange={(value) => onChange({ shippingCosts: value })} placeholder="Optional" />
-      <LabeledInput label="Payment processing fees" value={costs.paymentProcessingFees} onChange={(value) => onChange({ paymentProcessingFees: value })} placeholder="Optional" />
-      <LabeledInput label="Contractor costs" value={costs.contractorCosts} onChange={(value) => onChange({ contractorCosts: value })} placeholder="Optional" />
-      <LabeledInput label="Commission costs" value={costs.commissionCosts} onChange={(value) => onChange({ commissionCosts: value })} placeholder="Optional" />
-      <LabeledInput label="Return rates" value={costs.returnRates} onChange={(value) => onChange({ returnRates: value })} placeholder="Optional" />
-      <LabeledInput label="Discount rates" value={costs.discountRates} onChange={(value) => onChange({ discountRates: value })} placeholder="Optional" />
-    </div>
-  )
-}
-
-function GrowthGoalAnswer({ goals, onChange }: { goals: BusinessGoals; onChange: (values: Partial<BusinessGoals>) => void }) {
-  return (
-    <div className="space-y-3">
-      <LabeledInput label="Growth goal" value={goals.growthTarget} onChange={(value) => onChange({ growthTarget: value })} placeholder="Grow revenue 20% this year" />
-      <LabeledInput label="Profit goal" value={goals.profitTarget} onChange={(value) => onChange({ profitTarget: value })} placeholder="Optional" />
-      <SelectInput label="Risk tolerance" value={goals.riskTolerance} options={["Low", "Medium", "High", "Not sure"]} onChange={(value) => onChange({ riskTolerance: value })} />
-    </div>
-  )
-}
-
 function ReviewAnswer({
   payload,
   status,
@@ -725,7 +655,6 @@ function ReviewAnswer({
     { label: "Fixed costs", value: `${payload.fixedCosts.length} entries`, id: "fixedCosts" },
     { label: "Revenue model", value: payload.revenueModel.businessModels.join(", ") || "Missing", id: "revenueModel" },
     { label: "Target margin", value: payload.revenueModel.grossMarginTarget || "Missing", id: "targetMargin" },
-    { label: "Growth goal", value: payload.businessGoals.growthTarget || "Missing", id: "growthGoal" },
   ]
 
   return (
@@ -758,6 +687,24 @@ function ReviewAnswer({
           </ul>
         </div>
       )}
+    </div>
+  )
+}
+
+function SavedProfileSummary({ payload, status }: { payload: CompanySetupPayload; status: CompanySetupPayload["setupStatus"] }) {
+  return (
+    <div className="mx-auto max-w-md rounded-xl border border-border bg-card p-4 text-left shadow-sm">
+      <div className="mb-3 flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+        <CheckCircle2 className="h-5 w-5" />
+        <span className="font-semibold">Saved business profile</span>
+      </div>
+      <div className="grid gap-2 text-sm text-muted-foreground">
+        <span>Company: {payload.companyInfo.companyName || "Not added"}</span>
+        <span>Country: {[payload.companyInfo.country, payload.companyInfo.stateRegion].filter(Boolean).join(", ") || "Not added"}</span>
+        <span>Currency: {payload.currencySettings.primaryCurrency || "Not added"}</span>
+        <span>Taxes: {payload.taxSettings.taxEntries.length} entries</span>
+        <span>Completion: {status.setupAccuracy}%</span>
+      </div>
     </div>
   )
 }

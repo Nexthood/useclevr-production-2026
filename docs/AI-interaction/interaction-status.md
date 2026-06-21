@@ -4,12 +4,13 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-20
-- **Goal**: Fix Business Profile setup UX so users answer one guided setup question at a time in a
-  compact centered modal.
-- **Durable change**: Business Profile setup now opens as a modal assistant with progress, one
-  question, one answer area, Back, Next, Skip optional question, Save progress, conditional USA,
-  tax, and employee skips, final review, and green completion feedback.
+- **Date**: 2026-06-21
+- **Goal**: Replace the old user-facing Business Profile setup component with the dedicated
+  `BusinessProfileQuestionWizard` modal flow.
+- **Durable change**: The Business Profile Setup button opens a compact modal wizard with one
+  question visible, progress, Back, Next, Skip, saved step-by-step answers, conditional steps, final
+  review, green success checkmark, and saved profile summary; the page no longer shows a large
+  setup card before the modal opens.
 - **Verification**: `pnpm exec tsc --noEmit --pretty false`, focused ESLint,
   `pnpm lint:changelog`, `pnpm lint:docs`, `pnpm lint:secrets`, and `git diff --check` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
