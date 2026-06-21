@@ -1,3 +1,4 @@
+- Improved Retail Inventory Analyst result cards so low stock, dead stock, and top profit rows show product, SKU, category, stock, reorder point, units sold, revenue, cost, gross profit, margin, last sale, order details, and owner-friendly next actions.
 - Added Retail & Inventory Analysis module (sidebar integration and dedicated Retail page with upload functionality, AI summary, and analytics cards)
 - Fixed Account settings layout width by narrowing the right info rail and relaxing subscription
   plan grid columns so plan cards, text, and buttons stay visible without changing billing logic.

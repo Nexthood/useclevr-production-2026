@@ -1,3 +1,4 @@
+- changed: make Retail Inventory Analyst cards product-specific with SKU, stock, sales, profit, margin, last-sale, order detail, and owner action guidance
 - fix: add top margin to Downloads page main content to prevent header overlap
 - fix: move Upload CSV/Excel card 1cm lower on Retail page to avoid header overlap
 - fix: widen Account settings main content so subscription plan cards and buttons stay visible
