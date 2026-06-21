@@ -101,6 +101,8 @@ Text rules for this file:
 - Open Business Profile setup in a compact centered modal that shows one clear question, one answer
   area, Back, Next, Skip optional question, Save progress, final review, and completion checkmark
   controls.
+- Show only the Business Profile Setup launcher before onboarding starts, then show the saved
+  profile summary after completion.
 - Keep Business Profile setup out of long-form database-admin layouts.
 - Collect company information, editable country tax suggestions, unlimited tax entries, employer
   contributions, insurance, fixed costs, revenue model, cost structure, and business goals.

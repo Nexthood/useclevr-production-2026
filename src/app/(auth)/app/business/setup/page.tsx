@@ -1,4 +1,4 @@
-import { CompanySetupWizard } from "@/components/business/company-setup-wizard"
+import { BusinessProfileQuestionWizard } from "@/components/business/business-profile-question-wizard"
 import { DashboardContent } from "@/components/layout/dashboard-subpage-layout"
 import type { Metadata } from "next"
 
@@ -11,7 +11,7 @@ export default function CompanySetupPage() {
   return (
     <DashboardContent>
       <div className="mx-auto max-w-2xl">
-        <CompanySetupWizard />
+        <BusinessProfileQuestionWizard />
       </div>
     </DashboardContent>
   )

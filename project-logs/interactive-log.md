@@ -10,15 +10,17 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **User Goal**: Replace the large Business Profile setup form with a compact modal-based question
   wizard that feels like guided onboarding instead of a database admin form.
 - **Changes**:
-  1. Replace the inline multi-section setup card with a lightweight profile status card and a
-     centered Business Profile Assistant modal.
+  1. Replace the inline multi-section setup card with the dedicated
+     `BusinessProfileQuestionWizard` component, a launcher-only setup entry, and a centered
+     Business Profile Assistant modal.
   2. Show one setup question at a time with Step X of Y progress, one answer area, Back, Next, Skip
      optional question, and Save progress controls.
   3. Add conditional flow for USA state selection, VAT/sales-tax registration, country tax
      suggestions, and employee contribution skips.
   4. Keep repeatable taxes, employer contributions, business insurances, and fixed costs as
      one-by-one additions inside the current question.
-  5. Add final review with edit buttons and green completion feedback after confirmation.
+  5. Add final review with edit buttons, green completion feedback after confirmation, and a saved
+     profile summary outside the modal.
 - **Problems Marked**:
   - `observation`: The mismatch was UX structure, not persistence or analysis plumbing.
   - `risk`: Country and tax defaults must remain editable suggestions, not fixed facts.

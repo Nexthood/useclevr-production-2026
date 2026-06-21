@@ -3,6 +3,12 @@
 This file summarizes current project activity. Detailed session records live in
 [interactive-log.md](interactive-log.md).
 
+## 2026-06-21
+
+- Replace the user-facing Business Profile setup entry with the dedicated
+  `BusinessProfileQuestionWizard` modal flow, show only the Business Profile Setup launcher before
+  onboarding starts, and show the saved profile summary after completion.
+
 ## 2026-06-20
 
 - Build a global Business Profile wizard with editable country suggestions, repeatable taxes,
