@@ -22,7 +22,7 @@ export default async function SubscriptionSettingsPage() {
     usage.subscriptionTier === "superadmin";
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="min-w-0 bg-card border-border">
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
@@ -80,8 +80,8 @@ export default async function SubscriptionSettingsPage() {
             </p>
           )}
         </div>
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <div>
+        <div className="flex min-w-0 items-center justify-between gap-3 pt-2">
+          <div className="min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary mb-2">
               <Sparkles className="h-3 w-3" />
               Pricing
@@ -98,7 +98,7 @@ export default async function SubscriptionSettingsPage() {
             </Button>
           </Link>
         </div>
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {billingSettings.plans
             .filter((plan) => plan.id !== "pro_annual")
             .map((plan) => {
@@ -108,11 +108,11 @@ export default async function SubscriptionSettingsPage() {
                 (plan.tier === "business" && usage.subscriptionTier === "business");
 
               return (
-                <div key={plan.id} className="rounded-lg border border-border bg-background p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                <div key={plan.id} className="min-w-0 rounded-lg border border-border bg-background p-4">
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="font-semibold text-foreground">{plan.name}</p>
-                      <p className="text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
+                      <p className="break-words text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
                     </div>
                     {isCurrent && (
                       <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
@@ -120,7 +120,7 @@ export default async function SubscriptionSettingsPage() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-3 min-h-10 text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="mt-3 min-h-10 break-words text-sm text-muted-foreground">{plan.description}</p>
                   {isCurrent ? (
                     <Button
                       disabled

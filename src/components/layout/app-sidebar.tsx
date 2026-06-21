@@ -32,6 +32,7 @@ const primaryNavigation = [
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Business", href: "/app/business", icon: Building2 },
   { name: "Accountancy", href: "/app/accountancy", icon: Receipt },
+  { name: "Retail", href: "/app/retail", icon: Building2 },
   { name: "Referral", href: "/app/referral", icon: Gift },
 ];
 
