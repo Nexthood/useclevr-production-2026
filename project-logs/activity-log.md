@@ -1,4 +1,5 @@
-- feat: add Retail & Inventory Analysis module (sidebar and page)
+- fix: add top margin to Downloads page main content to prevent header overlap
+- fix: move Upload CSV/Excel card 1cm lower on Retail page to avoid header overlap
 - fix: widen Account settings main content so subscription plan cards and buttons stay visible
 - fix: center and widen Account settings checkout review and terms panels
 - fix: make Account settings checkout terms and payment step a wider compact two-column panel

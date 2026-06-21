@@ -389,7 +389,7 @@ export default function DownloadsPage() {
           </Button>
       )}
     >
-      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 mt-4">
         <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6 pt-6">
           {/* Error display */}
           {error && (

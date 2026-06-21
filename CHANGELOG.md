@@ -1,3 +1,3 @@
-### Added
+### Fixed
 
-- Retail & Inventory Analysis module: New sidebar navigation item and dedicated Retail page for sales/inventory data upload with profit analysis features (labels: ui, retail).
+- Center billing review panel to prevent sidebar squeezing on Account/Settings page
