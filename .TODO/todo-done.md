@@ -139,6 +139,8 @@ moving work between states.
 
 ## Label: billing
 
+- T-866. Upgrade to Pro modals show selected plan pricing, expose a secure checkout action, create Stripe Checkout sessions directly, and show visible checkout errors when payment setup fails. (labels: billing, payment, ui; commit: worktree)
+
 - T-785. Give signed-in accounts a 14-day analyst trial from account creation, preserve two free credits after the trial, and require authentication for usage and checkout account actions. (labels: billing, auth, security; commit: worktree)
 - T-540. Sales one-pager created from project brief, business case, product description, and marketing plan. (labels: billing, business, reports, sales; commit: 3e8d4602)
 - T-429. Split 906-line chat route into focused modules: validation, SQL executor, explanation, fallback, and utils. (labels: billing, api, data, testing; commit: 53deaed7)

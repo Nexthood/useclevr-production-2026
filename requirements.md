@@ -91,6 +91,10 @@ Text rules for this file:
   enough width for plan details, terms, and action buttons.
 - Show selected-plan terms and payment confirmation in a compact two-column desktop layout with
   terms beside accept/payment actions.
+- Show Upgrade to Pro modals with the selected plan name, monthly or annual price, and a visible secure-checkout button.
+- Start a Stripe Checkout session immediately when the user confirms Upgrade to Pro from an upgrade modal.
+- Redirect successful Upgrade to Pro checkout session creation to the Stripe-hosted checkout page.
+- Show a visible checkout error in the upgrade modal when Stripe Checkout session creation fails.
 - Use a checkout review step before terms acceptance and payment.
 - Start the secure payment flow after terms acceptance.
 - Verify successful checkout sessions against the signed-in user.

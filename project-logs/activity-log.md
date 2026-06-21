@@ -1,3 +1,4 @@
+- fixed: show Upgrade to Pro plan price and secure checkout action, create Stripe Checkout directly, and show visible modal errors
 - changed: show Accountancy as a Pre-bookkeeping center for new users with document upload, package generation, Business Profile context, export options, and accountant handoff fields
 - changed: show every Retail Inventory Analyst result row in scrollable low-stock, dead-stock, and top-profit tables with sticky headers
 - changed: make Retail Inventory Analyst cards product-specific with SKU, stock, sales, profit, margin, last-sale, order detail, and owner action guidance
