@@ -8,6 +8,7 @@ import { TopbarPanelLink, TopbarSection } from "@/components/ui/topbar-section";
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { getSetupStatus } from "@/lib/business/company-setup-store";
 import { BriefcaseBusiness, CreditCard, GraduationCap, HelpCircle, Shield, UserCircle } from "lucide-react";
 import Link from "next/link";
 import pkg from "../../../package.json";
@@ -32,6 +33,11 @@ export default async function Topbar() {
       : usage.trialActive
         ? `Trial: ${usage.trialDaysRemaining}d`
         : usage.subscriptionTier || "Free";
+
+  // Get business profile completion
+  const setupStatus = userId ? await getSetupStatus(userId) : null
+  const profileCompletion = setupStatus?.setupAccuracy ?? 0
+  const businessValue = `${profileCompletion}% ${levelLabel}`
 
   return (
     <div className="app-topbar sticky top-0 z-[110] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">
@@ -60,7 +66,7 @@ export default async function Topbar() {
           <TopbarSection
             icon={<BriefcaseBusiness className="h-4 w-4" />}
             label="Business"
-            value={levelLabel}
+            value={businessValue}
             iconOnly
           >
             <TopbarPanelLink href="/app/business">Business</TopbarPanelLink>

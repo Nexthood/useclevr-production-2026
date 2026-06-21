@@ -1,166 +1,99 @@
-"use client"
+import { BusinessProfileQuestionWizard } from "@/components/business/business-profile-question-wizard"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertTriangle, Building2, CheckCircle2, ChevronRight, Sparkles, TriangleAlert } from "lucide-react"
+import Link from "next/link"
+import type { Metadata } from "next"
+import { getSetupStatus } from "@/lib/business/company-setup-store"
+import { auth } from "@/lib/auth/auth"
 
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Building2, CheckCircle2, Sparkles, ArrowLeft, ArrowRight } from "lucide-react"
-import * as React from "react"
-
-type Question = {
-  id: string
-  title: string
-  helper: string
-  optional?: boolean
+export const metadata: Metadata = {
+  title: "Business - UseClevr",
 }
 
-const QUESTIONS: Question[] = [
-  { id: "companyName", title: "What is your company name?", helper: "Use the legal or operating name you want analysis reports to use." },
-  { id: "country", title: "Which country is your business registered in?", helper: "Country only loads suggestions. You confirm every value before analysis uses it." },
-  { id: "legalStructure", title: "What is your legal structure?", helper: "Choose the closest option. You can change it later." },
-  { id: "industry", title: "What industry are you in?", helper: "This helps the AI understand normal revenue, cost, and risk patterns." },
-  { id: "currency", title: "What currency do you use?", helper: "Analysis uses this for KPIs, reports, tax estimates, and margin calculations." },
-  { id: "employees", title: "Do you have employees?", helper: "Payroll assumptions are used only when employees or payroll data exist.", optional: true },
-  { id: "revenueModel", title: "What is your revenue model?", helper: "Select the models that best describe how revenue is generated." },
-  { id: "targetMargin", title: "What is your target margin?", helper: "Analysis compares uploaded margins against this target.", optional: true },
-]
+export default async function BusinessPage() {
+  const session = await auth()
+  const userId = session?.user?.id
+  const setupStatus = userId ? await getSetupStatus(userId) : null
 
-function getStoredAnswers(): Record<string, string> {
-  if (typeof window === "undefined") return {}
-  try {
-    return JSON.parse(localStorage.getItem("businessProfileAnswers") || "{}")
-  } catch {
-    return {}
-  }
-}
-
-function setStoredAnswers(answers: Record<string, string>) {
-  localStorage.setItem("businessProfileAnswers", JSON.stringify(answers))
-}
-
-export default function BusinessPage() {
-  const [isOpen, setIsOpen] = React.useState(false)
-  const [answers, setAnswers] = React.useState<Record<string, string>>({})
-  const [currentAnswer, setCurrentAnswer] = React.useState("")
-  const [stepIndex, setStepIndex] = React.useState(0)
-  const [completed, setCompleted] = React.useState(false)
-
-  const progress = Math.round(((stepIndex + 1) / QUESTIONS.length) * 100)
-  const currentQuestion = QUESTIONS[stepIndex]
-  const isLastStep = stepIndex === QUESTIONS.length - 1
-
-  React.useEffect(() => {
-    setAnswers(getStoredAnswers())
-  }, [])
-
-  function handleNext() {
-    const newAnswers = { ...answers, [currentQuestion.id]: currentAnswer }
-    setAnswers(newAnswers)
-    setStoredAnswers(newAnswers)
-
-    if (isLastStep) {
-      setCompleted(true)
-    } else {
-      const nextIndex = stepIndex + 1
-      const nextQuestionId = QUESTIONS[nextIndex]?.id
-      setStepIndex(nextIndex)
-      setCurrentAnswer(newAnswers[nextQuestionId] || "")
-    }
-  }
-
-  function handleBack() {
-    if (stepIndex > 0) {
-      const prevIndex = stepIndex - 1
-      setStepIndex(prevIndex)
-      setCurrentAnswer(answers[QUESTIONS[prevIndex].id] || "")
-    }
-  }
-
-  function openModal() {
-    const stored = getStoredAnswers()
-    setAnswers(stored)
-    setStepIndex(0)
-    setCurrentAnswer(stored[QUESTIONS[0]?.id] || "")
-    setCompleted(false)
-    setIsOpen(true)
-  }
-
-  function closeModal() {
-    setIsOpen(false)
-  }
+  const completionPercent = setupStatus?.setupAccuracy ?? 0
+  const hasIncompleteProfile = completionPercent < 80
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-5">
-      <div className="mx-auto max-w-md text-center">
+      <div className="mx-auto max-w-2xl text-center">
         <Building2 className="mx-auto mb-4 h-12 w-12 text-primary" />
         <h1 className="mb-2 text-2xl font-bold">Business Overview</h1>
         <p className="mb-6 text-muted-foreground">
-          Manage your business profiles and company data for better analysis.
+          Manage the profile values that shape tax, payroll, margin, cash-flow, and risk analysis.
         </p>
-        <Button onClick={openModal} size="lg" className="min-w-56">
-          <Sparkles className="mr-2 h-4 w-4" />
-          Start Business Profile Setup
-        </Button>
+
+        {hasIncompleteProfile ? (
+          <Card className="mb-6 border-red-500/30 bg-red-500/10 text-left">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-200">
+                <AlertTriangle className="h-5 w-5" />
+                Business Profile Required
+              </CardTitle>
+              <CardDescription className="text-red-700 dark:text-red-300">
+                Tax, payroll, insurance, fixed costs, profitability, forecasting, and KPI calculations depend on Business Profile data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                Complete your Business Profile to get accurate analysis. Without it, profit margins, tax calculations, and cash-flow projections will be incomplete.
+              </p>
+              <Link
+                href="/app/business/setup"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Complete Business Profile ({completionPercent}%)
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-6 border-emerald-500/30 bg-emerald-500/10 text-left">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+                <CheckCircle2 className="h-5 w-5" />
+                Business Profile Complete
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                Your profile is {completionPercent}% complete. All analysis features are available.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {setupStatus?.accountantReviewFlags && setupStatus.accountantReviewFlags.length > 0 && (
+          <Card className="mb-6 border-amber-500/30 bg-amber-500/10 text-left">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <TriangleAlert className="h-5 w-5" />
+                Analysis Confidence Warnings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
+                {setupStatus.accountantReviewFlags.slice(0, 3).map((flag) => (
+                  <li key={flag}>• {flag}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        <BusinessProfileQuestionWizard />
+        <Link
+          href="/app/business/setup"
+          className="mt-3 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          Open full setup page
+          <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
       </div>
-
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-md overflow-y-auto p-0">
-          <div className="border-b border-border p-5">
-            <DialogHeader className="pr-8">
-              <DialogTitle>Business Profile Assistant</DialogTitle>
-              <DialogDescription>Step {stepIndex + 1} of {QUESTIONS.length}</DialogDescription>
-            </DialogHeader>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          <div className="space-y-5 p-5">
-            {completed ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center text-emerald-700 dark:text-emerald-300">
-                <CheckCircle2 className="mb-3 h-14 w-14" />
-                <h3 className="text-xl font-semibold">Business Profile completed</h3>
-                <p className="mt-2 text-sm">Your profile is saved and ready to use.</p>
-                <Button type="button" className="mt-5" onClick={closeModal}>
-                  View saved profile summary
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">{currentQuestion.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{currentQuestion.helper}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-4">
-                  <Input
-                    value={currentAnswer}
-                    onChange={(e) => setCurrentAnswer(e.target.value)}
-                    placeholder="Enter your answer"
-                    className="h-12 text-base"
-                    autoFocus
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {!completed && (
-            <DialogFooter className="border-t border-border p-5 sm:justify-between">
-              <Button type="button" variant="outline" onClick={handleBack} disabled={stepIndex === 0}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <div className="flex gap-2">
-                {currentQuestion.optional && (
-                  <Button type="button" variant="ghost" onClick={() => setStepIndex(stepIndex + 1)}>Skip optional question</Button>
-                )}
-                <Button type="button" onClick={handleNext}>
-                  {isLastStep ? "Finish" : "Next"}
-                  {!isLastStep && <ArrowRight className="ml-2 h-4 w-4" />}
-                </Button>
-              </div>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

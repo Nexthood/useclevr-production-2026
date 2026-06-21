@@ -120,6 +120,18 @@ Text rules for this file:
 - Show only the Business Profile Setup launcher before onboarding starts, then show the saved
   profile summary after completion.
 - Keep Business Profile setup out of long-form database-admin layouts.
+- Collect at least 25 owner-answerable Business Profile questions covering company identity,
+  country, state or region, legal structure, industry, business model, currency, fiscal year,
+  VAT or sales-tax registration, VAT or sales-tax rate, corporate or income tax rate, local or
+  state or trade tax, tax payment frequency, employee count, payroll salary, employer
+  contributions, health insurance, pension or retirement, unemployment insurance, workers
+  compensation, business insurance, fixed costs, debt or leasing payments, inventory or material
+  cost percentage, payment processing fees, return or refund rate, gross margin target, net margin
+  target, cash reserve target, and growth target.
+- Skip payroll salary and employer-contribution questions when employee count is 0, skip the VAT
+  or sales-tax rate question when the business is not tax registered, show USA state and
+  sales/payroll tax fields for USA businesses, and show VAT plus corporate or income tax fields for
+  EU businesses.
 - Collect company information, editable country tax suggestions, unlimited tax entries, employer
   contributions, insurance, fixed costs, revenue model, cost structure, and business goals.
 - Keep Business Profile global across countries and require users to confirm or edit every

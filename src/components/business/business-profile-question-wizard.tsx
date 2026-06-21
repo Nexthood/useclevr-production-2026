@@ -13,12 +13,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   BUSINESS_TYPES,
-  CONTRIBUTION_TYPES,
   CURRENCIES,
-  FIXED_COST_CATEGORIES,
   INSURANCE_TYPES,
   LEGAL_STRUCTURES,
-  TAX_ENTRY_TYPES,
   buildSetupStatus,
   emptyCompanySetupPayload,
   normalizeCompanySetupPayload,
@@ -28,7 +25,7 @@ import {
   type InsuranceEntry,
   type TaxEntry,
 } from "@/lib/business/company-setup"
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Plus, Save, Sparkles, Trash2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, Sparkles } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 type QuestionId =
@@ -37,16 +34,36 @@ type QuestionId =
   | "stateRegion"
   | "legalStructure"
   | "industry"
+  | "businessModel"
   | "currency"
   | "fiscalYear"
   | "taxRegistered"
-  | "taxEntries"
+  | "taxRate"
+  | "corporateTaxRate"
+  | "localStateTradeTax"
+  | "taxFrequency"
   | "employees"
-  | "contributions"
-  | "insurance"
-  | "fixedCosts"
-  | "revenueModel"
-  | "targetMargin"
+  | "averageGrossSalary"
+  | "employerContribution"
+  | "healthInsuranceContribution"
+  | "pensionContribution"
+  | "unemploymentContribution"
+  | "workersCompContribution"
+  | "insuranceTypes"
+  | "insuranceMonthlyCost"
+  | "rentOfficeCost"
+  | "utilitiesCost"
+  | "softwareSaasCost"
+  | "marketingCost"
+  | "logisticsShippingCost"
+  | "loanLeasingPayments"
+  | "inventoryMaterialCost"
+  | "paymentProcessingFees"
+  | "returnRefundRate"
+  | "targetGrossMargin"
+  | "targetNetMargin"
+  | "cashReserveTarget"
+  | "growthTarget"
   | "review"
 
 type Question = {
@@ -62,16 +79,36 @@ const BASE_QUESTIONS: Question[] = [
   { id: "stateRegion", title: "Which state or region applies?", helper: "Required for USA and useful anywhere regional taxes or compliance apply.", optional: true },
   { id: "legalStructure", title: "What is your legal structure?", helper: "Choose the closest option. You can change it later." },
   { id: "industry", title: "What industry are you in?", helper: "This helps the AI understand normal revenue, cost, and risk patterns." },
+  { id: "businessModel", title: "What is your business model?", helper: "Pick every model that fits so revenue and cost assumptions match your actual operation." },
   { id: "currency", title: "What currency do you use?", helper: "Analysis uses this for KPIs, reports, tax estimates, and margin calculations." },
   { id: "fiscalYear", title: "What is your fiscal year?", helper: "Add the start and end used for business reporting." },
-  { id: "taxRegistered", title: "Are you VAT or sales-tax registered?", helper: "This controls whether VAT/sales-tax details appear in the next step.", optional: true },
-  { id: "employees", title: "Do you have employees?", helper: "Payroll assumptions are used only when employees or payroll data exist.", optional: true },
-  { id: "taxEntries", title: "Add relevant taxes, one by one.", helper: "Suggestions are editable. Nothing is treated as fact until you add and confirm it.", optional: true },
-  { id: "contributions", title: "Add employer contributions, one by one.", helper: "Include health, pension, social security, unemployment, or local employer costs.", optional: true },
-  { id: "insurance", title: "Add business insurances, one by one.", helper: "Insurance costs improve operating cost, cashflow, and risk analysis.", optional: true },
-  { id: "fixedCosts", title: "Add fixed monthly costs, one by one.", helper: "Recurring fixed costs are included even when the uploaded file omits them.", optional: true },
-  { id: "revenueModel", title: "What is your revenue model?", helper: "Select the models that best describe how revenue is generated." },
-  { id: "targetMargin", title: "What is your target margin?", helper: "Analysis compares uploaded margins against this target.", optional: true },
+  { id: "taxRegistered", title: "Are you VAT or sales-tax registered?", helper: "This controls whether indirect tax rates are included in analysis.", optional: true },
+  { id: "taxRate", title: "What VAT or sales-tax rate applies?", helper: "Use the standard rate that applies to most revenue, or skip if it varies by product.", optional: true },
+  { id: "corporateTaxRate", title: "What corporate or income tax rate applies?", helper: "This helps estimate after-tax profit and cash reserve needs.", optional: true },
+  { id: "localStateTradeTax", title: "What local, state, or trade tax rate applies?", helper: "USA businesses can add state/local tax; EU businesses can add trade or local business tax.", optional: true },
+  { id: "taxFrequency", title: "How often do you pay tax?", helper: "Payment timing improves cash-flow and tax reserve analysis.", optional: true },
+  { id: "employees", title: "How many employees do you have?", helper: "Enter 0 if there are no employees. Payroll questions are skipped when this is 0.", optional: true },
+  { id: "averageGrossSalary", title: "What is the average gross salary?", helper: "Use the average monthly gross salary per employee for payroll estimates.", optional: true },
+  { id: "employerContribution", title: "What employer contribution percentage applies?", helper: "Include social security or employer payroll burden not covered by the employee salary.", optional: true },
+  { id: "healthInsuranceContribution", title: "What health insurance contribution applies?", helper: "Add the employer-side health insurance percentage or monthly cost.", optional: true },
+  { id: "pensionContribution", title: "What pension or retirement contribution applies?", helper: "Add the employer-side pension, retirement, or superannuation amount.", optional: true },
+  { id: "unemploymentContribution", title: "What unemployment insurance contribution applies?", helper: "Add the unemployment insurance burden used in payroll analysis.", optional: true },
+  { id: "workersCompContribution", title: "What accident or workers compensation contribution applies?", helper: "Add accident insurance or workers compensation rates where required.", optional: true },
+  { id: "insuranceTypes", title: "Which business insurance types do you carry?", helper: "Select policies that affect operating cost and risk calculations.", optional: true },
+  { id: "insuranceMonthlyCost", title: "What is your monthly insurance cost?", helper: "Use total business insurance premiums per month.", optional: true },
+  { id: "rentOfficeCost", title: "What is your monthly rent or office cost?", helper: "Recurring property costs are included even when uploaded data omits them.", optional: true },
+  { id: "utilitiesCost", title: "What is your monthly utilities cost?", helper: "Include electricity, water, heating, internet, or similar operating utilities.", optional: true },
+  { id: "softwareSaasCost", title: "What is your monthly software or SaaS cost?", helper: "Include tools, subscriptions, hosting, and cloud services.", optional: true },
+  { id: "marketingCost", title: "What is your monthly marketing cost?", helper: "Marketing spend helps compare acquisition cost against revenue and margin.", optional: true },
+  { id: "logisticsShippingCost", title: "What is your monthly logistics or shipping cost?", helper: "Shipping and logistics improve product, retail, and fulfillment margin analysis.", optional: true },
+  { id: "loanLeasingPayments", title: "What monthly loan or leasing payments do you make?", helper: "Debt and leasing payments affect cash flow, reserves, and risk.", optional: true },
+  { id: "inventoryMaterialCost", title: "What inventory or material cost percentage applies?", helper: "Use the average cost percentage of revenue for products, inventory, or materials.", optional: true },
+  { id: "paymentProcessingFees", title: "What payment processing fee percentage applies?", helper: "Card, marketplace, or payment provider fees affect net margin.", optional: true },
+  { id: "returnRefundRate", title: "What return or refund rate applies?", helper: "Return rates help analysis account for revenue leakage and stock risk.", optional: true },
+  { id: "targetGrossMargin", title: "What is your target gross margin?", helper: "Analysis compares uploaded gross margin against this target.", optional: true },
+  { id: "targetNetMargin", title: "What is your target net margin?", helper: "Net margin targets help evaluate total operating cost and profitability.", optional: true },
+  { id: "cashReserveTarget", title: "What monthly cash reserve target do you want?", helper: "Set the cash buffer needed for tax, payroll, rent, debt, and risk.", optional: true },
+  { id: "growthTarget", title: "What is your growth target?", helper: "Use a monthly or annual revenue growth target so forecasts have a benchmark.", optional: true },
   { id: "review", title: "Review and confirm.", helper: "Edit any answer before saving the Business Profile as analysis context." },
 ]
 
@@ -81,21 +118,6 @@ const EU_COUNTRIES = new Set([
   "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "nederland", "poland",
   "portugal", "romania", "slovakia", "slovenia", "spain", "sweden",
 ])
-
-const COUNTRY_TAX_SUGGESTIONS: Record<string, string[]> = {
-  germany: ["VAT", "Corporate Tax", "Trade Tax", "Payroll Tax"],
-  deutschland: ["VAT", "Corporate Tax", "Trade Tax", "Payroll Tax"],
-  usa: ["Federal Tax", "State Tax", "Sales Tax", "Payroll Tax"],
-  "united states": ["Federal Tax", "State Tax", "Sales Tax", "Payroll Tax"],
-  netherlands: ["BTW", "Corporate Tax", "Payroll Tax"],
-  nederland: ["BTW", "Corporate Tax", "Payroll Tax"],
-  romania: ["VAT", "Corporate Tax", "CAS", "CASS"],
-  uk: ["VAT", "Corporation Tax", "PAYE", "National Insurance"],
-  "united kingdom": ["VAT", "Corporation Tax", "PAYE", "National Insurance"],
-  canada: ["GST/HST", "Corporate Tax", "Payroll Tax"],
-  australia: ["GST", "Company Tax", "Payroll Tax", "Superannuation"],
-  switzerland: ["VAT", "Corporate Tax", "Cantonal Tax", "Social Security"],
-}
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
@@ -124,16 +146,36 @@ function isEU(country: string) {
   return EU_COUNTRIES.has(normalizedCountry(country))
 }
 
-function countrySuggestions(country: string, taxRegistered: string) {
-  const suggestions = COUNTRY_TAX_SUGGESTIONS[normalizedCountry(country)] || []
-  if (taxRegistered === "no") {
-    return suggestions.filter((item) => !/vat|sales tax|gst|hst|btw/i.test(item))
-  }
-  return suggestions
-}
-
 function selectOptions(options: string[]) {
   return options.map((option) => ({ value: option, label: option }))
+}
+
+function taxEntryValue(entries: TaxEntry[], taxTypes: string[], field: "percentage" | "fixedAmount" | "frequency") {
+  const match = entries.find((entry) => taxTypes.some((taxType) => entry.taxType.toLowerCase() === taxType.toLowerCase()))
+  return match?.[field] || ""
+}
+
+function contributionValue(entries: EmployerContribution[], contributionType: string, field: "percentage" | "monthlyCost" | "annualCost") {
+  const match = entries.find((entry) => entry.contributionType.toLowerCase() === contributionType.toLowerCase())
+  return match?.[field] || ""
+}
+
+function fixedCostValue(entries: FixedCostEntry[], costCategory: string, field: "monthlyCost" | "annualCost") {
+  const match = entries.find((entry) => entry.costCategory.toLowerCase() === costCategory.toLowerCase())
+  return match?.[field] || ""
+}
+
+function taxTypeForIndirectTax(country: string) {
+  if (isUSA(country)) return "Sales Tax"
+  const normalized = normalizedCountry(country)
+  if (normalized === "canada") return "GST/HST"
+  if (normalized === "australia") return "GST"
+  if (normalized === "netherlands" || normalized === "nederland") return "BTW"
+  return "VAT"
+}
+
+function regionalTaxType(country: string) {
+  return isUSA(country) ? "State Tax" : isEU(country) ? "Trade Tax" : "Local Tax"
 }
 
 export function BusinessProfileQuestionWizard() {
@@ -144,23 +186,34 @@ export function BusinessProfileQuestionWizard() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [completed, setCompleted] = useState(false)
-  const [draftTax, setDraftTax] = useState<TaxEntry>(() => emptyTaxEntry())
-  const [draftContribution, setDraftContribution] = useState<EmployerContribution>(() => emptyContribution())
-  const [draftInsurance, setDraftInsurance] = useState<InsuranceEntry>(() => emptyInsurance())
-  const [draftFixedCost, setDraftFixedCost] = useState<FixedCostEntry>(() => emptyFixedCost())
 
   const status = useMemo(() => buildSetupStatus(payload), [payload])
-  const hasEmployees = payload.companyInfo.employeeCount !== "0"
+  const employeeCount = payload.companyInfo.employeeCount.trim().toLowerCase()
+  const hasEmployees = Boolean(employeeCount) && employeeCount !== "0" && employeeCount !== "no" && employeeCount !== "not_sure"
+  const isUsBusiness = isUSA(payload.companyInfo.country)
+  const isEuBusiness = isEU(payload.companyInfo.country)
   const visibleQuestions = useMemo(() => {
     return BASE_QUESTIONS.filter((question) => {
-      if (question.id === "stateRegion") return isUSA(payload.companyInfo.country) || Boolean(payload.companyInfo.stateRegion)
-      if (question.id === "contributions") return hasEmployees
+      if (question.id === "stateRegion") return isUsBusiness || Boolean(payload.companyInfo.stateRegion)
+      if (question.id === "taxRate") return payload.taxSettings.taxRegistered === "yes"
+      if (
+        [
+          "averageGrossSalary",
+          "employerContribution",
+          "healthInsuranceContribution",
+          "pensionContribution",
+          "unemploymentContribution",
+          "workersCompContribution",
+        ].includes(question.id)
+      ) {
+        return hasEmployees
+      }
+      if (question.id === "localStateTradeTax") return isUsBusiness || isEuBusiness || Boolean(taxEntryValue(payload.taxSettings.taxEntries, ["Local Tax", "State Tax", "Trade Tax"], "percentage"))
       return true
     })
-  }, [hasEmployees, payload.companyInfo.country, payload.companyInfo.stateRegion])
+  }, [hasEmployees, isEuBusiness, isUsBusiness, payload.companyInfo.stateRegion, payload.taxSettings.taxEntries, payload.taxSettings.taxRegistered])
   const activeQuestion = visibleQuestions[Math.min(activeIndex, visibleQuestions.length - 1)] || visibleQuestions[0]
   const progress = Math.round(((Math.min(activeIndex, visibleQuestions.length - 1) + 1) / visibleQuestions.length) * 100)
-  const suggestions = countrySuggestions(payload.companyInfo.country, payload.taxSettings.taxRegistered)
 
   const update = useCallback(<K extends keyof CompanySetupPayload>(section: K, values: Partial<CompanySetupPayload[K]>) => {
     setPayload((previous) => {
@@ -239,41 +292,55 @@ export function BusinessProfileQuestionWizard() {
     void save(activeIndex + 1)
   }
 
-  function addTax(entry: TaxEntry = draftTax) {
-    const taxType = entry.taxType.trim()
-    if (!taxType && !entry.percentage && !entry.fixedAmount) return
-    update("taxSettings", {
-      taxEntries: [
-        ...payload.taxSettings.taxEntries,
-        { ...entry, id: uid("tax"), taxType: taxType || "Other", confirmed: true },
-      ],
-    })
-    setDraftTax(emptyTaxEntry())
+  function upsertTaxEntry(taxType: string, values: Partial<TaxEntry>) {
+    const existing = payload.taxSettings.taxEntries.findIndex((entry) => entry.taxType.toLowerCase() === taxType.toLowerCase())
+    const nextEntry: TaxEntry = {
+      ...emptyTaxEntry(),
+      ...(existing >= 0 ? payload.taxSettings.taxEntries[existing] : {}),
+      ...values,
+      id: existing >= 0 ? payload.taxSettings.taxEntries[existing].id : uid("tax"),
+      taxType,
+      confirmed: true,
+    }
+    const taxEntries = existing >= 0
+      ? payload.taxSettings.taxEntries.map((entry, index) => (index === existing ? nextEntry : entry))
+      : [...payload.taxSettings.taxEntries, nextEntry]
+    update("taxSettings", { taxEntries })
   }
 
-  function addSuggestedTax(taxType: string) {
-    addTax({ ...emptyTaxEntry(), taxType })
+  function upsertContribution(contributionType: string, values: Partial<EmployerContribution>) {
+    const existing = payload.employerContributions.findIndex((entry) => entry.contributionType.toLowerCase() === contributionType.toLowerCase())
+    const nextEntry: EmployerContribution = {
+      ...emptyContribution(),
+      ...(existing >= 0 ? payload.employerContributions[existing] : {}),
+      ...values,
+      id: existing >= 0 ? payload.employerContributions[existing].id : uid("contribution"),
+      contributionType,
+    }
+    const employerContributions = existing >= 0
+      ? payload.employerContributions.map((entry, index) => (index === existing ? nextEntry : entry))
+      : [...payload.employerContributions, nextEntry]
+    replace({ employerContributions })
   }
 
-  function addContribution() {
-    if (!draftContribution.contributionType && !draftContribution.percentage && !draftContribution.monthlyCost && !draftContribution.annualCost) return
-    replace({ employerContributions: [...payload.employerContributions, { ...draftContribution, id: uid("contribution") }] })
-    setDraftContribution(emptyContribution())
+  function upsertFixedCost(costCategory: string, values: Partial<FixedCostEntry>) {
+    const existing = payload.fixedCosts.findIndex((entry) => entry.costCategory.toLowerCase() === costCategory.toLowerCase())
+    const nextEntry: FixedCostEntry = {
+      ...emptyFixedCost(),
+      ...(existing >= 0 ? payload.fixedCosts[existing] : {}),
+      ...values,
+      id: existing >= 0 ? payload.fixedCosts[existing].id : uid("fixed"),
+      costCategory,
+    }
+    const fixedCosts = existing >= 0
+      ? payload.fixedCosts.map((entry, index) => (index === existing ? nextEntry : entry))
+      : [...payload.fixedCosts, nextEntry]
+    replace({ fixedCosts })
   }
 
-  function addInsurance() {
-    if (!draftInsurance.insuranceType && !draftInsurance.provider && !draftInsurance.monthlyCost && !draftInsurance.annualCost) return
-    update("insuranceSettings", {
-      hasBusinessInsurance: "yes",
-      insuranceEntries: [...payload.insuranceSettings.insuranceEntries, { ...draftInsurance, id: uid("insurance") }],
-    })
-    setDraftInsurance(emptyInsurance())
-  }
-
-  function addFixedCost() {
-    if (!draftFixedCost.costCategory && !draftFixedCost.monthlyCost && !draftFixedCost.annualCost) return
-    replace({ fixedCosts: [...payload.fixedCosts, { ...draftFixedCost, id: uid("fixed") }] })
-    setDraftFixedCost(emptyFixedCost())
+  function setBusinessModels(values: string[]) {
+    update("companyInfo", { businessType: values[0] || "" })
+    update("revenueModel", { businessModels: values })
   }
 
   function renderQuestion() {
@@ -303,6 +370,8 @@ export function BusinessProfileQuestionWizard() {
         return <ChoiceAnswer value={payload.companyInfo.legalStructure} options={LEGAL_STRUCTURES.map((item) => ({ value: item.value, label: item.label }))} onChange={(value) => update("companyInfo", { legalStructure: value as CompanySetupPayload["companyInfo"]["legalStructure"] })} />
       case "industry":
         return <TextAnswer value={payload.companyInfo.industry} onChange={(value) => update("companyInfo", { industry: value })} placeholder="SaaS, retail, accounting, logistics..." />
+      case "businessModel":
+        return <MultiChoiceAnswer values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={setBusinessModels} />
       case "currency":
         return <ChoiceAnswer value={payload.currencySettings.primaryCurrency} options={selectOptions(CURRENCIES)} onChange={(value) => update("currencySettings", { primaryCurrency: value, reportingCurrency: value })} />
       case "fiscalYear":
@@ -324,94 +393,158 @@ export function BusinessProfileQuestionWizard() {
             onChange={(value) => update("taxSettings", { taxRegistered: value as CompanySetupPayload["taxSettings"]["taxRegistered"] })}
           />
         )
-      case "taxEntries":
+      case "taxRate": {
+        const taxType = taxTypeForIndirectTax(payload.companyInfo.country)
         return (
-          <RepeatableQuestion
-            suggestions={suggestions}
-            onSuggestion={addSuggestedTax}
-            entries={payload.taxSettings.taxEntries.map((entry) => `${entry.taxType}${entry.percentage ? ` ${entry.percentage}%` : ""}`)}
-            onRemove={(index) => update("taxSettings", { taxEntries: payload.taxSettings.taxEntries.filter((_, itemIndex) => itemIndex !== index) })}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SelectInput label="Tax type" value={draftTax.taxType} options={TAX_ENTRY_TYPES} onChange={(value) => setDraftTax((entry) => ({ ...entry, taxType: value }))} />
-              <LabeledInput label="Percentage" value={draftTax.percentage} onChange={(value) => setDraftTax((entry) => ({ ...entry, percentage: value }))} placeholder="19" />
-              <LabeledInput label="Fixed amount" value={draftTax.fixedAmount} onChange={(value) => setDraftTax((entry) => ({ ...entry, fixedAmount: value }))} placeholder="Optional" />
-              <SelectInput label="Frequency" value={draftTax.frequency} options={["monthly", "quarterly", "annual"]} onChange={(value) => setDraftTax((entry) => ({ ...entry, frequency: value as TaxEntry["frequency"] }))} />
-            </div>
-            <Button type="button" variant="outline" onClick={() => addTax()} className="w-full">
-              <Plus className="mr-2 h-4 w-4" /> Add this tax
-            </Button>
-          </RepeatableQuestion>
+          <div className="space-y-3">
+            <LabeledInput
+              label={`${taxType} rate (%)`}
+              value={payload.taxSettings.standardTaxRate || taxEntryValue(payload.taxSettings.taxEntries, [taxType, "VAT", "Sales Tax", "GST", "GST/HST", "BTW"], "percentage")}
+              onChange={(value) => {
+                update("taxSettings", {
+                  standardTaxRate: value,
+                  taxType: isUSA(payload.companyInfo.country) ? "sales_tax" : "vat",
+                })
+                upsertTaxEntry(taxType, { percentage: value })
+              }}
+              placeholder="19"
+            />
+            <SuggestionNote text={`${taxType} is stored as a confirmed tax assumption for future uploaded-data analysis.`} />
+          </div>
         )
-      case "employees":
+      }
+      case "corporateTaxRate":
+        return (
+          <LabeledInput
+            label={isUSA(payload.companyInfo.country) ? "Federal or income tax rate (%)" : "Corporate or income tax rate (%)"}
+            value={taxEntryValue(payload.taxSettings.taxEntries, ["Corporate Tax", "Income Tax", "Federal Tax", "Corporation Tax"], "percentage")}
+            onChange={(value) => upsertTaxEntry(isUSA(payload.companyInfo.country) ? "Federal Tax" : "Corporate Tax", { percentage: value })}
+            placeholder="21"
+          />
+        )
+      case "localStateTradeTax": {
+        const taxType = regionalTaxType(payload.companyInfo.country)
+        return (
+          <LabeledInput
+            label={`${taxType} rate (%)`}
+            value={taxEntryValue(payload.taxSettings.taxEntries, [taxType, "Local Tax", "State Tax", "Trade Tax"], "percentage")}
+            onChange={(value) => upsertTaxEntry(taxType, { percentage: value })}
+            placeholder={isUSA(payload.companyInfo.country) ? "6.5" : "14"}
+          />
+        )
+      }
+      case "taxFrequency":
         return (
           <ChoiceAnswer
-            value={payload.companyInfo.employeeCount === "0" ? "no" : payload.companyInfo.employeeCount ? "yes" : ""}
+            value={taxEntryValue(payload.taxSettings.taxEntries, ["Corporate Tax", "Income Tax", "Federal Tax", "VAT", "Sales Tax", "GST", "GST/HST", "BTW"], "frequency")}
             options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-              { value: "not_sure", label: "Not sure" },
+              { value: "monthly", label: "Monthly" },
+              { value: "quarterly", label: "Quarterly" },
+              { value: "annual", label: "Annual" },
             ]}
             onChange={(value) => {
-              update("companyInfo", { employeeCount: value === "no" ? "0" : value === "not_sure" ? "not_sure" : payload.companyInfo.employeeCount || "1+" })
-              if (value === "no") replace({ employerContributions: [] })
+              const baseTaxType = payload.taxSettings.taxRegistered === "yes" ? taxTypeForIndirectTax(payload.companyInfo.country) : isUSA(payload.companyInfo.country) ? "Federal Tax" : "Corporate Tax"
+              upsertTaxEntry(baseTaxType, { frequency: value as TaxEntry["frequency"] })
             }}
           />
         )
-      case "contributions":
+      case "employees":
+        return <TextAnswer value={payload.companyInfo.employeeCount} onChange={(value) => {
+          update("companyInfo", { employeeCount: value })
+          if (value.trim() === "0") replace({ employerContributions: [] })
+        }} placeholder="0, 3, 12..." />
+      case "averageGrossSalary":
         return (
-          <RepeatableQuestion
-            entries={payload.employerContributions.map((entry) => `${entry.contributionType}${entry.percentage ? ` ${entry.percentage}%` : ""}`)}
-            onRemove={(index) => replace({ employerContributions: payload.employerContributions.filter((_, itemIndex) => itemIndex !== index) })}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SelectInput label="Contribution" value={draftContribution.contributionType} options={CONTRIBUTION_TYPES} onChange={(value) => setDraftContribution((entry) => ({ ...entry, contributionType: value }))} />
-              <LabeledInput label="Percentage" value={draftContribution.percentage} onChange={(value) => setDraftContribution((entry) => ({ ...entry, percentage: value }))} placeholder="20" />
-              <LabeledInput label="Monthly cost" value={draftContribution.monthlyCost} onChange={(value) => setDraftContribution((entry) => ({ ...entry, monthlyCost: value }))} placeholder="Optional" />
-              <LabeledInput label="Annual cost" value={draftContribution.annualCost} onChange={(value) => setDraftContribution((entry) => ({ ...entry, annualCost: value }))} placeholder="Optional" />
-            </div>
-            <Button type="button" variant="outline" onClick={addContribution} className="w-full">
-              <Plus className="mr-2 h-4 w-4" /> Add contribution
-            </Button>
-          </RepeatableQuestion>
+          <LabeledInput
+            label="Average monthly gross salary"
+            value={contributionValue(payload.employerContributions, "Average Gross Salary", "monthlyCost")}
+            onChange={(value) => upsertContribution("Average Gross Salary", { monthlyCost: value })}
+            placeholder="3500"
+          />
         )
-      case "insurance":
+      case "employerContribution":
+        return <ContributionAnswer label="Employer contribution (%)" type="Employer Contribution" placeholder="20" entries={payload.employerContributions} onChange={upsertContribution} />
+      case "healthInsuranceContribution":
+        return <ContributionAnswer label="Health insurance contribution (%)" type="Health Insurance" placeholder="7.3" entries={payload.employerContributions} onChange={upsertContribution} />
+      case "pensionContribution":
+        return <ContributionAnswer label="Pension / retirement contribution (%)" type="Pension" placeholder="9.3" entries={payload.employerContributions} onChange={upsertContribution} />
+      case "unemploymentContribution":
+        return <ContributionAnswer label="Unemployment insurance contribution (%)" type="Unemployment Insurance" placeholder="1.3" entries={payload.employerContributions} onChange={upsertContribution} />
+      case "workersCompContribution":
+        return <ContributionAnswer label="Accident / workers compensation (%)" type="Workers Compensation" placeholder="1.5" entries={payload.employerContributions} onChange={upsertContribution} />
+      case "insuranceTypes":
         return (
-          <RepeatableQuestion
-            entries={payload.insuranceSettings.insuranceEntries.map((entry) => `${entry.insuranceType}${entry.provider ? ` - ${entry.provider}` : ""}`)}
-            onRemove={(index) => update("insuranceSettings", { insuranceEntries: payload.insuranceSettings.insuranceEntries.filter((_, itemIndex) => itemIndex !== index) })}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SelectInput label="Insurance type" value={draftInsurance.insuranceType} options={INSURANCE_TYPES} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, insuranceType: value }))} />
-              <LabeledInput label="Provider" value={draftInsurance.provider} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, provider: value }))} placeholder="Provider name" />
-              <LabeledInput label="Monthly cost" value={draftInsurance.monthlyCost} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, monthlyCost: value }))} placeholder="Optional" />
-              <LabeledInput label="Coverage amount" value={draftInsurance.coverageAmount} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, coverageAmount: value }))} placeholder="Optional" />
-            </div>
-            <Button type="button" variant="outline" onClick={addInsurance} className="w-full">
-              <Plus className="mr-2 h-4 w-4" /> Add insurance
-            </Button>
-          </RepeatableQuestion>
+          <MultiChoiceAnswer
+            values={payload.insuranceSettings.insuranceTypes}
+            options={INSURANCE_TYPES}
+            onChange={(values) => update("insuranceSettings", {
+              hasBusinessInsurance: values.length > 0 ? "yes" : "",
+              insuranceTypes: values,
+              insuranceEntries: values.map((insuranceType) => payload.insuranceSettings.insuranceEntries.find((entry) => entry.insuranceType === insuranceType) || { ...emptyInsurance(), id: uid("insurance"), insuranceType }),
+            })}
+          />
         )
-      case "fixedCosts":
+      case "insuranceMonthlyCost":
         return (
-          <RepeatableQuestion
-            entries={payload.fixedCosts.map((entry) => `${entry.costCategory}${entry.monthlyCost ? ` - ${entry.monthlyCost}/mo` : ""}`)}
-            onRemove={(index) => replace({ fixedCosts: payload.fixedCosts.filter((_, itemIndex) => itemIndex !== index) })}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SelectInput label="Cost category" value={draftFixedCost.costCategory} options={FIXED_COST_CATEGORIES} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, costCategory: value }))} />
-              <LabeledInput label="Monthly cost" value={draftFixedCost.monthlyCost} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, monthlyCost: value }))} placeholder="500" />
-              <LabeledInput label="Annual cost" value={draftFixedCost.annualCost} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, annualCost: value }))} placeholder="Optional" />
-            </div>
-            <Button type="button" variant="outline" onClick={addFixedCost} className="w-full">
-              <Plus className="mr-2 h-4 w-4" /> Add fixed cost
-            </Button>
-          </RepeatableQuestion>
+          <LabeledInput
+            label="Total monthly insurance cost"
+            value={payload.insuranceSettings.insurancePremiumAmount}
+            onChange={(value) => update("insuranceSettings", { hasBusinessInsurance: value ? "yes" : payload.insuranceSettings.hasBusinessInsurance, insurancePremiumAmount: value, insurancePaymentFrequency: "monthly" })}
+            placeholder="250"
+          />
         )
-      case "revenueModel":
-        return <MultiChoiceAnswer values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={(values) => update("revenueModel", { businessModels: values })} />
-      case "targetMargin":
-        return <TextAnswer value={payload.revenueModel.grossMarginTarget} onChange={(value) => update("revenueModel", { grossMarginTarget: value })} placeholder="30%" />
+      case "rentOfficeCost":
+        return <FixedCostAnswer label="Monthly rent / office cost" category="Rent" placeholder="2500" entries={payload.fixedCosts} onChange={upsertFixedCost} />
+      case "utilitiesCost":
+        return <FixedCostAnswer label="Monthly utilities cost" category="Utilities" placeholder="400" entries={payload.fixedCosts} onChange={upsertFixedCost} />
+      case "softwareSaasCost":
+        return <FixedCostAnswer label="Monthly software / SaaS cost" category="Software" placeholder="600" entries={payload.fixedCosts} onChange={upsertFixedCost} />
+      case "marketingCost":
+        return <FixedCostAnswer label="Monthly marketing cost" category="Marketing" placeholder="1500" entries={payload.fixedCosts} onChange={upsertFixedCost} />
+      case "logisticsShippingCost":
+        return <FixedCostAnswer label="Monthly logistics / shipping cost" category="Logistics" placeholder="900" entries={payload.fixedCosts} onChange={(category, values) => {
+          upsertFixedCost(category, values)
+          update("costStructure", { shippingCosts: values.monthlyCost || payload.costStructure.shippingCosts })
+        }} />
+      case "loanLeasingPayments":
+        return (
+          <LabeledInput
+            label="Monthly loan / leasing payments"
+            value={payload.loanLeasingSettings.monthlyDebtPayment}
+            onChange={(value) => {
+              update("loanLeasingSettings", { hasBusinessLoans: value ? "yes" : payload.loanLeasingSettings.hasBusinessLoans, hasLeasing: value ? "yes" : payload.loanLeasingSettings.hasLeasing, monthlyDebtPayment: value })
+              upsertFixedCost("Loan Payments", { monthlyCost: value })
+            }}
+            placeholder="1200"
+          />
+        )
+      case "inventoryMaterialCost":
+        return (
+          <LabeledInput
+            label="Inventory / material cost (% of revenue)"
+            value={payload.costStructure.inventoryCosts || payload.costStructure.materialCosts}
+            onChange={(value) => update("costStructure", { inventoryCosts: value, materialCosts: value })}
+            placeholder="45"
+          />
+        )
+      case "paymentProcessingFees":
+        return <LabeledInput label="Payment processing fees (% of revenue)" value={payload.costStructure.paymentProcessingFees} onChange={(value) => update("costStructure", { paymentProcessingFees: value })} placeholder="2.9" />
+      case "returnRefundRate":
+        return <LabeledInput label="Return / refund rate (% of revenue or orders)" value={payload.costStructure.returnRates} onChange={(value) => update("costStructure", { returnRates: value })} placeholder="4" />
+      case "targetGrossMargin":
+        return <TextAnswer value={payload.revenueModel.grossMarginTarget} onChange={(value) => update("revenueModel", { grossMarginTarget: value })} placeholder="35%" />
+      case "targetNetMargin":
+        return <TextAnswer value={payload.businessGoals.profitTarget} onChange={(value) => update("businessGoals", { profitTarget: value })} placeholder="12%" />
+      case "cashReserveTarget":
+        return <TextAnswer value={payload.businessGoals.cashReserveTarget} onChange={(value) => update("businessGoals", { cashReserveTarget: value })} placeholder="3 months of operating costs or 50000" />
+      case "growthTarget":
+        return (
+          <TextAnswer
+            value={payload.businessGoals.growthTarget}
+            onChange={(value) => update("businessGoals", { growthTarget: value })}
+            placeholder="10% annual revenue growth"
+          />
+        )
       case "review":
         return <ReviewAnswer payload={payload} status={status} onEdit={(id) => setActiveIndex(Math.max(0, visibleQuestions.findIndex((question) => question.id === id)))} />
       default:
@@ -585,52 +718,54 @@ function MultiChoiceAnswer({ values, options, onChange }: { values: string[]; op
   )
 }
 
-function RepeatableQuestion({
-  children,
+function SuggestionNote({ text }: { text: string }) {
+  return <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">{text}</div>
+}
+
+function ContributionAnswer({
+  label,
+  type,
+  placeholder,
   entries,
-  suggestions = [],
-  onSuggestion,
-  onRemove,
+  onChange,
 }: {
-  children: React.ReactNode
-  entries: string[]
-  suggestions?: string[]
-  onSuggestion?: (value: string) => void
-  onRemove: (index: number) => void
+  label: string
+  type: string
+  placeholder: string
+  entries: EmployerContribution[]
+  onChange: (type: string, values: Partial<EmployerContribution>) => void
 }) {
   return (
-    <div className="space-y-4">
-      {suggestions.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editable country suggestions</p>
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((suggestion) => (
-              <Button key={suggestion} type="button" variant="outline" size="sm" onClick={() => onSuggestion?.(suggestion)}>
-                <Plus className="mr-2 h-4 w-4" /> {suggestion}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-      {entries.length > 0 && (
-        <div className="space-y-2">
-          {entries.map((entry, index) => (
-            <div key={`${entry}_${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-              <span>{entry}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="space-y-3">{children}</div>
-    </div>
+    <LabeledInput
+      label={label}
+      value={contributionValue(entries, type, "percentage")}
+      onChange={(value) => onChange(type, { percentage: value })}
+      placeholder={placeholder}
+    />
   )
 }
 
-function SuggestionNote({ text }: { text: string }) {
-  return <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">{text}</div>
+function FixedCostAnswer({
+  label,
+  category,
+  placeholder,
+  entries,
+  onChange,
+}: {
+  label: string
+  category: string
+  placeholder: string
+  entries: FixedCostEntry[]
+  onChange: (category: string, values: Partial<FixedCostEntry>) => void
+}) {
+  return (
+    <LabeledInput
+      label={label}
+      value={fixedCostValue(entries, category, "monthlyCost")}
+      onChange={(value) => onChange(category, { monthlyCost: value })}
+      placeholder={placeholder}
+    />
+  )
 }
 
 function ReviewAnswer({
@@ -647,14 +782,18 @@ function ReviewAnswer({
     { label: "Country", value: [payload.companyInfo.country, payload.companyInfo.stateRegion].filter(Boolean).join(", ") || "Missing", id: "country" },
     { label: "Legal structure", value: payload.companyInfo.legalStructure || "Missing", id: "legalStructure" },
     { label: "Industry", value: payload.companyInfo.industry || "Missing", id: "industry" },
+    { label: "Business model", value: payload.revenueModel.businessModels.join(", ") || "Missing", id: "businessModel" },
     { label: "Currency", value: payload.currencySettings.primaryCurrency || "Missing", id: "currency" },
     { label: "Fiscal year", value: [payload.companyInfo.fiscalYearStart, payload.companyInfo.fiscalYearEnd].filter(Boolean).join(" to ") || "Missing", id: "fiscalYear" },
-    { label: "Taxes", value: `${payload.taxSettings.taxEntries.length} entries`, id: "taxEntries" },
-    { label: "Contributions", value: `${payload.employerContributions.length} entries`, id: "contributions" },
-    { label: "Insurance", value: `${payload.insuranceSettings.insuranceEntries.length} entries`, id: "insurance" },
-    { label: "Fixed costs", value: `${payload.fixedCosts.length} entries`, id: "fixedCosts" },
-    { label: "Revenue model", value: payload.revenueModel.businessModels.join(", ") || "Missing", id: "revenueModel" },
-    { label: "Target margin", value: payload.revenueModel.grossMarginTarget || "Missing", id: "targetMargin" },
+    { label: "Taxes", value: `${payload.taxSettings.taxEntries.length} entries`, id: "taxRegistered" },
+    { label: "Employees", value: payload.companyInfo.employeeCount || "Missing", id: "employees" },
+    { label: "Payroll assumptions", value: `${payload.employerContributions.length} entries`, id: "employerContribution" },
+    { label: "Insurance", value: payload.insuranceSettings.insuranceTypes.join(", ") || `${payload.insuranceSettings.insuranceEntries.length} entries`, id: "insuranceTypes" },
+    { label: "Fixed costs", value: `${payload.fixedCosts.length} entries`, id: "rentOfficeCost" },
+    { label: "Gross margin target", value: payload.revenueModel.grossMarginTarget || "Missing", id: "targetGrossMargin" },
+    { label: "Net margin target", value: payload.businessGoals.profitTarget || "Missing", id: "targetNetMargin" },
+    { label: "Cash reserve target", value: payload.businessGoals.cashReserveTarget || "Missing", id: "cashReserveTarget" },
+    { label: "Growth target", value: payload.businessGoals.growthTarget || "Missing", id: "growthTarget" },
   ]
 
   return (

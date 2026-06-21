@@ -46,6 +46,7 @@ moving work between states.
 
 ## Label: business
 
+- T-867. Expand Business Profile setup into a professional multi-step wizard with conditional tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth questions for uploaded-data analysis context. (labels: business, ui, data; commit: worktree)
 - T-865. Accountancy shows a pre-bookkeeping empty state, document-upload and package-generation actions, accountant handoff fields, and saved Business Profile accounting context for new-user workflows. (labels: business, ui, workflow; commit: worktree)
 - T-863. Move business profile and accountancy operator workflows into Payload, preserve dashboard data ownership and calculations, and provide tabbed credentials, Google, and LinkedIn admin registration and sign-in. (labels: business, reporting, auth, ui; commit: worktree)
 

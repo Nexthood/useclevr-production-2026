@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatCurrencyCompact, formatCurrencyForKPI, formatPercentage, formatPercentSimple } from "@/lib/utils/formatting"
 import {
-    BarChart3, FileText, Lightbulb, Loader2, Sparkles, Table2, TrendingDown, TrendingUp, X
+    AlertTriangle, BarChart3, FileText, Lightbulb, Loader2, Sparkles, Table2, TrendingDown, TrendingUp, X
 } from "lucide-react"
 import * as React from "react"
 import {
@@ -742,6 +742,17 @@ export function DatasetAnalyzer({
     return (
       <div className="flex min-h-[520px] flex-col items-center justify-center px-2 sm:min-h-[600px]">
         <div className="w-full max-w-lg">
+          {/* Business Profile Warning */}
+          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-amber-950 dark:text-amber-100">
+            <div className="flex items-center gap-2 font-medium mb-1">
+              <AlertTriangle className="h-4 w-4" />
+              Business Profile Required
+            </div>
+            <p className="text-sm">
+              Tax, payroll, insurance, fixed costs, profitability, forecasting, and KPI calculations depend on Business Profile data.
+            </p>
+          </div>
+
           {/* Clean centered card */}
           <div className="rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50/60 to-purple-50/60 px-5 py-10 text-center dark:border-violet-900 dark:from-violet-950/20 dark:to-purple-950/20 sm:px-8 sm:py-12">
             <h2 className="text-xl font-semibold mb-3 text-foreground sm:text-2xl">
