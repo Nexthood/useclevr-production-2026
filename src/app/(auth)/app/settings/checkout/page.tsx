@@ -121,38 +121,39 @@ function CheckoutClient() {
   };
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <span className={step === "review" ? "text-primary" : ""}>1. Review plan</span>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className={step === "terms" ? "text-primary" : ""}>2. Terms &amp; conditions</span>
-        </div>
-        <CardTitle className="text-2xl">
-          {step === "review" ? "Review your plan" : "Accept terms &amp; conditions"}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {step === "review"
-            ? "Upgrade, downgrade, or review billing before payment is enabled."
-            : "Please read and accept the terms and conditions before proceeding."}
-        </p>
-      </CardHeader>
+    <div className="mx-auto w-full max-w-5xl min-w-0">
+      <Card className="min-w-0 border-border bg-card shadow-sm">
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-muted-foreground">
+            <span className={step === "review" ? "text-primary" : ""}>1. Review plan</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className={step === "terms" ? "text-primary" : ""}>2. Terms &amp; conditions</span>
+          </div>
+          <CardTitle className="text-2xl">
+            {step === "review" ? "Review your plan" : "Accept terms &amp; conditions"}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {step === "review"
+              ? "Upgrade, downgrade, or review billing before payment is enabled."
+              : "Please read and accept the terms and conditions before proceeding."}
+          </p>
+        </CardHeader>
 
       <CardContent className="space-y-6">
         {step === "review" && (
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-lg border border-border bg-background p-5">
-              <div className="flex items-center justify-between gap-3">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.75fr)]">
+            <div className="min-w-0 rounded-lg border border-border bg-background p-5">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">{plan.name}</h2>
                 <span className="text-xl font-semibold">{formatPlanPrice(plan)}</span>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
+              <p className="mt-3 break-words text-sm text-muted-foreground">{plan.description}</p>
 
               <div className="mt-5 space-y-2">
                 {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-primary" />
-                    <span>{feature}</span>
+                  <div key={feature} className="flex min-w-0 items-start gap-2 text-sm">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 break-words">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -161,10 +162,10 @@ function CheckoutClient() {
               <div className="mt-5 space-y-2">
                 {availableDiscounts.length > 0 ? (
                   availableDiscounts.map((d) => (
-                    <div key={d.id} className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
-                      <div className="flex items-center gap-2 font-medium text-foreground">
-                        <Tag className="h-4 w-4" />
-                        <span>{d.name}: {d.percent}% off</span>
+                    <div key={d.id} className="min-w-0 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
+                      <div className="flex min-w-0 items-center gap-2 font-medium text-foreground">
+                        <Tag className="h-4 w-4 shrink-0" />
+                        <span className="min-w-0 break-words">{d.name}: {d.percent}% off</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{d.description}</p>
                     </div>
@@ -183,9 +184,9 @@ function CheckoutClient() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-background p-5">
+            <div className="min-w-0 rounded-lg border border-border bg-background p-5">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
+                <FileText className="h-5 w-5 shrink-0 text-primary" />
                 <h2 className="font-semibold">Terms &amp; Conditions</h2>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -210,31 +211,31 @@ function CheckoutClient() {
         )}
 
         {step === "terms" && (
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-background p-5">
+          <div className="mx-auto grid w-full max-w-[960px] min-w-0 gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.85fr)]">
+            <div className="min-w-0 rounded-lg border border-border bg-background p-4">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
+                <FileText className="h-5 w-5 shrink-0 text-primary" />
                 <h2 className="font-semibold">{plan.name} — Terms &amp; Conditions</h2>
               </div>
 
-              <div className="mt-4 max-h-64 overflow-y-auto rounded-lg border border-border bg-muted/30 p-4 text-xs leading-relaxed text-muted-foreground">
-                <p className="mb-3 font-semibold text-foreground">1. General</p>
-                <p className="mb-3">
+              <div className="mt-3 max-h-[22rem] overflow-y-auto rounded-lg border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-2 font-semibold text-foreground">1. General</p>
+                <p className="mb-2">
                   By subscribing to the {plan.name} plan you agree to these terms. All paid
                   subscriptions are billed in advance and will renew automatically at the end of
                   each billing period ({plan.interval}ly) unless cancelled before the renewal date.
                 </p>
-                <p className="mb-3 font-semibold text-foreground">2. Usage</p>
-                <p className="mb-3">
+                <p className="mb-2 font-semibold text-foreground">2. Usage</p>
+                <p className="mb-2">
                   Your subscription grants access to the features described in your plan. UseClevr
                   reserves the right to modify features within your tier.
                 </p>
-                <p className="mb-3 font-semibold text-foreground">3. Cancellation &amp; Refunds</p>
-                <p className="mb-3">
+                <p className="mb-2 font-semibold text-foreground">3. Cancellation &amp; Refunds</p>
+                <p className="mb-2">
                   You may cancel at any time. Upon cancellation your access continues until the end
                   of the current billing period. Refunds are handled case by case — contact support.
                 </p>
-                <p className="mb-3 font-semibold text-foreground">4. Data &amp; Privacy</p>
+                <p className="mb-2 font-semibold text-foreground">4. Data &amp; Privacy</p>
                 <p>
                   Uploaded datasets and generated reports remain your property. UseClevr processes
                   data in accordance with the{" "}
@@ -251,85 +252,88 @@ function CheckoutClient() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-background p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock className="h-5 w-5 text-primary" />
-                <p className="text-sm font-semibold">Accept terms &amp; conditions</p>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                You must read and accept the Terms before continuing. The full document is at{" "}
-                <a
-                  href={tscUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  useclevr.com/terms
-                </a>
-                .
-              </p>
-              <label className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={termsAccepted}
-                  onChange={(e) => setTermsAccepted(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
-                />
-                <p className="text-sm">I have read and accept the Terms and Conditions</p>
-              </label>
-            </div>
-
-            <div className="rounded-lg border border-border bg-background p-5">
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">Payment</h2>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {canReview
-                  ? "Payment will be processed once you continue past this screen."
-                  : "Card payment activates after the payment provider is connected."}
-              </p>
-              {!canReview && (
-                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Payment provider connection is required before saving card details. Contact support to enable Stripe integration.
+            <div className="min-w-0 space-y-4">
+              <div className="min-w-0 rounded-lg border border-border bg-background p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Lock className="h-5 w-5 shrink-0 text-primary" />
+                  <p className="text-sm font-semibold">Accept terms &amp; conditions</p>
                 </div>
-              )}
-              <div className="mt-4 space-y-3">
-                <Button
-                  onClick={onSubmit}
-                  disabled={!termsAccepted || isGoing || !canReview}
-                  className="w-full"
-                >
-                  {isGoing
-                    ? canReview
-                      ? "Opening payment..."
-                      : "Checkout unavailable"
-                    : termsAccepted
-                      ? submitLabel
-                      : "Accept terms and conditions to continue"}
-                </Button>
-                {checkoutError && (
-                  <p className="text-sm text-destructive">{checkoutError}</p>
-                )}
-                <Button variant="outline" className="w-full bg-transparent" onClick={goBack}>
-                  Back to plan review
-                </Button>
-              </div>
-              <div className="mt-4 space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  Checkout requires an active payment provider and a configured price for this plan.
+                <p className="mb-3 text-xs text-muted-foreground">
+                  You must read and accept the Terms before continuing. The full document is at{" "}
+                  <a
+                    href={tscUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    useclevr.com/terms
+                  </a>
+                  .
                 </p>
-                <Link href="/app/settings/subscription" className="block">
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Back to subscription
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <p className="text-sm">I have read and accept the Terms and Conditions</p>
+                </label>
+              </div>
+
+              <div className="min-w-0 rounded-lg border border-border bg-background p-4">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 shrink-0 text-primary" />
+                  <h2 className="font-semibold">Payment</h2>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {canReview
+                    ? "Payment will be processed once you continue past this screen."
+                    : "Card payment activates after the payment provider is connected."}
+                </p>
+                {!canReview && (
+                  <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Payment provider connection is required before saving card details. Contact support to enable Stripe integration.
+                  </div>
+                )}
+                <div className="mt-4 space-y-2">
+                  <Button
+                    onClick={onSubmit}
+                    disabled={!termsAccepted || isGoing || !canReview}
+                    className="w-full"
+                  >
+                    {isGoing
+                      ? canReview
+                        ? "Opening payment..."
+                        : "Checkout unavailable"
+                      : termsAccepted
+                        ? submitLabel
+                        : "Accept terms and conditions to continue"}
                   </Button>
-                </Link>
+                  {checkoutError && (
+                    <p className="text-sm text-destructive">{checkoutError}</p>
+                  )}
+                  <Button variant="outline" className="w-full bg-transparent" onClick={goBack}>
+                    Back to plan review
+                  </Button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Checkout requires an active payment provider and a configured price for this plan.
+                  </p>
+                  <Link href="/app/settings/subscription" className="block">
+                    <Button variant="outline" className="w-full bg-transparent">
+                      Back to subscription
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }
 

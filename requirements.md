@@ -79,6 +79,12 @@ Text rules for this file:
 ## Subscriptions & Billing
 
 - Show Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Keep Account settings plan cards, plan text, and plan buttons fully visible by giving the main
+  settings content enough horizontal space beside supporting sidebars.
+- Show selected-plan review and terms panels as readable centered Account settings panels with
+  enough width for plan details, terms, and action buttons.
+- Show selected-plan terms and payment confirmation in a compact two-column desktop layout with
+  terms beside accept/payment actions.
 - Use a checkout review step before terms acceptance and payment.
 - Start the secure payment flow after terms acceptance.
 - Verify successful checkout sessions against the signed-in user.

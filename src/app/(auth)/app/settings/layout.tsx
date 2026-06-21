@@ -2,7 +2,6 @@ import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-la
 import { auth } from "@/lib/auth/auth"
 import { Settings } from "lucide-react"
 import type React from "react"
-import { SettingsHeader } from "./settings-header"
 import { SettingsNav } from "./settings-nav"
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +9,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   const isSuperAdmin = session?.user?.role === "superadmin"
 
   const rightSidebar = (
-    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
+    <aside className="hidden w-56 flex-shrink-0 border-l border-border bg-card xl:block 2xl:w-64">
       <div className="flex h-full flex-col overflow-y-auto p-4">
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
@@ -56,8 +55,8 @@ export default async function SettingsLayout({ children }: { children: React.Rea
       <div className="flex flex-1 min-h-0">
         <SettingsNav showAdmin={isSuperAdmin} />
 
-        <main className="flex-1 overflow-y-auto px-5 py-5">
-          <section className="min-w-0">{children}</section>
+        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5">
+          <section className="min-w-0 w-full">{children}</section>
         </main>
       </div>
     </DashboardSubpageLayout>
