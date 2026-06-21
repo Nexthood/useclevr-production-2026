@@ -5,3 +5,5 @@
   details, terms, and payment actions stay readable without changing checkout logic.
 - Reworked the Account settings checkout terms/payment step into a wider compact two-column desktop
   layout with terms on the left and accept/payment actions on the right.
+- Fixed Reports & Downloads page vertical spacing by adding `mt-4` to the main content area
+- Fixed Retail Inventory Analyst build by creating browser-safe CSV parser module and using it in the client component
