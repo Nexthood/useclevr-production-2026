@@ -46,6 +46,7 @@ moving work between states.
 
 ## Label: business
 
+- T-865. Accountancy shows a pre-bookkeeping empty state, document-upload and package-generation actions, accountant handoff fields, and saved Business Profile accounting context for new-user workflows. (labels: business, ui, workflow; commit: worktree)
 - T-863. Move business profile and accountancy operator workflows into Payload, preserve dashboard data ownership and calculations, and provide tabbed credentials, Google, and LinkedIn admin registration and sign-in. (labels: business, reporting, auth, ui; commit: worktree)
 
 ## Label: dashboard
@@ -79,7 +80,7 @@ moving work between states.
 
 ## Label: ai
 
-- T-864. Retail Inventory Analyst shows product-specific stock, sales, profit, margin, last-sale, order, and owner-action details in low-stock, dead-stock, and top-profit result cards. (labels: ai, data, ui; commit: worktree)
+- T-864. Retail Inventory Analyst shows every product-specific stock, sales, profit, margin, last-sale, order, and owner-action detail row in scrollable low-stock, dead-stock, and top-profit result cards. (labels: ai, data, ui; commit: worktree)
 
 - T-781. Keep each analysis request scoped to the signed-in user's selected dataset without shared server memory between requests. (labels: ai, auth, data, api; commit: worktree)
 - T-784. Keep assistant calculations limited to verified dataset values and name missing columns instead of inventing proxy costs, lifespans, or performance values. (labels: ai, data, quality; commit: worktree)

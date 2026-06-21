@@ -40,7 +40,8 @@ Text rules for this file:
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
-- Show Retail Inventory Analyst results as owner-readable inventory cards and tables.
+- Show Retail Inventory Analyst results as owner-readable inventory cards and scrollable tables.
+- Show every Retail Inventory Analyst result row in the relevant table without hiding remaining products behind summary-only overflow text.
 - Show SKU, product name, category, current stock, reorder point, units sold, revenue, cost, gross profit, margin percentage, last sale date, and order number in Retail Inventory Analyst rows when the uploaded dataset provides those fields.
 - Explain each Retail Inventory Analyst low-stock alert with current stock, reorder point, recent units sold, and a reorder recommendation.
 - Explain each Retail Inventory Analyst dead-stock row with recent sales level, days since last sale, stock value stuck, and a suggested discount, bundle, or stop-reorder action.
@@ -161,6 +162,12 @@ Text rules for this file:
 - Show Accountancy as a dashboard workspace with overview, reporting, tax, and compliance sections.
 - Show the same owner-selected overview, reporting, tax, and compliance context in Payload for
   superadmin operators.
+- Show the Accountancy empty state as "Pre-bookkeeping center" for users with no accountancy data.
+- Show upload and bookkeeping-package actions from the Accountancy empty state instead of treating missing accountancy data as an error.
+- Show a real Accountancy error only when server data loading fails.
+- Show Accountancy workflow steps for Business Profile setup, accounting-document upload, data extraction, pre-bookkeeping summary, PDF/Excel/CSV export, and accountant email handoff.
+- Collect accountant email, company name, tax period, and notes or message in the Accountancy bookkeeping-package form.
+- Use saved Business Profile context for Accountancy tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed-cost assumptions.
 - Show bookkeeping actions for bank reconciliation, expense coding, monthly close, and tax preparation.
 - Show a bookkeeping queue with current status and direct action links.
 - Show monthly close readiness for business profile, financial dataset, and tax context.

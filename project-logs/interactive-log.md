@@ -1,3 +1,5 @@
+- Fixed Accountancy new-user workflow by showing a Pre-bookkeeping center empty state, upload and package-generation actions, Business Profile accounting context, export options, and accountant handoff fields instead of treating missing accountancy data as unavailable.
+- Changed Retail Inventory Analyst result tables to show every low-stock, dead-stock, and top-profit row in scrollable tables with sticky headers instead of hiding remaining rows behind "+ more" summaries.
 - Improved Retail Inventory Analyst result cards so low stock, dead stock, and top profit rows show product, SKU, category, stock, reorder point, units sold, revenue, cost, gross profit, margin, last sale, order details, and owner-friendly next actions.
 - Added Retail & Inventory Analysis module (sidebar integration and dedicated Retail page with upload functionality, AI summary, and analytics cards)
 - Fixed Account settings layout width by narrowing the right info rail and relaxing subscription
