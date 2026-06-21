@@ -44,7 +44,7 @@ export default function UploadPage() {
       <main className="min-w-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 sm:px-6">
           {/* Mode Selector */}
-          <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:grid-cols-2">
+          <div className="mt-10 grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:grid-cols-2">
             <button
               onClick={() => setUploadMode("standard")}
               className={`flex min-w-0 flex-col items-start gap-1.5 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition-all ${
