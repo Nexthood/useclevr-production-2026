@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { StatCard } from "@/components/ui/stat-card"
 import { useToast } from "@/hooks/use-toast"
-import { parseCSVFileBrowser } from "@/lib/data/csvLoader"
+import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
 import { debugError } from "@/lib/utils/debug"
 
 type PageState = "idle" | "parsing" | "uploading" | "analyzing" | "complete" | "error"
