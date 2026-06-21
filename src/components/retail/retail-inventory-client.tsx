@@ -27,19 +27,54 @@ interface ParsedData {
 
 interface LowStockItem {
   product: string
+  sku: string
+  category: string
   stock: number
+  reorderPoint: number
+  unitsSold: number
+  revenue: number
+  cost: number
+  grossProfit: number
+  margin: number
+  lastSaleDate: string
+  orderId: string
+  recommendation: string
 }
 
 interface DeadStockItem {
   product: string
-  reason: string
+  sku: string
+  category: string
+  stock: number
+  reorderPoint: number
+  unitsSold: number
+  revenue: number
+  cost: number
+  grossProfit: number
+  margin: number
+  lastSaleDate: string
+  daysSinceLastSale: number | null
+  stockValue: number
+  orderId: string
+  suggestedAction: string
+  recommendation: string
 }
 
 interface TopProfitItem {
   product: string
+  sku: string
+  category: string
+  stock: number
+  reorderPoint: number
+  unitsSold: number
   profit: number
   margin: number
   revenue: number
+  cost: number
+  lastSaleDate: string
+  orderId: string
+  reason: string
+  recommendation: string
 }
 
 interface RetailInsights {
@@ -74,15 +109,56 @@ function toNumber(val: unknown): number {
   return 0
 }
 
+function toText(val: unknown, fallback = "Not provided"): string {
+  if (val === null || val === undefined) return fallback
+  const text = String(val).trim()
+  return text.length > 0 ? text : fallback
+}
+
+function parseDateValue(val: unknown): Date | null {
+  if (val instanceof Date && !isNaN(val.getTime())) return val
+  if (typeof val === "number" && val > 0) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30))
+    const date = new Date(excelEpoch.getTime() + val * 24 * 60 * 60 * 1000)
+    return isNaN(date.getTime()) ? null : date
+  }
+  if (typeof val === "string" && val.trim()) {
+    const date = new Date(val)
+    return isNaN(date.getTime()) ? null : date
+  }
+  return null
+}
+
+function formatDateValue(date: Date | null): string {
+  return date ? date.toISOString().slice(0, 10) : "Not provided"
+}
+
+function isUnitCostColumn(column: string | null): boolean {
+  if (!column) return false
+  return /unit|wholesale|purchase|buying|cost_price|product_cost/i.test(column)
+}
+
 function detectColumns(columns: string[]) {
   return {
+    skuCol: matchColumn(columns, [
+      "sku", "product_sku", "item_sku", "variant_sku", "barcode",
+      "upc", "ean", "code", "item_code", "product_code",
+    ]),
     productCol: matchColumn(columns, [
-      "product", "name", "item", "sku", "code", "title", "description",
-      "article", "product_name", "product_code", "item_name",
+      "product_name", "item_name", "product", "name", "item", "title",
+      "description", "article",
+    ]),
+    categoryCol: matchColumn(columns, [
+      "category", "department", "collection", "product_type", "type",
+      "class", "group",
     ]),
     stockCol: matchColumn(columns, [
       "stock", "quantity", "qty", "on_hand", "inventory", "available",
       "qty_in_stock", "units_in_stock", "stock_qty", "stock_level",
+    ]),
+    reorderPointCol: matchColumn(columns, [
+      "reorder_point", "reorder", "minimum_stock", "min_stock", "par_level",
+      "safety_stock", "restock_level",
     ]),
     salesCol: matchColumn(columns, [
       "sold", "units_sold", "quantity_sold", "sales_quantity", "qty_sold",
@@ -101,70 +177,180 @@ function detectColumns(columns: string[]) {
       "date", "transaction_date", "order_date", "sale_date", "created_at",
       "timestamp", "datetime", "date_created",
     ]),
+    orderCol: matchColumn(columns, [
+      "order_number", "order_id", "orderid", "order", "invoice_number",
+      "invoice_id", "receipt_number", "transaction_id",
+    ]),
   }
 }
 
-function computeLowStock(
-  rows: Record<string, unknown>[],
-  productCol: string | null,
-  stockCol: string | null,
-): LowStockItem[] {
-  if (!productCol || !stockCol || rows.length === 0) return []
+type DetectedColumns = ReturnType<typeof detectColumns>
+
+interface RetailRecord {
+  product: string
+  sku: string
+  category: string
+  stock: number
+  reorderPoint: number
+  unitsSold: number
+  revenue: number
+  cost: number
+  grossProfit: number
+  margin: number
+  lastSaleDate: string
+  lastSaleAt: Date | null
+  orderId: string
+  stockValue: number
+}
+
+function buildRetailRecords(rows: Record<string, unknown>[], detected: DetectedColumns): RetailRecord[] {
   return rows
-    .map((row) => ({
-      product: String(row[productCol] ?? "Unknown"),
-      stock: toNumber(row[stockCol]),
+    .map((row) => {
+      const product = detected.productCol
+        ? toText(row[detected.productCol], "Unknown product")
+        : "Unknown product"
+      const sku = detected.skuCol ? toText(row[detected.skuCol]) : "Not provided"
+      const category = detected.categoryCol ? toText(row[detected.categoryCol]) : "Not provided"
+      const stock = detected.stockCol ? toNumber(row[detected.stockCol]) : 0
+      const reorderPoint = detected.reorderPointCol ? toNumber(row[detected.reorderPointCol]) : 10
+      const unitsSold = detected.salesCol ? toNumber(row[detected.salesCol]) : 0
+      const revenue = detected.revenueCol ? toNumber(row[detected.revenueCol]) : 0
+      const rawCost = detected.costCol ? toNumber(row[detected.costCol]) : 0
+      const unitCost = isUnitCostColumn(detected.costCol) ? rawCost : unitsSold > 0 ? rawCost / unitsSold : rawCost
+      const cost = isUnitCostColumn(detected.costCol) && unitsSold > 0 ? rawCost * unitsSold : rawCost
+      const grossProfit = revenue - cost
+      const margin = revenue > 0 ? (grossProfit / revenue) * 100 : 0
+      const lastSaleAt = detected.dateCol ? parseDateValue(row[detected.dateCol]) : null
+      const orderId = detected.orderCol ? toText(row[detected.orderCol]) : "Not provided"
+
+      return {
+        product,
+        sku,
+        category,
+        stock,
+        reorderPoint,
+        unitsSold,
+        revenue,
+        cost,
+        grossProfit,
+        margin,
+        lastSaleDate: formatDateValue(lastSaleAt),
+        lastSaleAt,
+        orderId,
+        stockValue: Math.max(stock, 0) * Math.max(unitCost, 0),
+      }
+    })
+    .filter((record) => record.product !== "Unknown product" || record.sku !== "Not provided")
+}
+
+function getReferenceDate(records: RetailRecord[]): Date | null {
+  return records.reduce<Date | null>((latest, record) => {
+    if (!record.lastSaleAt) return latest
+    if (!latest || record.lastSaleAt > latest) return record.lastSaleAt
+    return latest
+  }, null)
+}
+
+function computeLowStock(
+  records: RetailRecord[],
+): LowStockItem[] {
+  return records
+    .filter((item) => item.stock <= item.reorderPoint && (item.product !== "Unknown product" || item.sku !== "Not provided"))
+    .map((item) => ({
+      ...item,
+      recommendation: `Stock ${formatPlainNumber(item.stock)}, reorder point ${formatPlainNumber(item.reorderPoint)}, sold ${formatPlainNumber(item.unitsSold)} units recently → reorder recommended.`,
     }))
-    .filter((item) => item.stock < 10 && item.product !== "Unknown")
     .sort((a, b) => a.stock - b.stock)
     .slice(0, 20)
 }
 
 function computeDeadStock(
-  rows: Record<string, unknown>[],
-  productCol: string | null,
-  salesCol: string | null,
+  records: RetailRecord[],
 ): DeadStockItem[] {
-  if (!productCol || rows.length === 0) return []
-  if (salesCol) {
-    return rows
-      .map((row) => ({
-        product: String(row[productCol] ?? "Unknown"),
-        sales: toNumber(row[salesCol]),
-      }))
-      .filter((item) => item.sales === 0 && item.product !== "Unknown")
-      .map((item) => ({ product: item.product, reason: "No sales recorded" }))
-      .slice(0, 20)
-  }
-  return []
+  const referenceDate = getReferenceDate(records)
+
+  return records
+    .map((item) => {
+      const daysSinceLastSale = referenceDate && item.lastSaleAt
+        ? Math.max(0, Math.floor((referenceDate.getTime() - item.lastSaleAt.getTime()) / 86_400_000))
+        : null
+      const suggestedAction = item.unitsSold === 0
+        ? "Discount or bundle"
+        : daysSinceLastSale !== null && daysSinceLastSale >= 60
+          ? "Bundle or stop reorder"
+          : "Review before reorder"
+
+      return {
+        ...item,
+        daysSinceLastSale,
+        suggestedAction,
+        recommendation:
+          `${suggestedAction}: ${item.stock > 0 ? "clear stocked units before buying more" : "keep off reorder lists until demand returns"}.`,
+      }
+    })
+    .filter((item) => item.stock > 0 && (item.unitsSold <= 0 || (item.daysSinceLastSale !== null && item.daysSinceLastSale >= 60)))
+    .sort((a, b) => b.stockValue - a.stockValue)
+    .slice(0, 20)
 }
 
 function computeTopProfit(
-  rows: Record<string, unknown>[],
-  productCol: string | null,
-  revenueCol: string | null,
-  costCol: string | null,
+  records: RetailRecord[],
 ): TopProfitItem[] {
-  if (!productCol || rows.length === 0) return []
-  if (revenueCol && costCol) {
-    return rows
-      .map((row) => {
-        const revenue = toNumber(row[revenueCol])
-        const cost = toNumber(row[costCol])
-        const profit = revenue - cost
-        const margin = revenue > 0 ? (profit / revenue) * 100 : 0
-        return {
-          product: String(row[productCol] ?? "Unknown"),
-          profit,
-          margin,
-          revenue,
-        }
-      })
-      .filter((item) => item.product !== "Unknown")
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 20)
+  const grouped = new Map<string, RetailRecord>()
+
+  for (const record of records) {
+    const key = [
+      record.product.toLowerCase(),
+      record.sku.toLowerCase(),
+      record.orderId === "Not provided" ? "" : record.orderId.toLowerCase(),
+    ].join("|")
+    const existing = grouped.get(key)
+
+    if (!existing) {
+      grouped.set(key, { ...record })
+      continue
+    }
+
+    const revenue = existing.revenue + record.revenue
+    const cost = existing.cost + record.cost
+    const grossProfit = revenue - cost
+    const lastSaleAt = !existing.lastSaleAt || (record.lastSaleAt && record.lastSaleAt > existing.lastSaleAt)
+      ? record.lastSaleAt
+      : existing.lastSaleAt
+
+    grouped.set(key, {
+      ...existing,
+      stock: Math.max(existing.stock, record.stock),
+      reorderPoint: Math.max(existing.reorderPoint, record.reorderPoint),
+      unitsSold: existing.unitsSold + record.unitsSold,
+      revenue,
+      cost,
+      grossProfit,
+      margin: revenue > 0 ? (grossProfit / revenue) * 100 : 0,
+      lastSaleAt,
+      lastSaleDate: formatDateValue(lastSaleAt),
+      stockValue: existing.stockValue + record.stockValue,
+    })
   }
-  return []
+
+  return Array.from(grouped.values())
+    .filter((item) => item.grossProfit > 0 && (item.product !== "Unknown product" || item.sku !== "Not provided"))
+    .sort((a, b) => b.grossProfit - a.grossProfit)
+    .slice(0, 20)
+    .map((item) => ({
+      ...item,
+      profit: item.grossProfit,
+      reason: item.margin >= 50
+        ? "High margin converts sales into strong profit."
+        : item.unitsSold >= 10
+          ? "Sales volume drives strong total profit."
+          : "Positive margin and profitable sales make this worth protecting.",
+      recommendation: "Keep this item in stock and protect margin before discounting.",
+    }))
+}
+
+function formatPlainNumber(val: number): string {
+  return new Intl.NumberFormat().format(val)
 }
 
 function generateFallbackSummary(
@@ -214,9 +400,10 @@ export function RetailInventoryClient() {
 
     const { rows, columns } = data
     const detected = detectColumns(columns)
-    const lowStock = computeLowStock(rows, detected.productCol, detected.stockCol)
-    const deadStock = computeDeadStock(rows, detected.productCol, detected.salesCol)
-    const topProfit = computeTopProfit(rows, detected.productCol, detected.revenueCol, detected.costCol)
+    const retailRecords = buildRetailRecords(rows, detected)
+    const lowStock = computeLowStock(retailRecords)
+    const deadStock = computeDeadStock(retailRecords)
+    const topProfit = computeTopProfit(retailRecords)
 
     let aiSummary: string | null = null
     let aiExplanation: string | null = null
@@ -228,7 +415,7 @@ export function RetailInventoryClient() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            question: "Analyze this retail inventory data. Provide insights about sales performance, low stock risks, dead stock products, and top profit opportunities. Give specific numbers and product names where possible.",
+            question: "Analyze this retail inventory data for a store owner. Explain exactly which product and SKU are affected, why each issue matters, and what action to take. Include low stock alerts, dead stock with stuck stock value, and top profit products without repeated duplicate product rows.",
             datasetId,
           }),
         })
@@ -415,7 +602,7 @@ export function RetailInventoryClient() {
 
   return (
     <div className="min-w-0 flex-1 px-4 pt-16 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         {/* Upload Card */}
         <Card
           className={`relative border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${
@@ -628,16 +815,57 @@ export function RetailInventoryClient() {
                 Checking stock levels...
               </div>
             ) : insights && insights.lowStock.length > 0 ? (
-              <div className="space-y-2">
-                {insights.lowStock.slice(0, 10).map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2"
-                  >
-                    <span className="text-sm font-medium text-foreground truncate mr-2">{item.product}</span>
-                    <span className="text-sm font-semibold text-amber-600 shrink-0">{formatNumber(item.stock)} units</span>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+                  Reorder these items first so recent sellers do not run out before the next buying cycle.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-amber-500/20">
+                  <table className="w-full min-w-[760px] text-left text-sm">
+                    <thead className="bg-amber-500/10 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Product / SKU</th>
+                        <th className="px-3 py-2 font-medium">Category</th>
+                        <th className="px-3 py-2 font-medium">Stock</th>
+                        <th className="px-3 py-2 font-medium">Sold</th>
+                        <th className="px-3 py-2 font-medium">Revenue</th>
+                        <th className="px-3 py-2 font-medium">Profit</th>
+                        <th className="px-3 py-2 font-medium">Margin</th>
+                        <th className="px-3 py-2 font-medium">Last sale</th>
+                        <th className="px-3 py-2 font-medium">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {insights.lowStock.slice(0, 10).map((item, i) => (
+                        <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-foreground">{item.product}</div>
+                            <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
+                          <td className="px-3 py-2">
+                            <div className="font-semibold text-amber-600">{formatNumber(item.stock)}</div>
+                            <div className="text-xs text-muted-foreground">Reorder: {formatNumber(item.reorderPoint)}</div>
+                          </td>
+                          <td className="px-3 py-2">{formatNumber(item.unitsSold)}</td>
+                          <td className="px-3 py-2">{formatCurrency(item.revenue)}</td>
+                          <td className="px-3 py-2">{formatCurrency(item.grossProfit)}</td>
+                          <td className="px-3 py-2">{formatPercent(item.margin)}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{item.lastSaleDate}</td>
+                          <td className="px-3 py-2">
+                            <details className="group">
+                              <summary className="cursor-pointer text-xs font-medium text-primary">View</summary>
+                              <div className="mt-2 w-64 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                                <div>Cost: {formatCurrency(item.cost)}</div>
+                                <div>Order: {item.orderId}</div>
+                                <div className="font-medium text-foreground">{item.recommendation}</div>
+                              </div>
+                            </details>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {insights.lowStock.length > 10 && (
                   <p className="text-xs text-muted-foreground text-center pt-1">
                     +{insights.lowStock.length - 10} more low-stock items
@@ -670,16 +898,61 @@ export function RetailInventoryClient() {
                 Identifying slow-moving products...
               </div>
             ) : insights && insights.deadStock.length > 0 ? (
-              <div className="space-y-2">
-                {insights.deadStock.slice(0, 10).map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2"
-                  >
-                    <span className="text-sm font-medium text-foreground truncate mr-2">{item.product}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{item.reason}</span>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                  Free cash from items that sit on the shelf before reordering more of the same stock.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-red-500/20">
+                  <table className="w-full min-w-[820px] text-left text-sm">
+                    <thead className="bg-red-500/10 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Product / SKU</th>
+                        <th className="px-3 py-2 font-medium">Category</th>
+                        <th className="px-3 py-2 font-medium">Stock</th>
+                        <th className="px-3 py-2 font-medium">Sold</th>
+                        <th className="px-3 py-2 font-medium">Days since sale</th>
+                        <th className="px-3 py-2 font-medium">Stock value stuck</th>
+                        <th className="px-3 py-2 font-medium">Action</th>
+                        <th className="px-3 py-2 font-medium">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {insights.deadStock.slice(0, 10).map((item, i) => (
+                        <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-foreground">{item.product}</div>
+                            <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
+                          <td className="px-3 py-2">
+                            <div className="font-semibold text-red-600">{formatNumber(item.stock)}</div>
+                            <div className="text-xs text-muted-foreground">Reorder: {formatNumber(item.reorderPoint)}</div>
+                          </td>
+                          <td className="px-3 py-2">{formatNumber(item.unitsSold)}</td>
+                          <td className="px-3 py-2">
+                            {item.daysSinceLastSale === null ? "No sale date" : formatNumber(item.daysSinceLastSale)}
+                          </td>
+                          <td className="px-3 py-2 font-medium">{formatCurrency(item.stockValue)}</td>
+                          <td className="px-3 py-2">{item.suggestedAction}</td>
+                          <td className="px-3 py-2">
+                            <details>
+                              <summary className="cursor-pointer text-xs font-medium text-primary">View</summary>
+                              <div className="mt-2 w-64 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                                <div>Revenue: {formatCurrency(item.revenue)}</div>
+                                <div>Cost: {formatCurrency(item.cost)}</div>
+                                <div>Gross profit: {formatCurrency(item.grossProfit)}</div>
+                                <div>Margin: {formatPercent(item.margin)}</div>
+                                <div>Last sale: {item.lastSaleDate}</div>
+                                <div>Order: {item.orderId}</div>
+                                <div className="font-medium text-foreground">{item.recommendation}</div>
+                              </div>
+                            </details>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {insights.deadStock.length > 10 && (
                   <p className="text-xs text-muted-foreground text-center pt-1">
                     +{insights.deadStock.length - 10} more items
@@ -712,19 +985,56 @@ export function RetailInventoryClient() {
                 Computing profitability...
               </div>
             ) : insights && insights.topProfit.length > 0 ? (
-              <div className="space-y-2">
-                {insights.topProfit.slice(0, 10).map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2"
-                  >
-                    <span className="text-sm font-medium text-foreground truncate mr-2">{item.product}</span>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-semibold text-green-600">{formatCurrency(item.profit)}</span>
-                      <span className="text-xs text-muted-foreground">{formatPercent(item.margin)}</span>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                  Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-green-500/20">
+                  <table className="w-full min-w-[820px] text-left text-sm">
+                    <thead className="bg-green-500/10 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Product / SKU</th>
+                        <th className="px-3 py-2 font-medium">Category</th>
+                        <th className="px-3 py-2 font-medium">Units sold</th>
+                        <th className="px-3 py-2 font-medium">Revenue</th>
+                        <th className="px-3 py-2 font-medium">Cost</th>
+                        <th className="px-3 py-2 font-medium">Profit</th>
+                        <th className="px-3 py-2 font-medium">Margin</th>
+                        <th className="px-3 py-2 font-medium">Reason</th>
+                        <th className="px-3 py-2 font-medium">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {insights.topProfit.slice(0, 10).map((item, i) => (
+                        <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-foreground">{item.product}</div>
+                            <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
+                          <td className="px-3 py-2">{formatNumber(item.unitsSold)}</td>
+                          <td className="px-3 py-2">{formatCurrency(item.revenue)}</td>
+                          <td className="px-3 py-2">{formatCurrency(item.cost)}</td>
+                          <td className="px-3 py-2 font-semibold text-green-600">{formatCurrency(item.profit)}</td>
+                          <td className="px-3 py-2">{formatPercent(item.margin)}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{item.reason}</td>
+                          <td className="px-3 py-2">
+                            <details>
+                              <summary className="cursor-pointer text-xs font-medium text-primary">View</summary>
+                              <div className="mt-2 w-64 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                                <div>Current stock: {formatNumber(item.stock)}</div>
+                                <div>Reorder point: {formatNumber(item.reorderPoint)}</div>
+                                <div>Last sale: {item.lastSaleDate}</div>
+                                <div>Order: {item.orderId}</div>
+                                <div className="font-medium text-foreground">{item.recommendation}</div>
+                              </div>
+                            </details>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {insights.topProfit.length > 10 && (
                   <p className="text-xs text-muted-foreground text-center pt-1">
                     +{insights.topProfit.length - 10} more products
