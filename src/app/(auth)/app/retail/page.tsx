@@ -1,5 +1,5 @@
 import { Building2, FileText, Upload } from "lucide-react";
-import DashboardSubpageLayout from "@/components/layout/dashboard-subpage-layout";
+import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 
 export default function RetailPage() {
   return (
