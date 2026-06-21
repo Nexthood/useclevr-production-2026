@@ -2,11 +2,18 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   BUSINESS_TYPES,
-  COMPANY_SIZES,
   CONTRIBUTION_TYPES,
   CURRENCIES,
   FIXED_COST_CATEGORIES,
@@ -22,24 +29,65 @@ import {
   type EmployerContribution,
   type FixedCostEntry,
   type InsuranceEntry,
-  type RevenueModel,
   type TaxEntry,
 } from "@/lib/business/company-setup"
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Plus, Save, Trash2 } from "lucide-react"
-import type React from "react"
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Plus, Save, Sparkles, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-const STEPS = [
-  { id: "company", label: "Company Information", optional: false },
-  { id: "tax", label: "Tax Profile", optional: false },
-  { id: "contributions", label: "Employer Contributions", optional: true },
-  { id: "insurance", label: "Insurance Profile", optional: true },
-  { id: "fixedCosts", label: "Fixed Costs", optional: true },
-  { id: "revenue", label: "Revenue Model", optional: false },
-  { id: "costs", label: "Cost Structure", optional: true },
-  { id: "goals", label: "Business Goals", optional: true },
-  { id: "review", label: "Review & Confirmation", optional: false },
-] as const
+type QuestionId =
+  | "companyName"
+  | "country"
+  | "stateRegion"
+  | "legalStructure"
+  | "industry"
+  | "currency"
+  | "fiscalYear"
+  | "taxRegistered"
+  | "taxEntries"
+  | "employees"
+  | "contributions"
+  | "insurance"
+  | "fixedCosts"
+  | "revenueModel"
+  | "costStructure"
+  | "targetMargin"
+  | "growthGoal"
+  | "review"
+
+type Question = {
+  id: QuestionId
+  title: string
+  helper: string
+  optional?: boolean
+}
+
+const BASE_QUESTIONS: Question[] = [
+  { id: "companyName", title: "What is your company name?", helper: "Use the legal or operating name you want analysis reports to use." },
+  { id: "country", title: "Which country is your business registered in?", helper: "Country only loads suggestions. You confirm every value before analysis uses it." },
+  { id: "stateRegion", title: "Which state or region applies?", helper: "Required for USA and useful anywhere regional taxes or compliance apply.", optional: true },
+  { id: "legalStructure", title: "What is your legal structure?", helper: "Choose the closest option. You can change it later." },
+  { id: "industry", title: "What industry are you in?", helper: "This helps the AI understand normal revenue, cost, and risk patterns." },
+  { id: "currency", title: "What currency do you use?", helper: "Analysis uses this for KPIs, reports, tax estimates, and margin calculations." },
+  { id: "fiscalYear", title: "What is your fiscal year?", helper: "Add the start and end used for business reporting." },
+  { id: "taxRegistered", title: "Are you VAT or sales-tax registered?", helper: "This controls whether VAT/sales-tax details appear in the next step.", optional: true },
+  { id: "taxEntries", title: "Add relevant taxes, one by one.", helper: "Suggestions are editable. Nothing is treated as fact until you add and confirm it.", optional: true },
+  { id: "employees", title: "Do you have employees?", helper: "Payroll assumptions are used only when employees or payroll data exist.", optional: true },
+  { id: "contributions", title: "Add employer contributions, one by one.", helper: "Include health, pension, social security, unemployment, or local employer costs.", optional: true },
+  { id: "insurance", title: "Add business insurances, one by one.", helper: "Insurance costs improve operating cost, cashflow, and risk analysis.", optional: true },
+  { id: "fixedCosts", title: "Add fixed monthly costs, one by one.", helper: "Recurring fixed costs are included even when the uploaded file omits them.", optional: true },
+  { id: "revenueModel", title: "What is your revenue model?", helper: "Select the models that best describe how revenue is generated." },
+  { id: "costStructure", title: "What are your main cost categories?", helper: "Add the cost areas that materially affect margin and cashflow.", optional: true },
+  { id: "targetMargin", title: "What is your target margin?", helper: "Analysis compares uploaded margins against this target.", optional: true },
+  { id: "growthGoal", title: "What is your growth goal?", helper: "Goals shape recommendations, risk framing, and forecasts.", optional: true },
+  { id: "review", title: "Review and confirm.", helper: "Edit any answer before saving the Business Profile as analysis context." },
+]
+
+const EU_COUNTRIES = new Set([
+  "austria", "belgium", "bulgaria", "croatia", "cyprus", "czech republic", "czechia", "denmark",
+  "estonia", "finland", "france", "germany", "deutschland", "greece", "hungary", "ireland",
+  "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "nederland", "poland",
+  "portugal", "romania", "slovakia", "slovenia", "spain", "sweden",
+])
 
 const COUNTRY_TAX_SUGGESTIONS: Record<string, string[]> = {
   germany: ["VAT", "Corporate Tax", "Trade Tax", "Payroll Tax"],
@@ -56,123 +104,70 @@ const COUNTRY_TAX_SUGGESTIONS: Record<string, string[]> = {
   switzerland: ["VAT", "Corporate Tax", "Cantonal Tax", "Social Security"],
 }
 
-function classNames(...classes: (string | false | undefined)[]) {
-  return classes.filter(Boolean).join(" ")
-}
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+  "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+  "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+  "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+]
 
 function uid(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-function countrySuggestions(country: string) {
-  const normalized = country.trim().toLowerCase()
-  return COUNTRY_TAX_SUGGESTIONS[normalized] || []
+function normalizedCountry(country: string) {
+  return country.trim().toLowerCase()
 }
 
-function TextField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  type?: string
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
-    </div>
-  )
+function isUSA(country: string) {
+  const value = normalizedCountry(country)
+  return value === "usa" || value === "united states" || value === "united states of america"
 }
 
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: string
-  options: string[]
-  onChange: (value: string) => void
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
-      >
-        <option value="">Select...</option>
-        {value && !options.includes(value) && <option value={value}>{value}</option>}
-        {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-  )
+function isEU(country: string) {
+  return EU_COUNTRIES.has(normalizedCountry(country))
 }
 
-function MultiChoice({
-  label,
-  values,
-  options,
-  onChange,
-}: {
-  label: string
-  values: string[]
-  options: string[]
-  onChange: (values: string[]) => void
-}) {
-  function toggle(option: string) {
-    onChange(values.includes(option) ? values.filter((value) => value !== option) : [...values, option])
+function countrySuggestions(country: string, taxRegistered: string) {
+  const suggestions = COUNTRY_TAX_SUGGESTIONS[normalizedCountry(country)] || []
+  if (taxRegistered === "no") {
+    return suggestions.filter((item) => !/vat|sales tax|gst|hst|btw/i.test(item))
   }
-
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => toggle(option)}
-            className={classNames(
-              "rounded-md border px-3 py-2 text-sm font-medium transition",
-              values.includes(option)
-                ? "border-primary/70 bg-primary/10 text-primary"
-                : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted",
-            )}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+  return suggestions
 }
 
-function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">{text}</div>
+function selectOptions(options: string[]) {
+  return options.map((option) => ({ value: option, label: option }))
 }
 
 export function CompanySetupWizard() {
-  const [step, setStep] = useState(0)
   const [payload, setPayload] = useState<CompanySetupPayload>(emptyCompanySetupPayload)
   const [isLoading, setIsLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [completed, setCompleted] = useState(false)
+  const [draftTax, setDraftTax] = useState<TaxEntry>(() => emptyTaxEntry())
+  const [draftContribution, setDraftContribution] = useState<EmployerContribution>(() => emptyContribution())
+  const [draftInsurance, setDraftInsurance] = useState<InsuranceEntry>(() => emptyInsurance())
+  const [draftFixedCost, setDraftFixedCost] = useState<FixedCostEntry>(() => emptyFixedCost())
 
   const status = useMemo(() => buildSetupStatus(payload), [payload])
-  const activeStep = STEPS[step]
-  const suggestions = countrySuggestions(payload.companyInfo.country)
-  const progress = Math.round(((step + 1) / STEPS.length) * 100)
+  const hasEmployees = payload.companyInfo.employeeCount !== "0"
+  const visibleQuestions = useMemo(() => {
+    return BASE_QUESTIONS.filter((question) => {
+      if (question.id === "stateRegion") return isUSA(payload.companyInfo.country) || Boolean(payload.companyInfo.stateRegion)
+      if (question.id === "contributions") return hasEmployees
+      return true
+    })
+  }, [hasEmployees, payload.companyInfo.country, payload.companyInfo.stateRegion])
+  const activeQuestion = visibleQuestions[Math.min(activeIndex, visibleQuestions.length - 1)] || visibleQuestions[0]
+  const progress = Math.round(((Math.min(activeIndex, visibleQuestions.length - 1) + 1) / visibleQuestions.length) * 100)
+  const suggestions = countrySuggestions(payload.companyInfo.country, payload.taxSettings.taxRegistered)
 
   const update = useCallback(<K extends keyof CompanySetupPayload>(section: K, values: Partial<CompanySetupPayload[K]>) => {
     setPayload((previous) => {
@@ -186,7 +181,11 @@ export function CompanySetupWizard() {
   }, [])
 
   const replace = useCallback((values: Partial<CompanySetupPayload>) => {
-    setPayload((previous) => normalizeCompanySetupPayload({ ...previous, ...values }))
+    setPayload((previous) => {
+      const next = normalizeCompanySetupPayload({ ...previous, ...values })
+      next.setupStatus = buildSetupStatus(next)
+      return next
+    })
   }, [])
 
   useEffect(() => {
@@ -203,7 +202,11 @@ export function CompanySetupWizard() {
     void load()
   }, [])
 
-  async function save(nextStep?: number) {
+  useEffect(() => {
+    if (activeIndex > visibleQuestions.length - 1) setActiveIndex(Math.max(visibleQuestions.length - 1, 0))
+  }, [activeIndex, visibleQuestions.length])
+
+  async function save(nextIndex?: number, markComplete = false) {
     setIsSaving(true)
     setSaveMessage(null)
     try {
@@ -215,8 +218,9 @@ export function CompanySetupWizard() {
       })
       if (!res.ok) throw new Error("Save failed")
       setPayload(normalized)
-      setSaveMessage("Business profile saved")
-      if (typeof nextStep === "number") setStep(Math.max(0, Math.min(nextStep, STEPS.length - 1)))
+      setSaveMessage(markComplete ? "Business Profile Completed" : "Progress saved")
+      if (markComplete) setCompleted(true)
+      if (typeof nextIndex === "number") setActiveIndex(Math.max(0, Math.min(nextIndex, visibleQuestions.length - 1)))
     } catch {
       setSaveMessage("Business profile was not saved. Try again.")
     } finally {
@@ -225,257 +229,200 @@ export function CompanySetupWizard() {
     }
   }
 
-  function saveAndContinue() {
-    void save(step + 1)
+  function next() {
+    if (activeQuestion.id === "review") {
+      void save(activeIndex, true)
+      return
+    }
+    void save(activeIndex + 1)
   }
 
-  function skipOptional() {
-    void save(step + 1)
+  function skip() {
+    if (activeQuestion.id === "taxRegistered") update("taxSettings", { taxRegistered: "not_sure" })
+    void save(activeIndex + 1)
   }
 
-  function addTax(taxType = "") {
-    const entry: TaxEntry = { id: uid("tax"), taxType, percentage: "", fixedAmount: "", frequency: "", notes: "", confirmed: Boolean(taxType) }
-    update("taxSettings", { taxEntries: [...payload.taxSettings.taxEntries, entry] })
+  function addTax(entry: TaxEntry = draftTax) {
+    const taxType = entry.taxType.trim()
+    if (!taxType && !entry.percentage && !entry.fixedAmount) return
+    update("taxSettings", {
+      taxEntries: [
+        ...payload.taxSettings.taxEntries,
+        { ...entry, id: uid("tax"), taxType: taxType || "Other", confirmed: true },
+      ],
+    })
+    setDraftTax(emptyTaxEntry())
   }
 
-  function updateTax(id: string, values: Partial<TaxEntry>) {
-    update("taxSettings", { taxEntries: payload.taxSettings.taxEntries.map((entry) => entry.id === id ? { ...entry, ...values } : entry) })
+  function addSuggestedTax(taxType: string) {
+    addTax({ ...emptyTaxEntry(), taxType })
   }
 
   function addContribution() {
-    replace({ employerContributions: [...payload.employerContributions, { id: uid("contribution"), contributionType: "", percentage: "", monthlyCost: "", annualCost: "" }] })
+    if (!draftContribution.contributionType && !draftContribution.percentage && !draftContribution.monthlyCost && !draftContribution.annualCost) return
+    replace({ employerContributions: [...payload.employerContributions, { ...draftContribution, id: uid("contribution") }] })
+    setDraftContribution(emptyContribution())
   }
 
   function addInsurance() {
+    if (!draftInsurance.insuranceType && !draftInsurance.provider && !draftInsurance.monthlyCost && !draftInsurance.annualCost) return
     update("insuranceSettings", {
-      insuranceEntries: [...payload.insuranceSettings.insuranceEntries, { id: uid("insurance"), insuranceType: "", provider: "", monthlyCost: "", annualCost: "", coverageAmount: "" }],
+      hasBusinessInsurance: "yes",
+      insuranceEntries: [...payload.insuranceSettings.insuranceEntries, { ...draftInsurance, id: uid("insurance") }],
     })
+    setDraftInsurance(emptyInsurance())
   }
 
   function addFixedCost() {
-    replace({ fixedCosts: [...payload.fixedCosts, { id: uid("fixed"), costCategory: "", monthlyCost: "", annualCost: "" }] })
+    if (!draftFixedCost.costCategory && !draftFixedCost.monthlyCost && !draftFixedCost.annualCost) return
+    replace({ fixedCosts: [...payload.fixedCosts, { ...draftFixedCost, id: uid("fixed") }] })
+    setDraftFixedCost(emptyFixedCost())
   }
 
-  function removeById<T extends { id: string }>(items: T[], id: string) {
-    return items.filter((item) => item.id !== id)
-  }
-
-  function renderCompany() {
-    return (
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextField label="Company name" value={payload.companyInfo.companyName} onChange={(value) => update("companyInfo", { companyName: value })} />
-        <TextField label="Country" value={payload.companyInfo.country} onChange={(value) => update("companyInfo", { country: value, countryOfRegistration: value, taxResidenceCountry: value })} placeholder="Germany, USA, Netherlands..." />
-        <TextField label="State / Province / Region" value={payload.companyInfo.stateRegion} onChange={(value) => update("companyInfo", { stateRegion: value })} />
-        <TextField label="Industry" value={payload.companyInfo.industry} onChange={(value) => update("companyInfo", { industry: value })} />
-        <SelectField label="Business type" value={payload.companyInfo.businessType} options={BUSINESS_TYPES} onChange={(value) => update("companyInfo", { businessType: value })} />
-        <SelectField label="Legal structure" value={payload.companyInfo.legalStructure} options={LEGAL_STRUCTURES.map((item) => item.value)} onChange={(value) => update("companyInfo", { legalStructure: value as CompanySetupPayload["companyInfo"]["legalStructure"] })} />
-        <SelectField label="Company size" value={payload.companyInfo.companySize} options={COMPANY_SIZES} onChange={(value) => update("companyInfo", { companySize: value })} />
-        <TextField label="Number of employees" value={payload.companyInfo.employeeCount} onChange={(value) => update("companyInfo", { employeeCount: value })} type="number" />
-        <TextField label="Fiscal year start" value={payload.companyInfo.fiscalYearStart} onChange={(value) => update("companyInfo", { fiscalYearStart: value })} placeholder="January 1" />
-        <TextField label="Fiscal year end" value={payload.companyInfo.fiscalYearEnd} onChange={(value) => update("companyInfo", { fiscalYearEnd: value })} placeholder="December 31" />
-        <SelectField label="Currency" value={payload.currencySettings.primaryCurrency} options={CURRENCIES} onChange={(value) => update("currencySettings", { primaryCurrency: value, reportingCurrency: value })} />
-        {suggestions.length > 0 && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 md:col-span-2">
-            <p className="text-sm font-semibold text-foreground">Country suggestions</p>
-            <p className="mt-1 text-xs text-muted-foreground">Suggested common taxes for this country. Add only the ones that apply and confirm every value.</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {suggestions.map((suggestion) => (
-                <Button key={suggestion} type="button" variant="outline" size="sm" onClick={() => addTax(suggestion)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add {suggestion}
-                </Button>
-              ))}
-            </div>
+  function renderQuestion() {
+    switch (activeQuestion.id) {
+      case "companyName":
+        return <TextAnswer value={payload.companyInfo.companyName} onChange={(value) => update("companyInfo", { companyName: value })} placeholder="UseClevr GmbH" />
+      case "country":
+        return (
+          <div className="space-y-3">
+            <TextAnswer
+              value={payload.companyInfo.country}
+              onChange={(value) => update("companyInfo", { country: value, countryOfRegistration: value, taxResidenceCountry: value })}
+              placeholder="Germany, USA, Netherlands..."
+            />
+            {payload.companyInfo.country && (
+              <SuggestionNote text={isUSA(payload.companyInfo.country) ? "USA selected: state, federal tax, state tax, and sales tax suggestions become available." : isEU(payload.companyInfo.country) ? "EU country selected: VAT and corporate or income tax suggestions become available." : "Country selected. Suggestions remain editable and optional."} />
+            )}
           </div>
-        )}
-      </div>
-    )
-  }
-
-  function renderTaxes() {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-base font-semibold">What taxes are relevant for your business?</h3>
-          <p className="text-sm text-muted-foreground">Add unlimited tax entries. Suggestions are never assumed; confirm or edit every value.</p>
-        </div>
-        {payload.taxSettings.taxEntries.length === 0 ? <EmptyState text="No taxes added yet. Add a suggested or custom tax." /> : null}
-        {payload.taxSettings.taxEntries.map((entry) => (
-          <Card key={entry.id} className="border-border bg-background">
-            <CardContent className="grid gap-3 p-4 md:grid-cols-5">
-              <SelectField label="Tax type" value={entry.taxType} options={TAX_ENTRY_TYPES} onChange={(value) => updateTax(entry.id, { taxType: value, confirmed: true })} />
-              <TextField label="Percentage" value={entry.percentage} onChange={(value) => updateTax(entry.id, { percentage: value })} />
-              <TextField label="Fixed amount" value={entry.fixedAmount} onChange={(value) => updateTax(entry.id, { fixedAmount: value })} />
-              <SelectField label="Frequency" value={entry.frequency} options={["monthly", "quarterly", "annual"]} onChange={(value) => updateTax(entry.id, { frequency: value as TaxEntry["frequency"] })} />
-              <div className="space-y-1.5">
-                <Label>Actions</Label>
-                <Button type="button" variant="outline" className="w-full" onClick={() => update("taxSettings", { taxEntries: removeById(payload.taxSettings.taxEntries, entry.id) })}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Remove
-                </Button>
-              </div>
-              <div className="md:col-span-5">
-                <TextField label="Notes" value={entry.notes} onChange={(value) => updateTax(entry.id, { notes: value })} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        <Button type="button" variant="outline" onClick={() => addTax()}>
-          <Plus className="mr-2 h-4 w-4" /> Add custom tax
-        </Button>
-      </div>
-    )
-  }
-
-  function renderContributions() {
-    return (
-      <RepeatableSection
-        title="What employer contributions do you pay?"
-        empty="No employer contributions added."
-        addLabel="Add contribution"
-        onAdd={addContribution}
-      >
-        {payload.employerContributions.map((entry) => (
-          <ContributionRow
-            key={entry.id}
-            entry={entry}
-            onChange={(values) => replace({ employerContributions: payload.employerContributions.map((item) => item.id === entry.id ? { ...item, ...values } : item) })}
-            onRemove={() => replace({ employerContributions: removeById(payload.employerContributions, entry.id) })}
-          />
-        ))}
-      </RepeatableSection>
-    )
-  }
-
-  function renderInsurance() {
-    return (
-      <RepeatableSection title="What business insurances do you maintain?" empty="No business insurance added." addLabel="Add insurance" onAdd={addInsurance}>
-        {payload.insuranceSettings.insuranceEntries.map((entry) => (
-          <InsuranceRow
-            key={entry.id}
-            entry={entry}
-            onChange={(values) => update("insuranceSettings", { insuranceEntries: payload.insuranceSettings.insuranceEntries.map((item) => item.id === entry.id ? { ...item, ...values } : item) })}
-            onRemove={() => update("insuranceSettings", { insuranceEntries: removeById(payload.insuranceSettings.insuranceEntries, entry.id) })}
-          />
-        ))}
-      </RepeatableSection>
-    )
-  }
-
-  function renderFixedCosts() {
-    return (
-      <RepeatableSection title="What recurring business costs do you have?" empty="No fixed costs added." addLabel="Add fixed cost" onAdd={addFixedCost}>
-        {payload.fixedCosts.map((entry) => (
-          <FixedCostRow
-            key={entry.id}
-            entry={entry}
-            onChange={(values) => replace({ fixedCosts: payload.fixedCosts.map((item) => item.id === entry.id ? { ...item, ...values } : item) })}
-            onRemove={() => replace({ fixedCosts: removeById(payload.fixedCosts, entry.id) })}
-          />
-        ))}
-      </RepeatableSection>
-    )
-  }
-
-  function renderRevenue() {
-    const model = payload.revenueModel
-    const updateModel = (values: Partial<RevenueModel>) => update("revenueModel", values)
-    return (
-      <div className="space-y-4">
-        <MultiChoice label="Business model" values={model.businessModels} options={BUSINESS_TYPES} onChange={(values) => updateModel({ businessModels: values })} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <TextField label="Average deal value" value={model.averageDealValue} onChange={(value) => updateModel({ averageDealValue: value })} />
-          <TextField label="Average customer value" value={model.averageCustomerValue} onChange={(value) => updateModel({ averageCustomerValue: value })} />
-          <TextField label="Average customer lifetime" value={model.averageCustomerLifetime} onChange={(value) => updateModel({ averageCustomerLifetime: value })} />
-          <TextField label="Recurring revenue percentage" value={model.recurringRevenuePercentage} onChange={(value) => updateModel({ recurringRevenuePercentage: value })} />
-          <TextField label="Gross margin target" value={model.grossMarginTarget} onChange={(value) => updateModel({ grossMarginTarget: value })} />
-        </div>
-      </div>
-    )
-  }
-
-  function renderCostStructure() {
-    const costs = payload.costStructure
-    const updateCosts = (values: Partial<CostStructure>) => update("costStructure", values)
-    return (
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextField label="Material costs" value={costs.materialCosts} onChange={(value) => updateCosts({ materialCosts: value })} />
-        <TextField label="Inventory costs" value={costs.inventoryCosts} onChange={(value) => updateCosts({ inventoryCosts: value })} />
-        <TextField label="Production costs" value={costs.productionCosts} onChange={(value) => updateCosts({ productionCosts: value })} />
-        <TextField label="Shipping costs" value={costs.shippingCosts} onChange={(value) => updateCosts({ shippingCosts: value })} />
-        <TextField label="Payment processing fees" value={costs.paymentProcessingFees} onChange={(value) => updateCosts({ paymentProcessingFees: value })} />
-        <TextField label="Contractor costs" value={costs.contractorCosts} onChange={(value) => updateCosts({ contractorCosts: value })} />
-        <TextField label="Commission costs" value={costs.commissionCosts} onChange={(value) => updateCosts({ commissionCosts: value })} />
-        <TextField label="Return rates" value={costs.returnRates} onChange={(value) => updateCosts({ returnRates: value })} />
-        <TextField label="Discount rates" value={costs.discountRates} onChange={(value) => updateCosts({ discountRates: value })} />
-      </div>
-    )
-  }
-
-  function renderGoals() {
-    const goals = payload.businessGoals
-    const updateGoals = (values: Partial<BusinessGoals>) => update("businessGoals", values)
-    return (
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextField label="Growth target" value={goals.growthTarget} onChange={(value) => updateGoals({ growthTarget: value })} />
-        <TextField label="Profit target" value={goals.profitTarget} onChange={(value) => updateGoals({ profitTarget: value })} />
-        <TextField label="EBITDA target" value={goals.ebitdaTarget} onChange={(value) => updateGoals({ ebitdaTarget: value })} />
-        <TextField label="Cash reserve target" value={goals.cashReserveTarget} onChange={(value) => updateGoals({ cashReserveTarget: value })} />
-        <TextField label="Expansion plans" value={goals.expansionPlans} onChange={(value) => updateGoals({ expansionPlans: value })} />
-        <TextField label="Investment plans" value={goals.investmentPlans} onChange={(value) => updateGoals({ investmentPlans: value })} />
-        <SelectField label="Risk tolerance" value={goals.riskTolerance} options={["Low", "Medium", "High", "Not sure"]} onChange={(value) => updateGoals({ riskTolerance: value })} />
-      </div>
-    )
-  }
-
-  function renderReview() {
-    return (
-      <div className="space-y-4">
-        {status.completed ? (
-          <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-700 dark:text-emerald-300">
-            <CheckCircle2 className="h-8 w-8" />
-            <div>
-              <p className="font-semibold">Business Profile Completed</p>
-              <p className="text-sm">This profile now improves future analysis context.</p>
-            </div>
-          </div>
+        )
+      case "stateRegion":
+        return isUSA(payload.companyInfo.country) ? (
+          <SelectAnswer value={payload.companyInfo.stateRegion} options={US_STATES} onChange={(value) => update("companyInfo", { stateRegion: value })} />
         ) : (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
-            Review and fill required missing fields before marking this profile complete.
+          <TextAnswer value={payload.companyInfo.stateRegion} onChange={(value) => update("companyInfo", { stateRegion: value })} placeholder="State, province, canton, region..." />
+        )
+      case "legalStructure":
+        return <ChoiceAnswer value={payload.companyInfo.legalStructure} options={LEGAL_STRUCTURES.map((item) => ({ value: item.value, label: item.label }))} onChange={(value) => update("companyInfo", { legalStructure: value as CompanySetupPayload["companyInfo"]["legalStructure"] })} />
+      case "industry":
+        return <TextAnswer value={payload.companyInfo.industry} onChange={(value) => update("companyInfo", { industry: value })} placeholder="SaaS, retail, accounting, logistics..." />
+      case "currency":
+        return <ChoiceAnswer value={payload.currencySettings.primaryCurrency} options={selectOptions(CURRENCIES)} onChange={(value) => update("currencySettings", { primaryCurrency: value, reportingCurrency: value })} />
+      case "fiscalYear":
+        return (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <LabeledInput label="Fiscal year start" value={payload.companyInfo.fiscalYearStart} onChange={(value) => update("companyInfo", { fiscalYearStart: value })} placeholder="January 1" />
+            <LabeledInput label="Fiscal year end" value={payload.companyInfo.fiscalYearEnd} onChange={(value) => update("companyInfo", { fiscalYearEnd: value })} placeholder="December 31" />
           </div>
-        )}
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold">Profile completion</span>
-            <span className="text-2xl font-bold text-primary">{status.setupAccuracy}%</span>
-          </div>
-          <div className="h-2 rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${status.setupAccuracy}%` }} />
-          </div>
-        </div>
-        <ReviewGrid payload={payload} onEdit={(target) => setStep(target)} />
-        {status.accountantReviewFlags.length > 0 && (
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h4 className="mb-2 text-sm font-semibold">Review flags</h4>
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              {status.accountantReviewFlags.map((flag) => <li key={flag}>- {flag}</li>)}
-            </ul>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  function renderStep() {
-    switch (activeStep.id) {
-      case "company": return renderCompany()
-      case "tax": return renderTaxes()
-      case "contributions": return renderContributions()
-      case "insurance": return renderInsurance()
-      case "fixedCosts": return renderFixedCosts()
-      case "revenue": return renderRevenue()
-      case "costs": return renderCostStructure()
-      case "goals": return renderGoals()
-      case "review": return renderReview()
-      default: return null
+        )
+      case "taxRegistered":
+        return (
+          <ChoiceAnswer
+            value={payload.taxSettings.taxRegistered}
+            options={[
+              { value: "yes", label: isUSA(payload.companyInfo.country) ? "Yes, sales-tax registered" : "Yes, VAT/GST registered" },
+              { value: "no", label: "No" },
+              { value: "not_sure", label: "Not sure" },
+            ]}
+            onChange={(value) => update("taxSettings", { taxRegistered: value as CompanySetupPayload["taxSettings"]["taxRegistered"] })}
+          />
+        )
+      case "taxEntries":
+        return (
+          <RepeatableQuestion
+            suggestions={suggestions}
+            onSuggestion={addSuggestedTax}
+            entries={payload.taxSettings.taxEntries.map((entry) => `${entry.taxType}${entry.percentage ? ` ${entry.percentage}%` : ""}`)}
+            onRemove={(index) => update("taxSettings", { taxEntries: payload.taxSettings.taxEntries.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Tax type" value={draftTax.taxType} options={TAX_ENTRY_TYPES} onChange={(value) => setDraftTax((entry) => ({ ...entry, taxType: value }))} />
+              <LabeledInput label="Percentage" value={draftTax.percentage} onChange={(value) => setDraftTax((entry) => ({ ...entry, percentage: value }))} placeholder="19" />
+              <LabeledInput label="Fixed amount" value={draftTax.fixedAmount} onChange={(value) => setDraftTax((entry) => ({ ...entry, fixedAmount: value }))} placeholder="Optional" />
+              <SelectInput label="Frequency" value={draftTax.frequency} options={["monthly", "quarterly", "annual"]} onChange={(value) => setDraftTax((entry) => ({ ...entry, frequency: value as TaxEntry["frequency"] }))} />
+            </div>
+            <Button type="button" variant="outline" onClick={() => addTax()} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add this tax
+            </Button>
+          </RepeatableQuestion>
+        )
+      case "employees":
+        return (
+          <ChoiceAnswer
+            value={payload.companyInfo.employeeCount === "0" ? "no" : payload.companyInfo.employeeCount ? "yes" : ""}
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+              { value: "not_sure", label: "Not sure" },
+            ]}
+            onChange={(value) => {
+              update("companyInfo", { employeeCount: value === "no" ? "0" : value === "not_sure" ? "not_sure" : payload.companyInfo.employeeCount || "1+" })
+              if (value === "no") replace({ employerContributions: [] })
+            }}
+          />
+        )
+      case "contributions":
+        return (
+          <RepeatableQuestion
+            entries={payload.employerContributions.map((entry) => `${entry.contributionType}${entry.percentage ? ` ${entry.percentage}%` : ""}`)}
+            onRemove={(index) => replace({ employerContributions: payload.employerContributions.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Contribution" value={draftContribution.contributionType} options={CONTRIBUTION_TYPES} onChange={(value) => setDraftContribution((entry) => ({ ...entry, contributionType: value }))} />
+              <LabeledInput label="Percentage" value={draftContribution.percentage} onChange={(value) => setDraftContribution((entry) => ({ ...entry, percentage: value }))} placeholder="20" />
+              <LabeledInput label="Monthly cost" value={draftContribution.monthlyCost} onChange={(value) => setDraftContribution((entry) => ({ ...entry, monthlyCost: value }))} placeholder="Optional" />
+              <LabeledInput label="Annual cost" value={draftContribution.annualCost} onChange={(value) => setDraftContribution((entry) => ({ ...entry, annualCost: value }))} placeholder="Optional" />
+            </div>
+            <Button type="button" variant="outline" onClick={addContribution} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add contribution
+            </Button>
+          </RepeatableQuestion>
+        )
+      case "insurance":
+        return (
+          <RepeatableQuestion
+            entries={payload.insuranceSettings.insuranceEntries.map((entry) => `${entry.insuranceType}${entry.provider ? ` - ${entry.provider}` : ""}`)}
+            onRemove={(index) => update("insuranceSettings", { insuranceEntries: payload.insuranceSettings.insuranceEntries.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Insurance type" value={draftInsurance.insuranceType} options={INSURANCE_TYPES} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, insuranceType: value }))} />
+              <LabeledInput label="Provider" value={draftInsurance.provider} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, provider: value }))} placeholder="Provider name" />
+              <LabeledInput label="Monthly cost" value={draftInsurance.monthlyCost} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, monthlyCost: value }))} placeholder="Optional" />
+              <LabeledInput label="Coverage amount" value={draftInsurance.coverageAmount} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, coverageAmount: value }))} placeholder="Optional" />
+            </div>
+            <Button type="button" variant="outline" onClick={addInsurance} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add insurance
+            </Button>
+          </RepeatableQuestion>
+        )
+      case "fixedCosts":
+        return (
+          <RepeatableQuestion
+            entries={payload.fixedCosts.map((entry) => `${entry.costCategory}${entry.monthlyCost ? ` - ${entry.monthlyCost}/mo` : ""}`)}
+            onRemove={(index) => replace({ fixedCosts: payload.fixedCosts.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Cost category" value={draftFixedCost.costCategory} options={FIXED_COST_CATEGORIES} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, costCategory: value }))} />
+              <LabeledInput label="Monthly cost" value={draftFixedCost.monthlyCost} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, monthlyCost: value }))} placeholder="500" />
+              <LabeledInput label="Annual cost" value={draftFixedCost.annualCost} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, annualCost: value }))} placeholder="Optional" />
+            </div>
+            <Button type="button" variant="outline" onClick={addFixedCost} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add fixed cost
+            </Button>
+          </RepeatableQuestion>
+        )
+      case "revenueModel":
+        return <MultiChoiceAnswer values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={(values) => update("revenueModel", { businessModels: values })} />
+      case "costStructure":
+        return <CostStructureAnswer costs={payload.costStructure} onChange={(values) => update("costStructure", values)} />
+      case "targetMargin":
+        return <TextAnswer value={payload.revenueModel.grossMarginTarget} onChange={(value) => update("revenueModel", { grossMarginTarget: value })} placeholder="30%" />
+      case "growthGoal":
+        return <GrowthGoalAnswer goals={payload.businessGoals} onChange={(values) => update("businessGoals", values)} />
+      case "review":
+        return <ReviewAnswer payload={payload} status={status} onEdit={(id) => setActiveIndex(Math.max(0, visibleQuestions.findIndex((question) => question.id === id)))} />
+      default:
+        return null
     }
   }
 
@@ -484,151 +431,333 @@ export function CompanySetupWizard() {
   }
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle>Global Business Profile Wizard</CardTitle>
-            <CardDescription>Step {step + 1} of {STEPS.length}: {activeStep.label}</CardDescription>
-          </div>
-          {status.completed && (
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">
-              <Check className="h-4 w-4" /> Complete
-            </span>
-          )}
-        </div>
-        <div>
-          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>{progress}% through wizard</span>
-            <span>{status.setupAccuracy}% profile completion</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 lg:grid-cols-9">
-          {STEPS.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setStep(index)}
-              className={classNames(
-                "rounded-md border px-2 py-2 text-xs font-medium transition",
-                index === step ? "border-primary bg-primary text-primary-foreground" : index < step ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground",
-              )}
-            >
-              {index + 1}. {item.label.split(" ")[0]}
-            </button>
-          ))}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {renderStep()}
-        {saveMessage && <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{saveMessage}</div>}
-        <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <Button type="button" variant="outline" onClick={() => setStep(Math.max(step - 1, 0))} disabled={step === 0}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            {activeStep.optional && step < STEPS.length - 1 && (
-              <Button type="button" variant="ghost" onClick={skipOptional} disabled={isSaving}>Skip optional section</Button>
+    <>
+      <Card className="border-border bg-card">
+        <CardHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Business Profile Setup
+              </CardTitle>
+              <CardDescription>
+                Guided setup for context-aware tax, payroll, fixed-cost, margin, cashflow, risk, and KPI analysis.
+              </CardDescription>
+            </div>
+            {(completed || status.completed) && (
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                <Check className="h-4 w-4" /> Complete
+              </span>
             )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="rounded-xl border border-border bg-background p-4">
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="font-medium">Profile completion</span>
+              <span className="font-semibold text-primary">{status.setupAccuracy}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${status.setupAccuracy}%` }} />
+            </div>
+            <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+              <span>Company: {payload.companyInfo.companyName || "Not added yet"}</span>
+              <span>Country: {payload.companyInfo.country || "Not added yet"}</span>
+              <span>Currency: {payload.currencySettings.primaryCurrency || "Not added yet"}</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button type="button" onClick={() => setIsOpen(true)} className="sm:w-auto">
+              {status.setupAccuracy > 0 ? "Continue setup" : "Start Business Profile Setup"}
+            </Button>
             <Button type="button" variant="outline" onClick={() => save()} disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Save
+              Save progress
             </Button>
-            {step < STEPS.length - 1 ? (
-              <Button type="button" onClick={saveAndContinue} disabled={isSaving}>
-                Save and continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button type="button" onClick={() => save()} disabled={isSaving}>
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm profile
-              </Button>
-            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          {saveMessage && <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{saveMessage}</div>}
+        </CardContent>
+      </Card>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto p-0">
+          <div className="border-b border-border p-5">
+            <DialogHeader className="pr-8">
+              <DialogTitle>Business Profile Assistant</DialogTitle>
+              <DialogDescription>Step {activeIndex + 1} of {visibleQuestions.length}</DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="space-y-5 p-5">
+            {completed ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="mb-3 h-14 w-14" />
+                <h3 className="text-xl font-semibold">Business Profile Completed</h3>
+                <p className="mt-2 text-sm">Saved profile values now improve future CSV and Excel analysis.</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground">{activeQuestion.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{activeQuestion.helper}</p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-4">{renderQuestion()}</div>
+              </>
+            )}
+            {saveMessage && <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{saveMessage}</div>}
+          </div>
+
+          {!completed && (
+            <DialogFooter className="border-t border-border p-5 sm:justify-between">
+              <Button type="button" variant="outline" onClick={() => setActiveIndex(Math.max(activeIndex - 1, 0))} disabled={activeIndex === 0 || isSaving}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <div className="flex flex-wrap justify-end gap-2">
+                {activeQuestion.optional && activeQuestion.id !== "review" && (
+                  <Button type="button" variant="ghost" onClick={skip} disabled={isSaving}>Skip optional question</Button>
+                )}
+                <Button type="button" variant="outline" onClick={() => save()} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save progress
+                </Button>
+                <Button type="button" onClick={next} disabled={isSaving}>
+                  {activeQuestion.id === "review" ? "Confirm profile" : "Next"}
+                  {activeQuestion.id !== "review" && <ArrowRight className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
-function RepeatableSection({ title, empty, addLabel, onAdd, children }: { title: string; empty: string; addLabel: string; onAdd: () => void; children: React.ReactNode }) {
-  const hasChildren = Boolean(children && (!Array.isArray(children) || children.length > 0))
+function emptyTaxEntry(): TaxEntry {
+  return { id: "", taxType: "", percentage: "", fixedAmount: "", frequency: "", notes: "", confirmed: false }
+}
+
+function emptyContribution(): EmployerContribution {
+  return { id: "", contributionType: "", percentage: "", monthlyCost: "", annualCost: "" }
+}
+
+function emptyInsurance(): InsuranceEntry {
+  return { id: "", insuranceType: "", provider: "", monthlyCost: "", annualCost: "", coverageAmount: "" }
+}
+
+function emptyFixedCost(): FixedCostEntry {
+  return { id: "", costCategory: "", monthlyCost: "", annualCost: "" }
+}
+
+function LabeledInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="text-sm text-muted-foreground">Add as many entries as needed. Leave unknown values blank until confirmed.</p>
-      </div>
-      {hasChildren ? children : <EmptyState text={empty} />}
-      <Button type="button" variant="outline" onClick={onAdd}><Plus className="mr-2 h-4 w-4" /> {addLabel}</Button>
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
     </div>
   )
 }
 
-function ContributionRow({ entry, onChange, onRemove }: { entry: EmployerContribution; onChange: (values: Partial<EmployerContribution>) => void; onRemove: () => void }) {
+function TextAnswer({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
+  return <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-12 text-base" />
+}
+
+function SelectInput({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
   return (
-    <Card className="border-border bg-background"><CardContent className="grid gap-3 p-4 md:grid-cols-5">
-      <SelectField label="Contribution" value={entry.contributionType} options={CONTRIBUTION_TYPES} onChange={(value) => onChange({ contributionType: value })} />
-      <TextField label="Percentage" value={entry.percentage} onChange={(value) => onChange({ percentage: value })} />
-      <TextField label="Monthly cost" value={entry.monthlyCost} onChange={(value) => onChange({ monthlyCost: value })} />
-      <TextField label="Annual cost" value={entry.annualCost} onChange={(value) => onChange({ annualCost: value })} />
-      <div className="space-y-1.5"><Label>Actions</Label><Button type="button" variant="outline" className="w-full" onClick={onRemove}><Trash2 className="mr-2 h-4 w-4" /> Remove</Button></div>
-    </CardContent></Card>
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground">
+        <option value="">Select...</option>
+        {value && !options.includes(value) && <option value={value}>{value}</option>}
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </div>
   )
 }
 
-function InsuranceRow({ entry, onChange, onRemove }: { entry: InsuranceEntry; onChange: (values: Partial<InsuranceEntry>) => void; onRemove: () => void }) {
-  return (
-    <Card className="border-border bg-background"><CardContent className="grid gap-3 p-4 md:grid-cols-6">
-      <SelectField label="Insurance" value={entry.insuranceType} options={INSURANCE_TYPES} onChange={(value) => onChange({ insuranceType: value })} />
-      <TextField label="Provider" value={entry.provider} onChange={(value) => onChange({ provider: value })} />
-      <TextField label="Monthly cost" value={entry.monthlyCost} onChange={(value) => onChange({ monthlyCost: value })} />
-      <TextField label="Annual cost" value={entry.annualCost} onChange={(value) => onChange({ annualCost: value })} />
-      <TextField label="Coverage amount" value={entry.coverageAmount} onChange={(value) => onChange({ coverageAmount: value })} />
-      <div className="space-y-1.5"><Label>Actions</Label><Button type="button" variant="outline" className="w-full" onClick={onRemove}><Trash2 className="mr-2 h-4 w-4" /> Remove</Button></div>
-    </CardContent></Card>
-  )
+function SelectAnswer({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
+  return <SelectInput label="Answer" value={value} options={options} onChange={onChange} />
 }
 
-function FixedCostRow({ entry, onChange, onRemove }: { entry: FixedCostEntry; onChange: (values: Partial<FixedCostEntry>) => void; onRemove: () => void }) {
+function ChoiceAnswer({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
   return (
-    <Card className="border-border bg-background"><CardContent className="grid gap-3 p-4 md:grid-cols-4">
-      <SelectField label="Cost category" value={entry.costCategory} options={FIXED_COST_CATEGORIES} onChange={(value) => onChange({ costCategory: value })} />
-      <TextField label="Monthly cost" value={entry.monthlyCost} onChange={(value) => onChange({ monthlyCost: value })} />
-      <TextField label="Annual cost" value={entry.annualCost} onChange={(value) => onChange({ annualCost: value })} />
-      <div className="space-y-1.5"><Label>Actions</Label><Button type="button" variant="outline" className="w-full" onClick={onRemove}><Trash2 className="mr-2 h-4 w-4" /> Remove</Button></div>
-    </CardContent></Card>
-  )
-}
-
-function ReviewGrid({ payload, onEdit }: { payload: CompanySetupPayload; onEdit: (step: number) => void }) {
-  const cards = [
-    { title: "Company", step: 0, value: [payload.companyInfo.companyName, payload.companyInfo.country, payload.companyInfo.industry].filter(Boolean).join(" / ") || "Not set" },
-    { title: "Taxes", step: 1, value: `${payload.taxSettings.taxEntries.length} tax entries` },
-    { title: "Contributions", step: 2, value: `${payload.employerContributions.length} contribution entries` },
-    { title: "Insurance", step: 3, value: `${payload.insuranceSettings.insuranceEntries.length} insurance entries` },
-    { title: "Fixed Costs", step: 4, value: `${payload.fixedCosts.length} fixed costs` },
-    { title: "Revenue", step: 5, value: payload.revenueModel.businessModels.join(", ") || "Not set" },
-    { title: "Cost Structure", step: 6, value: countNonEmpty(payload.costStructure) },
-    { title: "Goals", step: 7, value: countNonEmpty(payload.businessGoals) },
-  ]
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {cards.map((card) => (
-        <div key={card.title} className="rounded-lg border border-border bg-background p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div><p className="font-semibold">{card.title}</p><p className="mt-1 text-sm text-muted-foreground">{card.value}</p></div>
-            <Button type="button" variant="outline" size="sm" onClick={() => onEdit(card.step)}>Edit</Button>
-          </div>
-        </div>
+    <div className="grid gap-2">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={[
+            "rounded-lg border px-4 py-3 text-left text-sm font-medium transition",
+            value === option.value
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+          ].join(" ")}
+        >
+          {option.label}
+        </button>
       ))}
     </div>
   )
 }
 
-function countNonEmpty(values: CostStructure | BusinessGoals) {
-  const count = Object.values(values).filter((value) => value.trim()).length
-  return `${count} fields completed`
+function MultiChoiceAnswer({ values, options, onChange }: { values: string[]; options: string[]; onChange: (values: string[]) => void }) {
+  function toggle(option: string) {
+    onChange(values.includes(option) ? values.filter((value) => value !== option) : [...values, option])
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => toggle(option)}
+          className={[
+            "rounded-lg border px-4 py-3 text-sm font-medium transition",
+            values.includes(option)
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+          ].join(" ")}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function RepeatableQuestion({
+  children,
+  entries,
+  suggestions = [],
+  onSuggestion,
+  onRemove,
+}: {
+  children: React.ReactNode
+  entries: string[]
+  suggestions?: string[]
+  onSuggestion?: (value: string) => void
+  onRemove: (index: number) => void
+}) {
+  return (
+    <div className="space-y-4">
+      {suggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editable country suggestions</p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <Button key={suggestion} type="button" variant="outline" size="sm" onClick={() => onSuggestion?.(suggestion)}>
+                <Plus className="mr-2 h-4 w-4" /> {suggestion}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+      {entries.length > 0 && (
+        <div className="space-y-2">
+          {entries.map((entry, index) => (
+            <div key={`${entry}_${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+              <span>{entry}</span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
+}
+
+function SuggestionNote({ text }: { text: string }) {
+  return <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">{text}</div>
+}
+
+function CostStructureAnswer({ costs, onChange }: { costs: CostStructure; onChange: (values: Partial<CostStructure>) => void }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <LabeledInput label="Material costs" value={costs.materialCosts} onChange={(value) => onChange({ materialCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Inventory costs" value={costs.inventoryCosts} onChange={(value) => onChange({ inventoryCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Production costs" value={costs.productionCosts} onChange={(value) => onChange({ productionCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Shipping costs" value={costs.shippingCosts} onChange={(value) => onChange({ shippingCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Payment processing fees" value={costs.paymentProcessingFees} onChange={(value) => onChange({ paymentProcessingFees: value })} placeholder="Optional" />
+      <LabeledInput label="Contractor costs" value={costs.contractorCosts} onChange={(value) => onChange({ contractorCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Commission costs" value={costs.commissionCosts} onChange={(value) => onChange({ commissionCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Return rates" value={costs.returnRates} onChange={(value) => onChange({ returnRates: value })} placeholder="Optional" />
+      <LabeledInput label="Discount rates" value={costs.discountRates} onChange={(value) => onChange({ discountRates: value })} placeholder="Optional" />
+    </div>
+  )
+}
+
+function GrowthGoalAnswer({ goals, onChange }: { goals: BusinessGoals; onChange: (values: Partial<BusinessGoals>) => void }) {
+  return (
+    <div className="space-y-3">
+      <LabeledInput label="Growth goal" value={goals.growthTarget} onChange={(value) => onChange({ growthTarget: value })} placeholder="Grow revenue 20% this year" />
+      <LabeledInput label="Profit goal" value={goals.profitTarget} onChange={(value) => onChange({ profitTarget: value })} placeholder="Optional" />
+      <SelectInput label="Risk tolerance" value={goals.riskTolerance} options={["Low", "Medium", "High", "Not sure"]} onChange={(value) => onChange({ riskTolerance: value })} />
+    </div>
+  )
+}
+
+function ReviewAnswer({
+  payload,
+  status,
+  onEdit,
+}: {
+  payload: CompanySetupPayload
+  status: CompanySetupPayload["setupStatus"]
+  onEdit: (id: QuestionId) => void
+}) {
+  const rows: { label: string; value: string; id: QuestionId }[] = [
+    { label: "Company", value: payload.companyInfo.companyName || "Missing", id: "companyName" },
+    { label: "Country", value: [payload.companyInfo.country, payload.companyInfo.stateRegion].filter(Boolean).join(", ") || "Missing", id: "country" },
+    { label: "Legal structure", value: payload.companyInfo.legalStructure || "Missing", id: "legalStructure" },
+    { label: "Industry", value: payload.companyInfo.industry || "Missing", id: "industry" },
+    { label: "Currency", value: payload.currencySettings.primaryCurrency || "Missing", id: "currency" },
+    { label: "Fiscal year", value: [payload.companyInfo.fiscalYearStart, payload.companyInfo.fiscalYearEnd].filter(Boolean).join(" to ") || "Missing", id: "fiscalYear" },
+    { label: "Taxes", value: `${payload.taxSettings.taxEntries.length} entries`, id: "taxEntries" },
+    { label: "Contributions", value: `${payload.employerContributions.length} entries`, id: "contributions" },
+    { label: "Insurance", value: `${payload.insuranceSettings.insuranceEntries.length} entries`, id: "insurance" },
+    { label: "Fixed costs", value: `${payload.fixedCosts.length} entries`, id: "fixedCosts" },
+    { label: "Revenue model", value: payload.revenueModel.businessModels.join(", ") || "Missing", id: "revenueModel" },
+    { label: "Target margin", value: payload.revenueModel.grossMarginTarget || "Missing", id: "targetMargin" },
+    { label: "Growth goal", value: payload.businessGoals.growthTarget || "Missing", id: "growthGoal" },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="font-medium">Completion</span>
+          <span className="font-semibold text-primary">{status.setupAccuracy}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${status.setupAccuracy}%` }} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+            <div>
+              <p className="font-medium">{row.label}</p>
+              <p className="text-muted-foreground">{row.value}</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => onEdit(row.id)}>Edit</Button>
+          </div>
+        ))}
+      </div>
+      {status.accountantReviewFlags.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+          <p className="font-medium">Analysis confidence warnings</p>
+          <ul className="mt-2 space-y-1">
+            {status.accountantReviewFlags.slice(0, 4).map((flag) => <li key={flag}>- {flag}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
 }

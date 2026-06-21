@@ -4,6 +4,39 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
+## Interaction 52: Business Profile Modal Question Wizard
+
+- **Date**: 2026-06-21
+- **User Goal**: Replace the large Business Profile setup form with a compact modal-based question
+  wizard that feels like guided onboarding instead of a database admin form.
+- **Changes**:
+  1. Replace the inline multi-section setup card with a lightweight profile status card and a
+     centered Business Profile Assistant modal.
+  2. Show one setup question at a time with Step X of Y progress, one answer area, Back, Next, Skip
+     optional question, and Save progress controls.
+  3. Add conditional flow for USA state selection, VAT/sales-tax registration, country tax
+     suggestions, and employee contribution skips.
+  4. Keep repeatable taxes, employer contributions, business insurances, and fixed costs as
+     one-by-one additions inside the current question.
+  5. Add final review with edit buttons and green completion feedback after confirmation.
+- **Problems Marked**:
+  - `observation`: The mismatch was UX structure, not persistence or analysis plumbing.
+  - `risk`: Country and tax defaults must remain editable suggestions, not fixed facts.
+- **User Learning**: Business Profile setup now behaves as a guided assistant while saving into the
+  same Business Profile used by dataset analysis.
+- **AI-Agent Learning**: For onboarding requests, keep the page surface small and move progressive
+  data collection into a modal flow instead of rendering schema sections as full forms.
+- **Follow-up Tasks**: None.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, focused ESLint,
+  `pnpm lint:changelog`, `pnpm lint:docs`, `pnpm lint:secrets`, and `git diff --check` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`, release note lives in
+  `CHANGELOG.md`, and interaction records live in `project-logs/` plus
+  `docs/AI-interaction/interaction-status.md`.
+
+---
+
 ## Interaction 51: Business Profile and Uploaded Data Calculation Layer
 
 - **Date**: 2026-06-20

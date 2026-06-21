@@ -98,6 +98,10 @@ Text rules for this file:
 - Use Business Profile as the SME business-intelligence and pre-accounting context layer.
 - Show a one-step-at-a-time global Business Profile wizard with progress, save-and-continue,
   optional-section skipping, review/edit controls, and a green completion state.
+- Open Business Profile setup in a compact centered modal that shows one clear question, one answer
+  area, Back, Next, Skip optional question, Save progress, final review, and completion checkmark
+  controls.
+- Keep Business Profile setup out of long-form database-admin layouts.
 - Collect company information, editable country tax suggestions, unlimited tax entries, employer
   contributions, insurance, fixed costs, revenue model, cost structure, and business goals.
 - Keep Business Profile global across countries and require users to confirm or edit every

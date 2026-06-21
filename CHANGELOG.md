@@ -98,6 +98,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Show Business Profile setup as a compact modal question wizard with one answer at a time,
+  conditional skips, saved progress, review, and completion state.
 - Let Payload superadmins maintain business tax, accounting, legal, and currency context in the
   same records used by the dashboard.
 - Keep business and dataset records in their existing account-scoped storage while administrators
