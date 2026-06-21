@@ -8,7 +8,8 @@ import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
-import { Sparkles } from "lucide-react"
+import { getSetupStatus } from "@/lib/business/company-setup-store"
+import { AlertTriangle, Sparkles, BriefcaseBusiness } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -40,6 +41,11 @@ export default async function AnalyzePage({
   if (!userId) {
     notFound()
   }
+
+  // Get business profile status
+  const setupStatus = await getSetupStatus(userId)
+  const profileCompletion = setupStatus?.setupAccuracy ?? 0
+  const hasIncompleteProfile = profileCompletion < 80
 
   // Get dataset using Drizzle - read data directly from dataset.data column
   const dataset = await db.query.datasets.findFirst({
@@ -110,6 +116,32 @@ export default async function AnalyzePage({
           </Button>
         </Link>
       </PageActionRow>
+
+      {hasIncompleteProfile && (
+        <div className="mb-4 px-4 sm:px-6">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="font-semibold text-amber-950 dark:text-amber-100">
+                    Business Profile Incomplete
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
+                    Tax, payroll, insurance, fixed costs, profitability, forecasting, and KPI calculations depend on Business Profile data.
+                  </p>
+                </div>
+              </div>
+              <Link href="/app/business">
+                <Button size="sm" variant="outline" className="border-amber-500/40">
+                  <BriefcaseBusiness className="mr-2 h-4 w-4" />
+                  Complete ({profileCompletion}%)
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <DatasetAnalyzer

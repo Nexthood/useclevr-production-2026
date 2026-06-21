@@ -819,9 +819,9 @@ export function RetailInventoryClient() {
                 <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
                   Reorder these items first so recent sellers do not run out before the next buying cycle.
                 </p>
-                <div className="overflow-x-auto rounded-lg border border-amber-500/20">
+                <div className="max-h-[32rem] overflow-auto rounded-lg border border-amber-500/20">
                   <table className="w-full min-w-[760px] text-left text-sm">
-                    <thead className="bg-amber-500/10 text-xs uppercase text-muted-foreground">
+                    <thead className="sticky top-0 z-10 bg-amber-500/10 text-xs uppercase text-muted-foreground backdrop-blur">
                       <tr>
                         <th className="px-3 py-2 font-medium">Product / SKU</th>
                         <th className="px-3 py-2 font-medium">Category</th>
@@ -835,7 +835,7 @@ export function RetailInventoryClient() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {insights.lowStock.slice(0, 10).map((item, i) => (
+                      {insights.lowStock.map((item, i) => (
                         <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
@@ -866,11 +866,6 @@ export function RetailInventoryClient() {
                     </tbody>
                   </table>
                 </div>
-                {insights.lowStock.length > 10 && (
-                  <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{insights.lowStock.length - 10} more low-stock items
-                  </p>
-                )}
               </div>
             ) : insights && insights.lowStock.length === 0 ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
@@ -902,9 +897,9 @@ export function RetailInventoryClient() {
                 <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
                   Free cash from items that sit on the shelf before reordering more of the same stock.
                 </p>
-                <div className="overflow-x-auto rounded-lg border border-red-500/20">
+                <div className="max-h-[32rem] overflow-auto rounded-lg border border-red-500/20">
                   <table className="w-full min-w-[820px] text-left text-sm">
-                    <thead className="bg-red-500/10 text-xs uppercase text-muted-foreground">
+                    <thead className="sticky top-0 z-10 bg-red-500/10 text-xs uppercase text-muted-foreground backdrop-blur">
                       <tr>
                         <th className="px-3 py-2 font-medium">Product / SKU</th>
                         <th className="px-3 py-2 font-medium">Category</th>
@@ -917,7 +912,7 @@ export function RetailInventoryClient() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {insights.deadStock.slice(0, 10).map((item, i) => (
+                      {insights.deadStock.map((item, i) => (
                         <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
@@ -953,11 +948,6 @@ export function RetailInventoryClient() {
                     </tbody>
                   </table>
                 </div>
-                {insights.deadStock.length > 10 && (
-                  <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{insights.deadStock.length - 10} more items
-                  </p>
-                )}
               </div>
             ) : insights && insights.deadStock.length === 0 ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
@@ -989,9 +979,9 @@ export function RetailInventoryClient() {
                 <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-300">
                   Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost.
                 </p>
-                <div className="overflow-x-auto rounded-lg border border-green-500/20">
+                <div className="max-h-[32rem] overflow-auto rounded-lg border border-green-500/20">
                   <table className="w-full min-w-[820px] text-left text-sm">
-                    <thead className="bg-green-500/10 text-xs uppercase text-muted-foreground">
+                    <thead className="sticky top-0 z-10 bg-green-500/10 text-xs uppercase text-muted-foreground backdrop-blur">
                       <tr>
                         <th className="px-3 py-2 font-medium">Product / SKU</th>
                         <th className="px-3 py-2 font-medium">Category</th>
@@ -1005,7 +995,7 @@ export function RetailInventoryClient() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {insights.topProfit.slice(0, 10).map((item, i) => (
+                      {insights.topProfit.map((item, i) => (
                         <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
@@ -1035,11 +1025,6 @@ export function RetailInventoryClient() {
                     </tbody>
                   </table>
                 </div>
-                {insights.topProfit.length > 10 && (
-                  <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{insights.topProfit.length - 10} more products
-                  </p>
-                )}
               </div>
             ) : insights && insights.topProfit.length === 0 ? (
               <p className="text-sm text-muted-foreground">Add cost and revenue columns to see profit rankings</p>

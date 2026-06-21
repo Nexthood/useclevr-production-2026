@@ -1,330 +1,99 @@
-import { archiveBusinessAction, deleteBusinessAction, restoreBusinessAction } from "@/app/actions/business"
-import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { Card } from "@/components/ui/card"
-import { auth } from "@/lib/auth/auth"
-import { getBusinessLimit, listUserBusinesses, getPrimaryBusinessDetails, type BusinessListRow } from "@/lib/business/business-store"
-import {
-  BUSINESS_FIELDS,
-  getBusinessCompletionPercent,
-  getBusinessReviewFlags,
-  type BusinessDetails,
-} from "@/lib/business/business-profile"
-import { getCompanySetup } from "@/lib/business/company-setup-store"
-import { getDb } from "@/lib/db"
-import { businesses, businessEntities, profiles } from "@/lib/db/schema"
-import { eq, count, inArray } from "drizzle-orm"
-import { StatCard } from "@/components/ui/stat-card"
-import { AlertCircle, Building2, CheckCircle2, CircleDashed, FileText, MapPin, Plus, Percent, Mail, TriangleAlert } from "lucide-react"
+import { BusinessProfileQuestionWizard } from "@/components/business/business-profile-question-wizard"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertTriangle, Building2, CheckCircle2, ChevronRight, Sparkles, TriangleAlert } from "lucide-react"
 import Link from "next/link"
-import type React from "react"
+import type { Metadata } from "next"
+import { getSetupStatus } from "@/lib/business/company-setup-store"
+import { auth } from "@/lib/auth/auth"
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Business - UseClevr",
-}
-
-async function getSubscriptionTier(userId: string | null | undefined) {
-  if (!userId) return "free"
-  const db = getDb()
-  if (!db) return "free"
-
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-    columns: { subscriptionTier: true },
-  })
-  return profile?.subscriptionTier || "free"
-}
-
-async function getBusinessMetrics(userId: string | null | undefined) {
-  if (!userId) return { totalBusinesses: 0, totalEntities: 0 }
-
-  const db = getDb()
-  if (!db) return { totalBusinesses: 0, totalEntities: 0 }
-
-  try {
-    const userBusinesses = await db
-      .select({ id: businesses.id })
-      .from(businesses)
-      .where(eq(businesses.userId, userId))
-
-    const businessIds = userBusinesses.map((business) => business.id)
-    const entityCount = businessIds.length
-      ? await db.select({ count: count() }).from(businessEntities).where(inArray(businessEntities.businessId, businessIds))
-      : [{ count: 0 }]
-
-    return {
-      totalBusinesses: userBusinesses.length,
-      totalEntities: entityCount[0]?.count ?? 0,
-    }
-  } catch {
-    return { totalBusinesses: 0, totalEntities: 0 }
-  }
 }
 
 export default async function BusinessPage() {
   const session = await auth()
   const userId = session?.user?.id
+  const setupStatus = userId ? await getSetupStatus(userId) : null
 
-  const [businessesList, subscriptionTier, metrics, companySetup] = await Promise.all([
-    listUserBusinesses(userId),
-    getSubscriptionTier(userId),
-    getBusinessMetrics(userId),
-    getCompanySetup(userId ?? ""),
-  ])
-
-  const businessLimit = getBusinessLimit(subscriptionTier)
-  const canAddBusiness = businessesList.filter((business) => business.status !== "archived").length < businessLimit
-
-  // Get primary business details for review panel
-  const primaryDetails = await getPrimaryBusinessDetails(userId)
-  const safePrimaryDetails: BusinessDetails = primaryDetails ?? {
-    businessName: "",
-    businessEmail: "",
-    industry: "",
-    location: "",
-    website: "",
-    businessDescription: "",
-  }
-  const pct = getBusinessCompletionPercent(safePrimaryDetails)
-  const flags = getBusinessReviewFlags(safePrimaryDetails)
-
-  const rightSidebar = (
-    <aside className="hidden w-80 flex-shrink-0 border-l border-border bg-card lg:block">
-      <div className="flex h-full flex-col overflow-y-auto p-4">
-        <div className="space-y-4">
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold text-foreground">Overview</h3>
-            <div className="mt-3 grid gap-3">
-              <StatCard icon={Building2} label="Profiles" value={metrics.totalBusinesses.toString()} />
-              <StatCard icon={FileText} label="Entities" value={metrics.totalEntities.toString()} />
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold text-foreground">Profile summary</h3>
-            <div className="mt-3 grid gap-3">
-              <StatCard icon={Building2} label="Identity" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Identity" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/3`} />
-              <StatCard icon={Mail} label="Contact" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Contact" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/2`} />
-              <StatCard icon={MapPin} label="Operations" value={`${BUSINESS_FIELDS.filter((field) => field.section === "Operations" && safePrimaryDetails[field.id as keyof typeof safePrimaryDetails]).length}/1`} />
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold text-foreground">Review</h3>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <Percent className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs font-medium">Profile completion</p>
-                <p className="text-sm font-semibold">{pct === 0 ? "0% - not started" : `${pct}%`}</p>
-              </div>
-              <div className="ml-auto max-w-xs flex-1">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 space-y-3">
-              {flags.map((flag) => (
-                <div key={flag.label} className="flex gap-2 text-sm">
-                  {flag.complete ? (
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
-                  ) : (
-                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-                  )}
-                  <div>
-                    <p className="font-medium text-foreground">{flag.label}</p>
-                    <p className="text-muted-foreground">{flag.complete ? "Ready" : flag.help}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {companySetup.setupStatus.missingFields.length > 0 && (
-            <Card className="border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-              <div className="flex items-center gap-2">
-                <TriangleAlert className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                <h3 className="font-semibold text-amber-800 dark:text-amber-200">
-                  Setup incomplete
-                </h3>
-              </div>
-              <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-                Setup accuracy: {companySetup.setupStatus.setupAccuracy}%.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {companySetup.setupStatus.missingFields.map((field) => (
-                  <Link
-                    key={field}
-                    href="/app/business/setup"
-                    className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800 transition"
-                  >
-                    {field}
-                  </Link>
-                ))}
-              </div>
-            </Card>
-          )}
-        </div>
-      </div>
-    </aside>
-  )
+  const completionPercent = setupStatus?.setupAccuracy ?? 0
+  const hasIncompleteProfile = completionPercent < 80
 
   return (
-    <DashboardSubpageLayout
-      title="Business Overview"
-      description={`All business profiles, entities, and tax settings. ${businessesList.length}/${businessLimit} slots used.`}
-      breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Business" }]}
-      icon={Building2}
-      rightSidebar={rightSidebar}
-      actions={
+    <div className="flex min-h-screen flex-col items-center justify-center p-5">
+      <div className="mx-auto max-w-2xl text-center">
+        <Building2 className="mx-auto mb-4 h-12 w-12 text-primary" />
+        <h1 className="mb-2 text-2xl font-bold">Business Overview</h1>
+        <p className="mb-6 text-muted-foreground">
+          Manage the profile values that shape tax, payroll, margin, cash-flow, and risk analysis.
+        </p>
+
+        {hasIncompleteProfile ? (
+          <Card className="mb-6 border-red-500/30 bg-red-500/10 text-left">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-200">
+                <AlertTriangle className="h-5 w-5" />
+                Business Profile Required
+              </CardTitle>
+              <CardDescription className="text-red-700 dark:text-red-300">
+                Tax, payroll, insurance, fixed costs, profitability, forecasting, and KPI calculations depend on Business Profile data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                Complete your Business Profile to get accurate analysis. Without it, profit margins, tax calculations, and cash-flow projections will be incomplete.
+              </p>
+              <Link
+                href="/app/business/setup"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Complete Business Profile ({completionPercent}%)
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-6 border-emerald-500/30 bg-emerald-500/10 text-left">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+                <CheckCircle2 className="h-5 w-5" />
+                Business Profile Complete
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                Your profile is {completionPercent}% complete. All analysis features are available.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {setupStatus?.accountantReviewFlags && setupStatus.accountantReviewFlags.length > 0 && (
+          <Card className="mb-6 border-amber-500/30 bg-amber-500/10 text-left">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <TriangleAlert className="h-5 w-5" />
+                Analysis Confidence Warnings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
+                {setupStatus.accountantReviewFlags.slice(0, 3).map((flag) => (
+                  <li key={flag}>• {flag}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        <BusinessProfileQuestionWizard />
         <Link
-          href="/app/business/profile?mode=new"
-          aria-disabled={!canAddBusiness}
-          className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition ${
-            canAddBusiness
-              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "pointer-events-none bg-muted text-muted-foreground"
-          }`}
+          href="/app/business/setup"
+          className="mt-3 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          <Plus className="h-4 w-4" />
-          Add business
+          Open full setup page
+          <ChevronRight className="ml-2 h-4 w-4" />
         </Link>
-      }
-    >
-      <div className="flex-1 overflow-y-auto p-5">
-        <DataTable
-          title="Business profiles"
-          description="Profile, location, status, and completion for each business slot."
-          emptyMessage="No businesses yet. Click 'Add business' to create your first business profile."
-          rows={businessesList as unknown as Record<string, unknown>[]}
-          columns={businessColumns}
-          rowKey={(row) => String(row.id)}
-          minWidth="min-w-[880px]"
-          selectable
-        />
       </div>
-    </DashboardSubpageLayout>
+    </div>
   )
 }
-
-const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
-  {
-    key: "name",
-    header: "Business",
-    render: (row) => (
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Building2 className="h-5 w-5" />
-        </div>
-        <div>
-          <Link href={`/app/business/profile?id=${row.id}`} className="font-medium text-foreground transition-colors hover:text-primary">
-            {String(row.name)}
-          </Link>
-          <div>
-            <Link href={`/app/business/profile?id=${row.id}`} className="text-xs text-primary hover:underline">
-              Edit
-            </Link>
-          </div>
-          <p className="text-xs text-muted-foreground">{String(row.email)}</p>
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: "industry",
-    header: "Industry",
-    render: (row) => <span className="text-muted-foreground">{String(row.industry)}</span>,
-  },
-  {
-    key: "location",
-    header: "Location",
-    render: (row) => (
-        <span className="inline-flex items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5" />
-          {String(row.location)}
-        </span>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    render: (row) => {
-      const status = String(row.status || "draft") as BusinessListRow["status"]
-      const StatusIcon = status === "active" ? CheckCircle2 : CircleDashed
-      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1)
-
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground">
-          <StatusIcon className="h-3.5 w-3.5" />
-          {statusLabel}
-        </span>
-      )
-    },
-  },
-  {
-    key: "completion",
-    header: "Completion",
-    render: (row) => {
-      const completion = Number(row.completion || 0)
-
-      return (
-        <div className="flex min-w-32 items-center gap-2">
-          <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${completion}%` }} />
-          </div>
-          <span className="text-xs font-medium text-muted-foreground">{completion}%</span>
-        </div>
-      )
-    },
-  },
-  {
-    key: "actions",
-    header: "Actions",
-    align: "right",
-    render: (row) => {
-      const status = String(row.status || "draft")
-      if (row.canArchive === false) {
-        return <span className="text-sm text-muted-foreground">Primary profile</span>
-      }
-
-      if (status === "archived") {
-        return (
-          <div className="flex justify-end gap-2">
-            <form action={restoreBusinessAction}>
-              <input type="hidden" name="id" value={String(row.id)} />
-              <button
-                type="submit"
-                className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
-              >
-                Restore
-              </button>
-            </form>
-            <form action={deleteBusinessAction}>
-              <input type="hidden" name="id" value={String(row.id)} />
-              <button
-                type="submit"
-                className="inline-flex h-9 items-center justify-center rounded-md border border-destructive/40 bg-background px-3 text-sm font-medium text-destructive transition hover:bg-destructive/10"
-              >
-                Delete
-              </button>
-            </form>
-          </div>
-        )
-      }
-
-      return (
-        <form action={archiveBusinessAction}>
-          <input type="hidden" name="id" value={String(row.id)} />
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
-          >
-            Archive
-          </button>
-        </form>
-      )
-    },
-  },
-]

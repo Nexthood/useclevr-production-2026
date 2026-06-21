@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
-import { AlertCircle, Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react"
+import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
+import { AlertCircle, CreditCard, Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 interface DownloadItem {
@@ -48,6 +49,9 @@ export default function DownloadsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, _setFilterStatus] = useState<'all' | 'ready'>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false)
+  const selectedPlan = getBillingPlan("pro_monthly")
 
   // Fetch user data and downloads in parallel
   const fetchData = useCallback(async () => {
@@ -168,6 +172,39 @@ export default function DownloadsPage() {
       setError(err instanceof Error ? err.message : "Download failed")
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  const handleUpgradeCheckout = async () => {
+    setIsStartingCheckout(true)
+    setCheckoutError(null)
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: selectedPlan.id }),
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setCheckoutError(result.error || result.message || "Checkout could not be started.")
+        setIsStartingCheckout(false)
+        return
+      }
+
+      const checkoutUrl = result.checkoutUrl || result.url
+      if (!checkoutUrl) {
+        setCheckoutError("Checkout could not be started because Stripe did not return a checkout URL.")
+        setIsStartingCheckout(false)
+        return
+      }
+
+      window.location.assign(checkoutUrl)
+    } catch (error) {
+      debugError("Checkout error:", error)
+      setCheckoutError("Checkout could not be started. Please try again.")
+      setIsStartingCheckout(false)
     }
   }
 
@@ -472,11 +509,67 @@ export default function DownloadsPage() {
 
       <Modal
         open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
+        onOpenChange={(open) => {
+          setShowUpgradeModal(open)
+          if (!open) {
+            setCheckoutError(null)
+            setIsStartingCheckout(false)
+          }
+        }}
         title="Upgrade to continue downloading"
         description={`You've used ${creditsUsed} of your ${creditsLimit} free analyses. Upgrade to Pro for unlimited analyses and downloads.`}
       >
-        <p className="text-sm text-muted-foreground">Your cart and discount are ready.</p>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-background p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Selected plan</p>
+                <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedPlan.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{selectedPlan.description}</p>
+              </div>
+              <div className="rounded-lg bg-primary/10 px-3 py-2 text-left sm:text-right">
+                <p className="text-xl font-semibold text-foreground">{formatPlanPrice(selectedPlan)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedPlan.interval === "year" ? "Annual billing" : "Monthly billing"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {selectedPlan.features.map((feature) => (
+                <div key={feature} className="rounded-md bg-muted/50 px-3 py-2 text-sm text-foreground">
+                  {feature}
+                </div>
+              ))}
+            </div>
+
+            {checkoutError && (
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{checkoutError}</span>
+              </div>
+            )}
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleUpgradeCheckout}
+            disabled={isStartingCheckout}
+            className="w-full gap-2"
+          >
+            {isStartingCheckout ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Opening Stripe Checkout...
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-4 w-4" />
+                Continue to Secure Checkout
+              </>
+            )}
+          </Button>
+        </div>
       </Modal>
     </DashboardSubpageLayout>
   )

@@ -15,8 +15,8 @@ export default function AccountancyError({
       error={error}
       reset={reset}
       icon={Calculator}
-      title="Accountancy unavailable"
-      message="Could not load accountancy data. Please try again."
+      title="Accountancy server issue"
+      message="A server failure prevented accountancy data from loading. Please try again."
     />
   )
 }

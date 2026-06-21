@@ -516,10 +516,11 @@ export function buildBusinessProfileContext(payload: CompanySetupPayload): strin
     `Fiscal year: ${setup.companyInfo.fiscalYearStart || "not provided"} to ${setup.companyInfo.fiscalYearEnd || "not provided"}`,
     `Currency: ${setup.currencySettings.primaryCurrency || "not provided"}`,
     `Confirmed taxes: ${setup.taxSettings.taxEntries.map((tax) => `${tax.taxType}${tax.percentage ? ` ${tax.percentage}%` : ""}${tax.fixedAmount ? ` fixed ${tax.fixedAmount}` : ""}`).join("; ") || "none provided"}`,
-    `Employer contributions: ${setup.employerContributions.map((entry) => entry.contributionType).join(", ") || "none provided"}`,
-    `Business insurance: ${setup.insuranceSettings.insuranceEntries.map((entry) => entry.insuranceType).join(", ") || "none provided"}`,
-    `Fixed costs: ${setup.fixedCosts.map((entry) => entry.costCategory).join(", ") || "none provided"}`,
-    `Goals: growth ${setup.businessGoals.growthTarget || "not provided"}, profit ${setup.businessGoals.profitTarget || "not provided"}, risk tolerance ${setup.businessGoals.riskTolerance || "not provided"}`,
+    `Employer contributions: ${setup.employerContributions.map((entry) => `${entry.contributionType}${entry.percentage ? ` ${entry.percentage}%` : ""}${entry.monthlyCost ? ` monthly ${entry.monthlyCost}` : ""}${entry.annualCost ? ` annual ${entry.annualCost}` : ""}`).join("; ") || "none provided"}`,
+    `Business insurance: ${setup.insuranceSettings.insuranceEntries.map((entry) => `${entry.insuranceType}${entry.monthlyCost ? ` monthly ${entry.monthlyCost}` : ""}${entry.annualCost ? ` annual ${entry.annualCost}` : ""}`).join("; ") || setup.insuranceSettings.insuranceTypes.join(", ") || "none provided"}`,
+    `Fixed costs: ${setup.fixedCosts.map((entry) => `${entry.costCategory}${entry.monthlyCost ? ` monthly ${entry.monthlyCost}` : ""}${entry.annualCost ? ` annual ${entry.annualCost}` : ""}`).join("; ") || "none provided"}`,
+    `Cost assumptions: inventory/material ${setup.costStructure.inventoryCosts || setup.costStructure.materialCosts || "not provided"}, shipping ${setup.costStructure.shippingCosts || "not provided"}, payment fees ${setup.costStructure.paymentProcessingFees || "not provided"}, returns/refunds ${setup.costStructure.returnRates || "not provided"}`,
+    `Goals: growth ${setup.businessGoals.growthTarget || "not provided"}, gross margin ${setup.revenueModel.grossMarginTarget || "not provided"}, net margin ${setup.businessGoals.profitTarget || "not provided"}, cash reserve ${setup.businessGoals.cashReserveTarget || "not provided"}, risk tolerance ${setup.businessGoals.riskTolerance || "not provided"}`,
   ]
   return lines.join("\n")
 }

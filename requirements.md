@@ -40,7 +40,8 @@ Text rules for this file:
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
-- Show Retail Inventory Analyst results as owner-readable inventory cards and tables.
+- Show Retail Inventory Analyst results as owner-readable inventory cards and scrollable tables.
+- Show every Retail Inventory Analyst result row in the relevant table without hiding remaining products behind summary-only overflow text.
 - Show SKU, product name, category, current stock, reorder point, units sold, revenue, cost, gross profit, margin percentage, last sale date, and order number in Retail Inventory Analyst rows when the uploaded dataset provides those fields.
 - Explain each Retail Inventory Analyst low-stock alert with current stock, reorder point, recent units sold, and a reorder recommendation.
 - Explain each Retail Inventory Analyst dead-stock row with recent sales level, days since last sale, stock value stuck, and a suggested discount, bundle, or stop-reorder action.
@@ -90,6 +91,10 @@ Text rules for this file:
   enough width for plan details, terms, and action buttons.
 - Show selected-plan terms and payment confirmation in a compact two-column desktop layout with
   terms beside accept/payment actions.
+- Show Upgrade to Pro modals with the selected plan name, monthly or annual price, and a visible secure-checkout button.
+- Start a Stripe Checkout session immediately when the user confirms Upgrade to Pro from an upgrade modal.
+- Redirect successful Upgrade to Pro checkout session creation to the Stripe-hosted checkout page.
+- Show a visible checkout error in the upgrade modal when Stripe Checkout session creation fails.
 - Use a checkout review step before terms acceptance and payment.
 - Start the secure payment flow after terms acceptance.
 - Verify successful checkout sessions against the signed-in user.
@@ -115,6 +120,18 @@ Text rules for this file:
 - Show only the Business Profile Setup launcher before onboarding starts, then show the saved
   profile summary after completion.
 - Keep Business Profile setup out of long-form database-admin layouts.
+- Collect at least 25 owner-answerable Business Profile questions covering company identity,
+  country, state or region, legal structure, industry, business model, currency, fiscal year,
+  VAT or sales-tax registration, VAT or sales-tax rate, corporate or income tax rate, local or
+  state or trade tax, tax payment frequency, employee count, payroll salary, employer
+  contributions, health insurance, pension or retirement, unemployment insurance, workers
+  compensation, business insurance, fixed costs, debt or leasing payments, inventory or material
+  cost percentage, payment processing fees, return or refund rate, gross margin target, net margin
+  target, cash reserve target, and growth target.
+- Skip payroll salary and employer-contribution questions when employee count is 0, skip the VAT
+  or sales-tax rate question when the business is not tax registered, show USA state and
+  sales/payroll tax fields for USA businesses, and show VAT plus corporate or income tax fields for
+  EU businesses.
 - Collect company information, editable country tax suggestions, unlimited tax entries, employer
   contributions, insurance, fixed costs, revenue model, cost structure, and business goals.
 - Keep Business Profile global across countries and require users to confirm or edit every
@@ -161,6 +178,12 @@ Text rules for this file:
 - Show Accountancy as a dashboard workspace with overview, reporting, tax, and compliance sections.
 - Show the same owner-selected overview, reporting, tax, and compliance context in Payload for
   superadmin operators.
+- Show the Accountancy empty state as "Pre-bookkeeping center" for users with no accountancy data.
+- Show upload and bookkeeping-package actions from the Accountancy empty state instead of treating missing accountancy data as an error.
+- Show a real Accountancy error only when server data loading fails.
+- Show Accountancy workflow steps for Business Profile setup, accounting-document upload, data extraction, pre-bookkeeping summary, PDF/Excel/CSV export, and accountant email handoff.
+- Collect accountant email, company name, tax period, and notes or message in the Accountancy bookkeeping-package form.
+- Use saved Business Profile context for Accountancy tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed-cost assumptions.
 - Show bookkeeping actions for bank reconciliation, expense coding, monthly close, and tax preparation.
 - Show a bookkeeping queue with current status and direct action links.
 - Show monthly close readiness for business profile, financial dataset, and tax context.

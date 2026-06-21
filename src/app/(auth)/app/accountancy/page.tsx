@@ -1,7 +1,9 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
+import { AccountancyPackageForm } from "@/components/accountancy/accountancy-package-form"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { auth } from "@/lib/auth/auth"
+import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
 import { count, eq } from "drizzle-orm"
@@ -32,6 +34,7 @@ export default async function AccountancyPage() {
 
   let activeDatasets = 0
   let totalBusinesses = 0
+  const companySetup = userId ? await getCompanySetup(userId) : null
 
   if (userId) {
     const db = getDb()
@@ -49,13 +52,48 @@ export default async function AccountancyPage() {
 
         activeDatasets = (countResult?.count ?? 0) as number
         totalBusinesses = (businessCount?.count ?? 0) as number
-      } catch {
-        // Keep defaults
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Could not load accountancy data.")
       }
     }
   }
 
   const readiness = Math.round((activeDatasets / Math.max(totalBusinesses, 1)) * 100)
+  const hasAccountancyData = activeDatasets > 0
+  const profileComplete = Boolean(companySetup?.setupStatus.completed)
+  const companyName = companySetup?.companyInfo.companyName || ""
+  const taxPeriod = [companySetup?.companyInfo.fiscalYearStart, companySetup?.companyInfo.fiscalYearEnd]
+    .filter(Boolean)
+    .join(" to ")
+  const taxCountry = companySetup?.companyInfo.taxResidenceCountry || companySetup?.companyInfo.country || "Not set"
+  const currency = companySetup?.currencySettings.primaryCurrency || "Not set"
+  const taxSummary = companySetup?.taxSettings.taxEntries.length
+    ? companySetup.taxSettings.taxEntries
+      .map((tax) => `${tax.taxType}${tax.percentage ? ` ${tax.percentage}%` : ""}`)
+      .join(", ")
+    : companySetup?.taxSettings.taxType || "Not set"
+  const payrollSummary = companySetup?.employerContributions.length
+    ? companySetup.employerContributions.map((entry) => entry.contributionType).join(", ")
+    : "Not set"
+  const fixedCostSummary = companySetup?.fixedCosts.length
+    ? companySetup.fixedCosts.map((entry) => entry.costCategory).join(", ")
+    : "Not set"
+  const profileContextRows = [
+    { label: "Tax country", value: taxCountry },
+    { label: "Currency", value: currency },
+    { label: "Fiscal year", value: taxPeriod || "Not set" },
+    { label: "VAT/sales tax", value: taxSummary },
+    { label: "Payroll", value: payrollSummary },
+    { label: "Fixed costs", value: fixedCostSummary },
+  ]
+  const workflowSteps = [
+    { title: "Complete Business Profile Setup", complete: profileComplete, text: "Confirm company, tax, payroll, currency, fiscal year, and fixed-cost assumptions." },
+    { title: "Upload accounting documents", complete: hasAccountancyData, text: "Add receipts, invoices, bank exports, PDFs, Excel, CSV, or images." },
+    { title: "Extract and structure data", complete: hasAccountancyData, text: "Prepare rows for pre-bookkeeping review." },
+    { title: "Create pre-bookkeeping summary", complete: hasAccountancyData, text: "Use uploaded data plus Business Profile context." },
+    { title: "Export package", complete: hasAccountancyData, text: "Prepare PDF report, Excel file, and CSV file." },
+    { title: "Send to accountant", complete: false, text: "Add accountant email and message before handoff." },
+  ]
   const bookkeepingRows = [
     {
       id: "bank-reconciliation",
@@ -136,13 +174,13 @@ export default async function AccountancyPage() {
             <h2 className="text-sm font-semibold text-foreground mb-3">Quick actions</h2>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Upload profit/loss statements, bank exports, receipts, or accounting data for automated bookkeeping insights.
+                Upload receipts, invoices, bank exports, or accounting documents for pre-bookkeeping insights.
               </p>
               <Link
                 href="/app/upload"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
               >
-                Upload financial data
+                Upload document
               </Link>
             </div>
           </Card>
@@ -163,7 +201,7 @@ export default async function AccountancyPage() {
           <Link href="/app/upload">
             <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
               <Upload className="h-4 w-4" />
-              Upload statement
+              Upload document
             </span>
           </Link>
           <Link href="/app/accountancy/compliance">
@@ -177,6 +215,36 @@ export default async function AccountancyPage() {
     >
       <div className="flex-1 overflow-y-auto p-5">
         <div className="max-w-6xl mx-auto space-y-5">
+          {!hasAccountancyData && (
+            <Card className="border-primary/30 bg-primary/5 p-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <BookOpenCheck className="h-6 w-6 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-foreground">Pre-bookkeeping center</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Upload receipts, invoices, bank exports or accounting documents.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/app/upload">
+                    <span className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
+                      <Upload className="h-4 w-4" />
+                      Upload document
+                    </span>
+                  </Link>
+                  <a href="#bookkeeping-package">
+                    <span className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground transition hover:bg-muted">
+                      <FileText className="h-4 w-4" />
+                      Generate bookkeeping package
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </Card>
+          )}
+
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="p-5 bg-card border-border">
               <div className="flex items-center gap-3">
@@ -233,7 +301,68 @@ export default async function AccountancyPage() {
                 <BookkeepingFeature icon={Calculator} title="Tax prep" text="Surface VAT, sales tax, and filing context from profile data." />
               </div>
             </Card>
+
+            <Card className="border-border bg-card p-5">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-foreground">Business Profile context</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Accountancy uses saved setup values for tax country, currency, fiscal year, VAT/sales tax, payroll, and fixed-cost assumptions.
+                </p>
+              </div>
+              <div className="grid gap-2 text-sm">
+                <ProfileContextRow label="Tax country" value={taxCountry} />
+                <ProfileContextRow label="Currency" value={currency} />
+                <ProfileContextRow label="Fiscal year" value={taxPeriod || "Not set"} />
+                <ProfileContextRow label="VAT/sales tax" value={taxSummary} />
+                <ProfileContextRow label="Payroll" value={payrollSummary} />
+                <ProfileContextRow label="Fixed costs" value={fixedCostSummary} />
+              </div>
+              {!profileComplete && (
+                <Link href="/app/business/setup" className="mt-4 inline-flex text-sm font-medium text-primary hover:underline">
+                  Complete Business Profile Setup
+                </Link>
+              )}
+            </Card>
           </div>
+
+          <Card className="border-border bg-card p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Pre-bookkeeping workflow</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Follow the flow from Business Profile setup through document upload, extraction, summary, export, and accountant handoff.
+                </p>
+              </div>
+              <ReceiptText className="h-5 w-5 flex-shrink-0 text-primary" />
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {workflowSteps.map((step, index) => (
+                <div key={step.title} className="rounded-lg border border-border bg-background p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs">{index + 1}</span>
+                    <CheckCircle2 className={`h-4 w-4 ${step.complete ? "text-green-500" : "text-muted-foreground"}`} />
+                    {step.title}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{step.text}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card id="bookkeeping-package" className="border-border bg-card p-5">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-foreground">Bookkeeping package</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add accountant details, confirm the company and tax period, export the package, or prepare an email handoff.
+              </p>
+            </div>
+            <AccountancyPackageForm
+              initialCompanyName={companyName}
+              initialTaxPeriod={taxPeriod}
+              packageReady={hasAccountancyData}
+              profileContext={profileContextRows}
+            />
+          </Card>
 
           <DataTable
             title="Bookkeeping queue"
@@ -248,6 +377,15 @@ export default async function AccountancyPage() {
         </div>
       </div>
     </DashboardSubpageLayout>
+  )
+}
+
+function ProfileContextRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="max-w-[12rem] text-right font-medium text-foreground">{value || "Not set"}</span>
+    </div>
   )
 }
 
