@@ -4,6 +4,75 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 
 ---
 
+## Interaction 52: Business Profile Modal Question Wizard
+
+- **Date**: 2026-06-21
+- **User Goal**: Replace the large Business Profile setup form with a compact modal-based question
+  wizard that feels like guided onboarding instead of a database admin form.
+- **Changes**:
+  1. Replace the inline multi-section setup card with a lightweight profile status card and a
+     centered Business Profile Assistant modal.
+  2. Show one setup question at a time with Step X of Y progress, one answer area, Back, Next, Skip
+     optional question, and Save progress controls.
+  3. Add conditional flow for USA state selection, VAT/sales-tax registration, country tax
+     suggestions, and employee contribution skips.
+  4. Keep repeatable taxes, employer contributions, business insurances, and fixed costs as
+     one-by-one additions inside the current question.
+  5. Add final review with edit buttons and green completion feedback after confirmation.
+- **Problems Marked**:
+  - `observation`: The mismatch was UX structure, not persistence or analysis plumbing.
+  - `risk`: Country and tax defaults must remain editable suggestions, not fixed facts.
+- **User Learning**: Business Profile setup now behaves as a guided assistant while saving into the
+  same Business Profile used by dataset analysis.
+- **AI-Agent Learning**: For onboarding requests, keep the page surface small and move progressive
+  data collection into a modal flow instead of rendering schema sections as full forms.
+- **Follow-up Tasks**: None.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, focused ESLint,
+  `pnpm lint:changelog`, `pnpm lint:docs`, `pnpm lint:secrets`, and `git diff --check` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`, release note lives in
+  `CHANGELOG.md`, and interaction records live in `project-logs/` plus
+  `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 51: Business Profile and Uploaded Data Calculation Layer
+
+- **Date**: 2026-06-20
+- **User Goal**: Add Business Profile interaction with uploaded CSV and Excel data so analysis uses
+  uploaded numbers plus saved business assumptions.
+- **Changes**:
+  1. Add a Business Profile calculation layer that merges uploaded revenue, cost, payroll,
+     currency, and tax-rate signals with confirmed tax, insurance, fixed-cost, contribution, margin,
+     fiscal-year, goal, and risk values.
+  2. Store the merged calculation layer with dataset business analysis so future assistant requests
+     can use context-aware KPIs instead of uploaded data alone.
+  3. Compute the same merged layer on demand in the AI assistant route when a saved analysis has not
+     been refreshed yet.
+  4. Show Business Profile context in the dataset analysis overview with adjusted profit, net
+     margin, fixed and insurance costs, tax assumptions, missing-data warnings, and conflict prompts.
+- **Problems Marked**:
+  - `observation`: Profile values must remain user-confirmed assumptions; uploaded data conflicts
+    require a confirmation prompt instead of silently choosing one value.
+  - `risk`: Tax and payroll outputs remain business-intelligence estimates, not professional advice.
+- **User Learning**: Business Profile now operates as a permanent calculation layer for dataset
+  analysis, not only as prompt background text.
+- **AI-Agent Learning**: Attach durable business context as a structured calculation object before
+  passing it into prompts, then display the same warnings in the UI so user trust does not depend on
+  hidden prompt instructions.
+- **Follow-up Tasks**: None.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:changelog`,
+  `pnpm lint:docs`, `pnpm lint:secrets`, and `git diff --check` pass. Focused ESLint reports
+  existing explicit-`any` warnings and no errors.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`, release note lives in
+  `CHANGELOG.md`, AI context guidance lives in `docs/AI-interaction/developer-guides/`, and
+  interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
 ## Interaction 48: App Action Button Layout Hardening
 
 - **Date**: 2026-06-20
@@ -33,6 +102,69 @@ This log documents all major AI agent interactions, user goals, decisions, imple
 - **Minimal Destination**: Layout changes live in shared dashboard UI components, Datasets,
   Downloads, Upload, analysis, profitability, and Payload operation styling. Interaction records
   live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 49: Upload UI Spacing and Mode Cards
+
+- **Date**: 2026-06-20
+- **User Goal**: Fix only upload UI spacing by moving the Datasets Upload action lower and making
+  Upload page mode choices clearly visible as real card-style buttons.
+- **Changes**:
+  1. Move the Datasets content top padding lower so the table header action sits below the sticky
+     header area.
+  2. Render Standard Upload and Profitability Analysis as bordered card-style buttons with labels,
+     descriptions, background, spacing, and selected state.
+  3. Keep the mode selector visible above both standard and profitability upload views.
+- **Problems Marked**:
+  - `observation`: The issue is visual spacing and affordance only; upload behavior stays unchanged.
+- **User Learning**: The upload selector can be made visibly card-like without changing upload
+  handlers or APIs.
+- **AI-Agent Learning**: Prefer moving existing layout containers and button classes for spacing
+  requests instead of changing upload components.
+- **Follow-up Tasks**: None.
+- **Verification**: `git diff --check`, focused ESLint, and `pnpm exec tsc --noEmit --pretty
+  false` pass.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: UI-only spacing lives in Datasets and Upload page components.
+  Interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction 50: Global Business Profile Wizard
+
+- **Date**: 2026-06-20
+- **User Goal**: Build a professional global Business Profile wizard that collects confirmed
+  business context for AI-powered analysis without country-specific forms or invented data.
+- **Changes**:
+  1. Expand the saved company setup JSON model with company information, tax entries, employer
+     contributions, insurance, fixed costs, revenue model, cost structure, and business goals.
+  2. Replace the old setup wizard with a nine-step application-style wizard with progress,
+     save-and-continue, optional-section skip, editable review cards, and completion state.
+  3. Add editable country tax suggestions that users must add, edit, and confirm before they count
+     as business context.
+  4. Normalize legacy saved setup records so existing profile data still loads in the expanded
+     model.
+  5. Attach confirmed Business Profile context to dataset analysis prompts and instruct the
+     assistant to report missing profile values instead of assuming them.
+- **Problems Marked**:
+  - `observation`: The existing business setup JSON column supports this expansion without a
+    database migration.
+  - `risk`: Tax, insurance, and contribution fields must remain user-provided context, not
+    professional advice.
+- **User Learning**: Business Profile is now a permanent intelligence layer used with uploaded data
+  and user questions.
+- **AI-Agent Learning**: Preserve legacy setup fields and normalize old JSON before broadening a
+  persisted profile schema.
+- **Follow-up Tasks**: None.
+- **Verification**: `git diff --check`, `pnpm exec tsc --noEmit --pretty false`, and focused ESLint
+  pass. Focused ESLint reports existing explicit-`any` warnings in the analysis route only.
+- **Instruction Sources**: `AGENTS.md`, `.kilo/agent/changelog.md`,
+  `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- **Minimal Destination**: Product behavior lives in `requirements.md`, release note lives in
+  `CHANGELOG.md`, AI context guidance lives in `docs/AI-interaction/developer-guides/`, and
+  interaction records live in `project-logs/` and `docs/AI-interaction/interaction-status.md`.
 
 ---
 

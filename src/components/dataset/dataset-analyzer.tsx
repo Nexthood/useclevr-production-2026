@@ -68,6 +68,40 @@ interface CSVAnalysisResult {
       productColumn: string | null
       regionColumn: string | null
     }
+    businessProfileContext?: {
+      profileInputs: {
+        currency: string | null
+        fiscalYearStart: string | null
+        fiscalYearEnd: string | null
+        riskTolerance: string | null
+        targetMarginPercent: number | null
+        growthTarget: string | null
+      }
+      uploadedDataInputs: {
+        revenue: number | null
+        datasetCosts: number | null
+        payroll: number | null
+        detectedCurrency: string | null
+      }
+      profileAdjustments: {
+        fixedCostsAnnual: number
+        insuranceAnnual: number
+        employerContributionRatePercent: number | null
+        employerContributionsAnnual: number | null
+        taxRatePercent: number | null
+      }
+      kpis: {
+        adjustedOperatingCosts: number | null
+        profitBeforeTax: number | null
+        estimatedTax: number | null
+        profitAfterTax: number | null
+        netMarginAfterProfileCosts: number | null
+        targetMarginVariance: number | null
+      }
+      warnings: string[]
+      conflicts: string[]
+      recommendations: string[]
+    }
   }
   
   // AI Summary
@@ -839,6 +873,70 @@ export function DatasetAnalyzer({
                 )}
               </Button>
             </div>
+          )}
+
+          {analysis?.business_analysis?.businessProfileContext && (
+            <Card className="border-amber-500/30 bg-amber-500/10 dark:border-amber-400/25 dark:bg-amber-400/10">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base text-amber-950 dark:text-amber-100">
+                  <Lightbulb className="h-5 w-5" />
+                  Business Profile Context
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm text-amber-950 dark:text-amber-50">
+                {(() => {
+                  const context = analysis.business_analysis.businessProfileContext
+                  const hasAdjustedProfit = typeof context.kpis.profitAfterTax === 'number'
+                  const hasAdjustedMargin = typeof context.kpis.netMarginAfterProfileCosts === 'number'
+                  return (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-lg border border-amber-500/25 bg-background/70 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Profit After Profile Costs</p>
+                          <p className="mt-1 text-lg font-semibold text-foreground">
+                            {hasAdjustedProfit ? formatCurrencyForKPI(context.kpis.profitAfterTax as number) : 'Needs tax/cost data'}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-amber-500/25 bg-background/70 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Profile Net Margin</p>
+                          <p className="mt-1 text-lg font-semibold text-foreground">
+                            {hasAdjustedMargin ? formatPercentSimple(context.kpis.netMarginAfterProfileCosts as number) : 'Needs revenue data'}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-amber-500/25 bg-background/70 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Annual Fixed + Insurance</p>
+                          <p className="mt-1 text-lg font-semibold text-foreground">
+                            {formatCurrencyForKPI(context.profileAdjustments.fixedCostsAnnual + context.profileAdjustments.insuranceAnnual)}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-amber-500/25 bg-background/70 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tax Assumption</p>
+                          <p className="mt-1 text-lg font-semibold text-foreground">
+                            {typeof context.profileAdjustments.taxRatePercent === 'number'
+                              ? formatPercentSimple(context.profileAdjustments.taxRatePercent)
+                              : 'Missing'}
+                          </p>
+                        </div>
+                      </div>
+                      {(context.conflicts.length > 0 || context.warnings.length > 0) && (
+                        <div className="space-y-2">
+                          {context.conflicts.map((message) => (
+                            <div key={message} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-red-950 dark:text-red-100">
+                              {message}
+                            </div>
+                          ))}
+                          {context.warnings.slice(0, 4).map((message) => (
+                            <div key={message} className="rounded-lg border border-amber-500/25 bg-background/60 px-3 py-2">
+                              {message}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </CardContent>
+            </Card>
           )}
 
           {/* KPI Cards - Premium Executive Grid (gated by capabilities) */}

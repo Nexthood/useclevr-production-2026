@@ -96,6 +96,27 @@ Text rules for this file:
 ## Business Profile
 
 - Use Business Profile as the SME business-intelligence and pre-accounting context layer.
+- Show a one-step-at-a-time global Business Profile wizard with progress, save-and-continue,
+  optional-section skipping, review/edit controls, and a green completion state.
+- Open Business Profile setup in a compact centered modal that shows one clear question, one answer
+  area, Back, Next, Skip optional question, Save progress, final review, and completion checkmark
+  controls.
+- Keep Business Profile setup out of long-form database-admin layouts.
+- Collect company information, editable country tax suggestions, unlimited tax entries, employer
+  contributions, insurance, fixed costs, revenue model, cost structure, and business goals.
+- Keep Business Profile global across countries and require users to confirm or edit every
+  suggested value before analysis treats it as business context.
+- Attach confirmed Business Profile context to future CSV analysis, dashboard analysis,
+  profitability, KPI, margin, tax, cash-flow, risk, forecast, and recommendation prompts.
+- Combine uploaded financial rows with confirmed Business Profile values before producing
+  profitability, tax, payroll, fixed-cost, margin, forecast, cash-flow, risk, and recommendation
+  outputs.
+- Show warnings when uploaded data is missing tax, insurance, payroll, fixed-cost, currency, fiscal
+  year, target margin, growth goal, or risk-tolerance context that affects analysis confidence.
+- Show a conflict warning and ask the user which value to use when uploaded data disagrees with
+  confirmed Business Profile currency or tax assumptions.
+- Never invent missing Business Profile values; show missing values as missing and lower confidence
+  when the profile is incomplete.
 - Show onboarding progress from account, business, upload, analysis, and dashboard visit data.
 - Reopen onboarding for accounts below the minimum completion threshold.
 - Link each setup progress item to its relevant page.

@@ -8,6 +8,7 @@ import {
   type CompanySetupPayload,
   buildSetupStatus,
   emptyCompanySetupPayload,
+  normalizeCompanySetupPayload,
 } from "./company-setup"
 
 export async function getCompanySetup(userId: string, businessId?: string): Promise<CompanySetupPayload> {
@@ -32,7 +33,7 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
       return emptyCompanySetupPayload()
     }
 
-    return row.companySetup as unknown as CompanySetupPayload
+    return normalizeCompanySetupPayload(row.companySetup as Partial<CompanySetupPayload>)
   } catch {
     return emptyCompanySetupPayload()
   }
@@ -46,8 +47,9 @@ export async function saveCompanySetup(
   const db = getDb()
   if (!db) return false
 
-  const computed = buildSetupStatus(payload)
-  const fullPayload = { ...payload, setupStatus: computed }
+  const normalizedPayload = normalizeCompanySetupPayload(payload)
+  const computed = buildSetupStatus(normalizedPayload)
+  const fullPayload = { ...normalizedPayload, setupStatus: computed }
 
   try {
     const conditions = [eq(businesses.userId, userId)]

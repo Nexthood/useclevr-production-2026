@@ -1,6 +1,6 @@
 import {
-  buildSetupStatus,
   emptyCompanySetupPayload,
+  normalizeCompanySetupPayload,
   type CompanySetupPayload,
 } from "@/lib/business/company-setup"
 import { getDb } from "@/lib/db"
@@ -8,22 +8,7 @@ import { businesses, datasets, profiles, users } from "@/lib/db/schema"
 import { and, count, desc, eq, sum } from "drizzle-orm"
 
 function mergeCompanySetup(value: unknown): CompanySetupPayload {
-  const defaults = emptyCompanySetupPayload()
-  const setup = value && typeof value === "object" ? (value as Partial<CompanySetupPayload>) : {}
-
-  const merged: CompanySetupPayload = {
-    companyInfo: { ...defaults.companyInfo, ...setup.companyInfo },
-    taxSettings: { ...defaults.taxSettings, ...setup.taxSettings },
-    currencySettings: { ...defaults.currencySettings, ...setup.currencySettings },
-    revenueRules: { ...defaults.revenueRules, ...setup.revenueRules },
-    expenseRules: { ...defaults.expenseRules, ...setup.expenseRules },
-    insuranceSettings: { ...defaults.insuranceSettings, ...setup.insuranceSettings },
-    loanLeasingSettings: { ...defaults.loanLeasingSettings, ...setup.loanLeasingSettings },
-    setupStatus: defaults.setupStatus,
-  }
-
-  merged.setupStatus = buildSetupStatus(merged)
-  return merged
+  return normalizeCompanySetupPayload(value && typeof value === "object" ? (value as Partial<CompanySetupPayload>) : null)
 }
 
 export async function getAdminAccountancySnapshot(userId?: string, businessId?: string) {
@@ -228,12 +213,12 @@ export async function updateAdminBusinessSetup(
     loanInterestKnown: (input.loanInterestKnown ?? setup.loanLeasingSettings.loanInterestKnown) as CompanySetupPayload["loanLeasingSettings"]["loanInterestKnown"],
     principalInterestSplitKnown: (input.principalInterestSplitKnown ?? setup.loanLeasingSettings.principalInterestSplitKnown) as CompanySetupPayload["loanLeasingSettings"]["principalInterestSplitKnown"],
   }
-  setup.setupStatus = buildSetupStatus(setup)
+  const normalizedSetup = normalizeCompanySetupPayload(setup)
 
   await db
     .update(businesses)
     .set({
-      companySetup: setup as unknown as Record<string, unknown>,
+      companySetup: normalizedSetup as unknown as Record<string, unknown>,
       updatedAt: new Date(),
     })
     .where(and(eq(businesses.id, id)))

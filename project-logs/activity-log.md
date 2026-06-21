@@ -5,6 +5,16 @@ This file summarizes current project activity. Detailed session records live in
 
 ## 2026-06-20
 
+- Build a global Business Profile wizard with editable country suggestions, repeatable taxes,
+  contributions, insurance, fixed costs, revenue model, cost structure, goals, review, completion,
+  and confirmed profile context attached to dataset analysis prompts.
+- Combine uploaded financial rows with Business Profile tax, insurance, fixed-cost, payroll, target
+  margin, currency, fiscal-year, goal, and risk values for context-aware dataset analysis and
+  visible warning/conflict output.
+- Replace the large Business Profile setup form with a compact centered question modal that saves
+  progress, applies conditional skips, and ends with review plus completion feedback.
+- Lower the Datasets table header action area and style Upload page mode selection as bordered
+  card buttons for Standard Upload and Profitability Analysis.
 - Prevent dashboard, dataset, downloads, upload, analysis, profitability, and Payload operation
   action controls from hiding under fixed side panels by tightening `min-w-0`, `shrink-0`, wrapping,
   and no-wrap button layout.

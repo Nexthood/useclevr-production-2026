@@ -162,7 +162,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       icon={Database}
       rightSidebar={rightSidebar}
     >
-      <div className="min-w-0 flex-1 overflow-y-auto p-5">
+      <div className="min-w-0 flex-1 overflow-y-auto px-5 pb-5 pt-14">
         <div className="mx-auto w-full max-w-6xl min-w-0">
           <DataTable
             title="Dataset library"

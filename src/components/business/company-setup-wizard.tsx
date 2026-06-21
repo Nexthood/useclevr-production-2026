@@ -2,719 +2,762 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { CompanySetupPayload } from "@/lib/business/company-setup"
 import {
-  ACCOUNTING_METHODS,
-  AMOUNT_TYPES,
+  BUSINESS_TYPES,
+  CONTRIBUTION_TYPES,
   CURRENCIES,
-  CUSTOMER_TYPES,
-  EXPENSE_CATEGORIES,
-  INVOICE_OR_PAYMENT,
+  FIXED_COST_CATEGORIES,
   INSURANCE_TYPES,
   LEGAL_STRUCTURES,
-  PAYMENT_PROVIDERS,
-  REVENUE_SOURCES,
-  TAX_REGISTERED_OPTIONS,
-  TAX_TYPES,
+  TAX_ENTRY_TYPES,
   buildSetupStatus,
   emptyCompanySetupPayload,
+  normalizeCompanySetupPayload,
+  type BusinessGoals,
+  type CompanySetupPayload,
+  type CostStructure,
+  type EmployerContribution,
+  type FixedCostEntry,
+  type InsuranceEntry,
+  type TaxEntry,
 } from "@/lib/business/company-setup"
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Loader2, Save } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Plus, Save, Sparkles, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-const STEPS = [
-  { id: "company", label: "Company", icon: "🏢" },
-  { id: "tax", label: "Tax", icon: "💰" },
-  { id: "currency", label: "Currency", icon: "💱" },
-  { id: "revenue", label: "Revenue", icon: "📈" },
-  { id: "expenses", label: "Expenses", icon: "📉" },
-  { id: "insurance", label: "Insurance", icon: "🛡️" },
-  { id: "loans", label: "Loans & Leasing", icon: "🏦" },
-  { id: "review", label: "Review", icon: "✅" },
-] as const
+type QuestionId =
+  | "companyName"
+  | "country"
+  | "stateRegion"
+  | "legalStructure"
+  | "industry"
+  | "currency"
+  | "fiscalYear"
+  | "taxRegistered"
+  | "taxEntries"
+  | "employees"
+  | "contributions"
+  | "insurance"
+  | "fixedCosts"
+  | "revenueModel"
+  | "costStructure"
+  | "targetMargin"
+  | "growthGoal"
+  | "review"
 
-function classNames(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ")
+type Question = {
+  id: QuestionId
+  title: string
+  helper: string
+  optional?: boolean
 }
 
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-  placeholder,
-}: {
-  label: string
-  value: string
-  options: { value: string; label: string }[]
-  onChange: (value: string) => void
-  placeholder?: string
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-      >
-        <option value="">{placeholder || `Select ${label.toLowerCase()}...`}</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
+const BASE_QUESTIONS: Question[] = [
+  { id: "companyName", title: "What is your company name?", helper: "Use the legal or operating name you want analysis reports to use." },
+  { id: "country", title: "Which country is your business registered in?", helper: "Country only loads suggestions. You confirm every value before analysis uses it." },
+  { id: "stateRegion", title: "Which state or region applies?", helper: "Required for USA and useful anywhere regional taxes or compliance apply.", optional: true },
+  { id: "legalStructure", title: "What is your legal structure?", helper: "Choose the closest option. You can change it later." },
+  { id: "industry", title: "What industry are you in?", helper: "This helps the AI understand normal revenue, cost, and risk patterns." },
+  { id: "currency", title: "What currency do you use?", helper: "Analysis uses this for KPIs, reports, tax estimates, and margin calculations." },
+  { id: "fiscalYear", title: "What is your fiscal year?", helper: "Add the start and end used for business reporting." },
+  { id: "taxRegistered", title: "Are you VAT or sales-tax registered?", helper: "This controls whether VAT/sales-tax details appear in the next step.", optional: true },
+  { id: "taxEntries", title: "Add relevant taxes, one by one.", helper: "Suggestions are editable. Nothing is treated as fact until you add and confirm it.", optional: true },
+  { id: "employees", title: "Do you have employees?", helper: "Payroll assumptions are used only when employees or payroll data exist.", optional: true },
+  { id: "contributions", title: "Add employer contributions, one by one.", helper: "Include health, pension, social security, unemployment, or local employer costs.", optional: true },
+  { id: "insurance", title: "Add business insurances, one by one.", helper: "Insurance costs improve operating cost, cashflow, and risk analysis.", optional: true },
+  { id: "fixedCosts", title: "Add fixed monthly costs, one by one.", helper: "Recurring fixed costs are included even when the uploaded file omits them.", optional: true },
+  { id: "revenueModel", title: "What is your revenue model?", helper: "Select the models that best describe how revenue is generated." },
+  { id: "costStructure", title: "What are your main cost categories?", helper: "Add the cost areas that materially affect margin and cashflow.", optional: true },
+  { id: "targetMargin", title: "What is your target margin?", helper: "Analysis compares uploaded margins against this target.", optional: true },
+  { id: "growthGoal", title: "What is your growth goal?", helper: "Goals shape recommendations, risk framing, and forecasts.", optional: true },
+  { id: "review", title: "Review and confirm.", helper: "Edit any answer before saving the Business Profile as analysis context." },
+]
+
+const EU_COUNTRIES = new Set([
+  "austria", "belgium", "bulgaria", "croatia", "cyprus", "czech republic", "czechia", "denmark",
+  "estonia", "finland", "france", "germany", "deutschland", "greece", "hungary", "ireland",
+  "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "nederland", "poland",
+  "portugal", "romania", "slovakia", "slovenia", "spain", "sweden",
+])
+
+const COUNTRY_TAX_SUGGESTIONS: Record<string, string[]> = {
+  germany: ["VAT", "Corporate Tax", "Trade Tax", "Payroll Tax"],
+  deutschland: ["VAT", "Corporate Tax", "Trade Tax", "Payroll Tax"],
+  usa: ["Federal Tax", "State Tax", "Sales Tax", "Payroll Tax"],
+  "united states": ["Federal Tax", "State Tax", "Sales Tax", "Payroll Tax"],
+  netherlands: ["BTW", "Corporate Tax", "Payroll Tax"],
+  nederland: ["BTW", "Corporate Tax", "Payroll Tax"],
+  romania: ["VAT", "Corporate Tax", "CAS", "CASS"],
+  uk: ["VAT", "Corporation Tax", "PAYE", "National Insurance"],
+  "united kingdom": ["VAT", "Corporation Tax", "PAYE", "National Insurance"],
+  canada: ["GST/HST", "Corporate Tax", "Payroll Tax"],
+  australia: ["GST", "Company Tax", "Payroll Tax", "Superannuation"],
+  switzerland: ["VAT", "Corporate Tax", "Cantonal Tax", "Social Security"],
 }
 
-function MultiSelectField({
-  label,
-  selected,
-  options,
-  onChange,
-}: {
-  label: string
-  selected: string[]
-  options: string[]
-  onChange: (selected: string[]) => void
-}) {
-  const toggle = (item: string) => {
-    if (selected.includes(item)) {
-      onChange(selected.filter((s) => s !== item))
-    } else {
-      onChange([...selected, item])
-    }
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+  "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+  "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+  "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+]
+
+function uid(prefix: string) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+function normalizedCountry(country: string) {
+  return country.trim().toLowerCase()
+}
+
+function isUSA(country: string) {
+  const value = normalizedCountry(country)
+  return value === "usa" || value === "united states" || value === "united states of america"
+}
+
+function isEU(country: string) {
+  return EU_COUNTRIES.has(normalizedCountry(country))
+}
+
+function countrySuggestions(country: string, taxRegistered: string) {
+  const suggestions = COUNTRY_TAX_SUGGESTIONS[normalizedCountry(country)] || []
+  if (taxRegistered === "no") {
+    return suggestions.filter((item) => !/vat|sales tax|gst|hst|btw/i.test(item))
   }
-
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => toggle(opt)}
-            className={classNames(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition",
-              selected.includes(opt)
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-accent",
-            )}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+  return suggestions
 }
 
-function TextField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  helperText,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  helperText?: string
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full"
-      />
-      {helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
-    </div>
-  )
+function selectOptions(options: string[]) {
+  return options.map((option) => ({ value: option, label: option }))
 }
 
 export function CompanySetupWizard() {
-  const [step, setStep] = useState(0)
   const [payload, setPayload] = useState<CompanySetupPayload>(emptyCompanySetupPayload)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [completed, setCompleted] = useState(false)
+  const [draftTax, setDraftTax] = useState<TaxEntry>(() => emptyTaxEntry())
+  const [draftContribution, setDraftContribution] = useState<EmployerContribution>(() => emptyContribution())
+  const [draftInsurance, setDraftInsurance] = useState<InsuranceEntry>(() => emptyInsurance())
+  const [draftFixedCost, setDraftFixedCost] = useState<FixedCostEntry>(() => emptyFixedCost())
 
   const status = useMemo(() => buildSetupStatus(payload), [payload])
+  const hasEmployees = payload.companyInfo.employeeCount !== "0"
+  const visibleQuestions = useMemo(() => {
+    return BASE_QUESTIONS.filter((question) => {
+      if (question.id === "stateRegion") return isUSA(payload.companyInfo.country) || Boolean(payload.companyInfo.stateRegion)
+      if (question.id === "contributions") return hasEmployees
+      return true
+    })
+  }, [hasEmployees, payload.companyInfo.country, payload.companyInfo.stateRegion])
+  const activeQuestion = visibleQuestions[Math.min(activeIndex, visibleQuestions.length - 1)] || visibleQuestions[0]
+  const progress = Math.round(((Math.min(activeIndex, visibleQuestions.length - 1) + 1) / visibleQuestions.length) * 100)
+  const suggestions = countrySuggestions(payload.companyInfo.country, payload.taxSettings.taxRegistered)
 
-  const update = useCallback(
-    <K extends keyof CompanySetupPayload>(section: K, values: Partial<CompanySetupPayload[K]>) => {
-      setPayload((prev) => ({
-        ...prev,
-        [section]: { ...prev[section], ...values },
-        setupStatus: buildSetupStatus({ ...prev, [section]: { ...prev[section], ...values } }),
-      }))
-    },
-    [],
-  )
+  const update = useCallback(<K extends keyof CompanySetupPayload>(section: K, values: Partial<CompanySetupPayload[K]>) => {
+    setPayload((previous) => {
+      const next = normalizeCompanySetupPayload({
+        ...previous,
+        [section]: { ...previous[section], ...values },
+      } as Partial<CompanySetupPayload>)
+      next.setupStatus = buildSetupStatus(next)
+      return next
+    })
+  }, [])
 
-  const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const replace = useCallback((values: Partial<CompanySetupPayload>) => {
+    setPayload((previous) => {
+      const next = normalizeCompanySetupPayload({ ...previous, ...values })
+      next.setupStatus = buildSetupStatus(next)
+      return next
+    })
+  }, [])
 
-useEffect(() => {
+  useEffect(() => {
     const load = async () => {
       try {
         const res = await fetch("/api/business/setup")
         if (!res.ok) return
         const data = await res.json()
-        if (data.payload) {
-          setPayload(data.payload as CompanySetupPayload)
-        }
-      } catch {
-        // Silently fail — use default empty state
+        if (data.payload) setPayload(normalizeCompanySetupPayload(data.payload as Partial<CompanySetupPayload>))
       } finally {
         setIsLoading(false)
       }
     }
-    load()
+    void load()
   }, [])
 
-  const handleSave = async () => {
+  useEffect(() => {
+    if (activeIndex > visibleQuestions.length - 1) setActiveIndex(Math.max(visibleQuestions.length - 1, 0))
+  }, [activeIndex, visibleQuestions.length])
+
+  async function save(nextIndex?: number, markComplete = false) {
     setIsSaving(true)
     setSaveMessage(null)
     try {
+      const normalized = normalizeCompanySetupPayload(payload)
       const res = await fetch("/api/business/setup", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload }),
+        body: JSON.stringify({ payload: normalized }),
       })
       if (!res.ok) throw new Error("Save failed")
-      setSaveMessage("Setup saved successfully")
-      // Force status update in payload for display
-      setPayload((prev) => ({ ...prev, setupStatus: buildSetupStatus(prev) }))
+      setPayload(normalized)
+      setSaveMessage(markComplete ? "Business Profile Completed" : "Progress saved")
+      if (markComplete) setCompleted(true)
+      if (typeof nextIndex === "number") setActiveIndex(Math.max(0, Math.min(nextIndex, visibleQuestions.length - 1)))
     } catch {
-      setSaveMessage("Failed to save — please try again")
+      setSaveMessage("Business profile was not saved. Try again.")
     } finally {
       setIsSaving(false)
-      setTimeout(() => setSaveMessage(null), 4000)
+      window.setTimeout(() => setSaveMessage(null), 3500)
     }
   }
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
-  const prevStep = () => setStep((s) => Math.max(s - 1, 0))
-  const goToStep = (s: number) => setStep(s)
+  function next() {
+    if (activeQuestion.id === "review") {
+      void save(activeIndex, true)
+      return
+    }
+    void save(activeIndex + 1)
+  }
 
-  const stepProgress = ((step + 1) / STEPS.length) * 100
+  function skip() {
+    if (activeQuestion.id === "taxRegistered") update("taxSettings", { taxRegistered: "not_sure" })
+    void save(activeIndex + 1)
+  }
 
-  const renderStep = () => {
-    switch (STEPS[step].id) {
-      case "company":
+  function addTax(entry: TaxEntry = draftTax) {
+    const taxType = entry.taxType.trim()
+    if (!taxType && !entry.percentage && !entry.fixedAmount) return
+    update("taxSettings", {
+      taxEntries: [
+        ...payload.taxSettings.taxEntries,
+        { ...entry, id: uid("tax"), taxType: taxType || "Other", confirmed: true },
+      ],
+    })
+    setDraftTax(emptyTaxEntry())
+  }
+
+  function addSuggestedTax(taxType: string) {
+    addTax({ ...emptyTaxEntry(), taxType })
+  }
+
+  function addContribution() {
+    if (!draftContribution.contributionType && !draftContribution.percentage && !draftContribution.monthlyCost && !draftContribution.annualCost) return
+    replace({ employerContributions: [...payload.employerContributions, { ...draftContribution, id: uid("contribution") }] })
+    setDraftContribution(emptyContribution())
+  }
+
+  function addInsurance() {
+    if (!draftInsurance.insuranceType && !draftInsurance.provider && !draftInsurance.monthlyCost && !draftInsurance.annualCost) return
+    update("insuranceSettings", {
+      hasBusinessInsurance: "yes",
+      insuranceEntries: [...payload.insuranceSettings.insuranceEntries, { ...draftInsurance, id: uid("insurance") }],
+    })
+    setDraftInsurance(emptyInsurance())
+  }
+
+  function addFixedCost() {
+    if (!draftFixedCost.costCategory && !draftFixedCost.monthlyCost && !draftFixedCost.annualCost) return
+    replace({ fixedCosts: [...payload.fixedCosts, { ...draftFixedCost, id: uid("fixed") }] })
+    setDraftFixedCost(emptyFixedCost())
+  }
+
+  function renderQuestion() {
+    switch (activeQuestion.id) {
+      case "companyName":
+        return <TextAnswer value={payload.companyInfo.companyName} onChange={(value) => update("companyInfo", { companyName: value })} placeholder="UseClevr GmbH" />
+      case "country":
         return (
-          <div className="space-y-4">
-            <TextField
-              label="Company name"
-              value={payload.companyInfo.companyName}
-              onChange={(v) => update("companyInfo", { companyName: v })}
-              placeholder="Acme Corp"
+          <div className="space-y-3">
+            <TextAnswer
+              value={payload.companyInfo.country}
+              onChange={(value) => update("companyInfo", { country: value, countryOfRegistration: value, taxResidenceCountry: value })}
+              placeholder="Germany, USA, Netherlands..."
             />
-            <TextField
-              label="Country of registration"
-              value={payload.companyInfo.countryOfRegistration}
-              onChange={(v) => update("companyInfo", { countryOfRegistration: v })}
-              placeholder="United States"
-            />
-            <TextField
-              label="Tax residence country"
-              value={payload.companyInfo.taxResidenceCountry}
-              onChange={(v) => update("companyInfo", { taxResidenceCountry: v })}
-              placeholder="United States"
-            />
-            <SelectField
-              label="Legal structure"
-              value={payload.companyInfo.legalStructure}
-              options={LEGAL_STRUCTURES}
-              onChange={(v) => update("companyInfo", { legalStructure: v as any })}
-            />
-            <TextField
-              label="Industry"
-              value={payload.companyInfo.industry}
-              onChange={(v) => update("companyInfo", { industry: v })}
-              placeholder="Technology, Retail, Healthcare..."
-            />
-            <SelectField
-              label="Accounting method"
-              value={payload.companyInfo.accountingMethod}
-              options={ACCOUNTING_METHODS}
-              onChange={(v) => update("companyInfo", { accountingMethod: v as any })}
-              placeholder="Select accounting method..."
-            />
-            <p className="text-xs text-muted-foreground">
-              Accounting method affects when revenue and expenses are recognized in reports.
-            </p>
+            {payload.companyInfo.country && (
+              <SuggestionNote text={isUSA(payload.companyInfo.country) ? "USA selected: state, federal tax, state tax, and sales tax suggestions become available." : isEU(payload.companyInfo.country) ? "EU country selected: VAT and corporate or income tax suggestions become available." : "Country selected. Suggestions remain editable and optional."} />
+            )}
           </div>
         )
-
-      case "tax":
-        return (
-          <div className="space-y-4">
-            <SelectField
-              label="Tax registered"
-              value={payload.taxSettings.taxRegistered}
-              options={TAX_REGISTERED_OPTIONS}
-              onChange={(v) => update("taxSettings", { taxRegistered: v as any })}
-            />
-            <SelectField
-              label="Tax type"
-              value={payload.taxSettings.taxType}
-              options={TAX_TYPES}
-              onChange={(v) => update("taxSettings", { taxType: v as any })}
-            />
-            <TextField
-              label="Standard tax rate (%)"
-              value={payload.taxSettings.standardTaxRate}
-              onChange={(v) => update("taxSettings", { standardTaxRate: v })}
-              placeholder="20"
-              helperText="Enter the standard rate as a percentage (e.g., 20 for 20%)"
-            />
-            <SelectField
-              label="Revenue amounts are"
-              value={payload.taxSettings.revenueAmountType}
-              options={AMOUNT_TYPES}
-              onChange={(v) => update("taxSettings", { revenueAmountType: v as any })}
-            />
-            <SelectField
-              label="Expense amounts are"
-              value={payload.taxSettings.expenseAmountType}
-              options={AMOUNT_TYPES}
-              onChange={(v) => update("taxSettings", { expenseAmountType: v as any })}
-            />
-            <SelectField
-              label="Estimate taxes automatically?"
-              value={payload.taxSettings.estimateTaxes}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("taxSettings", { estimateTaxes: v as any })}
-            />
-          </div>
+      case "stateRegion":
+        return isUSA(payload.companyInfo.country) ? (
+          <SelectAnswer value={payload.companyInfo.stateRegion} options={US_STATES} onChange={(value) => update("companyInfo", { stateRegion: value })} />
+        ) : (
+          <TextAnswer value={payload.companyInfo.stateRegion} onChange={(value) => update("companyInfo", { stateRegion: value })} placeholder="State, province, canton, region..." />
         )
-
+      case "legalStructure":
+        return <ChoiceAnswer value={payload.companyInfo.legalStructure} options={LEGAL_STRUCTURES.map((item) => ({ value: item.value, label: item.label }))} onChange={(value) => update("companyInfo", { legalStructure: value as CompanySetupPayload["companyInfo"]["legalStructure"] })} />
+      case "industry":
+        return <TextAnswer value={payload.companyInfo.industry} onChange={(value) => update("companyInfo", { industry: value })} placeholder="SaaS, retail, accounting, logistics..." />
       case "currency":
+        return <ChoiceAnswer value={payload.currencySettings.primaryCurrency} options={selectOptions(CURRENCIES)} onChange={(value) => update("currencySettings", { primaryCurrency: value, reportingCurrency: value })} />
+      case "fiscalYear":
         return (
-          <div className="space-y-4">
-            <SelectField
-              label="Primary currency"
-              value={payload.currencySettings.primaryCurrency}
-              options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-              onChange={(v) => update("currencySettings", { primaryCurrency: v })}
-            />
-            <SelectField
-              label="Reporting currency"
-              value={payload.currencySettings.reportingCurrency}
-              options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-              onChange={(v) => update("currencySettings", { reportingCurrency: v })}
-            />
-            <MultiSelectField
-              label="Other currencies used"
-              selected={payload.currencySettings.otherCurrenciesUsed}
-              options={CURRENCIES}
-              onChange={(v) => update("currencySettings", { otherCurrenciesUsed: v })}
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <LabeledInput label="Fiscal year start" value={payload.companyInfo.fiscalYearStart} onChange={(value) => update("companyInfo", { fiscalYearStart: value })} placeholder="January 1" />
+            <LabeledInput label="Fiscal year end" value={payload.companyInfo.fiscalYearEnd} onChange={(value) => update("companyInfo", { fiscalYearEnd: value })} placeholder="December 31" />
           </div>
         )
-
-      case "revenue":
+      case "taxRegistered":
         return (
-          <div className="space-y-4">
-            <MultiSelectField
-              label="Revenue sources"
-              selected={payload.revenueRules.revenueSources}
-              options={REVENUE_SOURCES}
-              onChange={(v) => update("revenueRules", { revenueSources: v })}
-            />
-            <SelectField
-              label="Customer type"
-              value={payload.revenueRules.customerType}
-              options={CUSTOMER_TYPES}
-              onChange={(v) => update("revenueRules", { customerType: v as any })}
-            />
-            <SelectField
-              label="Revenue recognition"
-              value={payload.revenueRules.invoiceOrPaymentBased}
-              options={INVOICE_OR_PAYMENT}
-              onChange={(v) => update("revenueRules", { invoiceOrPaymentBased: v as any })}
-            />
-            <MultiSelectField
-              label="Payment providers"
-              selected={payload.revenueRules.paymentProviders}
-              options={PAYMENT_PROVIDERS}
-              onChange={(v) => update("revenueRules", { paymentProviders: v })}
-            />
-            <SelectField
-              label="Has refunds or chargebacks?"
-              value={payload.revenueRules.hasRefundsOrChargebacks}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("revenueRules", { hasRefundsOrChargebacks: v as any })}
-            />
-          </div>
+          <ChoiceAnswer
+            value={payload.taxSettings.taxRegistered}
+            options={[
+              { value: "yes", label: isUSA(payload.companyInfo.country) ? "Yes, sales-tax registered" : "Yes, VAT/GST registered" },
+              { value: "no", label: "No" },
+              { value: "not_sure", label: "Not sure" },
+            ]}
+            onChange={(value) => update("taxSettings", { taxRegistered: value as CompanySetupPayload["taxSettings"]["taxRegistered"] })}
+          />
         )
-
-      case "expenses":
+      case "taxEntries":
         return (
-          <div className="space-y-4">
-            <MultiSelectField
-              label="Expense categories"
-              selected={payload.expenseRules.expenseCategories}
-              options={EXPENSE_CATEGORIES}
-              onChange={(v) => update("expenseRules", { expenseCategories: v })}
-            />
-            <SelectField
-              label="Mixed business/private expenses?"
-              value={payload.expenseRules.hasMixedBusinessPrivateExpenses}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("expenseRules", { hasMixedBusinessPrivateExpenses: v as any })}
-            />
-            <SelectField
-              label="Receipts available?"
-              value={payload.expenseRules.receiptsAvailable}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "partly", label: "Partly" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("expenseRules", { receiptsAvailable: v as any })}
-            />
-            <SelectField
-              label="Has recurring expenses?"
-              value={payload.expenseRules.hasRecurringExpenses}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("expenseRules", { hasRecurringExpenses: v as any })}
-            />
-          </div>
+          <RepeatableQuestion
+            suggestions={suggestions}
+            onSuggestion={addSuggestedTax}
+            entries={payload.taxSettings.taxEntries.map((entry) => `${entry.taxType}${entry.percentage ? ` ${entry.percentage}%` : ""}`)}
+            onRemove={(index) => update("taxSettings", { taxEntries: payload.taxSettings.taxEntries.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Tax type" value={draftTax.taxType} options={TAX_ENTRY_TYPES} onChange={(value) => setDraftTax((entry) => ({ ...entry, taxType: value }))} />
+              <LabeledInput label="Percentage" value={draftTax.percentage} onChange={(value) => setDraftTax((entry) => ({ ...entry, percentage: value }))} placeholder="19" />
+              <LabeledInput label="Fixed amount" value={draftTax.fixedAmount} onChange={(value) => setDraftTax((entry) => ({ ...entry, fixedAmount: value }))} placeholder="Optional" />
+              <SelectInput label="Frequency" value={draftTax.frequency} options={["monthly", "quarterly", "annual"]} onChange={(value) => setDraftTax((entry) => ({ ...entry, frequency: value as TaxEntry["frequency"] }))} />
+            </div>
+            <Button type="button" variant="outline" onClick={() => addTax()} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add this tax
+            </Button>
+          </RepeatableQuestion>
         )
-
+      case "employees":
+        return (
+          <ChoiceAnswer
+            value={payload.companyInfo.employeeCount === "0" ? "no" : payload.companyInfo.employeeCount ? "yes" : ""}
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+              { value: "not_sure", label: "Not sure" },
+            ]}
+            onChange={(value) => {
+              update("companyInfo", { employeeCount: value === "no" ? "0" : value === "not_sure" ? "not_sure" : payload.companyInfo.employeeCount || "1+" })
+              if (value === "no") replace({ employerContributions: [] })
+            }}
+          />
+        )
+      case "contributions":
+        return (
+          <RepeatableQuestion
+            entries={payload.employerContributions.map((entry) => `${entry.contributionType}${entry.percentage ? ` ${entry.percentage}%` : ""}`)}
+            onRemove={(index) => replace({ employerContributions: payload.employerContributions.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Contribution" value={draftContribution.contributionType} options={CONTRIBUTION_TYPES} onChange={(value) => setDraftContribution((entry) => ({ ...entry, contributionType: value }))} />
+              <LabeledInput label="Percentage" value={draftContribution.percentage} onChange={(value) => setDraftContribution((entry) => ({ ...entry, percentage: value }))} placeholder="20" />
+              <LabeledInput label="Monthly cost" value={draftContribution.monthlyCost} onChange={(value) => setDraftContribution((entry) => ({ ...entry, monthlyCost: value }))} placeholder="Optional" />
+              <LabeledInput label="Annual cost" value={draftContribution.annualCost} onChange={(value) => setDraftContribution((entry) => ({ ...entry, annualCost: value }))} placeholder="Optional" />
+            </div>
+            <Button type="button" variant="outline" onClick={addContribution} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add contribution
+            </Button>
+          </RepeatableQuestion>
+        )
       case "insurance":
         return (
-          <div className="space-y-4">
-            <SelectField
-              label="Has business insurance?"
-              value={payload.insuranceSettings.hasBusinessInsurance}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("insuranceSettings", { hasBusinessInsurance: v as any })}
-            />
-
-            {(payload.insuranceSettings.hasBusinessInsurance === "yes" || payload.insuranceSettings.hasBusinessInsurance === "not_sure") && (
-              <>
-                <MultiSelectField
-                  label="Insurance types"
-                  selected={payload.insuranceSettings.insuranceTypes}
-                  options={INSURANCE_TYPES}
-                  onChange={(v) => update("insuranceSettings", { insuranceTypes: v })}
-                />
-                <TextField
-                  label="Premium amount"
-                  value={payload.insuranceSettings.insurancePremiumAmount}
-                  onChange={(v) => update("insuranceSettings", { insurancePremiumAmount: v })}
-                  placeholder="1000"
-                  helperText="Annual or per-period premium amount"
-                />
-                <SelectField
-                  label="Payment frequency"
-                  value={payload.insuranceSettings.insurancePaymentFrequency}
-                  options={[
-                    { value: "monthly", label: "Monthly" },
-                    { value: "quarterly", label: "Quarterly" },
-                    { value: "yearly", label: "Yearly" },
-                    { value: "one_time", label: "One-time" },
-                    { value: "not_sure", label: "Not sure" },
-                  ]}
-                  onChange={(v) => update("insuranceSettings", { insurancePaymentFrequency: v as any })}
-                />
-                <SelectField
-                  label="Business use percentage"
-                  value={payload.insuranceSettings.insuranceBusinessUsePercentage}
-                  options={[
-                    { value: "100", label: "100%" },
-                    { value: "75", label: "75%" },
-                    { value: "50", label: "50%" },
-                    { value: "25", label: "25%" },
-                    { value: "not_sure", label: "Not sure" },
-                  ]}
-                  onChange={(v) => update("insuranceSettings", { insuranceBusinessUsePercentage: v as any })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Only the business-use portion of insurance is typically tax-deductible.
-                </p>
-              </>
-            )}
-          </div>
-        )
-
-      case "loans":
-        return (
-          <div className="space-y-4">
-            <SelectField
-              label="Has business loans?"
-              value={payload.loanLeasingSettings.hasBusinessLoans}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("loanLeasingSettings", { hasBusinessLoans: v as any })}
-            />
-            <SelectField
-              label="Has leasing?"
-              value={payload.loanLeasingSettings.hasLeasing}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("loanLeasingSettings", { hasLeasing: v as any })}
-            />
-            <SelectField
-              label="Has credit cards?"
-              value={payload.loanLeasingSettings.hasCreditCards}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("loanLeasingSettings", { hasCreditCards: v as any })}
-            />
-            <SelectField
-              label="Has overdraft?"
-              value={payload.loanLeasingSettings.hasOverdraft}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("loanLeasingSettings", { hasOverdraft: v as any })}
-            />
-            <TextField
-              label="Monthly debt payment"
-              value={payload.loanLeasingSettings.monthlyDebtPayment}
-              onChange={(v) => update("loanLeasingSettings", { monthlyDebtPayment: v })}
-              placeholder="5000"
-              helperText="Total monthly payment including principal and interest"
-            />
-            <p className="text-xs text-muted-foreground">
-              Loan principal repayment is NOT a normal expense. Only the interest portion is typically tax-deductible.
-            </p>
-            <SelectField
-              label="Loan interest known?"
-              value={payload.loanLeasingSettings.loanInterestKnown}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("loanLeasingSettings", { loanInterestKnown: v as any })}
-            />
-            <SelectField
-              label="Principal/interest split known?"
-              value={payload.loanLeasingSettings.principalInterestSplitKnown}
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-                { value: "not_sure", label: "Not sure" },
-              ]}
-              onChange={(v) => update("loanLeasingSettings", { principalInterestSplitKnown: v as any })}
-            />
-          </div>
-        )
-
-      case "review":
-        return (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-border bg-card p-4">
-              <div className="mb-3 flex items-center gap-4">
-                <div className="flex-1">
-                  <span className="text-sm font-semibold">Setup accuracy</span>
-                  <div className="mt-1 h-2 w-full rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${status.setupAccuracy}%` }}
-                    />
-                  </div>
-                </div>
-                <span className="text-2xl font-bold text-primary">{status.setupAccuracy}%</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-md bg-muted p-2">
-                  <span className="text-muted-foreground">Sections done</span>
-                  <p className="font-semibold">{status.completedSections.length} / 7</p>
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <span className="text-muted-foreground">Missing fields</span>
-                  <p className="font-semibold">{status.missingFields.length}</p>
-                </div>
-              </div>
+          <RepeatableQuestion
+            entries={payload.insuranceSettings.insuranceEntries.map((entry) => `${entry.insuranceType}${entry.provider ? ` - ${entry.provider}` : ""}`)}
+            onRemove={(index) => update("insuranceSettings", { insuranceEntries: payload.insuranceSettings.insuranceEntries.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Insurance type" value={draftInsurance.insuranceType} options={INSURANCE_TYPES} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, insuranceType: value }))} />
+              <LabeledInput label="Provider" value={draftInsurance.provider} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, provider: value }))} placeholder="Provider name" />
+              <LabeledInput label="Monthly cost" value={draftInsurance.monthlyCost} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, monthlyCost: value }))} placeholder="Optional" />
+              <LabeledInput label="Coverage amount" value={draftInsurance.coverageAmount} onChange={(value) => setDraftInsurance((entry) => ({ ...entry, coverageAmount: value }))} placeholder="Optional" />
             </div>
-
-            {status.accountantReviewFlags.length > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-                <h4 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
-                  Accountant review flags
-                </h4>
-                <ul className="space-y-1">
-                  {status.accountantReviewFlags.map((flag, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300">
-                      <span className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-500" />
-                      {flag}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {status.missingFields.length > 0 && (
-              <div className="rounded-lg border border-border bg-card p-4">
-                <h4 className="mb-2 text-sm font-semibold">Missing fields</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {status.missingFields.map((field) => (
-                    <button
-                      key={field}
-                      type="button"
-                      onClick={() => {
-                        const stepIndex = STEPS.findIndex((s) => {
-                          const sectionMap: Record<string, string> = {
-                            companyName: "company", countryOfRegistration: "company",
-                            legalStructure: "company", taxRegistered: "tax",
-                            taxType: "tax", primaryCurrency: "currency",
-                            revenueSources: "revenue", customerType: "revenue",
-                            expenseCategories: "expenses",
-                          }
-                          return sectionMap[field] === s.id
-                        })
-                        if (stepIndex >= 0) goToStep(stepIndex)
-                      }}
-                      className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground hover:bg-accent transition"
-                    >
-                      {field}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <details className="rounded-lg border border-border bg-card">
-              <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground">
-                View JSON payload
-              </summary>
-              <pre className="max-h-60 overflow-auto border-t border-border p-4 text-xs text-muted-foreground">
-                {JSON.stringify(payload, null, 2)}
-              </pre>
-            </details>
-
-            {saveMessage && (
-              <div className={`rounded-md px-3 py-2 text-sm ${
-                saveMessage.includes("successfully")
-                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                  : "bg-red-500/10 text-red-600 dark:text-red-400"
-              }`}>
-                {saveMessage}
-              </div>
-            )}
-            <Button onClick={handleSave} disabled={isSaving} className="w-full gap-2">
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {isSaving ? "Saving..." : "Save Company Setup"}
+            <Button type="button" variant="outline" onClick={addInsurance} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add insurance
             </Button>
-          </div>
+          </RepeatableQuestion>
         )
-
+      case "fixedCosts":
+        return (
+          <RepeatableQuestion
+            entries={payload.fixedCosts.map((entry) => `${entry.costCategory}${entry.monthlyCost ? ` - ${entry.monthlyCost}/mo` : ""}`)}
+            onRemove={(index) => replace({ fixedCosts: payload.fixedCosts.filter((_, itemIndex) => itemIndex !== index) })}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectInput label="Cost category" value={draftFixedCost.costCategory} options={FIXED_COST_CATEGORIES} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, costCategory: value }))} />
+              <LabeledInput label="Monthly cost" value={draftFixedCost.monthlyCost} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, monthlyCost: value }))} placeholder="500" />
+              <LabeledInput label="Annual cost" value={draftFixedCost.annualCost} onChange={(value) => setDraftFixedCost((entry) => ({ ...entry, annualCost: value }))} placeholder="Optional" />
+            </div>
+            <Button type="button" variant="outline" onClick={addFixedCost} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add fixed cost
+            </Button>
+          </RepeatableQuestion>
+        )
+      case "revenueModel":
+        return <MultiChoiceAnswer values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={(values) => update("revenueModel", { businessModels: values })} />
+      case "costStructure":
+        return <CostStructureAnswer costs={payload.costStructure} onChange={(values) => update("costStructure", values)} />
+      case "targetMargin":
+        return <TextAnswer value={payload.revenueModel.grossMarginTarget} onChange={(value) => update("revenueModel", { grossMarginTarget: value })} placeholder="30%" />
+      case "growthGoal":
+        return <GrowthGoalAnswer goals={payload.businessGoals} onChange={(values) => update("businessGoals", values)} />
+      case "review":
+        return <ReviewAnswer payload={payload} status={status} onEdit={(id) => setActiveIndex(Math.max(0, visibleQuestions.findIndex((question) => question.id === id)))} />
       default:
         return null
     }
   }
 
-  return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Company Setup Wizard</CardTitle>
-            <CardDescription>
-              Step {step + 1} of {STEPS.length}: {STEPS[step].label}
-            </CardDescription>
-          </div>
-          <span className="text-2xl">{STEPS[step].icon}</span>
-        </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${stepProgress}%` }}
-          />
-        </div>
-        <div className="mt-2 hidden gap-1 sm:flex">
-          {STEPS.map((s, i) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => goToStep(i)}
-              className={classNames(
-                "flex-1 rounded-md py-1 text-[10px] font-medium transition",
-                i === step
-                  ? "bg-primary text-primary-foreground"
-                  : i < step
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground",
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {renderStep()}
+  if (isLoading) {
+    return <Card className="border-border bg-card p-8 text-center text-sm text-muted-foreground">Loading business profile...</Card>
+  }
 
-        {STEPS[step].id !== "review" && (
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
-            <Button variant="outline" onClick={prevStep} disabled={step === 0}>
-              <ArrowLeft className="mr-1 h-4 w-4" /> Back
-            </Button>
-            <div className="flex items-center gap-2">
-              {step < STEPS.length - 1 ? (
-                <Button onClick={nextStep}>
-                  Next <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              ) : (
-                <Button onClick={() => goToStep(STEPS.length - 1)}>
-                  Review <ChevronRight className="ml-1 h-4 w-4" />
-                </Button>
-              )}
+  return (
+    <>
+      <Card className="border-border bg-card">
+        <CardHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Business Profile Setup
+              </CardTitle>
+              <CardDescription>
+                Guided setup for context-aware tax, payroll, fixed-cost, margin, cashflow, risk, and KPI analysis.
+              </CardDescription>
+            </div>
+            {(completed || status.completed) && (
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                <Check className="h-4 w-4" /> Complete
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="rounded-xl border border-border bg-background p-4">
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="font-medium">Profile completion</span>
+              <span className="font-semibold text-primary">{status.setupAccuracy}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${status.setupAccuracy}%` }} />
+            </div>
+            <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+              <span>Company: {payload.companyInfo.companyName || "Not added yet"}</span>
+              <span>Country: {payload.companyInfo.country || "Not added yet"}</span>
+              <span>Currency: {payload.currencySettings.primaryCurrency || "Not added yet"}</span>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button type="button" onClick={() => setIsOpen(true)} className="sm:w-auto">
+              {status.setupAccuracy > 0 ? "Continue setup" : "Start Business Profile Setup"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => save()} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save progress
+            </Button>
+          </div>
+          {saveMessage && <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{saveMessage}</div>}
+        </CardContent>
+      </Card>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto p-0">
+          <div className="border-b border-border p-5">
+            <DialogHeader className="pr-8">
+              <DialogTitle>Business Profile Assistant</DialogTitle>
+              <DialogDescription>Step {activeIndex + 1} of {visibleQuestions.length}</DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="space-y-5 p-5">
+            {completed ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="mb-3 h-14 w-14" />
+                <h3 className="text-xl font-semibold">Business Profile Completed</h3>
+                <p className="mt-2 text-sm">Saved profile values now improve future CSV and Excel analysis.</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground">{activeQuestion.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{activeQuestion.helper}</p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-4">{renderQuestion()}</div>
+              </>
+            )}
+            {saveMessage && <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{saveMessage}</div>}
+          </div>
+
+          {!completed && (
+            <DialogFooter className="border-t border-border p-5 sm:justify-between">
+              <Button type="button" variant="outline" onClick={() => setActiveIndex(Math.max(activeIndex - 1, 0))} disabled={activeIndex === 0 || isSaving}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <div className="flex flex-wrap justify-end gap-2">
+                {activeQuestion.optional && activeQuestion.id !== "review" && (
+                  <Button type="button" variant="ghost" onClick={skip} disabled={isSaving}>Skip optional question</Button>
+                )}
+                <Button type="button" variant="outline" onClick={() => save()} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save progress
+                </Button>
+                <Button type="button" onClick={next} disabled={isSaving}>
+                  {activeQuestion.id === "review" ? "Confirm profile" : "Next"}
+                  {activeQuestion.id !== "review" && <ArrowRight className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function emptyTaxEntry(): TaxEntry {
+  return { id: "", taxType: "", percentage: "", fixedAmount: "", frequency: "", notes: "", confirmed: false }
+}
+
+function emptyContribution(): EmployerContribution {
+  return { id: "", contributionType: "", percentage: "", monthlyCost: "", annualCost: "" }
+}
+
+function emptyInsurance(): InsuranceEntry {
+  return { id: "", insuranceType: "", provider: "", monthlyCost: "", annualCost: "", coverageAmount: "" }
+}
+
+function emptyFixedCost(): FixedCostEntry {
+  return { id: "", costCategory: "", monthlyCost: "", annualCost: "" }
+}
+
+function LabeledInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+    </div>
+  )
+}
+
+function TextAnswer({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
+  return <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-12 text-base" />
+}
+
+function SelectInput({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground">
+        <option value="">Select...</option>
+        {value && !options.includes(value) && <option value={value}>{value}</option>}
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function SelectAnswer({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
+  return <SelectInput label="Answer" value={value} options={options} onChange={onChange} />
+}
+
+function ChoiceAnswer({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+  return (
+    <div className="grid gap-2">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={[
+            "rounded-lg border px-4 py-3 text-left text-sm font-medium transition",
+            value === option.value
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+          ].join(" ")}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function MultiChoiceAnswer({ values, options, onChange }: { values: string[]; options: string[]; onChange: (values: string[]) => void }) {
+  function toggle(option: string) {
+    onChange(values.includes(option) ? values.filter((value) => value !== option) : [...values, option])
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => toggle(option)}
+          className={[
+            "rounded-lg border px-4 py-3 text-sm font-medium transition",
+            values.includes(option)
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+          ].join(" ")}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function RepeatableQuestion({
+  children,
+  entries,
+  suggestions = [],
+  onSuggestion,
+  onRemove,
+}: {
+  children: React.ReactNode
+  entries: string[]
+  suggestions?: string[]
+  onSuggestion?: (value: string) => void
+  onRemove: (index: number) => void
+}) {
+  return (
+    <div className="space-y-4">
+      {suggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editable country suggestions</p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <Button key={suggestion} type="button" variant="outline" size="sm" onClick={() => onSuggestion?.(suggestion)}>
+                <Plus className="mr-2 h-4 w-4" /> {suggestion}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+      {entries.length > 0 && (
+        <div className="space-y-2">
+          {entries.map((entry, index) => (
+            <div key={`${entry}_${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+              <span>{entry}</span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
+}
+
+function SuggestionNote({ text }: { text: string }) {
+  return <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">{text}</div>
+}
+
+function CostStructureAnswer({ costs, onChange }: { costs: CostStructure; onChange: (values: Partial<CostStructure>) => void }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <LabeledInput label="Material costs" value={costs.materialCosts} onChange={(value) => onChange({ materialCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Inventory costs" value={costs.inventoryCosts} onChange={(value) => onChange({ inventoryCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Production costs" value={costs.productionCosts} onChange={(value) => onChange({ productionCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Shipping costs" value={costs.shippingCosts} onChange={(value) => onChange({ shippingCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Payment processing fees" value={costs.paymentProcessingFees} onChange={(value) => onChange({ paymentProcessingFees: value })} placeholder="Optional" />
+      <LabeledInput label="Contractor costs" value={costs.contractorCosts} onChange={(value) => onChange({ contractorCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Commission costs" value={costs.commissionCosts} onChange={(value) => onChange({ commissionCosts: value })} placeholder="Optional" />
+      <LabeledInput label="Return rates" value={costs.returnRates} onChange={(value) => onChange({ returnRates: value })} placeholder="Optional" />
+      <LabeledInput label="Discount rates" value={costs.discountRates} onChange={(value) => onChange({ discountRates: value })} placeholder="Optional" />
+    </div>
+  )
+}
+
+function GrowthGoalAnswer({ goals, onChange }: { goals: BusinessGoals; onChange: (values: Partial<BusinessGoals>) => void }) {
+  return (
+    <div className="space-y-3">
+      <LabeledInput label="Growth goal" value={goals.growthTarget} onChange={(value) => onChange({ growthTarget: value })} placeholder="Grow revenue 20% this year" />
+      <LabeledInput label="Profit goal" value={goals.profitTarget} onChange={(value) => onChange({ profitTarget: value })} placeholder="Optional" />
+      <SelectInput label="Risk tolerance" value={goals.riskTolerance} options={["Low", "Medium", "High", "Not sure"]} onChange={(value) => onChange({ riskTolerance: value })} />
+    </div>
+  )
+}
+
+function ReviewAnswer({
+  payload,
+  status,
+  onEdit,
+}: {
+  payload: CompanySetupPayload
+  status: CompanySetupPayload["setupStatus"]
+  onEdit: (id: QuestionId) => void
+}) {
+  const rows: { label: string; value: string; id: QuestionId }[] = [
+    { label: "Company", value: payload.companyInfo.companyName || "Missing", id: "companyName" },
+    { label: "Country", value: [payload.companyInfo.country, payload.companyInfo.stateRegion].filter(Boolean).join(", ") || "Missing", id: "country" },
+    { label: "Legal structure", value: payload.companyInfo.legalStructure || "Missing", id: "legalStructure" },
+    { label: "Industry", value: payload.companyInfo.industry || "Missing", id: "industry" },
+    { label: "Currency", value: payload.currencySettings.primaryCurrency || "Missing", id: "currency" },
+    { label: "Fiscal year", value: [payload.companyInfo.fiscalYearStart, payload.companyInfo.fiscalYearEnd].filter(Boolean).join(" to ") || "Missing", id: "fiscalYear" },
+    { label: "Taxes", value: `${payload.taxSettings.taxEntries.length} entries`, id: "taxEntries" },
+    { label: "Contributions", value: `${payload.employerContributions.length} entries`, id: "contributions" },
+    { label: "Insurance", value: `${payload.insuranceSettings.insuranceEntries.length} entries`, id: "insurance" },
+    { label: "Fixed costs", value: `${payload.fixedCosts.length} entries`, id: "fixedCosts" },
+    { label: "Revenue model", value: payload.revenueModel.businessModels.join(", ") || "Missing", id: "revenueModel" },
+    { label: "Target margin", value: payload.revenueModel.grossMarginTarget || "Missing", id: "targetMargin" },
+    { label: "Growth goal", value: payload.businessGoals.growthTarget || "Missing", id: "growthGoal" },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="font-medium">Completion</span>
+          <span className="font-semibold text-primary">{status.setupAccuracy}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${status.setupAccuracy}%` }} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+            <div>
+              <p className="font-medium">{row.label}</p>
+              <p className="text-muted-foreground">{row.value}</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => onEdit(row.id)}>Edit</Button>
+          </div>
+        ))}
+      </div>
+      {status.accountantReviewFlags.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+          <p className="font-medium">Analysis confidence warnings</p>
+          <ul className="mt-2 space-y-1">
+            {status.accountantReviewFlags.slice(0, 4).map((flag) => <li key={flag}>- {flag}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }

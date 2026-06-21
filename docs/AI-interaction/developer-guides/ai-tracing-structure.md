@@ -16,6 +16,11 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 - Users can review, search, re-run, export, and rate their own AI history.
 - Super-admins can review aggregate trace analytics, benchmarking, provider distribution, error rate, and top queries.
 - Business Profile and Company Setup changes that alter AI context update trace guidance so future traces explain which business context shaped an answer.
+- Dataset analysis prompts include confirmed Business Profile context and instruct the assistant to
+  mark missing profile values as missing instead of assuming them.
+- Dataset analysis prompts include the uploaded-data plus Business Profile calculation layer when
+  available, including adjusted tax, payroll, insurance, fixed-cost, margin, warning, and conflict
+  values that shape the answer.
 - UseClevr dataset MCP tool invocations record traces to `aiInteractionTraces` via
   `recordMCPTrace` (fire-and-forget, non-blocking). Provider is `MCP`, model is
   `tool:{toolName}`. Payload News and FAQ MCP requests use Payload API-key controls and do not enter

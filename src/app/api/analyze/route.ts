@@ -22,6 +22,10 @@ import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
 import { isBuiltinUserId } from "@/lib/auth/builtin-users";
+import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
+import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
+import { buildBusinessProfileContext } from "@/lib/business/company-setup";
+import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
@@ -476,7 +480,43 @@ export async function POST(request: Request) {
         mcpToolsPrompt = buildMCPToolsPrompt(datasetId);
       }
 
-      const prompt = generateAnalysisPrompt(question, result, availableColumns, precomputedAnalysis) + mcpToolsPrompt;
+      let businessProfilePrompt = "";
+      try {
+        const businessProfile = await getCompanySetup(userId);
+        businessProfilePrompt = `\n\nBUSINESS PROFILE CONTEXT\nUse only these user-confirmed business profile values. Do not assume missing business data. If a value is missing, say it is missing and explain how that limits confidence.\n${buildBusinessProfileContext(businessProfile)}\n`;
+        const contextSource = (analysisToUse ?? precomputedAnalysis) as {
+          business_analysis?: {
+            businessProfileContext?: unknown;
+          };
+        } | null | undefined;
+        let profileCalculationLayer = contextSource?.business_analysis?.businessProfileContext;
+        if (!profileCalculationLayer && requestDataset.length > 0) {
+          const detectedColumns = detectBusinessColumns(requestDataset);
+          const businessAnalysis = analyzeBusinessData(requestDataset, detectedColumns);
+          const kpisWithCosts = businessAnalysis.kpis as typeof businessAnalysis.kpis & {
+            totalCost?: number | null;
+          };
+          const datasetCosts =
+            typeof kpisWithCosts.totalCost === "number"
+              ? kpisWithCosts.totalCost
+              : typeof businessAnalysis.kpis.totalRevenue === "number" && typeof businessAnalysis.kpis.totalProfit === "number"
+                ? businessAnalysis.kpis.totalRevenue - businessAnalysis.kpis.totalProfit
+                : null;
+          profileCalculationLayer = buildProfileCalculationLayer({
+            setup: businessProfile,
+            rows: requestDataset,
+            revenue: businessAnalysis.kpis.totalRevenue,
+            datasetCosts,
+          });
+        }
+        if (profileCalculationLayer) {
+          businessProfilePrompt += `\nPROFILE-ADJUSTED CALCULATION LAYER\nUse this uploaded-data + Business Profile calculation layer for tax, margin, payroll, fixed-cost, insurance, forecast, cash-flow, and recommendation answers. If warnings or conflicts exist, show them clearly and ask the user to confirm which value should be used before treating the final calculation as definitive.\n${JSON.stringify(profileCalculationLayer, null, 2)}\n`;
+        }
+      } catch (businessProfileError) {
+        debugWarn('[ANALYZE] Business profile context skipped:', businessProfileError);
+      }
+
+      const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis) + businessProfilePrompt + mcpToolsPrompt;
 
       try {
         debugLog(mockAIMode ? '[ANALYZE] Calling Mock AI for response...' : '[ANALYZE] Calling Google AI (Gemini) for response...');
