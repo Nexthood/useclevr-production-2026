@@ -63,7 +63,10 @@ moving work between states.
 
 ## Label: ui
 
-- T-868. Show Account settings as a wide control center with Profile, Company, Subscription, Security, setup progress, account status, completion indicators, and a Continue Setup action. (labels: ui, dashboard, billing; commit: worktree)
+- T-873. Remove setup progress and guided tour popups, stop guided-tour visit tracking, and keep onboarding indicators focused on Business Profile, Accountancy, Dataset Upload, and Analysis. (labels: ui, dashboard, workflow; commit: worktree)
+- T-872. Add consistent page-header spacing on Downloads, Datasets, Business, Accountancy, and Retail pages so main content starts below the top navigation with readable separation. (labels: ui, dashboard; commit: worktree)
+- T-870. Simplify display controls to a compact Light Mode, Dark Mode, and zoom-level menu with dark mode as the default and saved preferences. (labels: ui, dashboard, accessibility; commit: worktree)
+- T-868. Show Account settings as a wide control center with Profile, Company, Subscription, Security, account status, completion indicators, and a Continue Setup action. (labels: ui, dashboard, billing; commit: worktree)
 - T-842. Align the Payload admin shell with the dashboard hierarchy using a left main-menu sidebar, topbar, page header, body subheader, centered content area, and responsive right information panels. (labels: ui, content, dashboard, accessibility; commit: worktree)
 - T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard; commit: worktree)
 - T-829. Add smooth theme transition with fade-in-out animation on root layout for light/dark mode changes. (labels: ui, accessibility, workflow; commit: worktree)
@@ -83,6 +86,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-871. AI Assistant generates at least 10 contextual suggested questions automatically after dataset selection, caches them per dataset, and shows fallback questions when generation fails. (labels: ai, data, ui; commit: worktree)
 - T-864. Retail Inventory Analyst shows every product-specific stock, sales, profit, margin, last-sale, order, and owner-action detail row in scrollable low-stock, dead-stock, and top-profit result cards. (labels: ai, data, ui; commit: worktree)
 
 - T-781. Keep each analysis request scoped to the signed-in user's selected dataset without shared server memory between requests. (labels: ai, auth, data, api; commit: worktree)

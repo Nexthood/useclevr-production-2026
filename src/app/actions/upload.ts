@@ -11,6 +11,7 @@ import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { getDatasetLimitInfo, getDatasetLimitError, type DatasetLimitInfo } from "@/lib/usage/dataset-limits"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
@@ -80,6 +81,7 @@ export async function uploadCSV(formData: FormData): Promise<{
   profitabilityResult?: any
   usage?: AnalystCreditUsage
   step?: string
+  limitInfo?: DatasetLimitInfo
 }> {
   try {
     const db = getDb()
@@ -208,6 +210,17 @@ export async function uploadCSV(formData: FormData): Promise<{
       return {
         success: false,
         error: "Analyst credit limit reached. Subscribe to Pro or top up to upload another dataset.",
+        usage: currentUsage,
+      }
+    }
+
+    const limitInfo = await getDatasetLimitInfo(effectiveUserId)
+    const limitError = getDatasetLimitError(limitInfo)
+    if (limitError) {
+      return {
+        success: false,
+        error: limitError,
+        limitInfo,
         usage: currentUsage,
       }
     }

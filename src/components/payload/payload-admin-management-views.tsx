@@ -44,8 +44,6 @@ type CustomerLevel = {
 
 type OnboardingStatus = {
   completionPercent: number
-  autoOpen: boolean
-  hasSeenOnboarding: boolean
   steps: Array<{
     id: string
     title: string

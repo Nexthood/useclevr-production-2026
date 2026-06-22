@@ -226,7 +226,7 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
 // Theme preference
 // ---------------------------------------------------------------------------
 
-const validThemes = ["light", "dark", "system", "contrast", "large"] as const
+const validThemes = ["light", "dark"] as const
 type ThemeValue = (typeof validThemes)[number]
 
 export async function setThemePreference(theme: string): Promise<Result<{ message: string }>> {

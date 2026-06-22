@@ -55,6 +55,19 @@ type HistoryEntry = {
 
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
 
+const FALLBACK_SUGGESTIONS = [
+  "What are the key insights in this dataset?",
+  "What are the top 10 records by value?",
+  "Which categories perform best?",
+  "What trends appear over time?",
+  "Where are values unusually high or low?",
+  "What data quality issues should be reviewed?",
+  "Which segments need attention?",
+  "What risks does this data reveal?",
+  "What actions should I take next?",
+  "What should I compare against the previous period?",
+]
+
 function responseText(data: Record<string, unknown>) {
   return String(data.answer || data.response || data.content || "I could not generate an answer for that question.")
 }
@@ -90,6 +103,7 @@ export function AiAssistantWorkspace() {
   const [isAsking, setIsAsking] = React.useState(false)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const [savedSuggestions, setSavedSuggestions] = React.useState<SavedSuggestion[]>([])
+  const [suggestionsByDataset, setSuggestionsByDataset] = React.useState<Record<string, SavedSuggestion[]>>({})
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = React.useState(false)
   const [leftSidebarOpen, setLeftSidebarOpen] = React.useState(true)
   const [rightSidebarOpen, setRightSidebarOpen] = React.useState(true)
@@ -125,21 +139,6 @@ export function AiAssistantWorkspace() {
       }
     }
     loadDatasets()
-    return () => { cancelled = true }
-  }, [])
-
-  React.useEffect(() => {
-    let cancelled = false
-    async function loadSuggestions() {
-      try {
-        const response = await fetch("/api/suggestions")
-        if (response.ok) {
-          const body = await response.json()
-          if (!cancelled) setSavedSuggestions(Array.isArray(body.suggestions) ? body.suggestions : [])
-        }
-      } catch { /* keep empty */ }
-    }
-    loadSuggestions()
     return () => { cancelled = true }
   }, [])
 
@@ -267,8 +266,12 @@ export function AiAssistantWorkspace() {
     setRightTab("suggestions")
   }
 
-  async function generateSuggestions() {
+  async function generateSuggestions(force = false) {
     if (!selectedDatasetId || isGeneratingSuggestions) return
+    if (!force && suggestionsByDataset[selectedDatasetId]?.length) {
+      setSavedSuggestions(suggestionsByDataset[selectedDatasetId])
+      return
+    }
     setIsGeneratingSuggestions(true)
     try {
       const response = await fetch("/api/suggestions/generate", {
@@ -278,11 +281,53 @@ export function AiAssistantWorkspace() {
       })
       if (response.ok) {
         const body = await response.json()
-        if (Array.isArray(body.suggestions)) setSavedSuggestions(body.suggestions)
+        const nextSuggestions = Array.isArray(body.suggestions) ? body.suggestions : []
+        const usableSuggestions = nextSuggestions.length > 0
+          ? nextSuggestions
+          : FALLBACK_SUGGESTIONS.map((text, index) => ({
+              id: `fallback-${selectedDatasetId}-${index}`,
+              text,
+              createdAt: new Date().toISOString(),
+            }))
+        setSavedSuggestions(usableSuggestions)
+        setSuggestionsByDataset((current) => ({
+          ...current,
+          [selectedDatasetId]: usableSuggestions,
+        }))
+      } else {
+        throw new Error("Suggestion generation failed")
       }
-    } catch { /* keep existing */ }
+    } catch {
+      const fallbackSuggestions = FALLBACK_SUGGESTIONS.map((text, index) => ({
+        id: `fallback-${selectedDatasetId}-${index}`,
+        text,
+        createdAt: new Date().toISOString(),
+      }))
+      setSavedSuggestions(fallbackSuggestions)
+      setSuggestionsByDataset((current) => ({
+        ...current,
+        [selectedDatasetId]: fallbackSuggestions,
+      }))
+    }
     finally { setIsGeneratingSuggestions(false) }
   }
+
+  React.useEffect(() => {
+    if (!selectedDatasetId) {
+      setSavedSuggestions([])
+      return
+    }
+
+    const cached = suggestionsByDataset[selectedDatasetId]
+    if (cached?.length) {
+      setSavedSuggestions(cached)
+      return
+    }
+
+    setSavedSuggestions([])
+    setRightTab("suggestions")
+    void generateSuggestions()
+  }, [selectedDatasetId])
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -568,7 +613,7 @@ export function AiAssistantWorkspace() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={generateSuggestions}
+                        onClick={() => generateSuggestions(true)}
                         disabled={isGeneratingSuggestions}
                         className="gap-1 text-xs"
                       >
@@ -577,14 +622,19 @@ export function AiAssistantWorkspace() {
                         ) : (
                           <RefreshCw className="h-3 w-3" />
                         )}
-                        Generate
+                        Refresh
                       </Button>
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    {allSuggestionsCombined.length === 0 ? (
+                    {isGeneratingSuggestions && allSuggestionsCombined.length === 0 ? (
+                      <div className="flex items-center gap-2 px-1 py-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Analyzing dataset columns...
+                      </div>
+                    ) : allSuggestionsCombined.length === 0 ? (
                       <p className="px-1 py-2 text-xs text-muted-foreground">
-                        {selectedDatasetId ? "No suggestions available" : "Select a dataset to see suggestions"}
+                        {selectedDatasetId ? "Preparing fallback suggestions..." : "Select a dataset to see suggestions"}
                       </p>
                     ) : (
                       allSuggestionsCombined.map((question, index) => (

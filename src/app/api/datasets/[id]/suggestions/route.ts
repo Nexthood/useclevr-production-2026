@@ -5,7 +5,12 @@ import { auth } from '@/lib/auth/auth';
 // Get smart question suggestions for a dataset
 
 import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
-import { buildDatasetIntelligence, generateSuggestions } from '@/lib/data/dataset-intelligence';
+import {
+  buildDatasetIntelligence,
+  detectDatasetTypeFromColumns,
+  fallbackSuggestionsForDatasetType,
+  generateSuggestions,
+} from '@/lib/data/dataset-intelligence';
 import { db } from '@/lib/db';
 import { datasetRows, datasets } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
@@ -46,9 +51,16 @@ export async function GET(
       data = rows.map((row) => row.data as Record<string, unknown>);
     }
     
+    const columns = Array.isArray(dataset.columns) ? dataset.columns : [];
+    const datasetType = detectDatasetTypeFromColumns(columns, dataset.name);
+
     if (data.length === 0) {
       return NextResponse.json({
-        suggestions: []
+        suggestions: fallbackSuggestionsForDatasetType(datasetType),
+        datasetId: id,
+        datasetName: dataset.name,
+        datasetType,
+        fallback: true,
       });
     }
 
@@ -56,21 +68,26 @@ export async function GET(
     const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
     
     // Generate suggestions
-    const suggestions = generateSuggestions(intelligence);
+    const suggestions = generateSuggestions(intelligence, dataset.name);
+    const safeSuggestions = suggestions.length >= 10
+      ? suggestions
+      : [...new Set([...suggestions, ...fallbackSuggestionsForDatasetType(datasetType)])].slice(0, 12);
 
-    debugLog('[SUGGESTIONS] Generated', suggestions.length, 'suggestions');
+    debugLog('[SUGGESTIONS] Generated', safeSuggestions.length, 'suggestions');
 
     return NextResponse.json({
-      suggestions,
+      suggestions: safeSuggestions,
       datasetId: id,
-      datasetName: dataset.name
+      datasetName: dataset.name,
+      datasetType,
     });
 
   } catch (error: any) {
     debugError('[SUGGESTIONS] Error:', error.message);
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      suggestions: fallbackSuggestionsForDatasetType('Generic'),
+      error: error.message,
+      fallback: true,
+    });
   }
 }

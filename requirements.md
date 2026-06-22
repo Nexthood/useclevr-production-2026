@@ -36,6 +36,8 @@ Text rules for this file:
 - Keep each analysis request isolated from dataset state used by other requests.
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
+- Generate at least 10 contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, or generic data from the dataset columns.
+- Cache AI Assistant suggestions per selected dataset and show fallback suggestions when generation fails.
 - Keep AI answers within the uploaded dataset scope.
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
@@ -150,11 +152,8 @@ Text rules for this file:
   confirmed Business Profile currency or tax assumptions.
 - Never invent missing Business Profile values; show missing values as missing and lower confidence
   when the profile is incomplete.
-- Show onboarding progress from account, business, upload, analysis, and dashboard visit data.
-- Reopen onboarding for accounts below the minimum completion threshold.
-- Link each setup progress item to its relevant page.
-- Start a guided setup tour from the topbar progress panel.
-- Include business profile, location, tax, financial, and overview visits in setup progress.
+- Keep onboarding focused on Business Profile, Accountancy, Dataset Upload, and Analysis.
+- Show lightweight Business completion and Accountancy completion percentages.
 - Open Business as a top-level workspace with the businesses listing first.
 - Create and update owned business profiles, archive and restore secondary profiles, and permanently
   delete an owned secondary profile only after it is archived.
@@ -213,7 +212,9 @@ Text rules for this file:
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
-- Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
+- Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
+- Keep display controls as a compact menu with Light Mode, Dark Mode, and zoom levels 50%, 75%,
+  100%, 125%, and 150%, with dark mode as the default and saved user preferences.
 - Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
   the completion percentage, switch to a completed check at 100%, and route incomplete Business
   clicks directly to Business Profile setup.

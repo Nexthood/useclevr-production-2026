@@ -10,6 +10,7 @@ export interface BillingPlan {
   features: string[];
   discountLabel?: string;
   stripePriceId?: string;
+  maxDatasets: number;
 }
 
 export const billingPlans: BillingPlan[] = [
@@ -20,7 +21,8 @@ export const billingPlans: BillingPlan[] = [
     price: 0,
     interval: "month",
     description: "Explore UseClevr with basic cloud analysis.",
-    features: ["1 dataset", "Limited AI questions", "Basic insights"],
+    features: ["2 datasets", "Limited AI questions", "Basic insights"],
+    maxDatasets: 2,
   },
   {
     id: "pro_monthly",
@@ -28,8 +30,9 @@ export const billingPlans: BillingPlan[] = [
     tier: "pro",
     price: 40,
     interval: "month",
-    description: "Unlimited datasets, report downloads, and Hybrid AI Lite.",
-    features: ["Unlimited datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
+    description: "Up to 25 datasets, report downloads, and Hybrid AI Lite.",
+    features: ["25 datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
+    maxDatasets: 25,
     stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY,
   },
   {
@@ -40,6 +43,7 @@ export const billingPlans: BillingPlan[] = [
     interval: "year",
     description: "Pro access with the automatic annual discount applied.",
     features: ["Everything in Pro", "Automatic annual discount", "Hybrid AI Lite"],
+    maxDatasets: 25,
     discountLabel: "Auto discount: save €80/year",
     stripePriceId: process.env.STRIPE_PRICE_PRO_ANNUAL,
   },
@@ -49,13 +53,14 @@ export const billingPlans: BillingPlan[] = [
     tier: "business",
     price: 420,
     interval: "month",
-    description: "Higher volume, advanced security, and dedicated support.",
+    description: "Unlimited datasets, advanced security, and dedicated support.",
     features: [
-      "Custom limits",
+      "Unlimited datasets",
       "Advanced security",
       "Private deployment options",
       "Dedicated support",
     ],
+    maxDatasets: Infinity,
     stripePriceId: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
   },
 ];
@@ -64,7 +69,16 @@ export function getBillingPlan(planId: string | null | undefined) {
   return billingPlans.find((plan) => plan.id === planId) || billingPlans[1];
 }
 
+export function getBillingPlanByTier(tier: string | null | undefined) {
+  return billingPlans.find((plan) => plan.tier === tier) || billingPlans[0];
+}
+
 export function formatPlanPrice(plan: BillingPlan) {
   if (plan.price === 0) return "€0/month";
   return `€${plan.price}/${plan.interval === "year" ? "year" : "month"}`;
+}
+
+export function getDatasetLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.maxDatasets
 }

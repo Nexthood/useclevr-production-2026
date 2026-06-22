@@ -19,7 +19,7 @@ export default async function BusinessPage() {
   const hasIncompleteProfile = completionPercent < 80
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-5">
+    <div className="flex min-h-0 flex-1 flex-col items-center px-5 pb-5 pt-6">
       <div className="mx-auto max-w-2xl text-center">
         <Building2 className="mx-auto mb-4 h-12 w-12 text-primary" />
         <h1 className="mb-2 text-2xl font-bold">Business Overview</h1>

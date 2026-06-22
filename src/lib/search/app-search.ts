@@ -29,7 +29,7 @@ const APP_PAGES: Array<AppSearchResult & { roles?: AppSearchRole[]; keywords: st
     title: "Dashboard",
     description: "Workspace overview, setup state, and quick actions.",
     href: "/app",
-    keywords: "dashboard overview home start metrics setup progress",
+    keywords: "dashboard overview home start metrics completion status",
   },
   {
     id: "page-datasets",

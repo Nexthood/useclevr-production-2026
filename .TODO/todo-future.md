@@ -72,7 +72,7 @@ into the active queue.
 - Create the minimal monorepo layout under `apps/web` and `apps/docs` without moving the existing dashboard logic out of the current root app yet. (labels: dashboard, ui, docs)
 - Preserve selected settings tab state in the URL or a shared settings context if settings pages need cross-navigation tab continuity. (labels: dashboard, workflow)
 - Add a dashboard table consistency audit that checks list pages use title links, supporting edit links, and row-end actions before new list pages ship. (labels: dashboard, ui, data)
-- Add a setup progress audit that verifies every business profile field and required setup action contributes to the topbar completion panel. (labels: dashboard, ui, business, data)
+- Add a completion indicator audit that verifies Business Profile and Accountancy percentages match their source workflow readiness. (labels: dashboard, ui, business, data)
 
 ## Label: data
 

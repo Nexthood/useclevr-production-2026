@@ -7,8 +7,6 @@ import { v4 as uuidv4 } from "uuid";
 export type ProductActivityType =
   | "register"
   | "login"
-  | "onboarding_seen"
-  | "page_visited"
   | "profile_updated"
   | "business_updated"
   | "subscribed"

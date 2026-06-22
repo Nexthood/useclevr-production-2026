@@ -1,59 +1,48 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { auth } from "@/lib/auth/auth"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
+import { getDb } from "@/lib/db"
+import { datasets } from "@/lib/db/schema"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
-import { CheckCircle2, CircleDashed, CreditCard, Settings, ShieldCheck } from "lucide-react"
-import Link from "next/link"
+import { count, eq } from "drizzle-orm"
+import { CreditCard, Settings, ShieldCheck } from "lucide-react"
 import type React from "react"
-import { SettingsNav } from "./settings-nav"
+import { SettingsProvider, type SettingsContextValue } from "@/components/settings/settings-context"
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
-  const isSuperAdmin = session?.user?.role === "superadmin"
   const setupStatus = session?.user?.id ? await getSetupStatus(session.user.id) : null
   const usage = await getAnalystCreditUsage(session?.user?.id)
-  const setupAccuracy = setupStatus?.setupAccuracy ?? 0
-  const setupItems = [
-    { label: "Profile", complete: Boolean(session?.user?.name && session?.user?.email) },
-    { label: "Company", complete: setupAccuracy >= 80 },
-    { label: "Subscription", complete: usage.subscriptionTier !== "free" || usage.trialActive },
-    { label: "Security", complete: Boolean(session?.user?.email) },
-  ]
-  const completedItems = setupItems.filter((item) => item.complete).length
+  const businessCompletion = Math.min(100, Math.max(0, setupStatus?.setupAccuracy ?? 0))
+  const businessComplete = businessCompletion >= 100
+  let uploadedDatasetCount = 0
+  const db = getDb()
+  if (db && session?.user?.id) {
+    try {
+      const [datasetCount] = await db
+        .select({ count: count() })
+        .from(datasets)
+        .where(eq(datasets.userId, session.user.id))
+      uploadedDatasetCount = Number(datasetCount?.count ?? 0)
+    } catch {
+      uploadedDatasetCount = 0
+    }
+  }
+  const accountancyCompletion = businessComplete && uploadedDatasetCount > 0
+    ? 100
+    : businessComplete || uploadedDatasetCount > 0
+      ? 50
+      : 0
 
   const rightSidebar = (
     <aside className="hidden w-72 flex-shrink-0 border-l border-border bg-card/80 xl:block 2xl:w-80">
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
         <section className="rounded-lg border border-border bg-background/70 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Setup progress</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{completedItems} of {setupItems.length} account areas ready</p>
-            </div>
-            <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-              {setupAccuracy}%
-            </span>
+          <h3 className="text-sm font-semibold text-foreground">Completion indicators</h3>
+          <div className="mt-4 grid gap-3">
+            <CompletionLine label="Business" value={businessCompletion} />
+            <CompletionLine label="Accountancy" value={accountancyCompletion} />
           </div>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${setupAccuracy}%` }} />
-          </div>
-          <div className="mt-4 space-y-2">
-            {setupItems.map((item) => {
-              const Icon = item.complete ? CheckCircle2 : CircleDashed
-              return (
-                <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm">
-                  <span className="text-foreground">{item.label}</span>
-                  <Icon className={item.complete ? "h-4 w-4 text-emerald-500" : "h-4 w-4 text-muted-foreground"} />
-                </div>
-              )
-            })}
-          </div>
-          <Link
-            href="/app/business/setup"
-            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Continue Setup
-          </Link>
         </section>
 
         <section className="rounded-lg border border-border bg-background/70 p-4 shadow-sm">
@@ -69,24 +58,38 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   )
 
   return (
-    <DashboardSubpageLayout
-      title="Account"
-      description="Manage profile, preferences, subscription, billing, and activity."
-      breadcrumbs={[
-        { label: "Dashboard", href: "/app" },
-        { label: "Settings" },
-      ]}
-      icon={Settings}
-      rightSidebar={rightSidebar}
-    >
-      <div className="flex flex-1 min-h-0">
-        <SettingsNav showAdmin={isSuperAdmin} />
+    <SettingsProvider setupStatus={setupStatus} usage={usage} session={session as SettingsContextValue["session"]}>
+      <DashboardSubpageLayout
+        title="Account"
+        description="Manage profile, preferences, subscription, billing, and activity."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/app" },
+          { label: "Settings" },
+        ]}
+        icon={Settings}
+        rightSidebar={rightSidebar}
+      >
+        <div className="flex flex-1 min-h-0">
+          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-5 lg:px-8">
+            <section className="mx-auto min-w-0 w-full max-w-[1100px]">{children}</section>
+          </main>
+        </div>
+      </DashboardSubpageLayout>
+    </SettingsProvider>
+  )
+}
 
-        <main className="min-w-0 flex-1 overflow-y-auto px-5 py-5 lg:px-8">
-          <section className="mx-auto min-w-0 w-full max-w-7xl">{children}</section>
-        </main>
+function CompletionLine({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-border bg-card px-3 py-2">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="text-xs font-semibold text-primary">{value}%</span>
       </div>
-    </DashboardSubpageLayout>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${value}%` }} />
+      </div>
+    </div>
   )
 }
 
