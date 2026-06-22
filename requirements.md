@@ -85,6 +85,9 @@ Text rules for this file:
 ## Subscriptions & Billing
 
 - Show Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Show Account settings as a professional control center with centered wide content, Profile,
+  Company, Subscription, and Security sections, visible completion indicators, a Continue Setup
+  action, and a right-side Setup Progress and Account Status rail instead of generic quick tips.
 - Keep Account settings plan cards, plan text, and plan buttons fully visible by giving the main
   settings content enough horizontal space beside supporting sidebars.
 - Show selected-plan review and terms panels as readable centered Account settings panels with
@@ -211,6 +214,9 @@ Text rules for this file:
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
+- Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
+  the completion percentage, switch to a completed check at 100%, and route incomplete Business
+  clicks directly to Business Profile setup.
 - Keep topbar items on one line with consistent icon color and compact hover targets.
 - Show a host-specific keyboard shortcut in the dashboard search trigger.
 - Separate Light, Dark, and System theme selection from accessibility controls.

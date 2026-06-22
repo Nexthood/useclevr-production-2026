@@ -56,7 +56,7 @@ export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormP
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {loadError && (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
           {loadError}
@@ -69,34 +69,36 @@ export function ProfileForm({ fullName, email, isDemo, loadError }: ProfileFormP
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="fullName" className="text-foreground">Name</Label>
-        <Input
-          id="fullName"
-          name="fullName"
-          defaultValue={fullName}
-          disabled={isDemo}
-          className="bg-muted border-input disabled:opacity-50"
-          autoComplete="name"
-          required
-        />
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="fullName" className="text-foreground">Name</Label>
+          <Input
+            id="fullName"
+            name="fullName"
+            defaultValue={fullName}
+            disabled={isDemo}
+            className="h-12 bg-muted border-input text-base disabled:opacity-50"
+            autoComplete="name"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-foreground">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            defaultValue={email}
+            disabled={isDemo}
+            className="h-12 bg-muted border-input text-base disabled:opacity-50"
+            autoComplete="email"
+            required
+          />
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email" className="text-foreground">Email</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          defaultValue={email}
-          disabled={isDemo}
-          className="bg-muted border-input disabled:opacity-50"
-          autoComplete="email"
-          required
-        />
-      </div>
-
-      <Button type="submit" disabled={isSaving || isDemo} className="bg-gradient-primary hover:opacity-90">
+      <Button type="submit" disabled={isSaving || isDemo} className="w-full bg-gradient-primary hover:opacity-90 sm:w-auto">
         {isSaving ? "Saving..." : isDemo ? "Built-in identity locked" : "Save profile"}
       </Button>
     </form>

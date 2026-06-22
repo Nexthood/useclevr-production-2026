@@ -23,9 +23,24 @@ import {
 import type { Session } from "next-auth";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type React from "react";
 import { useEffect, useState } from "react";
 
-const primaryNavigation = [
+type SidebarStatus = {
+  completion: number
+  requiredLabel: string
+  complete: boolean
+  hrefWhenIncomplete: string
+}
+
+type NavigationItem = {
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  status?: SidebarStatus
+}
+
+const primaryNavigation: NavigationItem[] = [
   { name: "Dashboard", href: "/app", icon: BarChart3 },
   { name: "Datasets", href: "/app/datasets", icon: Database },
   { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
@@ -36,7 +51,7 @@ const primaryNavigation = [
   { name: "Referral", href: "/app/referral", icon: Gift },
 ];
 
-const adminNavigation = [
+const adminNavigation: NavigationItem[] = [
   { name: "Customers", href: "/app/admin/customers", icon: Users },
   { name: "Customer Levels", href: "/app/admin/levels", icon: Award },
   { name: "Discount Rules", href: "/app/admin/discounts", icon: Tag },
@@ -48,9 +63,11 @@ const adminNavigation = [
 
 type AppSidebarProps = {
   user: Session["user"];
+  businessStatus?: SidebarStatus;
+  accountancyStatus?: SidebarStatus;
 };
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, businessStatus, accountancyStatus }: AppSidebarProps) {
   const pathname = usePathname();
   const { usage, total, isPro, isLoading } = useUsage();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -81,8 +98,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
     );
   }, [isCollapsed]);
 
+  const navigationWithStatus = primaryNavigation.map((item) => {
+    if (item.name === "Business") return { ...item, status: businessStatus }
+    if (item.name === "Accountancy") return { ...item, status: accountancyStatus }
+    return item
+  })
   const navigationItems =
-    user.role === "superadmin" ? [...primaryNavigation, ...adminNavigation] : primaryNavigation;
+    user.role === "superadmin" ? [...navigationWithStatus, ...adminNavigation] : navigationWithStatus;
   const dashboardItem = navigationItems[0];
   const remainingNavigationItems = navigationItems.slice(1);
 
@@ -97,22 +119,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
         {dashboardItem && (
           <div className="flex items-center gap-2">
-            <Link
+            <SidebarLink
+              item={dashboardItem}
               href={dashboardItem.href}
-              title={isCollapsed ? dashboardItem.name : undefined}
-              className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                pathname === dashboardItem.href
-                  ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              <dashboardItem.icon
-                className={`h-4 w-4 flex-shrink-0 ${
-                  pathname === dashboardItem.href ? "text-primary" : "text-sidebar-foreground"
-                }`}
-              />
-              {!isCollapsed && <span className="truncate">{dashboardItem.name}</span>}
-            </Link>
+              isActive={pathname === dashboardItem.href}
+              isCollapsed={isCollapsed}
+            />
 
             <button
               type="button"
@@ -135,22 +147,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
         {remainingNavigationItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const href = item.status && !item.status.complete ? item.status.hrefWhenIncomplete : item.href
           return (
-            <Link
+            <SidebarLink
               key={item.name}
-              href={item.href}
-              title={isCollapsed ? item.name : undefined}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              <item.icon
-                className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`}
-              />
-              {!isCollapsed && <span className="truncate">{item.name}</span>}
-            </Link>
+              item={item}
+              href={href}
+              isActive={isActive}
+              isCollapsed={isCollapsed}
+            />
           );
         })}
       </nav>
@@ -208,4 +213,85 @@ export function AppSidebar({ user }: AppSidebarProps) {
       )}
     </>
   );
+}
+
+function SidebarLink({
+  item,
+  href,
+  isActive,
+  isCollapsed,
+}: {
+  item: NavigationItem
+  href: string
+  isActive: boolean
+  isCollapsed: boolean
+}) {
+  const status = item.status
+  const title = isCollapsed
+    ? status
+      ? `${item.name}: ${status.complete ? "complete" : status.requiredLabel}`
+      : item.name
+    : undefined
+  const ariaLabel = status
+    ? `${item.name}. ${status.complete ? "Complete" : `${status.requiredLabel}. Complete this step to improve analysis accuracy.`}`
+    : item.name
+
+  return (
+    <Link
+      href={href}
+      title={title}
+      aria-label={ariaLabel}
+      className={`group relative flex min-w-0 flex-1 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 ${
+        isActive
+          ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+          : "border-transparent text-sidebar-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+      }`}
+    >
+      <item.icon
+        className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-sidebar-foreground"}`}
+      />
+      {!isCollapsed && (
+        <>
+          <span className="min-w-0 flex-1 truncate">{item.name}</span>
+          {status && <SidebarStatusBadge status={status} />}
+        </>
+      )}
+      {isCollapsed && status && <CollapsedStatusDot status={status} />}
+    </Link>
+  )
+}
+
+function SidebarStatusBadge({ status }: { status: SidebarStatus }) {
+  if (status.complete) {
+    return (
+      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">
+        ✓
+      </span>
+    )
+  }
+
+  const isRequired = status.requiredLabel === "Required"
+  return (
+    <span
+      className={[
+        "inline-flex h-5 shrink-0 items-center justify-center rounded-full border px-2 text-[10px] font-semibold",
+        isRequired
+          ? "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      ].join(" ")}
+    >
+      {status.requiredLabel}
+    </span>
+  )
+}
+
+function CollapsedStatusDot({ status }: { status: SidebarStatus }) {
+  return (
+    <span
+      className={[
+        "absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-sidebar",
+        status.complete ? "bg-emerald-500" : status.requiredLabel === "Required" ? "bg-red-500" : "bg-amber-500",
+      ].join(" ")}
+    />
+  )
 }
