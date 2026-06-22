@@ -183,7 +183,7 @@ export default async function AccountancyPage() {
         </div>
       }
     >
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto px-5 pb-5 pt-6">
         <div className="max-w-6xl mx-auto space-y-5">
           <Card className="border-primary/30 bg-primary/5 p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">

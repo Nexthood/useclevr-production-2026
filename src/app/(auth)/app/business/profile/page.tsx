@@ -10,7 +10,7 @@ export const metadata = {
 export default function BusinessProfilePage() {
   return (
     <DashboardContent className="space-y-5">
-      <PageActionRow description="Save the company details that power reports, support context, and setup progress.">
+      <PageActionRow description="Save the company details that power reports, support context, and readiness indicators.">
         <Link
           href="/app/business"
           className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"

@@ -1,6 +1,5 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { HelpChatbox } from "@/components/ui/help-chatbox"
-import { PageVisitTracker } from "@/components/ui/page-visit-tracker"
 import Topbar from "@/components/ui/topbar"
 import { auth } from "@/lib/auth/auth"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
@@ -67,7 +66,6 @@ export default async function AppLayout({
             {children}
           </main>
           <HelpChatbox audience={session.user.role === "superadmin" ? "superadmin" : "dashboard"} />
-          <PageVisitTracker />
         </div>
       </div>
     </FormattingProvider>

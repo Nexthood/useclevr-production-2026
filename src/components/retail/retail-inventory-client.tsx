@@ -601,7 +601,7 @@ export function RetailInventoryClient() {
     : []
 
   return (
-    <div className="min-w-0 flex-1 px-4 pt-16 sm:px-6">
+    <div className="min-w-0 flex-1 px-4 pb-6 pt-6 sm:px-6">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Upload Card */}
         <Card

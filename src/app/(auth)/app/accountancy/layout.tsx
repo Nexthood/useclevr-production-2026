@@ -16,7 +16,7 @@ export default function AccountancyLayout({ children }: { children: React.ReactN
         icon={Receipt}
       />
       <AccountancyNav />
-      <main className="px-5 py-5">
+      <main className="px-5 pb-5 pt-6">
         <div className="mx-auto max-w-6xl space-y-6">{children}</div>
       </main>
     </div>

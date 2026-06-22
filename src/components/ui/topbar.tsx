@@ -1,6 +1,5 @@
 import { Logo } from "@/components/layout/logo";
 import HybridAiButton from "@/components/ui/hybrid-ai-button";
-import { OnboardingProcessButton } from "@/components/ui/onboarding-process-button";
 import { Search } from "@/components/ui/search-popup";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activity-drawer";
@@ -56,10 +55,6 @@ export default async function Topbar() {
           />
 
           <Search />
-
-          <div className="w-px self-stretch bg-border/30" />
-
-          <OnboardingProcessButton />
 
           <div className="w-px self-stretch bg-border/30" />
 

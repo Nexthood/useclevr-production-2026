@@ -426,8 +426,8 @@ export default function DownloadsPage() {
           </Button>
       )}
     >
-      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 mt-4">
-        <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6 pt-6">
+      <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-4 pt-6 sm:px-6 sm:pb-6">
+        <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
           {/* Error display */}
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">

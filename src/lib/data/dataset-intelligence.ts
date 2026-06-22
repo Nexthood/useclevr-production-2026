@@ -70,14 +70,171 @@ export interface DatasetIntelligence {
   generatedAt: string;
 }
 
+export type DatasetKind = 'Retail' | 'Inventory' | 'Sales' | 'Finance' | 'SaaS' | 'Generic';
+
+const DATASET_TYPE_KEYWORDS: Record<DatasetKind, RegExp[]> = {
+  Retail: [
+    /retail|store|shop/i,
+    /product|sku|item/i,
+    /inventory|stock|reorder/i,
+    /supplier|vendor/i,
+    /unit|quantity|qty/i,
+    /margin|refund|return/i,
+  ],
+  Inventory: [
+    /inventory|stock|warehouse|on hand|onhand/i,
+    /sku|item/i,
+    /reorder|minimum|threshold/i,
+    /supplier|vendor/i,
+    /quantity|qty|unit cost|valuation/i,
+  ],
+  Sales: [
+    /sales|revenue|amount|invoice/i,
+    /customer|account/i,
+    /order|deal/i,
+    /pipeline|conversion/i,
+    /region|rep|channel/i,
+  ],
+  Finance: [
+    /finance|expense|cost|profit|loss/i,
+    /cash|bank|balance/i,
+    /budget|forecast/i,
+    /invoice|payment/i,
+    /margin|ebitda/i,
+  ],
+  SaaS: [
+    /saas|subscription/i,
+    /mrr|arr|recurring/i,
+    /churn|retention|renewal/i,
+    /activation|trial/i,
+    /plan|seat|account/i,
+    /ltv|cac/i,
+  ],
+  Generic: [/.^/],
+};
+
+export function detectDatasetTypeFromColumns(columns: string[], datasetName = ''): DatasetKind {
+  const text = [datasetName, ...columns].join(' ').toLowerCase();
+  const score = (kind: DatasetKind) =>
+    DATASET_TYPE_KEYWORDS[kind].reduce((total, pattern) => total + (pattern.test(text) ? 1 : 0), 0);
+
+  const ranked: DatasetKind[] = ['Retail', 'Inventory', 'SaaS', 'Finance', 'Sales'];
+  const best = ranked
+    .map((kind) => ({ kind, score: score(kind) }))
+    .sort((a, b) => b.score - a.score)[0];
+
+  if (!best || best.score === 0) return 'Generic';
+  const hasRetailProductSignal = /product|sku|item/.test(text);
+  const hasRetailStockSignal = /inventory|stock|reorder|supplier|vendor|unit|quantity|qty/.test(text);
+  if (best.kind === 'Inventory' && /sales|revenue|margin|retail|store/.test(text) && hasRetailProductSignal) return 'Retail';
+  if (best.kind === 'Sales' && hasRetailProductSignal && hasRetailStockSignal) return 'Retail';
+  return best.kind;
+}
+
+function questionListForDatasetType(kind: DatasetKind): string[] {
+  const suggestions: Record<DatasetKind, string[]> = {
+    Retail: [
+      'What are the top selling products?',
+      'Which products are low stock items?',
+      'Which products are dead stock products?',
+      'What is the current inventory valuation?',
+      'Which products need reorder recommendations?',
+      'Which products have the highest margin?',
+      'Which suppliers drive the most revenue or risk?',
+      'What are the revenue trends over time?',
+      'Which products are slow moving inventory?',
+      'What cash-flow risks are created by inventory and stock levels?',
+      'Which categories generate the most gross profit?',
+      'Which SKUs should be discounted, bundled, or stopped?',
+    ],
+    Inventory: [
+      'Which items are below reorder point?',
+      'What is the total inventory value?',
+      'Which SKUs have the highest stock value stuck?',
+      'Which items have no recent movement?',
+      'Which products should be reordered first?',
+      'Which suppliers create the largest inventory exposure?',
+      'Which categories have too much stock?',
+      'Which items are at risk of stockout?',
+      'How long will current stock last?',
+      'Which items should be discounted or bundled?',
+      'What stock levels create cash-flow risk?',
+      'Which products have the fastest inventory turnover?',
+    ],
+    Sales: [
+      'What is total sales revenue?',
+      'Which customers generate the most revenue?',
+      'Which products or services sell best?',
+      'What are the sales trends over time?',
+      'Which regions or channels perform best?',
+      'Which sales segments are declining?',
+      'What is the average order value?',
+      'Which customers or orders have the highest margin?',
+      'Where are sales concentrated?',
+      'What are the biggest revenue risks?',
+      'Which opportunities should the owner prioritize?',
+      'What changed compared with the previous period?',
+    ],
+    Finance: [
+      'What is the total revenue, cost, and profit?',
+      'What is the current gross margin?',
+      'Which expenses are increasing fastest?',
+      'What cash-flow risks appear in this data?',
+      'Which categories have the largest cost impact?',
+      'What is the profit trend over time?',
+      'Where is margin under pressure?',
+      'Which transactions look unusual?',
+      'What tax or reserve risks should be reviewed?',
+      'Which costs should be reduced first?',
+      'What is the monthly operating run rate?',
+      'What actions would improve net margin?',
+    ],
+    SaaS: [
+      'What is current MRR or recurring revenue?',
+      'Which plans generate the most revenue?',
+      'What is the churn or cancellation trend?',
+      'Which customers or accounts are highest value?',
+      'What is the retention trend over time?',
+      'Which cohorts perform best?',
+      'What expansion revenue opportunities exist?',
+      'Which accounts are at risk?',
+      'What is average revenue per account?',
+      'Which acquisition channels produce the best customers?',
+      'What cash-flow risks appear from subscriptions?',
+      'What should the team improve to grow recurring revenue?',
+    ],
+    Generic: [
+      'What are the key insights in this dataset?',
+      'Which columns drive the most important totals?',
+      'What are the top 10 records by value?',
+      'What trends appear over time?',
+      'Which categories perform best?',
+      'Where are values unusually high or low?',
+      'What data quality issues should be reviewed?',
+      'Which segments need attention?',
+      'What risks does this data reveal?',
+      'What actions should the owner take next?',
+      'What should be compared against the previous period?',
+      'What questions should I ask next about this dataset?',
+    ],
+  };
+
+  return suggestions[kind];
+}
+
+export function fallbackSuggestionsForDatasetType(kind: DatasetKind): string[] {
+  return questionListForDatasetType(kind).slice(0, 12);
+}
+
 /**
  * Generate suggested questions based on dataset intelligence
  */
-export function generateSuggestions(intelligence: DatasetIntelligence): string[] {
+export function generateSuggestions(intelligence: DatasetIntelligence, datasetName = ''): string[] {
   const suggestions: string[] = [];
   const dims = intelligence.dimensions;
   const cols = intelligence.schema.columns;
   const numericCols = intelligence.metrics.numericColumns;
+  const datasetType = detectDatasetTypeFromColumns(cols.map((column) => column.name), datasetName);
   
   // Get actual column names for different categories
   const regionCol = dims.geographicColumns[0] || 
@@ -148,8 +305,8 @@ export function generateSuggestions(intelligence: DatasetIntelligence): string[]
   suggestions.push(`What is the total ${revenueCol || 'value'}?`);
   suggestions.push(`How many rows are in this dataset?`);
   
-  // Remove duplicates and limit to 6
-  const uniqueSuggestions = [...new Set(suggestions)].slice(0, 6);
+  const contextualSuggestions = questionListForDatasetType(datasetType);
+  const uniqueSuggestions = [...new Set([...contextualSuggestions, ...suggestions])].slice(0, 12);
   
   return uniqueSuggestions;
 }

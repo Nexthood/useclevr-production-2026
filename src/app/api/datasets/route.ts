@@ -8,6 +8,7 @@ import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
+import { getDatasetLimitInfo, getDatasetLimitError } from "@/lib/usage/dataset-limits"
 import { and, eq, inArray } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
@@ -72,6 +73,16 @@ export async function POST(request: Request) {
         message: "You have used your free dataset credits. Subscribe to Pro or top up to upload another dataset.",
         usage: currentUsage,
       }, { status: 402 })
+    }
+
+    const limitInfo = await getDatasetLimitInfo(session.user.id)
+    const limitError = getDatasetLimitError(limitInfo)
+    if (limitError) {
+      return NextResponse.json({
+        error: "Dataset limit reached",
+        message: limitError,
+        limitInfo,
+      }, { status: 403 })
     }
 
     // Create dataset record

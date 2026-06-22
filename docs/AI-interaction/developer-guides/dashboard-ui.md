@@ -5,7 +5,7 @@ Current dashboard layout for AI agents and developers working on UI changes.
 ## Layout Structure
 
 - Global topbar spans the dashboard above the sidebar and content area.
-- Topbar sections stay on one line and show logo, Hybrid AI, search, setup progress, help, business workspace, mentoring, admin tools, credits, display settings, notices, account, and sign-out. Popovers render outside the topbar without horizontal-scroll clipping.
+- Topbar sections stay on one line and show logo, Hybrid AI, search, help, business workspace, mentoring, admin tools, credits, display settings, notices, account, and sign-out. Popovers render outside the topbar without horizontal-scroll clipping.
 - Sidebar uses one primary navigation list, expands for super-admin tools, and supports desktop collapse plus mobile drawer. Credit panel shows usage for regular accounts and unlimited for pro, and sidebar-footer shows copyright, terms, privacy links, and app version.
 - Route layouts render the page title, breadcrumbs, and subpage navigation before the page body.
 - Page bodies use a center workspace with optional left and right sidebars. AI Assistant uses both sidebars; listing pages place summaries and supporting information in the right sidebar.
@@ -14,17 +14,16 @@ Current dashboard layout for AI agents and developers working on UI changes.
 - Dashboard FAQ uses a user/operator section bar and quick action links.
 - AI Assistant keeps dataset selection, messages, suggestions, history, search, feedback, and chat input in a fixed workspace structure.
 - Notices describe page errors, failed requests, and important product events directly.
-- Setup progress includes account setup, business profile actions, uploads, analysis, and key dashboard visits.
+- Onboarding indicators stay lightweight and focus on Business Profile, Accountancy, Dataset Upload, and Analysis completion.
 
 ## Follow-Up Audit Tasks
 
 - T-394: Dashboard table consistency audit — verify list pages use title links, supporting edit links, and row-end actions before new list pages ship.
-- T-395: Setup progress audit — verify every business profile field and required setup action contributes to the topbar completion panel.
+- T-395: Completion indicator audit — verify Business Profile and Accountancy completion values match the sidebar and account control-center indicators.
 - T-396: AI Assistant layout smoke test — confirm fixed sidebars, scrollable messages, and the fixed chat footer stay usable on desktop and mobile widths.
 
 ## Related
 
 - Dashboard page source: `src/app/(auth)/app/page.tsx` — dashboard overview with stat cards, status cards, and quick actions
-- [Setup progress component](../../../src/components/ui/onboarding-process-button.tsx) — topbar progress panel implementation
 - [requirements.md](../../../requirements.md) — product requirements covering dashboard behavior
 - Follow-up tasks tracked in `.TODO/todo-future.md`
