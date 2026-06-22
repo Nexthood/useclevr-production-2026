@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
+import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
@@ -37,10 +38,12 @@ export function AccountancyUpload({
   const [errorMessage, setErrorMessage] = React.useState("")
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
-  const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
-  const [selectedType, setSelectedType] = React.useState<UploadType>("csv")
-  const { toast } = useToast()
-  const { showNotice } = useNotice()
+const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
+   const [selectedType, setSelectedType] = React.useState<UploadType>("csv")
+   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
+   const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
+   const { toast } = useToast()
+   const { showNotice } = useNotice()
 
   const connectionStatus = useConnectionStatus()
   const connectionMode = connectionStatus.mode as string as ConnectionMode
@@ -235,6 +238,16 @@ export function AccountancyUpload({
       } else {
         const result = await response.json().catch(() => ({ error: "Upload failed" }))
         const uploadError = result.error || result.message || "Upload failed"
+
+        // Check for dataset limit error and show upgrade modal
+        if (result.datasetLimit?.limitReached) {
+          setUpgradeModalData({
+            currentCount: result.datasetLimit.currentCount,
+            limit: result.datasetLimit.limit,
+            planName: result.datasetLimit.planName || "Free",
+          })
+          setShowUpgradeModal(true)
+        }
 
         if (isOffline) {
           setUploadStatus("offline")
@@ -487,6 +500,15 @@ export function AccountancyUpload({
             </p>
           )}
         </Card>
+      )}
+      {showUpgradeModal && upgradeModalData && (
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          currentPlan={upgradeModalData.planName}
+          currentCount={upgradeModalData.currentCount}
+          limit={upgradeModalData.limit}
+        />
       )}
     </div>
   )

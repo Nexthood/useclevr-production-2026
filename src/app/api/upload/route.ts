@@ -16,13 +16,15 @@ export async function POST(request: Request) {
       const [errorCode, structuredMessage] = result.error?.split("|", 2) ?? []
       const unauthorized = errorCode === "Unauthorized"
       const databaseUnavailable = errorCode === "DB_UNAVAILABLE"
+      const limitReached = errorCode === "DATASET_LIMIT_REACHED"
       return NextResponse.json({
         error:
           unauthorized || databaseUnavailable
             ? structuredMessage
             : result.error || "Upload failed",
         usage: result.usage,
-      }, { status: unauthorized ? 401 : databaseUnavailable ? 503 : 400 })
+        datasetLimit: limitReached ? result.limitInfo : undefined,
+      }, { status: unauthorized ? 401 : databaseUnavailable ? 503 : limitReached ? 403 : 400 })
     }
 
     return NextResponse.json(result)

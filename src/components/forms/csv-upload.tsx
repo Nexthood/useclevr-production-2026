@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
+import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
@@ -18,29 +19,37 @@ interface _CsvRow {
 }
 
 type UploadResponse = {
-  success?: boolean
-  error?: string
-  message?: string
-  datasetId?: string
-  redirectTo?: string
-  fileName?: string
-  usage?: {
-    limitReached?: boolean
-    analysisCount?: number
-    total?: number
-  }
-}
+   success?: boolean
+   error?: string
+   message?: string
+   datasetId?: string
+   redirectTo?: string
+   fileName?: string
+   usage?: {
+     limitReached?: boolean
+     analysisCount?: number
+     total?: number
+   }
+   datasetLimit?: {
+     limitReached: boolean
+     currentCount: number
+     limit: number
+     planName: string
+   }
+ }
 
 export function CsvUpload() {
-  const [uploading, setUploading] = React.useState(false)
-  const [dragActive, setDragActive] = React.useState(false)
-  const [uploadProgress, setUploadProgress] = React.useState(0)
-  const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline">("idle")
-  const [errorMessage, setErrorMessage] = React.useState("")
-  const [currentFileName, setCurrentFileName] = React.useState("")
-  const [processingStep, setProcessingStep] = React.useState(0)
-  const { toast } = useToast()
-  const { showNotice } = useNotice()
+   const [uploading, setUploading] = React.useState(false)
+   const [dragActive, setDragActive] = React.useState(false)
+   const [uploadProgress, setUploadProgress] = React.useState(0)
+   const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline">("idle")
+   const [errorMessage, setErrorMessage] = React.useState("")
+   const [currentFileName, setCurrentFileName] = React.useState("")
+   const [processingStep, setProcessingStep] = React.useState(0)
+   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
+   const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
+   const { toast } = useToast()
+   const { showNotice } = useNotice()
   
   // Cloud-first connection detection
   const connectionStatus = useConnectionStatus()
@@ -226,7 +235,7 @@ export function CsvUpload() {
           showNotice({
             type: "success",
             title: "Dataset uploaded.",
-            message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total} used.`,
+message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total} used.`,
           })
         }
         setTimeout(() => {
@@ -237,6 +246,15 @@ export function CsvUpload() {
       } else {
         const uploadError = result.error || result.message || "Upload failed"
         debugLog('[CSV-UPLOAD] Failed:', uploadError)
+        // Check for dataset limit error and show upgrade modal
+        if (result.datasetLimit?.limitReached) {
+          setUpgradeModalData({
+            currentCount: result.datasetLimit.currentCount,
+            limit: result.datasetLimit.limit,
+            planName: result.datasetLimit.planName || "Free",
+          })
+          setShowUpgradeModal(true)
+        }
         // Only queue if truly offline (API unreachable and no local AI)
         if (isOffline) {
           setUploadStatus("offline")
@@ -287,17 +305,18 @@ export function CsvUpload() {
   }
 
   return (
-    <Card
-      className={`relative border-2 border-dashed transition-all duration-300 overflow-hidden ${
-        dragActive ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10" : "border-border hover:border-primary/30"
-      } ${
-        uploadStatus === "success" ? "border-green-500 bg-green-500/5" : ""
-      }`}
-      onDragEnter={handleDrag}
-      onDragLeave={handleDrag}
-      onDragOver={handleDrag}
-      onDrop={handleDrop}
-    >
+    <>
+      <Card
+        className={`relative border-2 border-dashed transition-all duration-300 overflow-hidden ${
+          dragActive ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10" : "border-border hover:border-primary/30"
+        } ${
+          uploadStatus === "success" ? "border-green-500 bg-green-500/5" : ""
+        }`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+      >
       {/* Subtle background pattern */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none opacity-50" />
       
@@ -466,6 +485,15 @@ export function CsvUpload() {
           )}
         </div>
       </label>
-    </Card>
+      </Card>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        currentPlan={upgradeModalData?.planName || "Free"}
+        currentCount={upgradeModalData?.currentCount || 0}
+        limit={upgradeModalData?.limit || 0}
+      />
+    </>
   )
 }
