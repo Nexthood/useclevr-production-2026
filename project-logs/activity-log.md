@@ -1,3 +1,5 @@
+- changed: show Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states that route incomplete users to setup workflows
+- changed: redesign Account settings as a wide control center with Profile, Company, Subscription, Security, setup progress, account status, completion indicators, and Continue Setup
 - changed: expand Business Profile setup into a conditional professional wizard with tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth assumptions for uploaded-data analysis
 - fixed: show Upgrade to Pro plan price and secure checkout action, create Stripe Checkout directly, and show visible modal errors
 - changed: show Accountancy as a Pre-bookkeeping center for new users with document upload, package generation, Business Profile context, export options, and accountant handoff fields
