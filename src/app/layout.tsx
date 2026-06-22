@@ -87,7 +87,7 @@ export default async function RootLayout({
       <body className="flex flex-col min-h-screen transition-all duration-500 ease-in-out">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange={false}
         >

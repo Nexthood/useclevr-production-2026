@@ -63,6 +63,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-870. Simplify display controls to a compact Light Mode, Dark Mode, and zoom-level menu with dark mode as the default and saved preferences. (labels: ui, dashboard, accessibility; commit: worktree)
 - T-868. Show Account settings as a wide control center with Profile, Company, Subscription, Security, setup progress, account status, completion indicators, and a Continue Setup action. (labels: ui, dashboard, billing; commit: worktree)
 - T-842. Align the Payload admin shell with the dashboard hierarchy using a left main-menu sidebar, topbar, page header, body subheader, centered content area, and responsive right information panels. (labels: ui, content, dashboard, accessibility; commit: worktree)
 - T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard; commit: worktree)

@@ -1,3 +1,4 @@
+- Simplified the Appearance menu to a compact Light Mode, Dark Mode, and zoom-level dropdown, removed text-size and contrast controls from the menu, and set dark mode as the default.
 - Added Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states, and routed incomplete Business navigation directly to the Business Profile setup flow.
 - Redesigned Account settings into a wider SaaS control center with live setup progress, account status, Profile, Company, Subscription, and Security sections, completion indicators, and Continue Setup actions.
 - Fixed Upgrade to Pro checkout flow by showing the selected Pro plan, monthly price, secure checkout button, direct Stripe Checkout redirect, and visible modal error handling when checkout creation fails.

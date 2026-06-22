@@ -2,156 +2,75 @@
 
 import { setThemePreference } from "@/app/actions/settings"
 import {
-  Contrast,
-  Monitor,
   Moon,
   Palette,
-  Scan,
   Sun,
-  Type,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import * as React from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 
-type TextSize = "small" | "normal" | "large"
-type ZoomLevel = "zoom-out" | "normal" | "zoom-in"
-type ContrastMode = "normal" | "high"
-
-const textSizeOptions = [
-  { id: "small" as const, label: "Small text", icon: Type, iconClass: "h-3.5 w-3.5" },
-  { id: "normal" as const, label: "Normal text", icon: Type, iconClass: "h-4 w-4" },
-  { id: "large" as const, label: "Large text", icon: Type, iconClass: "h-5 w-5" },
-]
+type ThemeChoice = "light" | "dark"
+type ZoomLevel = "50" | "75" | "100" | "125" | "150"
 
 const zoomOptions = [
-  { id: "zoom-out" as const, label: "Zoom out", icon: ZoomOut },
-  { id: "normal" as const, label: "Normal zoom", icon: Scan },
-  { id: "zoom-in" as const, label: "Zoom in", icon: ZoomIn },
+  { id: "50" as const, label: "50%" },
+  { id: "75" as const, label: "75%" },
+  { id: "100" as const, label: "100%" },
+  { id: "125" as const, label: "125%" },
+  { id: "150" as const, label: "150%" },
 ]
 
-const contrastOptions = [
-  { id: "normal" as const, label: "Normal contrast", icon: Contrast },
-  { id: "high" as const, label: "High contrast", icon: Contrast },
+const themeOptions = [
+  { id: "light" as const, label: "Light Mode", icon: Sun },
+  { id: "dark" as const, label: "Dark Mode", icon: Moon },
 ]
 
-function applyDocumentPreference(
-  group: "text-size" | "zoom" | "contrast",
-  value: string,
-) {
-  const root = document.documentElement
-  const prefixes = {
-    "text-size": ["text-size-small", "text-size-normal", "text-size-large"],
-    zoom: ["zoom-out", "zoom-normal", "zoom-in"],
-    contrast: ["contrast-normal", "contrast-high"],
-  }
-
-  root.classList.remove(...prefixes[group])
-  root.classList.add(`${group}-${value}`)
+function normalizeTheme(value: string | null): ThemeChoice {
+  return value === "light" ? "light" : "dark"
 }
 
-function SegmentedIconControl<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: T
-  options: Array<{
-    id: T
-    label: string
-    icon: React.ComponentType<{ className?: string }>
-    iconClass?: string
-  }>
-  onChange: (value: T) => void
-}) {
-  return (
-    <div>
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
-      <div
-        className="grid gap-1 rounded-md bg-muted/70 p-1"
-        style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-      >
-        {options.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            aria-label={option.label}
-            title={option.label}
-            aria-pressed={value === option.id}
-            onClick={() => onChange(option.id)}
-            className={`inline-flex h-9 items-center justify-center rounded-sm transition ${
-              value === option.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-            }`}
-          >
-            <option.icon className={option.iconClass || "h-4 w-4"} />
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+function normalizeZoom(value: string | null): ZoomLevel {
+  return zoomOptions.some((option) => option.id === value) ? value as ZoomLevel : "100"
+}
+
+function applyZoomPreference(value: ZoomLevel) {
+  const root = document.documentElement
+  root.classList.remove("zoom-50", "zoom-75", "zoom-100", "zoom-125", "zoom-150", "zoom-out", "zoom-normal", "zoom-in")
+  root.classList.add(`zoom-${value}`)
 }
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const { setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
-  const [themeChoice, setThemeChoice] = React.useState("system")
-  const [textSize, setTextSize] = React.useState<TextSize>("normal")
-  const [zoomLevel, setZoomLevel] = React.useState<ZoomLevel>("normal")
-  const [contrastMode, setContrastMode] = React.useState<ContrastMode>("normal")
+  const [themeChoice, setThemeChoice] = React.useState<ThemeChoice>("dark")
+  const [zoomLevel, setZoomLevel] = React.useState<ZoomLevel>("100")
 
   React.useEffect(() => {
-    const savedTheme = localStorage.getItem("theme-preference") || "system"
-    const savedTextSize =
-      (localStorage.getItem("theme-text-size") as TextSize | null) || "normal"
-    const savedZoom =
-      (localStorage.getItem("theme-zoom-level") as ZoomLevel | null) || "normal"
-    const savedContrast =
-      (localStorage.getItem("theme-contrast-mode") as ContrastMode | null) || "normal"
+    const savedTheme = normalizeTheme(localStorage.getItem("theme-preference"))
+    const savedZoom = normalizeZoom(localStorage.getItem("theme-zoom-level"))
 
     setThemeChoice(savedTheme)
-    setTextSize(savedTextSize)
     setZoomLevel(savedZoom)
-    setContrastMode(savedContrast)
     setTheme(savedTheme)
-    applyDocumentPreference("text-size", savedTextSize)
-    applyDocumentPreference("zoom", savedZoom)
-    applyDocumentPreference("contrast", savedContrast)
+    applyZoomPreference(savedZoom)
     setMounted(true)
   }, [setTheme])
 
-  const applyTheme = (nextTheme: string) => {
+  const applyTheme = (nextTheme: ThemeChoice) => {
     setThemeChoice(nextTheme)
     setTheme(nextTheme)
     localStorage.setItem("theme-preference", nextTheme)
     void setThemePreference(nextTheme)
   }
 
-  const applyTextSize = (next: TextSize) => {
-    setTextSize(next)
-    localStorage.setItem("theme-text-size", next)
-    applyDocumentPreference("text-size", next)
-  }
-
   const applyZoom = (next: ZoomLevel) => {
     setZoomLevel(next)
     localStorage.setItem("theme-zoom-level", next)
-    applyDocumentPreference("zoom", next)
+    applyZoomPreference(next)
   }
 
-  const applyContrast = (next: ContrastMode) => {
-    setContrastMode(next)
-    localStorage.setItem("theme-contrast-mode", next)
-    applyDocumentPreference("contrast", next)
-  }
-
-  const hasAccessibilityOverride =
-    textSize !== "normal" || zoomLevel !== "normal" || contrastMode !== "normal"
+  const hasZoomOverride = mounted && zoomLevel !== "100"
 
   return (
     <Popover className="h-full">
@@ -168,7 +87,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           title="Display settings"
         >
           <Palette className="h-4 w-4" />
-          {mounted && hasAccessibilityOverride && (
+          {hasZoomOverride && (
             <span
               className="absolute right-1.5 top-2 h-1.5 w-1.5 rounded-full bg-primary"
               aria-hidden="true"
@@ -177,68 +96,64 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-64 p-3">
-        <div className="space-y-4">
+      <PopoverContent align="end" className="max-h-[250px] w-56 overflow-y-auto p-2">
+        <div className="space-y-2">
           <section aria-labelledby="display-theme-heading">
             <h2
               id="display-theme-heading"
-              className="mb-2 text-xs font-semibold uppercase text-muted-foreground"
+              className="px-2 py-1 text-xs font-semibold uppercase text-muted-foreground"
             >
               Theme
             </h2>
-            <div className="grid grid-cols-3 gap-1 rounded-md bg-muted/70 p-1">
-              {[
-                { id: "light", label: "Light theme", icon: Sun },
-                { id: "dark", label: "Dark theme", icon: Moon },
-                { id: "system", label: "System theme", icon: Monitor },
-              ].map((option) => (
+            <div className="space-y-1">
+              {themeOptions.map((option) => (
                 <button
                   key={option.id}
                   type="button"
                   aria-label={option.label}
-                  title={option.label}
                   aria-pressed={themeChoice === option.id}
                   onClick={() => applyTheme(option.id)}
-                  className={`inline-flex h-9 items-center justify-center rounded-sm transition ${
+                  className={`flex h-9 w-full items-center justify-between rounded-md px-2 text-sm transition ${
                     themeChoice === option.id
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
-                  <option.icon className="h-4 w-4" />
+                  <span className="inline-flex items-center gap-2">
+                    <option.icon className="h-4 w-4" />
+                    {option.label}
+                  </span>
+                  {themeChoice === option.id && <span className="text-xs font-semibold">On</span>}
                 </button>
               ))}
             </div>
           </section>
 
-          <section
-            aria-labelledby="display-accessibility-heading"
-            className="space-y-3 border-t border-border pt-3"
-          >
+          <section aria-labelledby="display-zoom-heading" className="border-t border-border pt-2">
             <h2
-              id="display-accessibility-heading"
-              className="text-xs font-semibold uppercase text-muted-foreground"
+              id="display-zoom-heading"
+              className="px-2 py-1 text-xs font-semibold uppercase text-muted-foreground"
             >
-              Accessibility
+              Zoom
             </h2>
-            <SegmentedIconControl
-              label="Text size"
-              value={textSize}
-              options={textSizeOptions}
-              onChange={applyTextSize}
-            />
-            <SegmentedIconControl
-              label="Zoom"
-              value={zoomLevel}
-              options={zoomOptions}
-              onChange={applyZoom}
-            />
-            <SegmentedIconControl
-              label="Contrast"
-              value={contrastMode}
-              options={contrastOptions}
-              onChange={applyContrast}
-            />
+            <div className="grid grid-cols-5 gap-1 rounded-md bg-muted/60 p-1">
+              {zoomOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-label={`Zoom ${option.label}`}
+                  aria-pressed={zoomLevel === option.id}
+                  onClick={() => applyZoom(option.id)}
+                  className={`h-8 rounded-sm text-xs font-medium transition ${
+                    zoomLevel === option.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </section>
         </div>
       </PopoverContent>

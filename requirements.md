@@ -214,6 +214,8 @@ Text rules for this file:
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, setup progress, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
+- Keep display controls as a compact menu with Light Mode, Dark Mode, and zoom levels 50%, 75%,
+  100%, 125%, and 150%, with dark mode as the default and saved user preferences.
 - Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
   the completion percentage, switch to a completed check at 100%, and route incomplete Business
   clicks directly to Business Profile setup.
