@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- Remove hardcoded pricing text from the homepage preview so validation accepts the public landing page.
 - Add consistent spacing below page headers on Downloads, Datasets, Business, Accountancy, and Retail pages so content cards do not crowd the top navigation.
 - Show plan price and a secure checkout button in the Upgrade to Pro modal, then start Stripe Checkout directly with a visible error if payment setup fails.
 - Center billing review panel to prevent sidebar squeezing on Account/Settings page

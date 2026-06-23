@@ -18,3 +18,4 @@
   layout with terms on the left and accept/payment actions on the right.
 - Fixed Reports & Downloads page vertical spacing by adding `mt-4` to the main content area
 - Fixed Retail Inventory Analyst build by creating browser-safe CSV parser module and using it in the client component
+- Fixed the landing page preview by replacing hardcoded pricing text with neutral revenue-trend copy so pricing validation passes.
