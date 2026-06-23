@@ -38,6 +38,8 @@ const freePlan = billingPlans.find(p => p.id === "free")!;
 const proMonthlyPlan = billingPlans.find(p => p.id === "pro_monthly")!;
 const proAnnualPlan = billingPlans.find(p => p.id === "pro_annual")!;
 const businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
+const proAnnualOriginalPrice = proMonthlyPlan.price * 12;
+const proAnnualSavingsPercent = Math.round(((proAnnualOriginalPrice - proAnnualPlan.price) / proAnnualOriginalPrice) * 100);
 
 export default function PricingPage() {
   return (
@@ -178,7 +180,9 @@ export default function PricingPage() {
                      <span className="text-muted-foreground text-sm">/month</span>
                    </div>
                    <p className="text-sm text-muted-foreground">
-                     Billed monthly or €{proAnnualPlan.price}/year <span className="font-medium text-cyan-800 dark:text-cyan-100">(save {Math.round(((proMonthlyPlan.price * 12) - proAnnualPlan.price) / (proMonthlyPlan.price * 12) * 100)}%)</span>
+                     Monthly plan available • Annual <span className="line-through">€{proAnnualOriginalPrice}/year</span>{" "}
+                     <span className="font-medium text-cyan-800 dark:text-cyan-100">€{proAnnualPlan.price}/year</span>{" "}
+                     <span className="font-medium text-cyan-800 dark:text-cyan-100">Save {proAnnualSavingsPercent}%</span>
                    </p>
                 </div>
 
