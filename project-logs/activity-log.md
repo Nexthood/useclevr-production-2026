@@ -15,3 +15,4 @@
 - fix: center and widen Account settings checkout review and terms panels
 - fix: make Account settings checkout terms and payment step a wider compact two-column panel
 - fix: use browser-safe CSV parser in Retail client to resolve fs import error
+- fix: remove hardcoded pricing text from landing page preview
