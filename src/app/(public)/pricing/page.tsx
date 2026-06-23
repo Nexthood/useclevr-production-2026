@@ -10,11 +10,11 @@ import { billingPlans } from "@/lib/billing/plans"
 
 export const metadata = {
   title: "Pricing Plans | UseClevr",
-  description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial. No credit card required. Scale as you grow.",
+  description: "Retail-first pricing for AI inventory analytics, business reports, accounting automation, and integrations.",
   keywords: ["pricing", "plans", "billing", "subscription", "data analysis"],
   openGraph: {
     title: "Pricing Plans | UseClevr",
-    description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial.",
+    description: "Retail-first pricing for AI inventory analytics, business reports, accounting automation, and integrations.",
     url: "https://useclevr.com/pricing",
     siteName: "UseClevr",
     type: "website",
@@ -23,7 +23,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Pricing Plans | UseClevr",
-    description: "Simple, transparent pricing for teams of all sizes. Start free with 14-day trial.",
+    description: "Retail-first pricing for AI inventory analytics, business reports, accounting automation, and integrations.",
   },
   robots: {
     index: true,
@@ -47,7 +47,7 @@ export default function PricingPage() {
       <main className="flex-1">
         <PublicPageHeader
           title="Choose your plan"
-          description="Start free and scale as you grow. No hidden fees, cancel anytime."
+          description="Retail & Inventory Intelligence first, with accounting automation and integrations on Business."
           actions={
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
               <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
@@ -72,7 +72,7 @@ export default function PricingPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-1">Free</h3>
-                    <p className="text-sm text-muted-foreground">Perfect for exploring</p>
+                    <p className="text-sm text-muted-foreground">Explore your business data with AI</p>
                   </div>
                    <div className="flex items-baseline gap-1">
                      <span className="text-4xl font-bold tracking-tight">€{freePlan.price}</span>
@@ -82,6 +82,18 @@ export default function PricingPage() {
                 </div>
 
                 <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">CSV & Excel uploads</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Up to 5 uploads per month</div>
+                    </div>
+                  </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
@@ -97,13 +109,31 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Limited AI questions</div>
+                      <div className="text-sm font-medium">Basic AI insights</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Basic AI insights</div>
+                      <div className="text-sm font-medium">Product overview</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Inventory overview</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Retail dashboard</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Limited AI questions</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
@@ -123,7 +153,7 @@ export default function PricingPage() {
                     variant="outline"
                     className="w-full bg-transparent border-border/50 hover:bg-accent/5 text-sm"
                   >
-                    Get started →
+                    Get Started
                   </Button>
                 </Link>
               </Card>
@@ -131,7 +161,7 @@ export default function PricingPage() {
               {/* Pro Tier - with Stripe checkout */}
               <Card className="relative space-y-4 border-2 border-[#7C3AED]/50 bg-card p-6">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <div className="bg-[#7C3AED] text-white text-xs font-medium px-3 py-1 rounded-full">Most popular</div>
+                  <div className="bg-[#7C3AED] text-white text-xs font-medium px-3 py-1 rounded-full">Most Popular</div>
                 </div>
                 <div className="space-y-3">
                   <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#7C3AED]/20 to-[#06B6D4]/20 flex items-center justify-center">
@@ -139,7 +169,7 @@ export default function PricingPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-1">Pro</h3>
-                    <p className="text-sm text-muted-foreground">For professionals & teams</p>
+                    <p className="text-sm text-muted-foreground">Retail & Inventory Intelligence for growing businesses</p>
                   </div>
                    <div className="flex items-baseline gap-1">
                      <span className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] bg-clip-text text-transparent">
@@ -156,67 +186,97 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Unlimited datasets</div>
+                      <div className="text-sm font-medium">Up to 50 CSV & Excel uploads per month</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Advanced Clevr AI Analyst</div>
+                      <div className="text-sm font-medium">Up to 50 datasets</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Natural language questions</div>
+                      <div className="text-sm font-medium">Retail AI Analyst</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Fast insights from large CSV files</div>
+                      <div className="text-sm font-medium">Inventory health monitoring</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Priority processing</div>
+                      <div className="text-sm font-medium">Low-stock alerts</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Email support</div>
+                      <div className="text-sm font-medium">Dead stock detection</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">API access</div>
+                      <div className="text-sm font-medium">Reorder recommendations</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Unlimited Executive Report Downloads</div>
+                      <div className="text-sm font-medium">Revenue analysis</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Export to PDF, PPT, DOCX & XLSX</div>
+                      <div className="text-sm font-medium">Margin analysis</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Branded Investor-Ready Reports</div>
+                      <div className="text-sm font-medium">KPI dashboards</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Access to Download Center</div>
+                      <div className="text-sm font-medium">Advanced AI questions</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Executive Business Reports</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">PDF reports</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Excel exports</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Download Center access</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Priority support</div>
                     </div>
                   </li>
                 </ul>
@@ -236,7 +296,7 @@ export default function PricingPage() {
                     size="sm"
                     className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-lg shadow-black/10 dark:shadow-black/30"
                   >
-                    Start free trial →
+                    Start Free Trial
                   </Button>
                 </Link>
               </Card>
@@ -249,7 +309,7 @@ export default function PricingPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-1">Business / Custom</h3>
-                    <p className="text-sm text-muted-foreground">For large organizations</p>
+                    <p className="text-sm text-muted-foreground">Retail, Accounting and Business Automation Platform</p>
                   </div>
                    <div className="flex flex-wrap items-baseline gap-1">
                      <span className="text-4xl font-bold tracking-tight">€{businessPlan.price}</span>
@@ -262,25 +322,109 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Custom limits</div>
+                      <div className="text-sm font-medium">Everything in Pro, plus:</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Advanced security & compliance</div>
+                      <div className="text-sm font-medium">Accounting AI Assistant</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">On-premise or private deployment</div>
+                      <div className="text-sm font-medium">Pre-bookkeeping automation</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Custom integrations</div>
+                      <div className="text-sm font-medium">Invoice processing</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Receipt processing</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Accountant-ready exports</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Accountant Export Center</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">VAT preparation support</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">API access</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">ERP integrations</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">POS integrations</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Snowflake connectivity</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Multi-store management</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Multi-user teams</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Scheduled reports</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Audit trail</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Custom workflows</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Private deployment options</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
@@ -306,7 +450,7 @@ export default function PricingPage() {
                     variant="outline"
                     className="w-full bg-transparent border-border/50 hover:bg-accent/5 text-sm"
                   >
-                    Contact sales →
+                    Contact Sales
                   </Button>
                 </a>
               </Card>
