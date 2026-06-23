@@ -3,15 +3,42 @@ import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { WaitlistSignup } from "@/components/ui/waitlist-signup"
 import { allFaqCategories, getHomepageFaqs } from "@/lib/content/faq"
 import { getHomepageContent, getNewsPosts } from "@/lib/payload/content"
-import { ArrowRight, BarChart3, Database, FileText, HelpCircle, MessageSquare, Newspaper, Shield, Sparkles, Zap } from "lucide-react"
+import { ArrowRight, BarChart3, BriefcaseBusiness, Calculator, Database, FileText, HelpCircle, MessageSquare, Newspaper, Package, Shield, Sparkles, TrendingUp, Users, Zap } from "lucide-react"
 import Link from "next/link"
 
 const faqData = getHomepageFaqs()
 const allFaqCount = allFaqCategories.reduce((n, c) => n + c.items.length, 0)
+
+const useCases = [
+  {
+    title: "Retail & Inventory",
+    description: "Find low-stock risks, dead stock, profit opportunities, and reorder needs.",
+    icon: Package,
+  },
+  {
+    title: "Investor Portfolio",
+    description: "Track portfolio performance, weak assets, trends, risk signals, and growth opportunities.",
+    icon: TrendingUp,
+  },
+  {
+    title: "Accountancy & Finance",
+    description: "Analyze revenue, costs, profit margins, cashflow, and monthly reports.",
+    icon: Calculator,
+  },
+  {
+    title: "Sales & Business Teams",
+    description: "Understand sales trends, customer performance, pipeline gaps, and growth areas.",
+    icon: BriefcaseBusiness,
+  },
+  {
+    title: "Founders & Small Businesses",
+    description: "Turn messy spreadsheets into clear dashboards, KPIs, and action plans.",
+    icon: Users,
+  },
+]
 
 export default async function HomePage() {
   const homepageContent = await getHomepageContent()
@@ -31,24 +58,52 @@ export default async function HomePage() {
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-balance">
-              {homepageContent.heroTitle}{" "}
-              <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                {homepageContent.heroHighlight}
-              </span>
+              Turn your business spreadsheets into clear AI insights.
             </h1>
 
             <div className="flex justify-center my-6">
-              <div className="max-w-[700px] w-full">
-                <DataProcessingFlow currentStep={0} variant="hero" />
-              </div>
+              <Card id="ai-report-preview" className="w-full max-w-[700px] border-border/50 bg-card/80 p-6 text-left shadow-lg shadow-black/5 dark:shadow-black/20">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Sample analysis</p>
+                    <h2 className="text-xl font-semibold text-foreground">Your AI Business Report</h2>
+                  </div>
+                </div>
+                <div className="grid gap-3 text-sm md:grid-cols-2">
+                  <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+                    <p className="text-muted-foreground">Revenue trend</p>
+                    <p className="text-lg font-semibold text-foreground">+18%</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+                    <p className="text-muted-foreground">Risk detected</p>
+                    <p className="text-lg font-semibold text-foreground">3 weak-performing areas</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+                    <p className="text-muted-foreground">Opportunity</p>
+                    <p className="text-lg font-semibold text-foreground">7 high-margin segments</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+                    <p className="text-muted-foreground">Suggested action</p>
+                    <p className="text-lg font-semibold text-foreground">Reallocate resources</p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-sm font-medium text-foreground">Top insight</p>
+                  <p className="text-sm text-muted-foreground">Your best-performing category is not receiving enough focus.</p>
+                  <p className="text-sm text-muted-foreground">Review underperforming areas and reallocate resources.</p>
+                </div>
+              </Card>
             </div>
 
             <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-              {homepageContent.heroDescription}
+              Upload CSV or Excel files and let UseClevr analyze performance, risks, trends, opportunities, and key metrics across your business.
             </p>
 
             <p className="text-base font-medium text-foreground/80">
-              {homepageContent.heroAudience}
+              Built for small businesses, retail teams, investors, finance users, and business managers.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
@@ -57,17 +112,17 @@ export default async function HomePage() {
                   size="lg"
                   className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 text-base rounded-full shadow-lg shadow-black/10 dark:shadow-black/30"
                 >
-                  {homepageContent.primaryCtaLabel}
+                  Analyze your data
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-               <Link href="/contact" prefetch={false}>
+               <Link href="#ai-report-preview" prefetch={false}>
                  <Button
                    size="lg"
                    variant="outline"
                    className="h-12 rounded-full border-border bg-transparent px-8 text-base hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950"
                  >
-                   {homepageContent.secondaryCtaLabel}
+                   View sample report
                  </Button>
                </Link>
             </div>
@@ -87,6 +142,36 @@ export default async function HomePage() {
                 <Sparkles className="h-4 w-4 text-[#7C3AED]" />
                 <span>99.9% uptime SLA</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 py-16 md:px-6">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 text-center">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/10 px-4 py-2 text-sm text-primary">
+                Use cases
+              </div>
+              <h2 className="mb-4 text-3xl font-bold md:text-4xl">Analyze the spreadsheets that run your business</h2>
+              <p className="mx-auto max-w-2xl text-muted-foreground">
+                UseClevr turns CSV and Excel files into clear answers for teams that need fast decisions from business data.
+              </p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
+              {useCases.map((item) => {
+                const Icon = item.icon
+
+                return (
+                  <Card key={item.title} className="h-full border-border/50 bg-card p-6">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                      <Icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="mb-2 text-lg font-semibold text-foreground">{item.title}</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </section>
