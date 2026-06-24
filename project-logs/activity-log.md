@@ -1,3 +1,4 @@
+- fixed: keep homepage hero AI-found labels readable with shorter card text and normal word wrapping
 - fixed: keep homepage hero AI-found card labels inside their grid cards with shorter wording and safer wrapping
 - changed: show a premium self-running homepage hero demo that connects spreadsheet search pain to upload, AI analysis, insight discovery, and a recommended next action
 - changed: remove setup progress and guided tour popups so onboarding focuses on Business Profile, Accountancy, Dataset Upload, and Analysis
