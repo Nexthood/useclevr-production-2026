@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { WaitlistSignup } from "@/components/ui/waitlist-signup"
 import { allFaqCategories, getHomepageFaqs } from "@/lib/content/faq"
 import { getHomepageContent, getNewsPosts } from "@/lib/payload/content"
-import { ArrowRight, BarChart3, Bot, BriefcaseBusiness, Calculator, Database, FileSpreadsheet, FileText, HelpCircle, MessageSquare, Newspaper, Package, Shield, Sparkles, TrendingUp, Upload, Users, Zap } from "lucide-react"
+import { ArrowRight, BarChart3, Bot, BriefcaseBusiness, Calculator, CheckCircle2, Database, FileSpreadsheet, FileText, HelpCircle, MessageSquare, Newspaper, Package, Shield, Sparkles, TrendingUp, Upload, Users, Zap } from "lucide-react"
 import Link from "next/link"
 
 const faqData = getHomepageFaqs()
@@ -24,17 +24,17 @@ const useCases = [
     icon: TrendingUp,
   },
   {
-    title: "Accountancy & Finance",
+    title: "Finance & Accounting",
     description: "Analyze revenue, costs, profit margins, cashflow, and monthly reports.",
     icon: Calculator,
   },
   {
-    title: "Sales & Business Teams",
+    title: "Sales & Revenue Analysis",
     description: "Understand sales trends, customer performance, pipeline gaps, and growth areas.",
     icon: BriefcaseBusiness,
   },
   {
-    title: "Founders & Small Businesses",
+    title: "Small Business Operations",
     description: "Turn messy spreadsheets into clear dashboards, KPIs, and action plans.",
     icon: Users,
   },
@@ -50,26 +50,26 @@ export default async function HomePage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden px-4 py-20 md:px-6">
+        <section className="relative overflow-hidden px-4 py-16 md:px-6 md:py-20">
           <div className="absolute left-1/2 top-10 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
-          <div className="absolute right-0 top-32 -z-10 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute right-0 top-28 -z-10 h-80 w-80 rounded-full bg-[#7C3AED]/10 blur-3xl" />
           <div className="container mx-auto">
             <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.88fr_1.12fr]">
               <div className="space-y-8 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-700/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-800 dark:border-cyan-300/30 dark:text-cyan-100">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-700/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-800 shadow-sm shadow-cyan-950/5 dark:border-cyan-300/30 dark:text-cyan-100">
                   <Sparkles className="h-4 w-4" />
-                  {homepageContent.heroBadge}
+                  AI data analyst for business spreadsheets
                 </div>
 
                 <div className="space-y-5">
                   <h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
-                    Turn spreadsheets into AI-powered business decisions.
+                    Find the answers hiding inside your spreadsheets.
                   </h1>
                   <p className="mx-auto max-w-2xl text-xl text-muted-foreground lg:mx-0">
-                    Upload CSV or Excel files and UseClevr instantly analyzes your data, finds risks, trends, opportunities, and turns them into clear dashboards and action recommendations.
+                    UseClevr analyzes CSV and Excel files, then surfaces insights, trends, risks, opportunities, recommendations, and dashboards for faster business decisions.
                   </p>
                   <p className="text-base font-medium text-foreground/80">
-                    Built for small businesses, retail teams, investors, finance users, and business managers.
+                    Built for founders, business owners, investors, finance teams, accountants, sales leaders, and operations managers.
                   </p>
                 </div>
 
@@ -107,149 +107,191 @@ export default async function HomePage() {
                   <span className="hidden md:inline">•</span>
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-[#7C3AED]" />
-                    <span>99.9% uptime SLA</span>
+                    <span>AI-guided answers</span>
                   </div>
                 </div>
               </div>
 
-              <Card id="ai-report-preview" className="relative overflow-hidden border-border/50 bg-card/80 p-4 text-left shadow-2xl shadow-black/10 backdrop-blur dark:shadow-black/40 md:p-6">
-                <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
-                <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl" />
-                <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+              <Card id="ai-report-preview" className="relative overflow-hidden border-white/10 bg-slate-950 p-4 text-left text-white shadow-2xl shadow-cyan-950/20 backdrop-blur md:p-6">
+                <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent" />
+                <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" />
+                <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#7C3AED]/15 blur-3xl" />
 
                 <div className="relative space-y-4">
-                  <div className="grid gap-3 md:grid-cols-[0.85fr_1.15fr]">
-                    <div className="rounded-xl border border-border/60 bg-background/70 p-4">
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                            <Upload className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">Upload CSV / Excel</p>
-                            <p className="text-xs text-muted-foreground">sales_data.xlsx uploaded</p>
-                          </div>
-                        </div>
-                        <FileSpreadsheet className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/10">
+                        <Bot className="h-5 w-5 text-cyan-200" />
                       </div>
-                      <div className="space-y-2">
-                        <div className="h-2 rounded-full bg-muted">
-                          <div className="h-2 w-full rounded-full bg-gradient-to-r from-cyan-400 to-primary" />
-                        </div>
-                        <p className="text-xs font-medium text-cyan-800 dark:text-cyan-100">File ready for analysis</p>
+                      <div>
+                        <p className="text-sm font-semibold text-white">UseClevr AI Analyst</p>
+                        <p className="text-xs text-slate-300">Self-running spreadsheet demo</p>
                       </div>
                     </div>
-
-                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-500/15">
-                          <Bot className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
-                        </div>
-                        <div className="min-w-0 space-y-2">
-                          <p className="text-sm font-semibold text-foreground">AI analyzing columns, metrics, risks, and trends...</p>
-                          <div className="grid grid-cols-4 gap-1">
-                            <span className="h-1.5 rounded-full bg-cyan-400" />
-                            <span className="h-1.5 rounded-full bg-primary" />
-                            <span className="h-1.5 rounded-full bg-cyan-400/70" />
-                            <span className="h-1.5 rounded-full bg-muted" />
-                          </div>
-                          <p className="text-xs text-muted-foreground">Detected revenue, margin, category, region, and date columns.</p>
-                        </div>
-                      </div>
+                    <div className="rounded-full border border-[#A78BFA]/30 bg-[#7C3AED]/15 px-3 py-1 text-xs font-medium text-[#DDD6FE]">
+                      Live analysis
                     </div>
                   </div>
 
-                  <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-                    <div className="rounded-xl border border-border/60 bg-background/75 p-5">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                          <BarChart3 className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Generated report</p>
-                          <h2 className="text-xl font-semibold text-foreground">Your AI Business Report</h2>
+                  <div className="grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
+                    <div className="hero-demo-stage min-h-[360px] rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:min-h-[390px]">
+                      <div className="hero-demo-panel hero-demo-panel-pain">
+                        <div className="rounded-lg border border-[#A78BFA]/35 bg-slate-950/85 p-5 shadow-2xl shadow-[#7C3AED]/20 backdrop-blur">
+                          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
+                            <Sparkles className="h-3.5 w-3.5 text-[#C4B5FD]" />
+                            Spreadsheet answer gap
+                          </div>
+                          <h2 className="text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                            How many hours did you spend searching for answers in spreadsheets this month?
+                          </h2>
+                          <p className="mt-4 max-w-md text-sm leading-6 text-slate-300">
+                            Most businesses already have the data. The problem is finding the answers fast enough.
+                          </p>
                         </div>
                       </div>
-                      <div className="grid gap-3 text-sm sm:grid-cols-2">
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-muted-foreground">Revenue trend</p>
-                          <p className="text-lg font-semibold text-foreground">+18%</p>
+
+                      <div className="hero-demo-panel hero-demo-panel-upload">
+                        <div className="rounded-lg border border-cyan-300/20 bg-slate-900/90 p-5">
+                          <div className="mb-5 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-cyan-300/10">
+                                <Upload className="h-5 w-5 text-cyan-200" />
+                              </div>
+                              <div>
+                                <p className="text-base font-semibold text-white">sales_data.xlsx uploaded</p>
+                                <p className="text-sm text-slate-300">CSV/Excel file detected.</p>
+                              </div>
+                            </div>
+                            <FileSpreadsheet className="h-6 w-6 text-[#C4B5FD]" />
+                          </div>
+                          <div className="space-y-3">
+                            <div className="h-2 rounded-full bg-white/10">
+                              <div className="hero-demo-progress h-2 rounded-full bg-gradient-to-r from-[#A78BFA] via-blue-400 to-cyan-300" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs text-slate-300">
+                              <span>16 columns</span>
+                              <span>24 months</span>
+                              <span>5 segments</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-muted-foreground">Risk detected</p>
-                          <p className="text-lg font-semibold text-foreground">3 weak areas</p>
+                      </div>
+
+                      <div className="hero-demo-panel hero-demo-panel-analysis">
+                        <div className="rounded-lg border border-[#A78BFA]/25 bg-[#7C3AED]/10 p-5">
+                          <div className="mb-4 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#A78BFA]/15">
+                              <Bot className="h-5 w-5 text-[#DDD6FE]" />
+                            </div>
+                            <div>
+                              <p className="text-base font-semibold text-white">AI is analyzing your data</p>
+                              <p className="text-sm text-slate-300">Finding decision signals across rows, dates, and segments.</p>
+                            </div>
+                          </div>
+                          <div className="space-y-2.5">
+                            {["Reading columns", "Detecting KPIs", "Finding trends", "Identifying risks", "Generating recommendations"].map((item) => (
+                              <div key={item} className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/35 px-3 py-2 text-sm text-slate-100">
+                                <CheckCircle2 className="h-4 w-4 text-cyan-200" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-muted-foreground">Opportunity</p>
-                          <p className="text-lg font-semibold text-foreground">7 high-margin segments</p>
+                      </div>
+
+                      <div className="hero-demo-panel hero-demo-panel-results">
+                        <div className="rounded-lg border border-cyan-300/25 bg-slate-900/90 p-5">
+                          <p className="mb-4 text-base font-semibold text-white">AI found:</p>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {["Revenue opportunities", "Hidden risks", "Growth trends", "Action recommendations"].map((item) => (
+                              <div key={item} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-slate-100">
+                                <CheckCircle2 className="h-4 w-4 text-[#C4B5FD]" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-muted-foreground">Suggested action</p>
-                          <p className="text-lg font-semibold text-foreground">Reallocate resources</p>
+                      </div>
+
+                      <div className="hero-demo-panel hero-demo-panel-recommendation">
+                        <div className="rounded-lg border border-[#A78BFA]/30 bg-gradient-to-br from-[#7C3AED]/20 via-slate-900 to-cyan-400/10 p-5">
+                          <p className="mb-3 text-sm font-medium uppercase tracking-wide text-[#DDD6FE]">Recommended next action:</p>
+                          <p className="text-xl font-semibold leading-snug text-white">
+                            Focus on high-performing areas and review underperforming segments.
+                          </p>
+                          <div className="mt-5 flex flex-wrap gap-2">
+                            {["Prioritize winners", "Review risk", "Update forecast"].map((item) => (
+                              <span key={item} className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border/60 bg-background/75 p-5">
-                      <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="rounded-lg border border-white/10 bg-slate-900/80 p-5">
+                      <div className="mb-5 flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Dashboard preview</p>
-                          <h2 className="text-xl font-semibold text-foreground">Performance snapshot</h2>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">AI-discovered growth trend</p>
+                          <h2 className="mt-1 text-2xl font-semibold text-white">Performance snapshot</h2>
                         </div>
-                        <Sparkles className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-xs text-muted-foreground">Revenue</p>
-                          <p className="text-base font-semibold text-foreground">Revenue trend</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-xs text-muted-foreground">Profit Margin</p>
-                          <p className="text-base font-semibold text-foreground">31%</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-card/70 p-3">
-                          <p className="text-xs text-muted-foreground">Risk Score</p>
-                          <p className="text-base font-semibold text-foreground">Medium</p>
+                        <div className="rounded-full border border-[#A78BFA]/30 bg-[#7C3AED]/15 px-3 py-1 text-xs font-medium text-[#DDD6FE]">
+                          Opportunity
                         </div>
                       </div>
-                      <div className="mt-4 h-28 rounded-lg border border-border/50 bg-card/70 p-3">
-                        <div className="flex h-full items-end gap-2">
-                          <span className="h-8 flex-1 rounded-t bg-cyan-400/50" />
-                          <span className="h-14 flex-1 rounded-t bg-primary/60" />
-                          <span className="h-10 flex-1 rounded-t bg-cyan-400/50" />
-                          <span className="h-20 flex-1 rounded-t bg-primary/70" />
-                          <span className="h-16 flex-1 rounded-t bg-cyan-400/60" />
-                          <span className="h-24 flex-1 rounded-t bg-primary" />
+
+                      <div className="relative h-64 overflow-hidden rounded-lg border border-white/10 bg-slate-950/70 p-3">
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:44px_44px]" />
+                        <svg className="relative h-full w-full" viewBox="0 0 420 220" role="img" aria-label="Animated growth trend chart with AI opportunity markers">
+                          <defs>
+                            <linearGradient id="heroAreaGradient" x1="0" x2="0" y1="0" y2="1">
+                              <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.42" />
+                              <stop offset="52%" stopColor="#60A5FA" stopOpacity="0.22" />
+                              <stop offset="100%" stopColor="#7C3AED" stopOpacity="0.03" />
+                            </linearGradient>
+                            <linearGradient id="heroLineGradient" x1="0" x2="1" y1="0" y2="0">
+                              <stop offset="0%" stopColor="#A78BFA" />
+                              <stop offset="48%" stopColor="#60A5FA" />
+                              <stop offset="100%" stopColor="#22D3EE" />
+                            </linearGradient>
+                          </defs>
+                          <path className="hero-chart-area" d="M12 174 C54 168 72 142 108 146 C145 150 158 104 194 110 C230 116 238 82 272 86 C312 90 325 49 365 43 C389 39 402 32 410 24 L410 210 L12 210 Z" fill="url(#heroAreaGradient)" />
+                          <path className="hero-chart-line" d="M12 174 C54 168 72 142 108 146 C145 150 158 104 194 110 C230 116 238 82 272 86 C312 90 325 49 365 43 C389 39 402 32 410 24" fill="none" stroke="url(#heroLineGradient)" strokeLinecap="round" strokeWidth="5" />
+                          <g className="hero-chart-marker">
+                            <circle cx="272" cy="86" r="8" fill="#7C3AED" opacity="0.9" />
+                            <circle cx="272" cy="86" r="15" fill="none" stroke="#C4B5FD" strokeOpacity="0.45" strokeWidth="2" />
+                          </g>
+                          <g className="hero-chart-marker hero-chart-marker-late">
+                            <circle cx="365" cy="43" r="8" fill="#22D3EE" opacity="0.95" />
+                            <circle cx="365" cy="43" r="15" fill="none" stroke="#67E8F9" strokeOpacity="0.45" strokeWidth="2" />
+                          </g>
+                        </svg>
+                        <div className="absolute bottom-4 left-4 rounded-lg border border-[#A78BFA]/25 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 backdrop-blur">
+                          <span className="font-semibold text-[#DDD6FE]">AI signal:</span> high-performing segment detected
                         </div>
                       </div>
-                      <div className="mt-4 overflow-hidden rounded-lg border border-border/50">
-                        <div className="grid grid-cols-3 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
-                          <span>Segment</span>
-                          <span>Signal</span>
-                          <span>Action</span>
+
+                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                          <p className="text-xs text-slate-400">Trend</p>
+                          <p className="mt-1 text-base font-semibold text-white">Growing</p>
                         </div>
-                        <div className="grid grid-cols-3 px-3 py-2 text-xs text-foreground">
-                          <span>North</span>
-                          <span>+18% growth</span>
-                          <span>Increase focus</span>
+                        <div className="rounded-lg border border-[#A78BFA]/20 bg-[#7C3AED]/10 p-3">
+                          <p className="text-xs text-slate-300">Opportunity</p>
+                          <p className="mt-1 text-base font-semibold text-white">Found</p>
                         </div>
-                        <div className="grid grid-cols-3 border-t border-border/50 px-3 py-2 text-xs text-foreground">
-                          <span>Wholesale</span>
-                          <span>Margin risk</span>
-                          <span>Review costs</span>
-                        </div>
-                        <div className="grid grid-cols-3 border-t border-border/50 px-3 py-2 text-xs text-foreground">
-                          <span>Online</span>
-                          <span>High demand</span>
-                          <span>Reallocate budget</span>
+                        <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
+                          <p className="text-xs text-slate-300">Action</p>
+                          <p className="mt-1 text-base font-semibold text-white">Prioritize</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap justify-center gap-2">
-                    {["Retail", "Investor Portfolio", "Finance", "Sales", "Small Business"].map((chip) => (
-                      <span key={chip} className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground">
+                    {["Retail & Inventory", "Investor Portfolio", "Finance", "Sales", "Operations"].map((chip) => (
+                      <span key={chip} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-slate-300">
                         {chip}
                       </span>
                     ))}
