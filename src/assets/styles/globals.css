@@ -238,6 +238,222 @@
 }
 
 @layer utilities {
+  .hero-demo-stage {
+    position: relative;
+  }
+
+  .hero-demo-panel {
+    position: absolute;
+    inset: 1rem;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transform: translateY(12px);
+    animation-duration: 20s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+  }
+
+  .hero-demo-panel > * {
+    width: 100%;
+  }
+
+  .hero-demo-panel-pain {
+    animation-name: hero-demo-pain-panel;
+  }
+
+  .hero-demo-panel-upload {
+    animation-name: hero-demo-upload-panel;
+  }
+
+  .hero-demo-panel-analysis {
+    animation-name: hero-demo-analysis-panel;
+  }
+
+  .hero-demo-panel-results {
+    animation-name: hero-demo-results-panel;
+  }
+
+  .hero-demo-panel-recommendation {
+    animation-name: hero-demo-recommendation-panel;
+  }
+
+  .hero-demo-progress {
+    transform-origin: left;
+    animation: hero-demo-progress 20s ease-in-out infinite;
+  }
+
+  .hero-chart-line {
+    stroke-dasharray: 680;
+    stroke-dashoffset: 680;
+    animation: hero-chart-draw 5.5s ease-out infinite;
+  }
+
+  .hero-chart-area {
+    opacity: 0;
+    animation: hero-chart-area 5.5s ease-out infinite;
+  }
+
+  .hero-chart-marker {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hero-chart-marker 5.5s ease-out infinite;
+  }
+
+  .hero-chart-marker-late {
+    animation-delay: 0.45s;
+  }
+
+  @keyframes hero-demo-pain-panel {
+    0% {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    4%, 23% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    27%, 100% {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.99);
+    }
+  }
+
+  @keyframes hero-demo-upload-panel {
+    0%, 24% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    28%, 39% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    43%, 100% {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes hero-demo-analysis-panel {
+    0%, 41% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    45%, 62% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    66%, 100% {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes hero-demo-results-panel {
+    0%, 64% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    68%, 80% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    84%, 100% {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes hero-demo-recommendation-panel {
+    0%, 82% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    86%, 98% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes hero-demo-progress {
+    0%, 26% {
+      transform: scaleX(0);
+    }
+    36%, 100% {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes hero-chart-draw {
+    0% {
+      stroke-dashoffset: 680;
+    }
+    55%, 100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes hero-chart-area {
+    0%, 22% {
+      opacity: 0;
+    }
+    58%, 100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes hero-chart-marker {
+    0%, 45% {
+      opacity: 0;
+      transform: scale(0.75);
+    }
+    60%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-demo-panel,
+    .hero-demo-progress,
+    .hero-chart-line,
+    .hero-chart-area,
+    .hero-chart-marker {
+      animation: none;
+    }
+
+    .hero-demo-panel {
+      position: static;
+      margin-bottom: 0.75rem;
+      opacity: 1;
+      transform: none;
+    }
+
+    .hero-demo-stage {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .hero-demo-progress {
+      transform: scaleX(1);
+    }
+
+    .hero-chart-line {
+      stroke-dashoffset: 0;
+    }
+
+    .hero-chart-area,
+    .hero-chart-marker {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   @keyframes pulse-soft {
     0%, 100% {
       opacity: 1;

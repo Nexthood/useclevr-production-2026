@@ -1,3 +1,4 @@
+- changed: show a premium self-running homepage hero demo that connects spreadsheet search pain to upload, AI analysis, insight discovery, and a recommended next action
 - changed: remove setup progress and guided tour popups so onboarding focuses on Business Profile, Accountancy, Dataset Upload, and Analysis
 - fixed: add consistent 24px page-header spacing on Downloads, Datasets, Business, Accountancy, and Retail pages
 - changed: generate contextual AI Assistant suggestions automatically after dataset selection with dataset-type detection, per-dataset caching, and fallback questions

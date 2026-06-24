@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show a premium self-running homepage hero demo that connects spreadsheet search pain to upload, AI analysis, discovered insights, and a recommended next action.
 - Generate contextual AI Assistant suggestions automatically when a dataset is selected, with retail, inventory, sales, finance, SaaS, and fallback question sets.
 - Remove setup progress and guided tour popups so onboarding stays focused on Business Profile, Accountancy, Dataset Upload, and Analysis.
 - Simplify display controls to a compact Light Mode, Dark Mode, and zoom menu with dark mode as the default.
