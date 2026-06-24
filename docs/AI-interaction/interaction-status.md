@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-24
-- **Goal**: Improve the UseClevr landing page hero into a premium self-running product demo.
-- **Durable change**: The homepage hero presents spreadsheet search pain first, then shows upload detection, AI analysis, discovered insights, a recommended action, and an animated growth-trend chart with restrained cyan and lilac accents.
-- **Verification**: TypeScript, focused homepage ESLint, diff whitespace checks, and a local `HEAD /` response pass.
+- **Goal**: Fix overflowing text in the UseClevr hero demo AI-found cards.
+- **Durable change**: The AI-found results grid uses shorter "Recommended actions" wording, smaller card label text, non-shrinking icons, and break-word wrapping so labels stay inside card boundaries.
+- **Verification**: TypeScript, focused homepage ESLint, and diff whitespace checks pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
