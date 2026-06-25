@@ -3,7 +3,7 @@
 import { setThemePreference } from "@/app/actions/settings"
 import {
   Moon,
-  Palette,
+  SlidersHorizontal,
   Sun,
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -86,7 +86,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           aria-label="Display settings"
           title="Display settings"
         >
-          <Palette className="h-4 w-4" />
+          <SlidersHorizontal className="h-4 w-4" />
           {hasZoomOverride && (
             <span
               className="absolute right-1.5 top-2 h-1.5 w-1.5 rounded-full bg-primary"
