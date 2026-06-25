@@ -43,15 +43,17 @@ function LoginForm() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [revealPassword, setRevealPassword] = useState("")
   const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false)
+  const authQueryError = searchParams.get("error")
 
   const REVEAL_PASSWORD = "edely"
 
   const goToDashboard = () => {
-    router.replace("/app")
+    router.replace("/dashboard")
     router.refresh()
   }
 
-  const dashboardCallbackUrl = () => new URL("/app", window.location.origin).toString()
+  const dashboardCallbackUrl = () => new URL("/dashboard", window.location.origin).toString()
+  const visibleAuthError = authError || getReadableAuthError(authQueryError)
 
   const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
     setIsLoading(true)
@@ -264,9 +266,9 @@ function LoginForm() {
                   <TabsTrigger value="signup">Sign up</TabsTrigger>
                 </TabsList>
 
-                {authError && (
+                {visibleAuthError && (
                   <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
-                    {authError}
+                    {visibleAuthError}
                   </div>
                 )}
 
@@ -482,6 +484,25 @@ function LoginForm() {
       </main>
     </div>
   )
+}
+
+function getReadableAuthError(error: string | null) {
+  if (!error) return null
+
+  const messages: Record<string, string> = {
+    Configuration: "OAuth sign-in is not configured correctly. Check the provider client ID, client secret, auth secret, and callback URL.",
+    AccessDenied: "OAuth sign-in was denied. Choose an allowed account or try another sign-in method.",
+    OAuthSignin: "OAuth sign-in could not start. Check the provider configuration and try again.",
+    OAuthCallback: "OAuth sign-in could not complete. Check that the provider callback URL matches this app.",
+    OAuthCreateAccount: "OAuth sign-in succeeded, but the account could not be created. Try again or use email sign-in.",
+    EmailCreateAccount: "The account could not be created for this email address.",
+    Callback: "The sign-in callback failed. Try again or use another sign-in method.",
+    OAuthAccountNotLinked: "This email is already linked to another sign-in method. Sign in with the original method first.",
+    SessionRequired: "Sign in to continue.",
+    Default: "Sign-in failed. Try again or use another sign-in method.",
+  }
+
+  return messages[error] || messages.Default
 }
 
 function InnerLabelInput({

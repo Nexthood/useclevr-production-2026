@@ -251,6 +251,8 @@ If Railway deploys successfully but the app returns 502:
 
 1. Check Railway logs for server startup errors or crash traces.
 2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
+   Google OAuth also requires `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`; LinkedIn OAuth requires
+   `AUTH_LINKEDIN_ID` and `AUTH_LINKEDIN_SECRET`.
 3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.
 4. Confirm the database is reachable — Railway Postgres may require SSL:
    - The `pg` Pool in `src/lib/db/index.ts` uses `{ connectionString: url, max: 10 }` without SSL.
@@ -263,8 +265,13 @@ If Railway deploys successfully but the app returns 502:
 
 If the test app redirects to the live app host, remove fixed auth host variables from the Railway
 test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed callback host is
-required. The default Railway runtime trusts the request host so `test.useclevr.com` stays on the test
-service.
+required. The default Railway runtime removes `AUTH_URL` and `NEXTAUTH_URL`, trusts the request host,
+and keeps OAuth callbacks on `test.useclevr.com`.
+
+Register OAuth provider callbacks exactly:
+
+- Google test callback: `https://test.useclevr.com/api/auth/callback/google`
+- LinkedIn test callback: `https://test.useclevr.com/api/auth/callback/linkedin`
 
 Generated Railway startup sets `USECLEVR_SERVER_TARGET=railway`. Auth redirects accept the current
 origin, local development origins, and HTTPS `useclevr.com` origins; internal listener addresses such
