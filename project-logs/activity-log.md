@@ -1,3 +1,4 @@
+- fixed: align Google and LinkedIn OAuth sign-in with correct callback routing, dashboard destination, and readable login-page errors
 - changed: replace the shared display-settings palette icon with a professional sliders icon across public pages, login, and dashboard
 - changed: show the landing-page animated AI demo in the login page right-side visual while keeping login controls unchanged
 - fixed: keep homepage hero AI-found labels readable with shorter card text and normal word wrapping

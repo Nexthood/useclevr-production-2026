@@ -19,7 +19,7 @@ import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import LinkedIn from "next-auth/providers/linkedin"
 import { z } from "zod"
-import "@/lib/config"
+import { config } from "@/lib/config"
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog("[Auth] Module loading - initializing NextAuth v5");
@@ -56,11 +56,15 @@ const googleClientId = process.env.AUTH_GOOGLE_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
 const linkedinClientId = process.env.AUTH_LINKEDIN_ID;
 const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET;
+const authSecret = config.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+const googleProviderId = "google";
+const linkedinProviderId = "linkedin";
 
 normalizeLocalAuthUrlEnv();
+logOAuthProviderConfig();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET,
+  secret: authSecret,
   // Use a simple JWT adapter-like configuration without PrismaAdapter
   // to avoid database connections during module initialization
   providers: [
@@ -161,6 +165,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...(googleClientId && googleClientSecret
       ? [
           Google({
+            id: googleProviderId,
             clientId: googleClientId,
             clientSecret: googleClientSecret,
           }),
@@ -169,6 +174,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...(linkedinClientId && linkedinClientSecret
       ? [
           LinkedIn({
+            id: linkedinProviderId,
             clientId: linkedinClientId,
             clientSecret: linkedinClientSecret,
           }),
@@ -339,11 +345,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 function normalizeLocalAuthUrlEnv() {
   if (process.env.NODE_ENV === "production") return;
 
-  const configuredUrl = process.env.AUTH_URL;
+  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
   if (!configuredUrl || isLocalAuthUrl(configuredUrl)) return;
 
   debugWarn("[Auth] Ignoring non-local auth URL during local development.");
   delete process.env.AUTH_URL;
+  delete process.env.NEXTAUTH_URL;
   process.env.AUTH_TRUST_HOST ||= "true";
 }
 
@@ -353,6 +360,34 @@ function isLocalAuthUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+function logOAuthProviderConfig() {
+  if (process.env.NODE_ENV !== "development") return;
+
+  const origin = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "request-origin";
+  const callbackBase = origin === "request-origin" ? `${origin}/api/auth/callback` : `${origin.replace(/\/$/, "")}/api/auth/callback`;
+
+  if (!authSecret) {
+    debugWarn("[Auth] Missing AUTH_SECRET/NEXTAUTH_SECRET. OAuth callbacks fail with Configuration until one is set.");
+  }
+
+  debugLog("[Auth] OAuth provider configuration:", {
+    google: {
+      enabled: Boolean(googleClientId && googleClientSecret),
+      providerId: googleProviderId,
+      callbackUrl: `${callbackBase}/${googleProviderId}`,
+      env: "AUTH_GOOGLE_ID/AUTH_GOOGLE_SECRET",
+    },
+    linkedin: {
+      enabled: Boolean(linkedinClientId && linkedinClientSecret),
+      providerId: linkedinProviderId,
+      callbackUrl: `${callbackBase}/${linkedinProviderId}`,
+      env: "AUTH_LINKEDIN_ID/AUTH_LINKEDIN_SECRET",
+    },
+    authUrlEnv: process.env.AUTH_URL ? "AUTH_URL" : process.env.NEXTAUTH_URL ? "NEXTAUTH_URL" : "request host",
+    secretEnv: process.env.AUTH_SECRET ? "AUTH_SECRET" : process.env.NEXTAUTH_SECRET ? "NEXTAUTH_SECRET" : "missing",
+  });
 }
 
 async function ensureOAuthUserRecord({

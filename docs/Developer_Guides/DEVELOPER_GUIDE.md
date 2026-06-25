@@ -143,11 +143,29 @@ STRIPE_WEBHOOK_SECRET=      # whsec_…  (set on Railway / hosting)
 PORT=3000
 AUTH_URL=                # Full app URL (set on Railway)
 AUTH_TRUST_HOST=true
+AUTH_GOOGLE_ID=          # Google OAuth client ID
+AUTH_GOOGLE_SECRET=      # Google OAuth client secret
+AUTH_LINKEDIN_ID=        # LinkedIn OAuth client ID
+AUTH_LINKEDIN_SECRET=    # LinkedIn OAuth client secret
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true
 MOCK_AI_RESPONSE_DELAY_MS=250
 ```
+
+`AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
+`NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility, but Railway services should use the `AUTH_*`
+names unless a legacy deployment already depends on `NEXTAUTH_*`.
+
+OAuth provider callback paths are fixed by the provider IDs in code:
+
+- Google: `/api/auth/callback/google`
+- LinkedIn: `/api/auth/callback/linkedin`
+
+For the Railway test service, register these exact redirect URIs in each provider console:
+
+- `https://test.useclevr.com/api/auth/callback/google`
+- `https://test.useclevr.com/api/auth/callback/linkedin`
 
 Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
 commit `.env` files.
