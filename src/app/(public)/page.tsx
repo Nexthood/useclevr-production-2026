@@ -83,7 +83,7 @@ export default async function HomePage() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
-                  <Link href="#ai-report-preview" prefetch={false}>
+                  <Link href="/sample-report" prefetch={false}>
                     <Button
                       size="lg"
                       variant="outline"
@@ -203,10 +203,10 @@ export default async function HomePage() {
                         <div className="rounded-lg border border-cyan-300/25 bg-slate-900/90 p-5">
                           <p className="mb-4 text-base font-semibold text-white">AI found:</p>
                           <div className="grid gap-2 sm:grid-cols-2">
-                            {["Revenue opportunities", "Hidden risks", "Growth trends", "Action recommendations"].map((item) => (
-                              <div key={item} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-slate-100">
-                                <CheckCircle2 className="h-4 w-4 text-[#C4B5FD]" />
-                                <span>{item}</span>
+                            {["Revenue upside", "Hidden risks", "Growth trends", "Next actions"].map((item) => (
+                              <div key={item} className="flex min-w-0 items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] px-3.5 py-3 text-[13px] leading-snug text-slate-100">
+                                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#C4B5FD]" />
+                                <span className="min-w-0 whitespace-normal">{item}</span>
                               </div>
                             ))}
                           </div>

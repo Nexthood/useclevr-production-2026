@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-24
-- **Goal**: Improve the UseClevr landing page hero into a premium self-running product demo.
-- **Durable change**: The homepage hero presents spreadsheet search pain first, then shows upload detection, AI analysis, discovered insights, a recommended action, and an animated growth-trend chart with restrained cyan and lilac accents.
-- **Verification**: TypeScript, focused homepage ESLint, diff whitespace checks, and a local `HEAD /` response pass.
+- **Date**: 2026-06-25
+- **Goal**: Update the login/signup page right-side visual to match the landing-page animated UseClevr hero demo.
+- **Durable change**: The login page right-side visual uses the self-running spreadsheet pain, upload, AI analysis, AI-found insights, recommendation, and growth-chart demo while the login/signup controls stay unchanged.
+- **Verification**: TypeScript, focused login/demo ESLint, diff whitespace checks, and local `HEAD /login` response pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -4,6 +4,7 @@ import type React from "react"
 
 import { signup } from "@/app/actions/auth"
 import { Logo } from "@/components/layout/logo"
+import { UseClevrHeroDemo } from "@/components/public/useclevr-hero-demo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users"
 import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
-import { ArrowRight, BrainCircuit, Cpu, Eye, EyeOff, Loader2, Lock, Mail, Rocket, Sparkles, User } from "lucide-react"
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, User } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -468,112 +469,17 @@ function LoginForm() {
           </Card>
         </section>
 
-        <section className="relative hidden min-h-[720px] overflow-hidden lg:flex lg:items-center lg:justify-center lg:px-8 xl:px-16">
+        <section className="relative hidden min-h-[720px] overflow-hidden lg:flex lg:items-center lg:justify-center lg:px-6 xl:px-12">
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-pink-500/10" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(6,182,212,0.28),transparent_28%),radial-gradient(circle_at_70%_40%,rgba(168,85,247,0.24),transparent_30%),radial-gradient(circle_at_50%_70%,rgba(236,72,153,0.18),transparent_32%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(6,182,212,0.28),transparent_28%),radial-gradient(circle_at_70%_40%,rgba(124,58,237,0.24),transparent_30%),radial-gradient(circle_at_50%_70%,rgba(34,211,238,0.12),transparent_32%)]" />
           <div className="absolute left-10 top-10 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-pink-500/20 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-[#7C3AED]/20 blur-3xl" />
 
-          <div className="relative mx-auto w-full max-w-xl px-4 text-center">
-            <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 shadow-2xl shadow-purple-500/25">
-              <Sparkles className="h-10 w-10 text-white" />
-            </div>
-
-            <div className="mb-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-                Fresh AI workspace
-              </p>
-              <h2 className="mt-3 text-4xl font-black tracking-tight text-foreground sm:text-5xl">
-                Ask. Analyze. Decide.
-              </h2>
-              <p className="mx-auto mt-4 max-w-lg text-base text-muted-foreground sm:text-lg">
-                Upload your CSV and let the AI surface the patterns, risks, and opportunities hiding in your business data.
-              </p>
-            </div>
-
-            <div className="relative mx-auto max-w-lg rounded-[2rem] border border-white/20 bg-background/45 p-5 shadow-2xl shadow-purple-500/10 backdrop-blur-xl">
-              <div className="absolute -left-8 top-10 rounded-2xl border border-pink-500/20 bg-pink-500/15 p-4 shadow-xl backdrop-blur-xl">
-                <BrainCircuit className="h-7 w-7 text-pink-500" />
-                <p className="mt-2 text-xs font-bold text-pink-600 dark:text-pink-300">Insight engine</p>
-              </div>
-              <div className="absolute -right-6 bottom-12 rounded-2xl border border-cyan-500/20 bg-cyan-500/15 p-4 shadow-xl backdrop-blur-xl">
-                <Cpu className="h-7 w-7 text-cyan-500" />
-                <p className="mt-2 text-xs font-bold text-cyan-600 dark:text-cyan-300">Live metrics</p>
-              </div>
-
-              <div className="rounded-3xl border border-cyan-500/20 bg-card/70 p-5">
-                <div className="mb-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 p-2">
-                      <BrainCircuit className="h-full w-full text-white" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-foreground">Revenue insights</p>
-                      <p className="text-xs text-muted-foreground">Generated from your dataset</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
-                    Ready
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <InsightRow label="CSV uploaded" value="12,480 rows" color="from-cyan-500 to-sky-500" />
-                  <InsightRow label="Opportunity found" value="+18.4%" color="from-purple-500 to-pink-500" />
-                  <InsightRow label="Risk detected" value="Low" color="from-orange-500 to-amber-500" />
-                </div>
-
-                <div className="mt-5 grid grid-cols-3 gap-3">
-                  <MetricCard value="2x" label="Faster insights" color="from-cyan-400 to-sky-500" />
-                  <MetricCard value="AI" label="Smart analysis" color="from-purple-500 to-pink-500" />
-                  <MetricCard value="24/7" label="Always ready" color="from-emerald-400 to-cyan-500" />
-                </div>
-              </div>
-            </div>
+          <div className="relative mx-auto w-full max-w-4xl px-2">
+            <UseClevrHeroDemo layout="auth" className="shadow-purple-950/30" />
           </div>
         </section>
       </main>
-    </div>
-  )
-}
-
-function InsightRow({
-  label,
-  value,
-  color,
-}: {
-  label: string
-  value: string
-  color: string
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-muted/45 p-3">
-      <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-bold text-foreground">{value}</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className={`h-full rounded-full bg-gradient-to-r ${color}`} style={{ width: value === "Low" ? "34%" : value.includes("+") ? "78%" : "92%" }} />
-      </div>
-    </div>
-  )
-}
-
-function MetricCard({
-  value,
-  label,
-  color,
-}: {
-  value: string
-  label: string
-  color: string
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-muted/45 p-3 text-center">
-      <p className={`text-xl font-black bg-gradient-to-r ${color} bg-clip-text text-transparent`}>
-        {value}
-      </p>
-      <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
     </div>
   )
 }
