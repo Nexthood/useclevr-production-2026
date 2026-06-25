@@ -83,7 +83,7 @@ export default async function HomePage() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
-                  <Link href="#ai-report-preview" prefetch={false}>
+                  <Link href="/sample-report" prefetch={false}>
                     <Button
                       size="lg"
                       variant="outline"
