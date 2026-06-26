@@ -5,8 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-26
-- **Goal**: Refresh the authenticated dashboard UI to match the Sample Report executive dashboard quality without changing routing, backend logic, APIs, or functionality.
-- **Durable change**: The authenticated dashboard home uses an executive report-style structure with health scores, AI readiness, KPI cards, chart panels, opportunities, risks, recommendations, recent activity, and quick actions while preserving existing data sources and links.
-- **Verification**: TypeScript, focused dashboard ESLint, and diff whitespace checks pass.
+- **Goal**: Require email verification before email-password signup accounts can sign in or open the dashboard.
+- **Durable change**: Email-password signup creates an inactive local account, starts Supabase Auth email confirmation, shows a 6-digit code entry screen with resend states, mirrors successful OTP verification into the local email confirmation field, and blocks unverified credentials sign-in while preserving demo, Google, and LinkedIn sign-in buttons.
+- **Verification**: TypeScript, focused auth/login ESLint, changelog lint, TODO lint, secret scan, diff whitespace checks, local `HEAD /login?tab=signin`, and remote `HEAD https://test.useclevr.com/login?tab=signin` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
+- changed: require Supabase email OTP verification before email-password accounts can sign in and reach dashboard workflows

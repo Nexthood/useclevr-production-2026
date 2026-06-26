@@ -149,6 +149,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
+          if (!user.emailVerified) {
+            debugWarn("[Auth] Blocked unverified email-password sign-in:", { email: user.email });
+            return null;
+          }
+
            return {
              id: user.id,
              email: user.email,

@@ -54,6 +54,7 @@ See [Project Phases](PROJECT_PHASES.md) for the concise gates. Keep active imple
 | Neon PostgreSQL          | Application database                                     | Yes                          | Required for persisted app data and Drizzle schema operations.                 |
 | Gemini API               | Cloud AI features through the AI SDK                     | Yes                          | Requires a Google AI Studio or Google Cloud account and API key.               |
 | Auth.js / NextAuth       | Authentication runtime                                   | No                           | Requires local secrets, but no separate hosted account.                        |
+| Supabase Auth            | Email signup confirmation codes                          | Yes                          | Sends and verifies email OTP codes for email-password account activation.      |
 | Stripe                   | Checkout, billing, and webhook flows                     | Yes, when billing is enabled | Optional for development unless testing payments.                              |
 | AWS S3                   | Durable file storage when `UPLOAD_PROVIDER=s3`           | Yes, when S3 is used         | Requires bucket and access credentials.                                        |
 | Cloudflare R2            | Durable file storage when `UPLOAD_PROVIDER=r2`           | Yes, when R2 is used         | S3-compatible storage; often preferred for app uploads.                        |
@@ -67,6 +68,7 @@ Required service accounts for production:
 - Vercel, if deploying the source branch there
 - Neon PostgreSQL
 - Gemini API provider
+- Supabase Auth
 
 Conditional service accounts:
 
@@ -128,6 +130,8 @@ DATABASE_URL=          # Neon connection string (pooler)
 DIRECT_URL=            # Neon direct connection (migrations)
 AUTH_SECRET=           # NextAuth signing secret (min 32 chars)
 GEMINI_API_KEY=        # Google AI Studio key
+NEXT_PUBLIC_SUPABASE_URL=       # Supabase project URL for email verification
+NEXT_PUBLIC_SUPABASE_ANON_KEY=  # Supabase anon key for email verification
 ```
 
 ### Stripe (optional — activates card collection and webhooks)

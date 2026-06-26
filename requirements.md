@@ -198,7 +198,8 @@ Text rules for this file:
 
 - Create usable local accounts during social login and registration.
 - Create the user and profile as one successful account setup outcome, and remove the user record when profile creation fails.
-- Sign users in and open the dashboard immediately after successful email registration.
+- Require email-password registrations to verify the registered email with a 6-digit confirmation code before sign-in opens the dashboard.
+- Show unverified email-password users a verification-first message and send a new confirmation code when they try to sign in.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.

@@ -106,6 +106,7 @@
     "@payloadcms/storage-s3": "3.85.1",
     "@payloadcms/ui": "3.85.1",
     "@radix-ui/react-tabs": "^1.1.14",
+    "@supabase/supabase-js": "^2.108.2",
     "@types/papaparse": "^5.5.2",
     "ai": "^6.0.205",
     "bcryptjs": "^3.0.3",

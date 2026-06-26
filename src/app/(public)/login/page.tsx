@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { signup } from "@/app/actions/auth"
+import { getEmailPasswordSignInStatus, resendSignupOtp, signup, verifySignupOtp } from "@/app/actions/auth"
 import { Logo } from "@/components/layout/logo"
 import { UseClevrHeroDemo } from "@/components/public/useclevr-hero-demo"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users"
 import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Rocket, User } from "lucide-react"
+import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Lock, Mail, MailCheck, RefreshCw, Rocket, User } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -25,6 +25,28 @@ export default function LoginPage() {
       <LoginForm />
     </Suspense>
   )
+}
+
+const authText = {
+  errors: {
+    verifyFirst: "Please verify your email first. We sent you a confirmation code.",
+    verifyFailed: "Email verification failed. Please try again.",
+    resendFailed: "We could not resend the confirmation code. Please try again.",
+  },
+  verification: {
+    title: "Check your email and enter the 6-digit code",
+    description: "Use the confirmation code sent to your registered email address.",
+    sent: "We sent a confirmation code to your email.",
+    signInResent: "We sent a new confirmation code to your email.",
+    resent: "A new confirmation code is on its way.",
+    verifiedSignIn: "Email verified. Sign in with your credentials.",
+    codeLabel: "6-digit code",
+    verifyButton: "Verify email",
+    verifyingButton: "Verifying...",
+    resendButton: "Resend code",
+    resendingButton: "Sending...",
+    changeEmailButton: "Use another email",
+  },
 }
 
 function LoginForm() {
@@ -41,6 +63,12 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("")
+  const [otpPw, setOtpPw] = useState("")
+  const [otpCode, setOtpCode] = useState("")
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+  const [isResendingCode, setIsResendingCode] = useState(false)
   const [revealPassword, setRevealPassword] = useState("")
   const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false)
   const authQueryError = searchParams.get("error")
@@ -54,6 +82,15 @@ function LoginForm() {
 
   const dashboardCallbackUrl = () => new URL("/dashboard", window.location.origin).toString()
   const visibleAuthError = authError || getReadableAuthError(authQueryError)
+  const isVerificationOpen = Boolean(pendingVerificationEmail)
+
+  const showVerificationStep = (email: string, password: string, message = authText.verification.sent) => {
+    setPendingVerificationEmail(email.trim().toLowerCase())
+    setOtpPw(password)
+    setOtpCode("")
+    setVerificationError(null)
+    setVerificationMessage(message)
+  }
 
   const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
     setIsLoading(true)
@@ -104,6 +141,14 @@ function LoginForm() {
       })
 
       if (!result?.ok) {
+        const status = await getEmailPasswordSignInStatus(signInEmail, signInPassword)
+        if (status.status === "unverified") {
+          await resendSignupOtp(signInEmail)
+          setAuthError(authText.errors.verifyFirst)
+          showVerificationStep(signInEmail, signInPassword, authText.verification.signInResent)
+          return
+        }
+
         setAuthError("Sign-in failed. Check your email and password.")
         return
       }
@@ -154,14 +199,76 @@ function LoginForm() {
         return
       }
 
-      setAuthError("Account created successfully. Please sign in with your credentials.")
-      setSignInEmail(signUpEmail)
-      router.push("/login?tab=signin")
+      showVerificationStep(signUpEmail, signUpPassword)
     } catch {
       setAuthError("Account setup failed. Please try again.")
     } finally {
       setIsLoading(false)
       setAuthAction(null)
+    }
+  }
+
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setAuthAction("signup")
+    setVerificationError(null)
+    setVerificationMessage(null)
+    setAuthError(null)
+
+    const formData = new FormData()
+    formData.append("email", pendingVerificationEmail)
+    formData.append("token", otpCode)
+
+    try {
+      const result = await verifySignupOtp(formData)
+      if (result.error) {
+        setVerificationError(result.error)
+        return
+      }
+
+      const signInResult = await signIn("credentials", {
+        email: pendingVerificationEmail,
+        password: otpPw,
+        redirect: false,
+        callbackUrl: dashboardCallbackUrl(),
+      })
+
+      if (!signInResult?.ok) {
+        setSignInEmail(pendingVerificationEmail)
+        setPendingVerificationEmail("")
+        setOtpPw("")
+        setAuthError(authText.verification.verifiedSignIn)
+        router.push("/login?tab=signin")
+        return
+      }
+
+      goToDashboard()
+    } catch {
+      setVerificationError(authText.errors.verifyFailed)
+    } finally {
+      setIsLoading(false)
+      setAuthAction(null)
+    }
+  }
+
+  const handleResendCode = async () => {
+    setIsResendingCode(true)
+    setVerificationError(null)
+    setVerificationMessage(null)
+
+    try {
+      const result = await resendSignupOtp(pendingVerificationEmail)
+      if (result.error) {
+        setVerificationError(result.error)
+        return
+      }
+
+      setVerificationMessage(authText.verification.resent)
+    } catch {
+      setVerificationError(authText.errors.resendFailed)
+    } finally {
+      setIsResendingCode(false)
     }
   }
 
@@ -260,6 +367,113 @@ function LoginForm() {
                 </p>
               </div>
 
+              {isVerificationOpen ? (
+                <div className="space-y-5">
+                  <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-cyan-500/15 text-cyan-600 dark:text-cyan-300">
+                        <MailCheck className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-base font-bold leading-tight text-foreground">
+                          {authText.verification.title}
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {authText.verification.description}
+                        </p>
+                        <p className="mt-2 break-words text-xs font-medium text-cyan-700 dark:text-cyan-200">
+                          {pendingVerificationEmail}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {authError && (
+                    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+                      {authError}
+                    </div>
+                  )}
+
+                  {verificationError && (
+                    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+                      {verificationError}
+                    </div>
+                  )}
+
+                  {verificationMessage && (
+                    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+                      {verificationMessage}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleVerifySubmit} className="space-y-4">
+                    <InnerLabelInput
+                      id="signup-otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      label={authText.verification.codeLabel}
+                      icon={KeyRound}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      required
+                      autoComplete="one-time-code"
+                    />
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                      disabled={isLoading || otpCode.length !== 6}
+                    >
+                      {isLoading && authAction === "signup" ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {authText.verification.verifyingButton}
+                        </>
+                      ) : (
+                        <>
+                          {authText.verification.verifyButton}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isLoading || isResendingCode}
+                      onClick={handleResendCode}
+                    >
+                      {isResendingCode ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      {isResendingCode ? authText.verification.resendingButton : authText.verification.resendButton}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full"
+                      disabled={isLoading || isResendingCode}
+                      onClick={() => {
+                        setPendingVerificationEmail("")
+                        setOtpPw("")
+                        setOtpCode("")
+                        setVerificationError(null)
+                        setVerificationMessage(null)
+                        setAuthError(null)
+                      }}
+                    >
+                      {authText.verification.changeEmailButton}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
               <Tabs defaultValue={defaultTab} className="space-y-5">
                 <TabsList className="grid w-full grid-cols-2 bg-muted/70 p-1">
                   <TabsTrigger value="signin">Sign in</TabsTrigger>
@@ -467,6 +681,7 @@ function LoginForm() {
 
                 {providerButtons}
               </Tabs>
+              )}
             </CardContent>
           </Card>
         </section>
