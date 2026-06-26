@@ -1,30 +1,47 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { getEmailPasswordSignInStatus, resendSignupOtp, signup, verifySignupOtp } from "@/app/actions/auth"
-import { Logo } from "@/components/layout/logo"
-import { UseClevrHeroDemo } from "@/components/public/useclevr-hero-demo"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users"
-import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy"
-import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Lock, Mail, MailCheck, RefreshCw, Rocket, User } from "lucide-react"
-import { signIn } from "next-auth/react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useState } from "react"
-import { FaGoogle, FaLinkedin } from "react-icons/fa6"
+import {
+  beginEmailPasswordLogin,
+  resendEmailOtp,
+  signup,
+  verifyEmailOtp,
+} from "@/app/actions/auth";
+import { Logo } from "@/components/layout/logo";
+import { UseClevrHeroDemo } from "@/components/public/useclevr-hero-demo";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER, DEMO_PASS } from "@/lib/auth/builtin-users";
+import { getPasswordPolicyChecks, validatePasswordPolicy } from "@/lib/auth/password-policy";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  Lock,
+  Mail,
+  MailCheck,
+  RefreshCw,
+  Rocket,
+  User,
+} from "lucide-react";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { FaGoogle, FaLinkedin } from "react-icons/fa6";
 
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
       <LoginForm />
     </Suspense>
-  )
+  );
 }
 
 const authText = {
@@ -35,11 +52,10 @@ const authText = {
   },
   verification: {
     title: "Check your email and enter the 6-digit code",
-    description: "Use the confirmation code sent to your registered email address.",
-    sent: "We sent a confirmation code to your email.",
+    description: "We sent a 6-digit code to your email.",
+    sent: "We sent a 6-digit code to your email.",
     signInResent: "We sent a new confirmation code to your email.",
     resent: "A new confirmation code is on its way.",
-    verifiedSignIn: "Email verified. Sign in with your credentials.",
     codeLabel: "6-digit code",
     verifyButton: "Verify email",
     verifyingButton: "Verifying...",
@@ -47,230 +63,252 @@ const authText = {
     resendingButton: "Sending...",
     changeEmailButton: "Use another email",
   },
-}
+};
 
 function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin"
-  const [signInEmail, setSignInEmail] = useState("")
-  const [signInPassword, setSignInPassword] = useState("")
-  const [signUpName, setSignUpName] = useState("")
-  const [signUpEmail, setSignUpEmail] = useState("")
-  const [signUpPassword, setSignUpPassword] = useState("")
-  const [showSignInPassword, setShowSignInPassword] = useState(false)
-  const [showSignUpPassword, setShowSignUpPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [authAction, setAuthAction] = useState<"signin" | "signup" | "demo" | "google" | "linkedin" | null>(null)
-  const [authError, setAuthError] = useState<string | null>(null)
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("")
-  const [otpPw, setOtpPw] = useState("")
-  const [otpCode, setOtpCode] = useState("")
-  const [verificationMessage, setVerificationMessage] = useState<string | null>(null)
-  const [verificationError, setVerificationError] = useState<string | null>(null)
-  const [isResendingCode, setIsResendingCode] = useState(false)
-  const [revealPassword, setRevealPassword] = useState("")
-  const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false)
-  const authQueryError = searchParams.get("error")
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  const [signUpName, setSignUpName] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authAction, setAuthAction] = useState<
+    "signin" | "signup" | "demo" | "google" | "linkedin" | null
+  >(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
+  const [pendingVerificationPurpose, setPendingVerificationPurpose] = useState<"signup" | "login">(
+    "signup",
+  );
+  const [otpPw, setOtpPw] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [isResendingCode, setIsResendingCode] = useState(false);
+  const [resendAvailableAt, setResendAvailableAt] = useState(0);
+  const [nowMs, setNowMs] = useState(Date.now());
+  const [revealPassword, setRevealPassword] = useState("");
+  const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false);
+  const authQueryError = searchParams.get("error");
 
-  const REVEAL_PASSWORD = "edely"
+  const REVEAL_PASSWORD = "edely";
 
   const goToDashboard = () => {
-    router.replace("/dashboard")
-    router.refresh()
-  }
+    router.replace("/dashboard");
+    router.refresh();
+  };
 
-  const dashboardCallbackUrl = () => new URL("/dashboard", window.location.origin).toString()
-  const visibleAuthError = authError || getReadableAuthError(authQueryError)
-  const isVerificationOpen = Boolean(pendingVerificationEmail)
+  const dashboardCallbackUrl = () => new URL("/dashboard", window.location.origin).toString();
+  const visibleAuthError = authError || getReadableAuthError(authQueryError);
+  const isVerificationOpen = Boolean(pendingVerificationEmail);
+  const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
 
-  const showVerificationStep = (email: string, password: string, message = authText.verification.sent) => {
-    setPendingVerificationEmail(email.trim().toLowerCase())
-    setOtpPw(password)
-    setOtpCode("")
-    setVerificationError(null)
-    setVerificationMessage(message)
-  }
+  useEffect(() => {
+    if (!resendAvailableAt) return;
+    const interval = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [resendAvailableAt]);
+
+  const showVerificationStep = (
+    email: string,
+    password: string,
+    purpose: "signup" | "login",
+    message = authText.verification.sent,
+  ) => {
+    setPendingVerificationEmail(email.trim().toLowerCase());
+    setPendingVerificationPurpose(purpose);
+    setOtpPw(password);
+    setOtpCode("");
+    setVerificationError(null);
+    setVerificationMessage(message);
+    setResendAvailableAt(Date.now() + 60_000);
+    setNowMs(Date.now());
+  };
 
   const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
-    setIsLoading(true)
-    setAuthAction(provider)
-    setAuthError(null)
+    setIsLoading(true);
+    setAuthAction(provider);
+    setAuthError(null);
 
     try {
       if (provider === "demo") {
         const result = await signIn("demo", {
           redirect: false,
           callbackUrl: dashboardCallbackUrl(),
-        })
+        });
 
         if (!result?.ok) {
-          setAuthError("Demo sign-in failed. Please try again.")
-          return
+          setAuthError("Demo sign-in failed. Please try again.");
+          return;
         }
 
-        goToDashboard()
-        return
+        goToDashboard();
+        return;
       }
 
       await signIn(provider, {
         callbackUrl: dashboardCallbackUrl(),
         redirect: true,
-      })
+      });
     } catch (err) {
-      const message = err instanceof Error ? err.message : ""
-      setAuthError(message || "Social sign-in failed. Please try again.")
+      const message = err instanceof Error ? err.message : "";
+      setAuthError(message || "Social sign-in failed. Please try again.");
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthAction("signin")
-    setAuthError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthAction("signin");
+    setAuthError(null);
 
     try {
-      const result = await signIn("credentials", {
-        email: signInEmail,
-        password: signInPassword,
-        redirect: false,
-        callbackUrl: dashboardCallbackUrl(),
-      })
+      const result = await beginEmailPasswordLogin(signInEmail, signInPassword);
 
-      if (!result?.ok) {
-        const status = await getEmailPasswordSignInStatus(signInEmail, signInPassword)
-        if (status.status === "unverified") {
-          await resendSignupOtp(signInEmail)
-          setAuthError(authText.errors.verifyFirst)
-          showVerificationStep(signInEmail, signInPassword, authText.verification.signInResent)
-          return
-        }
-
-        setAuthError("Sign-in failed. Check your email and password.")
-        return
+      if (result.error) {
+        setAuthError(result.error);
+        return;
       }
 
-      goToDashboard()
+      showVerificationStep(
+        signInEmail,
+        signInPassword,
+        result.purpose || "login",
+        authText.verification.sent,
+      );
     } catch (err) {
-      const message = err instanceof Error ? err.message : ""
+      const message = err instanceof Error ? err.message : "";
       if (message.toLowerCase().includes("configuration")) {
-        setAuthError("Authentication is not configured correctly.")
+        setAuthError("Authentication is not configured correctly.");
       } else if (message.toLowerCase().includes("network")) {
-        setAuthError("Network error during sign-in. Please try again.")
+        setAuthError("Network error during sign-in. Please try again.");
       } else {
-        setAuthError("Sign-in failed. Please try again.")
+        setAuthError("Sign-in failed. Please try again.");
       }
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthAction("signup")
-    setAuthError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthAction("signup");
+    setAuthError(null);
 
     const passwordPolicy = validatePasswordPolicy(signUpPassword, {
       email: signUpEmail,
       name: signUpName,
-    })
+    });
     if (!passwordPolicy.passed) {
-      setAuthError(passwordPolicy.message)
-      setIsLoading(false)
-      setAuthAction(null)
-      return
+      setAuthError(passwordPolicy.message);
+      setIsLoading(false);
+      setAuthAction(null);
+      return;
     }
 
-    const formData = new FormData()
-    formData.append("name", signUpName)
-    formData.append("email", signUpEmail)
-    formData.append("password", signUpPassword)
+    const formData = new FormData();
+    formData.append("name", signUpName);
+    formData.append("email", signUpEmail);
+    formData.append("password", signUpPassword);
 
     try {
-      const result = await signup(formData)
+      const result = await signup(formData);
 
       if (result.error) {
-        setAuthError(result.error)
-        return
+        setAuthError(result.error);
+        return;
       }
 
-      showVerificationStep(signUpEmail, signUpPassword)
+      showVerificationStep(signUpEmail, signUpPassword, "signup");
     } catch {
-      setAuthError("Account setup failed. Please try again.")
+      setAuthError("Account setup failed. Please try again.");
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
 
   const handleVerifySubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthAction("signup")
-    setVerificationError(null)
-    setVerificationMessage(null)
-    setAuthError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthAction("signup");
+    setVerificationError(null);
+    setVerificationMessage(null);
+    setAuthError(null);
 
-    const formData = new FormData()
-    formData.append("email", pendingVerificationEmail)
-    formData.append("token", otpCode)
+    const formData = new FormData();
+    formData.append("email", pendingVerificationEmail);
+    formData.append("token", otpCode);
+    formData.append("purpose", pendingVerificationPurpose);
 
     try {
-      const result = await verifySignupOtp(formData)
+      const result = await verifyEmailOtp(formData);
       if (result.error) {
-        setVerificationError(result.error)
-        return
+        setVerificationError(result.error);
+        return;
       }
 
       const signInResult = await signIn("credentials", {
         email: pendingVerificationEmail,
         password: otpPw,
+        verificationProof: result.proof,
+        verificationPurpose: result.purpose,
         redirect: false,
         callbackUrl: dashboardCallbackUrl(),
-      })
+      });
 
       if (!signInResult?.ok) {
-        setSignInEmail(pendingVerificationEmail)
-        setPendingVerificationEmail("")
-        setOtpPw("")
-        setAuthError(authText.verification.verifiedSignIn)
-        router.push("/login?tab=signin")
-        return
+        setSignInEmail(pendingVerificationEmail);
+        setPendingVerificationEmail("");
+        setPendingVerificationPurpose("signup");
+        setOtpPw("");
+        setAuthError("Verification passed, but sign-in failed. Please try again.");
+        router.push("/login?tab=signin");
+        return;
       }
 
-      goToDashboard()
+      goToDashboard();
     } catch {
-      setVerificationError(authText.errors.verifyFailed)
+      setVerificationError(authText.errors.verifyFailed);
     } finally {
-      setIsLoading(false)
-      setAuthAction(null)
+      setIsLoading(false);
+      setAuthAction(null);
     }
-  }
+  };
 
   const handleResendCode = async () => {
-    setIsResendingCode(true)
-    setVerificationError(null)
-    setVerificationMessage(null)
+    if (resendSecondsRemaining > 0) return;
+
+    setIsResendingCode(true);
+    setVerificationError(null);
+    setVerificationMessage(null);
 
     try {
-      const result = await resendSignupOtp(pendingVerificationEmail)
+      const result = await resendEmailOtp(pendingVerificationEmail, pendingVerificationPurpose);
       if (result.error) {
-        setVerificationError(result.error)
-        return
+        setVerificationError(result.error);
+        return;
       }
 
-      setVerificationMessage(authText.verification.resent)
+      setVerificationMessage(authText.verification.resent);
+      setResendAvailableAt(Date.now() + 60_000);
+      setNowMs(Date.now());
     } catch {
-      setVerificationError(authText.errors.resendFailed)
+      setVerificationError(authText.errors.resendFailed);
     } finally {
-      setIsResendingCode(false)
+      setIsResendingCode(false);
     }
-  }
+  };
 
   const providerButtons = (
     <div className="space-y-3">
@@ -323,7 +361,7 @@ function LoginForm() {
         </Button>
       </div>
     </div>
-  )
+  );
 
   const builtInAccounts = [
     {
@@ -336,7 +374,7 @@ function LoginForm() {
       email: BUILTIN_SUPER_ADMIN_USER.email,
       password: DEMO_PASS,
     },
-  ]
+  ];
 
   return (
     <div className="relative flex min-h-screen overflow-hidden bg-background">
@@ -445,7 +483,7 @@ function LoginForm() {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      disabled={isLoading || isResendingCode}
+                      disabled={isLoading || isResendingCode || resendSecondsRemaining > 0}
                       onClick={handleResendCode}
                     >
                       {isResendingCode ? (
@@ -453,7 +491,11 @@ function LoginForm() {
                       ) : (
                         <RefreshCw className="mr-2 h-4 w-4" />
                       )}
-                      {isResendingCode ? authText.verification.resendingButton : authText.verification.resendButton}
+                      {isResendingCode
+                        ? authText.verification.resendingButton
+                        : resendSecondsRemaining > 0
+                          ? `Resend in ${resendSecondsRemaining}s`
+                          : authText.verification.resendButton}
                     </Button>
                     <Button
                       type="button"
@@ -461,12 +503,13 @@ function LoginForm() {
                       className="w-full"
                       disabled={isLoading || isResendingCode}
                       onClick={() => {
-                        setPendingVerificationEmail("")
-                        setOtpPw("")
-                        setOtpCode("")
-                        setVerificationError(null)
-                        setVerificationMessage(null)
-                        setAuthError(null)
+                        setPendingVerificationEmail("");
+                        setPendingVerificationPurpose("signup");
+                        setOtpPw("");
+                        setOtpCode("");
+                        setVerificationError(null);
+                        setVerificationMessage(null);
+                        setAuthError(null);
                       }}
                     >
                       {authText.verification.changeEmailButton}
@@ -474,213 +517,233 @@ function LoginForm() {
                   </div>
                 </div>
               ) : (
-              <Tabs defaultValue={defaultTab} className="space-y-5">
-                <TabsList className="grid w-full grid-cols-2 bg-muted/70 p-1">
-                  <TabsTrigger value="signin">Sign in</TabsTrigger>
-                  <TabsTrigger value="signup">Sign up</TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue={defaultTab} className="space-y-5">
+                  <TabsList className="grid w-full grid-cols-2 bg-muted/70 p-1">
+                    <TabsTrigger value="signin">Sign in</TabsTrigger>
+                    <TabsTrigger value="signup">Sign up</TabsTrigger>
+                  </TabsList>
 
-                {visibleAuthError && (
-                  <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
-                    {visibleAuthError}
-                  </div>
-                )}
-
-                <TabsContent value="signin" className="mt-0 space-y-4">
-                  <form onSubmit={handleSignInSubmit} className="space-y-4">
-                    <InnerLabelInput
-                      id="signin-email"
-                      type="email"
-                      label="Email"
-                      icon={Mail}
-                      value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
-                      required
-                      autoComplete="email"
-                    />
-
-                    <div>
-                      <InnerLabelInput
-                        id="signin-password"
-                        type={showSignInPassword ? "text" : "password"}
-                        label="Password"
-                        icon={Lock}
-                        value={signInPassword}
-                        onChange={(e) => setSignInPassword(e.target.value)}
-                        className="pr-11"
-                        required
-                        autoComplete="current-password"
-                        trailing={
-                          <PasswordToggle showPassword={showSignInPassword} setShowPassword={setShowSignInPassword} />
-                        }
-                      />
-                      <Link href="#" className="mt-1 block text-xs text-primary hover:underline">
-                        Forgot password?
-                      </Link>
+                  {visibleAuthError && (
+                    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+                      {visibleAuthError}
                     </div>
-
-                    <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95" disabled={isLoading}>
-                      {isLoading && authAction === "signin" ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        <>
-                          Sign in
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  </form>
-
-                  {showBuiltInAccounts ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="password"
-                          placeholder="Password to reveal accounts"
-                          value={revealPassword}
-                          onChange={(e) => setRevealPassword(e.target.value)}
-                          className="h-8 flex-1 text-xs"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-xs"
-                          onClick={() => setShowBuiltInAccounts(false)}
-                        >
-                          Hide
-                        </Button>
-                      </div>
-                      {revealPassword === REVEAL_PASSWORD && (
-                        <div className="space-y-1 pt-1">
-                          {builtInAccounts.map((account) => (
-                            <button
-                              key={account.email}
-                              type="button"
-                              onClick={() => {
-                                setSignInEmail(account.email)
-                                setSignInPassword(account.password)
-                                setAuthError(null)
-                              }}
-                              disabled={isLoading}
-                              className="w-full rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-left text-xs transition hover:bg-muted disabled:opacity-50"
-                            >
-                              <span className="font-medium text-foreground">{account.label}:</span>{" "}
-                              <span className="font-mono text-muted-foreground">{account.email}</span>
-                              {" / "}
-                              <span className="font-mono text-muted-foreground">{account.password}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowBuiltInAccounts(true)}
-                      className="mt-2 w-full text-xs text-primary hover:underline"
-                    >
-                      Show built-in accounts
-                    </button>
                   )}
-                </TabsContent>
 
-                <TabsContent value="signup" className="mt-0 space-y-4">
-                  <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                    <InnerLabelInput
-                      id="signup-name"
-                      type="text"
-                      label="Full name"
-                      icon={User}
-                      value={signUpName}
-                      onChange={(e) => setSignUpName(e.target.value)}
-                      required
-                      autoComplete="name"
-                    />
-
-                    <InnerLabelInput
-                      id="signup-email"
-                      type="email"
-                      label="Email"
-                      icon={Mail}
-                      value={signUpEmail}
-                      onChange={(e) => setSignUpEmail(e.target.value)}
-                      required
-                      autoComplete="email"
-                    />
-
-                    <div>
+                  <TabsContent value="signin" className="mt-0 space-y-4">
+                    <form onSubmit={handleSignInSubmit} className="space-y-4">
                       <InnerLabelInput
-                        id="signup-password"
-                        type={showSignUpPassword ? "text" : "password"}
-                        label="Password"
-                        icon={Lock}
-                        value={signUpPassword}
-                        onChange={(e) => setSignUpPassword(e.target.value)}
-                        className="pr-11"
+                        id="signin-email"
+                        type="email"
+                        label="Email"
+                        icon={Mail}
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
                         required
-                        autoComplete="new-password"
-                        trailing={
-                          <PasswordToggle showPassword={showSignUpPassword} setShowPassword={setShowSignUpPassword} />
-                        }
+                        autoComplete="email"
                       />
-                      {signUpPassword && (
-                        <PasswordStrengthIndicator password={signUpPassword} email={signUpEmail} name={signUpName} />
-                      )}
+
+                      <div>
+                        <InnerLabelInput
+                          id="signin-password"
+                          type={showSignInPassword ? "text" : "password"}
+                          label="Password"
+                          icon={Lock}
+                          value={signInPassword}
+                          onChange={(e) => setSignInPassword(e.target.value)}
+                          className="pr-11"
+                          required
+                          autoComplete="current-password"
+                          trailing={
+                            <PasswordToggle
+                              showPassword={showSignInPassword}
+                              setShowPassword={setShowSignInPassword}
+                            />
+                          }
+                        />
+                        <Link href="#" className="mt-1 block text-xs text-primary hover:underline">
+                          Forgot password?
+                        </Link>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                        disabled={isLoading}
+                      >
+                        {isLoading && authAction === "signin" ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Signing in...
+                          </>
+                        ) : (
+                          <>
+                            Sign in
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </form>
+
+                    {showBuiltInAccounts ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="password"
+                            placeholder="Password to reveal accounts"
+                            value={revealPassword}
+                            onChange={(e) => setRevealPassword(e.target.value)}
+                            className="h-8 flex-1 text-xs"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => setShowBuiltInAccounts(false)}
+                          >
+                            Hide
+                          </Button>
+                        </div>
+                        {revealPassword === REVEAL_PASSWORD && (
+                          <div className="space-y-1 pt-1">
+                            {builtInAccounts.map((account) => (
+                              <button
+                                key={account.email}
+                                type="button"
+                                onClick={() => {
+                                  setSignInEmail(account.email);
+                                  setSignInPassword(account.password);
+                                  setAuthError(null);
+                                }}
+                                disabled={isLoading}
+                                className="w-full rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-left text-xs transition hover:bg-muted disabled:opacity-50"
+                              >
+                                <span className="font-medium text-foreground">
+                                  {account.label}:
+                                </span>{" "}
+                                <span className="font-mono text-muted-foreground">
+                                  {account.email}
+                                </span>
+                                {" / "}
+                                <span className="font-mono text-muted-foreground">
+                                  {account.password}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowBuiltInAccounts(true)}
+                        className="mt-2 w-full text-xs text-primary hover:underline"
+                      >
+                        Show built-in accounts
+                      </button>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="signup" className="mt-0 space-y-4">
+                    <form onSubmit={handleSignUpSubmit} className="space-y-4">
+                      <InnerLabelInput
+                        id="signup-name"
+                        type="text"
+                        label="Full name"
+                        icon={User}
+                        value={signUpName}
+                        onChange={(e) => setSignUpName(e.target.value)}
+                        required
+                        autoComplete="name"
+                      />
+
+                      <InnerLabelInput
+                        id="signup-email"
+                        type="email"
+                        label="Email"
+                        icon={Mail}
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                      />
+
+                      <div>
+                        <InnerLabelInput
+                          id="signup-password"
+                          type={showSignUpPassword ? "text" : "password"}
+                          label="Password"
+                          icon={Lock}
+                          value={signUpPassword}
+                          onChange={(e) => setSignUpPassword(e.target.value)}
+                          className="pr-11"
+                          required
+                          autoComplete="new-password"
+                          trailing={
+                            <PasswordToggle
+                              showPassword={showSignUpPassword}
+                              setShowPassword={setShowSignUpPassword}
+                            />
+                          }
+                        />
+                        {signUpPassword && (
+                          <PasswordStrengthIndicator
+                            password={signUpPassword}
+                            email={signUpEmail}
+                            name={signUpName}
+                          />
+                        )}
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                        disabled={
+                          isLoading ||
+                          !validatePasswordPolicy(signUpPassword, {
+                            email: signUpEmail,
+                            name: signUpName,
+                          }).passed
+                        }
+                      >
+                        {isLoading && authAction === "signup" ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          <>
+                            Create account
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+
+                      <p className="text-center text-xs text-muted-foreground">
+                        By signing up, you agree to our{" "}
+                        <Link href="/terms" className="text-primary hover:underline">
+                          Terms
+                        </Link>{" "}
+                        and{" "}
+                        <Link href="/privacy" className="text-primary hover:underline">
+                          Privacy
+                        </Link>
+                        .
+                      </p>
+                    </form>
+                  </TabsContent>
+
+                  <div className="relative my-5">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
                     </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
-                      disabled={
-                        isLoading ||
-                        !validatePasswordPolicy(signUpPassword, {
-                          email: signUpEmail,
-                          name: signUpName,
-                        }).passed
-                      }
-                    >
-                      {isLoading && authAction === "signup" ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        <>
-                          Create account
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-
-                    <p className="text-center text-xs text-muted-foreground">
-                      By signing up, you agree to our{" "}
-                      <Link href="/terms" className="text-primary hover:underline">
-                        Terms
-                      </Link>{" "}
-                      and{" "}
-                      <Link href="/privacy" className="text-primary hover:underline">
-                        Privacy
-                      </Link>
-                      .
-                    </p>
-                  </form>
-                </TabsContent>
-
-                <div className="relative my-5">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
 
-                {providerButtons}
-              </Tabs>
+                  {providerButtons}
+                </Tabs>
               )}
             </CardContent>
           </Card>
@@ -698,26 +761,31 @@ function LoginForm() {
         </section>
       </main>
     </div>
-  )
+  );
 }
 
 function getReadableAuthError(error: string | null) {
-  if (!error) return null
+  if (!error) return null;
 
   const messages: Record<string, string> = {
-    Configuration: "OAuth sign-in is not configured correctly. Check the provider client ID, client secret, auth secret, and callback URL.",
-    AccessDenied: "OAuth sign-in was denied. Choose an allowed account or try another sign-in method.",
+    Configuration:
+      "OAuth sign-in is not configured correctly. Check the provider client ID, client secret, auth secret, and callback URL.",
+    AccessDenied:
+      "OAuth sign-in was denied. Choose an allowed account or try another sign-in method.",
     OAuthSignin: "OAuth sign-in could not start. Check the provider configuration and try again.",
-    OAuthCallback: "OAuth sign-in could not complete. Check that the provider callback URL matches this app.",
-    OAuthCreateAccount: "OAuth sign-in succeeded, but the account could not be created. Try again or use email sign-in.",
+    OAuthCallback:
+      "OAuth sign-in could not complete. Check that the provider callback URL matches this app.",
+    OAuthCreateAccount:
+      "OAuth sign-in succeeded, but the account could not be created. Try again or use email sign-in.",
     EmailCreateAccount: "The account could not be created for this email address.",
     Callback: "The sign-in callback failed. Try again or use another sign-in method.",
-    OAuthAccountNotLinked: "This email is already linked to another sign-in method. Sign in with the original method first.",
+    OAuthAccountNotLinked:
+      "This email is already linked to another sign-in method. Sign in with the original method first.",
     SessionRequired: "Sign in to continue.",
     Default: "Sign-in failed. Try again or use another sign-in method.",
-  }
+  };
 
-  return messages[error] || messages.Default
+  return messages[error] || messages.Default;
 }
 
 function InnerLabelInput({
@@ -728,10 +796,10 @@ function InnerLabelInput({
   trailing,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
-  id: string
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  trailing?: React.ReactNode
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  trailing?: React.ReactNode;
 }) {
   return (
     <div className="relative">
@@ -751,15 +819,15 @@ function InnerLabelInput({
       />
       {trailing}
     </div>
-  )
+  );
 }
 
 function PasswordToggle({
   showPassword,
   setShowPassword,
 }: {
-  showPassword: boolean
-  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
     <button
@@ -772,7 +840,7 @@ function PasswordToggle({
     >
       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </button>
-  )
+  );
 }
 
 function PasswordStrengthIndicator({
@@ -780,17 +848,17 @@ function PasswordStrengthIndicator({
   email,
   name,
 }: {
-  password: string
-  email: string
-  name: string
+  password: string;
+  email: string;
+  name: string;
 }) {
-  const criteria = getPasswordPolicyChecks(password, { email, name })
-  const passed = criteria.filter((c) => c.passed).length
-  const strength = Math.min(Math.ceil((passed / criteria.length) * 4), 4)
-  const isComplete = passed === criteria.length
+  const criteria = getPasswordPolicyChecks(password, { email, name });
+  const passed = criteria.filter((c) => c.passed).length;
+  const strength = Math.min(Math.ceil((passed / criteria.length) * 4), 4);
+  const isComplete = passed === criteria.length;
 
-  const labels = ["Weak", "Fair", "Good", "Strong"]
-  const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"]
+  const labels = ["Weak", "Fair", "Good", "Strong"];
+  const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
 
   return (
     <div className="space-y-2 pt-1">
@@ -804,7 +872,9 @@ function PasswordStrengthIndicator({
           />
         ))}
       </div>
-      <p className={`text-xs font-medium ${passed < 3 ? "text-red-500" : passed < 5 ? "text-yellow-500" : "text-green-500"}`}>
+      <p
+        className={`text-xs font-medium ${passed < 3 ? "text-red-500" : passed < 5 ? "text-yellow-500" : "text-green-500"}`}
+      >
         {isComplete ? labels[3] : passed < 3 ? labels[0] : passed < 5 ? labels[1] : labels[2]}
       </p>
       <ul className="space-y-1">
@@ -820,5 +890,5 @@ function PasswordStrengthIndicator({
         ))}
       </ul>
     </div>
-  )
+  );
 }

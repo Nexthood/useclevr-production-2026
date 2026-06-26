@@ -14,7 +14,7 @@
 - Expand Business Profile setup into a professional multi-step wizard that collects tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth assumptions for more accurate uploaded-data analysis.
 - Show Accountancy as a pre-bookkeeping center for new users with document upload, package generation, export, accountant email, and Business Profile context guidance instead of an unavailable state.
 - Show Retail Inventory Analyst results in scrollable tables with every matching product row, SKU, stock, sales, profit, margin, last-sale, and owner action details so store owners can decide what to reorder, discount, bundle, or protect.
-- Require email verification before email-password accounts open the dashboard, with code entry and resend states during signup.
+- Require hashed email verification codes before email-password accounts open the dashboard, including signup verification, every-login verification, expiry, attempt limits, and resend cooldowns.
 
 ### Fixed
 

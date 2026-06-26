@@ -170,6 +170,18 @@ const statements = [
     "resolvedAt" timestamp
   )`,
 
+  `CREATE TABLE IF NOT EXISTS "EmailVerificationCode" (
+    "id" text PRIMARY KEY NOT NULL,
+    "userId" text,
+    "email" varchar(255) NOT NULL,
+    "codeHash" text NOT NULL,
+    "purpose" varchar(20) NOT NULL,
+    "expiresAt" timestamp NOT NULL,
+    "usedAt" timestamp,
+    "attempts" integer DEFAULT 0 NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL
+  )`,
+
   `INSERT INTO "support_issues" (
     "id",
     "user_id",
@@ -262,6 +274,8 @@ const statements = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "ReferralEvent_eventKey_key" ON "ReferralEvent" USING btree ("eventKey")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "ReferralStats_code_key" ON "ReferralStats" USING btree ("code")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Waitlist_email_key" ON "Waitlist" USING btree ("email")`,
+  `CREATE INDEX IF NOT EXISTS "EmailVerificationCode_email_purpose_idx" ON "EmailVerificationCode" USING btree ("email","purpose")`,
+  `CREATE INDEX IF NOT EXISTS "EmailVerificationCode_userId_purpose_idx" ON "EmailVerificationCode" USING btree ("userId","purpose")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Workspace_slug_key" ON "Workspace" USING btree ("slug")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceInvitation_email_workspaceId_key" ON "WorkspaceInvitation" USING btree ("email","workspaceId")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceInvitation_token_key" ON "WorkspaceInvitation" USING btree ("token")`,
@@ -284,6 +298,11 @@ const constraints = [
     name: "UserActivity_userId_fkey",
     table: "UserActivity",
     sql: `ALTER TABLE "UserActivity" ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`,
+  },
+  {
+    name: "EmailVerificationCode_userId_fkey",
+    table: "EmailVerificationCode",
+    sql: `ALTER TABLE "EmailVerificationCode" ADD CONSTRAINT "EmailVerificationCode_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action`,
   },
   {
     name: "WorkspaceInvitation_workspaceId_fkey",
