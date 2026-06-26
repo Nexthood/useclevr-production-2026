@@ -71,6 +71,7 @@ Required service accounts for production:
 Conditional service accounts:
 
 - Stripe, only when billing or checkout is enabled.
+- Resend, only when production email verification delivery is enabled through the Resend API.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
 Local-only tools:
@@ -147,6 +148,8 @@ AUTH_GOOGLE_ID=          # Google OAuth client ID
 AUTH_GOOGLE_SECRET=      # Google OAuth client secret
 AUTH_LINKEDIN_ID=        # LinkedIn OAuth client ID
 AUTH_LINKEDIN_SECRET=    # LinkedIn OAuth client secret
+RESEND_API_KEY=          # Email verification delivery provider key
+EMAIL_FROM=              # Verified sender address for verification codes
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true

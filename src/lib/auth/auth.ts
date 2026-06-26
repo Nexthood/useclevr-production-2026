@@ -8,18 +8,19 @@ import {
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
+import { consumeVerifiedAuthProof } from "@/lib/auth/email-verification-codes";
 import { isLocalAuthOrigin, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
 import { accounts, profiles, users } from "@/lib/db/schema";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import Google from "next-auth/providers/google"
-import LinkedIn from "next-auth/providers/linkedin"
-import { z } from "zod"
-import { config } from "@/lib/config"
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import LinkedIn from "next-auth/providers/linkedin";
+import { z } from "zod";
+import { config } from "@/lib/config";
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog("[Auth] Module loading - initializing NextAuth v5");
@@ -50,6 +51,8 @@ const getDbClient = () => {
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  verificationProof: z.string().min(10).optional(),
+  verificationPurpose: z.enum(["signup", "login"]).optional(),
 });
 
 const googleClientId = process.env.AUTH_GOOGLE_ID;
@@ -93,6 +96,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        verificationProof: { label: "Verification proof", type: "text" },
+        verificationPurpose: { label: "Verification purpose", type: "text" },
       },
       async authorize(credentials) {
         try {
@@ -118,7 +123,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
-          const { email, password } = validatedFields.data;
+          const { email, password, verificationProof, verificationPurpose } = validatedFields.data;
           const dbClient = getDbClient();
 
           if (!dbClient) {
@@ -149,13 +154,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
-           return {
-             id: user.id,
-             email: user.email,
-             name: user.name,
-             image: user.image,
-             role: "user",
-           };
+          if (!verificationProof || !verificationPurpose) {
+            debugWarn("[Auth] Blocked email-password sign-in without email verification proof:", {
+              email: user.email,
+            });
+            return null;
+          }
+
+          if (!user.emailVerified && verificationPurpose !== "signup") {
+            debugWarn("[Auth] Blocked unverified email-password sign-in:", { email: user.email });
+            return null;
+          }
+
+          const proofIsValid = await consumeVerifiedAuthProof({
+            email,
+            proof: verificationProof,
+            purpose: verificationPurpose,
+          });
+
+          if (!proofIsValid) {
+            debugWarn(
+              "[Auth] Blocked email-password sign-in with invalid email verification proof:",
+              { email: user.email },
+            );
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: "user",
+          };
         } catch (error) {
           debugError("Auth error:", error);
           return null;
@@ -270,6 +301,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       if (account?.provider && account.providerAccountId) {
+        if (!user.email || !isOAuthEmailVerified(account.id_token)) {
+          debugWarn("[Auth] Blocked OAuth sign-in without verified provider email:", {
+            provider: account.provider,
+            hasEmail: Boolean(user.email),
+          });
+          return false;
+        }
+
         await ensureOAuthUserRecord({
           user,
           provider: account.provider,
@@ -281,7 +320,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           tokenType: account.token_type,
           scope: account.scope,
           idToken: account.id_token,
-          sessionState: typeof account.session_state === "string" ? account.session_state : undefined,
+          sessionState:
+            typeof account.session_state === "string" ? account.session_state : undefined,
         });
       }
 
@@ -354,6 +394,21 @@ function normalizeLocalAuthUrlEnv() {
   process.env.AUTH_TRUST_HOST ||= "true";
 }
 
+function isOAuthEmailVerified(idToken?: string) {
+  if (!idToken) return true;
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(idToken.split(".")[1] || "", "base64url").toString("utf8"),
+    ) as {
+      email_verified?: boolean;
+    };
+    return payload.email_verified !== false;
+  } catch {
+    return true;
+  }
+}
+
 function isLocalAuthUrl(value: string) {
   try {
     return isLocalAuthOrigin(new URL(value));
@@ -366,10 +421,15 @@ function logOAuthProviderConfig() {
   if (process.env.NODE_ENV !== "development") return;
 
   const origin = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "request-origin";
-  const callbackBase = origin === "request-origin" ? `${origin}/api/auth/callback` : `${origin.replace(/\/$/, "")}/api/auth/callback`;
+  const callbackBase =
+    origin === "request-origin"
+      ? `${origin}/api/auth/callback`
+      : `${origin.replace(/\/$/, "")}/api/auth/callback`;
 
   if (!authSecret) {
-    debugWarn("[Auth] Missing AUTH_SECRET/NEXTAUTH_SECRET. OAuth callbacks fail with Configuration until one is set.");
+    debugWarn(
+      "[Auth] Missing AUTH_SECRET/NEXTAUTH_SECRET. OAuth callbacks fail with Configuration until one is set.",
+    );
   }
 
   debugLog("[Auth] OAuth provider configuration:", {
@@ -385,8 +445,16 @@ function logOAuthProviderConfig() {
       callbackUrl: `${callbackBase}/${linkedinProviderId}`,
       env: "AUTH_LINKEDIN_ID/AUTH_LINKEDIN_SECRET",
     },
-    authUrlEnv: process.env.AUTH_URL ? "AUTH_URL" : process.env.NEXTAUTH_URL ? "NEXTAUTH_URL" : "request host",
-    secretEnv: process.env.AUTH_SECRET ? "AUTH_SECRET" : process.env.NEXTAUTH_SECRET ? "NEXTAUTH_SECRET" : "missing",
+    authUrlEnv: process.env.AUTH_URL
+      ? "AUTH_URL"
+      : process.env.NEXTAUTH_URL
+        ? "NEXTAUTH_URL"
+        : "request host",
+    secretEnv: process.env.AUTH_SECRET
+      ? "AUTH_SECRET"
+      : process.env.NEXTAUTH_SECRET
+        ? "NEXTAUTH_SECRET"
+        : "missing",
   });
 }
 
@@ -430,7 +498,8 @@ async function ensureOAuthUserRecord({
   user.id = userId;
 
   if (existingUser) {
-    await dbClient.update(users)
+    await dbClient
+      .update(users)
       .set({
         name: user.name || null,
         image: user.image || null,
@@ -455,7 +524,8 @@ async function ensureOAuthUserRecord({
     });
   }
 
-  await dbClient.insert(accounts)
+  await dbClient
+    .insert(accounts)
     .values({
       id: uuidv4(),
       userId,
@@ -490,7 +560,8 @@ async function ensureOAuthUserRecord({
   });
 
   if (existingProfile) {
-    await dbClient.update(profiles)
+    await dbClient
+      .update(profiles)
       .set({
         email,
         fullName: user.name || null,
