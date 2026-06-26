@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-25
-- **Goal**: Fix Google and LinkedIn OAuth callback configuration before any Datasets header work.
-- **Durable change**: OAuth sign-in uses canonical Auth.js environment names, explicit Google and LinkedIn provider IDs, documented callback paths, a dashboard sign-in destination, readable login-page errors, and Railway runtime handling that avoids stale fixed auth URLs on test deployments.
-- **Verification**: TypeScript, focused auth/login/config/dashboard ESLint, auth redirect tests, diff whitespace checks, local login error response, local dashboard redirect, and development auth provider logging pass.
+- **Date**: 2026-06-26
+- **Goal**: Refresh the authenticated dashboard UI to match the Sample Report executive dashboard quality without changing routing, backend logic, APIs, or functionality.
+- **Durable change**: The authenticated dashboard home uses an executive report-style structure with health scores, AI readiness, KPI cards, chart panels, opportunities, risks, recommendations, recent activity, and quick actions while preserving existing data sources and links.
+- **Verification**: TypeScript, focused dashboard ESLint, and diff whitespace checks pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

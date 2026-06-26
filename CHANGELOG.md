@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show the authenticated dashboard as an executive report-style workspace with health scores, AI readiness, KPI cards, chart panels, risks, opportunities, recommendations, activity, and quick actions.
 - Show a professional display-settings icon across the public site, login page, and dashboard so theme and zoom controls feel consistent.
 - Show the same self-running AI demo on the login page so visitors see the spreadsheet pain, AI analysis, discovered insights, and recommended action story before signing in.
 - Show a premium self-running homepage hero demo that connects spreadsheet search pain to upload, AI analysis, discovered insights, and a recommended next action.
