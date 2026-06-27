@@ -2,7 +2,6 @@ import { randomInt } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 
 import { emailVerificationCodes, users } from "@/lib/db/schema";
-import { debugError } from "@/lib/utils/debug";
 import bcrypt from "bcryptjs";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 
@@ -77,10 +76,12 @@ export async function createAndSendVerificationCode({
   });
 
   try {
+    logVerificationEvent("send_start", { email: normalizedEmail, purpose, userId });
     await sendVerificationEmail(normalizedEmail, code);
+    logVerificationEvent("send_success", { email: normalizedEmail, purpose, userId });
     return { success: true };
   } catch (error) {
-    debugError("[Auth] Verification email delivery failed:", error);
+    logVerificationError("send_failed", error, { email: normalizedEmail, purpose, userId });
     await db
       .update(emailVerificationCodes)
       .set({ usedAt: new Date() })
@@ -112,10 +113,16 @@ export async function verifyEmailCode({
   const latest = await findLatestActiveCode(normalizedEmail, purpose);
 
   if (!latest) {
+    logVerificationEvent("verify_no_active_code", { email: normalizedEmail, purpose });
     return { success: false, reason: "invalid" };
   }
 
   if (latest.attempts >= MAX_ATTEMPTS) {
+    logVerificationEvent("verify_too_many_attempts", {
+      email: normalizedEmail,
+      purpose,
+      attempts: latest.attempts,
+    });
     return { success: false, reason: "too_many_attempts" };
   }
 
@@ -124,6 +131,7 @@ export async function verifyEmailCode({
       .update(emailVerificationCodes)
       .set({ usedAt: new Date() })
       .where(eq(emailVerificationCodes.id, latest.id));
+    logVerificationEvent("verify_expired", { email: normalizedEmail, purpose });
     return { success: false, reason: "expired" };
   }
 
@@ -142,6 +150,11 @@ export async function verifyEmailCode({
       })
       .where(eq(emailVerificationCodes.id, latest.id));
 
+    logVerificationEvent("verify_invalid_code", {
+      email: normalizedEmail,
+      purpose,
+      attempts,
+    });
     return { success: false, reason: attempts >= MAX_ATTEMPTS ? "too_many_attempts" : "invalid" };
   }
 
@@ -151,6 +164,7 @@ export async function verifyEmailCode({
     .set({ usedAt })
     .where(eq(emailVerificationCodes.id, latest.id));
 
+  logVerificationEvent("verify_success", { email: normalizedEmail, purpose, userId: latest.userId });
   return { success: true, userId: latest.userId, proof: latest.id };
 }
 
@@ -174,6 +188,7 @@ export async function consumeVerifiedAuthProof({
   });
 
   if (!record?.usedAt || record.attempts >= PROOF_ATTEMPTS_SENTINEL) {
+    logVerificationEvent("proof_rejected", { email: normalizedEmail, purpose });
     return false;
   }
 
@@ -182,7 +197,39 @@ export async function consumeVerifiedAuthProof({
     .set({ attempts: PROOF_ATTEMPTS_SENTINEL })
     .where(eq(emailVerificationCodes.id, record.id));
 
+  logVerificationEvent("proof_consumed", { email: normalizedEmail, purpose });
   return true;
+}
+
+export async function createVerifiedAuthProof({
+  email,
+  userId,
+  purpose,
+  source,
+}: {
+  email: string;
+  userId: string | null;
+  purpose: EmailVerificationPurpose;
+  source: "admin_bypass";
+}) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + CODE_EXPIRY_MINUTES * 60 * 1000);
+  const proof = uuidv4();
+  const codeHash = await bcrypt.hash(`${source}:${normalizedEmail}:${purpose}:${proof}`, 12);
+
+  await db.insert(emailVerificationCodes).values({
+    id: proof,
+    userId,
+    email: normalizedEmail,
+    purpose,
+    codeHash,
+    expiresAt,
+    usedAt: now,
+  });
+
+  logVerificationEvent("proof_created", { email: normalizedEmail, purpose, userId });
+  return proof;
 }
 
 export async function markEmailVerified(email: string) {
@@ -205,4 +252,68 @@ async function findLatestActiveCode(email: string, purpose: EmailVerificationPur
 
 function generateVerificationCode() {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+function logVerificationEvent(
+  event: string,
+  details: { email?: string; purpose?: EmailVerificationPurpose; userId?: string | null; attempts?: number },
+) {
+  console.warn("[Auth] Email verification event", {
+    event,
+    email: maskEmail(details.email),
+    purpose: details.purpose,
+    userId: details.userId,
+    attempts: details.attempts,
+  });
+}
+
+function logVerificationError(
+  event: string,
+  error: unknown,
+  details: { email?: string; purpose?: EmailVerificationPurpose; userId?: string | null },
+) {
+  console.error("[Auth] Email verification failure", {
+    event,
+    email: maskEmail(details.email),
+    purpose: details.purpose,
+    userId: details.userId,
+    error: getErrorLogDetails(error),
+  });
+}
+
+function getErrorLogDetails(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return { message: String(error) };
+  }
+
+  const cause = error as {
+    name?: unknown;
+    message?: unknown;
+    code?: unknown;
+    command?: unknown;
+    response?: unknown;
+    responseCode?: unknown;
+  };
+
+  return {
+    name: stringifyLogValue(cause.name),
+    message: stringifyLogValue(cause.message),
+    code: stringifyLogValue(cause.code),
+    command: stringifyLogValue(cause.command),
+    response: stringifyLogValue(cause.response),
+    responseCode: stringifyLogValue(cause.responseCode),
+  };
+}
+
+function stringifyLogValue(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  return String(value);
+}
+
+function maskEmail(email?: string) {
+  if (!email) return undefined;
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "[invalid-email]";
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
 }

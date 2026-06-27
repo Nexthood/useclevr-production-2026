@@ -144,6 +144,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // User not found or no password
           if (!user || !user.password) {
+            logCredentialsAuthEvent("user_not_found_or_no_password", { email });
             return null;
           }
 
@@ -151,18 +152,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const isValid = await bcrypt.compare(password, user.password);
 
           if (!isValid) {
+            logCredentialsAuthEvent("invalid_password", { email });
             return null;
           }
 
           if (!verificationProof || !verificationPurpose) {
-            debugWarn("[Auth] Blocked email-password sign-in without email verification proof:", {
-              email: user.email,
-            });
+            logCredentialsAuthEvent("missing_verification_proof", { email: user.email });
             return null;
           }
 
           if (!user.emailVerified && verificationPurpose !== "signup") {
-            debugWarn("[Auth] Blocked unverified email-password sign-in:", { email: user.email });
+            logCredentialsAuthEvent("unverified_email_wrong_purpose", {
+              email: user.email,
+              verificationPurpose,
+            });
             return null;
           }
 
@@ -173,22 +176,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (!proofIsValid) {
-            debugWarn(
-              "[Auth] Blocked email-password sign-in with invalid email verification proof:",
-              { email: user.email },
-            );
+            logCredentialsAuthEvent("invalid_verification_proof", {
+              email: user.email,
+              verificationPurpose,
+            });
             return null;
           }
 
+          logCredentialsAuthEvent("authorized", { email: user.email, verificationPurpose });
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             image: user.image,
-            role: "user",
+            role: resolveCredentialsRole(user.email),
           };
         } catch (error) {
-          debugError("Auth error:", error);
+          logCredentialsAuthError("authorize_exception", error);
           return null;
         }
       },
@@ -392,6 +396,64 @@ function normalizeLocalAuthUrlEnv() {
   delete process.env.AUTH_URL;
   delete process.env.NEXTAUTH_URL;
   process.env.AUTH_TRUST_HOST ||= "true";
+}
+
+function resolveCredentialsRole(email?: string | null): BuiltinUserRole {
+  const adminEmail = (process.env.ADMIN_AUTH_BYPASS_EMAIL || "superadmin@useclevr.com")
+    .trim()
+    .toLowerCase();
+  return email?.trim().toLowerCase() === adminEmail ? "superadmin" : "user";
+}
+
+function logCredentialsAuthEvent(
+  event: string,
+  details: { email?: string | null; verificationPurpose?: string },
+) {
+  console.warn("[Auth] Credentials sign-in event", {
+    event,
+    email: maskEmail(details.email),
+    verificationPurpose: details.verificationPurpose,
+  });
+}
+
+function logCredentialsAuthError(event: string, error: unknown) {
+  console.error("[Auth] Credentials sign-in failure", {
+    event,
+    error: getAuthErrorLogDetails(error),
+  });
+}
+
+function getAuthErrorLogDetails(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return { message: String(error) };
+  }
+
+  const cause = error as {
+    name?: unknown;
+    message?: unknown;
+    code?: unknown;
+    stack?: unknown;
+  };
+
+  return {
+    name: stringifyAuthLogValue(cause.name),
+    message: stringifyAuthLogValue(cause.message),
+    code: stringifyAuthLogValue(cause.code),
+    stack: stringifyAuthLogValue(cause.stack),
+  };
+}
+
+function stringifyAuthLogValue(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  return String(value);
+}
+
+function maskEmail(email?: string | null) {
+  if (!email) return undefined;
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "[invalid-email]";
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
 }
 
 function isOAuthEmailVerified(idToken?: string) {
