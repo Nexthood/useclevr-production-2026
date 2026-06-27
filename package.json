@@ -45,6 +45,7 @@
     "validate:release": "node ./scripts/release/check.cjs",
     "analyze:business": "node -r tsx/esm scripts/analysis/analyze-business.ts",
     "test:all": "pnpm test:auth && pnpm test:csv-analyzer && pnpm test:csv-edge-cases",
+    "test:auth-flow": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/auth/test-email-password-auth-flow.ts",
     "test:auth": "node -r tsx/esm scripts/auth/test-auth-redirect.ts",
     "test:csv-analyzer": "node -r tsx/esm scripts/analysis/test-csv-analyzer.ts",
     "test:csv-edge-cases": "node -r tsx/esm scripts/analysis/test-csv-edge-cases.ts",

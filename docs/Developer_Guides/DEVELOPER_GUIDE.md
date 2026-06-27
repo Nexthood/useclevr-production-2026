@@ -71,7 +71,7 @@ Required service accounts for production:
 Conditional service accounts:
 
 - Stripe, only when billing or checkout is enabled.
-- SpaceMail SMTP, required for production email verification delivery from the `auth@useclevr.com` sender alias.
+- SpaceMail SMTP, required for production email verification delivery from the configured `EMAIL_FROM` sender.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
 Local-only tools:
@@ -153,18 +153,21 @@ SMTP_PORT=465            # SpaceMail SMTP port; 465 uses TLS by default
 SMTP_SECURE=true         # Optional; defaults to true for port 465
 SMTP_USER=start@useclevr.com
 SMTP_PASSWORD=           # SpaceMail SMTP password for start@useclevr.com, set in Railway
-EMAIL_FROM="UseClevr <auth@useclevr.com>"
+EMAIL_FROM="UseClevr <start@useclevr.com>"
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true
 MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
-SMTP authentication uses `SMTP_USER`; `auth@useclevr.com` is the visible sender alias and is not used for SMTP authentication.
+SMTP authentication uses `SMTP_USER`; aliases such as `auth@useclevr.com` are not used for SMTP authentication.
 Run `pnpm test:smtp-verification -- --to recipient@example.com --matrix` inside Railway to send
 one diagnostic verification email with port 465/TLS and one with port 587/STARTTLS settings.
 The script logs sanitized SMTP settings and the server logs include Nodemailer error details without
 logging `SMTP_PASSWORD`.
+Run the email-password flow diagnostics inside Railway with `pnpm test:auth-flow -- signup-send`,
+`signup-verify`, `login-send`, and `login-verify` commands. Set `AUTH_FLOW_TEST_EMAIL`,
+`AUTH_FLOW_TEST_PASSWORD`, and `AUTH_FLOW_TEST_CODE` for the verification steps.
 
 `AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
 `NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility, but Railway services should use the `AUTH_*`

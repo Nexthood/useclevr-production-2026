@@ -64,7 +64,7 @@ function getSmtpConfig() {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const password = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
-  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || "UseClevr <auth@useclevr.com>";
+  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || "UseClevr <start@useclevr.com>";
   const port = Number(process.env.SMTP_PORT || "465");
   const secure = resolveSmtpSecure(port);
 
