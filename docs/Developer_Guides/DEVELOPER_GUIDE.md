@@ -161,6 +161,10 @@ MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
 SMTP authentication uses `SMTP_USER`; `auth@useclevr.com` is the visible sender alias and is not used for SMTP authentication.
+Run `pnpm test:smtp-verification -- --to recipient@example.com --matrix` inside Railway to send
+one diagnostic verification email with port 465/TLS and one with port 587/STARTTLS settings.
+The script logs sanitized SMTP settings and the server logs include Nodemailer error details without
+logging `SMTP_PASSWORD`.
 
 `AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
 `NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility, but Railway services should use the `AUTH_*`

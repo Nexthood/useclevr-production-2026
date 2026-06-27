@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-877. Log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing. (labels: auth, logging, deployment, testing; commit: worktree)
 - T-876. Send email verification codes through SpaceMail SMTP from the UseClevr auth sender alias using Railway environment variables. (labels: auth, security, deployment; commit: worktree)
 - T-875. Implement UseClevr-owned hashed email verification codes for signup and every email-password login before dashboard access. (labels: auth, security, ui; commit: worktree)
 - T-874. Require email OTP verification before email-password accounts can sign in and reach dashboard workflows. (labels: auth, security, ui; commit: worktree)

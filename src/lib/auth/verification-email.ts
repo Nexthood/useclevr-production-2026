@@ -44,13 +44,18 @@ function getVerificationEmailProvider(): VerificationEmailProvider | null {
         },
       });
 
-      await transporter.sendMail({
-        from: smtp.from,
-        to: email,
-        subject: "Your UseClevr verification code",
-        text: buildTextEmail(code),
-        html: buildHtmlEmail(code),
-      });
+      try {
+        await transporter.sendMail({
+          from: smtp.from,
+          to: email,
+          subject: "Your UseClevr verification code",
+          text: buildTextEmail(code),
+          html: buildHtmlEmail(code),
+        });
+      } catch (error) {
+        logSmtpEmailFailure(error, smtp);
+        throw new EmailDeliveryError("Email delivery failed. Please try again.");
+      }
     },
   };
 }
@@ -72,6 +77,54 @@ function getSmtpConfig() {
   }
 
   return { host, port, secure, user, password, from };
+}
+
+function logSmtpEmailFailure(error: unknown, smtp: NonNullable<ReturnType<typeof getSmtpConfig>>) {
+  const details = getSmtpErrorDetails(error);
+
+  console.error("[Email] SMTP verification email delivery failed", {
+    error: details,
+    smtp: {
+      SMTP_HOST: smtp.host,
+      SMTP_PORT: smtp.port,
+      SMTP_SECURE: smtp.secure,
+      SMTP_USER: smtp.user,
+      EMAIL_FROM: smtp.from,
+    },
+  });
+}
+
+function getSmtpErrorDetails(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return {
+      message: String(error),
+      code: undefined,
+      command: undefined,
+      response: undefined,
+      responseCode: undefined,
+    };
+  }
+
+  const smtpError = error as {
+    message?: unknown;
+    code?: unknown;
+    command?: unknown;
+    response?: unknown;
+    responseCode?: unknown;
+  };
+
+  return {
+    message: stringifyLogValue(smtpError.message),
+    code: stringifyLogValue(smtpError.code),
+    command: stringifyLogValue(smtpError.command),
+    response: stringifyLogValue(smtpError.response),
+    responseCode: stringifyLogValue(smtpError.responseCode),
+  };
+}
+
+function stringifyLogValue(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  return String(value);
 }
 
 function resolveSmtpSecure(port: number) {

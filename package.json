@@ -51,6 +51,7 @@
     "test:dashboard-crud": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dashboard-crud.ts",
     "test:mcp-dashboard": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-payload-mcp-dashboard.ts",
     "test:neon": "bash scripts/health/test-neon-connection.sh",
+    "test:smtp-verification": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-smtp-verification-email.ts",
     "test": "pnpm test:all",
     "clean:dev": "node ./scripts/package-dist/clean-generated.cjs",
     "clean:prod": "node ./scripts/package-dist/clean-generated.cjs --prod",

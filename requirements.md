@@ -203,6 +203,7 @@ Text rules for this file:
 - Store email verification records with user or email, hashed code, purpose, 10-minute expiry, used timestamp, attempts, and created timestamp.
 - Limit verification to five wrong attempts and keep resend-code actions on a 60-second cooldown.
 - Send verification codes through a server-only SMTP email abstraction that authenticates with `SMTP_USER` and shows the `UseClevr <auth@useclevr.com>` sender from `EMAIL_FROM`.
+- Log verification email SMTP failures on the server with sanitized SMTP settings and Nodemailer error fields while keeping `SMTP_PASSWORD` out of logs and returning safe client-facing errors.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.

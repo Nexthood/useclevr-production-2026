@@ -1,3 +1,4 @@
+- changed: log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing
 - changed: send UseClevr email verification codes through SpaceMail SMTP from the auth sender alias using Railway environment variables
 - changed: require UseClevr-owned hashed email verification codes before email-password accounts can sign in and reach dashboard workflows
 - changed: show the authenticated dashboard as an executive report-style workspace with health scores, AI readiness, KPI cards, chart panels, risks, opportunities, recommendations, activity, and quick actions
