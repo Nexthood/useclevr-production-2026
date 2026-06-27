@@ -1,4 +1,5 @@
 import { debugLog } from "@/lib/utils/debug";
+import nodemailer from "nodemailer";
 
 export class EmailDeliveryError extends Error {
   constructor(message = "Email delivery failed") {
@@ -8,39 +9,11 @@ export class EmailDeliveryError extends Error {
 }
 
 export async function sendVerificationEmail(email: string, code: string) {
-  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM;
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const smtpUrl = process.env.SMTP_URL;
+  const provider = getVerificationEmailProvider();
 
-  if (resendApiKey) {
-    if (!from) throw new EmailDeliveryError("EMAIL_FROM is required for Resend delivery");
-
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: email,
-        subject: "Your UseClevr verification code",
-        text: buildTextEmail(code),
-        html: buildHtmlEmail(code),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new EmailDeliveryError("Resend rejected the verification email");
-    }
-
+  if (provider) {
+    await provider.send(email, code);
     return;
-  }
-
-  if (smtpUrl) {
-    throw new EmailDeliveryError(
-      "SMTP_URL is configured, but no SMTP sender implementation is installed",
-    );
   }
 
   if (process.env.NODE_ENV !== "production" || process.env.EMAIL_PROVIDER === "console") {
@@ -49,6 +22,62 @@ export async function sendVerificationEmail(email: string, code: string) {
   }
 
   throw new EmailDeliveryError("Email delivery is not configured");
+}
+
+type VerificationEmailProvider = {
+  send: (email: string, code: string) => Promise<void>;
+};
+
+function getVerificationEmailProvider(): VerificationEmailProvider | null {
+  const smtp = getSmtpConfig();
+  if (!smtp) return null;
+
+  return {
+    async send(email, code) {
+      const transporter = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        auth: {
+          user: smtp.user,
+          pass: smtp.password,
+        },
+      });
+
+      await transporter.sendMail({
+        from: smtp.from,
+        to: email,
+        subject: "Your UseClevr verification code",
+        text: buildTextEmail(code),
+        html: buildHtmlEmail(code),
+      });
+    },
+  };
+}
+
+function getSmtpConfig() {
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const password = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || "UseClevr <auth@useclevr.com>";
+  const port = Number(process.env.SMTP_PORT || "465");
+  const secure = resolveSmtpSecure(port);
+
+  if (!host && !user && !password) return null;
+
+  if (!host || !user || !password || !Number.isInteger(port) || port <= 0) {
+    throw new EmailDeliveryError(
+      "SMTP email delivery requires SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD",
+    );
+  }
+
+  return { host, port, secure, user, password, from };
+}
+
+function resolveSmtpSecure(port: number) {
+  const configured = process.env.SMTP_SECURE;
+  if (configured) return configured === "true";
+  return port === 465;
 }
 
 function buildTextEmail(code: string) {
