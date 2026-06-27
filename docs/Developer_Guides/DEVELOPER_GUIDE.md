@@ -71,7 +71,7 @@ Required service accounts for production:
 Conditional service accounts:
 
 - Stripe, only when billing or checkout is enabled.
-- Resend, only when production email verification delivery is enabled through the Resend API.
+- SpaceMail SMTP, required for production email verification delivery from the `auth@useclevr.com` sender alias.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
 Local-only tools:
@@ -148,13 +148,19 @@ AUTH_GOOGLE_ID=          # Google OAuth client ID
 AUTH_GOOGLE_SECRET=      # Google OAuth client secret
 AUTH_LINKEDIN_ID=        # LinkedIn OAuth client ID
 AUTH_LINKEDIN_SECRET=    # LinkedIn OAuth client secret
-RESEND_API_KEY=          # Email verification delivery provider key
-EMAIL_FROM=              # Verified sender address for verification codes
+SMTP_HOST=mail.spacemail.com
+SMTP_PORT=465            # SpaceMail SMTP port; 465 uses TLS by default
+SMTP_SECURE=true         # Optional; defaults to true for port 465
+SMTP_USER=start@useclevr.com
+SMTP_PASSWORD=           # SpaceMail SMTP password for start@useclevr.com, set in Railway
+EMAIL_FROM="UseClevr <auth@useclevr.com>"
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true
 MOCK_AI_RESPONSE_DELAY_MS=250
 ```
+
+SMTP authentication uses `SMTP_USER`; `auth@useclevr.com` is the visible sender alias and is not used for SMTP authentication.
 
 `AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
 `NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility, but Railway services should use the `AUTH_*`
