@@ -203,6 +203,7 @@ Text rules for this file:
 - Store email verification records with user or email, hashed code, purpose, 10-minute expiry, used timestamp, attempts, and created timestamp.
 - Limit verification to five wrong attempts and keep resend-code actions on a 60-second cooldown.
 - Send verification codes through a server-only SMTP email abstraction that authenticates with `SMTP_USER` and shows the sender from `EMAIL_FROM`.
+- Verify SMTP STARTTLS connection and authentication before sending each verification email, and expose a temporary SMTP status endpoint for Railway diagnostics.
 - Log verification email SMTP failures on the server with sanitized SMTP settings and Nodemailer error fields while keeping `SMTP_PASSWORD` out of logs and returning safe client-facing errors.
 - Log email-password signup, verification, proof consumption, and credentials sign-in outcomes on the server with masked email addresses and without logging passwords or verification codes.
 - Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.

@@ -18,6 +18,7 @@
 - Log sanitized SMTP settings and provider error details when verification email delivery fails so production diagnostics show the exact mail-server rejection without exposing passwords.
 - Log masked email-password auth milestones and provide Railway auth-flow diagnostics so production registration and login failures identify the exact broken step.
 - Add a temporary env-gated superadmin fallback verification path so platform access survives SMTP delivery failures without exposing the fallback code.
+- Verify SpaceMail STARTTLS and SMTP authentication before sending verification emails, and expose a temporary SMTP status diagnostic endpoint for Railway troubleshooting.
 
 ### Fixed
 

@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-27
-- **Goal**: Keep the configured UseClevr superadmin account accessible when SMTP verification delivery fails.
-- **Durable change**: The temporary admin auth bypass works only when enabled by Railway env, only for the configured superadmin email, checks the fallback code only on the server, logs masked success/failure attempts without logging the code, and mints the same one-time auth proof used by email verification.
-- **Verification**: TypeScript, focused auth ESLint, auth redirect test, auth-flow script startup check, project-record lint, TODO lint, changelog lint, secret scan, package lint, and diff whitespace checks pass.
+- **Goal**: Debug SpaceMail SMTP delivery for UseClevr verification emails without changing UI behavior.
+- **Durable change**: Verification email sending requires STARTTLS on port 587, verifies SMTP connection and authentication before send, logs full Nodemailer error fields and stack on the server without logging `SMTP_PASSWORD`, and exposes a temporary token-guarded SMTP status endpoint for Railway diagnostics.
+- **Verification**: TypeScript, focused SMTP ESLint, project-record lint, TODO lint, changelog lint, secret scan, package lint, and diff whitespace checks pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
-- changed: add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails
+- changed: verify SpaceMail STARTTLS and SMTP authentication before verification email sending and expose a temporary SMTP status diagnostic endpoint
