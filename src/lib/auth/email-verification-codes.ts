@@ -201,6 +201,37 @@ export async function consumeVerifiedAuthProof({
   return true;
 }
 
+export async function createVerifiedAuthProof({
+  email,
+  userId,
+  purpose,
+  source,
+}: {
+  email: string;
+  userId: string | null;
+  purpose: EmailVerificationPurpose;
+  source: "admin_bypass";
+}) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + CODE_EXPIRY_MINUTES * 60 * 1000);
+  const proof = uuidv4();
+  const codeHash = await bcrypt.hash(`${source}:${normalizedEmail}:${purpose}:${proof}`, 12);
+
+  await db.insert(emailVerificationCodes).values({
+    id: proof,
+    userId,
+    email: normalizedEmail,
+    purpose,
+    codeHash,
+    expiresAt,
+    usedAt: now,
+  });
+
+  logVerificationEvent("proof_created", { email: normalizedEmail, purpose, userId });
+  return proof;
+}
+
 export async function markEmailVerified(email: string) {
   await db
     .update(users)

@@ -205,6 +205,7 @@ Text rules for this file:
 - Send verification codes through a server-only SMTP email abstraction that authenticates with `SMTP_USER` and shows the sender from `EMAIL_FROM`.
 - Log verification email SMTP failures on the server with sanitized SMTP settings and Nodemailer error fields while keeping `SMTP_PASSWORD` out of logs and returning safe client-facing errors.
 - Log email-password signup, verification, proof consumption, and credentials sign-in outcomes on the server with masked email addresses and without logging passwords or verification codes.
+- Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.

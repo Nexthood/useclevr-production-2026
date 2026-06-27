@@ -1,10 +1,12 @@
 "use server";
 
+import { timingSafeEqual } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { debugError } from "@/lib/utils/debug";
 
 import { recordActivity } from "@/lib/activity/activity-store";
 import {
+  createVerifiedAuthProof,
   createAndSendVerificationCode,
   getEmailVerificationLimits,
   markEmailVerified,
@@ -66,6 +68,14 @@ export async function signup(formData: FormData) {
       });
 
       if (!delivery.success) {
+        if (canUseAdminAuthBypass(email)) {
+          return adminBypassVerificationRequired(
+            email,
+            "signup",
+            getVerificationErrorMessage(delivery.reason),
+          );
+        }
+
         return { error: getVerificationErrorMessage(delivery.reason) };
       }
 
@@ -92,6 +102,17 @@ export async function signup(formData: FormData) {
       });
 
       if (!delivery.success) {
+        if (canUseAdminAuthBypass(email)) {
+          return {
+            ...adminBypassVerificationRequired(
+              email,
+              "signup",
+              getVerificationErrorMessage(delivery.reason),
+            ),
+            linked: true,
+          };
+        }
+
         return { error: getVerificationErrorMessage(delivery.reason) };
       }
 
@@ -159,6 +180,14 @@ export async function signup(formData: FormData) {
   });
 
   if (!delivery.success) {
+    if (canUseAdminAuthBypass(email)) {
+      return adminBypassVerificationRequired(
+        email,
+        "signup",
+        getVerificationErrorMessage(delivery.reason),
+      );
+    }
+
     return { error: getVerificationErrorMessage(delivery.reason) };
   }
 
@@ -211,6 +240,14 @@ export async function beginEmailPasswordLogin(emailInput: string, passwordInput:
     });
 
     if (!delivery.success) {
+      if (canUseAdminAuthBypass(email)) {
+        return adminBypassVerificationRequired(
+          email,
+          purpose,
+          getVerificationErrorMessage(delivery.reason),
+        );
+      }
+
       return { error: getVerificationErrorMessage(delivery.reason) };
     }
 
@@ -261,6 +298,79 @@ export async function verifyEmailOtp(formData: FormData) {
   return { success: true, proof: result.proof, purpose };
 }
 
+export async function verifyAdminAuthBypass(formData: FormData) {
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") || "");
+  const code = String(formData.get("code") || "");
+  const purpose = String(formData.get("purpose") || "") as EmailVerificationPurpose;
+
+  if (purpose !== "signup" && purpose !== "login") {
+    return { error: "Start verification again and request a new code." };
+  }
+
+  if (!canUseAdminAuthBypass(email)) {
+    logAdminBypassAttempt("blocked_unavailable", email);
+    return { error: "Admin fallback is not available." };
+  }
+
+  if (!password || !code) {
+    logAdminBypassAttempt("missing_credentials", email);
+    return { error: "Enter the admin fallback code." };
+  }
+
+  const configuredCode = process.env.ADMIN_AUTH_BYPASS_CODE || "";
+  if (!configuredCode) {
+    logAdminBypassAttempt("missing_server_code", email);
+    return { error: "Admin fallback is not configured." };
+  }
+
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+      columns: {
+        id: true,
+        email: true,
+        password: true,
+      },
+    });
+
+    if (!user?.password) {
+      logAdminBypassAttempt("missing_password_account", email);
+      return { error: "Admin fallback failed." };
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      logAdminBypassAttempt("invalid_password", email);
+      return { error: "Admin fallback failed." };
+    }
+
+    if (!safeCodeEquals(code, configuredCode)) {
+      logAdminBypassAttempt("invalid_code", email);
+      return { error: "Admin fallback code is invalid." };
+    }
+
+    if (purpose === "signup") {
+      await markEmailVerified(email);
+    }
+
+    const proof = await createVerifiedAuthProof({
+      email,
+      userId: user.id,
+      purpose,
+      source: "admin_bypass",
+    });
+
+    logAdminBypassAttempt("success", email);
+    return { success: true, proof, purpose };
+  } catch (error) {
+    logAdminBypassAttempt("server_error", email, error);
+    return { error: "Admin fallback failed. Please try again." };
+  }
+}
+
 export async function resendEmailOtp(emailInput: string, purposeInput: EmailVerificationPurpose) {
   const email = emailInput.trim().toLowerCase();
   const purpose = purposeInput === "login" ? "login" : "signup";
@@ -307,4 +417,55 @@ function getVerificationErrorMessage(reason: string) {
   };
 
   return messages[reason] || "Verification failed. Please try again.";
+}
+
+function adminBypassVerificationRequired(
+  email: string,
+  purpose: EmailVerificationPurpose,
+  deliveryError: string,
+) {
+  logAdminBypassAttempt("available_after_delivery_failure", email);
+  return {
+    success: true,
+    verificationRequired: true,
+    email,
+    purpose,
+    adminBypassAvailable: true,
+    message: `${deliveryError} Use the secure superadmin fallback code to continue.`,
+  };
+}
+
+function canUseAdminAuthBypass(email: string) {
+  if (process.env.ADMIN_AUTH_BYPASS_ENABLED !== "true") return false;
+  const bypassEmail = (process.env.ADMIN_AUTH_BYPASS_EMAIL || "").trim().toLowerCase();
+  return Boolean(bypassEmail) && email.trim().toLowerCase() === bypassEmail;
+}
+
+function safeCodeEquals(input: string, expected: string) {
+  const inputBuffer = Buffer.from(input);
+  const expectedBuffer = Buffer.from(expected);
+  if (inputBuffer.length !== expectedBuffer.length) return false;
+  return timingSafeEqual(inputBuffer, expectedBuffer);
+}
+
+function logAdminBypassAttempt(event: string, email: string, error?: unknown) {
+  const payload = {
+    event,
+    email: maskEmail(email),
+    error: error instanceof Error ? { name: error.name, message: error.message } : undefined,
+  };
+
+  if (event === "success" || event === "available_after_delivery_failure") {
+    console.warn("[Auth] Admin bypass event", payload);
+    return;
+  }
+
+  console.error("[Auth] Admin bypass event", payload);
+}
+
+function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "[invalid-email]";
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
 }

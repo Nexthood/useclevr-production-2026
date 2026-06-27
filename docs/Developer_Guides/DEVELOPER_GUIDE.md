@@ -148,6 +148,9 @@ AUTH_GOOGLE_ID=          # Google OAuth client ID
 AUTH_GOOGLE_SECRET=      # Google OAuth client secret
 AUTH_LINKEDIN_ID=        # LinkedIn OAuth client ID
 AUTH_LINKEDIN_SECRET=    # LinkedIn OAuth client secret
+ADMIN_AUTH_BYPASS_ENABLED=false
+ADMIN_AUTH_BYPASS_EMAIL=superadmin@useclevr.com
+ADMIN_AUTH_BYPASS_CODE=  # Temporary superadmin fallback code, set in Railway
 SMTP_HOST=mail.spacemail.com
 SMTP_PORT=465            # SpaceMail SMTP port; 465 uses TLS by default
 SMTP_SECURE=true         # Optional; defaults to true for port 465
@@ -161,6 +164,8 @@ MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
 SMTP authentication uses `SMTP_USER`; aliases such as `auth@useclevr.com` are not used for SMTP authentication.
+The temporary admin auth bypass works only when `ADMIN_AUTH_BYPASS_ENABLED=true`, only for
+`ADMIN_AUTH_BYPASS_EMAIL`, and never logs `ADMIN_AUTH_BYPASS_CODE`.
 Run `pnpm test:smtp-verification -- --to recipient@example.com --matrix` inside Railway to send
 one diagnostic verification email with port 465/TLS and one with port 587/STARTTLS settings.
 The script logs sanitized SMTP settings and the server logs include Nodemailer error details without

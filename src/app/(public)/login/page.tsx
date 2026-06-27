@@ -6,6 +6,7 @@ import {
   beginEmailPasswordLogin,
   resendEmailOtp,
   signup,
+  verifyAdminAuthBypass,
   verifyEmailOtp,
 } from "@/app/actions/auth";
 import { Logo } from "@/components/layout/logo";
@@ -78,7 +79,7 @@ function LoginForm() {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authAction, setAuthAction] = useState<
-    "signin" | "signup" | "demo" | "google" | "linkedin" | null
+    "signin" | "signup" | "demo" | "google" | "linkedin" | "admin-bypass" | null
   >(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
@@ -90,6 +91,8 @@ function LoginForm() {
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [isResendingCode, setIsResendingCode] = useState(false);
+  const [adminBypassAvailable, setAdminBypassAvailable] = useState(false);
+  const [adminBypassCode, setAdminBypassCode] = useState("");
   const [resendAvailableAt, setResendAvailableAt] = useState(0);
   const [nowMs, setNowMs] = useState(Date.now());
   const [revealPassword, setRevealPassword] = useState("");
@@ -119,11 +122,14 @@ function LoginForm() {
     password: string,
     purpose: "signup" | "login",
     message = authText.verification.sent,
+    allowAdminBypass = false,
   ) => {
     setPendingVerificationEmail(email.trim().toLowerCase());
     setPendingVerificationPurpose(purpose);
     setOtpPw(password);
     setOtpCode("");
+    setAdminBypassCode("");
+    setAdminBypassAvailable(allowAdminBypass);
     setVerificationError(null);
     setVerificationMessage(message);
     setResendAvailableAt(Date.now() + 60_000);
@@ -173,7 +179,7 @@ function LoginForm() {
     try {
       const result = await beginEmailPasswordLogin(signInEmail, signInPassword);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         setAuthError(result.error);
         return;
       }
@@ -182,7 +188,8 @@ function LoginForm() {
         signInEmail,
         signInPassword,
         result.purpose || "login",
-        authText.verification.sent,
+        "message" in result ? result.message : authText.verification.sent,
+        "adminBypassAvailable" in result && Boolean(result.adminBypassAvailable),
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -224,12 +231,18 @@ function LoginForm() {
     try {
       const result = await signup(formData);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         setAuthError(result.error);
         return;
       }
 
-      showVerificationStep(signUpEmail, signUpPassword, "signup");
+      showVerificationStep(
+        signUpEmail,
+        signUpPassword,
+        "signup",
+        "message" in result ? result.message : authText.verification.sent,
+        "adminBypassAvailable" in result && Boolean(result.adminBypassAvailable),
+      );
     } catch {
       setAuthError("Account setup failed. Please try again.");
     } finally {
@@ -280,6 +293,59 @@ function LoginForm() {
       goToDashboard();
     } catch {
       setVerificationError(authText.errors.verifyFailed);
+    } finally {
+      setIsLoading(false);
+      setAuthAction(null);
+    }
+  };
+
+  const handleAdminBypassSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminBypassAvailable) return;
+
+    setIsLoading(true);
+    setAuthAction("admin-bypass");
+    setVerificationError(null);
+    setVerificationMessage(null);
+    setAuthError(null);
+
+    const formData = new FormData();
+    formData.append("email", pendingVerificationEmail);
+    formData.append("password", otpPw);
+    formData.append("code", adminBypassCode);
+    formData.append("purpose", pendingVerificationPurpose);
+
+    try {
+      const result = await verifyAdminAuthBypass(formData);
+      if (result.error) {
+        setVerificationError(result.error);
+        return;
+      }
+
+      const signInResult = await signIn("credentials", {
+        email: pendingVerificationEmail,
+        password: otpPw,
+        verificationProof: result.proof,
+        verificationPurpose: result.purpose,
+        redirect: false,
+        callbackUrl: dashboardCallbackUrl(),
+      });
+
+      if (!signInResult?.ok) {
+        setSignInEmail(pendingVerificationEmail);
+        setPendingVerificationEmail("");
+        setPendingVerificationPurpose("signup");
+        setOtpPw("");
+        setAdminBypassCode("");
+        setAdminBypassAvailable(false);
+        setAuthError("Admin fallback passed, but sign-in failed. Please try again.");
+        router.push("/login?tab=signin");
+        return;
+      }
+
+      goToDashboard();
+    } catch {
+      setVerificationError("Admin fallback failed. Please try again.");
     } finally {
       setIsLoading(false);
       setAuthAction(null);
@@ -478,6 +544,42 @@ function LoginForm() {
                     </Button>
                   </form>
 
+                  {adminBypassAvailable && (
+                    <form
+                      onSubmit={handleAdminBypassSubmit}
+                      className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3"
+                    >
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        Superadmin fallback
+                      </p>
+                      <InnerLabelInput
+                        id="admin-bypass-code"
+                        type="password"
+                        label="Fallback code"
+                        icon={KeyRound}
+                        value={adminBypassCode}
+                        onChange={(e) => setAdminBypassCode(e.target.value)}
+                        required
+                        autoComplete="off"
+                      />
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="w-full border-amber-500/40 bg-background/80"
+                        disabled={isLoading || !adminBypassCode}
+                      >
+                        {isLoading && authAction === "admin-bypass" ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          "Use fallback code"
+                        )}
+                      </Button>
+                    </form>
+                  )}
+
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Button
                       type="button"
@@ -507,6 +609,8 @@ function LoginForm() {
                         setPendingVerificationPurpose("signup");
                         setOtpPw("");
                         setOtpCode("");
+                        setAdminBypassCode("");
+                        setAdminBypassAvailable(false);
                         setVerificationError(null);
                         setVerificationMessage(null);
                         setAuthError(null);

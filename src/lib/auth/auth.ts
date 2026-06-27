@@ -189,7 +189,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             image: user.image,
-            role: "user",
+            role: resolveCredentialsRole(user.email),
           };
         } catch (error) {
           logCredentialsAuthError("authorize_exception", error);
@@ -396,6 +396,13 @@ function normalizeLocalAuthUrlEnv() {
   delete process.env.AUTH_URL;
   delete process.env.NEXTAUTH_URL;
   process.env.AUTH_TRUST_HOST ||= "true";
+}
+
+function resolveCredentialsRole(email?: string | null): BuiltinUserRole {
+  const adminEmail = (process.env.ADMIN_AUTH_BYPASS_EMAIL || "superadmin@useclevr.com")
+    .trim()
+    .toLowerCase();
+  return email?.trim().toLowerCase() === adminEmail ? "superadmin" : "user";
 }
 
 function logCredentialsAuthEvent(

@@ -1,3 +1,4 @@
+- changed: add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails
 - changed: log email-password auth milestones and provide Railway diagnostics for signup, verification, login code, and login verification checks
 - changed: log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing
 - changed: send UseClevr email verification codes through SpaceMail SMTP from the configured UseClevr sender using Railway environment variables
