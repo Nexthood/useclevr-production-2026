@@ -133,11 +133,11 @@ export async function uploadCSV(formData: FormData): Promise<{
         const fileName = file.name.toLowerCase()
         const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls")
         debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type, isExcel })
-        
+
         if (isExcel) {
           const arrayBuffer = await file.arrayBuffer()
-          const buffer = Buffer.from(arrayBuffer)
-          const workbook = require('xlsx').read(buffer, { type: 'buffer' })
+          const uint8Array = new Uint8Array(arrayBuffer)
+          const workbook = require('xlsx').read(uint8Array, { type: 'array' })
           const firstSheetName = workbook.SheetNames[0]
           const worksheet = workbook.Sheets[firstSheetName]
           const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
@@ -323,8 +323,8 @@ export async function uploadCSV(formData: FormData): Promise<{
       const isExcelFile = isExcel && !isCsv
       if (isExcelFile) {
         const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        const workbook = require('xlsx').read(buffer, { type: 'buffer' })
+        const uint8Array = new Uint8Array(arrayBuffer)
+        const workbook = require('xlsx').read(uint8Array, { type: 'array' })
         const firstSheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[firstSheetName]
         const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
@@ -557,22 +557,31 @@ export async function uploadCSV(formData: FormData): Promise<{
   } catch (error) {
     debugError("Upload error:", error)
     debugError("Error stack:", error instanceof Error ? error.stack : 'No stack')
-    
+
     const errorMessage = error instanceof Error ? error.message : "Failed to upload file"
     debugError("Error message:", errorMessage)
-    
-    if (errorMessage.includes("Can't reach database") || 
+
+    if (errorMessage.includes("Can't reach database") ||
         errorMessage.includes("ECONNREFUSED")) {
       return {
         success: false,
-        error: "Database connection failed. Please check your database configuration.",
+        error: "DB_UNAVAILABLE|Database connection failed. Please try again.",
       }
     }
-    
-    // Sanitize error - never expose internal details to frontend
+
+    if (errorMessage.includes("FileReaderSync") ||
+        errorMessage.includes("FileReader") ||
+        errorMessage.includes("xlsx")) {
+      debugError("[UPLOAD] File processing error (internal):", errorMessage)
+      return {
+        success: false,
+        error: "FILE_PROCESSING_ERROR|Unable to process the uploaded file. Please try again with a different file format.",
+      }
+    }
+
     return {
       success: false,
-      error: "Upload failed: " + errorMessage,
+      error: "Upload failed. Please try again or contact support if the problem persists.",
     }
   }
 }

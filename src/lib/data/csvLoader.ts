@@ -19,22 +19,23 @@ export function parseCSVFile(filePath: string): {
   columnCount: number
 } {
   const fs = require('fs')
-  const file = fs.readFileSync(filePath, 'utf8')
-  
+
   // Check if file is Excel
   if (filePath.endsWith('.xlsx') || filePath.endsWith('.xls')) {
-    const workbook = XLSX.read(file, { type: 'buffer' })
+    const buffer = fs.readFileSync(filePath)
+    const uint8Array = new Uint8Array(buffer)
+    const workbook = XLSX.read(uint8Array, { type: 'array' })
     const firstSheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[firstSheetName]
     const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
-    
+
     if (json.length === 0) return {
       rows: [],
       columns: [],
       rowCount: 0,
       columnCount: 0
     }
-    
+
     const columns = json[0] as string[]
     const rows = json.slice(1).map((row) => {
       const obj: Record<string, any> = {}
@@ -43,7 +44,7 @@ export function parseCSVFile(filePath: string): {
       })
       return obj
     })
-    
+
     return {
       rows,
       columns,
@@ -51,8 +52,9 @@ export function parseCSVFile(filePath: string): {
       columnCount: columns.length
     }
   }
-  
+
   // Parse CSV
+  const file = fs.readFileSync(filePath, 'utf8')
   const parsed = Papa.parse(file, {
     header: true,
     skipEmptyLines: true,
@@ -369,8 +371,8 @@ async function parseExcelStreaming(
   onProgress?: (rowCount: number) => void
 ): Promise<StreamingParseResult> {
   const arrayBuffer = await file.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-  const workbook = XLSX.read(buffer, { type: 'buffer' })
+  const uint8Array = new Uint8Array(arrayBuffer)
+  const workbook = XLSX.read(uint8Array, { type: 'array' })
   const firstSheetName = workbook.SheetNames[0]
   const worksheet = workbook.Sheets[firstSheetName]
 
