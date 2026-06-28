@@ -626,6 +626,7 @@ async function ensureOAuthUserRecord({
       .update(profiles)
       .set({
         email,
+        firstName: getFirstName(user.name || null),
         fullName: user.name || null,
         avatarUrl: user.image || null,
         updatedAt: new Date(),
@@ -636,8 +637,14 @@ async function ensureOAuthUserRecord({
       id: uuidv4(),
       userId,
       email,
+      firstName: getFirstName(user.name || null),
       fullName: user.name || null,
       avatarUrl: user.image || null,
+      role: "owner",
     });
   }
+}
+
+function getFirstName(name?: string | null) {
+  return name?.trim().split(/\s+/)[0] || null;
 }

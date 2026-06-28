@@ -162,6 +162,8 @@ export async function signup(formData: FormData) {
       userId: user.id,
       email: user.email,
       fullName: name,
+      firstName: getFirstName(name),
+      role: "owner",
     });
   } catch (dbError) {
     debugError("Database connection error creating profile:", dbError);
@@ -468,4 +470,8 @@ function maskEmail(email: string) {
   if (!local || !domain) return "[invalid-email]";
   const visible = local.slice(0, 2);
   return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
+}
+
+function getFirstName(name: string) {
+  return name.trim().split(/\s+/)[0] || null;
 }

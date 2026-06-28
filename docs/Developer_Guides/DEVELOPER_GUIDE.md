@@ -152,18 +152,24 @@ ADMIN_AUTH_BYPASS_ENABLED=false
 ADMIN_AUTH_BYPASS_EMAIL=superadmin@useclevr.com
 ADMIN_AUTH_BYPASS_CODE=  # Temporary superadmin fallback code, set in Railway
 SMTP_HOST=mail.spacemail.com
-SMTP_PORT=465            # SpaceMail SMTP port; 465 uses TLS by default
-SMTP_SECURE=true         # Optional; defaults to true for port 465
+SMTP_PORT=587            # SpaceMail SMTP port; 587 uses STARTTLS
+SMTP_SECURE=false        # Port 587 starts plain, then upgrades with STARTTLS
 SMTP_USER=start@useclevr.com
 SMTP_PASSWORD=           # SpaceMail SMTP password for start@useclevr.com, set in Railway
-EMAIL_FROM="UseClevr <start@useclevr.com>"
+EMAIL_FROM="UseClevr <auth@useclevr.com>"
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
 MOCK_AI_MODE=false       # Local-only AI development responses; production runtime ignores true
 MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
-SMTP authentication uses `SMTP_USER`; aliases such as `auth@useclevr.com` are not used for SMTP authentication.
+SMTP authentication uses `SMTP_USER`; `auth@useclevr.com` is the visible sender alias from `EMAIL_FROM`.
+The SMTP transport requires STARTTLS on port 587, verifies the connection and authentication before
+sending verification email, and logs complete Nodemailer error details on the server without logging
+`SMTP_PASSWORD`.
+Use `GET /api/debug/smtp-status` with `x-smtp-debug-token` to verify connection, STARTTLS, and
+authentication. Use `POST /api/debug/smtp-status` with the same header to send a fixed test email to
+the configured SMTP status recipient or superadmin account.
 The temporary admin auth bypass works only when `ADMIN_AUTH_BYPASS_ENABLED=true`, only for
 `ADMIN_AUTH_BYPASS_EMAIL`, and never logs `ADMIN_AUTH_BYPASS_CODE`.
 Run `pnpm test:smtp-verification -- --to recipient@example.com --matrix` inside Railway to send

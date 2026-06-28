@@ -197,12 +197,17 @@ Text rules for this file:
 ## Support
 
 - Create usable local accounts during social login and registration.
+- Personalize the authenticated dashboard greeting from profile first name, full name, session name, email username, or a safe fallback.
+- Show the latest uploaded retail dataset as a premium AI business report with executive KPIs, summary insights, revenue and profit analytics, inventory intelligence, product performance, supplier and category analysis, ABC classification, forecast notes, recommendations, and report footer.
+- Gracefully skip optional report sections when supplier, category, date, or financial columns are missing.
+- Keep long report tables scrollable so large product lists remain usable.
 - Create the user and profile as one successful account setup outcome, and remove the user record when profile creation fails.
 - Require email-password registrations to verify the registered email with a 6-digit hashed, single-use confirmation code before sign-in opens the dashboard.
 - Require email-password sign-ins to complete a fresh 6-digit hashed, single-use confirmation code before each dashboard session starts.
 - Store email verification records with user or email, hashed code, purpose, 10-minute expiry, used timestamp, attempts, and created timestamp.
 - Limit verification to five wrong attempts and keep resend-code actions on a 60-second cooldown.
 - Send verification codes through a server-only SMTP email abstraction that authenticates with `SMTP_USER` and shows the sender from `EMAIL_FROM`.
+- Verify SMTP STARTTLS connection and authentication before sending each verification email, and expose a temporary SMTP status endpoint for Railway diagnostics.
 - Log verification email SMTP failures on the server with sanitized SMTP settings and Nodemailer error fields while keeping `SMTP_PASSWORD` out of logs and returning safe client-facing errors.
 - Log email-password signup, verification, proof consumption, and credentials sign-in outcomes on the server with masked email addresses and without logging passwords or verification codes.
 - Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.

@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-880. Verify SpaceMail STARTTLS and SMTP authentication before verification email sending, and expose a temporary SMTP status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)
 - T-879. Add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails. (labels: auth, security, deployment; commit: worktree)
 - T-878. Log email-password auth milestones and provide Railway diagnostics for signup, verification, login code, and login verification checks. (labels: auth, logging, testing, deployment; commit: worktree)
 - T-877. Log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing. (labels: auth, logging, deployment, testing; commit: worktree)
@@ -58,6 +59,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-881. Render the authenticated dashboard as a personalized AI retail business report with real-data KPIs, inventory intelligence, ABC analysis, and prioritized recommendations. (labels: dashboard, reporting, business, ui; commit: worktree)
 - T-869. Show Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states that point incomplete users to the setup workflows. (labels: dashboard, ui, business; commit: worktree)
 - T-843. Manage owner-scoped business profiles and dataset uploads through authenticated Payload views, and manage dashboard support records through the native Payload Issues collection. (labels: dashboard, business, upload, ui; commit: worktree)
 - T-844. Add Payload admin modal entry points for the dataset-aware AI Assistant and Hybrid AI workflows. (labels: dashboard, ai, local-ai, ui; commit: worktree)
