@@ -354,7 +354,7 @@ export default async function AppDashboard() {
 
   return (
     <div className="flex-1 bg-background">
-      <div className="mx-auto w-full max-w-[1520px] space-y-10 px-5 py-8 sm:px-6 lg:px-8 xl:px-10">
+      <div className="mx-auto w-full max-w-[1520px] space-y-10 px-5 pb-8 pt-10 sm:px-6 lg:px-8 xl:px-10">
         <RetailReportDashboard
           displayName={displayName}
           companyName={stats.profile?.companyName || stats.profile?.businessName || null}
@@ -711,11 +711,11 @@ function RetailReportDashboard({
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <section className="overflow-visible rounded-lg border border-border bg-card shadow-sm">
         <div className="border-b border-border bg-gradient-to-r from-cyan-500/10 via-primary/10 to-pink-500/10 p-6 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-200">
+              <p className="pt-1 text-sm font-semibold uppercase leading-6 tracking-[0.18em] text-cyan-700 dark:text-cyan-200">
                 {getGreeting()}, {displayName}
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">

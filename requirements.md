@@ -127,6 +127,8 @@ Text rules for this file:
 - Validate filled Business Profile values before step changes, show clear inline feedback for
   invalid percentages, negative amounts, unrealistic values, and incomplete required setup fields,
   and keep skipped optional fields from breaking calculations.
+- Show 100% Business Profile completion when the visible required profile fields are filled, and do
+  not count hidden tax, payroll, insurance, fixed-cost, or internal setup fields against that badge.
 - Move keyboard focus through Business Profile steps, announce save and validation states, and keep
   selectable answer controls accessible through keyboard navigation and visible focus states.
 - Show only the Business Profile Setup launcher before onboarding starts, then show the saved
