@@ -1,6 +1,6 @@
 import { fetchOllamaModels, generateOllamaCompletion } from "@/lib/ai/ollama-client";
 import { debugError, debugLog } from "@/lib/utils/debug";
-import { skillEngine, type SkillContext, type SkillAnalysisResult, type BusinessIntent } from "@/lib/business/skill-engine";
+import { skillEngine, calculateBusinessHealthScore, type SkillContext, type SkillAnalysisResult, type BusinessIntent } from "@/lib/business/skill-engine";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 
 /**
@@ -108,6 +108,10 @@ IMPORTANT: Use these exact values when answering. Do not recalculate - use the p
   // Add expert perspective from skill engine
   let expertContext = '';
   if (skillResult) {
+    const confidenceScore = skillResult.confidence?.score ?? 0;
+    const confidenceLabel = confidenceScore >= 80 ? 'High confidence' :
+      confidenceScore >= 60 ? 'Medium confidence' : 'Low confidence';
+
     expertContext = `
 EXPERT PERSPECTIVE (${skillResult.expert}):
 - Executive Summary: ${skillResult.executiveSummary}
@@ -116,11 +120,35 @@ EXPERT PERSPECTIVE (${skillResult.expert}):
 - Risks: ${skillResult.risks.join('; ') || 'None identified'}
 - Opportunities: ${skillResult.opportunities.join('; ') || 'None identified'}
 - Financial Impact: ${skillResult.financialImpact || 'Not quantified'}
+- Confidence: ${confidenceScore}% - ${skillResult.confidence?.explanation || confidenceLabel}
 
 YOUR TASK: Explain these business insights professionally using the verified KPIs above.
 Support every recommendation with evidence from the data.
+Rank recommendations by priority (Critical/High/Medium/Low).
 `;
   }
+
+  // Add business health score if available
+  let healthContext = '';
+  const healthScore = skillResult ? calculateBusinessHealthScore({
+    question,
+    datasetId: undefined,
+    rows: [],
+    columns: [],
+    precomputedAnalysis,
+    businessProfile: businessProfile ?? undefined,
+  }) : null;
+
+  if (healthScore && healthScore.overall < 100) {
+    healthContext = `
+BUSINESS HEALTH SCORE: ${healthScore.overall}/100
+- Financial Health: ${healthScore.financialHealth}%
+- Growth Potential: ${healthScore.growthPotential}%
+- Risk Exposure: ${healthScore.riskExposure}%
+Primary improvement: ${healthScore.improvements[0]}
+`;
+  }
+  
 
   // Add business profile context if available
   let profileContext = '';
@@ -139,6 +167,7 @@ Adapt recommendations to this business context.
   return `
 You are an elite business consultant from a top-tier advisory firm, speaking directly to a business leader.
 
+${healthContext}
 ${expertContext}
 
 User question:
@@ -177,7 +206,6 @@ Requirements:
 function formatCurrency(value: number, currency?: string): string {
   if (value === null || value === undefined || isNaN(value)) return '€0'
   const curr = currency || 'EUR'
-  const symbol = curr === 'EUR' ? '€' : curr === 'USD' ? '$' : curr === 'GBP' ? '£' : '€'
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: curr,

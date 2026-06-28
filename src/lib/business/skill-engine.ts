@@ -157,9 +157,31 @@ export interface SkillAnalysisResult {
     reason: string
     financialImpact?: string
     priority?: 'high' | 'medium' | 'low'
+    confidence?: {
+      score: number
+      explanation: string
+    }
   }[]
   financialImpact?: string
   suggestedNextQuestions: string[]
+  confidence?: {
+    score: number
+    explanation: string
+  }
+}
+
+export interface BusinessHealthScore {
+  overall: number
+  financialHealth: number
+  operationalHealth: number
+  growthPotential: number
+  riskExposure: number
+  dataQuality: number
+  inventoryHealth: number
+  cashFlowStrength: number
+  decisionReadiness: number
+  explanation: string
+  improvements: string[]
 }
 
 // ============================================================================
@@ -212,6 +234,12 @@ export const financeSkill: BusinessSkill = {
               action: 'Conduct immediate cost optimization review',
               reason: 'Business is losing money',
               priority: 'high',
+              confidence: {
+                score: precomputedAnalysis?.kpis ? 95 : 70,
+                explanation: precomputedAnalysis?.kpis
+                  ? 'Critical action - verified by financial KPIs'
+                  : 'Critical based on reported loss',
+              },
             },
           ]
         : hasLowMargin
@@ -221,6 +249,12 @@ export const financeSkill: BusinessSkill = {
                 reason: 'Reduce COGS to improve margin',
                 financialImpact: `Potential improvement of ${((profitMargin + 2) - profitMargin).toFixed(1)} percentage points`,
                 priority: 'high',
+                confidence: {
+                  score: precomputedAnalysis?.kpis ? 80 : 60,
+                  explanation: precomputedAnalysis?.kpis
+                    ? 'Based on margin analysis with clear improvement potential'
+                    : 'Estimated based on typical cost structures',
+                },
               },
             ]
           : [],
@@ -232,6 +266,12 @@ export const financeSkill: BusinessSkill = {
         'Which products have the highest margins?',
         'Where can we optimize costs?',
       ],
+      confidence: {
+        score: precomputedAnalysis?.kpis ? 90 : 60,
+        explanation: precomputedAnalysis?.kpis
+          ? 'High confidence - based on verified KPI calculations from your data'
+          : 'Medium confidence - limited data available for analysis',
+      },
     }
   },
 }
@@ -278,6 +318,12 @@ export const retailSkill: BusinessSkill = {
               action: `Apply 15-20% discount to ${worstProducts.slice(0, 5).map((p: { name: string }) => p.name).join(', ')}`,
               reason: 'Clear slow-moving inventory and recover working capital',
               priority: 'high',
+              confidence: {
+                score: precomputedAnalysis?.kpis ? 85 : 60,
+                explanation: precomputedAnalysis?.kpis
+                  ? 'Based on identified underperforming products'
+                  : 'Estimated based on industry benchmarks',
+              },
             },
           ]
         : topProducts.length > 0
@@ -286,6 +332,12 @@ export const retailSkill: BusinessSkill = {
                 action: `Focus inventory on ${topProducts[0]?.name ?? 'top product'}`,
                 reason: 'Highest revenue contribution',
                 priority: 'medium',
+                confidence: {
+                  score: precomputedAnalysis?.kpis ? 75 : 50,
+                  explanation: precomputedAnalysis?.kpis
+                    ? 'Based on top product revenue data'
+                    : 'Estimated based on typical product mix',
+                },
               },
             ]
           : [],
@@ -299,6 +351,12 @@ export const retailSkill: BusinessSkill = {
         'What is our inventory turnover?',
         'Which products have the best margins?',
       ],
+      confidence: {
+        score: precomputedAnalysis?.kpis ? 85 : 55,
+        explanation: precomputedAnalysis?.kpis
+          ? 'High confidence - based on product and revenue data'
+          : 'Medium confidence - limited product data available',
+      },
     }
   },
 }
@@ -349,6 +407,12 @@ export const businessSkill: BusinessSkill = {
               action: 'Investigate root cause of decline',
               reason: 'Revenue declining signals need for intervention',
               priority: 'high',
+              confidence: {
+                score: precomputedAnalysis?.kpis ? 90 : 65,
+                explanation: precomputedAnalysis?.kpis
+                  ? 'High priority intervention based on declining trend data'
+                  : 'Medium confidence based on reported growth trend',
+              },
             },
           ]
         : [
@@ -356,6 +420,12 @@ export const businessSkill: BusinessSkill = {
               action: 'Develop market expansion plan',
               reason: 'Diversify revenue sources',
               priority: 'medium',
+              confidence: {
+                score: precomputedAnalysis?.kpis ? 70 : 50,
+                explanation: precomputedAnalysis?.kpis
+                  ? 'Based on market analysis and growth potential'
+                  : 'Strategic recommendation to diversify risk',
+              },
             },
           ],
       financialImpact: undefined,
@@ -364,6 +434,12 @@ export const businessSkill: BusinessSkill = {
         'Where are the growth opportunities?',
         'What risks should we monitor?',
       ],
+      confidence: {
+        score: precomputedAnalysis?.kpis ? 75 : 45,
+        explanation: precomputedAnalysis?.kpis
+          ? 'Medium confidence - strategic insights based on available data'
+          : 'Lower confidence - limited data for strategic analysis',
+      },
     }
   },
 }
@@ -412,6 +488,256 @@ function formatCurrency(value: number | null): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+// ============================================================================
+// Business Health Score Engine
+// ============================================================================
+
+export function calculateBusinessHealthScore(context: SkillContext): BusinessHealthScore {
+  const { precomputedAnalysis, rows } = context
+  const kpis = precomputedAnalysis?.kpis
+
+  const profitMargin = kpis?.profitMargin ?? 0
+  const totalRevenue = kpis?.totalRevenue ?? 0
+  const growthTrend = kpis?.growthTrend
+  const worstProducts = kpis?.worstProducts?.length ?? 0
+  const topProducts = kpis?.topProducts?.length ?? 0
+
+  // Financial Health (30% weight)
+  const financialHealth = profitMargin < 0 ? 20 :
+    profitMargin >= 15 ? 100 :
+    profitMargin >= 5 ? 60 : 30
+
+  // Growth Potential (20% weight)
+  const growthPotential = growthTrend === 'up' ? 80 :
+    growthTrend === 'down' ? 40 : 60
+
+  // Risk Exposure (20% weight)
+  const riskExposure = worstProducts > 5 ? 40 :
+    worstProducts > 0 ? 60 : 100
+
+  // Operational Health (15% weight) - based on data completeness
+  const hasProducts = topProducts > 0 ? 100 : 50
+  const hasRevenue = totalRevenue > 0 ? 100 : 0
+
+  // Data Quality (15% weight)
+  const dataQuality = rows.length >= 1000 ? 100 :
+    rows.length >= 100 ? 70 :
+    rows.length >= 10 ? 50 : 30
+
+  // Overall weighted score
+  const overall = Math.round(
+    (financialHealth * 0.30) +
+    (growthPotential * 0.20) +
+    ((100 - riskExposure) * 0.20) +
+    (hasProducts * 0.15) +
+    (hasRevenue * 0.15)
+  )
+
+  // Determine primary improvement area
+  const improvements: string[] = []
+  if (profitMargin < 5) improvements.push('Improve profit margins through cost optimization')
+  if (growthTrend === 'down') improvements.push('Reverse declining revenue trend')
+  if (worstProducts > 0) improvements.push('Clear or improve underperforming products')
+  if (rows.length < 100) improvements.push('Upload more data for better insights')
+  if (improvements.length === 0) improvements.push('Maintain current performance trajectory')
+
+  return {
+    overall,
+    financialHealth,
+    operationalHealth: hasProducts,
+    growthPotential,
+    riskExposure: 100 - riskExposure,
+    dataQuality,
+    inventoryHealth: worstProducts === 0 ? 100 : 60,
+    cashFlowStrength: profitMargin >= 0 ? 70 : 30,
+    decisionReadiness: dataQuality * 0.5 + financialHealth * 0.5,
+    explanation: `Business health score of ${overall}% reflects ${financialHealth >= 70 ? 'strong' : financialHealth >= 40 ? 'moderate' : 'weak'} financial performance${growthTrend === 'down' ? ' with declining trends' : growthTrend === 'up' ? ' with positive momentum' : ''}.`,
+    improvements,
+  }
+}
+
+export interface ForecastResult {
+  metric: string
+  currentValue: number
+  forecastedValue: number
+  confidence: number
+  timeframe: string
+  assumptions: string[]
+  businessImpact: string
+  recommendedActions: string[]
+  dataQuality: 'observed' | 'estimated' | 'projected'
+}
+
+export interface ScenarioInput {
+  changeType: 'price_increase' | 'price_decrease' | 'cost_increase' | 'cost_decrease' | 'volume_change' | 'market_expansion'
+  entity?: string
+  value: number
+  unit?: '%' | 'absolute' | 'currency'
+  description: string
+}
+
+export interface ScenarioResult {
+  scenario: string
+  financialImpact: number
+  profitImpact: number
+  cashFlowImpact: number
+  riskLevel: 'low' | 'medium' | 'high'
+  confidence: number
+  recommendation: string
+  assumptions: string[]
+}
+
+// ============================================================================
+// Forecast Engine
+// ============================================================================
+
+export function generateForecast(context: SkillContext, metric: string): ForecastResult | null {
+  const { precomputedAnalysis } = context
+  const kpis = precomputedAnalysis?.kpis
+
+  const totalRevenue = kpis?.totalRevenue ?? 0
+  const totalProfit = kpis?.totalProfit ?? 0
+  const profitMargin = kpis?.profitMargin ?? 0
+  const growthTrend = kpis?.growthTrend
+  const monthlyData = kpis?.monthlyTrend ?? []
+
+  if (metric === 'revenue') {
+    const growthRate = growthTrend === 'up' ? 0.05 : growthTrend === 'down' ? -0.05 : 0.02
+    const forecastedValue = totalRevenue * (1 + growthRate * 12)
+    const confidence = monthlyData.length >= 6 ? 85 : monthlyData.length >= 3 ? 65 : 45
+
+    return {
+      metric: 'Revenue',
+      currentValue: totalRevenue,
+      forecastedValue,
+      confidence,
+      timeframe: '12 months',
+      assumptions: [
+        growthRate > 0 ? `Continuing current growth rate of ${(growthRate * 100).toFixed(1)}% monthly` : 'Stabilizing current revenue level',
+        'No major market disruptions',
+        'Current product mix maintained',
+      ],
+      businessImpact: `Expected ${formatCurrency(forecastedValue - totalRevenue)} ${forecastedValue > totalRevenue ? 'increase' : 'change'} in annual revenue`,
+      recommendedActions: [
+        forecastedValue > totalRevenue
+          ? 'Invest in scaling operations to meet projected demand'
+          : 'Investigate revenue decline root causes',
+        profitMargin < 10 ? 'Focus on margin improvement initiatives' : 'Maintain pricing discipline',
+      ],
+      dataQuality: monthlyData.length >= 12 ? 'observed' : monthlyData.length >= 3 ? 'estimated' : 'projected',
+    }
+  }
+
+  if (metric === 'profit') {
+    const forecastedProfit = totalProfit * (1 + (growthTrend === 'up' ? 0.03 : growthTrend === 'down' ? -0.03 : 0))
+    const confidence = profitMargin > 0 && monthlyData.length >= 6 ? 80 : 55
+
+    return {
+      metric: 'Profit',
+      currentValue: totalProfit,
+      forecastedValue: forecastedProfit,
+      confidence,
+      timeframe: '12 months',
+      assumptions: [
+        'Current margin maintained',
+        'Cost structure unchanged',
+        'No price competition impact',
+      ],
+      businessImpact: `Projected ${formatCurrency(forecastedProfit - totalProfit)} ${forecastedProfit > totalProfit ? 'improvement' : 'change'} in annual profit`,
+      recommendedActions: [
+        profitMargin < 5 ? 'Prioritize cost reduction initiatives' : 'Reinvest profit into growth',
+      ],
+      dataQuality: profitMargin > 0 ? 'estimated' : 'projected',
+    }
+  }
+
+  return null
+}
+
+// ============================================================================
+// Scenario Engine
+// ============================================================================
+
+export function simulateScenario(context: SkillContext, scenario: ScenarioInput): ScenarioResult {
+  const { precomputedAnalysis } = context
+  const kpis = precomputedAnalysis?.kpis
+
+  const totalRevenue = kpis?.totalRevenue ?? 0
+  const totalProfit = kpis?.totalProfit ?? 0
+  const profitMargin = kpis?.profitMargin ?? 0
+  const worstProducts = kpis?.worstProducts ?? []
+
+  let financialImpact = 0
+  let scenarioDesc = ''
+
+  switch (scenario.changeType) {
+    case 'price_increase':
+      const priceIncreaseImpact = totalRevenue * (scenario.value / 100) * 0.8
+      financialImpact = priceIncreaseImpact
+      scenarioDesc = `${scenario.value}% price increase on ${scenario.entity ?? 'products'}`
+      break
+
+    case 'price_decrease':
+      const volumeLift = Math.min(100, 50 * (scenario.value / 10))
+      financialImpact = -totalRevenue * (scenario.value / 100) * (volumeLift / 100) * 0.5
+      scenarioDesc = `${scenario.value}% price decrease on ${scenario.entity ?? 'products'}`
+      break
+
+    case 'cost_increase':
+      financialImpact = -totalRevenue * (scenario.value / 100)
+      scenarioDesc = `${scenario.value}% cost increase (${scenario.description})`
+      break
+
+    case 'cost_decrease':
+      financialImpact = totalRevenue * (scenario.value / 100)
+      scenarioDesc = `${scenario.value}% cost reduction (${scenario.description})`
+      break
+
+    case 'volume_change':
+      financialImpact = totalRevenue * (scenario.value / 100)
+      scenarioDesc = `${scenario.value}% volume change (${scenario.description})`
+      break
+
+    case 'market_expansion':
+      financialImpact = totalRevenue * (scenario.value / 100) * 0.25
+      scenarioDesc = `Market expansion to ${scenario.description}`
+      break
+
+    default:
+      financialImpact = 0
+      scenarioDesc = scenario.description
+  }
+
+  const riskLevel = Math.abs(financialImpact) > totalProfit * 0.3
+    ? 'high'
+    : Math.abs(financialImpact) > totalProfit * 0.1
+      ? 'medium'
+      : 'low'
+
+  const profitImpact = financialImpact * (profitMargin / 100)
+
+  const recommendation = riskLevel === 'high'
+    ? 'Review assumptions carefully - significant financial impact expected'
+    : riskLevel === 'medium'
+      ? 'Consider pilot program before full implementation'
+      : 'Scenario appears financially viable'
+
+  return {
+    scenario: scenarioDesc,
+    financialImpact,
+    profitImpact,
+    cashFlowImpact: profitImpact, // Simplified - same as profit impact
+    riskLevel,
+    confidence: kpis?.totalRevenue ? 85 : 60,
+    recommendation,
+    assumptions: [
+      'Other factors remain constant',
+      'Market conditions unchanged',
+      'Customer behavior predictable',
+    ],
+  }
 }
 
 export const skillEngine = new BusinessSkillEngine()
