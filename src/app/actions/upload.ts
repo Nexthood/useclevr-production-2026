@@ -5,6 +5,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 import { parseCSVString, parseCSVFileBrowser, parseCSVStreaming, computePrecomputedMetrics, type AggregatedMetrics } from "@/lib/data/csvLoader"
+const PREVIEW_ROW_COUNT = 100
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
@@ -295,57 +296,32 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
     }
 
-    // For files within limit, use full parsed data
-    // For files that are large but within limit, store preview + metrics
+    // Determine storage mode:
+    // - profitability: store only summary
+    // - streaming mode (large file within limit): store preview rows + aggregated metrics
+    // - regular: store full data
     const useStreamingMode = rowLimit > 0 && totalRowCount > rowLimit / 2
+
+    // For streaming mode, we have all rows within limit
+    // For regular mode, we also have all rows
+    // The streaming parser returns allRows when within limit
+    const streamedRows = parseResult.previewRows
     let previewRows: CsvRow[] = []
-    let aggregatedMetrics: AggregatedMetrics | null = null
+    let aggregatedMetrics: AggregatedMetrics | null = parseResult.aggregatedMetrics
     let allRows: CsvRow[] = []
 
-    if (useStreamingMode && parseResult.aggregatedMetrics) {
+    if (useStreamingMode) {
       // Large file within limit - store preview + aggregated metrics
-      previewRows = parseResult.previewRows as CsvRow[]
-      aggregatedMetrics = parseResult.aggregatedMetrics
+      previewRows = streamedRows.slice(0, PREVIEW_ROW_COUNT) as CsvRow[]
       debugLog("[UPLOAD] Using streaming mode - storing preview rows + metrics")
-    } else if (parseResult.previewRows.length > 0) {
-      // Small file - parse fully for full data storage
-      previewRows = parseResult.previewRows as CsvRow[]
-
-      if (parseResult.previewRows.length === totalRowCount || totalRowCount <= 1000) {
-        // Full data available in preview (small file)
-        allRows = parseResult.previewRows as CsvRow[]
-      }
-    }
-
-    // If we don't have all rows yet, we need to do a full parse
-    // This happens when file is small but streaming parse only captured preview
-    if (allRows.length === 0 && !useStreamingMode) {
-      const isExcelFile = isExcel && !isCsv
-      if (isExcelFile) {
-        const arrayBuffer = await file.arrayBuffer()
-        const uint8Array = new Uint8Array(arrayBuffer)
-        const workbook = require('xlsx').read(uint8Array, { type: 'array' })
-        const firstSheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[firstSheetName]
-        const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
-
-        const columns = json[0] as string[]
-        allRows = json.slice(1).map((row) => {
-          const obj: Record<string, any> = {}
-          columns.forEach((col, i) => {
-            obj[col] = row[i]
-          })
-          return obj
-        })
-      } else {
-        const text = await file.text()
-        const parsed = parseCSVString(text)
-        allRows = parsed.rows as CsvRow[]
-      }
+    } else {
+      // Small/medium file - store all rows
+      allRows = streamedRows as CsvRow[]
+      previewRows = streamedRows.slice(0, PREVIEW_ROW_COUNT) as CsvRow[]
     }
 
     // Compute aggregated metrics if not already computed
-    if (!aggregatedMetrics) {
+    if (!aggregatedMetrics && allRows.length > 0) {
       aggregatedMetrics = computePrecomputedMetrics(allRows, headers)
     }
 

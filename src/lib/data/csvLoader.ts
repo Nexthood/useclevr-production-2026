@@ -268,11 +268,15 @@ export async function parseCSVStreaming(
     return parseExcelStreaming(file, rowLimit, onProgress)
   }
 
+  // Read file content as text (browser-compatible)
+  const text = await file.text()
+
   return new Promise((resolve, reject) => {
     const columns: string[] = []
     let columnCount = 0
     let rowCount = 0
     const previewRows: any[] = []
+    const allRows: any[] = []
     const aggregatedMetrics: AggregatedMetrics = {
       rowCount: 0,
       numericMetrics: {},
@@ -281,7 +285,7 @@ export async function parseCSVStreaming(
     }
     let headersFound = false
 
-    Papa.parse(file, {
+    Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: true,
@@ -301,7 +305,14 @@ export async function parseCSVStreaming(
           rowCount++
           aggregatedMetrics.rowCount = rowCount
 
-          if (previewRows.length < PREVIEW_ROW_COUNT) {
+          // Always collect all rows if within limit
+          if (rowCount <= rowLimit) {
+            allRows.push(results.data)
+            if (allRows.length <= PREVIEW_ROW_COUNT) {
+              previewRows.push(results.data)
+            }
+          } else if (previewRows.length < PREVIEW_ROW_COUNT) {
+            // Beyond limit, only collect preview rows
             previewRows.push(results.data)
           }
 
@@ -333,7 +344,8 @@ export async function parseCSVStreaming(
           }
         }
 
-        if (rowLimit > 0 && rowCount >= rowLimit) {
+        // Abort only when we've passed the limit AND have enough preview rows
+        if (rowLimit > 0 && rowCount > rowLimit && previewRows.length >= PREVIEW_ROW_COUNT) {
           parser.abort()
         }
       },
@@ -352,13 +364,13 @@ export async function parseCSVStreaming(
           columns,
           columnCount,
           rowCount,
-          previewRows,
+          previewRows: allRows.length > 0 ? allRows : previewRows,
           aggregatedMetrics,
           exceedsLimit: rowLimit > 0 && rowCount > rowLimit,
           limit: rowLimit,
         })
       },
-      error: (error) => {
+error: (error: Error) => {
         reject(new Error(`CSV parsing failed: ${error.message}`))
       },
     })

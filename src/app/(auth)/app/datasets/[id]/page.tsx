@@ -8,7 +8,7 @@ import { datasets, datasetRows } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import { ChevronLeft, ChevronRight, Database, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 
 const PAGE_SIZE = 100
 
@@ -49,11 +49,6 @@ export default async function DatasetDetailPage({
 
   if (!dataset) {
     notFound()
-  }
-
-  const hasAnalysis = dataset.analysis && typeof dataset.analysis === 'object' && Object.keys(dataset.analysis as object).length > 0
-  if (!hasAnalysis) {
-    redirect(`/app/datasets/${id}/analyze`)
   }
 
   const columns = (dataset as any).columns || []
