@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 import { getDb } from "@/lib/db"
 import { businesses } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
+import { businessCompletion, getPrimaryBusinessDetails } from "./business-store"
 import {
   type CompanySetupPayload,
   buildSetupStatus,
@@ -93,5 +94,22 @@ export async function getSetupStatus(
   businessId?: string,
 ) {
   const payload = await getCompanySetup(userId, businessId)
+  if (businessId) return payload.setupStatus
+
+  try {
+    const details = await getPrimaryBusinessDetails(userId)
+    const profileCompletion = businessCompletion(details)
+    if (profileCompletion > payload.setupStatus.setupAccuracy) {
+      return {
+        ...payload.setupStatus,
+        setupAccuracy: profileCompletion,
+        completed: profileCompletion >= 100,
+        missingFields: profileCompletion >= 100 ? [] : payload.setupStatus.missingFields,
+      }
+    }
+  } catch {
+    return payload.setupStatus
+  }
+
   return payload.setupStatus
 }

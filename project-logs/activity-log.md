@@ -1,3 +1,6 @@
+- fixed: show the dashboard report greeting without clipping and score Business Profile completion from visible required fields
+- fixed: repair Dashboard 2.0 TypeScript build blockers so production builds complete
+- changed: refine Business Profile setup with context-aware onboarding copy, smart business-type examples, inline validation, accessible step focus, and a stronger completion state
 - changed: render the authenticated dashboard as a personalized AI retail business report with real-data KPIs, inventory intelligence, ABC analysis, and prioritized recommendations
 - changed: verify SpaceMail STARTTLS and SMTP authentication before verification email sending and expose a temporary SMTP status diagnostic endpoint
 - changed: add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails

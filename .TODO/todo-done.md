@@ -53,12 +53,15 @@ moving work between states.
 
 ## Label: business
 
+- T-882. Refine Business Profile setup into a polished SaaS onboarding flow with context-aware copy, intelligent examples, clear validation, accessible navigation, and a stronger completion state. (labels: business, ui, accessibility; commit: worktree)
 - T-867. Expand Business Profile setup into a professional multi-step wizard with conditional tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth questions for uploaded-data analysis context. (labels: business, ui, data; commit: worktree)
 - T-865. Accountancy shows a pre-bookkeeping empty state, document-upload and package-generation actions, accountant handoff fields, and saved Business Profile accounting context for new-user workflows. (labels: business, ui, workflow; commit: worktree)
 - T-863. Move business profile and accountancy operator workflows into Payload, preserve dashboard data ownership and calculations, and provide tabbed credentials, Google, and LinkedIn admin registration and sign-in. (labels: business, reporting, auth, ui; commit: worktree)
 
 ## Label: dashboard
 
+- T-884. Fix dashboard report-header greeting clipping and Business Profile completion badges so visible completed fields show 100%. (labels: dashboard, business, ui; commit: worktree)
+- T-883. Fix Dashboard 2.0 TypeScript build blockers so the personalized business dashboard compiles and production builds complete. (labels: dashboard, ci-build, quality; commit: worktree)
 - T-881. Render the authenticated dashboard as a personalized AI retail business report with real-data KPIs, inventory intelligence, ABC analysis, and prioritized recommendations. (labels: dashboard, reporting, business, ui; commit: worktree)
 - T-869. Show Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states that point incomplete users to the setup workflows. (labels: dashboard, ui, business; commit: worktree)
 - T-843. Manage owner-scoped business profiles and dataset uploads through authenticated Payload views, and manage dashboard support records through the native Payload Issues collection. (labels: dashboard, business, upload, ui; commit: worktree)

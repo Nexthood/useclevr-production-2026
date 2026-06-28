@@ -122,6 +122,15 @@ Text rules for this file:
 - Open Business Profile setup in a compact centered modal that shows one clear question, one answer
   area, Back, Next, Skip optional question, Save progress, final review, and completion checkmark
   controls.
+- Adapt Business Profile question wording, examples, and placeholder recommendations to the selected
+  business model where context is available, including SaaS, retail, manufacturing, and services.
+- Validate filled Business Profile values before step changes, show clear inline feedback for
+  invalid percentages, negative amounts, unrealistic values, and incomplete required setup fields,
+  and keep skipped optional fields from breaking calculations.
+- Show 100% Business Profile completion when the visible required profile fields are filled, and do
+  not count hidden tax, payroll, insurance, fixed-cost, or internal setup fields against that badge.
+- Move keyboard focus through Business Profile steps, announce save and validation states, and keep
+  selectable answer controls accessible through keyboard navigation and visible focus states.
 - Show only the Business Profile Setup launcher before onboarding starts, then show the saved
   profile summary after completion.
 - Keep Business Profile setup out of long-form database-admin layouts.

@@ -294,6 +294,99 @@ const SECTION_WEIGHTS: Record<string, number> = {
   expenseRules: 2,
 }
 
+const REQUIRED_PROFILE_FIELD_GROUPS: { key: string; values: (payload: CompanySetupPayload) => unknown[] }[] = [
+  {
+    key: "companyName",
+    values: (payload) => [
+      payload.companyInfo.companyName,
+      rawPayloadValue(payload, "companyName"),
+      rawPayloadValue(payload, "company_name"),
+      rawPayloadValue(payload, "businessName"),
+      rawPayloadValue(payload, "business_name"),
+    ],
+  },
+  {
+    key: "businessType",
+    values: (payload) => [
+      payload.companyInfo.industry,
+      payload.companyInfo.businessType,
+      payload.revenueModel.businessModels,
+      rawPayloadValue(payload, "industry"),
+      rawPayloadValue(payload, "businessType"),
+      rawPayloadValue(payload, "business_type"),
+    ],
+  },
+  {
+    key: "country",
+    values: (payload) => [
+      payload.companyInfo.country,
+      payload.companyInfo.countryOfRegistration,
+      payload.companyInfo.taxResidenceCountry,
+      payload.companyInfo.stateRegion,
+      rawPayloadValue(payload, "country"),
+      rawPayloadValue(payload, "region"),
+      rawPayloadValue(payload, "location"),
+    ],
+  },
+  {
+    key: "currency",
+    values: (payload) => [
+      payload.currencySettings.primaryCurrency,
+      payload.currencySettings.reportingCurrency,
+      rawPayloadValue(payload, "currency"),
+      rawPayloadValue(payload, "primaryCurrency"),
+      rawPayloadValue(payload, "primary_currency"),
+    ],
+  },
+  {
+    key: "companySize",
+    values: (payload) => [
+      payload.companyInfo.companySize,
+      payload.companyInfo.employeeCount,
+      rawPayloadValue(payload, "companySize"),
+      rawPayloadValue(payload, "company_size"),
+    ],
+  },
+  {
+    key: "mainGoal",
+    values: (payload) => [
+      payload.businessGoals.growthTarget,
+      payload.businessGoals.profitTarget,
+      payload.businessGoals.cashReserveTarget,
+      payload.businessGoals.expansionPlans,
+      payload.businessGoals.investmentPlans,
+      rawPayloadValue(payload, "mainGoal"),
+      rawPayloadValue(payload, "main_goal"),
+    ],
+  },
+  {
+    key: "datasetPurpose",
+    values: (payload) => [
+      payload.revenueRules.revenueSources,
+      payload.revenueModel.businessModels,
+      rawPayloadValue(payload, "dataType"),
+      rawPayloadValue(payload, "data_type"),
+      rawPayloadValue(payload, "datasetPurpose"),
+      rawPayloadValue(payload, "dataset_purpose"),
+    ],
+  },
+  {
+    key: "role",
+    values: (payload) => [
+      payload.companyInfo.legalStructure,
+      rawPayloadValue(payload, "role"),
+    ],
+  },
+]
+
+function rawPayloadValue(payload: CompanySetupPayload, key: string): unknown {
+  return (payload as unknown as Record<string, unknown>)[key]
+}
+
+function hasAnyFilled(values: unknown[]): boolean {
+  return values.some((value) => isFilled(value))
+}
+
 function calculateSectionCompletion(payload: CompanySetupPayload, section: string): number {
   const fields = getSectionFields(payload, section)
   const filled = fields.filter((field) => isFilled(field.value)).length
@@ -334,11 +427,8 @@ function getSectionFields(payload: CompanySetupPayload, section: string): { key:
 }
 
 export function computeSetupAccuracy(payload: CompanySetupPayload): number {
-  let totalScore = 0
-  for (const section of Object.keys(SECTION_WEIGHTS)) {
-    totalScore += Math.round((calculateSectionCompletion(payload, section) / 100) * (SECTION_WEIGHTS[section] || 0))
-  }
-  return Math.min(totalScore, 100)
+  const filled = REQUIRED_PROFILE_FIELD_GROUPS.filter((field) => hasAnyFilled(field.values(payload))).length
+  return Math.round((filled / REQUIRED_PROFILE_FIELD_GROUPS.length) * 100)
 }
 
 export function computeAccountantReviewFlags(payload: CompanySetupPayload): string[] {
@@ -363,22 +453,9 @@ export function computeAccountantReviewFlags(payload: CompanySetupPayload): stri
 }
 
 export function computeMissingFields(payload: CompanySetupPayload): string[] {
-  const missing: string[] = []
-  const required: [string, string, unknown][] = [
-    ["companyInfo", "companyName", payload.companyInfo.companyName],
-    ["companyInfo", "country", payload.companyInfo.country],
-    ["companyInfo", "industry", payload.companyInfo.industry],
-    ["companyInfo", "businessType", payload.companyInfo.businessType],
-    ["companyInfo", "legalStructure", payload.companyInfo.legalStructure],
-    ["companyInfo", "primaryCurrency", payload.currencySettings.primaryCurrency],
-    ["taxSettings", "taxEntries", payload.taxSettings.taxEntries],
-    ["revenueModel", "businessModels", payload.revenueModel.businessModels],
-  ]
-
-  for (const [, key, value] of required) {
-    if (!isFilled(value)) missing.push(key)
-  }
-  return missing
+  return REQUIRED_PROFILE_FIELD_GROUPS
+    .filter((field) => !hasAnyFilled(field.values(payload)))
+    .map((field) => field.key)
 }
 
 export function computeCompletedSections(payload: CompanySetupPayload): string[] {
@@ -387,12 +464,13 @@ export function computeCompletedSections(payload: CompanySetupPayload): string[]
 
 export function buildSetupStatus(payload: CompanySetupPayload): SetupStatus {
   const setupAccuracy = computeSetupAccuracy(payload)
+  const missingFields = computeMissingFields(payload)
   return {
     setupAccuracy,
     completedSections: computeCompletedSections(payload),
-    missingFields: computeMissingFields(payload),
+    missingFields,
     accountantReviewFlags: computeAccountantReviewFlags(payload),
-    completed: setupAccuracy >= 80 && computeMissingFields(payload).length === 0,
+    completed: setupAccuracy >= 100 && missingFields.length === 0,
   }
 }
 
