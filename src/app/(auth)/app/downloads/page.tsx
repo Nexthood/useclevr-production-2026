@@ -36,16 +36,27 @@ interface ReportListItem {
   timezone?: string | null
 }
 
+type UsageResponse = {
+  analysisCount: number
+  total: number
+  subscriptionTier: string
+  canAnalyze: boolean
+  limitReached: boolean
+  unlimited?: boolean
+  unlimitedLabel?: string | null
+}
+
 export default function DownloadsPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [downloads, setDownloads] = useState<DownloadItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPro, setIsPro] = useState(false)
   const [creditsUsed, setCreditsUsed] = useState(0)
-  const [creditsLimit] = useState(2)
+  const [creditsLimit, setCreditsLimit] = useState(2)
+  const [limitReached, setLimitReached] = useState(false)
+  const [unlimitedLabel, setUnlimitedLabel] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [downloadCount, setDownloadCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, _setFilterStatus] = useState<'all' | 'ready'>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -59,7 +70,13 @@ export default function DownloadsPage() {
     setError(null)
     try {
       // Fetch usage and reports - handle each separately to not fail the whole thing
-      let usageData = { analysisCount: 0, subscriptionTier: 'free' }
+      let usageData: UsageResponse = {
+        analysisCount: 0,
+        total: 2,
+        subscriptionTier: "free",
+        canAnalyze: true,
+        limitReached: false,
+      }
       let reportsData: { reports: ReportListItem[] } = { reports: [] }
       
       // Fetch usage
@@ -74,7 +91,10 @@ export default function DownloadsPage() {
       
       // Update usage state
       setCreditsUsed(usageData.analysisCount || 0)
-      setIsPro(["pro", "business", "superadmin"].includes(usageData.subscriptionTier))
+      setCreditsLimit(usageData.total || 2)
+      setLimitReached(Boolean(usageData.limitReached))
+      setUnlimitedLabel(usageData.unlimitedLabel || null)
+      setIsPro(Boolean(usageData.unlimited) || ["pro", "business", "superadmin", "admin", "builtin"].includes(usageData.subscriptionTier))
       
       // Fetch reports
       try {
@@ -127,7 +147,7 @@ export default function DownloadsPage() {
     }
 
     // Check download limit for non-pro users
-    if (!isPro && downloadCount >= 2) {
+    if (!isPro && limitReached) {
       setShowUpgradeModal(true)
       return
     }
@@ -156,8 +176,6 @@ export default function DownloadsPage() {
           document.body.removeChild(a)
           window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
           
-          // Increment download count for non-pro
-          setDownloadCount(prev => prev + 1)
         } else {
           const data = await response.json()
           throw new Error(data.error || "Download failed")
@@ -165,7 +183,6 @@ export default function DownloadsPage() {
       } else if (item.url) {
         // For direct URLs, open/download directly
         window.open(item.url, "_blank")
-        setDownloadCount(prev => prev + 1)
       }
     } catch (err) {
       debugError("Download error:", err)
@@ -345,13 +362,13 @@ export default function DownloadsPage() {
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-foreground">Analysis Credits</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {isPro 
-                    ? "Unlimited analyses and downloads" 
+                  {isPro
+                    ? `${unlimitedLabel || "Unlimited"} analyses and downloads`
                     : `${creditsUsed} / ${creditsLimit} analyses used this month`
                   }
                 </p>
               </div>
-              {!isPro && creditsUsed >= creditsLimit && (
+              {!isPro && limitReached && (
                 <Button
                   onClick={() => setShowUpgradeModal(true)}
                   className="bg-gradient-primary hover:opacity-90"
@@ -368,7 +385,7 @@ export default function DownloadsPage() {
                     style={{ width: `${creditPercent}%` }}
                   />
                 </div>
-                {creditsUsed >= creditsLimit && (
+                {limitReached && (
                   <p className="text-xs text-amber-500 mt-2">
                     You've reached your analysis limit. Upgrade for unlimited analyses and downloads.
                   </p>

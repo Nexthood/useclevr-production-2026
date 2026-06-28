@@ -62,7 +62,7 @@ export default async function AppLayout({
         />
         <div className="transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
           <Topbar />
-          <main className="flex min-h-[calc(100vh-4rem)] flex-col">
+          <main className="flex min-h-[calc(100vh-4rem)] flex-col pt-10">
             {children}
           </main>
           <HelpChatbox audience={session.user.role === "superadmin" ? "superadmin" : "dashboard"} />

@@ -69,7 +69,7 @@ type AppSidebarProps = {
 
 export function AppSidebar({ user, businessStatus, accountancyStatus }: AppSidebarProps) {
   const pathname = usePathname();
-  const { usage, total, isPro, isLoading } = useUsage();
+  const { usage, total, isPro, isLoading, unlimitedLabel } = useUsage();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -161,7 +161,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus }: AppSideb
       </nav>
 
       <div className="space-y-3 border-t border-sidebar-border p-4">
-        {!isLoading && !isCollapsed && <UsageMonitor used={usage} total={total} isPro={isPro} />}
+        {!isLoading && !isCollapsed && <UsageMonitor used={usage} total={total} isPro={isPro} unlimitedLabel={unlimitedLabel} />}
         {!isCollapsed && (
           <div className="space-y-2">
             <div className="flex flex-col items-center gap-1.5 text-[10px] text-muted-foreground/70">

@@ -354,7 +354,7 @@ export default async function AppDashboard() {
 
   return (
     <div className="flex-1 bg-background">
-      <div className="mx-auto w-full max-w-[1520px] space-y-10 px-5 pb-8 pt-10 sm:px-6 lg:px-8 xl:px-10">
+      <div className="mx-auto w-full max-w-[1520px] space-y-10 px-5 pb-8 sm:px-6 lg:px-8 xl:px-10">
         <RetailReportDashboard
           displayName={displayName}
           companyName={stats.profile?.companyName || stats.profile?.businessName || null}

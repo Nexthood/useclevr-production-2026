@@ -269,7 +269,7 @@ export async function POST(request: Request) {
     // Only check limits for persisted customer users
     if (userId && !isBuiltinUserId(userId)) {
       try {
-        const usage = await getAnalystCreditUsage(userId);
+        const usage = await getAnalystCreditUsage(userId, session.user.role);
         if (usage.limitReached) {
           debugLog('[ANALYZE] REJECTED: Free limit reached');
           return Response.json({

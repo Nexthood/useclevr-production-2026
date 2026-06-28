@@ -95,6 +95,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Check authentication
     const session = await auth()
     const sessionUserId = session?.user?.id
+    const sessionRole = session?.user?.role
 
     if (!sessionUserId) {
       return {
@@ -205,7 +206,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "User ID not found. Please sign in again." }
     }
 
-    const currentUsage = await requireAnalystCredit(effectiveUserId)
+    const currentUsage = await requireAnalystCredit(effectiveUserId, sessionRole)
     if (!currentUsage.canAnalyze) {
       return {
         success: false,
@@ -214,7 +215,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
     }
 
-    const limitInfo = await getDatasetLimitInfo(effectiveUserId)
+    const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
       return {
@@ -436,7 +437,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       // Suggestion refresh is best-effort
     }
 
-    const usage = await consumeAnalystCredit(effectiveUserId)
+    const usage = await consumeAnalystCredit(effectiveUserId, sessionRole)
 
     debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 

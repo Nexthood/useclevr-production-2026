@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm"
 export default async function SettingsPage() {
   const session = await auth()
   const setupStatus = session?.user?.id ? await getCompanySetup(session.user.id) : null
-  const usage = await getAnalystCreditUsage(session?.user?.id)
+  const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role)
   const billingSettings = await getBillingSettings()
 
   let profile: { fullName: string | null; email: string | null } | null = null

@@ -48,6 +48,7 @@ export function CsvUpload() {
    const [processingStep, setProcessingStep] = React.useState(0)
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
+   const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
    const { toast } = useToast()
    const { showNotice } = useNotice()
   
@@ -253,6 +254,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
             limit: result.datasetLimit.limit,
             planName: result.datasetLimit.planName || "Free",
           })
+          setUpgradeModalCopy({})
           setShowUpgradeModal(true)
         }
         // Only queue if truly offline (API unreachable and no local AI)
@@ -271,6 +273,17 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
           setErrorMessage(uploadError)
           setProcessingStep(0)
           if (result.usage?.limitReached) {
+            setUpgradeModalData({
+              currentCount: result.usage.analysisCount || 2,
+              limit: result.usage.total || 2,
+              planName: "Free",
+            })
+            setUpgradeModalCopy({
+              title: "Analyst Credits Used",
+              description: "You have used your 2 included analyst credits. Upgrade to continue uploading, analyzing, and generating reports.",
+              usageLabel: "analyst credits used",
+            })
+            setShowUpgradeModal(true)
             showNotice({
               type: "info",
               title: "Analyst credit limit reached.",
@@ -493,6 +506,9 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
         currentPlan={upgradeModalData?.planName || "Free"}
         currentCount={upgradeModalData?.currentCount || 0}
         limit={upgradeModalData?.limit || 0}
+        title={upgradeModalCopy.title}
+        description={upgradeModalCopy.description}
+        usageLabel={upgradeModalCopy.usageLabel}
       />
     </>
   )

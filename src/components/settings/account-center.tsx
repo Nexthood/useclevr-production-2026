@@ -33,6 +33,8 @@ type AccountCenterProps = {
     total: number
     limitReached: boolean
     canAnalyze: boolean
+    unlimited: boolean
+    unlimitedLabel: string | null
   } | null
   billingSettings: {
     plans: Array<{
@@ -62,8 +64,8 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
   const isDemo = session?.user?.id ? /^demo_/.test(session.user.id) : false
 
   const profileComplete = Boolean(fullName && email)
-  const companyComplete = setupAccuracy >= 80
-  const subscriptionComplete = usage?.subscriptionTier !== "free" || usage?.trialActive
+  const companyComplete = setupAccuracy >= 100
+  const subscriptionComplete = usage?.subscriptionTier !== "free" || usage?.unlimited
   const securityComplete = Boolean(email)
   const completionItems = [
     { label: "Profile", complete: profileComplete },
@@ -72,11 +74,9 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
     { label: "Security", complete: securityComplete },
   ]
   const completionPercent = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100)
-  const planLabel = usage?.trialActive
-    ? `Trial, ${usage.trialDaysRemaining} ${usage.trialDaysRemaining === 1 ? "day" : "days"} left`
-    : usage?.subscriptionTier || "Free"
+  const planLabel = usage?.unlimitedLabel || usage?.subscriptionTier || "Free"
 
-  const isUnlimited = usage?.trialActive || ["pro", "business", "superadmin"].includes(usage?.subscriptionTier || "")
+  const isUnlimited = Boolean(usage?.unlimited)
 
   const handleProfileSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -212,9 +212,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {isUnlimited
-                    ? usage?.trialActive
-                      ? `Unlimited analyst usage for ${usage.trialDaysRemaining} more ${usage.trialDaysRemaining === 1 ? "day" : "days"}`
-                      : "Unlimited analyst usage"
+                    ? usage?.unlimitedLabel || "Unlimited analyst usage"
                     : `${usage?.analysisCount || 0} / ${usage?.total || 0} free credits used`}
                 </p>
                 {!isUnlimited && usage && (
