@@ -12,7 +12,7 @@ export function AssistantNav() {
   const pathname = usePathname()
 
   return (
-    <nav aria-label="Assistant workspace" className="flex gap-2 overflow-x-auto border-b border-border bg-background px-5 py-3">
+    <nav aria-label="Assistant workspace" className="flex shrink-0 gap-2 overflow-x-auto border-b border-border bg-background px-5 py-3">
       {items.map((item) => {
         const isActive = item.href === "/app/assistant" ? pathname === item.href : pathname.startsWith(item.href)
 
