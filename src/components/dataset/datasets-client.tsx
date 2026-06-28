@@ -167,7 +167,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           <DataTable
             title="Dataset library"
             description="All uploaded data files with processing status and actions."
-            emptyMessage="No datasets yet. Upload a CSV file to start analysis."
+            emptyMessage="No datasets yet. Upload a CSV or Excel file to start analysis."
             rows={datasets as unknown as Record<string, unknown>[]}
             columns={datasetColumns}
             rowKey={(row) => String(row.id)}

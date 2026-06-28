@@ -21,9 +21,9 @@ export default function UploadPage() {
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="text-sm font-semibold text-foreground">Upload guide</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Add a CSV file and prepare it for analysis. Use standard upload for general datasets or profitability analysis for financial statements.
-            </p>
+<p className="mt-2 text-sm text-muted-foreground">
+               Add a CSV or Excel file and prepare it for analysis. Use standard upload for general datasets or profitability analysis for financial statements.
+             </p>
           </div>
         </div>
       </div>
@@ -33,7 +33,7 @@ export default function UploadPage() {
   return (
     <DashboardSubpageLayout
       title="Upload Dataset"
-      description="Add a CSV file and prepare it for analysis."
+      description="Add a CSV or Excel file and prepare it for analysis."
       breadcrumbs={[
         { label: "Dashboard", href: "/app" },
         { label: "Upload" },
@@ -54,7 +54,7 @@ export default function UploadPage() {
               }`}
             >
               <span className="whitespace-nowrap">Standard Upload</span>
-              <span className="text-xs font-normal text-muted-foreground">Upload a general CSV dataset.</span>
+              <span className="text-xs font-normal text-muted-foreground">Upload a general CSV or Excel dataset.</span>
             </button>
             <button
               onClick={() => setUploadMode("profitability")}
@@ -95,9 +95,9 @@ export default function UploadPage() {
                 <h2 className="text-xl font-bold text-foreground tracking-tight">
                   Upload your dataset
                 </h2>
-                <p className="text-sm text-muted-foreground">
-                  Drop your CSV file for instant AI analysis
-                </p>
+<p className="text-sm text-muted-foreground">
+                   Drop your CSV or Excel file for instant AI analysis
+                 </p>
               </div>
             </div>
 

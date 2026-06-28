@@ -36,7 +36,7 @@ const quickLinks = [
     description: "Open uploaded files and tables.",
     icon: Database,
   },
-  { href: "/app/upload", label: "Upload", description: "Add a CSV dataset.", icon: BarChart3 },
+  { href: "/app/upload", label: "Upload", description: "Add a CSV or Excel dataset.", icon: BarChart3 },
   {
     href: "/app/assistant",
     label: "AI Assistant",

@@ -514,7 +514,7 @@ export function RetailInventoryClient() {
         rows = json
         columns = json.length > 0 ? Object.keys(json[0]) : []
       } else {
-        setErrorMessage("Please upload a CSV or Excel (.xlsx) file")
+        setErrorMessage("Please upload a CSV or Excel (.csv, .xlsx, .xls) file")
         setState("error")
         return
       }

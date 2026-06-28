@@ -127,8 +127,12 @@ export function CsvUpload() {
   }
 
   const uploadFile = async (file: File) => {
-    if (!file.name.endsWith(".csv")) {
-      setErrorMessage("Please upload a CSV file")
+    const fileName = file.name.toLowerCase()
+    const isCsv = fileName.endsWith(".csv")
+    const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls")
+    
+    if (!isCsv && !isExcel) {
+      setErrorMessage("Please upload a CSV or Excel file (.csv, .xlsx, .xls)")
       return
     }
 
@@ -335,7 +339,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
       
       <input
         type="file"
-        accept=".csv"
+        accept=".csv,.xlsx,.xls"
         onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
         className="hidden"
         id="file-upload"
@@ -405,9 +409,9 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
           <div className="text-center space-y-1.5">
             {uploadStatus === "uploading" ? (
               <>
-                <h3 className="text-base font-semibold">
-                  {connectionMode === 'hybrid' ? 'Uploading (Hybrid Mode)...' : 'Processing CSV...'}
-                </h3>
+<h3 className="text-base font-semibold">
+                   {connectionMode === 'hybrid' ? 'Uploading (Hybrid Mode)...' : 'Processing CSV/Excel...'}
+                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {currentFileName}
                 </p>
@@ -461,9 +465,9 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
               </>
             ) : (
               <>
-                <h3 className="text-base font-semibold">
-                  Drop your CSV file here
-                </h3>
+<h3 className="text-base font-semibold">
+                   Drop your CSV or Excel file here
+                 </h3>
                 <p className="text-xs text-muted-foreground">
                   or click to browse
                 </p>
@@ -474,9 +478,9 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
                 )}
                 {/* File limit - refined */}
                 <div className="mt-3 border-t border-border/40 pt-3">
-                  <p className="text-xs text-muted-foreground/80">
-                    <span className="font-medium text-foreground">CSV</span> files up to 50MB
-                  </p>
+<p className="text-xs text-muted-foreground/80">
+                     <span className="font-medium text-foreground">CSV or Excel</span> files up to 50MB
+                   </p>
                 </div>
               </>
             )}

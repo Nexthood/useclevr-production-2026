@@ -32,17 +32,17 @@ export default function DataProcessingFlowDemo() {
     <div className="min-h-screen bg-background p-8 flex flex-col items-center justify-center gap-8">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Data Processing Flow</h1>
-        <p className="text-muted-foreground">
-          Minimal Creative CSV → Verified → Report Flow Animation
-        </p>
+<p className="text-muted-foreground">
+           Minimal Creative CSV/Excel → Verified → Report Flow Animation
+         </p>
       </div>
 
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Processing Pipeline</CardTitle>
-          <CardDescription>
-            Visual representation of CSV upload and analysis flow
-          </CardDescription>
+<CardDescription>
+             Visual representation of CSV/Excel upload and analysis flow
+           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6 py-8">
           <DataProcessingFlow currentStep={currentStep} />
@@ -85,7 +85,7 @@ export default function DataProcessingFlowDemo() {
 
 // Step values:
 // 0 = Idle
-// 1 = CSV Uploaded
+// 1 = CSV/Excel Uploaded
 // 2 = Parsing
 // 3 = Verified SQL
 // 4 = AI Analysis
