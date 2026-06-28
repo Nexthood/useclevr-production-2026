@@ -2,14 +2,7 @@
 
 import type React from "react";
 
-import useclevrWordmarkDark from "@/assets/images/logos/useclevr-wordmark-dark.png";
-import useclevrWordmarkLight from "@/assets/images/logos/useclevr-wordmark-light.png";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BrainCircuit, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Users, Package, Factory, BarChart, LineChart, PieChart, Target, Rocket, Users as UsersIcon, UserCheck, CreditCard, Percent, Activity } from "lucide-react";
-import { useState } from "react";
+import { BrainCircuit, CreditCard, Factory, Package, Rocket, Target, TrendingUp, Users as UsersIcon } from "lucide-react";
 
 export interface BusinessVertical {
   id: string;
@@ -217,8 +210,8 @@ export function detectDatasetProfile(data: any[]): DatasetProfile {
     if (!detectedColumns.customer && (lowerCol.includes('customer') || lowerCol.includes('client') || lowerCol.includes('user'))) detectedColumns.customer = col;
     if (!detectedColumns.region && (lowerCol.includes('region') || lowerCol.includes('country') || lowerCol.includes('territory'))) detectedColumns.region = col;
     if (!detectedColumns.channel && (lowerCol.includes('channel') || lowerCol.includes('source') || lowerCol.includes('medium'))) detectedColumns.channel = col;
-    if (!detectedColumns.mrr && (lowerCol.includes('mrr') || lowerCol.includes('monthly recurring'))), detectedColumns.mrr = col;
-    if (!detectedColumns.arr && (lowerCol.includes('arr') || lowerCol.includes('annual recurring'))), detectedColumns.arr = col;
+    if (!detectedColumns.mrr && (lowerCol.includes('mrr') || lowerCol.includes('monthly recurring'))) detectedColumns.mrr = col;
+    if (!detectedColumns.arr && (lowerCol.includes('arr') || lowerCol.includes('annual recurring'))) detectedColumns.arr = col;
     if (!detectedColumns.churn && (lowerCol.includes('churn') || lowerCol.includes('retention'))) detectedColumns.churn = col;
     if (!detectedColumns.cac && (lowerCol.includes('cac') || lowerCol.includes('acquisition cost'))) detectedColumns.cac = col;
     if (!detectedColumns.ltv && (lowerCol.includes('ltv') || lowerCol.includes('lifetime value'))) detectedColumns.ltv = col;
@@ -449,7 +442,7 @@ function analyzeDataPattern(data: any[], columns: DetectedColumns): DatasetProfi
     const avgRevenue = revenueData.reduce((sum, d) => sum + (d.revenue || 0), 0) / revenueData.length;
     
     // Calculate profit margin distribution
-    const profitMargins = revenueData.filter(d => d.profit !== null && d.revenue && d.revenue > 0)
+    const profitMargins = revenueData.filter((d): d is { revenue: number; profit: number | null } => d.profit !== null && d.revenue !== null && d.revenue > 0)
       .map(d => (d.profit || 0) / d.revenue);
     
     const avgProfitMargin = profitMargins.reduce((sum, margin) => sum + margin, 0) / profitMargins.length;
@@ -551,6 +544,5 @@ export function formatMetricDisplay(metric: BusinessMetric, value: number | null
 export default {
   getBusinessVerticals,
   analyzeDatasetType,
-  formatMetricDisplay,
-  BusinessContext
+  formatMetricDisplay
 };

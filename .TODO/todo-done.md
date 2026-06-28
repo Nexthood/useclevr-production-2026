@@ -60,6 +60,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-883. Fix Dashboard 2.0 TypeScript build blockers so the personalized business dashboard compiles and production builds complete. (labels: dashboard, ci-build, quality; commit: worktree)
 - T-881. Render the authenticated dashboard as a personalized AI retail business report with real-data KPIs, inventory intelligence, ABC analysis, and prioritized recommendations. (labels: dashboard, reporting, business, ui; commit: worktree)
 - T-869. Show Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states that point incomplete users to the setup workflows. (labels: dashboard, ui, business; commit: worktree)
 - T-843. Manage owner-scoped business profiles and dataset uploads through authenticated Payload views, and manage dashboard support records through the native Payload Issues collection. (labels: dashboard, business, upload, ui; commit: worktree)
