@@ -4,13 +4,13 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
-import { parseCSVString, parseCSVFileBrowser } from "@/lib/data/csvLoader"
+import { parseCSVString, parseCSVFileBrowser, parseCSVStreaming, computePrecomputedMetrics, type AggregatedMetrics } from "@/lib/data/csvLoader"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
-import { consumeAnalystCredit, requireAnalystCredit, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { consumeAnalystCredit, requireAnalystCredit, getRowLimitForUser, formatRowLimitError, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { getDatasetLimitInfo, getDatasetLimitError, type DatasetLimitInfo } from "@/lib/usage/dataset-limits"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -264,57 +264,90 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "File size must be less than 50MB" }
     }
 
-    // Read file content
-    const isExcelFile = isExcel && !isCsv
-    let parsedDataset: { rows: any[], columns: string[], rowCount: number, columnCount: number }
-    
-    if (isExcelFile) {
-      debugLog("[UPLOAD] Processing Excel file:", file.name)
-      const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      const workbook = require('xlsx').read(buffer, { type: 'buffer' })
-      const firstSheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[firstSheetName]
-      const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
-      
-      if (json.length === 0) {
-        return { success: false, error: "Excel file is empty" }
-      }
-      
-      const columns = json[0] as string[]
-      const rows = json.slice(1).map((row) => {
-        const obj: Record<string, any> = {}
-        columns.forEach((col, i) => {
-          obj[col] = row[i]
-        })
-        return obj
-      })
-      
-      parsedDataset = {
-        rows,
-        columns,
-        rowCount: rows.length,
-        columnCount: columns.length
-      }
-    } else {
-      const text = await file.text()
-      debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
-      
-      // Parse CSV content using canonical parser
-      parsedDataset = parseCSVString(text)
-    }
-    
-    if (parsedDataset.rowCount === 0) {
-      return { success: false, error: "File contains no data" }
+    // Get user's row limit based on plan tier
+    const rowLimit = await getRowLimitForUser(effectiveUserId, sessionRole)
+    debugLog("[UPLOAD] Row limit for user:", rowLimit)
+
+    // Use streaming parser to handle large files efficiently
+    // For small files within limit, we still get full data
+    // For files exceeding limit, we get preview rows + aggregated metrics
+    const parseResult = await parseCSVStreaming(file, rowLimit)
+
+    if (parseResult.columns.length === 0) {
+      return { success: false, error: "File contains no data or has invalid format" }
     }
 
-    const headers = parsedDataset.columns
-    const totalRowCount = parsedDataset.rowCount
-    const allRows = parsedDataset.rows as CsvRow[]
+    const headers = parseResult.columns
+    const totalRowCount = parseResult.rowCount
 
-    debugLog("[UPLOAD] CSV parsed")
+    debugLog("[UPLOAD] File parsed")
     debugLog("[UPLOAD] columns detected:", headers)
     debugLog("[UPLOAD] row count detected:", totalRowCount)
+    debugLog("[UPLOAD] exceeds limit:", parseResult.exceedsLimit)
+
+    // Check if file exceeds row limit - show upgrade message
+    if (parseResult.exceedsLimit) {
+      const planName = currentUsage.unlimitedLabel || currentUsage.subscriptionTier || "Free"
+      return {
+        success: false,
+        error: formatRowLimitError(totalRowCount, rowLimit, planName),
+        usage: currentUsage,
+      }
+    }
+
+    // For files within limit, use full parsed data
+    // For files that are large but within limit, store preview + metrics
+    const useStreamingMode = rowLimit > 0 && totalRowCount > rowLimit / 2
+    let previewRows: CsvRow[] = []
+    let aggregatedMetrics: AggregatedMetrics | null = null
+    let allRows: CsvRow[] = []
+
+    if (useStreamingMode && parseResult.aggregatedMetrics) {
+      // Large file within limit - store preview + aggregated metrics
+      previewRows = parseResult.previewRows as CsvRow[]
+      aggregatedMetrics = parseResult.aggregatedMetrics
+      debugLog("[UPLOAD] Using streaming mode - storing preview rows + metrics")
+    } else if (parseResult.previewRows.length > 0) {
+      // Small file - parse fully for full data storage
+      previewRows = parseResult.previewRows as CsvRow[]
+
+      if (parseResult.previewRows.length === totalRowCount || totalRowCount <= 1000) {
+        // Full data available in preview (small file)
+        allRows = parseResult.previewRows as CsvRow[]
+      }
+    }
+
+    // If we don't have all rows yet, we need to do a full parse
+    // This happens when file is small but streaming parse only captured preview
+    if (allRows.length === 0 && !useStreamingMode) {
+      const isExcelFile = isExcel && !isCsv
+      if (isExcelFile) {
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const workbook = require('xlsx').read(buffer, { type: 'buffer' })
+        const firstSheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[firstSheetName]
+        const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+
+        const columns = json[0] as string[]
+        allRows = json.slice(1).map((row) => {
+          const obj: Record<string, any> = {}
+          columns.forEach((col, i) => {
+            obj[col] = row[i]
+          })
+          return obj
+        })
+      } else {
+        const text = await file.text()
+        const parsed = parseCSVString(text)
+        allRows = parsed.rows as CsvRow[]
+      }
+    }
+
+    // Compute aggregated metrics if not already computed
+    if (!aggregatedMetrics) {
+      aggregatedMetrics = computePrecomputedMetrics(allRows, headers)
+    }
 
     // Generate dataset ID
     const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`
@@ -325,7 +358,7 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Get profitability data if present
     const profitabilityDataStr = formData.get('profitabilityData') as string
-    
+
     let profitabilityData = null
     if (profitabilityDataStr) {
       try {
@@ -349,35 +382,24 @@ export async function uploadCSV(formData: FormData): Promise<{
       })
       debugLog("[UPLOAD] AI/explanation layer called: false")
     }
-    
-    // For profitability analysis, store minimal data - don't store full raw rows
-    const shouldStoreFullData = !isProfitabilityAnalysis
-    
-    // Create dataset - store ALL rows for full analysis (unless profitability)
+
+    // Determine storage mode:
+    // - profitability: store only summary
+    // - streaming mode (large file within limit): store preview rows + aggregated metrics
+    // - regular: store full data
+    const useStreamingStorage = useStreamingMode && !isProfitabilityAnalysis && aggregatedMetrics !== null
+
+    // Create dataset
     try {
       const now = new Date()
-      
-      // Insert dataset record - with minimal data for profitability
-      debugLog("[UPLOAD] Inserting dataset...")
-      debugLog("[UPLOAD] Payload:", {
-        id: datasetId,
-        userId: effectiveUserId,
-        name: datasetName,
-        fileName: file.name,
-        fileSize: file.size,
-        rowCount: totalRowCount,
-        columnCount: headers.length,
-        columns: headers,
-        data: shouldStoreFullData ? "[FULL DATA]" : "[MINIMAL - profitability]",
-        columnTypes: {},
-        status: 'ready',
-        analysis: isProfitabilityAnalysis ? { profitability: profitabilityData } : {},
-        createdAt: now,
-        updatedAt: now,
-      })
 
-      // For profitability: store only metadata + summary, NOT full raw rows
-      // For regular: store full data as before
+      // Insert dataset record
+      debugLog("[UPLOAD] Inserting dataset...")
+      debugLog("[UPLOAD] Storage mode:", useStreamingStorage ? "streaming (preview + metrics)" : (isProfitabilityAnalysis ? "profitability" : "full data"))
+
+      // For profitability: store only metadata + summary
+      // For streaming mode: store preview rows + aggregated metrics
+      // For regular: store full data
       const insertData = isProfitabilityAnalysis ? {
         id: datasetId,
         userId: effectiveUserId,
@@ -387,10 +409,10 @@ export async function uploadCSV(formData: FormData): Promise<{
         rowCount: totalRowCount,
         columnCount: headers.length,
         columns: headers,
-        data: [], // Don't store full raw rows for profitability
+        data: [],
         columnTypes: {},
         status: 'ready',
-        analysis: { profitability: profitabilityData }, // Store summary in analysis
+        analysis: { profitability: profitabilityData },
         precomputedMetrics: profitabilityData ? {
           totalRevenue: profitabilityData.totalRevenue,
           totalExpenses: profitabilityData.totalExpenses,
@@ -398,6 +420,23 @@ export async function uploadCSV(formData: FormData): Promise<{
           margin: profitabilityData.margin,
           hasBothFiles: profitabilityData.hasBothFiles
         } : null,
+        createdAt: now,
+        updatedAt: now,
+      } : useStreamingStorage ? {
+        // Streaming mode - store preview rows + aggregated metrics
+        id: datasetId,
+        userId: effectiveUserId,
+        name: datasetName,
+        fileName: file.name,
+        fileSize: file.size,
+        rowCount: totalRowCount,
+        columnCount: headers.length,
+        columns: headers,
+        data: previewRows, // Store only preview rows
+        columnTypes: {},
+        status: 'ready',
+        analysis: { streamingMode: true },
+        precomputedMetrics: aggregatedMetrics,
         createdAt: now,
         updatedAt: now,
       } : {
@@ -414,6 +453,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         columnTypes: {},
         status: 'ready',
         analysis: {},
+        precomputedMetrics: aggregatedMetrics,
         createdAt: now,
         updatedAt: now,
       }
@@ -440,7 +480,8 @@ export async function uploadCSV(formData: FormData): Promise<{
         }
 
         // Also write rows to datasetRows so the detail page can paginate them
-        if (!isProfitabilityAnalysis && allRows.length > 0) {
+        // Skip this for streaming mode (preview rows stored in dataset.data) and profitability
+        if (!isProfitabilityAnalysis && !useStreamingStorage && allRows.length > 0) {
           const BATCH_SIZE = 100
           for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
             const batch = allRows.slice(i, i + BATCH_SIZE)
@@ -456,13 +497,15 @@ export async function uploadCSV(formData: FormData): Promise<{
             )
           }
           debugLog("[UPLOAD] Wrote", allRows.length, "rows to datasetRows")
+        } else if (useStreamingStorage) {
+          debugLog("[UPLOAD] Streaming mode - preview rows stored in dataset.data, skipping datasetRows")
         }
       } catch (insertErr) {
         debugError("[UPLOAD] INSERT FAILED:", insertErr)
         debugError("[UPLOAD] INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
         // Return actual error instead of masking as success
-        return { 
-          success: false, 
+        return {
+          success: false,
           step: "profitability_analysis",
           error: isProfitabilityAnalysis
             ? "Could not save profitability analysis. Please try again."
@@ -497,6 +540,8 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 
+    const previewRowsToReturn = useStreamingStorage ? previewRows : allRows.slice(0, 5)
+
     return {
       success: true,
       datasetId: datasetId,
@@ -504,7 +549,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       fileName: file.name,
       preview: {
         headers,
-        rows: allRows.slice(0, 5),
+        rows: previewRowsToReturn,
       },
       profitabilityResult: profitabilityData || undefined,
       usage,

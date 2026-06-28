@@ -29,6 +29,7 @@ type UploadResponse = {
      limitReached?: boolean
      analysisCount?: number
      total?: number
+     subscriptionTier?: string
    }
    datasetLimit?: {
      limitReached: boolean
@@ -251,6 +252,33 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
       } else {
         const uploadError = result.error || result.message || "Upload failed"
         debugLog('[CSV-UPLOAD] Failed:', uploadError)
+
+        // Check for row limit exceeded error
+        if (uploadError.startsWith('ROW_LIMIT_EXCEEDED|')) {
+          const errorParts = uploadError.split('|')
+          const userMessage = errorParts[1] || 'Your file exceeds the row limit for your plan.'
+          setUploadStatus("error")
+          setErrorMessage(userMessage)
+          setProcessingStep(0)
+          setUpgradeModalData({
+            currentCount: 0,
+            limit: 0,
+            planName: result.usage?.subscriptionTier || "Free",
+          })
+          setUpgradeModalCopy({
+            title: "Row Limit Exceeded",
+            description: userMessage,
+            usageLabel: "rows in file",
+          })
+          setShowUpgradeModal(true)
+          showNotice({
+            type: "info",
+            title: "Row limit exceeded",
+            message: userMessage,
+          })
+          return
+        }
+
         // Check for dataset limit error and show upgrade modal
         if (result.datasetLimit?.limitReached) {
           setUpgradeModalData({
@@ -267,8 +295,8 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
           const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || '[]')
           queue.push({ file: { name: file.name, size: file.size }, timestamp: Date.now() })
           localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue))
-          toast({ 
-            title: "Offline mode active", 
+          toast({
+            title: "Offline mode active",
             description: "No internet detected – Install UseClevr AI MEGA",
             variant: "default"
           })
