@@ -11,6 +11,7 @@ export interface BillingPlan {
   discountLabel?: string;
   stripePriceId?: string;
   maxDatasets: number;
+  maxRowsPerFile: number;
 }
 
 export const billingPlans: BillingPlan[] = [
@@ -23,6 +24,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Explore UseClevr with basic cloud analysis.",
     features: ["2 datasets", "Limited AI questions", "Basic insights"],
     maxDatasets: 2,
+    maxRowsPerFile: 5_000,
   },
   {
     id: "pro_monthly",
@@ -33,6 +35,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Up to 25 datasets, report downloads, and Hybrid AI Lite.",
     features: ["25 datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
     maxDatasets: 25,
+    maxRowsPerFile: 100_000,
     stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY,
   },
   {
@@ -44,6 +47,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Pro access with the automatic annual discount applied.",
     features: ["Everything in Pro", "Automatic annual discount", "Hybrid AI Lite"],
     maxDatasets: 25,
+    maxRowsPerFile: 100_000,
     discountLabel: "Auto discount: save €80/year",
     stripePriceId: process.env.STRIPE_PRICE_PRO_ANNUAL,
   },
@@ -61,6 +65,7 @@ export const billingPlans: BillingPlan[] = [
       "Dedicated support",
     ],
     maxDatasets: Infinity,
+    maxRowsPerFile: 300_000,
     stripePriceId: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
   },
 ];
@@ -81,4 +86,9 @@ export function formatPlanPrice(plan: BillingPlan) {
 export function getDatasetLimitForTier(tier: string | null | undefined): number {
   const plan = getBillingPlanByTier(tier)
   return plan.maxDatasets
+}
+
+export function getRowLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.maxRowsPerFile
 }

@@ -10,18 +10,22 @@ export function parseCSVFileBrowser(file: File): Promise<{
   return new Promise((resolve, reject) => {
     const fileName = file.name.toLowerCase()
     const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
-    
-    // Handle Excel files
+
     if (isExcel) {
       const reader = new FileReader()
       reader.onload = (e) => {
         try {
           const data = e.target?.result
-          const workbook = XLSX.read(data, { type: 'binary' })
+          if (!data) {
+            reject(new Error('Failed to read file'))
+            return
+          }
+          const uint8Array = new Uint8Array(data as ArrayBuffer)
+          const workbook = XLSX.read(uint8Array, { type: 'array' })
           const firstSheetName = workbook.SheetNames[0]
           const worksheet = workbook.Sheets[firstSheetName]
           const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
-          
+
           if (json.length === 0) {
             resolve({
               rows: [],
@@ -31,7 +35,7 @@ export function parseCSVFileBrowser(file: File): Promise<{
             })
             return
           }
-          
+
           const columns = json[0] as string[]
           const rows = json.slice(1).map((row) => {
             const obj: Record<string, any> = {}
@@ -40,7 +44,7 @@ export function parseCSVFileBrowser(file: File): Promise<{
             })
             return obj
           })
-          
+
           resolve({
             rows,
             columns,
@@ -51,28 +55,26 @@ export function parseCSVFileBrowser(file: File): Promise<{
           reject(error)
         }
       }
-      reader.onerror = (error) => reject(error)
-      reader.readAsBinaryString(file)
+      reader.onerror = () => reject(new Error('Failed to read Excel file'))
+      reader.readAsArrayBuffer(file)
       return
     }
-    
-    // Handle CSV files
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: true,
-      complete: (results) => {
-        const columns = results.meta.fields || []
-        resolve({
-          rows: results.data,
-          columns,
-          rowCount: results.data.length,
-          columnCount: columns.length
-        })
-      },
-      error: (error) => {
-        reject(error)
-      }
+
+    file.text().then((text) => {
+      const parsed = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true
+      })
+      const columns = parsed.meta.fields || []
+      resolve({
+        rows: parsed.data,
+        columns,
+        rowCount: parsed.data.length,
+        columnCount: columns.length
+      })
+    }).catch((error) => {
+      reject(new Error('Failed to read CSV file: ' + error.message))
     })
   })
 }

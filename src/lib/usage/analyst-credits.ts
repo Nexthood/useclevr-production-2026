@@ -7,6 +7,14 @@ import { eq } from "drizzle-orm"
 export const FREE_ANALYST_CREDITS = 2
 export const TRIAL_DAYS = 14
 
+export const ROW_LIMITS = {
+  FREE: 5_000,
+  PRO: 100_000,
+  BUSINESS: 300_000,
+  ADMIN: 500_000,
+  SUPERADMIN: Infinity,
+} as const
+
 export type AnalystCreditUsage = {
   analysisCount: number
   total: number
@@ -189,4 +197,52 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
 
 export async function requireAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
   return getAnalystCreditUsage(userId, role)
+}
+
+export async function getRowLimitForUser(userId?: string | null, role?: string | null): Promise<number> {
+  if (isBuiltinUserId(userId)) {
+    return isSuperAdminUserId(userId) ? ROW_LIMITS.SUPERADMIN : ROW_LIMITS.ADMIN
+  }
+
+  if (userId && (role === "superadmin" || role === "admin")) {
+    return role === "superadmin" ? ROW_LIMITS.SUPERADMIN : ROW_LIMITS.ADMIN
+  }
+
+  if (!userId) {
+    return ROW_LIMITS.FREE
+  }
+
+  const db = getDb()
+  if (!db) {
+    return ROW_LIMITS.FREE
+  }
+
+  try {
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: {
+        subscriptionTier: true,
+        role: true,
+      },
+    })
+
+    const tier = profile?.subscriptionTier || "free"
+    const profileRole = profile?.role || null
+    const isAdmin = profileRole === "superadmin" || profileRole === "admin"
+
+    if (isAdmin || tier === "superadmin") return ROW_LIMITS.SUPERADMIN
+    if (tier === "admin" || profileRole === "admin") return ROW_LIMITS.ADMIN
+    if (tier === "business") return ROW_LIMITS.BUSINESS
+    if (tier === "pro") return ROW_LIMITS.PRO
+    return ROW_LIMITS.FREE
+  } catch {
+    return ROW_LIMITS.FREE
+  }
+}
+
+export function formatRowLimitError(rowCount: number, limit: number, planName: string): string {
+  if (limit === Infinity) {
+    return `ROW_LIMIT_EXCEEDED|Your dataset has ${rowCount.toLocaleString()} rows which exceeds the maximum supported rows.`
+  }
+  return `ROW_LIMIT_EXCEEDED|Your ${planName} plan allows up to ${limit.toLocaleString()} rows per file. Your file has ${rowCount.toLocaleString()} rows. Upgrade to a higher plan to handle larger datasets.`
 }
