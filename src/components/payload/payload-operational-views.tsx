@@ -1848,7 +1848,7 @@ function PayloadDatasetUploadWorkspace() {
       <OperationHeader
         eyebrow="Product operations"
         title="Dataset upload"
-        description="Upload a CSV into the selected dashboard account using the production dataset schema."
+        description="Upload a CSV or Excel file into the selected dashboard account using the production dataset schema."
       />
       <StatusMessage error={error} message={message} />
 
@@ -1871,19 +1871,19 @@ function PayloadDatasetUploadWorkspace() {
               ))}
             </select>
           </label>
-          <label className={`is-wide payload-upload-zone${dragOver ? " is-dragover" : ""}`}>
+<label className={`is-wide payload-upload-zone${dragOver ? " is-dragover" : ""}`}>
             <span className="payload-upload-icon">
               <Upload size={32} />
             </span>
             <span className="payload-upload-text">
-              Click to choose a CSV file or drag and drop
+              Click to choose a CSV or Excel file or drag and drop
             </span>
-            <span className="payload-upload-hint">CSV files up to 50MB</span>
+            <span className="payload-upload-hint">CSV or Excel files up to 50MB</span>
             <input
               ref={fileRef}
               name="file"
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
               required
             />
           </label>

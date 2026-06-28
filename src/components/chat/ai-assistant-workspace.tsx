@@ -181,14 +181,14 @@ export function AiAssistantWorkspace() {
     if (!selectedDatasetId) {
       setMessages((current) => [
         ...current,
-        {
-          id: `assistant-error-${Date.now()}`,
-          role: "assistant",
-          content: "Please upload a dataset first.",
-          insight: "No dataset",
-          explanation: "The assistant needs CSV data to answer questions.",
-          recommendation: "Upload a file before asking the assistant.",
-        },
+{
+                     id: `assistant-error-${Date.now()}`,
+                     role: "assistant",
+                     content: "Please upload a dataset first.",
+                     insight: "No dataset",
+                     explanation: "The assistant needs CSV/Excel data to answer questions.",
+                     recommendation: "Upload a file before asking the assistant.",
+                   },
       ])
       return
     }

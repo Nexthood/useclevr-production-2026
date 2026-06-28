@@ -269,7 +269,7 @@ export async function POST(request: Request) {
     // Only check limits for persisted customer users
     if (userId && !isBuiltinUserId(userId)) {
       try {
-        const usage = await getAnalystCreditUsage(userId);
+        const usage = await getAnalystCreditUsage(userId, session.user.role);
         if (usage.limitReached) {
           debugLog('[ANALYZE] REJECTED: Free limit reached');
           return Response.json({
@@ -376,7 +376,7 @@ export async function POST(request: Request) {
         error: "No dataset loaded",
         answer: "No dataset loaded. Please upload a dataset first.",
         insight: "No data available",
-        explanation: "Please upload a CSV file to analyze.",
+        explanation: "Please upload a CSV or Excel file to analyze.",
         recommendation: "Upload a dataset to get started.",
         data: [],
         chartType: "table",

@@ -12,7 +12,7 @@ interface DataProcessingFlowProps {
 }
 
 const steps = [
-  { id: 1, label: "Upload", sublabel: "CSV + columns", icon: FileSpreadsheet },
+  { id: 1, label: "Upload", sublabel: "CSV/Excel + columns", icon: FileSpreadsheet },
   { id: 2, label: "Analyze", sublabel: "verified metrics", icon: ShieldCheck },
   { id: 3, label: "Report", sublabel: "answers + export", icon: FileText },
 ]

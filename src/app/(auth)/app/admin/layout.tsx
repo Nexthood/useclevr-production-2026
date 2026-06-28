@@ -9,5 +9,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/app")
   }
 
-  return children
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-background pt-[var(--app-topbar-offset,40px)]">
+      {children}
+    </div>
+  )
 }

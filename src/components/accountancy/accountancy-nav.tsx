@@ -14,7 +14,7 @@ export function AccountancyNav() {
   const pathname = usePathname()
 
   return (
-    <nav aria-label="Accountancy workspace" className="flex gap-2 overflow-x-auto border-b border-border bg-background px-5 py-3">
+    <nav aria-label="Accountancy workspace" className="flex shrink-0 gap-2 overflow-x-auto border-b border-border bg-background px-5 py-3">
       {primaryItems.map((item) => {
         const isActive = item.href === "/app/accountancy" ? pathname === item.href : pathname.startsWith(item.href)
 

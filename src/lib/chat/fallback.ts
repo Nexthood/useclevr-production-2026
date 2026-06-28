@@ -187,7 +187,7 @@ Use these rankings to answer questions directly.`;
   } else {
     systemContent += `
 
-No dataset is currently loaded. Ask the user to upload a CSV file first.`;
+No dataset is currently loaded. Ask the user to upload a CSV or Excel file first.`;
   }
 
   if (appSearchResults.length > 0) {

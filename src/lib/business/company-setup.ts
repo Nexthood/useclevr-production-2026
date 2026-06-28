@@ -375,6 +375,8 @@ const REQUIRED_PROFILE_FIELD_GROUPS: { key: string; values: (payload: CompanySet
     values: (payload) => [
       payload.companyInfo.legalStructure,
       rawPayloadValue(payload, "role"),
+      rawPayloadValue(payload, "userRole"),
+      rawPayloadValue(payload, "user_role"),
     ],
   },
 ]

@@ -5,7 +5,7 @@ import type React from "react"
 
 export default function AccountancyLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="flex flex-1 flex-col bg-background pt-[var(--app-topbar-offset,40px)]">
       <AppPageHeader
         title="Accountancy"
         description="Financial records, tax calculations, and compliance tools."

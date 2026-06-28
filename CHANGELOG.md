@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Give Free accounts exactly two included analyst credits, then route upload, analysis, and report-download continuation through the existing Stripe upgrade path.
+- Show superadmin, admin, and built-in testing accounts as unlimited for analyst usage without decrementing included credits or showing upgrade blocking.
 - Show the authenticated dashboard as an executive report-style workspace with health scores, AI readiness, KPI cards, chart panels, risks, opportunities, recommendations, activity, and quick actions.
 - Show a professional display-settings icon across the public site, login page, and dashboard so theme and zoom controls feel consistent.
 - Show the same self-running AI demo on the login page so visitors see the spreadsheet pain, AI analysis, discovered insights, and recommended action story before signing in.
@@ -24,6 +26,7 @@
 
 ### Fixed
 
+- Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.
 - Fix Dashboard 2.0 TypeScript build blockers so production builds complete.
 - Fix Google and LinkedIn sign-in so provider callbacks use the correct destination and failed sign-ins show a clear login-page message.

@@ -390,9 +390,9 @@ export default async function HomePage() {
                   <Sparkles className="h-8 w-8 text-[#7C3AED]" />
                 </div>
                 <h3 className="text-2xl font-bold">AI-Powered Insights</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Turn CSV files into clear answers using AI. Get instant insights without SQL, dashboards, or complex setup.
-                </p>
+<p className="text-muted-foreground leading-relaxed">
+                   Turn CSV or Excel files into clear answers using AI. Get instant insights without SQL, dashboards, or complex setup.
+                 </p>
               </Card>
 
               <Card className="p-8 space-y-4 bg-card border-border/50">
@@ -420,9 +420,9 @@ export default async function HomePage() {
                   <Database className="h-8 w-8 text-cyan-800 dark:text-cyan-100" />
                 </div>
                 <h3 className="text-2xl font-bold">Unlimited Datasets</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Upload and analyze as many CSV files as you need with our Pro plan. No limits on your data exploration.
-                </p>
+<p className="text-muted-foreground leading-relaxed">
+                   Upload and analyze as many CSV or Excel files as you need with our Pro plan. No limits on your data exploration.
+                 </p>
               </Card>
 
               <Card className="p-8 space-y-4 bg-card border-border/50">

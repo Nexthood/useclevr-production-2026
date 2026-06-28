@@ -33,3 +33,4 @@
 - fix: make Account settings checkout terms and payment step a wider compact two-column panel
 - fix: use browser-safe CSV parser in Retail client to resolve fs import error
 - fix: remove hardcoded pricing text from landing page preview
+- Fixed authenticated app layout spacing, Business Profile completion aliases, and role-aware analyst credit enforcement. Sidebar pages now start below the sticky topbar; visible Business Profile fields can score 100%; Free users receive 2 included credits before the Stripe upgrade path blocks upload, analysis, and report downloads; admin, superadmin, and built-in accounts show unlimited usage. Verification passed with `pnpm exec tsc --noEmit --pretty false` and `pnpm build`.

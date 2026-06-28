@@ -13,6 +13,8 @@ export type AnalystCreditUsage = {
   subscriptionTier: string
   canAnalyze: boolean
   limitReached: boolean
+  unlimited: boolean
+  unlimitedLabel: string | null
   trialActive: boolean
   trialEndsAt: string | null
   trialDaysRemaining: number
@@ -24,6 +26,8 @@ const defaultUsage: AnalystCreditUsage = {
   subscriptionTier: "free",
   canAnalyze: true,
   limitReached: false,
+  unlimited: false,
+  unlimitedLabel: null,
   trialActive: false,
   trialEndsAt: null,
   trialDaysRemaining: 0,
@@ -45,14 +49,53 @@ function getTrialStatus(createdAt: Date | null | undefined, subscriptionTier: st
   }
 }
 
-export async function getAnalystCreditUsage(userId?: string | null): Promise<AnalystCreditUsage> {
+function isAdminAccess(value?: string | null) {
+  return value === "superadmin" || value === "admin"
+}
+
+function getUnlimitedLabel(tier: string, role?: string | null, userId?: string | null) {
+  if (isSuperAdminUserId(userId) || tier === "superadmin" || role === "superadmin") {
+    return "Superadmin unlimited"
+  }
+
+  if (tier === "admin" || role === "admin") {
+    return "Admin unlimited"
+  }
+
+  if (tier === "pro" || tier === "business" || tier === "builtin") {
+    return "Unlimited"
+  }
+
+  return null
+}
+
+export async function getAnalystCreditUsage(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
   if (isBuiltinUserId(userId)) {
+    const subscriptionTier = isSuperAdminUserId(userId) ? "superadmin" : "builtin"
     return {
       analysisCount: 0,
       total: 0,
-      subscriptionTier: isSuperAdminUserId(userId) ? "superadmin" : "builtin",
+      subscriptionTier,
       canAnalyze: true,
       limitReached: false,
+      unlimited: true,
+      unlimitedLabel: getUnlimitedLabel(subscriptionTier, role, userId),
+      trialActive: false,
+      trialEndsAt: null,
+      trialDaysRemaining: 0,
+    }
+  }
+
+  if (userId && isAdminAccess(role)) {
+    const subscriptionTier = role || "admin"
+    return {
+      analysisCount: 0,
+      total: 0,
+      subscriptionTier,
+      canAnalyze: true,
+      limitReached: false,
+      unlimited: true,
+      unlimitedLabel: getUnlimitedLabel(subscriptionTier, role, userId),
       trialActive: false,
       trialEndsAt: null,
       trialDaysRemaining: 0,
@@ -74,22 +117,29 @@ export async function getAnalystCreditUsage(userId?: string | null): Promise<Ana
       columns: {
         analysisCount: true,
         createdAt: true,
+        role: true,
         subscriptionTier: true,
       },
     })
 
     const analysisCount = Math.min(profile?.analysisCount || 0, FREE_ANALYST_CREDITS)
-    const subscriptionTier = profile?.subscriptionTier || "free"
+    const profileRole = role || profile?.role || null
+    const storedTier = profile?.subscriptionTier || "free"
+    const adminAccess = isAdminAccess(storedTier) || isAdminAccess(profileRole)
+    const subscriptionTier = adminAccess && storedTier === "free" ? profileRole || storedTier : storedTier
     const isPaid = subscriptionTier === "pro" || subscriptionTier === "business"
     const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
-    const hasUnlimitedAccess = isPaid || trial.trialActive
+    const hasUnlimitedAccess = isPaid || adminAccess
+    const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId) : null
 
     return {
       analysisCount,
-      total: FREE_ANALYST_CREDITS,
+      total: hasUnlimitedAccess ? 0 : FREE_ANALYST_CREDITS,
       subscriptionTier,
       canAnalyze: hasUnlimitedAccess || analysisCount < FREE_ANALYST_CREDITS,
       limitReached: !hasUnlimitedAccess && analysisCount >= FREE_ANALYST_CREDITS,
+      unlimited: hasUnlimitedAccess,
+      unlimitedLabel,
       ...trial,
     }
   } catch (error) {
@@ -98,9 +148,9 @@ export async function getAnalystCreditUsage(userId?: string | null): Promise<Ana
   }
 }
 
-export async function consumeAnalystCredit(userId?: string | null): Promise<AnalystCreditUsage> {
+export async function consumeAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
   if (!userId || isBuiltinUserId(userId)) {
-    return getAnalystCreditUsage(userId)
+    return getAnalystCreditUsage(userId, role)
   }
 
   const db = getDb()
@@ -108,8 +158,8 @@ export async function consumeAnalystCredit(userId?: string | null): Promise<Anal
     return defaultUsage
   }
 
-  const usage = await getAnalystCreditUsage(userId)
-  if (usage.trialActive || ["pro", "business", "superadmin"].includes(usage.subscriptionTier)) {
+  const usage = await getAnalystCreditUsage(userId, role)
+  if (usage.unlimited || ["pro", "business", "superadmin", "admin", "builtin"].includes(usage.subscriptionTier)) {
     return usage
   }
 
@@ -128,6 +178,8 @@ export async function consumeAnalystCredit(userId?: string | null): Promise<Anal
       analysisCount,
       canAnalyze: analysisCount < FREE_ANALYST_CREDITS,
       limitReached: analysisCount >= FREE_ANALYST_CREDITS,
+      unlimited: false,
+      unlimitedLabel: null,
     }
   } catch (error) {
     debugError("[USAGE] Failed to consume analyst credit:", error)
@@ -135,6 +187,6 @@ export async function consumeAnalystCredit(userId?: string | null): Promise<Anal
   }
 }
 
-export async function requireAnalystCredit(userId?: string | null): Promise<AnalystCreditUsage> {
-  return getAnalystCreditUsage(userId)
+export async function requireAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
+  return getAnalystCreditUsage(userId, role)
 }

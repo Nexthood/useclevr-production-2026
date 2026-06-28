@@ -4,7 +4,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
-import { parseCSVString } from "@/lib/data/csvLoader"
+import { parseCSVString, parseCSVFileBrowser } from "@/lib/data/csvLoader"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
@@ -95,6 +95,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Check authentication
     const session = await auth()
     const sessionUserId = session?.user?.id
+    const sessionRole = session?.user?.role
 
     if (!sessionUserId) {
       return {
@@ -129,13 +130,29 @@ export async function uploadCSV(formData: FormData): Promise<{
       debugLog("[UPLOAD] === DEMO MODE - Using non-persistent profitability flow ===")
       const file = formData.get("file") as File | null
       if (file) {
-        debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
-        const text = await file.text()
-        const parsed = parseCSVString(text)
-        const headers = parsed.columns
-        debugLog("[UPLOAD] CSV parsed")
-        debugLog("[UPLOAD] columns detected:", headers)
-        debugLog("[UPLOAD] row count detected:", parsed.rowCount)
+        const fileName = file.name.toLowerCase()
+        const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls")
+        debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type, isExcel })
+        
+        if (isExcel) {
+          const arrayBuffer = await file.arrayBuffer()
+          const buffer = Buffer.from(arrayBuffer)
+          const workbook = require('xlsx').read(buffer, { type: 'buffer' })
+          const firstSheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[firstSheetName]
+          const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+          const headers = (json[0] || []) as string[]
+          debugLog("[UPLOAD] Excel parsed")
+          debugLog("[UPLOAD] columns detected:", headers)
+          debugLog("[UPLOAD] row count detected:", json.length - 1)
+        } else {
+          const text = await file.text()
+          const parsed = parseCSVString(text)
+          const headers = parsed.columns
+          debugLog("[UPLOAD] CSV parsed")
+          debugLog("[UPLOAD] columns detected:", headers)
+          debugLog("[UPLOAD] row count detected:", parsed.rowCount)
+        }
       }
       debugLog("[UPLOAD] profitability analysis started")
       
@@ -205,7 +222,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "User ID not found. Please sign in again." }
     }
 
-    const currentUsage = await requireAnalystCredit(effectiveUserId)
+    const currentUsage = await requireAnalystCredit(effectiveUserId, sessionRole)
     if (!currentUsage.canAnalyze) {
       return {
         success: false,
@@ -214,7 +231,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
     }
 
-    const limitInfo = await getDatasetLimitInfo(effectiveUserId)
+    const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
       return {
@@ -230,9 +247,15 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "No file provided" }
     }
 
-    // Validate file type
-    if (!file.name.endsWith(".csv") && !file.type.includes("csv")) {
-      return { success: false, error: "File must be a CSV file" }
+    // Validate file type (CSV or Excel)
+    const fileName = file.name.toLowerCase()
+    const isCsv = fileName.endsWith(".csv") || file.type.includes("csv")
+    const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || 
+                    file.type.includes("spreadsheet") || file.type.includes("excel") ||
+                    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                    file.type === "application/vnd.ms-excel"
+    if (!isCsv && !isExcel) {
+      return { success: false, error: "File must be a CSV or Excel file (.csv, .xlsx, .xls)" }
     }
 
     // File size limits - support up to 50MB
@@ -242,13 +265,47 @@ export async function uploadCSV(formData: FormData): Promise<{
     }
 
     // Read file content
-    const text = await file.text()
-    debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
+    const isExcelFile = isExcel && !isCsv
+    let parsedDataset: { rows: any[], columns: string[], rowCount: number, columnCount: number }
     
-    // Parse CSV content using canonical parser
-    const parsedDataset = parseCSVString(text)
+    if (isExcelFile) {
+      debugLog("[UPLOAD] Processing Excel file:", file.name)
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const workbook = require('xlsx').read(buffer, { type: 'buffer' })
+      const firstSheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[firstSheetName]
+      const json = require('xlsx').utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+      
+      if (json.length === 0) {
+        return { success: false, error: "Excel file is empty" }
+      }
+      
+      const columns = json[0] as string[]
+      const rows = json.slice(1).map((row) => {
+        const obj: Record<string, any> = {}
+        columns.forEach((col, i) => {
+          obj[col] = row[i]
+        })
+        return obj
+      })
+      
+      parsedDataset = {
+        rows,
+        columns,
+        rowCount: rows.length,
+        columnCount: columns.length
+      }
+    } else {
+      const text = await file.text()
+      debugLog("[UPLOAD] file received:", { name: file.name, size: file.size, type: file.type })
+      
+      // Parse CSV content using canonical parser
+      parsedDataset = parseCSVString(text)
+    }
+    
     if (parsedDataset.rowCount === 0) {
-      return { success: false, error: "CSV file is empty" }
+      return { success: false, error: "File contains no data" }
     }
 
     const headers = parsedDataset.columns
@@ -436,7 +493,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       // Suggestion refresh is best-effort
     }
 
-    const usage = await consumeAnalystCredit(effectiveUserId)
+    const usage = await consumeAnalystCredit(effectiveUserId, sessionRole)
 
     debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 

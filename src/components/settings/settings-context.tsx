@@ -12,6 +12,8 @@ export type SettingsContextValue = {
     total: number
     limitReached: boolean
     canAnalyze: boolean
+    unlimited: boolean
+    unlimitedLabel: string | null
   } | null
   session: { user?: { id?: string; name?: string | null; email?: string | null; role?: string } } | null
 }

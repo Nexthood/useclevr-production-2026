@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       const unauthorized = errorCode === "Unauthorized"
       const databaseUnavailable = errorCode === "DB_UNAVAILABLE"
       const limitReached = errorCode === "DATASET_LIMIT_REACHED"
+      const analystLimitReached = Boolean(result.usage?.limitReached)
       return NextResponse.json({
         error:
           unauthorized || databaseUnavailable
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
             : result.error || "Upload failed",
         usage: result.usage,
         datasetLimit: limitReached ? result.limitInfo : undefined,
-      }, { status: unauthorized ? 401 : databaseUnavailable ? 503 : limitReached ? 403 : 400 })
+      }, { status: unauthorized ? 401 : databaseUnavailable ? 503 : analystLimitReached ? 402 : limitReached ? 403 : 400 })
     }
 
     return NextResponse.json(result)

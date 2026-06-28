@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Billing" };
 
 export default async function BillingSettingsPage() {
   const session = await auth();
-  const usage = await getAnalystCreditUsage(session?.user?.id);
+  const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role);
   const db = getDb();
   const profile = db && session?.user?.id
     ? await db.query.profiles.findFirst({
@@ -42,8 +42,8 @@ export default async function BillingSettingsPage() {
   const planLabel =
     usage.subscriptionTier === "superadmin"
       ? "Super admin"
-      : usage.trialActive
-        ? "14-day trial"
+      : usage.subscriptionTier === "admin"
+        ? "Admin"
       : usage.subscriptionTier === "pro"
         ? "Pro"
         : usage.subscriptionTier === "business"

@@ -53,10 +53,10 @@ export default async function ProfileSettingsPage() {
   const fullName = profile?.fullName || user?.name || ""
   const email = profile?.email || user?.email || ""
   const setupStatus = user?.id ? await getSetupStatus(user.id) : null
-  const usage = await getAnalystCreditUsage(user?.id)
+  const usage = await getAnalystCreditUsage(user?.id, user?.role)
   const profileComplete = Boolean(fullName && email)
-  const companyComplete = (setupStatus?.setupAccuracy ?? 0) >= 80
-  const subscriptionComplete = usage.subscriptionTier !== "free" || usage.trialActive
+  const companyComplete = (setupStatus?.setupAccuracy ?? 0) >= 100
+  const subscriptionComplete = usage.subscriptionTier !== "free" || usage.unlimited
   const securityComplete = Boolean(email)
   const completionItems = [
     { label: "Profile", complete: profileComplete },
@@ -65,9 +65,7 @@ export default async function ProfileSettingsPage() {
     { label: "Security", complete: securityComplete },
   ]
   const completionPercent = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100)
-  const planLabel = usage.trialActive
-    ? `Trial, ${usage.trialDaysRemaining} ${usage.trialDaysRemaining === 1 ? "day" : "days"} left`
-    : usage.subscriptionTier
+  const planLabel = usage.unlimitedLabel || usage.subscriptionTier
   const businessFacts = [
     { label: "Company", value: profile?.businessName || "Not set" },
     { label: "Industry", value: profile?.industry || "Not set" },
@@ -170,7 +168,7 @@ export default async function ProfileSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <MetricLine label="Plan" value={planLabel} />
-                <MetricLine label="Analyst credits" value={usage.trialActive || ["pro", "business", "superadmin", "builtin"].includes(usage.subscriptionTier) ? "Unlimited" : `${usage.analysisCount}/${usage.total} used`} />
+                <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount}/${usage.total} used`} />
                 <Link href="/app/settings/subscription" className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                   Manage subscription
                 </Link>

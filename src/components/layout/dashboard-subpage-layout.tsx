@@ -28,7 +28,7 @@ export function DashboardSubpageLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-[var(--app-topbar-offset,40px)]">
       <AppPageHeader
         title={title}
         description={description}
@@ -73,7 +73,7 @@ export function DashboardContent({
   className?: string
 }) {
   return (
-    <div className={`min-w-0 flex-1 overflow-y-auto p-5 ${className}`.trim()}>
+    <div className={`min-w-0 flex-1 overflow-y-auto p-5 pt-11 ${className}`.trim()}>
       <div className="mx-auto w-full max-w-6xl min-w-0">{children}</div>
     </div>
   )

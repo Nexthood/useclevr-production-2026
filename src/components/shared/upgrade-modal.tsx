@@ -11,11 +11,23 @@ type UpgradeModalProps = {
   currentPlan: string
   currentCount: number
   limit: number
+  title?: string
+  description?: string
+  usageLabel?: string
 }
 
-export function UpgradeModal({ open, onOpenChange, currentPlan, currentCount, limit }: UpgradeModalProps) {
+export function UpgradeModal({
+  open,
+  onOpenChange,
+  currentPlan,
+  currentCount,
+  limit,
+  title = "Dataset Limit Reached",
+  description = `Your current plan allows up to ${limit} datasets. You currently have ${currentCount} datasets.`,
+  usageLabel = "datasets used",
+}: UpgradeModalProps) {
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Dataset Limit Reached" description={`Your current plan allows up to ${limit} datasets. You currently have ${currentCount} datasets.`}>
+    <Modal open={open} onOpenChange={onOpenChange} title={title} description={description}>
       <div className="space-y-5">
         <div className="rounded-lg border border-border bg-background p-4">
           <div className="flex items-center gap-3">
@@ -25,7 +37,7 @@ export function UpgradeModal({ open, onOpenChange, currentPlan, currentCount, li
             <div>
               <p className="text-sm font-medium text-foreground">Current plan: {currentPlan}</p>
               <p className="text-xs text-muted-foreground">
-                {currentCount} of {limit} datasets used
+                {currentCount} of {limit} {usageLabel}
               </p>
             </div>
           </div>

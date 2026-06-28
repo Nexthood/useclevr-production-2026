@@ -12,7 +12,7 @@ import { SettingsProvider, type SettingsContextValue } from "@/components/settin
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   const setupStatus = session?.user?.id ? await getSetupStatus(session.user.id) : null
-  const usage = await getAnalystCreditUsage(session?.user?.id)
+  const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role)
   const businessCompletion = Math.min(100, Math.max(0, setupStatus?.setupAccuracy ?? 0))
   const businessComplete = businessCompletion >= 100
   let uploadedDatasetCount = 0
@@ -48,7 +48,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         <section className="rounded-lg border border-border bg-background/70 p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground">Account status</h3>
           <div className="mt-4 grid gap-3">
-            <StatusLine icon={CreditCard} label="Plan" value={usage.trialActive ? "Trial" : usage.subscriptionTier} />
+            <StatusLine icon={CreditCard} label="Plan" value={usage.unlimitedLabel || usage.subscriptionTier} />
             <StatusLine icon={ShieldCheck} label="Access" value={usage.canAnalyze ? "Analysis enabled" : "Credits used"} />
             <StatusLine icon={Settings} label="Role" value={session?.user?.role || "user"} />
           </div>

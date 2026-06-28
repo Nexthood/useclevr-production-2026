@@ -12,11 +12,11 @@ export interface DatasetLimitInfo {
   tier: string
 }
 
-export async function getDatasetLimitInfo(userId: string): Promise<DatasetLimitInfo> {
+export async function getDatasetLimitInfo(userId: string, role?: string | null): Promise<DatasetLimitInfo> {
   const db = getDb()
-  const usage = await getAnalystCreditUsage(userId)
+  const usage = await getAnalystCreditUsage(userId, role)
   const tier = usage.subscriptionTier || "free"
-  const limit = getDatasetLimitForTier(tier)
+  const limit = usage.unlimited ? Infinity : getDatasetLimitForTier(tier)
 
   let currentCount = 0
   if (db) {
@@ -31,8 +31,7 @@ export async function getDatasetLimitInfo(userId: string): Promise<DatasetLimitI
     }
   }
 
-  const plan = tier === "business" ? { name: "Business" } : tier === "pro" ? { name: "Pro" } : { name: "Free" }
-  const planName = (plan as { name: string }).name
+  const planName = usage.unlimitedLabel || (tier === "business" ? "Business" : tier === "pro" ? "Pro" : "Free")
 
   return {
     limit,

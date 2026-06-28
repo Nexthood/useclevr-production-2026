@@ -106,7 +106,9 @@ Text rules for this file:
 - Verify checkout redirects with signed, time-limited server tokens.
 - Apply the annual Pro discount at checkout.
 - Sync subscription status from the payment provider.
-- Give new Free accounts 14 days of unlimited analyst access from account creation without consuming their two post-trial free credits.
+- Give newly registered Free accounts exactly two included analyst credits.
+- Block upload, analysis, and report-download continuation for Free users after both included analyst credits are used, and show a Stripe upgrade path.
+- Let superadmin, admin, and built-in testing accounts use unlimited analyst credits without decrementing included credits or showing upgrade blocking.
 - Let Stripe webhook requests reach signature verification without requiring a browser session.
 - Return an unavailable-checkout error when a paid plan has no configured payment price instead of reporting an unpersisted checkout success.
 - Open the hosted billing portal for users with linked payment customers.
@@ -236,6 +238,7 @@ Text rules for this file:
 - Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Keep display controls as a compact menu with Light Mode, Dark Mode, and zoom levels 50%, 75%,
   100%, 125%, and 150%, with dark mode as the default and saved user preferences.
+- Start authenticated sidebar page content below the sticky top navigation with consistent spacing so the first greeting, heading, or report title stays fully visible.
 - Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
   the completion percentage, switch to a completed check at 100%, and route incomplete Business
   clicks directly to Business Profile setup.

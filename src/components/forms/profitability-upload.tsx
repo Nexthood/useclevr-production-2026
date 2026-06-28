@@ -246,8 +246,12 @@ export function ProfitabilityUpload() {
   }
 
   const processFile = async (file: File, type: "revenue" | "expense") => {
-    if (!file.name.endsWith(".csv")) {
-      toast({ title: "Invalid file", description: "Please upload a CSV file", variant: "destructive" })
+    const fileName = file.name.toLowerCase()
+    const isCsv = fileName.endsWith(".csv")
+    const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls")
+    
+    if (!isCsv && !isExcel) {
+      toast({ title: "Invalid file", description: "Please upload a CSV or Excel file (.csv, .xlsx, .xls)", variant: "destructive" })
       return
     }
 
@@ -255,14 +259,45 @@ export function ProfitabilityUpload() {
     setGenerateStatus("parsing")
 
     try {
-      const text = await file.text()
-      const { data, meta } = parseCSV(text)
+      let data: any[], fields: string[]
+      
+      if (isExcel) {
+        // Parse Excel file
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const XLSX = require('xlsx')
+        const workbook = XLSX.read(buffer, { type: 'buffer' })
+        const firstSheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[firstSheetName]
+        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+        
+        if (json.length === 0) {
+          toast({ title: "Invalid file", description: "Excel file is empty", variant: "destructive" })
+          setGenerateStatus("idle")
+          return
+        }
+        
+        fields = json[0] as string[]
+        data = json.slice(1).map((row) => {
+          const obj: any = {}
+          fields.forEach((col, i) => {
+            obj[col] = row[i]
+          })
+          return obj
+        })
+      } else {
+        // Parse CSV file
+        const text = await file.text()
+        const parsed = parseCSV(text)
+        data = parsed.data
+        fields = parsed.meta.fields || []
+      }
 
       const uploadedFile: UploadedFile = {
         name: file.name,
         type,
-        data: data, // Use full data, not just preview
-        columns: meta.fields || [],
+        data: data,
+        columns: fields,
         rowCount: data.length
       }
 
@@ -703,7 +738,7 @@ export function ProfitabilityUpload() {
       >
         <input
           type="file"
-          accept=".csv"
+          accept=".csv,.xlsx,.xls"
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           onChange={(e) => handleFileSelect(e, type)}
           disabled={isUploading || (!isCurrentStep && !isStepComplete)}

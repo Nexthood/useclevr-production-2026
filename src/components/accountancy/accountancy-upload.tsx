@@ -42,6 +42,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
    const [selectedType, setSelectedType] = React.useState<UploadType>("csv")
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
+   const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
    const { toast } = useToast()
    const { showNotice } = useNotice()
 
@@ -245,6 +246,19 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
             currentCount: result.datasetLimit.currentCount,
             limit: result.datasetLimit.limit,
             planName: result.datasetLimit.planName || "Free",
+          })
+          setUpgradeModalCopy({})
+          setShowUpgradeModal(true)
+        } else if (result.usage?.limitReached) {
+          setUpgradeModalData({
+            currentCount: result.usage.analysisCount || 2,
+            limit: result.usage.total || 2,
+            planName: "Free",
+          })
+          setUpgradeModalCopy({
+            title: "Analyst Credits Used",
+            description: "You have used your 2 included analyst credits. Upgrade to continue uploading, analyzing, and generating reports.",
+            usageLabel: "analyst credits used",
           })
           setShowUpgradeModal(true)
         }
@@ -508,6 +522,9 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           currentPlan={upgradeModalData.planName}
           currentCount={upgradeModalData.currentCount}
           limit={upgradeModalData.limit}
+          title={upgradeModalCopy.title}
+          description={upgradeModalCopy.description}
+          usageLabel={upgradeModalCopy.usageLabel}
         />
       )}
     </div>

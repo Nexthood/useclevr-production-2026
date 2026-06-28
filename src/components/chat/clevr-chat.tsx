@@ -14,16 +14,16 @@ const CLEVR_CONFIG = {
   role: "AI Data Agent",
   greeting: [
     "Hi, I'm Clevr. I help you work with data.",
-    "Upload a CSV and I'll take it from there.",
+    "Upload a CSV or Excel file and I'll take it from there.",
     "I'm here to turn your data into answers."
   ],
   idlePrompts: [
     "Need help with your data?",
-    "I can analyze your CSV.",
+    "I can analyze your CSV/Excel files.",
     "Ask me anything about your dataset."
   ],
   quickActions: [
-    { id: "upload", label: "Upload a CSV", icon: Upload },
+    { id: "upload", label: "Upload file", icon: Upload },
     { id: "analyze", label: "Analyze my data", icon: BarChart3 },
     { id: "trends", label: "Find trends", icon: TrendingUp },
     { id: "explain", label: "Explain this dataset", icon: FileQuestion }
@@ -124,11 +124,11 @@ export function ClevrChat({
     switch (actionId) {
       case "upload":
         return () => {
-          addMessage("user", "How do I upload a CSV?")
+          addMessage("user", "How do I upload a file?")
           setTimeout(() => {
             addMessage("assistant", 
-              "Follow these steps:\n\n1️⃣ Click Upload Dataset\n2️⃣ Select your CSV file\n3️⃣ Wait for processing\n\nOnce it's ready, I'll guide you through the analysis.", 
-              ["Upload a CSV"]
+              "Follow these steps:\n\n1️⃣ Click Upload Dataset\n2️⃣ Select your CSV or Excel file\n3️⃣ Wait for processing\n\nOnce it's ready, I'll guide you through the analysis.", 
+              ["Upload file"]
             )
           }, 500)
           onUpload?.()
@@ -165,9 +165,9 @@ export function ClevrChat({
                 ["Data summary", "Column details", "Quality check", "Key insights"]
               )
             } else {
-              addMessage("assistant", 
-                "Upload a dataset first, then I can provide:\n\n• Column overview\n• Data types\n• Sample values\n• Quality issues\n\nUpload a CSV to get started!",
-                ["Upload a CSV"]
+addMessage("assistant",
+                "Upload a dataset first, then I can provide:\n\n• Column overview\n• Data types\n• Sample values\n• Quality issues\n\nUpload a CSV or Excel file to get started!",
+                ["Upload file"]
               )
             }
           }, 500)

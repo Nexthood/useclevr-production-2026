@@ -208,7 +208,7 @@ export async function POST(request: Request) {
     });
 
     if (userId && !isBuiltinUserId(userId)) {
-      const usage = await getAnalystCreditUsage(userId);
+      const usage = await getAnalystCreditUsage(userId, session.user.role);
       if (usage.limitReached) {
         debugLog('[CHAT] REJECTED: Free limit reached');
         return NextResponse.json(

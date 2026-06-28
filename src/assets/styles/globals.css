@@ -11,6 +11,8 @@
     --workspace-card: #FFFFFF;
     --workspace-border: #E2E8F0;
     --app-sidebar-width: 220px;
+    --app-topbar-height: 4rem;
+    --app-topbar-offset: 4rem;
 
     /* UseClevr brand colors: high-contrast cyan with restrained neon violet. */
     --brand-cyan: 188 95% 39%;

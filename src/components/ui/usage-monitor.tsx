@@ -8,9 +8,10 @@ interface UsageMonitorProps {
   used: number
   total?: number
   isPro?: boolean
+  unlimitedLabel?: string | null
 }
 
-export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorProps) {
+export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }: UsageMonitorProps) {
   const percent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
 
   // For pro users, show unlimited
@@ -21,7 +22,7 @@ export function UsageMonitor({ used, total = 2, isPro = false }: UsageMonitorPro
           Analyst Credits
         </h4>
         <p className="text-sm font-medium text-foreground">
-          Unlimited
+          {unlimitedLabel || "Unlimited"}
         </p>
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
           <div
@@ -76,8 +77,10 @@ export function useUsage() {
   const [usage, setUsage] = React.useState(0)
   const [total, setTotal] = React.useState(2)
   const [isPro, setIsPro] = React.useState(false)
+  const [unlimitedLabel, setUnlimitedLabel] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [limitReached, setLimitReached] = React.useState(false)
+  const [canAnalyze, setCanAnalyze] = React.useState(true)
   const { showNotice } = useNotice()
   const limitNoticeShownRef = React.useRef(false)
 
@@ -101,11 +104,16 @@ export function useUsage() {
         const res = await fetch("/api/usage")
         if (res.ok) {
           const data = await res.json()
+          const hasUnlimitedAccess =
+            Boolean(data.unlimited) ||
+            ["pro", "business", "superadmin", "admin", "builtin"].includes(data.subscriptionTier)
           setUsage(data.analysisCount || 0)
-          setTotal(data.total || 2)
-          setIsPro(data.subscriptionTier === "pro" || data.subscriptionTier === "superadmin")
+          setTotal(data.total ?? 2)
+          setIsPro(hasUnlimitedAccess)
+          setUnlimitedLabel(data.unlimitedLabel || null)
           setLimitReached(Boolean(data.limitReached))
-          maybeShowLimitNotice(Boolean(data.limitReached))
+          setCanAnalyze(Boolean(data.canAnalyze ?? hasUnlimitedAccess))
+          maybeShowLimitNotice(!hasUnlimitedAccess && Boolean(data.limitReached))
         }
       } catch (error) {
         debugError("Failed to fetch usage:", error)
@@ -121,18 +129,21 @@ export function useUsage() {
       const res = await fetch("/api/usage")
       if (res.ok) {
         const data = await res.json()
+        const hasUnlimitedAccess =
+          Boolean(data.unlimited) ||
+          ["pro", "business", "superadmin", "admin", "builtin"].includes(data.subscriptionTier)
         setUsage(data.analysisCount || 0)
-        setTotal(data.total || 2)
-        setIsPro(data.subscriptionTier === "pro" || data.subscriptionTier === "superadmin")
+        setTotal(data.total ?? 2)
+        setIsPro(hasUnlimitedAccess)
+        setUnlimitedLabel(data.unlimitedLabel || null)
         setLimitReached(Boolean(data.limitReached))
-        maybeShowLimitNotice(Boolean(data.limitReached))
+        setCanAnalyze(Boolean(data.canAnalyze ?? hasUnlimitedAccess))
+        maybeShowLimitNotice(!hasUnlimitedAccess && Boolean(data.limitReached))
       }
     } catch (error) {
       debugError("Failed to refresh usage:", error)
     }
   }
 
-  const canAnalyze = isPro || usage < total
-
-  return { usage, total, isPro, isLoading, canAnalyze, limitReached, refreshUsage }
+  return { usage, total, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
 }

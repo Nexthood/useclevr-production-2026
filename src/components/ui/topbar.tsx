@@ -16,22 +16,21 @@ export default async function Topbar() {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  const usage = await getAnalystCreditUsage(userId);
+  const usage = await getAnalystCreditUsage(userId, session?.user?.role);
 
   const remainingCredits =
-    usage.trialActive ||
-    usage.subscriptionTier === "superadmin" ||
-    usage.subscriptionTier === "pro" ||
-    usage.subscriptionTier === "business"
+    usage.unlimited
       ? "Unlimited"
       : Math.max(0, usage.total - usage.analysisCount).toString();
 
   const levelLabel =
     usage.subscriptionTier === "superadmin"
-      ? "Admin"
-      : usage.trialActive
-        ? `Trial: ${usage.trialDaysRemaining}d`
-        : usage.subscriptionTier || "Free";
+      ? "Superadmin"
+      : usage.subscriptionTier === "admin"
+        ? "Admin"
+        : usage.subscriptionTier === "builtin"
+          ? "Demo"
+          : usage.subscriptionTier || "Free";
 
   // Get business profile completion
   const setupStatus = userId ? await getSetupStatus(userId) : null
