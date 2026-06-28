@@ -197,6 +197,10 @@ Text rules for this file:
 ## Support
 
 - Create usable local accounts during social login and registration.
+- Personalize the authenticated dashboard greeting from profile first name, full name, session name, email username, or a safe fallback.
+- Show the latest uploaded retail dataset as a premium AI business report with executive KPIs, summary insights, revenue and profit analytics, inventory intelligence, product performance, supplier and category analysis, ABC classification, forecast notes, recommendations, and report footer.
+- Gracefully skip optional report sections when supplier, category, date, or financial columns are missing.
+- Keep long report tables scrollable so large product lists remain usable.
 - Create the user and profile as one successful account setup outcome, and remove the user record when profile creation fails.
 - Require email-password registrations to verify the registered email with a 6-digit hashed, single-use confirmation code before sign-in opens the dashboard.
 - Require email-password sign-ins to complete a fresh 6-digit hashed, single-use confirmation code before each dashboard session starts.

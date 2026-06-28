@@ -14,6 +14,7 @@
 - Expand Business Profile setup into a professional multi-step wizard that collects tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth assumptions for more accurate uploaded-data analysis.
 - Show Accountancy as a pre-bookkeeping center for new users with document upload, package generation, export, accountant email, and Business Profile context guidance instead of an unavailable state.
 - Show Retail Inventory Analyst results in scrollable tables with every matching product row, SKU, stock, sales, profit, margin, last-sale, and owner action details so store owners can decide what to reorder, discount, bundle, or protect.
+- Show the dashboard as a personalized AI retail business report with real-data KPIs, inventory health, product tables, supplier and category analysis, ABC classification, forecast notes, and prioritized recommendations.
 - Require hashed email verification codes from the UseClevr email sender before email-password accounts open the dashboard, including signup verification, every-login verification, expiry, attempt limits, and resend cooldowns.
 - Log sanitized SMTP settings and provider error details when verification email delivery fails so production diagnostics show the exact mail-server rejection without exposing passwords.
 - Log masked email-password auth milestones and provide Railway auth-flow diagnostics so production registration and login failures identify the exact broken step.

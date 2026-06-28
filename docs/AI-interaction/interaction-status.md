@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-27
-- **Goal**: Debug SpaceMail SMTP delivery for UseClevr verification emails without changing UI behavior.
-- **Durable change**: Verification email sending requires STARTTLS on port 587, verifies SMTP connection and authentication before send, logs full Nodemailer error fields and stack on the server without logging `SMTP_PASSWORD`, and exposes a temporary token-guarded SMTP status endpoint for Railway diagnostics.
-- **Verification**: TypeScript, focused SMTP ESLint, project-record lint, TODO lint, changelog lint, secret scan, package lint, and diff whitespace checks pass.
+- **Goal**: Upgrade UseClevr dashboard quality into a personalized AI retail business report.
+- **Durable change**: The authenticated dashboard now loads the latest dataset rows, derives a safe personalized greeting from profile/session data, calculates retail KPIs and report sections from real uploaded data, and keeps optional supplier/category/date sections graceful when columns are missing.
+- **Verification**: TypeScript, focused dashboard/report ESLint, project-record lint, TODO lint, changelog lint, secret scan, package lint, diff whitespace checks, and production build pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
-- changed: verify SpaceMail STARTTLS and SMTP authentication before verification email sending and expose a temporary SMTP status diagnostic endpoint
+- changed: render the authenticated dashboard as a personalized AI retail business report with real-data KPIs, inventory intelligence, ABC analysis, and prioritized recommendations
