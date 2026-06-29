@@ -80,6 +80,15 @@ type SavedSuggestion = {
 
 type RightTab = "suggestions" | "history" | "search"
 
+function displayProviderName(providerName?: string | null) {
+  if (!providerName) return "UseClevr Cloud Analysis"
+  const normalized = providerName.toLowerCase()
+  if (normalized.includes("local") || normalized.includes("ollama")) return "UseClevr Hybrid AI"
+  if (normalized.includes("gemini") || normalized.includes("google")) return "UseClevr Cloud Analysis"
+  if (normalized.includes("mock")) return "UseClevr Test Analysis"
+  return providerName
+}
+
 export function AiAssistantWorkspace() {
   const [datasets, setDatasets] = React.useState<DatasetOption[]>([])
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string>(() => {
@@ -226,8 +235,8 @@ export function AiAssistantWorkspace() {
         recommendation: body.recommendation,
         data: Array.isArray(body.data) ? body.data : [],
         chartType: body.chartType,
-        providerName: body.providerName || "Gemini Cloud",
-        modelName: body.modelName || "gemini-2.5-flash",
+        providerName: displayProviderName(body.providerName),
+        modelName: body.modelName,
       }
 
       setMessages((current) => [...current, assistantMessage])
@@ -444,7 +453,7 @@ export function AiAssistantWorkspace() {
                       AI Analyst
                       {message.providerName && (
                         <span className="ml-auto text-[10px] font-normal text-muted-foreground">
-                          via {message.providerName}
+                          via {displayProviderName(message.providerName)}
                         </span>
                       )}
                     </div>
@@ -697,7 +706,7 @@ export function AiAssistantWorkspace() {
                           </div>
                           <div className="mt-1 flex items-center gap-2">
                             <span className="text-[10px] text-muted-foreground">
-                              {entry.providerName}
+                              {displayProviderName(entry.providerName)}
                             </span>
                             {entry.feedback === "positive" && (
                               <ThumbsUp className="h-2.5 w-2.5 text-primary" />

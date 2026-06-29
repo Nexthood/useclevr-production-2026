@@ -289,7 +289,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
           setUpgradeModalCopy({})
           setShowUpgradeModal(true)
         }
-        // Only queue if truly offline (API unreachable and no local AI)
+        // Only queue if truly offline (API unreachable and no UseClevr Helper)
         if (isOffline) {
           setUploadStatus("offline")
           const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || '[]')
@@ -297,7 +297,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
           localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue))
           toast({
             title: "Offline mode active",
-            description: "No internet detected – Install UseClevr AI MEGA",
+            description: "No internet detected - start UseClevr Helper for private analysis.",
             variant: "default"
           })
         } else {
@@ -328,7 +328,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
       if (progressInterval) clearInterval(progressInterval)
       debugError("Upload failed:", error)
       
-      // Only queue if truly offline (API unreachable and no local AI)
+      // Only queue if truly offline (API unreachable and no UseClevr Helper)
       if (isOffline) {
         setUploadStatus("offline")
         const queue = JSON.parse(localStorage.getItem(UPLOAD_QUEUE_KEY) || '[]')
@@ -336,7 +336,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
         localStorage.setItem(UPLOAD_QUEUE_KEY, JSON.stringify(queue))
         toast({ 
           title: "Offline mode active", 
-          description: "No internet detected – Install UseClevr AI MEGA",
+          description: "No internet detected - start UseClevr Helper for private analysis.",
           variant: "default"
         })
       } else {
@@ -445,7 +445,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
                 </p>
                 {connectionMode === 'hybrid' && (
                   <p className="text-xs text-amber-500">
-                    Using local AI for faster analysis
+                    Using UseClevr Hybrid AI for private analysis
                   </p>
                 )}
               </>
@@ -455,7 +455,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
                   {connectionMode === 'hybrid' ? 'Upload complete!' : 'Upload complete!'}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {connectionMode === 'hybrid' ? 'Using local AI for analysis' : 'Redirecting to your datasets...'}
+                  {connectionMode === 'hybrid' ? 'Using UseClevr Hybrid AI for private analysis' : 'Redirecting to your datasets...'}
                 </p>
               </>
             ) : uploadStatus === "error" ? (
@@ -481,14 +481,14 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
               <>
                 <h3 className="text-base font-semibold text-amber-500">No internet detected</h3>
                 <p className="text-xs text-muted-foreground">
-                  Install UseClevr AI MEGA to analyze datasets offline
+                  Start UseClevr Helper for private analysis
                 </p>
                 <Button 
                   onClick={() => window.open('/app/settings/preferences', '_blank')} 
                   variant="outline" 
                   className="mt-2"
                 >
-                  Install AI
+                  Open helper settings
                 </Button>
               </>
             ) : (

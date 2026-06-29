@@ -49,14 +49,14 @@ export default function HybridAiButton({
         }
       >
         <Brain className="h-3.5 w-3.5" />
-        Hybrid AI
+        UseClevr Hybrid AI
       </button>
 
       <Modal
         open={open}
         onOpenChange={setOpen}
-        title="Hybrid AI"
-        description="Cloud analysis with optional local AI for sensitive datasets."
+        title="UseClevr Hybrid AI"
+        description="Private AI Analysis with secure local processing."
       >
         <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
           <div className="space-y-4">
@@ -65,23 +65,26 @@ export default function HybridAiButton({
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
-              <HybridPoint title="Cloud explanation" description="Gemini explains results when cloud AI is enabled." />
-              <HybridPoint title="Local privacy mode" description="Run supported local models for private analysis." />
-              <HybridPoint title="Offline-ready setup" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
+              <HybridPoint title="Private AI Analysis" description="UseClevr Helper processes sensitive questions on your device." />
+              <HybridPoint title="Local AI Engine" description="The private engine is controlled internally by UseClevr." />
+              <HybridPoint title="Plan access" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
             </div>
           </div>
 
           {hasLocalAiAccess ? (
             <div className="rounded-lg border border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
               <p className="text-sm font-semibold text-slate-950 dark:text-white">
-                Local AI access is included in your plan.
+                UseClevr Hybrid AI is included in your plan.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {subscriptionTier === "business"
-                  ? "Download or verify Hybrid AI MEGA for private business analysis."
+                  ? "Download UseClevr Helper for Hybrid AI MEGA and private business analysis."
                   : subscriptionTier === "superadmin"
-                    ? "Download or verify Hybrid AI Lite and MEGA for testing."
-                    : "Download or verify Hybrid AI Lite for offline use."}
+                    ? "Download UseClevr Helper for Hybrid AI Lite and MEGA testing."
+                    : "Download UseClevr Helper for Hybrid AI Lite and private analysis."}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Files stay on your device when Hybrid AI is active.
               </p>
               <Button
                 className="mt-5 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
@@ -91,26 +94,26 @@ export default function HybridAiButton({
                 }}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download Local AI
+                Download UseClevr Helper
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
-               <PlanOption
-                 title="Pro"
-                 price={`€${proPlan.price}/month`}
-                 description="Includes Hybrid AI Lite, unlimited datasets, and report downloads."
-                 productId="pro_monthly"
-                 onNavigate={() => setOpen(false)}
-               />
-               <PlanOption
-                 title="Business"
-                 price={`€${businessPlan.price}/month`}
-                 description="Includes Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
-                 productId="business_monthly"
-                 secondary
-                 onNavigate={() => setOpen(false)}
-               />
+<PlanOption
+                  title="Pro"
+                  price={`€${proPlan.price}/month`}
+                  description="Includes UseClevr Hybrid AI Lite, unlimited datasets, and report downloads."
+                  productId="pro_monthly"
+                  onNavigate={() => setOpen(false)}
+                />
+                <PlanOption
+                  title="Business"
+                  price={`€${businessPlan.price}/month`}
+                  description="Includes UseClevr Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
+                  productId="business_monthly"
+                  secondary
+                  onNavigate={() => setOpen(false)}
+                />
             </div>
           )}
         </div>

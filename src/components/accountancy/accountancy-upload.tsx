@@ -270,7 +270,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           localStorage.setItem("useclevr_accountancy_queue", JSON.stringify(queue))
           toast({
             title: "Offline mode active",
-            description: "No internet detected – Install UseClevr AI MEGA",
+            description: "No internet detected - start UseClevr Helper for private analysis.",
           })
         } else {
           setUploadStatus("error")
@@ -289,7 +289,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         localStorage.setItem("useclevr_accountancy_queue", JSON.stringify(queue))
         toast({
           title: "Offline mode active",
-          description: "No internet detected – Install UseClevr AI MEGA",
+          description: "No internet detected - start UseClevr Helper for private analysis.",
         })
       } else {
         setErrorMessage("Upload failed. Please try again.")
@@ -446,13 +446,13 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
               ) : uploadStatus === "offline" ? (
                 <>
                   <h3 className="text-base font-semibold text-amber-500">No internet detected</h3>
-                  <p className="text-xs text-muted-foreground">Install UseClevr AI MEGA to analyze offline</p>
+                  <p className="text-xs text-muted-foreground">Start UseClevr Helper for private analysis</p>
                   <Button
                     onClick={() => window.open("/app/settings/preferences", "_blank")}
                     variant="outline"
                     className="mt-2"
                   >
-                    Install AI
+                    Open helper settings
                   </Button>
                 </>
               ) : (

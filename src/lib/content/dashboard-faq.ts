@@ -93,8 +93,8 @@ export const dashboardFaqCategories: FaqCategory[] = [
         a: "No. Local mode is an extra option for private or offline workflows. Cloud analysis remains available when your plan allows it.",
       },
       {
-        q: "How can I test Hybrid AI locally without installing the runtime?",
-        a: "Developers can set MOCK_AI_MODE=true in local development. The app then uses mock local AI status, model, pull, verification, chat, and analysis responses for UI testing.",
+        q: "How can I test Hybrid AI without installing UseClevr Helper?",
+        a: "Developers can enable the local test mode in development. The app then uses branded helper status and private-analysis responses for UI testing.",
       },
     ],
   },
@@ -184,7 +184,7 @@ export const superAdminFaqCategories: FaqCategory[] = [
       },
       {
         q: "Which API areas matter for operations?",
-        a: "Checkout, webhooks, usage, tickets, upload, reports, health, billing settings, and local AI status are the main operational API areas.",
+        a: "Checkout, webhooks, usage, tickets, upload, reports, health, billing settings, and UseClevr Helper status are the main operational API areas.",
       },
     ],
   },

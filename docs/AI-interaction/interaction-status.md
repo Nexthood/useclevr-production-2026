@@ -4,10 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-28
-- **Goal**: Fix authenticated layout spacing, Business Profile completion scoring, and role-aware analyst credit limits.
-- **Durable change**: Authenticated sidebar pages start below the sticky topbar, Business Profile completion accepts visible field aliases, Free accounts use exactly two included analyst credits before the Stripe upgrade path, and superadmin/admin/built-in accounts stay unlimited without credit decrement or upgrade blocking.
-- **Verification**: TypeScript and the production Next.js build pass.
+- **Date**: 2026-06-29
+- **Goal**: Implement the UseClevr Helper local Hybrid AI bridge and branded private-analysis UI.
+- **Durable change**: The repo includes a standalone helper app on localhost port 14567, a browser helper bridge, an AI Assistant private-analysis panel, protected helper download routes, and customer-facing Hybrid AI copy that hides technical runtime and model names.
+- **Verification**: TypeScript, focused ESLint, helper syntax check, and live helper endpoint smoke tests pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
-- fixed: show the dashboard report greeting without clipping and score Business Profile completion from visible required fields

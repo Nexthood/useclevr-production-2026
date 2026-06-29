@@ -5,6 +5,7 @@
  * Priority: Cloud → Hybrid → Offline
  */
 
+import { getUseClevrHelperStatus } from '@/lib/hybrid-ai/helper-bridge';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ConnectionMode = 'online' | 'hybrid' | 'offline';
@@ -19,19 +20,9 @@ interface ConnectionStatus {
   wasOffline: boolean;
 }
 
-// Check if local AI is available
-async function checkLocalAI(): Promise<boolean> {
-  try {
-    const response = await fetch('/api/local-ai-status', {
-      method: 'GET',
-      signal: AbortSignal.timeout(2000)
-    });
-    if (!response.ok) return false;
-    const data: { available?: boolean } = await response.json().catch(() => ({}));
-    return Boolean(data.available);
-  } catch {
-    return false;
-  }
+async function checkUseClevrHelper(): Promise<boolean> {
+  const status = await getUseClevrHelperStatus()
+  return status.state === "connected"
 }
 
 // Check cloud connection with latency measurement
@@ -79,8 +70,7 @@ export function useConnectionStatus(): ConnectionStatus {
         const isUnstable = cloudResult.latency && cloudResult.latency > 3000;
         
         if (isUnstable) {
-          // Check local AI for hybrid mode
-          const localOk = await checkLocalAI();
+          const localOk = await checkUseClevrHelper();
           if (!isMountedRef.current) return;
           setIsLocalAvailable(localOk);
           
@@ -98,8 +88,7 @@ export function useConnectionStatus(): ConnectionStatus {
         return;
       }
       
-      // Cloud failed - check local AI for hybrid mode
-      const localOk = await checkLocalAI();
+      const localOk = await checkUseClevrHelper();
       if (!isMountedRef.current) return;
       setIsLocalAvailable(localOk);
       
@@ -179,9 +168,9 @@ export function getConnectionDescription(mode: ConnectionMode): string {
     case 'online':
       return 'Using cloud AI for analysis';
     case 'hybrid':
-      return 'Using local AI for faster analysis';
+      return 'Using UseClevr Hybrid AI for private analysis';
     case 'offline':
-      return 'Using local AI for offline analysis';
+      return 'UseClevr Helper is not running';
     default:
       return '';
   }
