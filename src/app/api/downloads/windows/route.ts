@@ -1,11 +1,15 @@
 import { createReadStream, existsSync, statSync } from "fs"
+import { requireHybridAiDownloadAccess } from "@/lib/billing/hybrid-ai-access"
 import { NextResponse } from "next/server"
 import { join } from "path"
 
-const FILE_NAME = "UseClevr-Hybrid-Runtime-Setup.exe"
+const FILE_NAME = "UseClevr-Helper-Setup.exe"
 const FILE_PATH = join(process.cwd(), "public-downloads", FILE_NAME)
 
 export async function HEAD() {
+  const access = await requireHybridAiDownloadAccess("lite")
+  if (!access.success) return new Response(null, { status: access.error.status })
+
   try {
     if (!existsSync(FILE_PATH)) {
       return new Response(null, { status: 404 })
@@ -26,6 +30,9 @@ export async function HEAD() {
 }
 
 export async function GET() {
+  const access = await requireHybridAiDownloadAccess("lite")
+  if (!access.success) return access.error
+
   try {
     if (!existsSync(FILE_PATH)) {
       return NextResponse.json({ available: false, error: "not_found" }, { status: 404 })

@@ -34,12 +34,12 @@ export async function POST(_request: Request) {
     installationStatus = 'checking';
     installationProgress = 'Checking system requirements...';
     
-    // Step 1: Check if Ollama is installed
-    const ollamaCheck = await checkOllamaInstalled();
+    // Step 1: Check if UseClevr Helper is installed
+    const helperCheck = await checkOllamaInstalled();
     
-    if (!ollamaCheck.installed) {
+    if (!helperCheck.installed) {
       installationStatus = 'error';
-      installationError = 'Ollama is not installed. Please install from https://ollama.ai';
+      installationError = 'UseClevr Helper is not installed. Please download and install from the settings page.';
       
       return NextResponse.json({
         success: false,
@@ -47,27 +47,27 @@ export async function POST(_request: Request) {
         progress: installationProgress,
         error: installationError,
         instructions: {
-          mac: 'Run: brew install ollama',
-          linux: 'Run: curl -fsSL https://ollama.ai/install.sh | sh',
-          windows: 'Download from https://ollama.ai'
+          mac: 'Download UseClevr Helper from settings',
+          linux: 'Download UseClevr Helper from settings',
+          windows: 'Download UseClevr Helper from settings'
         }
       });
     }
     
-    // Step 2: Check if model is downloaded
-    installationProgress = 'Checking AI model...';
+    // Step 2: Check if UseClevr Private AI is set up
+    installationProgress = 'Checking Private AI engine...';
     const modelStatus = await checkModelDownloaded();
     
     if (!modelStatus.downloaded) {
-      installationProgress = 'Downloading AI model (this may take a few minutes)...';
+      installationProgress = 'Installing Private AI engine (this may take a few minutes)...';
       installationStatus = 'installing';
       
-      // Download the model - using llama3 for better data analysis
+      // Install the model - using llama3 for better data analysis
       const downloadResult = await downloadModel('llama3');
       
       if (!downloadResult.success) {
         installationStatus = 'error';
-        installationError = downloadResult.error || 'Failed to download model';
+        installationError = downloadResult.error || 'Private AI engine needs setup';
         
         return NextResponse.json({
           success: false,
@@ -78,13 +78,13 @@ export async function POST(_request: Request) {
       }
     }
     
-    // Step 3: Start the local AI bridge service
-    installationProgress = 'Starting local AI service...';
+    // Step 3: Start the Private AI service
+    installationProgress = 'Starting Private AI Engine...';
     const startResult = await startLocalAIService();
     
     if (!startResult.success) {
       installationStatus = 'error';
-      installationError = startResult.error || 'Failed to start service';
+      installationError = startResult.error || 'Private AI engine is not running';
       
       return NextResponse.json({
         success: false,
@@ -102,7 +102,7 @@ export async function POST(_request: Request) {
       success: true,
       status: installationStatus,
       progress: installationProgress,
-      message: 'UseClevr AI MEGA installed – Hybrid mode active',
+      message: 'UseClevr Hybrid AI installed – Private mode active',
       endpoints: {
         health: `${getLocalAIBridgeBase()}/health`,
         chat: `${getLocalAIBridgeBase()}/chat`
@@ -127,16 +127,16 @@ export async function GET() {
   if (!access.success) return access.error
 
   // Return current installation status
-  const ollamaStatus = await checkOllamaInstalled();
+  const helperStatus = await checkOllamaInstalled();
   const modelStatus = await checkModelDownloaded();
   const serviceStatus = await checkServiceRunning();
   
-  let status: 'not_installed' | 'ollama_ready' | 'model_ready' | 'service_ready' | 'error';
+  let status: 'not_installed' | 'helper_ready' | 'model_ready' | 'service_ready' | 'error';
   
-  if (!ollamaStatus.installed) {
+  if (!helperStatus.installed) {
     status = 'not_installed';
   } else if (!serviceStatus.running) {
-    status = 'ollama_ready';
+    status = 'helper_ready';
   } else if (!modelStatus.downloaded) {
     status = 'model_ready';
   } else if (serviceStatus.running) {
@@ -147,8 +147,8 @@ export async function GET() {
   
   return NextResponse.json({
     status,
-    ollamaInstalled: ollamaStatus.installed,
-    ollamaVersion: ollamaStatus.version,
+    helperInstalled: helperStatus.installed,
+    helperVersion: helperStatus.version,
     modelDownloaded: modelStatus.downloaded,
     modelName: modelStatus.model,
     serviceRunning: serviceStatus.running,
@@ -158,7 +158,7 @@ export async function GET() {
 }
 
 /**
- * Check if Ollama is installed
+ * Check if UseClevr Helper is installed
  */
 async function checkOllamaInstalled(): Promise<{ installed: boolean; version?: string }> {
   try {
@@ -171,7 +171,7 @@ async function checkOllamaInstalled(): Promise<{ installed: boolean; version?: s
 }
 
 /**
- * Check if AI model is downloaded
+ * Check if Private AI Engine is downloaded
  */
 async function checkModelDownloaded(): Promise<{ downloaded: boolean; model?: string }> {
   try {
@@ -193,13 +193,13 @@ async function checkModelDownloaded(): Promise<{ downloaded: boolean; model?: st
 }
 
 /**
- * Download AI model
+ * Install Private AI Engine
  */
 async function downloadModel(model: string): Promise<{ success: boolean; error?: string }> {
   try {
-    debugLog(`[INSTALLER] Downloading ${model} model...`);
+    debugLog(`[INSTALLER] Installing ${model} engine...`);
     
-    // Run ollama pull in background
+    // Install the engine - using llama3 for better data analysis
     await execAsync(`ollama pull ${model}`, { timeout: 600000 }); // 10 min timeout
     
     debugLog(`[INSTALLER] ${model} model downloaded successfully`);
@@ -211,7 +211,7 @@ async function downloadModel(model: string): Promise<{ success: boolean; error?:
 }
 
 /**
- * Check if local AI service is running
+ * Check if Private AI service is running
  */
 async function checkServiceRunning(): Promise<{ running: boolean; pid?: number }> {
   try {
@@ -230,14 +230,14 @@ async function checkServiceRunning(): Promise<{ running: boolean; pid?: number }
 }
 
 /**
- * Start local AI service
+ * Start Private AI Engine
  */
 async function startLocalAIService(): Promise<{ success: boolean; error?: string }> {
   try {
-    // First check if Ollama is running
+    // First check if Private AI Engine is running
     await execAsync('ollama serve');
   } catch {
-    // Ollama might already be running
+    // Private AI Engine might already be running
   }
   
   // Check if our bridge is already running
@@ -250,12 +250,12 @@ async function startLocalAIService(): Promise<{ success: boolean; error?: string
   // Try to start the bridge server
   try {
     // The bridge server should be started separately
-    // Here we just verify Ollama is accessible
+    // Here we just verify Private AI Engine is accessible
     await execAsync('ollama list');
-    debugLog('[INSTALLER] Ollama is running and has models');
+    debugLog('[INSTALLER] Private AI Engine is running and has models');
     
     return { success: true };
   } catch {
-    return { success: false, error: 'Could not start Ollama. Please start it manually: ollama serve' };
+    return { success: false, error: 'Private AI engine is not running. Please restart the UseClevr Helper.' };
   }
 }

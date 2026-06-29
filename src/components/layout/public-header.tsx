@@ -54,7 +54,7 @@ export function PublicHeader() {
               onClick={() => setShowHybridAIPopover(!showHybridAIPopover)}
             >
               <Brain className="h-3.5 w-3.5" />
-              <span>Hybrid AI</span>
+              <span>UseClevr Hybrid AI</span>
               <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
             </button>
 
@@ -150,7 +150,7 @@ export function PublicHeader() {
               >
                 <div className="flex items-center gap-2 mb-3">
                   <Cloud className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
-                  <h3 className="text-lg font-bold text-foreground">Cloud / Offline Modes</h3>
+                  <h3 className="text-lg font-bold text-foreground">UseClevr Cloud / Offline</h3>
                 </div>
                 
                 <div className="space-y-3 mb-3">
@@ -163,7 +163,7 @@ export function PublicHeader() {
                   <div>
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-100">Offline Mode</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Run available local AI modes on your device for private, offline analysis.
+                      Run UseClevr Hybrid AI on your device for private analysis.
                     </p>
                   </div>
                 </div>

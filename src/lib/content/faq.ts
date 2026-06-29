@@ -127,8 +127,8 @@ export const allFaqCategories: FaqCategory[] = [
     category: "AI & Analysis",
     items: [
       {
-        q: "Which AI models does UseClevr use?",
-        a: "UseClevr uses Google Gemini via the AI SDK for cloud analysis. Hybrid AI Lite runs a local model in your browser for sensitive datasets — your data never leaves your device during local analysis.",
+        q: "How does UseClevr answer AI questions?",
+        a: "UseClevr provides cloud analysis for standard workflows and UseClevr Hybrid AI for private analysis on your device. Files stay on your device when Hybrid AI is active.",
       },
       {
         q: "What kinds of questions can I ask?",
@@ -140,7 +140,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Is Hybrid AI really local?",
-        a: "Yes. Hybrid AI connects to the local UseClevr runtime on your device. Local analysis keeps your data on your machine instead of sending it to the cloud AI provider.",
+        a: "Yes. Hybrid AI connects to UseClevr Helper on your device. UseClevr Helper processes private analysis locally.",
       },
       {
         q: "Which Hybrid AI mode should I pick?",
@@ -153,7 +153,7 @@ export const allFaqCategories: FaqCategory[] = [
     items: [
       {
         q: "Is my data secure?",
-        a: "UseClevr is GDPR-compliant and aligned with SOC 2 principles. Uploaded datasets and generated reports are your property. We never train external models on your data.",
+        a: "UseClevr is GDPR-compliant and aligned with SOC 2 principles. Uploaded datasets and generated reports are your property. We never use them to train external systems.",
       },
       {
         q: "Where is my data stored?",
@@ -164,8 +164,8 @@ export const allFaqCategories: FaqCategory[] = [
         a: "Yes. You can delete individual datasets from the Datasets page, or request full account deletion by contacting support. All data is removed within 30 days.",
       },
       {
-        q: "Do you use my data to train models?",
-        a: "No. UseClevr never uses your uploaded data, questions, or generated reports to train or fine-tune any external model.",
+        q: "Do you use my data for training?",
+        a: "No. UseClevr never uses your uploaded data, questions, or generated reports to train external systems.",
       },
     ],
   },
@@ -174,7 +174,7 @@ export const allFaqCategories: FaqCategory[] = [
     items: [
       {
         q: "Which browsers are supported?",
-        a: "UseClevr works on all modern browsers: Chrome, Firefox, Safari, and Edge (latest two stable versions). Hybrid AI Lite requires a browser with WebAssembly support.",
+        a: "UseClevr works on all modern browsers: Chrome, Firefox, Safari, and Edge (latest two stable versions). Hybrid AI Lite requires UseClevr Helper.",
       },
       {
         q: "Is there an API?",

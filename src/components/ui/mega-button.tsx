@@ -2,6 +2,7 @@
 
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import { Button } from "@/components/ui/button"
+import { getUseClevrHelperStatus } from "@/lib/hybrid-ai/helper-bridge"
 import { Brain } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -13,9 +14,8 @@ export function MegaButton() {
 
   useEffect(() => {
     setMounted(true)
-    fetch('/api/local-ai-status')
-      .then(res => res.json())
-      .then(data => setLocalAIAvailable(data.localAIAvailable))
+    getUseClevrHelperStatus()
+      .then((status) => setLocalAIAvailable(status.state === "connected"))
       .catch(() => setLocalAIAvailable(false))
   }, [])
 
@@ -42,7 +42,7 @@ export function MegaButton() {
         >
           <div className="relative z-10 flex items-center gap-2">
             <Brain className="h-4 w-4 animate-bounce" />
-            <span className="font-bold text-sm">Hybrid AI</span>
+            <span className="font-bold text-sm">UseClevr Hybrid AI</span>
             <span className="ml-0.5 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-sm animate-pulse">
               NEW
             </span>
@@ -66,7 +66,7 @@ export function MegaButton() {
         >
           <div className="relative z-10 flex items-center gap-2">
             <Brain className="h-4 w-4 animate-bounce" />
-            <span className="font-bold text-sm">Hybrid AI</span>
+            <span className="font-bold text-sm">UseClevr Hybrid AI</span>
             <span className="ml-0.5 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-sm animate-pulse">
               NEW
             </span>

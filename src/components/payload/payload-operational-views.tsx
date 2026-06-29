@@ -1965,24 +1965,24 @@ export function PayloadAiActions() {
         <div className="payload-modal-overlay" onClick={() => setHybridOpen(false)}>
           <div className="payload-ai-modal" onClick={(e) => e.stopPropagation()}>
             <div className="payload-ai-modal-header">
-              <h2>Hybrid AI</h2>
-              <p>Run AI models locally for faster, private analysis.</p>
+              <h2>UseClevr Hybrid AI</h2>
+              <p>Private AI Analysis runs locally on your machine.</p>
             </div>
             <div className="payload-ai-modal-body">
-              <p>Hybrid AI runs language models on your own machine.
-              Your data stays local — no cloud API calls needed.</p>
+              <p>UseClevr Hybrid AI provides secure, private analysis.
+              Your data stays on your device — no cloud API calls needed.</p>
               <div className="payload-ai-modal-features">
                 <div className="payload-ai-feature">
-                  <strong>Lite Tier</strong>
-                  <span>llama3.2:3b model for quick queries (~Pro plan)</span>
+                  <strong>Quick Analysis</strong>
+                  <span>Private AI Engine for fast business queries</span>
                 </div>
                 <div className="payload-ai-feature">
-                  <strong>MEGA Tier</strong>
-                  <span>llama3:8b model for deep analysis (~Business plan)</span>
+                  <strong>Deep Analysis</strong>
+                  <span>Enhanced Private AI Engine for comprehensive insights</span>
                 </div>
                 <div className="payload-ai-feature">
-                  <strong>Private & Fast</strong>
-                  <span>No data leaves your machine once the model is loaded</span>
+                  <strong>Secure & Private</strong>
+                  <span>Files stay on your device. Secure runtime connected.</span>
                 </div>
               </div>
             </div>

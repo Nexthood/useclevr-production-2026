@@ -3,7 +3,7 @@ import { requireHybridAiDownloadAccess } from "@/lib/billing/hybrid-ai-access"
 import { NextResponse } from "next/server"
 import { join } from "path"
 
-const FILE_NAME = "UseClevr-Helper.AppImage"
+const FILE_NAME = "UseClevr-Helper.dmg"
 const FILE_PATH = join(process.cwd(), "public-downloads", FILE_NAME)
 
 export async function HEAD() {

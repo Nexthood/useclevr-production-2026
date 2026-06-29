@@ -62,6 +62,9 @@ Text rules for this file:
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
 - Explain Hybrid AI plan access in customer-facing plan copy.
+- Use UseClevr Helper as the desktop bridge for Hybrid AI private analysis.
+- Keep normal Hybrid AI UI branded as UseClevr Hybrid AI, Private AI Analysis, Local AI Engine, Secure runtime connected, and Files stay on your device.
+- Keep technical runtime names, internal engine names, and model names out of normal customer UI.
 
 ## Privacy Shield
 
@@ -375,9 +378,12 @@ Text rules for this file:
 - Use the shared modal pattern for the Hybrid AI popup.
 - Open the Hybrid AI popup from the dashboard topbar.
 - Show Pro and Business plan options to free users inside the Hybrid AI popup.
-- Support localhost Mock AI testing for Hybrid AI status, model list, pull, verification, chat, and analysis flows.
-- Guard Mock AI mode from production runtime: only activate when `NODE_ENV !== "production"` and `MOCK_AI_MODE=true`.
-- Route local AI queries in priority order: Antigravity Server → Local AI (Ollama) → Cloud AI (Gemini Flash 2.5). Mock AI short-circuits before any real provider check.
+- Let authenticated Pro and Business users download UseClevr Helper desktop installers.
+- Show Windows, macOS, and Linux UseClevr Helper download cards with platform-specific installer names.
+- Use UseClevr Helper on localhost port 14567 for health, status, and private-analysis chat checks.
+- Show UseClevr Helper offline, setup-needed, and secure-runtime-connected states in branded wording.
+- Keep Hybrid AI optional and keep cloud analysis workflows available when the helper is offline.
+- Show Hybrid AI Lite to Pro users and Hybrid AI MEGA to Business users.
 
 ## Sales Planning
 

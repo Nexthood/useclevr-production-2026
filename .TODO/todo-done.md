@@ -98,6 +98,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-886. Implement UseClevr Helper as the branded local Hybrid AI bridge with protected helper downloads and private-analysis chat status. (labels: ai, local-ai, security, ui; commit: worktree)
 - T-871. AI Assistant generates at least 10 contextual suggested questions automatically after dataset selection, caches them per dataset, and shows fallback questions when generation fails. (labels: ai, data, ui; commit: worktree)
 - T-864. Retail Inventory Analyst shows every product-specific stock, sales, profit, margin, last-sale, order, and owner-action detail row in scrollable low-stock, dead-stock, and top-profit result cards. (labels: ai, data, ui; commit: worktree)
 
