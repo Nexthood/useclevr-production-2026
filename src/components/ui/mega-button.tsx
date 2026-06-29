@@ -80,6 +80,7 @@ export function MegaButton() {
         open={showInstaller}
         onOpenChange={setShowInstaller}
         preselectTier={prefillLite ? 'lite' : undefined}
+        subscriptionTier="business"
       />
     </>
   )

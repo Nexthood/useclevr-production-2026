@@ -3,14 +3,15 @@
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
+import { billingPlans } from "@/lib/billing/plans"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
+import { getHybridAiEntitlement, HYBRID_AI_MODULES } from "@/lib/hybrid-ai/features"
 import { Brain, Check, Download } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
-import { billingPlans } from "@/lib/billing/plans"
 
-const proPlan = billingPlans.find(p => p.id === "pro_monthly")!;
-const businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
+const proPlan = billingPlans.find((plan) => plan.id === "pro_monthly")!
+const businessPlan = billingPlans.find((plan) => plan.id === "business_monthly")!
 
 export default function HybridAiButton({
   subscriptionTier = "free",
@@ -25,14 +26,15 @@ export default function HybridAiButton({
 }) {
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
-  const hasLocalAiAccess = subscriptionTier === "pro" || subscriptionTier === "business" || subscriptionTier === "superadmin"
+  const entitlement = React.useMemo(() => getHybridAiEntitlement(subscriptionTier), [subscriptionTier])
+  const hasLocalAiAccess = entitlement.canDownload
   const hybridTiers =
-    subscriptionTier === "superadmin"
+    entitlement.accessTier === "mega"
       ? (["lite", "mega"] as const)
-      : subscriptionTier === "business"
-        ? (["mega"] as const)
-        : (["lite"] as const)
+      : (["lite"] as const)
   const defaultTier = subscriptionTier === "business" ? "mega" : "lite"
+  const liteModules = HYBRID_AI_MODULES.filter((module) => module.tier === "lite")
+  const megaModules = HYBRID_AI_MODULES.filter((module) => module.tier === "mega")
 
   return (
     <>
@@ -66,8 +68,12 @@ export default function HybridAiButton({
             <div className="grid gap-3 sm:grid-cols-2">
               <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
               <HybridPoint title="Private AI Analysis" description="UseClevr Helper processes sensitive questions on your device." />
-              <HybridPoint title="Local AI Engine" description="The private engine is controlled internally by UseClevr." />
+              <HybridPoint title="Shared helper" description="Lite and MEGA use the same UseClevr Helper installation." />
               <HybridPoint title="Plan access" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ModuleGroup title="Hybrid AI Lite" modules={liteModules.map((module) => module.name)} />
+              <ModuleGroup title="Hybrid AI MEGA" modules={megaModules.slice(0, 6).map((module) => module.name)} />
             </div>
           </div>
 
@@ -77,11 +83,9 @@ export default function HybridAiButton({
                 UseClevr Hybrid AI is included in your plan.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {subscriptionTier === "business"
+                {entitlement.accessTier === "mega"
                   ? "Download UseClevr Helper for Hybrid AI MEGA and private business analysis."
-                  : subscriptionTier === "superadmin"
-                    ? "Download UseClevr Helper for Hybrid AI Lite and MEGA testing."
-                    : "Download UseClevr Helper for Hybrid AI Lite and private analysis."}
+                  : "Download UseClevr Helper for Hybrid AI Lite and private analysis."}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Files stay on your device when Hybrid AI is active.
@@ -99,28 +103,49 @@ export default function HybridAiButton({
             </div>
           ) : (
             <div className="space-y-3">
-<PlanOption
-                  title="Pro"
-                  price={`€${proPlan.price}/month`}
-                  description="Includes UseClevr Hybrid AI Lite, unlimited datasets, and report downloads."
-                  productId="pro_monthly"
-                  onNavigate={() => setOpen(false)}
-                />
-                <PlanOption
-                  title="Business"
-                  price={`€${businessPlan.price}/month`}
-                  description="Includes UseClevr Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
-                  productId="business_monthly"
-                  secondary
-                  onNavigate={() => setOpen(false)}
-                />
+              <PlanOption
+                title="Pro"
+                price={`€${proPlan.price}/month`}
+                description="Includes UseClevr Hybrid AI Lite, unlimited datasets, and report downloads."
+                productId="pro_monthly"
+                onNavigate={() => setOpen(false)}
+              />
+              <PlanOption
+                title="Business"
+                price={`€${businessPlan.price}/month`}
+                description="Includes UseClevr Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
+                productId="business_monthly"
+                secondary
+                onNavigate={() => setOpen(false)}
+              />
             </div>
           )}
         </div>
       </Modal>
 
-      <MegaInstallerModal open={installerOpen} onOpenChange={setInstallerOpen} preselectTier={defaultTier} allowedTiers={[...hybridTiers]} />
+      <MegaInstallerModal
+        open={installerOpen}
+        onOpenChange={setInstallerOpen}
+        preselectTier={defaultTier}
+        allowedTiers={[...hybridTiers]}
+        subscriptionTier={subscriptionTier}
+      />
     </>
+  )
+}
+
+function ModuleGroup({ title, modules }: { title: string; modules: string[] }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {modules.map((module) => (
+          <span key={module} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+            {module}
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 

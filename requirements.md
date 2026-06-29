@@ -381,6 +381,11 @@ Text rules for this file:
 - Let authenticated Pro and Business users download UseClevr Helper desktop installers.
 - Show Windows, macOS, and Linux UseClevr Helper download cards with platform-specific installer names.
 - Use UseClevr Helper on localhost port 14567 for health, status, and private-analysis chat checks.
+- Expose Hybrid AI module feature flags from the UseClevr Helper status response.
+- Unlock Hybrid AI Lite and Hybrid AI MEGA modules in the web app from the authenticated subscription, using one shared helper installation.
+- Include Private Chat, CSV/Excel Analysis, Dashboard Insights, and Basic Local AI in Hybrid AI Lite.
+- Include Lite modules, AI Agents, multi-document reasoning, Deep Research, background task execution, workflow automation, business assistants, and future enterprise modules in Hybrid AI MEGA.
+- Keep future Hybrid AI modules modular so new module flags extend the helper contract without creating another desktop app.
 - Show UseClevr Helper offline, setup-needed, and secure-runtime-connected states in branded wording.
 - Keep Hybrid AI optional and keep cloud analysis workflows available when the helper is offline.
 - Show Hybrid AI Lite to Pro users and Hybrid AI MEGA to Business users.

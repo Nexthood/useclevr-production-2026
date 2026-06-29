@@ -1,9 +1,50 @@
+import {
+  HYBRID_AI_MODULES,
+  type HybridAiModuleId,
+} from "@/lib/hybrid-ai/features"
+
 export const USECLEVR_HELPER_BASE_URL = "http://localhost:14567"
 
+export type UseClevrHelperFeatures = Record<HybridAiModuleId, boolean>
+
+const DEFAULT_HELPER_FEATURES = HYBRID_AI_MODULES.reduce((features, module) => {
+  features[module.id] = true
+  return features
+}, {} as UseClevrHelperFeatures)
+
 export type UseClevrHelperStatus =
-  | { state: "connected"; message: "Secure runtime connected"; connected: true; privateEngineReady: true }
-  | { state: "setup"; message: "Private AI engine needs setup"; connected: true; privateEngineReady: false }
-  | { state: "offline"; message: "UseClevr Helper is not running"; connected: false; privateEngineReady: false }
+  | {
+      state: "connected"
+      message: "Secure runtime connected"
+      connected: true
+      privateEngineReady: true
+      features: UseClevrHelperFeatures
+    }
+  | {
+      state: "setup"
+      message: "Private AI engine needs setup"
+      connected: true
+      privateEngineReady: false
+      features: UseClevrHelperFeatures
+    }
+  | {
+      state: "offline"
+      message: "UseClevr Helper is not running"
+      connected: false
+      privateEngineReady: false
+      features: UseClevrHelperFeatures
+    }
+
+function parseHelperFeatures(body: unknown): UseClevrHelperFeatures {
+  const source = body && typeof body === "object" && "features" in body ? (body as { features?: unknown }).features : null
+  if (!source || typeof source !== "object") return DEFAULT_HELPER_FEATURES
+
+  return HYBRID_AI_MODULES.reduce((features, module) => {
+    const value = (source as Partial<Record<HybridAiModuleId, unknown>>)[module.id]
+    features[module.id] = value !== false
+    return features
+  }, {} as UseClevrHelperFeatures)
+}
 
 export async function getUseClevrHelperStatus(): Promise<UseClevrHelperStatus> {
   try {
@@ -22,12 +63,14 @@ export async function getUseClevrHelperStatus(): Promise<UseClevrHelperStatus> {
     if (!status.ok) throw new Error("helper_status_failed")
 
     const body = await status.json().catch(() => ({}))
+    const features = parseHelperFeatures(body)
     if (body?.connected && body?.privateEngineReady) {
       return {
         state: "connected",
         message: "Secure runtime connected",
         connected: true,
         privateEngineReady: true,
+        features,
       }
     }
 
@@ -36,6 +79,7 @@ export async function getUseClevrHelperStatus(): Promise<UseClevrHelperStatus> {
       message: "Private AI engine needs setup",
       connected: true,
       privateEngineReady: false,
+      features,
     }
   } catch {
     return {
@@ -43,6 +87,7 @@ export async function getUseClevrHelperStatus(): Promise<UseClevrHelperStatus> {
       message: "UseClevr Helper is not running",
       connected: false,
       privateEngineReady: false,
+      features: DEFAULT_HELPER_FEATURES,
     }
   }
 }

@@ -1,15 +1,15 @@
-"use client"
+import { auth } from "@/lib/auth/auth"
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { AssistantPageClient } from "./assistant-page-client"
 
-import { AiAssistantWorkspace } from "@/components/chat/ai-assistant-workspace"
-import { UseClevrHybridAiChatPanel } from "@/components/hybrid-ai/useclevr-hybrid-ai-chat-panel"
+export default async function AssistantPage() {
+  const session = await auth()
+  const usage = await getAnalystCreditUsage(session?.user?.id ?? null, session?.user?.role)
 
-export default function AssistantPage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 p-5">
-      <UseClevrHybridAiChatPanel compact />
-      <div className="flex min-h-[560px] flex-1 overflow-hidden rounded-lg border border-border bg-background">
-        <AiAssistantWorkspace />
-      </div>
-    </div>
+    <AssistantPageClient
+      subscriptionTier={usage.subscriptionTier}
+      userRole={session?.user?.role ?? null}
+    />
   )
 }
