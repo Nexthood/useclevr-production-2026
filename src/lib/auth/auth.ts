@@ -55,10 +55,18 @@ const loginSchema = z.object({
   verificationPurpose: z.enum(["signup", "login"]).optional(),
 });
 
-const googleClientId = process.env.AUTH_GOOGLE_ID;
-const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
-const linkedinClientId = process.env.AUTH_LINKEDIN_ID;
-const linkedinClientSecret = process.env.AUTH_LINKEDIN_SECRET;
+const googleClientId = firstEnvValue("AUTH_GOOGLE_ID", "GOOGLE_CLIENT_ID", "GOOGLE_ID");
+const googleClientSecret = firstEnvValue(
+  "AUTH_GOOGLE_SECRET",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SECRET",
+);
+const linkedinClientId = firstEnvValue("AUTH_LINKEDIN_ID", "LINKEDIN_CLIENT_ID", "LINKEDIN_ID");
+const linkedinClientSecret = firstEnvValue(
+  "AUTH_LINKEDIN_SECRET",
+  "LINKEDIN_CLIENT_SECRET",
+  "LINKEDIN_SECRET",
+);
 const authSecret = config.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 const googleProviderId = "google";
 const linkedinProviderId = "linkedin";
@@ -203,6 +211,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: googleProviderId,
             clientId: googleClientId,
             clientSecret: googleClientSecret,
+            authorization: {
+              params: {
+                scope: "openid email profile",
+              },
+            },
           }),
         ]
       : []),
@@ -212,6 +225,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: linkedinProviderId,
             clientId: linkedinClientId,
             clientSecret: linkedinClientSecret,
+            authorization: {
+              params: {
+                scope: "openid profile email",
+              },
+            },
           }),
         ]
       : []),
@@ -305,7 +323,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       if (account?.provider && account.providerAccountId) {
-        if (!user.email || !isOAuthEmailVerified(account.id_token)) {
+        if (!user.email || !isOAuthEmailVerified(account.provider, account.id_token)) {
           debugWarn("[Auth] Blocked OAuth sign-in without verified provider email:", {
             provider: account.provider,
             hasEmail: Boolean(user.email),
@@ -456,7 +474,15 @@ function maskEmail(email?: string | null) {
   return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
 }
 
-function isOAuthEmailVerified(idToken?: string) {
+function firstEnvValue(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function isOAuthEmailVerified(provider?: string, idToken?: string) {
   if (!idToken) return true;
 
   try {
@@ -465,7 +491,9 @@ function isOAuthEmailVerified(idToken?: string) {
     ) as {
       email_verified?: boolean;
     };
-    return payload.email_verified !== false;
+    if (payload.email_verified === false) return false;
+    if (provider === linkedinProviderId) return true;
+    return true;
   } catch {
     return true;
   }
@@ -500,12 +528,14 @@ function logOAuthProviderConfig() {
       providerId: googleProviderId,
       callbackUrl: `${callbackBase}/${googleProviderId}`,
       env: "AUTH_GOOGLE_ID/AUTH_GOOGLE_SECRET",
+      aliases: "GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET",
     },
     linkedin: {
       enabled: Boolean(linkedinClientId && linkedinClientSecret),
       providerId: linkedinProviderId,
       callbackUrl: `${callbackBase}/${linkedinProviderId}`,
       env: "AUTH_LINKEDIN_ID/AUTH_LINKEDIN_SECRET",
+      aliases: "LINKEDIN_CLIENT_ID/LINKEDIN_CLIENT_SECRET",
     },
     authUrlEnv: process.env.AUTH_URL
       ? "AUTH_URL"

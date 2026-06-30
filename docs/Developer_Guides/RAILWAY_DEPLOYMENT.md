@@ -251,8 +251,12 @@ If Railway deploys successfully but the app returns 502:
 
 1. Check Railway logs for server startup errors or crash traces.
 2. Verify `DATABASE_URL` and `AUTH_SECRET` are set in Railway environment variables.
-   Google OAuth also requires `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`; LinkedIn OAuth requires
-   `AUTH_LINKEDIN_ID` and `AUTH_LINKEDIN_SECRET`.
+   Google OAuth requires `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` or the common
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` aliases. LinkedIn OAuth requires
+   `AUTH_LINKEDIN_ID` and `AUTH_LINKEDIN_SECRET` or the common `LINKEDIN_CLIENT_ID`
+   and `LINKEDIN_CLIENT_SECRET` aliases.
+   Email verification requires `RESEND_API_KEY` and `EMAIL_FROM` using a verified
+   `useclevr.com` sender.
 3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.
 4. Confirm the database is reachable — Railway Postgres may require SSL:
    - The `pg` Pool in `src/lib/db/index.ts` uses `{ connectionString: url, max: 10 }` without SSL.

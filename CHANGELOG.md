@@ -21,13 +21,14 @@
 - Show Retail Inventory Analyst results in scrollable tables with every matching product row, SKU, stock, sales, profit, margin, last-sale, and owner action details so store owners can decide what to reorder, discount, bundle, or protect.
 - Show the dashboard as a personalized AI retail business report with real-data KPIs, inventory health, product tables, supplier and category analysis, ABC classification, forecast notes, and prioritized recommendations.
 - Require hashed email verification codes from the UseClevr email sender before email-password accounts open the dashboard, including signup verification, every-login verification, expiry, attempt limits, and resend cooldowns.
-- Log sanitized SMTP settings and provider error details when verification email delivery fails so production diagnostics show the exact mail-server rejection without exposing passwords.
+- Send verification emails through Resend only and log sanitized provider error details when delivery fails so production diagnostics show sender-domain and API rejections without exposing secrets.
 - Log masked email-password auth milestones and provide Railway auth-flow diagnostics so production registration and login failures identify the exact broken step.
-- Add a temporary env-gated superadmin fallback verification path so platform access survives SMTP delivery failures without exposing the fallback code.
-- Verify SpaceMail STARTTLS and SMTP authentication before sending verification emails, and expose a temporary SMTP status diagnostic endpoint for Railway troubleshooting.
+- Add a temporary env-gated superadmin fallback verification path so platform access survives email delivery failures without exposing the fallback code.
+- Expose a guarded Resend status diagnostic endpoint and verification-send script for Railway troubleshooting.
 
 ### Fixed
 
+- Fix Google and LinkedIn sign-in setup so OAuth credentials work with common hosting env names and return users to the dashboard.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.
 - Fix Dashboard 2.0 TypeScript build blockers so production builds complete.

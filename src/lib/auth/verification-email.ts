@@ -1,5 +1,4 @@
 import { debugLog } from "@/lib/utils/debug";
-import nodemailer from "nodemailer";
 
 export class EmailDeliveryError extends Error {
   constructor(message = "Email delivery failed") {
@@ -8,243 +7,338 @@ export class EmailDeliveryError extends Error {
   }
 }
 
-export async function sendVerificationEmail(email: string, code: string) {
-  const provider = getVerificationEmailProvider();
-
-  if (provider) {
-    await provider.send(email, code);
-    return;
-  }
-
-  if (process.env.NODE_ENV !== "production" || process.env.EMAIL_PROVIDER === "console") {
-    debugLog(`[Email] UseClevr verification code for ${email}: ${code}`);
-    return;
-  }
-
-  throw new EmailDeliveryError("Email delivery is not configured");
-}
-
-type VerificationEmailProvider = {
-  send: (email: string, code: string) => Promise<void>;
+export type ResendStatus = {
+  status:
+    | "configured"
+    | "sent"
+    | "not_configured"
+    | "domain_unverified"
+    | "api_error"
+    | "delivery_failed";
+  configured: boolean;
+  sent: boolean;
+  config: SanitizedResendConfig | null;
+  domain?: ResendDomainStatus;
+  error?: ReturnType<typeof getResendErrorDetails>;
+  messageId?: string;
 };
 
-export type SmtpStatus = {
-  status: "connected" | "authentication_failed" | "tls_failed" | "connection_timeout" | "sender_rejected" | "send_failed" | "not_configured";
-  connected: boolean;
-  authenticated: boolean;
-  startTls: boolean;
-  senderAccepted: boolean | null;
-  config: SanitizedSmtpConfig | null;
-  error?: ReturnType<typeof getSmtpErrorDetails>;
-};
-
-type SmtpConfig = NonNullable<ReturnType<typeof getSmtpConfig>>;
-type SanitizedSmtpConfig = {
-  SMTP_HOST: string;
-  SMTP_PORT: number;
-  SMTP_SECURE: boolean;
-  SMTP_USER: string;
+type ResendConfig = NonNullable<ReturnType<typeof getResendConfig>>;
+type SanitizedResendConfig = {
+  RESEND_API_KEY_SET: boolean;
   EMAIL_FROM: string;
-  STARTTLS_REQUIRED: boolean;
-  SMTP_PASSWORD_SET: boolean;
+  EMAIL_FROM_DOMAIN: string;
 };
 
-function getVerificationEmailProvider(): VerificationEmailProvider | null {
-  const smtp = getSmtpConfig();
-  if (!smtp) return null;
+type ResendEmailPayload = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+};
 
-  return {
-    async send(email, code) {
-      const transporter = createSmtpTransport(smtp);
+type ResendDomainStatus = {
+  checked: boolean;
+  name: string;
+  verified: boolean;
+  status?: string;
+  error?: ReturnType<typeof getResendErrorDetails>;
+};
 
-      try {
-        console.warn("[Email] SMTP verification email preflight starting", {
-          smtp: sanitizeSmtpConfig(smtp),
-        });
-        await verifySmtpConnection(transporter, smtp);
-        console.warn("[Email] SMTP verification email preflight passed", {
-          smtp: sanitizeSmtpConfig(smtp),
-        });
+export async function sendVerificationEmail(email: string, code: string) {
+  const config = getResendConfig();
 
-        await transporter.sendMail({
-          from: smtp.from,
-          to: email,
-          subject: "Your UseClevr verification code",
-          text: buildTextEmail(code),
-          html: buildHtmlEmail(code),
-        });
-        console.warn("[Email] SMTP verification email sent", {
-          smtp: sanitizeSmtpConfig(smtp),
-          to: maskEmail(email),
-        });
-      } catch (error) {
-        logSmtpEmailFailure(error, smtp);
-        throw new EmailDeliveryError("Email delivery failed. Please try again.");
-      } finally {
-        transporter.close();
-      }
-    },
-  };
+  if (!config) {
+    if (process.env.EMAIL_PROVIDER === "console") {
+      debugLog(`[Email] UseClevr verification code for ${email}: ${code}`);
+      return;
+    }
+
+    console.error("[Email] Resend verification email delivery failed", {
+      error: { message: "RESEND_API_KEY is not configured" },
+      resend: null,
+      to: maskEmail(email),
+    });
+    throw new EmailDeliveryError("Email delivery failed. Please try again.");
+  }
+
+  try {
+    const domain = await checkResendDomainStatus(config);
+    if (domain.checked && !domain.verified) {
+      throw new ResendApiError(422, {
+        message: "EMAIL_FROM domain is not verified in Resend",
+        domain: domain.name,
+        status: domain.status,
+      });
+    }
+
+    console.warn("[Email] Resend verification email send starting", {
+      resend: sanitizeResendConfig(config),
+      domain,
+      to: maskEmail(email),
+    });
+
+    const result = await sendResendEmail(config, {
+      to: email,
+      subject: "Your UseClevr verification code",
+      text: buildTextEmail(code),
+      html: buildHtmlEmail(code),
+    });
+
+    console.warn("[Email] Resend verification email sent", {
+      resend: sanitizeResendConfig(config),
+      domain,
+      to: maskEmail(email),
+      messageId: result.id,
+    });
+  } catch (error) {
+    logResendEmailFailure(error, config, email);
+    throw new EmailDeliveryError("Email delivery failed. Please try again.");
+  }
 }
 
-export async function checkSmtpStatus({ sendTest = false }: { sendTest?: boolean } = {}): Promise<SmtpStatus> {
-  const smtp = getSmtpConfig();
-  if (!smtp) {
+export async function checkResendStatus({ sendTest = false }: { sendTest?: boolean } = {}): Promise<ResendStatus> {
+  const config = getResendConfig();
+  if (!config) {
     return {
       status: "not_configured",
-      connected: false,
-      authenticated: false,
-      startTls: false,
-      senderAccepted: null,
+      configured: false,
+      sent: false,
       config: null,
     };
   }
 
-  const transporter = createSmtpTransport(smtp);
-  let verified = false;
+  if (!sendTest) {
+    const domain = await checkResendDomainStatus(config);
+
+    return {
+      status: getConfiguredResendStatus(domain),
+      configured: true,
+      sent: false,
+      config: sanitizeResendConfig(config),
+      domain,
+    };
+  }
 
   try {
-    console.warn("[Email] SMTP status check starting", {
-      smtp: sanitizeSmtpConfig(smtp),
-      sendTest,
-    });
-    await verifySmtpConnection(transporter, smtp);
-    verified = true;
-
-    if (sendTest) {
-      await transporter.sendMail({
-        from: smtp.from,
-        to: getSmtpStatusRecipient(),
-        subject: "UseClevr SMTP status test",
-        text: "UseClevr SMTP status test email.",
-        html: "<p>UseClevr SMTP status test email.</p>",
-      });
+    const domain = await checkResendDomainStatus(config);
+    if (domain.checked && !domain.verified) {
+      return {
+        status: "domain_unverified",
+        configured: true,
+        sent: false,
+        config: sanitizeResendConfig(config),
+        domain,
+      };
     }
 
-    console.warn("[Email] SMTP status check passed", {
-      smtp: sanitizeSmtpConfig(smtp),
-      sendTest,
+    console.warn("[Email] Resend status test send starting", {
+      resend: sanitizeResendConfig(config),
+      domain,
+      to: maskEmail(getResendStatusRecipient()),
+    });
+
+    const result = await sendResendEmail(config, {
+      to: getResendStatusRecipient(),
+      subject: "UseClevr Resend status test",
+      text: "UseClevr Resend status test email.",
+      html: "<p>UseClevr Resend status test email.</p>",
+    });
+
+    console.warn("[Email] Resend status test sent", {
+      resend: sanitizeResendConfig(config),
+      domain,
+      to: maskEmail(getResendStatusRecipient()),
+      messageId: result.id,
     });
 
     return {
-      status: "connected",
-      connected: true,
-      authenticated: true,
-      startTls: smtp.requireTLS,
-      senderAccepted: sendTest ? true : null,
-      config: sanitizeSmtpConfig(smtp),
+      status: "sent",
+      configured: true,
+      sent: true,
+      config: sanitizeResendConfig(config),
+      domain,
+      messageId: result.id,
     };
   } catch (error) {
-    const status = classifySmtpFailure(error);
-    logSmtpEmailFailure(error, smtp);
+    logResendEmailFailure(error, config, getResendStatusRecipient());
     return {
-      status,
-      connected: verified,
-      authenticated: verified,
-      startTls: smtp.requireTLS,
-      senderAccepted: status === "sender_rejected" ? false : null,
-      config: sanitizeSmtpConfig(smtp),
-      error: getSmtpErrorDetails(error),
+      status: "delivery_failed",
+      configured: true,
+      sent: false,
+      config: sanitizeResendConfig(config),
+      error: getResendErrorDetails(error),
     };
-  } finally {
-    transporter.close();
   }
 }
 
-function createSmtpTransport(smtp: SmtpConfig) {
-  return nodemailer.createTransport({
-    host: smtp.host,
-    port: smtp.port,
-    secure: smtp.secure,
-    requireTLS: smtp.requireTLS,
-    connectionTimeout: 15_000,
-    greetingTimeout: 15_000,
-    socketTimeout: 30_000,
-    auth: {
-      user: smtp.user,
-      pass: smtp.password,
-    },
-    tls: {
-      minVersion: "TLSv1.2",
-      servername: smtp.host,
-      rejectUnauthorized: true,
-    },
-  });
+function getConfiguredResendStatus(domain: ResendDomainStatus): ResendStatus["status"] {
+  if (!domain.checked) return "api_error";
+  if (!domain.verified) return "domain_unverified";
+  return "configured";
 }
 
-async function verifySmtpConnection(
-  transporter: ReturnType<typeof nodemailer.createTransport>,
-  smtp: SmtpConfig,
-) {
+async function checkResendDomainStatus(config: ResendConfig): Promise<ResendDomainStatus> {
+  const senderDomain = getSenderDomain(config.from);
+  if (!senderDomain) {
+    return {
+      checked: true,
+      name: "",
+      verified: false,
+      status: "missing_sender_domain",
+    };
+  }
+
   try {
-    await transporter.verify();
-  } catch (error) {
-    console.error("[Email] SMTP connection/authentication preflight failed", {
-      error: getSmtpErrorDetails(error),
-      smtp: sanitizeSmtpConfig(smtp),
+    const response = await fetch("https://api.resend.com/domains", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+      },
     });
-    throw error;
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new ResendApiError(response.status, body);
+    }
+
+    const domains = extractResendDomains(body);
+    const domain = domains.find((entry) => entry.name.toLowerCase() === senderDomain);
+    const status = domain?.status || "not_found";
+
+    return {
+      checked: true,
+      name: senderDomain,
+      verified: status === "verified",
+      status,
+    };
+  } catch (error) {
+    console.error("[Email] Resend domain verification check failed", {
+      error: getResendErrorDetails(error),
+      resend: sanitizeResendConfig(config),
+    });
+
+    return {
+      checked: false,
+      name: senderDomain,
+      verified: false,
+      error: getResendErrorDetails(error),
+    };
   }
 }
 
-function getSmtpConfig() {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const password = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
-  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || "UseClevr <auth@useclevr.com>";
-  const port = Number(process.env.SMTP_PORT || "587");
-  const secure = resolveSmtpSecure(port);
-  const requireTLS = !secure && port === 587;
+function extractResendDomains(body: unknown): Array<{ name: string; status: string }> {
+  if (!body || typeof body !== "object") return [];
 
-  if (!host && !user && !password) return null;
+  const data = (body as { data?: unknown }).data;
+  if (!Array.isArray(data)) return [];
 
-  if (!host || !user || !password || !Number.isInteger(port) || port <= 0) {
-    throw new EmailDeliveryError(
-      "SMTP email delivery requires SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD",
-    );
-  }
-
-  return { host, port, secure, requireTLS, user, password, from };
+  return data
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const domain = entry as { name?: unknown; status?: unknown };
+      const name = typeof domain.name === "string" ? domain.name : "";
+      const status = typeof domain.status === "string" ? domain.status : "";
+      if (!name) return null;
+      return { name, status };
+    })
+    .filter((entry): entry is { name: string; status: string } => Boolean(entry));
 }
 
-function logSmtpEmailFailure(error: unknown, smtp: SmtpConfig) {
-  const details = getSmtpErrorDetails(error);
+async function sendResendEmail(config: ResendConfig, payload: ResendEmailPayload): Promise<{ id?: string }> {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: payload.to,
+      subject: payload.subject,
+      text: payload.text,
+      html: payload.html,
+    }),
+  });
 
-  console.error("[Email] SMTP verification email delivery failed", {
-    error: details,
-    smtp: sanitizeSmtpConfig(smtp),
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new ResendApiError(response.status, body);
+  }
+
+  return {
+    id: typeof body?.id === "string" ? body.id : undefined,
+  };
+}
+
+class ResendApiError extends Error {
+  status: number;
+  response: unknown;
+
+  constructor(status: number, response: unknown) {
+    super(getResendApiErrorMessage(response) || `Resend API request failed with ${status}`);
+    this.name = "ResendApiError";
+    this.status = status;
+    this.response = response;
+  }
+}
+
+function getResendApiErrorMessage(response: unknown) {
+  if (!response || typeof response !== "object") return null;
+  const body = response as { message?: unknown; error?: unknown; name?: unknown };
+  return stringifyLogValue(body.message) || stringifyLogValue(body.error) || stringifyLogValue(body.name);
+}
+
+function getResendConfig() {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const from = (process.env.EMAIL_FROM || "UseClevr <auth@useclevr.com>").trim();
+  return { apiKey, from };
+}
+
+function sanitizeResendConfig(config: ResendConfig): SanitizedResendConfig {
+  return {
+    RESEND_API_KEY_SET: Boolean(config.apiKey),
+    EMAIL_FROM: config.from,
+    EMAIL_FROM_DOMAIN: getSenderDomain(config.from),
+  };
+}
+
+function logResendEmailFailure(error: unknown, config: ResendConfig, email: string) {
+  console.error("[Email] Resend verification email delivery failed", {
+    error: getResendErrorDetails(error),
+    resend: sanitizeResendConfig(config),
+    to: maskEmail(email),
   });
 }
 
-function getSmtpErrorDetails(error: unknown) {
+function getResendErrorDetails(error: unknown) {
   if (!error || typeof error !== "object") {
     return {
       message: String(error),
-      code: undefined,
-      command: undefined,
+      status: undefined,
       response: undefined,
-      responseCode: undefined,
+      stack: undefined,
     };
   }
 
-  const smtpError = error as {
+  const resendError = error as {
     name?: unknown;
     message?: unknown;
-    code?: unknown;
-    command?: unknown;
+    status?: unknown;
     response?: unknown;
-    responseCode?: unknown;
     stack?: unknown;
   };
 
   return {
-    name: stringifyLogValue(smtpError.name),
-    message: stringifyLogValue(smtpError.message),
-    code: stringifyLogValue(smtpError.code),
-    command: stringifyLogValue(smtpError.command),
-    response: stringifyLogValue(smtpError.response),
-    responseCode: stringifyLogValue(smtpError.responseCode),
-    stack: stringifyLogValue(smtpError.stack),
+    name: stringifyLogValue(resendError.name),
+    message: stringifyLogValue(resendError.message),
+    status: stringifyLogValue(resendError.status),
+    response: safeStringify(resendError.response),
+    stack: stringifyLogValue(resendError.stack),
   };
 }
 
@@ -253,64 +347,26 @@ function stringifyLogValue(value: unknown) {
   return String(value);
 }
 
-function resolveSmtpSecure(port: number) {
-  const configured = process.env.SMTP_SECURE;
-  if (configured) return configured === "true";
-  return port === 465;
+function safeStringify(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
-function sanitizeSmtpConfig(smtp: SmtpConfig): SanitizedSmtpConfig {
-  return {
-    SMTP_HOST: smtp.host,
-    SMTP_PORT: smtp.port,
-    SMTP_SECURE: smtp.secure,
-    SMTP_USER: smtp.user,
-    EMAIL_FROM: smtp.from,
-    STARTTLS_REQUIRED: smtp.requireTLS,
-    SMTP_PASSWORD_SET: Boolean(smtp.password),
-  };
-}
-
-function classifySmtpFailure(error: unknown): SmtpStatus["status"] {
-  const details = getSmtpErrorDetails(error);
-  const combined = [
-    details.code,
-    details.command,
-    details.response,
-    details.message,
-  ].join(" ").toLowerCase();
-
-  if (combined.includes("auth") || combined.includes("535") || combined.includes("534")) {
-    return "authentication_failed";
-  }
-
-  if (combined.includes("tls") || combined.includes("starttls") || combined.includes("certificate")) {
-    return "tls_failed";
-  }
-
-  if (combined.includes("timeout") || combined.includes("etimedout")) {
-    return "connection_timeout";
-  }
-
-  if (
-    combined.includes("sender") ||
-    combined.includes("mail from") ||
-    combined.includes("envelope") ||
-    combined.includes("553") ||
-    combined.includes("550")
-  ) {
-    return "sender_rejected";
-  }
-
-  return "send_failed";
-}
-
-function getSmtpStatusRecipient() {
+function getResendStatusRecipient() {
   return (
-    process.env.SMTP_STATUS_TO ||
+    process.env.RESEND_STATUS_TO ||
     process.env.ADMIN_AUTH_BYPASS_EMAIL ||
     "superadmin@useclevr.com"
   ).trim();
+}
+
+function getSenderDomain(from: string) {
+  const match = from.match(/<[^@<>]+@([^<>]+)>/) || from.match(/^[^@<>]+@([^<>]+)$/);
+  return match?.[1]?.trim().toLowerCase() || "";
 }
 
 function maskEmail(email: string) {

@@ -41,11 +41,13 @@ moving work between states.
 
 ## Label: auth
 
-- T-880. Verify SpaceMail STARTTLS and SMTP authentication before verification email sending, and expose a temporary SMTP status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)
-- T-879. Add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails. (labels: auth, security, deployment; commit: worktree)
+- T-889. Route email verification delivery through Resend only, expose a guarded Resend status diagnostic, and surface unverified sender-domain failures in server logs. (labels: auth, logging, deployment, testing; commit: worktree)
+- T-888. Fix Google and LinkedIn OAuth sign-in by accepting common provider credential env names, requesting email/profile scopes, and using a same-app dashboard callback. (labels: auth, deployment, ui; commit: worktree)
+- T-880. Verify Resend provider configuration and sender-domain readiness before verification email sending, and expose a guarded Resend status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)
+- T-879. Add an env-gated superadmin fallback verification path that keeps platform access available when email delivery fails. (labels: auth, security, deployment; commit: worktree)
 - T-878. Log email-password auth milestones and provide Railway diagnostics for signup, verification, login code, and login verification checks. (labels: auth, logging, testing, deployment; commit: worktree)
-- T-877. Log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing. (labels: auth, logging, deployment, testing; commit: worktree)
-- T-876. Send email verification codes through SpaceMail SMTP from the configured UseClevr sender using Railway environment variables. (labels: auth, security, deployment; commit: worktree)
+- T-877. Log sanitized Resend verification email failures and provide a Railway diagnostic send command for provider delivery testing. (labels: auth, logging, deployment, testing; commit: worktree)
+- T-876. Send email verification codes through Resend from the configured UseClevr sender using Railway environment variables. (labels: auth, security, deployment; commit: worktree)
 - T-875. Implement UseClevr-owned hashed email verification codes for signup and every email-password login before dashboard access. (labels: auth, security, ui; commit: worktree)
 - T-874. Require email OTP verification before email-password accounts can sign in and reach dashboard workflows. (labels: auth, security, ui; commit: worktree)
 - T-837. Persist locked built-in accounts as database-backed identities for dashboard updates and all upload workflows. (labels: auth, upload, dashboard, data; commit: worktree)

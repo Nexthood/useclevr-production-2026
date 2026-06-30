@@ -1,12 +1,13 @@
+- changed: route verification email delivery through Resend only, expose a guarded Resend status diagnostic, and log unverified sender-domain failures from Railway without exposing secrets
 - fixed: show the dashboard report greeting without clipping and score Business Profile completion from visible required fields
 - fixed: repair Dashboard 2.0 TypeScript build blockers so production builds complete
 - changed: refine Business Profile setup with context-aware onboarding copy, smart business-type examples, inline validation, accessible step focus, and a stronger completion state
 - changed: render the authenticated dashboard as a personalized AI retail business report with real-data KPIs, inventory intelligence, ABC analysis, and prioritized recommendations
-- changed: verify SpaceMail STARTTLS and SMTP authentication before verification email sending and expose a temporary SMTP status diagnostic endpoint
-- changed: add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails
+- changed: verify Resend provider configuration and sender-domain readiness before verification email sending and expose a guarded Resend status diagnostic endpoint
+- changed: add an env-gated superadmin fallback verification path that keeps platform access available when email delivery fails
 - changed: log email-password auth milestones and provide Railway diagnostics for signup, verification, login code, and login verification checks
-- changed: log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing
-- changed: send UseClevr email verification codes through SpaceMail SMTP from the configured UseClevr sender using Railway environment variables
+- changed: log sanitized Resend verification email failures and provide a Railway diagnostic send command for provider delivery testing
+- changed: send UseClevr email verification codes through Resend from the configured UseClevr sender using Railway environment variables
 - changed: require UseClevr-owned hashed email verification codes before email-password accounts can sign in and reach dashboard workflows
 - changed: show the authenticated dashboard as an executive report-style workspace with health scores, AI readiness, KPI cards, chart panels, risks, opportunities, recommendations, activity, and quick actions
 - fixed: align Google and LinkedIn OAuth sign-in with correct callback routing, dashboard destination, and readable login-page errors
@@ -35,4 +36,5 @@
 - fix: remove hardcoded pricing text from landing page preview
 - Fixed authenticated app layout spacing, Business Profile completion aliases, and role-aware analyst credit enforcement. Sidebar pages now start below the sticky topbar; visible Business Profile fields can score 100%; Free users receive 2 included credits before the Stripe upgrade path blocks upload, analysis, and report downloads; admin, superadmin, and built-in accounts show unlimited usage. Verification passed with `pnpm exec tsc --noEmit --pretty false` and `pnpm build`.
 - Added the UseClevr Helper Hybrid AI bridge. The repo now includes a helper app with `/health`, `/status`, `/chat`, a branded desktop chat window, a browser-side helper bridge, a branded AI Assistant private chat panel, protected Windows/macOS/Linux helper downloads, and customer-facing copy that hides internal runtime and model names. Verification passed with TypeScript, focused ESLint, helper syntax check, and live helper endpoint smoke tests.
+- Fixed Google and LinkedIn OAuth setup. The auth provider configuration accepts canonical Auth.js env names and common provider env aliases, explicitly requests email/profile scopes, and uses a same-app dashboard callback from the login buttons. Verification passed with TypeScript, focused ESLint, and local provider metadata showing Google and LinkedIn enabled when alias env vars are present.
 - Implemented Hybrid AI MEGA on the shared UseClevr Helper architecture. The helper status response exposes Lite and MEGA module flags, the web app derives unlocked modules from the authenticated subscription, the AI Assistant and helper setup modal show subscription-enabled modules, and Business/admin access unlocks MEGA without another installer. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint, `node --check helper/src/server.mjs`, and live helper endpoint checks for `/health`, `/status`, and `/chat`.

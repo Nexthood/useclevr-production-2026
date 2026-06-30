@@ -106,7 +106,7 @@ function LoginForm() {
     router.refresh();
   };
 
-  const dashboardCallbackUrl = () => new URL("/dashboard", window.location.origin).toString();
+  const dashboardCallbackUrl = () => "/dashboard";
   const visibleAuthError = authError || getReadableAuthError(authQueryError);
   const isVerificationOpen = Boolean(pendingVerificationEmail);
   const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
