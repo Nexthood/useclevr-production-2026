@@ -244,6 +244,9 @@ Text rules for this file:
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
 - Keep OAuth callback URLs on the active public app host, never on the internal server bind host.
+- Enable each OAuth login button only when its provider client ID, provider client secret, and auth secret are configured.
+- Log OAuth provider configuration status on the server with booleans and callback URLs only, never secret values.
+- Redirect successful OAuth sign-ins to the authenticated dashboard route.
 - Keep generated app links on a safe public app origin, never on the internal server bind host.
 - Convert local development redirects from `0.0.0.0` to `localhost` before sending them to the browser.
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.

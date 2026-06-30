@@ -29,6 +29,7 @@
 
 ### Fixed
 
+- Fix OAuth provider availability detection so Google and LinkedIn sign-in buttons only activate when their credentials and the auth secret are configured, with sanitized server diagnostics and dashboard redirects.
 - Fix OAuth callback, sign-out redirects, and generated app links so local auth uses `localhost` and deployed auth uses the active UseClevr host instead of the server bind host.
 - Fix Google and LinkedIn sign-in setup so OAuth credentials work with common hosting env names and return users to the dashboard.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.

@@ -97,16 +97,20 @@ function LoginForm() {
   const [nowMs, setNowMs] = useState(Date.now());
   const [revealPassword, setRevealPassword] = useState("");
   const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false);
+  const [oauthStatus, setOauthStatus] = useState<{
+    googleEnabled: boolean;
+    linkedInEnabled: boolean;
+  } | null>(null);
   const authQueryError = searchParams.get("error");
 
   const REVEAL_PASSWORD = "edely";
 
   const goToDashboard = () => {
-    router.replace("/dashboard");
+    router.replace("/app/dashboard");
     router.refresh();
   };
 
-  const dashboardCallbackUrl = () => "/dashboard";
+  const dashboardCallbackUrl = () => "/app/dashboard";
   const visibleAuthError = authError || getReadableAuthError(authQueryError);
   const isVerificationOpen = Boolean(pendingVerificationEmail);
   const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
@@ -116,6 +120,29 @@ function LoginForm() {
     const interval = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(interval);
   }, [resendAvailableAt]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/auth/oauth-status", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((status) => {
+        if (cancelled || !status) return;
+        setOauthStatus({
+          googleEnabled: Boolean(status.googleEnabled),
+          linkedInEnabled: Boolean(status.linkedInEnabled),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOauthStatus({ googleEnabled: false, linkedInEnabled: false });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const showVerificationStep = (
     email: string,
@@ -154,6 +181,16 @@ function LoginForm() {
         }
 
         goToDashboard();
+        return;
+      }
+
+      if (provider === "google" && oauthStatus && !oauthStatus.googleEnabled) {
+        setAuthError("Google sign-in is not configured yet. Use email sign-in or try again later.");
+        return;
+      }
+
+      if (provider === "linkedin" && oauthStatus && !oauthStatus.linkedInEnabled) {
+        setAuthError("LinkedIn sign-in is not configured yet. Use email sign-in or try again later.");
         return;
       }
 
@@ -401,7 +438,7 @@ function LoginForm() {
           type="button"
           variant="outline"
           className="w-full"
-          disabled={isLoading}
+          disabled={isLoading || oauthStatus?.googleEnabled !== true}
           onClick={() => startProviderSignIn("google")}
         >
           {authAction === "google" ? (
@@ -415,7 +452,7 @@ function LoginForm() {
           type="button"
           variant="outline"
           className="w-full"
-          disabled={isLoading}
+          disabled={isLoading || oauthStatus?.linkedInEnabled !== true}
           onClick={() => startProviderSignIn("linkedin")}
         >
           {authAction === "linkedin" ? (

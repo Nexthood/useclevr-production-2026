@@ -37,6 +37,10 @@ assert.equal(
   "https://test.useclevr.com/api/auth/callback/linkedin",
 )
 assert.equal(
+  resolveAuthRedirect("/app/dashboard", "https://test.useclevr.com"),
+  "https://test.useclevr.com/app/dashboard",
+)
+assert.equal(
   resolveAuthRedirect("/app", "http://localhost:3100"),
   "http://localhost:3100/app",
 )
