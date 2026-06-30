@@ -18,6 +18,7 @@
  */
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
+import { generateWithUserAiProvider } from "@/lib/ai/byoai-provider";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
@@ -544,15 +545,50 @@ try {
        const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessProfilePrompt + mcpToolsPrompt;
 
       try {
-        debugLog(mockAIMode ? '[ANALYZE] Calling Mock AI for response...' : '[ANALYZE] Calling Google AI (Gemini) for response...');
-        const text = mockAIMode
-          ? await generateMockAnalysisText({ question, resultRows: result })
-          : (await generateText({
-              model: google("gemini-2.5-flash"),
-              prompt,
-            })).text;
+        let text: string | null = null;
+
+        if (!mockAIMode) {
+          try {
+            const byoAiResult = await generateWithUserAiProvider(userId, prompt);
+            if (byoAiResult) {
+              text = byoAiResult.text;
+              traceProvider = byoAiResult.providerName;
+              traceModel = byoAiResult.modelName;
+              debugLog("[ANALYZE] BYOAI provider response received", {
+                providerName: byoAiResult.providerName,
+                modelName: byoAiResult.modelName,
+              });
+            }
+          } catch (byoAiError) {
+            debugWarn("[ANALYZE] BYOAI provider failed, falling back to default cloud AI:", byoAiError);
+          }
+        }
+
+        debugLog(
+          text
+            ? "[ANALYZE] Using BYOAI response"
+            : mockAIMode
+              ? "[ANALYZE] Calling Mock AI for response..."
+              : "[ANALYZE] Calling Google AI (Gemini) for response...",
+        );
+        text =
+          text ||
+          (mockAIMode
+            ? await generateMockAnalysisText({ question, resultRows: result })
+            : (await generateText({
+                model: google("gemini-2.5-flash"),
+                prompt,
+              })).text);
+        if (!mockAIMode && traceProvider !== "gemini-cloud" && !text) {
+          traceProvider = "gemini-cloud";
+          traceModel = "gemini-2.5-flash";
+        }
         answer = text;
-        debugLog(mockAIMode ? '[ANALYZE] Mock AI response received' : '[ANALYZE] Gemini response received');
+        if (mockAIMode) {
+          debugLog("[ANALYZE] Mock AI response received");
+        } else if (traceProvider === "gemini-cloud") {
+          debugLog("[ANALYZE] Gemini response received");
+        }
 
         const parts = answer.split('\n\n');
         for (const part of parts) {

@@ -1,3 +1,4 @@
+- changed: add Bring Your Own AI provider settings with encrypted OpenAI-compatible provider storage, connection testing, dataset-analysis routing, and default cloud fallback
 - changed: route verification email delivery through Resend only, expose a guarded Resend status diagnostic, and log unverified sender-domain failures from Railway without exposing secrets
 - fixed: show the dashboard report greeting without clipping and score Business Profile completion from visible required fields
 - fixed: repair Dashboard 2.0 TypeScript build blockers so production builds complete

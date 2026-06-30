@@ -543,6 +543,33 @@ export const aiInteractionTraces = pgTable(
   }),
 );
 
+export const aiProviderConfigs = pgTable(
+  "AiProviderConfig",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    providerType: varchar("providerType", { length: 40 }).default("openai-compatible").notNull(),
+    providerName: varchar("providerName", { length: 120 }).notNull(),
+    baseUrl: text("baseUrl").notNull(),
+    modelName: varchar("modelName", { length: 160 }).notNull(),
+    encryptedApiKey: text("encryptedApiKey"),
+    selected: boolean("selected").default(true).notNull(),
+    lastTestStatus: varchar("lastTestStatus", { length: 30 }),
+    lastTestMessage: text("lastTestMessage"),
+    lastTestedAt: timestamp("lastTestedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "AiProviderConfig_userId_fkey",
+    }).onDelete("cascade"),
+    userIdIdx: uniqueIndex("AiProviderConfig_userId_key").on(table.userId),
+  }),
+);
+
 export const appSettings = pgTable(
   "AppSetting",
   {

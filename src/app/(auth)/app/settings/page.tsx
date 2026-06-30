@@ -1,4 +1,5 @@
 import { AccountCenter } from "@/components/settings/account-center"
+import { getPublicAiProviderConfig } from "@/lib/ai/byoai-provider"
 import { auth } from "@/lib/auth/auth"
 import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
@@ -12,6 +13,7 @@ export default async function SettingsPage() {
   const setupStatus = session?.user?.id ? await getCompanySetup(session.user.id) : null
   const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role)
   const billingSettings = await getBillingSettings()
+  const aiProvider = session?.user?.id ? await getPublicAiProviderConfig(session.user.id) : null
 
   let profile: { fullName: string | null; email: string | null } | null = null
   const db = getDb()
@@ -29,6 +31,7 @@ export default async function SettingsPage() {
       usage={usage}
       billingSettings={billingSettings}
       session={session}
+      aiProvider={aiProvider}
     />
   )
 }

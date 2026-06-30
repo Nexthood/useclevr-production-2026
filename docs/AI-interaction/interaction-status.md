@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-06-30
-- **Goal**: Diagnose and harden UseClevr email verification delivery.
-- **Durable change**: Verification email delivery uses Resend only, exposes a guarded Resend status diagnostic, and logs sanitized Resend API failures without exposing secrets or codes.
-- **Verification**: TypeScript, focused ESLint, sanitized Railway env presence check, Resend status check, and a real Resend send attempt pass through the diagnostic path; Resend rejects the current sender because the `useclevr.com` domain is not verified.
+- **Goal**: Implement a minimal Bring Your Own AI provider connector.
+- **Durable change**: Account settings supports one encrypted OpenAI-compatible user provider with server-side connection testing, and dataset analysis tries the selected provider before falling back to the default cloud AI path.
+- **Verification**: TypeScript and focused ESLint pass for the BYOAI service, settings UI, test endpoint, analysis route, and schema changes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
