@@ -22,7 +22,7 @@ import { NextResponse } from 'next/server';
 import { validateDatasetId } from '@/lib/chat/validation';
 import { executeStrictSQL } from '@/lib/chat/sql-executor';
 import { formatAIResponse } from '@/lib/chat/explanation';
-import { handleRegularChat, handleRegularChatStream } from '@/lib/chat/fallback';
+import { handleRegularChat, handleRegularChatStream, type ChatProviderStatus } from '@/lib/chat/fallback';
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
 
 function streamResponse(readable: ReadableStream<string>): Response {
@@ -92,12 +92,23 @@ async function handleAnalyticalQuery(
   }, lastMessage);
 
   const fullExplanationPrompt = `${EXPLANATION_SYSTEM_PROMPT}\n\n${explanationPrompt}`;
+  let providerStatus: ChatProviderStatus = {
+    label: "Cloud fallback",
+    state: "connection_healthy",
+    message: "Connection healthy",
+    fallbackActive: false,
+  };
 
   try {
     const adapterResult = await generateWithUniversalAiAdapter(userId, fullExplanationPrompt);
     if (adapterResult) {
       logUniversalAiResponse(adapterResult);
       const explanation = formatAIResponse(adapterResult.text);
+      providerStatus = providerStatusFromAdapterResult(
+        adapterResult.providerType,
+        adapterResult.providerName,
+        adapterResult.fallbackUsed,
+      );
       if (stream) {
         return streamResponse(textToReadableStream(explanation));
       }
@@ -107,6 +118,9 @@ async function handleAnalyticalQuery(
         content: explanation,
         role: 'assistant',
         verified: true,
+        providerName: adapterResult.providerName,
+        modelName: adapterResult.modelName,
+        providerStatus,
         computation: {
           operation: sqlResult.result.operation,
           sql: sqlResult.sql,
@@ -115,6 +129,12 @@ async function handleAnalyticalQuery(
       });
     }
   } catch (adapterError) {
+    providerStatus = {
+      label: "Cloud fallback",
+      state: "fallback_active",
+      message: "Provider unavailable",
+      fallbackActive: true,
+    };
     logDefaultCloudFallback(userId, adapterError);
   }
 
@@ -174,6 +194,9 @@ async function handleAnalyticalQuery(
       content: explanation,
       role: 'assistant',
       verified: true,
+      providerName: "gemini-cloud",
+      modelName: "gemini-2.5-flash",
+      providerStatus,
       computation: {
         operation: sqlResult.result.operation,
         sql: sqlResult.sql,
@@ -187,6 +210,14 @@ async function handleAnalyticalQuery(
       content: `Result: ${JSON.stringify(sqlResult.result)}`,
       role: 'assistant',
       verified: true,
+      providerName: "system",
+      modelName: "deterministic-result",
+      providerStatus: {
+        label: "Cloud fallback",
+        state: "provider_unavailable",
+        message: "Provider unavailable",
+        fallbackActive: true,
+      },
       computation: {
         operation: sqlResult.result.operation,
         sql: sqlResult.sql,
@@ -323,6 +354,14 @@ export async function POST(request: Request) {
       success: true,
       content: result.content,
       role: 'assistant',
+      providerName: result.providerName || "gemini-cloud",
+      modelName: result.modelName || "gemini-2.5-flash",
+      providerStatus: result.providerStatus || {
+        label: "Cloud fallback",
+        state: "connection_healthy",
+        message: "Connection healthy",
+        fallbackActive: false,
+      },
     });
 
   } catch (err: any) {
@@ -339,6 +378,26 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean): ChatProviderStatus {
+  return {
+    label: providerStatusLabel(providerType, providerName),
+    state: fallbackUsed ? "fallback_active" : "connection_healthy",
+    message: fallbackUsed ? "Fallback active" : "Connection healthy",
+    fallbackActive: fallbackUsed,
+  };
+}
+
+function providerStatusLabel(providerType: string, providerName: string) {
+  if (providerType === "ollama") return "Ollama";
+  if (providerType === "lm-studio") return "LM Studio";
+  if (providerType === "openai-compatible") return "OpenAI Compatible";
+  if (providerType === "azure-openai") return "Azure OpenAI";
+  if (providerType === "google-gemini") return "Google Gemini";
+  if (providerType === "openai") return "OpenAI";
+  if (providerType === "anthropic") return "Anthropic";
+  return providerName || "AI Provider";
 }
 
 function textToReadableStream(text: string): ReadableStream<string> {

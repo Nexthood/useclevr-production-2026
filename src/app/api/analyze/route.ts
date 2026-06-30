@@ -51,6 +51,13 @@ import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 
+type AiProviderStatus = {
+  label: string;
+  state: "connection_healthy" | "fallback_active" | "provider_unavailable";
+  message: string;
+  fallbackActive: boolean;
+};
+
 // Generate business insights from query results without LLM
 function generateBusinessInsights(result: Record<string, unknown>[], question: string): { insight: string; explanation: string; recommendation: string } {
   if (!result || result.length === 0) {
@@ -168,6 +175,19 @@ export async function POST(request: Request) {
   const mockAIMode = isMockAIMode()
   let traceProvider = mockAIMode ? MOCK_AI_PROVIDER_NAME : "gemini-cloud"
   let traceModel = mockAIMode ? MOCK_AI_MODEL_NAME : "gemini-2.5-flash"
+  let providerStatus: AiProviderStatus = mockAIMode
+    ? {
+        label: MOCK_AI_PROVIDER_NAME,
+        state: "connection_healthy" as const,
+        message: "Connection healthy",
+        fallbackActive: false,
+      }
+    : {
+        label: "Cloud fallback",
+        state: "connection_healthy" as const,
+        message: "Connection healthy",
+        fallbackActive: false,
+      }
   let traceError: string | null = null
   let traceResponseContent = ""
   let traceQuestion = ""
@@ -558,9 +578,21 @@ try {
               text = byoAiResult.text;
               traceProvider = byoAiResult.providerName;
               traceModel = byoAiResult.modelName;
+              providerStatus = {
+                label: providerStatusLabel(byoAiResult.providerType, byoAiResult.providerName),
+                state: byoAiResult.fallbackUsed ? "fallback_active" : "connection_healthy",
+                message: byoAiResult.fallbackUsed ? "Fallback active" : "Connection healthy",
+                fallbackActive: byoAiResult.fallbackUsed,
+              };
               logUniversalAiResponse(byoAiResult);
             }
           } catch (byoAiError) {
+            providerStatus = {
+              label: "Cloud fallback",
+              state: "fallback_active",
+              message: "Provider unavailable",
+              fallbackActive: true,
+            };
             logDefaultCloudFallback(userId, byoAiError);
           }
         }
@@ -724,6 +756,7 @@ try {
       traceId: savedTraceId,
       providerName: traceProvider,
       modelName: traceModel,
+      providerStatus,
     }
 
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');
@@ -764,6 +797,17 @@ try {
       chartType: "table",
     });
   }
+}
+
+function providerStatusLabel(providerType: string, providerName: string) {
+  if (providerType === "ollama") return "Ollama";
+  if (providerType === "lm-studio") return "LM Studio";
+  if (providerType === "openai-compatible") return "OpenAI Compatible";
+  if (providerType === "azure-openai") return "Azure OpenAI";
+  if (providerType === "google-gemini") return "Google Gemini";
+  if (providerType === "openai") return "OpenAI";
+  if (providerType === "anthropic") return "Anthropic";
+  return providerName || "AI Provider";
 }
 
 export async function DELETE() {

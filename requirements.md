@@ -72,6 +72,7 @@ Text rules for this file:
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Try the default enabled AI provider first, then use other enabled providers as fallbacks, and log fallback events server-side.
 - Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
+- Show the AI Assistant provider state for each response, including the active provider label, connection healthy, fallback active, or provider unavailable.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
 - Show Bring Your Own AI as the recommended Hybrid AI modal path.
 - Link Hybrid AI setup calls to the AI Providers settings page.
