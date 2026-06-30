@@ -9,6 +9,20 @@ const PRIVATE_ENGINE_URL = process.env.USECLEVR_PRIVATE_ENGINE_URL || "http://lo
 const PRIVATE_ENGINE_MODEL = process.env.USECLEVR_PRIVATE_ENGINE_MODEL || "llama3.2:3b-instruct"
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+const hybridAiFeatures = {
+  privateChat: true,
+  csvExcelAnalysis: true,
+  dashboardInsights: true,
+  basicLocalAi: true,
+  aiAgents: true,
+  multiDocumentReasoning: true,
+  deepResearch: true,
+  backgroundTasks: true,
+  workflowAutomation: true,
+  businessAssistants: true,
+  enterpriseModules: true,
+}
+
 const jsonHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -109,6 +123,23 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, 200, {
         connected: true,
         privateEngineReady: await checkPrivateEngine(),
+        features: hybridAiFeatures,
+        modules: {
+          lite: ["privateChat", "csvExcelAnalysis", "dashboardInsights", "basicLocalAi"],
+          mega: [
+            "privateChat",
+            "csvExcelAnalysis",
+            "dashboardInsights",
+            "basicLocalAi",
+            "aiAgents",
+            "multiDocumentReasoning",
+            "deepResearch",
+            "backgroundTasks",
+            "workflowAutomation",
+            "businessAssistants",
+            "enterpriseModules",
+          ],
+        },
       })
       return
     }

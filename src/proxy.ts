@@ -7,7 +7,7 @@ const apiPrefix = "/api"
 const publicApiPrefixes = ["/api/auth"]
 const publicApiPaths = [
   "/api/health",
-  "/api/debug/smtp-status",
+  "/api/debug/resend-status",
   "/api/mcp",
   "/api/payload/mcp",
   "/api/webhooks/stripe",

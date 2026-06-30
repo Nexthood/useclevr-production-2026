@@ -71,7 +71,7 @@ Required service accounts for production:
 Conditional service accounts:
 
 - Stripe, only when billing or checkout is enabled.
-- SpaceMail SMTP, required for production email verification delivery from the configured `EMAIL_FROM` sender.
+- Resend, required for production email verification delivery from the configured `EMAIL_FROM` sender.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
 Local-only tools:
@@ -151,11 +151,7 @@ AUTH_LINKEDIN_SECRET=    # LinkedIn OAuth client secret
 ADMIN_AUTH_BYPASS_ENABLED=false
 ADMIN_AUTH_BYPASS_EMAIL=superadmin@useclevr.com
 ADMIN_AUTH_BYPASS_CODE=  # Temporary superadmin fallback code, set in Railway
-SMTP_HOST=mail.spacemail.com
-SMTP_PORT=587            # SpaceMail SMTP port; 587 uses STARTTLS
-SMTP_SECURE=false        # Port 587 starts plain, then upgrades with STARTTLS
-SMTP_USER=start@useclevr.com
-SMTP_PASSWORD=           # SpaceMail SMTP password for start@useclevr.com, set in Railway
+RESEND_API_KEY=          # Resend API key, set in Railway
 EMAIL_FROM="UseClevr <auth@useclevr.com>"
 LOCAL_UPLOAD_DIR=/tmp/useclevr-uploads
 UPLOAD_PROVIDER=
@@ -163,19 +159,18 @@ MOCK_AI_MODE=false       # Local-only AI development responses; production runti
 MOCK_AI_RESPONSE_DELAY_MS=250
 ```
 
-SMTP authentication uses `SMTP_USER`; `auth@useclevr.com` is the visible sender alias from `EMAIL_FROM`.
-The SMTP transport requires STARTTLS on port 587, verifies the connection and authentication before
-sending verification email, and logs complete Nodemailer error details on the server without logging
-`SMTP_PASSWORD`.
-Use `GET /api/debug/smtp-status` with `x-smtp-debug-token` to verify connection, STARTTLS, and
-authentication. Use `POST /api/debug/smtp-status` with the same header to send a fixed test email to
-the configured SMTP status recipient or superadmin account.
+Resend sends signup and login verification emails through the server-only API key. `EMAIL_FROM` must
+use a verified sender on the `useclevr.com` domain. Use `GET /api/debug/resend-status` with
+`x-resend-debug-token` to verify server configuration. Use `POST /api/debug/resend-status` with the
+same header to send a fixed test email to the configured Resend status recipient or superadmin
+account.
+Resend API keys restricted to send-only can send diagnostics but cannot list domain status; the
+send response still reports sender-domain rejection details when the domain is unverified.
 The temporary admin auth bypass works only when `ADMIN_AUTH_BYPASS_ENABLED=true`, only for
 `ADMIN_AUTH_BYPASS_EMAIL`, and never logs `ADMIN_AUTH_BYPASS_CODE`.
-Run `pnpm test:smtp-verification -- --to recipient@example.com --matrix` inside Railway to send
-one diagnostic verification email with port 465/TLS and one with port 587/STARTTLS settings.
-The script logs sanitized SMTP settings and the server logs include Nodemailer error details without
-logging `SMTP_PASSWORD`.
+Run `pnpm test:resend-verification -- --to recipient@example.com` inside Railway to send one
+diagnostic verification email through Resend. The script logs sanitized Resend settings and never
+logs `RESEND_API_KEY`.
 Run the email-password flow diagnostics inside Railway with `pnpm test:auth-flow -- signup-send`,
 `signup-verify`, `login-send`, and `login-verify` commands. Set `AUTH_FLOW_TEST_EMAIL`,
 `AUTH_FLOW_TEST_PASSWORD`, and `AUTH_FLOW_TEST_CODE` for the verification steps.
@@ -183,6 +178,10 @@ Run the email-password flow diagnostics inside Railway with `pnpm test:auth-flow
 `AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
 `NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility, but Railway services should use the `AUTH_*`
 names unless a legacy deployment already depends on `NEXTAUTH_*`.
+Google OAuth accepts `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` and the common
+`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` aliases. LinkedIn OAuth accepts
+`AUTH_LINKEDIN_ID`/`AUTH_LINKEDIN_SECRET` and the common
+`LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` aliases.
 
 OAuth provider callback paths are fixed by the provider IDs in code:
 

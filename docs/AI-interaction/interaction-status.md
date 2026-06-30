@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-06-29
-- **Goal**: Implement the UseClevr Helper local Hybrid AI bridge and branded private-analysis UI.
-- **Durable change**: The repo includes a standalone helper app on localhost port 14567, a browser helper bridge, an AI Assistant private-analysis panel, protected helper download routes, and customer-facing Hybrid AI copy that hides technical runtime and model names.
-- **Verification**: TypeScript, focused ESLint, helper syntax check, and live helper endpoint smoke tests pass.
+- **Date**: 2026-06-30
+- **Goal**: Implement a minimal Bring Your Own AI provider connector.
+- **Durable change**: Account settings supports one encrypted OpenAI-compatible user provider with server-side connection testing, and dataset analysis tries the selected provider before falling back to the default cloud AI path.
+- **Verification**: TypeScript and focused ESLint pass for the BYOAI service, settings UI, test endpoint, analysis route, and schema changes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

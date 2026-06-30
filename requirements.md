@@ -65,6 +65,14 @@ Text rules for this file:
 - Use UseClevr Helper as the desktop bridge for Hybrid AI private analysis.
 - Keep normal Hybrid AI UI branded as UseClevr Hybrid AI, Private AI Analysis, Local AI Engine, Secure runtime connected, and Files stay on your device.
 - Keep technical runtime names, internal engine names, and model names out of normal customer UI.
+- Show an AI Providers section in Account settings.
+- Let signed-in users configure one selected OpenAI-compatible provider with provider name, base URL, optional API key, and model name.
+- Store AI provider API keys encrypted on the server and never return saved keys to the browser.
+- Test AI provider connections through a signed-in server endpoint that sends a small chat completions request to the configured base URL.
+- Show clear AI provider test success and failure states in Account settings.
+- Use the selected AI provider for dataset analysis when configured.
+- Fall back to the default cloud AI provider when no user AI provider is configured or when the user provider fails.
+- Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
 
 ## Privacy Shield
 
@@ -220,9 +228,9 @@ Text rules for this file:
 - Require email-password sign-ins to complete a fresh 6-digit hashed, single-use confirmation code before each dashboard session starts.
 - Store email verification records with user or email, hashed code, purpose, 10-minute expiry, used timestamp, attempts, and created timestamp.
 - Limit verification to five wrong attempts and keep resend-code actions on a 60-second cooldown.
-- Send verification codes through a server-only SMTP email abstraction that authenticates with `SMTP_USER` and shows the sender from `EMAIL_FROM`.
-- Verify SMTP STARTTLS connection and authentication before sending each verification email, and expose a temporary SMTP status endpoint for Railway diagnostics.
-- Log verification email SMTP failures on the server with sanitized SMTP settings and Nodemailer error fields while keeping `SMTP_PASSWORD` out of logs and returning safe client-facing errors.
+- Send verification codes through a server-only Resend integration using `RESEND_API_KEY` and a verified `EMAIL_FROM` sender.
+- Expose a guarded Resend status endpoint and diagnostic send command for Railway email delivery checks.
+- Log verification email Resend failures on the server with sanitized provider settings and API response details while keeping secrets and verification codes out of logs and returning safe client-facing errors.
 - Log email-password signup, verification, proof consumption, and credentials sign-in outcomes on the server with masked email addresses and without logging passwords or verification codes.
 - Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.
 - Combine sign-in and sign-up in tabs on the login page.
@@ -381,6 +389,11 @@ Text rules for this file:
 - Let authenticated Pro and Business users download UseClevr Helper desktop installers.
 - Show Windows, macOS, and Linux UseClevr Helper download cards with platform-specific installer names.
 - Use UseClevr Helper on localhost port 14567 for health, status, and private-analysis chat checks.
+- Expose Hybrid AI module feature flags from the UseClevr Helper status response.
+- Unlock Hybrid AI Lite and Hybrid AI MEGA modules in the web app from the authenticated subscription, using one shared helper installation.
+- Include Private Chat, CSV/Excel Analysis, Dashboard Insights, and Basic Local AI in Hybrid AI Lite.
+- Include Lite modules, AI Agents, multi-document reasoning, Deep Research, background task execution, workflow automation, business assistants, and future enterprise modules in Hybrid AI MEGA.
+- Keep future Hybrid AI modules modular so new module flags extend the helper contract without creating another desktop app.
 - Show UseClevr Helper offline, setup-needed, and secure-runtime-connected states in branded wording.
 - Keep Hybrid AI optional and keep cloud analysis workflows available when the helper is offline.
 - Show Hybrid AI Lite to Pro users and Hybrid AI MEGA to Business users.

@@ -41,11 +41,13 @@ moving work between states.
 
 ## Label: auth
 
-- T-880. Verify SpaceMail STARTTLS and SMTP authentication before verification email sending, and expose a temporary SMTP status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)
-- T-879. Add an env-gated superadmin fallback verification path that keeps platform access available when SMTP delivery fails. (labels: auth, security, deployment; commit: worktree)
+- T-889. Route email verification delivery through Resend only, expose a guarded Resend status diagnostic, and surface unverified sender-domain failures in server logs. (labels: auth, logging, deployment, testing; commit: worktree)
+- T-888. Fix Google and LinkedIn OAuth sign-in by accepting common provider credential env names, requesting email/profile scopes, and using a same-app dashboard callback. (labels: auth, deployment, ui; commit: worktree)
+- T-880. Verify Resend provider configuration and sender-domain readiness before verification email sending, and expose a guarded Resend status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)
+- T-879. Add an env-gated superadmin fallback verification path that keeps platform access available when email delivery fails. (labels: auth, security, deployment; commit: worktree)
 - T-878. Log email-password auth milestones and provide Railway diagnostics for signup, verification, login code, and login verification checks. (labels: auth, logging, testing, deployment; commit: worktree)
-- T-877. Log sanitized SMTP verification email failures and provide a Railway diagnostic send command for SpaceMail port testing. (labels: auth, logging, deployment, testing; commit: worktree)
-- T-876. Send email verification codes through SpaceMail SMTP from the configured UseClevr sender using Railway environment variables. (labels: auth, security, deployment; commit: worktree)
+- T-877. Log sanitized Resend verification email failures and provide a Railway diagnostic send command for provider delivery testing. (labels: auth, logging, deployment, testing; commit: worktree)
+- T-876. Send email verification codes through Resend from the configured UseClevr sender using Railway environment variables. (labels: auth, security, deployment; commit: worktree)
 - T-875. Implement UseClevr-owned hashed email verification codes for signup and every email-password login before dashboard access. (labels: auth, security, ui; commit: worktree)
 - T-874. Require email OTP verification before email-password accounts can sign in and reach dashboard workflows. (labels: auth, security, ui; commit: worktree)
 - T-837. Persist locked built-in accounts as database-backed identities for dashboard updates and all upload workflows. (labels: auth, upload, dashboard, data; commit: worktree)
@@ -98,6 +100,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-887. Unlock Hybrid AI Lite and Hybrid AI MEGA modules from one shared UseClevr Helper installation through subscription-based module flags. (labels: ai, local-ai, billing, ui; commit: worktree)
 - T-886. Implement UseClevr Helper as the branded local Hybrid AI bridge with protected helper downloads and private-analysis chat status. (labels: ai, local-ai, security, ui; commit: worktree)
 - T-871. AI Assistant generates at least 10 contextual suggested questions automatically after dataset selection, caches them per dataset, and shows fallback questions when generation fails. (labels: ai, data, ui; commit: worktree)
 - T-864. Retail Inventory Analyst shows every product-specific stock, sales, profit, margin, last-sale, order, and owner-action detail row in scrollable low-stock, dead-stock, and top-profit result cards. (labels: ai, data, ui; commit: worktree)
@@ -425,6 +428,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-890. Add a Bring Your Own AI provider connector with encrypted OpenAI-compatible provider storage, connection testing, Account settings controls, and analysis fallback routing. (labels: ai, ui, security, api; commit: worktree)
 - T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)
 - T-724. Extend sales planning with stage gate reviews, product focus quality criteria, sales tolerances, and lessons integration. (labels: sales, docs; commit: worktree)
 - T-732. Fix accountancy reporting page naming — rename misleading `totalRevenue` variable to `totalRows`. (labels: dashboard, reports; commit: worktree)

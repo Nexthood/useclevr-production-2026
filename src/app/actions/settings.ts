@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
+import { saveAiProviderConfig } from "@/lib/ai/byoai-provider"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
@@ -99,6 +100,42 @@ export async function updateProfile(formData: FormData): Promise<Result<ProfileD
   revalidatePath("/app/settings/profile")
 
   return success({ message: "Profile saved." })
+}
+
+// ---------------------------------------------------------------------------
+// AI provider settings
+// ---------------------------------------------------------------------------
+
+export async function saveAiProvider(formData: FormData): Promise<Result<ProfileData>> {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) return failure("Please sign in again.")
+
+  try {
+    await saveAiProviderConfig(userId, {
+      providerName: String(formData.get("providerName") || ""),
+      baseUrl: String(formData.get("baseUrl") || ""),
+      modelName: String(formData.get("modelName") || ""),
+      apiKey: formData.has("apiKey") ? String(formData.get("apiKey") || "") : undefined,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "AI provider was not saved."
+    return failure(message)
+  }
+
+  await recordActivity({
+    userId,
+    userEmail: session.user.email,
+    type: "profile_updated",
+    feature: "settings",
+    title: "AI provider saved",
+    description: "Bring Your Own AI provider settings were updated.",
+  })
+
+  revalidatePath("/app/settings")
+
+  return success({ message: "AI provider saved." })
 }
 
 // ---------------------------------------------------------------------------

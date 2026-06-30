@@ -6,7 +6,12 @@ import {
   getUseClevrHelperStatus,
   type UseClevrHelperStatus,
 } from "@/lib/hybrid-ai/helper-bridge"
-import { CheckCircle2, Download, Laptop, Monitor, Server, ShieldCheck } from "lucide-react"
+import {
+  getHybridAiEntitlement,
+  HYBRID_AI_MODULES,
+  type HybridAiModuleId,
+} from "@/lib/hybrid-ai/features"
+import { CheckCircle2, Download, Laptop, LockKeyhole, Monitor, Server, ShieldCheck } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 type TierId = "lite" | "mega"
@@ -17,6 +22,8 @@ interface MegaInstallerModalProps {
   onOpenChange: (open: boolean) => void
   preselectTier?: TierId
   allowedTiers?: TierId[]
+  subscriptionTier?: string | null
+  userRole?: string | null
 }
 
 type PlatformDownload = {
@@ -62,6 +69,8 @@ export function MegaInstallerModal({
   onOpenChange,
   preselectTier,
   allowedTiers = DEFAULT_ALLOWED_TIERS,
+  subscriptionTier = "free",
+  userRole,
 }: MegaInstallerModalProps) {
   const [selectedTier, setSelectedTier] = useState<TierId | null>(null)
   const [status, setStatus] = useState<UseClevrHelperStatus>({
@@ -69,7 +78,15 @@ export function MegaInstallerModal({
     message: "UseClevr Helper is not running",
     connected: false,
     privateEngineReady: false,
+    features: HYBRID_AI_MODULES.reduce((features, module) => {
+      features[module.id] = true
+      return features
+    }, {} as Record<HybridAiModuleId, boolean>),
   })
+  const entitlement = useMemo(
+    () => getHybridAiEntitlement(subscriptionTier, userRole),
+    [subscriptionTier, userRole],
+  )
 
   const visibleTierOptions = useMemo(() => {
     const tiers = [
@@ -86,8 +103,17 @@ export function MegaInstallerModal({
         badge: "Business",
       },
     ]
-    return tiers.filter((tier) => allowedTiers.includes(tier.id))
-  }, [allowedTiers])
+    return tiers.filter((tier) => allowedTiers.includes(tier.id) && (tier.id === "lite" ? entitlement.canUseLite : entitlement.canUseMega))
+  }, [allowedTiers, entitlement.canUseLite, entitlement.canUseMega])
+
+  const availableModules = useMemo(
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id]),
+    [entitlement.enabledModuleIds, status.features],
+  )
+  const lockedMegaModules = useMemo(
+    () => HYBRID_AI_MODULES.filter((module) => module.tier === "mega" && !entitlement.canUseMega && status.features[module.id]),
+    [entitlement.canUseMega, status.features],
+  )
 
   const refreshStatus = useCallback(async () => {
     setStatus(await getUseClevrHelperStatus())
@@ -139,6 +165,33 @@ export function MegaInstallerModal({
               UseClevr Helper is not running. Start the helper or download it again.
             </p>
           )}
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="text-sm font-semibold text-foreground">Unlocked modules</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            One UseClevr Helper installation unlocks Lite or MEGA modules from your subscription.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {availableModules.map((module) => (
+              <div key={module.id} className="rounded-md border border-emerald-500/25 bg-emerald-500/10 p-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {module.name}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{module.description}</p>
+              </div>
+            ))}
+            {lockedMegaModules.slice(0, 4).map((module) => (
+              <div key={module.id} className="rounded-md border border-border bg-muted/50 p-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <LockKeyhole className="h-3.5 w-3.5" />
+                  {module.name}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{module.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">

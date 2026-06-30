@@ -6,7 +6,12 @@ import {
   getUseClevrHelperStatus,
   type UseClevrHelperStatus,
 } from "@/lib/hybrid-ai/helper-bridge"
-import { ShieldCheck, Sparkles } from "lucide-react"
+import {
+  getHybridAiEntitlement,
+  HYBRID_AI_MODULES,
+  type HybridAiModuleId,
+} from "@/lib/hybrid-ai/features"
+import { CheckCircle2, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react"
 import * as React from "react"
 
 type Message = {
@@ -24,15 +29,23 @@ function statusClassName(state: UseClevrHelperStatus["state"]) {
 export function UseClevrHybridAiChatPanel({
   datasetContext,
   compact = false,
+  subscriptionTier = "free",
+  userRole,
 }: {
   datasetContext?: object
   compact?: boolean
+  subscriptionTier?: string | null
+  userRole?: string | null
 }) {
   const [status, setStatus] = React.useState<UseClevrHelperStatus>({
     state: "offline",
     message: "UseClevr Helper is not running",
     connected: false,
     privateEngineReady: false,
+    features: HYBRID_AI_MODULES.reduce((features, module) => {
+      features[module.id] = true
+      return features
+    }, {} as Record<HybridAiModuleId, boolean>),
   })
   const [inputValue, setInputValue] = React.useState("")
   const [messages, setMessages] = React.useState<Message[]>([])
@@ -49,6 +62,19 @@ export function UseClevrHybridAiChatPanel({
     return () => window.clearInterval(timer)
   }, [refreshStatus])
 
+  const entitlement = React.useMemo(
+    () => getHybridAiEntitlement(subscriptionTier, userRole),
+    [subscriptionTier, userRole],
+  )
+  const enabledModules = React.useMemo(
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id]),
+    [entitlement.enabledModuleIds, status.features],
+  )
+  const lockedMegaModules = React.useMemo(
+    () => HYBRID_AI_MODULES.filter((module) => module.tier === "mega" && !entitlement.canUseMega && status.features[module.id]),
+    [entitlement.canUseMega, status.features],
+  )
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const message = inputValue.trim()
@@ -64,6 +90,10 @@ export function UseClevrHybridAiChatPanel({
       setStatus(latestStatus)
       if (latestStatus.state === "offline") {
         setError("UseClevr Helper is not running. Start the helper or download it again.")
+        return
+      }
+      if (!entitlement.canUseLite) {
+        setError("UseClevr Hybrid AI Lite requires Pro or Business access.")
         return
       }
       if (latestStatus.state === "setup") {
@@ -87,6 +117,7 @@ export function UseClevrHybridAiChatPanel({
         message: "UseClevr Helper is not running",
         connected: false,
         privateEngineReady: false,
+        features: status.features,
       })
     } finally {
       setIsAsking(false)
@@ -111,6 +142,23 @@ export function UseClevrHybridAiChatPanel({
         <p className="mt-3 text-xs text-muted-foreground">
           Files stay on your device when Hybrid AI is active. UseClevr Helper processes private analysis locally.
         </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {enabledModules.slice(0, compact ? 6 : enabledModules.length).map((module) => (
+            <span
+              key={module.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              {module.name}
+            </span>
+          ))}
+          {lockedMegaModules.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <LockKeyhole className="h-3 w-3" />
+              MEGA modules available with Business
+            </span>
+          )}
+        </div>
       </div>
 
       {!compact && messages.length > 0 && (

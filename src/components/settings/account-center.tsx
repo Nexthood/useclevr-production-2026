@@ -5,13 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
-import { updateProfile } from "@/app/actions/settings"
-import { Building2, CheckCircle2, CreditCard, FileText, LockKeyhole, ShieldCheck, Sparkles, User, Settings } from "lucide-react"
+import { saveAiProvider, updateProfile } from "@/app/actions/settings"
+import { Bot, Building2, CheckCircle2, CreditCard, FileText, LockKeyhole, ShieldCheck, Sparkles, User, Settings } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 import { useRouter } from "next/navigation"
 
-type TabId = "profile" | "company" | "subscription" | "billing" | "rules" | "security"
+type TabId = "profile" | "company" | "subscription" | "billing" | "rules" | "ai" | "security"
 
 const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "profile", label: "Profile", icon: User },
@@ -19,6 +19,7 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "subscription", label: "Subscription", icon: CreditCard },
   { id: "billing", label: "Billing", icon: FileText },
   { id: "rules", label: "Rules", icon: ShieldCheck },
+  { id: "ai", label: "AI Providers", icon: Bot },
   { id: "security", label: "Security", icon: LockKeyhole },
 ]
 
@@ -50,13 +51,43 @@ type AccountCenterProps = {
     referralConfig: { referralsPerCredit: number; enabled: boolean }
   } | null
   session: { user?: { id?: string; name?: string | null; email?: string | null; role?: string } } | null
+  aiProvider: {
+    id: string
+    providerType: "openai-compatible"
+    providerName: string
+    baseUrl: string
+    modelName: string
+    hasApiKey: boolean
+    selected: boolean
+    lastTestStatus: string | null
+    lastTestMessage: string | null
+    lastTestedAt: string | null
+  } | null
 }
 
-export function AccountCenter({ profile, setupStatus, usage, billingSettings, session }: AccountCenterProps) {
+export function AccountCenter({ profile, setupStatus, usage, billingSettings, session, aiProvider }: AccountCenterProps) {
   const router = useRouter()
   const { showNotice } = useNotice()
   const [activeTab, setActiveTab] = React.useState<TabId>("profile")
   const [isSaving, setIsSaving] = React.useState(false)
+  const [isSavingAiProvider, setIsSavingAiProvider] = React.useState(false)
+  const [isTestingAiProvider, setIsTestingAiProvider] = React.useState(false)
+  const [aiProviderName, setAiProviderName] = React.useState(aiProvider?.providerName || "")
+  const [aiBaseUrl, setAiBaseUrl] = React.useState(aiProvider?.baseUrl || "")
+  const [aiModelName, setAiModelName] = React.useState(aiProvider?.modelName || "")
+  const [aiApiKey, setAiApiKey] = React.useState("")
+  const [aiTestResult, setAiTestResult] = React.useState<{
+    success: boolean
+    message: string
+    latencyMs?: number
+  } | null>(
+    aiProvider?.lastTestMessage
+      ? {
+          success: aiProvider.lastTestStatus === "success",
+          message: aiProvider.lastTestMessage,
+        }
+      : null,
+  )
 
   const fullName = profile?.fullName || session?.user?.name || ""
   const email = profile?.email || session?.user?.email || ""
@@ -89,6 +120,64 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
       router.refresh()
     }
     setIsSaving(false)
+  }
+
+  const handleAiProviderSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSavingAiProvider(true)
+    const formData = new FormData(event.currentTarget)
+    if (!String(formData.get("apiKey") || "").trim()) {
+      formData.delete("apiKey")
+    }
+
+    const result = await saveAiProvider(formData)
+    if (!result.success) {
+      showNotice({ type: "error", title: "AI provider was not saved.", message: result.error })
+    } else {
+      showNotice({ type: "success", title: "AI provider saved." })
+      setAiApiKey("")
+      router.refresh()
+    }
+    setIsSavingAiProvider(false)
+  }
+
+  const handleAiProviderTest = async () => {
+    setIsTestingAiProvider(true)
+    setAiTestResult(null)
+
+    try {
+      const response = await fetch("/api/ai-providers/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerName: aiProviderName,
+          baseUrl: aiBaseUrl,
+          modelName: aiModelName,
+          apiKey: aiApiKey.trim() || undefined,
+          useSavedKey: !aiApiKey.trim() && Boolean(aiProvider?.hasApiKey),
+        }),
+      })
+      const body = await response.json()
+
+      if (!response.ok || !body.success) {
+        const message = body.error || "Connection failed."
+        setAiTestResult({ success: false, message })
+        showNotice({ type: "error", title: "AI provider test failed.", message })
+        return
+      }
+
+      const message = body.latencyMs
+        ? `Connection successful in ${body.latencyMs} ms.`
+        : "Connection successful."
+      setAiTestResult({ success: true, message, latencyMs: body.latencyMs })
+      showNotice({ type: "success", title: "AI provider connected.", message })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection failed."
+      setAiTestResult({ success: false, message })
+      showNotice({ type: "error", title: "AI provider test failed.", message })
+    } finally {
+      setIsTestingAiProvider(false)
+    }
   }
 
   const renderTabContent = () => {
@@ -426,6 +515,116 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
               </CardContent>
             </Card>
           </div>
+        )
+
+      case "ai":
+        return (
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-foreground">AI Providers</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Connect an OpenAI-compatible engine for UseClevr analysis. The default cloud provider remains available when no provider is saved.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAiProviderSubmit} className="space-y-5">
+                <div className="rounded-lg border border-border bg-background/70 p-4 text-sm text-muted-foreground">
+                  Use base URLs such as <span className="font-mono text-foreground">http://localhost:11434/v1</span>,{" "}
+                  <span className="font-mono text-foreground">http://localhost:1234/v1</span>, or{" "}
+                  <span className="font-mono text-foreground">http://localhost:8000/v1</span>.
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="providerName" className="text-foreground">Provider name</Label>
+                    <Input
+                      id="providerName"
+                      name="providerName"
+                      value={aiProviderName}
+                      onChange={(event) => setAiProviderName(event.target.value)}
+                      placeholder="Local Studio"
+                      className="h-12 bg-muted border-input text-base"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="modelName" className="text-foreground">Model name</Label>
+                    <Input
+                      id="modelName"
+                      name="modelName"
+                      value={aiModelName}
+                      onChange={(event) => setAiModelName(event.target.value)}
+                      placeholder="local-model"
+                      className="h-12 bg-muted border-input text-base"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="baseUrl" className="text-foreground">Base URL</Label>
+                  <Input
+                    id="baseUrl"
+                    name="baseUrl"
+                    value={aiBaseUrl}
+                    onChange={(event) => setAiBaseUrl(event.target.value)}
+                    placeholder="http://localhost:11434/v1"
+                    className="h-12 bg-muted border-input text-base"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey" className="text-foreground">API key optional</Label>
+                  <Input
+                    id="apiKey"
+                    name="apiKey"
+                    type="password"
+                    value={aiApiKey}
+                    onChange={(event) => setAiApiKey(event.target.value)}
+                    placeholder={aiProvider?.hasApiKey ? "Saved key is hidden. Enter a new key to replace it." : "No key needed for local engines"}
+                    className="h-12 bg-muted border-input text-base"
+                    autoComplete="off"
+                  />
+                  {aiProvider?.hasApiKey && (
+                    <p className="text-xs text-muted-foreground">A key is saved securely and is never sent back to this page.</p>
+                  )}
+                </div>
+
+                {aiTestResult && (
+                  <div className={`rounded-md border px-3 py-2 text-sm ${
+                    aiTestResult.success
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+                  }`}>
+                    {aiTestResult.message}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="submit" disabled={isSavingAiProvider} className="bg-gradient-primary hover:opacity-90">
+                    {isSavingAiProvider ? "Saving..." : "Save provider"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isTestingAiProvider || !aiProviderName || !aiBaseUrl || !aiModelName}
+                    onClick={handleAiProviderTest}
+                    className="bg-transparent"
+                  >
+                    {isTestingAiProvider ? "Testing..." : "Test connection"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         )
 
       case "security":

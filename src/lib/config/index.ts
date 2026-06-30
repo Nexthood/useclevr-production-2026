@@ -15,6 +15,8 @@ const envSchema = z.object({
   AUTH_GOOGLE_SECRET: z.string().optional(),
   AUTH_LINKEDIN_ID: z.string().optional(),
   AUTH_LINKEDIN_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   MCP_SERVICE_TOKEN: z.string().min(32).optional(),
