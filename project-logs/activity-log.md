@@ -1,3 +1,4 @@
+- changed: reframe the Hybrid AI modal around Phase 1 BYOAI setup, link users to AI Providers settings, and mark helper downloads as coming soon without active missing-binary links
 - changed: implement Phase 1 BYOAI provider management with multiple provider types, encrypted keys, connection testing, model discovery, default-provider routing, and universal adapter fallback for analysis and assistant chat
 - fixed: detect Google and LinkedIn OAuth provider availability from server config, log sanitized callback status, disable unavailable provider buttons, and send social-login success to the app dashboard
 - fixed: keep OAuth callback, sign-out redirect, and generated app-link origins off the server bind host by setting safe public auth URL env values, normalizing local URLs to localhost, and preserving active UseClevr hosts in deployed environments

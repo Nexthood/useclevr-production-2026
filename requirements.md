@@ -73,6 +73,10 @@ Text rules for this file:
 - Try the default enabled AI provider first, then use other enabled providers as fallbacks, and log fallback events server-side.
 - Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
+- Show Bring Your Own AI as the recommended Hybrid AI modal path.
+- Link Hybrid AI setup calls to the AI Providers settings page.
+- Present UseClevr Helper as Phase 2 advanced automation until signed helper binaries exist.
+- Keep UseClevr Helper download controls disabled while binaries are unavailable.
 
 ## Privacy Shield
 

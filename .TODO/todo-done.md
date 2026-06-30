@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-894. Reframe the Hybrid AI modal around Phase 1 BYOAI provider setup and mark UseClevr Helper downloads as coming soon until signed binaries exist. (labels: ai, ui; commit: worktree)
 - T-893. Implement Phase 1 Bring Your Own AI provider manager with multiple provider types, encrypted keys, connection testing, model discovery, default provider routing, and fallback through the universal adapter. (labels: ai, ui, security, data; commit: worktree)
 - T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
 
