@@ -2,6 +2,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { BUILTIN_BASE_USER, BUILTIN_SUPER_ADMIN_USER } from "@/lib/auth/builtin-users"
+import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { Faqs } from "@/lib/cms/collections/Faqs"
 import { CmsUsers } from "@/lib/payload/collections/CmsUsers"
 import { Media } from "@/lib/payload/collections/Media"
@@ -52,7 +53,9 @@ let hasSeeded = false
 
 export default buildConfig({
   secret: payloadSecret,
-  serverURL: process.env.AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  serverURL: normalizePublicAuthBaseUrl(
+    process.env.AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080",
+  ),
   editor: lexicalEditor(),
   sharp,
   db: postgresAdapter({

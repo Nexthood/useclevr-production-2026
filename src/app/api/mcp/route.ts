@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin";
 import { config as appConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { datasets, mcpAuditLogs, mcpTokens } from "@/lib/db/schema";
@@ -17,8 +18,10 @@ export const runtime = "nodejs";
 const ADMIN_ONLY_TOOLS = ["compareDatasets", "getCostBreakdown"];
 
 const ALLOWED_ORIGINS = [
-  process.env.AUTH_URL || "",
-  process.env.NEXT_PUBLIC_APP_URL || "",
+  normalizePublicAuthBaseUrl(process.env.AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080"),
+  process.env.NEXT_PUBLIC_APP_URL
+    ? normalizePublicAuthBaseUrl(process.env.NEXT_PUBLIC_APP_URL)
+    : "",
   "http://localhost:3000",
   "http://localhost:8080",
 ].filter(Boolean);

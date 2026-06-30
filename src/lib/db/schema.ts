@@ -554,6 +554,10 @@ export const aiProviderConfigs = pgTable(
     modelName: varchar("modelName", { length: 160 }).notNull(),
     encryptedApiKey: text("encryptedApiKey"),
     selected: boolean("selected").default(true).notNull(),
+    isEnabled: boolean("isEnabled").default(true).notNull(),
+    isDefault: boolean("isDefault").default(false).notNull(),
+    lastTestLatencyMs: integer("lastTestLatencyMs"),
+    lastTestModels: jsonb("lastTestModels").$type<string[]>().default([]).notNull(),
     lastTestStatus: varchar("lastTestStatus", { length: 30 }),
     lastTestMessage: text("lastTestMessage"),
     lastTestedAt: timestamp("lastTestedAt"),
@@ -566,7 +570,8 @@ export const aiProviderConfigs = pgTable(
       foreignColumns: [users.id],
       name: "AiProviderConfig_userId_fkey",
     }).onDelete("cascade"),
-    userIdIdx: uniqueIndex("AiProviderConfig_userId_key").on(table.userId),
+    userIdIdx: index("AiProviderConfig_userId_idx").on(table.userId),
+    defaultIdx: index("AiProviderConfig_user_default_idx").on(table.userId, table.isDefault),
   }),
 );
 

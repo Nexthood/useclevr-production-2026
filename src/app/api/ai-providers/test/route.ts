@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import {
+  type AiProviderType,
   testAiProviderConfig,
   testSavedAiProviderConfig,
   updateAiProviderTestStatus,
@@ -18,7 +19,9 @@ export async function POST(request: NextRequest) {
   }
 
   let body: {
+    id?: unknown;
     providerName?: unknown;
+    providerType?: unknown;
     baseUrl?: unknown;
     modelName?: unknown;
     apiKey?: unknown;
@@ -32,7 +35,9 @@ export async function POST(request: NextRequest) {
   }
 
   const input = {
+    id: typeof body.id === "string" ? body.id : undefined,
     providerName: String(body.providerName || ""),
+    providerType: String(body.providerType || "openai-compatible") as AiProviderType,
     baseUrl: String(body.baseUrl || ""),
     modelName: String(body.modelName || ""),
     apiKey: typeof body.apiKey === "string" && body.apiKey.trim() ? body.apiKey : undefined,
@@ -44,9 +49,15 @@ export async function POST(request: NextRequest) {
         ? await testAiProviderConfig(input)
         : await testSavedAiProviderConfig(userId, input);
 
-    await updateAiProviderTestStatus(userId, "success", result.message).catch((error) => {
-      debugWarn("[BYOAI] Failed to update provider test success status", error);
-    });
+    if (input.id) {
+      await updateAiProviderTestStatus(userId, "success", result.message, {
+        providerId: input.id,
+        latencyMs: result.latencyMs,
+        availableModels: result.availableModels,
+      }).catch((error) => {
+        debugWarn("[BYOAI] Failed to update provider test success status", error);
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {
@@ -54,14 +65,17 @@ export async function POST(request: NextRequest) {
     debugError("[BYOAI] Provider test failed", {
       message,
       providerName: input.providerName,
+      providerType: input.providerType,
       baseUrl: input.baseUrl,
       modelName: input.modelName,
       hasApiKey: Boolean(input.apiKey),
     });
 
-    await updateAiProviderTestStatus(userId, "failed", message).catch((updateError) => {
-      debugWarn("[BYOAI] Failed to update provider test failure status", updateError);
-    });
+    if (input.id) {
+      await updateAiProviderTestStatus(userId, "failed", message, { providerId: input.id }).catch((updateError) => {
+        debugWarn("[BYOAI] Failed to update provider test failure status", updateError);
+      });
+    }
 
     return NextResponse.json({ success: false, error: message }, { status: 400 });
   }

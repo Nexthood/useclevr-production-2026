@@ -267,10 +267,9 @@ If Railway deploys successfully but the app returns 502:
    - Use `POST /api/health` for a strict readiness check that returns 503 while the database is not
      ready.
 
-If the test app redirects to the live app host, remove fixed auth host variables from the Railway
-test service or set `USECLEVR_AUTH_URL_STRICT=true` only when a single fixed callback host is
-required. The default Railway runtime removes `AUTH_URL` and `NEXTAUTH_URL`, trusts the request host,
-and keeps OAuth callbacks on `test.useclevr.com`.
+If the test app redirects to the wrong host, set both `AUTH_URL` and `NEXTAUTH_URL` on the Railway
+test service to `https://test.useclevr.com`. The Railway runtime keeps these public auth URLs for
+browser redirects and OAuth callbacks while binding the server internally to `0.0.0.0`.
 
 Register OAuth provider callbacks exactly:
 

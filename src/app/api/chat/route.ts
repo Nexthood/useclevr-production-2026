@@ -10,6 +10,11 @@ import { searchApp } from '@/lib/search/app-search';
 import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
+import {
+  generateWithUniversalAiAdapter,
+  logDefaultCloudFallback,
+  logUniversalAiResponse,
+} from '@/lib/ai/universal-ai-adapter';
 import { debugError, debugLog } from '@/lib/utils/debug';
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -42,6 +47,7 @@ async function handleAnalyticalQuery(
   datasetId: string,
   lastMessage: string,
   stream: boolean,
+  userId: string,
 ): Promise<Response> {
   debugLog('[CHAT] Question requires verified computation');
 
@@ -84,6 +90,33 @@ async function handleAnalyticalQuery(
     operation: sqlResult.result.operation,
     row_count: validation.dataset?.rowCount
   }, lastMessage);
+
+  const fullExplanationPrompt = `${EXPLANATION_SYSTEM_PROMPT}\n\n${explanationPrompt}`;
+
+  try {
+    const adapterResult = await generateWithUniversalAiAdapter(userId, fullExplanationPrompt);
+    if (adapterResult) {
+      logUniversalAiResponse(adapterResult);
+      const explanation = formatAIResponse(adapterResult.text);
+      if (stream) {
+        return streamResponse(textToReadableStream(explanation));
+      }
+
+      return NextResponse.json({
+        success: true,
+        content: explanation,
+        role: 'assistant',
+        verified: true,
+        computation: {
+          operation: sqlResult.result.operation,
+          sql: sqlResult.sql,
+          result: sqlResult.result,
+        },
+      });
+    }
+  } catch (adapterError) {
+    logDefaultCloudFallback(userId, adapterError);
+  }
 
   if (stream) {
     const aiStream = generateAntigravityStream({
@@ -267,15 +300,15 @@ export async function POST(request: Request) {
     const isAnalyticalQuestion = isAnalyticalQuery || /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
 
     if (datasetId && isAnalyticalQuestion) {
-      return handleAnalyticalQuery(datasetId, lastMessage, !!stream);
+      return handleAnalyticalQuery(datasetId, lastMessage, !!stream, userId);
     }
 
     if (stream) {
-      const readable = await handleRegularChatStream(messages, datasetId, processedData, appSearchResults);
+      const readable = await handleRegularChatStream(messages, datasetId, processedData, appSearchResults, userId);
       return streamResponse(readable);
     }
 
-    const result = await handleRegularChat(messages, datasetId, processedData, appSearchResults);
+    const result = await handleRegularChat(messages, datasetId, processedData, appSearchResults, userId);
 
     if (!result.success) {
       return NextResponse.json(
@@ -306,4 +339,13 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function textToReadableStream(text: string): ReadableStream<string> {
+  return new ReadableStream<string>({
+    start(controller) {
+      controller.enqueue(text);
+      controller.close();
+    },
+  });
 }

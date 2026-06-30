@@ -2,7 +2,7 @@
 
 ### Changed
 
-- Add Bring Your Own AI provider settings so users can save an encrypted OpenAI-compatible provider, test the connection, and use it for dataset analysis with cloud fallback.
+- Add Phase 1 Bring Your Own AI provider management so users can connect multiple encrypted AI providers, test latency and model availability, choose a default provider, and route analysis through automatic fallback.
 - Unlock Hybrid AI Lite and Hybrid AI MEGA modules from the same UseClevr Helper installation, with module access driven by the signed-in subscription.
 - Add the UseClevr Helper local bridge for Hybrid AI, including protected desktop-helper downloads, branded private-analysis status, and an optional helper chat panel in the AI Assistant.
 - Give Free accounts exactly two included analyst credits, then route upload, analysis, and report-download continuation through the existing Stripe upgrade path.
@@ -29,6 +29,8 @@
 
 ### Fixed
 
+- Fix OAuth provider availability detection so Google and LinkedIn sign-in buttons only activate when their credentials and the auth secret are configured, with sanitized server diagnostics and dashboard redirects.
+- Fix OAuth callback, sign-out redirects, and generated app links so local auth uses `localhost` and deployed auth uses the active UseClevr host instead of the server bind host.
 - Fix Google and LinkedIn sign-in setup so OAuth credentials work with common hosting env names and return users to the dashboard.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.

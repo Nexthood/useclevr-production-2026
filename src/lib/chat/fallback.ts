@@ -1,6 +1,11 @@
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
-import { debugLog, debugError } from '@/lib/utils/debug';
+import { debugError } from '@/lib/utils/debug';
+import {
+  generateWithUniversalAiAdapter,
+  logDefaultCloudFallback,
+  logUniversalAiResponse,
+} from '@/lib/ai/universal-ai-adapter';
 import { eq } from 'drizzle-orm';
 import { google } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
@@ -216,7 +221,8 @@ export async function handleRegularChat(
   messages: { role: string; content: string }[],
   datasetId?: string,
   processedData?: any[],
-  appSearchResults: AppSearchResult[] = []
+  appSearchResults: AppSearchResult[] = [],
+  userId?: string,
 ): Promise<{ success: boolean; content: string }> {
   const { datasetInfo, rows } = await fetchDatasetForChat(datasetId);
 
@@ -226,6 +232,18 @@ export async function handleRegularChat(
   }
 
   const systemContent = buildSystemPrompt(datasetInfo, datasetRowsData, appSearchResults);
+
+  if (userId) {
+    try {
+      const result = await generateWithUniversalAiAdapter(userId, buildPlainChatPrompt(messages, systemContent));
+      if (result) {
+        logUniversalAiResponse(result);
+        return { success: true, content: formatAIResponse(result.text) };
+      }
+    } catch (error) {
+      logDefaultCloudFallback(userId, error);
+    }
+  }
 
   if (!process.env.GEMINI_API_KEY) {
     return { success: false, content: 'AI service not configured. Please contact support.' };
@@ -253,7 +271,8 @@ export async function handleRegularChatStream(
   messages: { role: string; content: string }[],
   datasetId?: string,
   processedData?: any[],
-  appSearchResults: AppSearchResult[] = []
+  appSearchResults: AppSearchResult[] = [],
+  userId?: string,
 ): Promise<ReadableStream<string>> {
   const { datasetInfo, rows } = await fetchDatasetForChat(datasetId);
 
@@ -264,6 +283,18 @@ export async function handleRegularChatStream(
 
   const systemContent = buildSystemPrompt(datasetInfo, datasetRowsData, appSearchResults);
 
+  if (userId) {
+    try {
+      const result = await generateWithUniversalAiAdapter(userId, buildPlainChatPrompt(messages, systemContent));
+      if (result) {
+        logUniversalAiResponse(result);
+        return textToStream(formatAIResponse(result.text));
+      }
+    } catch (error) {
+      logDefaultCloudFallback(userId, error);
+    }
+  }
+
   const result = streamText({
     model: google('gemini-2.5-flash'),
     messages: buildMessages(messages, systemContent) as any,
@@ -272,4 +303,21 @@ export async function handleRegularChatStream(
   });
 
   return result.textStream as unknown as ReadableStream<string>;
+}
+
+function buildPlainChatPrompt(messages: { role: string; content: string }[], systemContent: string) {
+  const transcript = messages
+    .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
+    .join("\n\n");
+  return `${systemContent}\n\nCHAT TRANSCRIPT\n${transcript}\n\nAnswer the latest user message.`;
+}
+
+function textToStream(text: string) {
+  const encoder = new TextEncoder();
+  return new ReadableStream<string>({
+    start(controller) {
+      controller.enqueue(new TextDecoder().decode(encoder.encode(text)));
+      controller.close();
+    },
+  });
 }

@@ -41,6 +41,8 @@ moving work between states.
 
 ## Label: auth
 
+- T-892. Fix OAuth provider availability detection, sanitized server config logging, exact provider callback paths, and successful social-login dashboard redirects. (labels: auth, deployment, ui; commit: worktree)
+- T-891. Fix OAuth callback, sign-out redirect, and generated app-link origins so browser URLs use localhost locally and the active UseClevr host in deployed environments instead of the server bind host. (labels: auth, deployment, ui; commit: worktree)
 - T-889. Route email verification delivery through Resend only, expose a guarded Resend status diagnostic, and surface unverified sender-domain failures in server logs. (labels: auth, logging, deployment, testing; commit: worktree)
 - T-888. Fix Google and LinkedIn OAuth sign-in by accepting common provider credential env names, requesting email/profile scopes, and using a same-app dashboard callback. (labels: auth, deployment, ui; commit: worktree)
 - T-880. Verify Resend provider configuration and sender-domain readiness before verification email sending, and expose a guarded Resend status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)
@@ -51,6 +53,10 @@ moving work between states.
 - T-875. Implement UseClevr-owned hashed email verification codes for signup and every email-password login before dashboard access. (labels: auth, security, ui; commit: worktree)
 - T-874. Require email OTP verification before email-password accounts can sign in and reach dashboard workflows. (labels: auth, security, ui; commit: worktree)
 - T-837. Persist locked built-in accounts as database-backed identities for dashboard updates and all upload workflows. (labels: auth, upload, dashboard, data; commit: worktree)
+
+## Label: ai
+
+- T-893. Implement Phase 1 Bring Your Own AI provider manager with multiple provider types, encrypted keys, connection testing, model discovery, default provider routing, and fallback through the universal adapter. (labels: ai, ui, security, data; commit: worktree)
 - T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
 
 ## Label: business

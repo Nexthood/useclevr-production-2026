@@ -9,7 +9,17 @@ import {
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { consumeVerifiedAuthProof } from "@/lib/auth/email-verification-codes";
-import { isLocalAuthOrigin, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
+import {
+  authSecret,
+  googleClientId,
+  googleClientSecret,
+  googleProviderId,
+  linkedinClientId,
+  linkedinClientSecret,
+  linkedinProviderId,
+  logOAuthConfigStatus,
+} from "@/lib/auth/oauth-config";
+import { normalizePublicAuthBaseUrl, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
 import { accounts, profiles, users } from "@/lib/db/schema";
@@ -20,7 +30,6 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 import { z } from "zod";
-import { config } from "@/lib/config";
 
 // DIAGNOSTIC: Log when auth module is loaded
 debugLog("[Auth] Module loading - initializing NextAuth v5");
@@ -55,24 +64,11 @@ const loginSchema = z.object({
   verificationPurpose: z.enum(["signup", "login"]).optional(),
 });
 
-const googleClientId = firstEnvValue("AUTH_GOOGLE_ID", "GOOGLE_CLIENT_ID", "GOOGLE_ID");
-const googleClientSecret = firstEnvValue(
-  "AUTH_GOOGLE_SECRET",
-  "GOOGLE_CLIENT_SECRET",
-  "GOOGLE_SECRET",
-);
-const linkedinClientId = firstEnvValue("AUTH_LINKEDIN_ID", "LINKEDIN_CLIENT_ID", "LINKEDIN_ID");
-const linkedinClientSecret = firstEnvValue(
-  "AUTH_LINKEDIN_SECRET",
-  "LINKEDIN_CLIENT_SECRET",
-  "LINKEDIN_SECRET",
-);
-const authSecret = config.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
-const googleProviderId = "google";
-const linkedinProviderId = "linkedin";
+normalizePublicAuthUrlEnv();
+logOAuthConfigStatus("auth-module");
 
-normalizeLocalAuthUrlEnv();
-logOAuthProviderConfig();
+const googleOAuthEnabled = Boolean(googleClientId && googleClientSecret && authSecret);
+const linkedinOAuthEnabled = Boolean(linkedinClientId && linkedinClientSecret && authSecret);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: authSecret,
@@ -205,12 +201,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
-    ...(googleClientId && googleClientSecret
+    ...(googleOAuthEnabled
       ? [
           Google({
             id: googleProviderId,
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
             authorization: {
               params: {
                 scope: "openid email profile",
@@ -219,12 +215,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }),
         ]
       : []),
-    ...(linkedinClientId && linkedinClientSecret
+    ...(linkedinOAuthEnabled
       ? [
           LinkedIn({
             id: linkedinProviderId,
-            clientId: linkedinClientId,
-            clientSecret: linkedinClientSecret,
+            clientId: linkedinClientId!,
+            clientSecret: linkedinClientSecret!,
             authorization: {
               params: {
                 scope: "openid profile email",
@@ -404,16 +400,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
 });
 
-function normalizeLocalAuthUrlEnv() {
-  if (process.env.NODE_ENV === "production") return;
+function normalizePublicAuthUrlEnv() {
+  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  const publicUrl = normalizePublicAuthBaseUrl(configuredUrl || getAuthUrlFallback());
 
-  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
-  if (!configuredUrl || isLocalAuthUrl(configuredUrl)) return;
+  if (configuredUrl && configuredUrl !== publicUrl) {
+    debugWarn("[Auth] Normalized public auth URL to avoid exposing an unsafe bind host.");
+  }
 
-  debugWarn("[Auth] Ignoring non-local auth URL during local development.");
-  delete process.env.AUTH_URL;
-  delete process.env.NEXTAUTH_URL;
+  process.env.AUTH_URL = publicUrl;
+  process.env.NEXTAUTH_URL = publicUrl;
   process.env.AUTH_TRUST_HOST ||= "true";
+}
+
+function getAuthUrlFallback() {
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_STATIC_URL;
+  if (railwayDomain) return `https://${railwayDomain}`;
+  if (process.env.RAILWAY_ENVIRONMENT_ID) return "https://test.useclevr.com";
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT || "8080"}`;
 }
 
 function resolveCredentialsRole(email?: string | null): BuiltinUserRole {
@@ -474,14 +479,6 @@ function maskEmail(email?: string | null) {
   return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
 }
 
-function firstEnvValue(...names: string[]) {
-  for (const name of names) {
-    const value = process.env[name]?.trim();
-    if (value) return value;
-  }
-  return undefined;
-}
-
 function isOAuthEmailVerified(provider?: string, idToken?: string) {
   if (!idToken) return true;
 
@@ -497,57 +494,6 @@ function isOAuthEmailVerified(provider?: string, idToken?: string) {
   } catch {
     return true;
   }
-}
-
-function isLocalAuthUrl(value: string) {
-  try {
-    return isLocalAuthOrigin(new URL(value));
-  } catch {
-    return false;
-  }
-}
-
-function logOAuthProviderConfig() {
-  if (process.env.NODE_ENV !== "development") return;
-
-  const origin = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "request-origin";
-  const callbackBase =
-    origin === "request-origin"
-      ? `${origin}/api/auth/callback`
-      : `${origin.replace(/\/$/, "")}/api/auth/callback`;
-
-  if (!authSecret) {
-    debugWarn(
-      "[Auth] Missing AUTH_SECRET/NEXTAUTH_SECRET. OAuth callbacks fail with Configuration until one is set.",
-    );
-  }
-
-  debugLog("[Auth] OAuth provider configuration:", {
-    google: {
-      enabled: Boolean(googleClientId && googleClientSecret),
-      providerId: googleProviderId,
-      callbackUrl: `${callbackBase}/${googleProviderId}`,
-      env: "AUTH_GOOGLE_ID/AUTH_GOOGLE_SECRET",
-      aliases: "GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET",
-    },
-    linkedin: {
-      enabled: Boolean(linkedinClientId && linkedinClientSecret),
-      providerId: linkedinProviderId,
-      callbackUrl: `${callbackBase}/${linkedinProviderId}`,
-      env: "AUTH_LINKEDIN_ID/AUTH_LINKEDIN_SECRET",
-      aliases: "LINKEDIN_CLIENT_ID/LINKEDIN_CLIENT_SECRET",
-    },
-    authUrlEnv: process.env.AUTH_URL
-      ? "AUTH_URL"
-      : process.env.NEXTAUTH_URL
-        ? "NEXTAUTH_URL"
-        : "request host",
-    secretEnv: process.env.AUTH_SECRET
-      ? "AUTH_SECRET"
-      : process.env.NEXTAUTH_SECRET
-        ? "NEXTAUTH_SECRET"
-        : "missing",
-  });
 }
 
 async function ensureOAuthUserRecord({
