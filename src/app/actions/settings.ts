@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
-import { saveAiProviderConfig } from "@/lib/ai/byoai-provider"
+import { saveAiProviderConfig, type AiProviderType } from "@/lib/ai/byoai-provider"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
@@ -114,10 +114,14 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
 
   try {
     await saveAiProviderConfig(userId, {
+      id: String(formData.get("providerId") || "") || undefined,
       providerName: String(formData.get("providerName") || ""),
+      providerType: String(formData.get("providerType") || "openai-compatible") as AiProviderType,
       baseUrl: String(formData.get("baseUrl") || ""),
       modelName: String(formData.get("modelName") || ""),
       apiKey: formData.has("apiKey") ? String(formData.get("apiKey") || "") : undefined,
+      enabled: formData.get("enabled") === "on",
+      isDefault: formData.get("isDefault") === "on",
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI provider was not saved."
@@ -134,6 +138,7 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
   })
 
   revalidatePath("/app/settings")
+  revalidatePath("/app/settings/ai-providers")
 
   return success({ message: "AI provider saved." })
 }

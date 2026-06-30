@@ -53,6 +53,10 @@ moving work between states.
 - T-875. Implement UseClevr-owned hashed email verification codes for signup and every email-password login before dashboard access. (labels: auth, security, ui; commit: worktree)
 - T-874. Require email OTP verification before email-password accounts can sign in and reach dashboard workflows. (labels: auth, security, ui; commit: worktree)
 - T-837. Persist locked built-in accounts as database-backed identities for dashboard updates and all upload workflows. (labels: auth, upload, dashboard, data; commit: worktree)
+
+## Label: ai
+
+- T-893. Implement Phase 1 Bring Your Own AI provider manager with multiple provider types, encrypted keys, connection testing, model discovery, default provider routing, and fallback through the universal adapter. (labels: ai, ui, security, data; commit: worktree)
 - T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
 
 ## Label: business

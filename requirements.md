@@ -65,13 +65,13 @@ Text rules for this file:
 - Use UseClevr Helper as the desktop bridge for Hybrid AI private analysis.
 - Keep normal Hybrid AI UI branded as UseClevr Hybrid AI, Private AI Analysis, Local AI Engine, Secure runtime connected, and Files stay on your device.
 - Keep technical runtime names, internal engine names, and model names out of normal customer UI.
-- Show an AI Providers section in Account settings.
-- Let signed-in users configure one selected OpenAI-compatible provider with provider name, base URL, optional API key, and model name.
+- Show an AI Providers settings page.
+- Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, default model, enabled state, and default-provider state.
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.
-- Test AI provider connections through a signed-in server endpoint that sends a small chat completions request to the configured base URL.
-- Show clear AI provider test success and failure states in Account settings.
-- Use the selected AI provider for dataset analysis when configured.
-- Fall back to the default cloud AI provider when no user AI provider is configured or when the user provider fails.
+- Test AI provider connections through a signed-in server endpoint and show connection status, latency, available models, and clear failure messages.
+- Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
+- Try the default enabled AI provider first, then use other enabled providers as fallbacks, and log fallback events server-side.
+- Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
 
 ## Privacy Shield

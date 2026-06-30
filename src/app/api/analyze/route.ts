@@ -18,7 +18,11 @@
  */
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
-import { generateWithUserAiProvider } from "@/lib/ai/byoai-provider";
+import {
+  generateWithUniversalAiAdapter,
+  logDefaultCloudFallback,
+  logUniversalAiResponse,
+} from "@/lib/ai/universal-ai-adapter";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
@@ -549,18 +553,15 @@ try {
 
         if (!mockAIMode) {
           try {
-            const byoAiResult = await generateWithUserAiProvider(userId, prompt);
+            const byoAiResult = await generateWithUniversalAiAdapter(userId, prompt);
             if (byoAiResult) {
               text = byoAiResult.text;
               traceProvider = byoAiResult.providerName;
               traceModel = byoAiResult.modelName;
-              debugLog("[ANALYZE] BYOAI provider response received", {
-                providerName: byoAiResult.providerName,
-                modelName: byoAiResult.modelName,
-              });
+              logUniversalAiResponse(byoAiResult);
             }
           } catch (byoAiError) {
-            debugWarn("[ANALYZE] BYOAI provider failed, falling back to default cloud AI:", byoAiError);
+            logDefaultCloudFallback(userId, byoAiError);
           }
         }
 

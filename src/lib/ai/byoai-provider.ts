@@ -2,10 +2,17 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 
 import { db } from "@/lib/db";
 import { aiProviderConfigs } from "@/lib/db/schema";
-import { debugError, debugWarn } from "@/lib/utils/debug";
-import { eq } from "drizzle-orm";
+import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
+import { and, desc, eq } from "drizzle-orm";
 
-export type AiProviderType = "openai-compatible";
+export type AiProviderType =
+  | "ollama"
+  | "lm-studio"
+  | "openai-compatible"
+  | "openai"
+  | "anthropic"
+  | "google-gemini"
+  | "azure-openai";
 
 export type PublicAiProviderConfig = {
   id: string;
@@ -15,16 +22,24 @@ export type PublicAiProviderConfig = {
   modelName: string;
   hasApiKey: boolean;
   selected: boolean;
+  enabled: boolean;
+  isDefault: boolean;
   lastTestStatus: string | null;
   lastTestMessage: string | null;
+  lastTestLatencyMs: number | null;
+  lastTestModels: string[];
   lastTestedAt: string | null;
 };
 
 export type AiProviderInput = {
+  id?: string;
   providerName: string;
+  providerType: AiProviderType;
   baseUrl: string;
   modelName: string;
   apiKey?: string;
+  enabled?: boolean;
+  isDefault?: boolean;
 };
 
 type PrivateAiProviderConfig = PublicAiProviderConfig & {
@@ -41,36 +56,106 @@ type ChatCompletionResponse = {
   error?: unknown;
 };
 
-const PROVIDER_TYPE: AiProviderType = "openai-compatible";
-const TEST_PROMPT = "Reply with exactly: UseClevr BYOAI OK";
-const REQUEST_TIMEOUT_MS = 20_000;
+type AnthropicMessageResponse = {
+  content?: Array<{ type?: string; text?: unknown }>;
+  error?: { message?: unknown; type?: unknown };
+};
 
-export async function getPublicAiProviderConfig(userId: string): Promise<PublicAiProviderConfig | null> {
-  const row = await db.query.aiProviderConfigs.findFirst({
+type GeminiGenerateResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: unknown }>;
+    };
+  }>;
+  error?: { message?: unknown; status?: unknown };
+};
+
+type ModelListResponse = {
+  data?: Array<{ id?: unknown; name?: unknown }>;
+  models?: Array<{ name?: unknown; id?: unknown } | string>;
+};
+
+export type AiProviderTestResult = {
+  success: boolean;
+  message: string;
+  providerName: string;
+  providerType: AiProviderType;
+  modelName: string;
+  latencyMs: number;
+  availableModels: string[];
+  sample: string;
+};
+
+export type UniversalAiGenerateResult = {
+  text: string;
+  providerName: string;
+  providerType: AiProviderType;
+  modelName: string;
+  fallbackUsed: boolean;
+};
+
+const TEST_PROMPT = "Reply with exactly: UseClevr BYOAI OK";
+const REQUEST_TIMEOUT_MS = 25_000;
+const DEFAULT_BASE_URLS: Record<AiProviderType, string> = {
+  ollama: "http://localhost:11434/v1",
+  "lm-studio": "http://localhost:1234/v1",
+  "openai-compatible": "",
+  openai: "https://api.openai.com/v1",
+  anthropic: "https://api.anthropic.com",
+  "google-gemini": "https://generativelanguage.googleapis.com/v1beta",
+  "azure-openai": "",
+};
+
+export const AI_PROVIDER_TYPE_LABELS: Record<AiProviderType, string> = {
+  ollama: "Ollama",
+  "lm-studio": "LM Studio",
+  "openai-compatible": "OpenAI Compatible",
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  "google-gemini": "Google Gemini",
+  "azure-openai": "Azure OpenAI",
+};
+
+export async function listPublicAiProviderConfigs(userId: string): Promise<PublicAiProviderConfig[]> {
+  const rows = await db.query.aiProviderConfigs.findMany({
     where: eq(aiProviderConfigs.userId, userId),
+    orderBy: [desc(aiProviderConfigs.selected), desc(aiProviderConfigs.updatedAt)],
   });
 
-  return row ? toPublicConfig(row) : null;
+  return rows.map(toPublicConfig);
+}
+
+export async function getPublicAiProviderConfig(userId: string): Promise<PublicAiProviderConfig | null> {
+  const providers = await listPublicAiProviderConfigs(userId);
+  return providers.find((provider) => provider.isDefault) || providers[0] || null;
 }
 
 export async function getPrivateAiProviderConfig(userId: string): Promise<PrivateAiProviderConfig | null> {
-  const row = await db.query.aiProviderConfigs.findFirst({
-    where: eq(aiProviderConfigs.userId, userId),
+  const providers = await listPrivateAiProviderConfigs(userId);
+  return providers[0] || null;
+}
+
+export async function listPrivateAiProviderConfigs(userId: string): Promise<PrivateAiProviderConfig[]> {
+  const rows = await db.query.aiProviderConfigs.findMany({
+    where: and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.selected, true)),
+    orderBy: [desc(aiProviderConfigs.isDefault), desc(aiProviderConfigs.updatedAt)],
   });
 
-  if (!row?.selected) return null;
-
-  return {
-    ...toPublicConfig(row),
-    apiKey: row.encryptedApiKey ? decryptSecret(row.encryptedApiKey) : null,
-  };
+  return rows
+    .map((row) => ({
+      ...toPublicConfig(row),
+      apiKey: row.encryptedApiKey ? decryptSecret(row.encryptedApiKey) : null,
+    }))
+    .filter((provider) => provider.enabled);
 }
 
 export async function saveAiProviderConfig(userId: string, input: AiProviderInput) {
   const normalized = normalizeAiProviderInput(input);
-  const existing = await db.query.aiProviderConfigs.findFirst({
-    where: eq(aiProviderConfigs.userId, userId),
-  });
+  const existing = normalized.id
+    ? await db.query.aiProviderConfigs.findFirst({
+        where: and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, normalized.id)),
+      })
+    : null;
   const encryptedApiKey =
     normalized.apiKey !== undefined
       ? normalized.apiKey
@@ -78,127 +163,229 @@ export async function saveAiProviderConfig(userId: string, input: AiProviderInpu
         : null
       : existing?.encryptedApiKey ?? null;
   const now = new Date();
+  const id = existing?.id || `aip_${randomUUID().replaceAll("-", "").slice(0, 20)}`;
+
+  if (normalized.isDefault) {
+    await db
+      .update(aiProviderConfigs)
+      .set({ isDefault: false, updatedAt: now })
+      .where(eq(aiProviderConfigs.userId, userId));
+  }
 
   if (existing) {
     await db
       .update(aiProviderConfigs)
       .set({
-        providerType: PROVIDER_TYPE,
+        providerType: normalized.providerType,
         providerName: normalized.providerName,
         baseUrl: normalized.baseUrl,
         modelName: normalized.modelName,
         encryptedApiKey,
-        selected: true,
+        selected: normalized.enabled,
+        isEnabled: normalized.enabled,
+        isDefault: normalized.isDefault,
         updatedAt: now,
       })
-      .where(eq(aiProviderConfigs.userId, userId));
+      .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, id)));
   } else {
+    const existingCount = await db.query.aiProviderConfigs.findMany({
+      where: eq(aiProviderConfigs.userId, userId),
+      columns: { id: true },
+    });
+    const shouldDefault = normalized.isDefault || existingCount.length === 0;
+    if (shouldDefault) {
+      await db
+        .update(aiProviderConfigs)
+        .set({ isDefault: false, updatedAt: now })
+        .where(eq(aiProviderConfigs.userId, userId));
+    }
+
     await db.insert(aiProviderConfigs).values({
-      id: `aip_${randomUUID().replaceAll("-", "").slice(0, 20)}`,
+      id,
       userId,
-      providerType: PROVIDER_TYPE,
+      providerType: normalized.providerType,
       providerName: normalized.providerName,
       baseUrl: normalized.baseUrl,
       modelName: normalized.modelName,
       encryptedApiKey,
-      selected: true,
+      selected: normalized.enabled,
+      isEnabled: normalized.enabled,
+      isDefault: shouldDefault,
       createdAt: now,
       updatedAt: now,
     });
   }
 
-  const saved = await getPublicAiProviderConfig(userId);
+  const saved = (await listPublicAiProviderConfigs(userId)).find((provider) => provider.id === id);
   if (!saved) throw new Error("Provider was not saved.");
   return saved;
 }
 
 export async function testAiProviderConfig(input: AiProviderInput) {
   const normalized = normalizeAiProviderInput(input);
-  const startedAt = Date.now();
-  const answer = await callOpenAICompatibleChat({
+  const privateProvider: PrivateAiProviderConfig = {
+    id: normalized.id || "unsaved",
+    providerType: normalized.providerType,
+    providerName: normalized.providerName,
     baseUrl: normalized.baseUrl,
     modelName: normalized.modelName,
+    hasApiKey: Boolean(normalized.apiKey),
+    selected: normalized.enabled,
+    enabled: normalized.enabled,
+    isDefault: normalized.isDefault,
+    lastTestStatus: null,
+    lastTestMessage: null,
+    lastTestLatencyMs: null,
+    lastTestModels: [],
+    lastTestedAt: null,
     apiKey: normalized.apiKey || null,
-    prompt: TEST_PROMPT,
-    maxTokens: 20,
-  });
-
-  return {
-    success: true,
-    message: "Connection successful.",
-    providerName: normalized.providerName,
-    modelName: normalized.modelName,
-    latencyMs: Date.now() - startedAt,
-    sample: answer.slice(0, 120),
   };
+
+  return testPrivateProvider(privateProvider);
 }
 
 export async function testSavedAiProviderConfig(userId: string, input?: Partial<AiProviderInput>) {
-  const saved = await getPrivateAiProviderConfig(userId);
+  const providers = await listPrivateAiProviderConfigs(userId);
+  const saved = providers.find((provider) => provider.id === input?.id) || providers[0];
   if (!saved) throw new Error("Save an AI provider before testing without an API key.");
 
-  return testAiProviderConfig({
+  return testPrivateProvider({
+    ...saved,
     providerName: input?.providerName || saved.providerName,
-    baseUrl: input?.baseUrl || saved.baseUrl,
+    providerType: input?.providerType || saved.providerType,
+    baseUrl: input?.baseUrl ? normalizeBaseUrl(input.baseUrl, input?.providerType || saved.providerType) : saved.baseUrl,
     modelName: input?.modelName || saved.modelName,
-    apiKey: input?.apiKey !== undefined ? input.apiKey : saved.apiKey || undefined,
+    apiKey: input?.apiKey !== undefined ? input.apiKey || null : saved.apiKey,
   });
 }
 
 export async function generateWithUserAiProvider(userId: string, prompt: string) {
-  const provider = await getPrivateAiProviderConfig(userId);
-  if (!provider) return null;
+  return generateWithUniversalAiAdapter(userId, prompt);
+}
 
-  const text = await callOpenAICompatibleChat({
-    baseUrl: provider.baseUrl,
-    modelName: provider.modelName,
-    apiKey: provider.apiKey,
-    prompt,
-    maxTokens: 900,
-  });
+export async function generateWithUniversalAiAdapter(userId: string, prompt: string) {
+  const providers = await listPrivateAiProviderConfigs(userId);
+  if (providers.length === 0) return null;
 
-  return {
-    text,
-    providerName: provider.providerName,
-    modelName: provider.modelName,
-  };
+  let lastError: unknown = null;
+  for (let index = 0; index < providers.length; index += 1) {
+    const provider = providers[index];
+    try {
+      const text = await callProviderChat(provider, prompt, 900);
+      if (index > 0) {
+        debugWarn("[AI_PROVIDER] Fallback provider used after primary provider failed", {
+          userId,
+          providerName: provider.providerName,
+          providerType: provider.providerType,
+          modelName: provider.modelName,
+        });
+      }
+
+      return {
+        text,
+        providerName: provider.providerName,
+        providerType: provider.providerType,
+        modelName: provider.modelName,
+        fallbackUsed: index > 0,
+      } satisfies UniversalAiGenerateResult;
+    } catch (error) {
+      lastError = error;
+      debugWarn("[AI_PROVIDER] Provider unavailable, trying fallback", {
+        userId,
+        providerName: provider.providerName,
+        providerType: provider.providerType,
+        modelName: provider.modelName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("All configured AI providers failed.");
 }
 
 export async function updateAiProviderTestStatus(
   userId: string,
   status: "success" | "failed",
   message: string,
+  options: { providerId?: string; latencyMs?: number | null; availableModels?: string[] } = {},
 ) {
+  const where = options.providerId
+    ? and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, options.providerId))
+    : eq(aiProviderConfigs.userId, userId);
+
   await db
     .update(aiProviderConfigs)
     .set({
       lastTestStatus: status,
       lastTestMessage: message,
+      lastTestLatencyMs: options.latencyMs ?? null,
+      lastTestModels: options.availableModels ?? [],
       lastTestedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(aiProviderConfigs.userId, userId));
+    .where(where);
+}
+
+async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<AiProviderTestResult> {
+  const startedAt = Date.now();
+  const [availableModels, answer] = await Promise.all([
+    listAvailableModels(provider).catch((error) => {
+      debugWarn("[AI_PROVIDER] Model listing failed during test", {
+        providerName: provider.providerName,
+        providerType: provider.providerType,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [] as string[];
+    }),
+    callProviderChat(provider, TEST_PROMPT, 20),
+  ]);
+
+  return {
+    success: true,
+    message: "Connection successful.",
+    providerName: provider.providerName,
+    providerType: provider.providerType,
+    modelName: provider.modelName,
+    latencyMs: Date.now() - startedAt,
+    availableModels,
+    sample: answer.slice(0, 120),
+  };
 }
 
 function normalizeAiProviderInput(input: AiProviderInput) {
+  const providerType = normalizeProviderType(input.providerType);
   const providerName = input.providerName.trim();
-  const baseUrl = normalizeBaseUrl(input.baseUrl);
+  const baseUrl = normalizeBaseUrl(input.baseUrl || DEFAULT_BASE_URLS[providerType], providerType);
   const modelName = input.modelName.trim();
   const apiKey = input.apiKey?.trim();
 
   if (!providerName) throw new Error("Provider name is required.");
-  if (!modelName) throw new Error("Model name is required.");
+  if (!modelName) throw new Error("Default model is required.");
+  if (requiresApiKey(providerType) && !apiKey && !input.id) {
+    throw new Error(`${AI_PROVIDER_TYPE_LABELS[providerType]} requires an API key.`);
+  }
 
   return {
+    id: input.id?.trim() || undefined,
     providerName,
+    providerType,
     baseUrl,
     modelName,
     apiKey: apiKey === undefined ? undefined : apiKey,
+    enabled: input.enabled ?? true,
+    isDefault: input.isDefault ?? false,
   };
 }
 
-function normalizeBaseUrl(value: string) {
-  const raw = value.trim().replace(/\/+$/, "");
+function normalizeProviderType(value: string): AiProviderType {
+  const allowed = Object.keys(AI_PROVIDER_TYPE_LABELS) as AiProviderType[];
+  if (allowed.includes(value as AiProviderType)) return value as AiProviderType;
+  throw new Error("Choose a supported provider type.");
+}
+
+function normalizeBaseUrl(value: string, providerType: AiProviderType) {
+  const fallback = DEFAULT_BASE_URLS[providerType];
+  const raw = (value || fallback).trim().replace(/\/+$/, "");
   if (!raw) throw new Error("Base URL is required.");
 
   let url: URL;
@@ -212,54 +399,182 @@ function normalizeBaseUrl(value: string) {
     throw new Error("Base URL must start with http:// or https://.");
   }
 
+  if ((providerType === "ollama" || providerType === "lm-studio") && !url.pathname.endsWith("/v1")) {
+    url.pathname = `${url.pathname.replace(/\/+$/, "")}/v1`;
+  }
+
   return url.toString().replace(/\/+$/, "");
 }
 
-async function callOpenAICompatibleChat({
-  baseUrl,
-  modelName,
-  apiKey,
-  prompt,
-  maxTokens,
-}: {
-  baseUrl: string;
-  modelName: string;
-  apiKey: string | null;
-  prompt: string;
-  maxTokens: number;
-}) {
+function requiresApiKey(providerType: AiProviderType) {
+  return ["openai", "anthropic", "google-gemini", "azure-openai"].includes(providerType);
+}
+
+async function callProviderChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
+  switch (provider.providerType) {
+    case "anthropic":
+      return callAnthropicChat(provider, prompt, maxTokens);
+    case "google-gemini":
+      return callGeminiChat(provider, prompt, maxTokens);
+    case "azure-openai":
+      return callAzureOpenAiChat(provider, prompt, maxTokens);
+    case "ollama":
+    case "lm-studio":
+    case "openai":
+    case "openai-compatible":
+    default:
+      return callOpenAICompatibleChat(provider, prompt, maxTokens);
+  }
+}
+
+async function callOpenAICompatibleChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
+  const body = await fetchJsonWithTimeout<ChatCompletionResponse>(`${provider.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(provider.apiKey ? { Authorization: `Bearer ${provider.apiKey}` } : {}),
+    },
+    body: JSON.stringify({
+      model: provider.modelName,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      max_tokens: maxTokens,
+      stream: false,
+    }),
+  });
+
+  const content = body.choices?.[0]?.message?.content ?? body.choices?.[0]?.text;
+  if (typeof content !== "string" || !content.trim()) {
+    throw new Error("Provider returned an empty response.");
+  }
+
+  return content.trim();
+}
+
+async function callAnthropicChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
+  if (!provider.apiKey) throw new Error("Anthropic requires an API key.");
+  const body = await fetchJsonWithTimeout<AnthropicMessageResponse>(`${provider.baseUrl}/v1/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": provider.apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: provider.modelName,
+      max_tokens: maxTokens,
+      temperature: 0.2,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const content = body.content?.find((part) => part.type === "text" && typeof part.text === "string")?.text;
+  if (typeof content !== "string" || !content.trim()) {
+    throw new Error("Provider returned an empty response.");
+  }
+
+  return content.trim();
+}
+
+async function callGeminiChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
+  if (!provider.apiKey) throw new Error("Google Gemini requires an API key.");
+  const url = `${provider.baseUrl}/models/${encodeURIComponent(provider.modelName)}:generateContent?key=${encodeURIComponent(provider.apiKey)}`;
+  const body = await fetchJsonWithTimeout<GeminiGenerateResponse>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens },
+    }),
+  });
+
+  const content = body.candidates?.[0]?.content?.parts?.map((part) => part.text).filter(Boolean).join("\n");
+  if (typeof content !== "string" || !content.trim()) {
+    throw new Error("Provider returned an empty response.");
+  }
+
+  return content.trim();
+}
+
+async function callAzureOpenAiChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
+  if (!provider.apiKey) throw new Error("Azure OpenAI requires an API key.");
+  const endpoint = `${provider.baseUrl}/openai/deployments/${encodeURIComponent(provider.modelName)}/chat/completions?api-version=2024-02-15-preview`;
+  const body = await fetchJsonWithTimeout<ChatCompletionResponse>(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": provider.apiKey,
+    },
+    body: JSON.stringify({
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      max_tokens: maxTokens,
+      stream: false,
+    }),
+  });
+
+  const content = body.choices?.[0]?.message?.content ?? body.choices?.[0]?.text;
+  if (typeof content !== "string" || !content.trim()) {
+    throw new Error("Provider returned an empty response.");
+  }
+
+  return content.trim();
+}
+
+async function listAvailableModels(provider: PrivateAiProviderConfig) {
+  if (provider.providerType === "azure-openai") return [provider.modelName];
+
+  if (provider.providerType === "google-gemini") {
+    if (!provider.apiKey) return [];
+    const body = await fetchJsonWithTimeout<ModelListResponse>(
+      `${provider.baseUrl}/models?key=${encodeURIComponent(provider.apiKey)}`,
+      { method: "GET" },
+    );
+    return (body.models || [])
+      .map((model) => (typeof model === "string" ? model : model.name || model.id))
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.replace(/^models\//, ""))
+      .slice(0, 30);
+  }
+
+  const headers: Record<string, string> = {};
+  if (provider.providerType === "anthropic") {
+    if (!provider.apiKey) return [];
+    headers["x-api-key"] = provider.apiKey;
+    headers["anthropic-version"] = "2023-06-01";
+  } else if (provider.apiKey) {
+    headers.Authorization = `Bearer ${provider.apiKey}`;
+  }
+
+  const modelUrl = provider.providerType === "anthropic" ? `${provider.baseUrl}/v1/models` : `${provider.baseUrl}/models`;
+  const body = await fetchJsonWithTimeout<ModelListResponse>(modelUrl, { method: "GET", headers });
+  const values = body.data || body.models || [];
+
+  return values
+    .map((model) => (typeof model === "string" ? model : model.id || model.name))
+    .filter((value): value is string => typeof value === "string")
+    .slice(0, 30);
+}
+
+async function fetchJsonWithTimeout<T>(url: string, init: RequestInit) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-        max_tokens: maxTokens,
-        stream: false,
-      }),
+    const response = await fetch(url, {
+      ...init,
       redirect: "error",
       signal: controller.signal,
     });
-    const body = (await response.json().catch(() => ({}))) as ChatCompletionResponse;
+    const body = (await response.json().catch(() => ({}))) as T & {
+      error?: unknown;
+    };
 
     if (!response.ok) {
       throw new Error(getProviderErrorMessage(response.status, body));
     }
 
-    const content = body.choices?.[0]?.message?.content ?? body.choices?.[0]?.text;
-    if (typeof content !== "string" || !content.trim()) {
-      throw new Error("Provider returned an empty response.");
-    }
-
-    return content.trim();
+    return body;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Connection timed out.");
@@ -270,10 +585,10 @@ async function callOpenAICompatibleChat({
   }
 }
 
-function getProviderErrorMessage(status: number, body: ChatCompletionResponse) {
+function getProviderErrorMessage(status: number, body: { error?: unknown }) {
   if (body.error && typeof body.error === "object") {
-    const error = body.error as { message?: unknown; type?: unknown; code?: unknown };
-    const parts = [error.message, error.type, error.code].filter(Boolean).map(String);
+    const error = body.error as { message?: unknown; type?: unknown; code?: unknown; status?: unknown };
+    const parts = [error.message, error.type, error.code, error.status].filter(Boolean).map(String);
     if (parts.length) return `Provider returned ${status}: ${parts.join(" / ")}`;
   }
 
@@ -285,14 +600,18 @@ function getProviderErrorMessage(status: number, body: ChatCompletionResponse) {
 function toPublicConfig(row: typeof aiProviderConfigs.$inferSelect): PublicAiProviderConfig {
   return {
     id: row.id,
-    providerType: PROVIDER_TYPE,
+    providerType: normalizeProviderType(row.providerType),
     providerName: row.providerName,
     baseUrl: row.baseUrl,
     modelName: row.modelName,
     hasApiKey: Boolean(row.encryptedApiKey),
     selected: row.selected,
+    enabled: row.isEnabled ?? row.selected,
+    isDefault: row.isDefault ?? row.selected,
     lastTestStatus: row.lastTestStatus,
     lastTestMessage: row.lastTestMessage,
+    lastTestLatencyMs: row.lastTestLatencyMs,
+    lastTestModels: Array.isArray(row.lastTestModels) ? row.lastTestModels.filter((value): value is string => typeof value === "string") : [],
     lastTestedAt: row.lastTestedAt?.toISOString() ?? null,
   };
 }
@@ -328,7 +647,7 @@ function decryptSecret(payload: string) {
 
     return decrypted.toString("utf8");
   } catch (error) {
-    debugError("[BYOAI] Failed to decrypt provider API key", error);
+    debugError("[AI_PROVIDER] Failed to decrypt provider API key", error);
     throw new Error("Stored provider key cannot be decrypted.");
   }
 }
@@ -336,9 +655,33 @@ function decryptSecret(payload: string) {
 function getEncryptionKey() {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
-    debugWarn("[BYOAI] Missing AUTH_SECRET/NEXTAUTH_SECRET for provider key encryption.");
+    debugWarn("[AI_PROVIDER] Missing AUTH_SECRET/NEXTAUTH_SECRET for provider key encryption.");
     throw new Error("AI provider encryption is not configured.");
   }
 
   return createHash("sha256").update(secret).digest();
+}
+
+export function getProviderTypeLabel(providerType: AiProviderType) {
+  return AI_PROVIDER_TYPE_LABELS[providerType] || providerType;
+}
+
+export function getDefaultBaseUrl(providerType: AiProviderType) {
+  return DEFAULT_BASE_URLS[providerType] || "";
+}
+
+export function logDefaultCloudFallback(userId: string, error: unknown) {
+  debugWarn("[AI_PROVIDER] Falling back to default cloud AI", {
+    userId,
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
+export function logUniversalAiResponse(result: UniversalAiGenerateResult) {
+  debugLog("[AI_PROVIDER] Universal adapter response received", {
+    providerName: result.providerName,
+    providerType: result.providerType,
+    modelName: result.modelName,
+    fallbackUsed: result.fallbackUsed,
+  });
 }

@@ -2,7 +2,7 @@
 
 ### Changed
 
-- Add Bring Your Own AI provider settings so users can save an encrypted OpenAI-compatible provider, test the connection, and use it for dataset analysis with cloud fallback.
+- Add Phase 1 Bring Your Own AI provider management so users can connect multiple encrypted AI providers, test latency and model availability, choose a default provider, and route analysis through automatic fallback.
 - Unlock Hybrid AI Lite and Hybrid AI MEGA modules from the same UseClevr Helper installation, with module access driven by the signed-in subscription.
 - Add the UseClevr Helper local bridge for Hybrid AI, including protected desktop-helper downloads, branded private-analysis status, and an optional helper chat panel in the AI Assistant.
 - Give Free accounts exactly two included analyst credits, then route upload, analysis, and report-download continuation through the existing Stripe upgrade path.

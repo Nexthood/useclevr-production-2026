@@ -53,14 +53,18 @@ type AccountCenterProps = {
   session: { user?: { id?: string; name?: string | null; email?: string | null; role?: string } } | null
   aiProvider: {
     id: string
-    providerType: "openai-compatible"
+    providerType: "ollama" | "lm-studio" | "openai-compatible" | "openai" | "anthropic" | "google-gemini" | "azure-openai"
     providerName: string
     baseUrl: string
     modelName: string
     hasApiKey: boolean
     selected: boolean
+    enabled: boolean
+    isDefault: boolean
     lastTestStatus: string | null
     lastTestMessage: string | null
+    lastTestLatencyMs: number | null
+    lastTestModels: string[]
     lastTestedAt: string | null
   } | null
 }
