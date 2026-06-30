@@ -243,6 +243,9 @@ Text rules for this file:
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
+- Keep OAuth callback URLs on the active public app host, never on the internal server bind host.
+- Keep generated app links on a safe public app origin, never on the internal server bind host.
+- Convert local development redirects from `0.0.0.0` to `localhost` before sending them to the browser.
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.

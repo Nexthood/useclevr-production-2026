@@ -143,6 +143,7 @@ STRIPE_WEBHOOK_SECRET=      # whsec_…  (set on Railway / hosting)
 ```env
 PORT=3000
 AUTH_URL=                # Full app URL (set on Railway)
+NEXTAUTH_URL=            # Same public app URL for Auth.js compatibility
 AUTH_TRUST_HOST=true
 AUTH_GOOGLE_ID=          # Google OAuth client ID
 AUTH_GOOGLE_SECRET=      # Google OAuth client secret
@@ -176,8 +177,9 @@ Run the email-password flow diagnostics inside Railway with `pnpm test:auth-flow
 `AUTH_FLOW_TEST_PASSWORD`, and `AUTH_FLOW_TEST_CODE` for the verification steps.
 
 `AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
-`NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility, but Railway services should use the `AUTH_*`
-names unless a legacy deployment already depends on `NEXTAUTH_*`.
+`NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility. Railway test auth uses
+`AUTH_URL=https://test.useclevr.com` and `NEXTAUTH_URL=https://test.useclevr.com`; the server bind
+host stays internal and never becomes a browser redirect URL.
 Google OAuth accepts `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` and the common
 `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` aliases. LinkedIn OAuth accepts
 `AUTH_LINKEDIN_ID`/`AUTH_LINKEDIN_SECRET` and the common

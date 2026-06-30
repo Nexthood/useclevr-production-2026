@@ -9,7 +9,7 @@ import {
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { consumeVerifiedAuthProof } from "@/lib/auth/email-verification-codes";
-import { isLocalAuthOrigin, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
+import { normalizePublicAuthBaseUrl, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
 import { accounts, profiles, users } from "@/lib/db/schema";
@@ -71,7 +71,7 @@ const authSecret = config.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 const googleProviderId = "google";
 const linkedinProviderId = "linkedin";
 
-normalizeLocalAuthUrlEnv();
+normalizePublicAuthUrlEnv();
 logOAuthProviderConfig();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -404,16 +404,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
 });
 
-function normalizeLocalAuthUrlEnv() {
-  if (process.env.NODE_ENV === "production") return;
+function normalizePublicAuthUrlEnv() {
+  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  const publicUrl = normalizePublicAuthBaseUrl(configuredUrl || getAuthUrlFallback());
 
-  const configuredUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
-  if (!configuredUrl || isLocalAuthUrl(configuredUrl)) return;
+  if (configuredUrl && configuredUrl !== publicUrl) {
+    debugWarn("[Auth] Normalized public auth URL to avoid exposing an unsafe bind host.");
+  }
 
-  debugWarn("[Auth] Ignoring non-local auth URL during local development.");
-  delete process.env.AUTH_URL;
-  delete process.env.NEXTAUTH_URL;
+  process.env.AUTH_URL = publicUrl;
+  process.env.NEXTAUTH_URL = publicUrl;
   process.env.AUTH_TRUST_HOST ||= "true";
+}
+
+function getAuthUrlFallback() {
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_STATIC_URL;
+  if (railwayDomain) return `https://${railwayDomain}`;
+  if (process.env.RAILWAY_ENVIRONMENT_ID) return "https://test.useclevr.com";
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT || "8080"}`;
 }
 
 function resolveCredentialsRole(email?: string | null): BuiltinUserRole {
@@ -496,14 +505,6 @@ function isOAuthEmailVerified(provider?: string, idToken?: string) {
     return true;
   } catch {
     return true;
-  }
-}
-
-function isLocalAuthUrl(value: string) {
-  try {
-    return isLocalAuthOrigin(new URL(value));
-  } catch {
-    return false;
   }
 }
 

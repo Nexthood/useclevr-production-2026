@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-891. Fix OAuth callback, sign-out redirect, and generated app-link origins so browser URLs use localhost locally and the active UseClevr host in deployed environments instead of the server bind host. (labels: auth, deployment, ui; commit: worktree)
 - T-889. Route email verification delivery through Resend only, expose a guarded Resend status diagnostic, and surface unverified sender-domain failures in server logs. (labels: auth, logging, deployment, testing; commit: worktree)
 - T-888. Fix Google and LinkedIn OAuth sign-in by accepting common provider credential env names, requesting email/profile scopes, and using a same-app dashboard callback. (labels: auth, deployment, ui; commit: worktree)
 - T-880. Verify Resend provider configuration and sender-domain readiness before verification email sending, and expose a guarded Resend status diagnostic endpoint. (labels: auth, logging, deployment, testing; commit: worktree)

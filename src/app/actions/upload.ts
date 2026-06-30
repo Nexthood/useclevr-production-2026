@@ -7,6 +7,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 import { parseCSVString, parseCSVFileBrowser, parseCSVStreaming, computePrecomputedMetrics, type AggregatedMetrics } from "@/lib/data/csvLoader"
 const PREVIEW_ROW_COUNT = 100
 import { auth } from "@/lib/auth/auth"
+import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { getDb } from "@/lib/db"
@@ -502,7 +503,9 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Fire suggestion regeneration (best-effort, non-blocking)
     try {
-      const origin = process.env.AUTH_URL || "http://localhost:3000"
+      const origin = normalizePublicAuthBaseUrl(
+        process.env.AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080",
+      )
       fetch(`${origin}/api/suggestions/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
+import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { getDb } from "@/lib/db"
 import { referralEvents, referralStats } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -40,7 +41,7 @@ export function createReferralCode() {
 }
 
 export function buildReferralLink(origin: string, code: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || origin
+  const baseUrl = normalizePublicAuthBaseUrl(process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || origin)
   const url = new URL("/signup", baseUrl)
   url.searchParams.set("ref", code)
   return url.toString()

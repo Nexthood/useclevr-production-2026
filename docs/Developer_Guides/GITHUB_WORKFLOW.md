@@ -239,7 +239,7 @@ Generated `dist/package.json` keeps local and server starts separate:
 
 ```bash
 npm run start          # local default, AUTH_URL=http://localhost:8080
-npm run start:railway  # Railway target, HOSTNAME=0.0.0.0, request-host auth
+npm run start:railway  # Railway target, HOSTNAME=0.0.0.0, public AUTH_URL auth
 npm run start:vercel   # Vercel target placeholder
 ```
 
