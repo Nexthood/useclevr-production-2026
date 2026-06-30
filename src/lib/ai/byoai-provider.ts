@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 import { db } from "@/lib/db";
 import { aiProviderConfigs } from "@/lib/db/schema";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 export type AiProviderType =
   | "ollama"
@@ -24,6 +24,8 @@ export type PublicAiProviderConfig = {
   selected: boolean;
   enabled: boolean;
   isDefault: boolean;
+  isFallback: boolean;
+  priority: number;
   lastTestStatus: string | null;
   lastTestMessage: string | null;
   lastTestLatencyMs: number | null;
@@ -40,6 +42,8 @@ export type AiProviderInput = {
   apiKey?: string;
   enabled?: boolean;
   isDefault?: boolean;
+  isFallback?: boolean;
+  priority?: number;
 };
 
 type PrivateAiProviderConfig = PublicAiProviderConfig & {
@@ -119,7 +123,13 @@ export const AI_PROVIDER_TYPE_LABELS: Record<AiProviderType, string> = {
 export async function listPublicAiProviderConfigs(userId: string): Promise<PublicAiProviderConfig[]> {
   const rows = await db.query.aiProviderConfigs.findMany({
     where: eq(aiProviderConfigs.userId, userId),
-    orderBy: [desc(aiProviderConfigs.selected), desc(aiProviderConfigs.updatedAt)],
+    orderBy: [
+      desc(aiProviderConfigs.selected),
+      desc(aiProviderConfigs.isDefault),
+      desc(aiProviderConfigs.isFallback),
+      asc(aiProviderConfigs.priority),
+      desc(aiProviderConfigs.updatedAt),
+    ],
   });
 
   return rows.map(toPublicConfig);
@@ -138,7 +148,12 @@ export async function getPrivateAiProviderConfig(userId: string): Promise<Privat
 export async function listPrivateAiProviderConfigs(userId: string): Promise<PrivateAiProviderConfig[]> {
   const rows = await db.query.aiProviderConfigs.findMany({
     where: and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.selected, true)),
-    orderBy: [desc(aiProviderConfigs.isDefault), desc(aiProviderConfigs.updatedAt)],
+    orderBy: [
+      desc(aiProviderConfigs.isDefault),
+      desc(aiProviderConfigs.isFallback),
+      asc(aiProviderConfigs.priority),
+      desc(aiProviderConfigs.updatedAt),
+    ],
   });
 
   return rows
@@ -172,6 +187,13 @@ export async function saveAiProviderConfig(userId: string, input: AiProviderInpu
       .where(eq(aiProviderConfigs.userId, userId));
   }
 
+  if (normalized.isFallback) {
+    await db
+      .update(aiProviderConfigs)
+      .set({ isFallback: false, updatedAt: now })
+      .where(eq(aiProviderConfigs.userId, userId));
+  }
+
   if (existing) {
     await db
       .update(aiProviderConfigs)
@@ -184,6 +206,8 @@ export async function saveAiProviderConfig(userId: string, input: AiProviderInpu
         selected: normalized.enabled,
         isEnabled: normalized.enabled,
         isDefault: normalized.isDefault,
+        isFallback: normalized.isFallback && !normalized.isDefault,
+        priority: normalized.priority,
         updatedAt: now,
       })
       .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, id)));
@@ -211,6 +235,8 @@ export async function saveAiProviderConfig(userId: string, input: AiProviderInpu
       selected: normalized.enabled,
       isEnabled: normalized.enabled,
       isDefault: shouldDefault,
+      isFallback: normalized.isFallback && !shouldDefault,
+      priority: normalized.priority,
       createdAt: now,
       updatedAt: now,
     });
@@ -233,6 +259,8 @@ export async function testAiProviderConfig(input: AiProviderInput) {
     selected: normalized.enabled,
     enabled: normalized.enabled,
     isDefault: normalized.isDefault,
+    isFallback: normalized.isFallback,
+    priority: normalized.priority,
     lastTestStatus: null,
     lastTestMessage: null,
     lastTestLatencyMs: null,
@@ -256,7 +284,37 @@ export async function testSavedAiProviderConfig(userId: string, input?: Partial<
     baseUrl: input?.baseUrl ? normalizeBaseUrl(input.baseUrl, input?.providerType || saved.providerType) : saved.baseUrl,
     modelName: input?.modelName || saved.modelName,
     apiKey: input?.apiKey !== undefined ? input.apiKey || null : saved.apiKey,
+    isFallback: input?.isFallback ?? saved.isFallback,
+    priority: input?.priority ?? saved.priority,
   });
+}
+
+export async function setAiProviderRouting(
+  userId: string,
+  input: { defaultProviderId?: string; fallbackProviderId?: string },
+) {
+  const now = new Date();
+  const defaultProviderId = input.defaultProviderId?.trim();
+  const fallbackProviderId = input.fallbackProviderId?.trim();
+
+  await db
+    .update(aiProviderConfigs)
+    .set({ isDefault: false, isFallback: false, updatedAt: now })
+    .where(eq(aiProviderConfigs.userId, userId));
+
+  if (defaultProviderId) {
+    await db
+      .update(aiProviderConfigs)
+      .set({ isDefault: true, selected: true, isEnabled: true, priority: 0, updatedAt: now })
+      .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, defaultProviderId)));
+  }
+
+  if (fallbackProviderId && fallbackProviderId !== defaultProviderId) {
+    await db
+      .update(aiProviderConfigs)
+      .set({ isFallback: true, selected: true, isEnabled: true, priority: 10, updatedAt: now })
+      .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, fallbackProviderId)));
+  }
 }
 
 export async function generateWithUserAiProvider(userId: string, prompt: string) {
@@ -374,7 +432,14 @@ function normalizeAiProviderInput(input: AiProviderInput) {
     apiKey: apiKey === undefined ? undefined : apiKey,
     enabled: input.enabled ?? true,
     isDefault: input.isDefault ?? false,
+    isFallback: input.isFallback ?? false,
+    priority: normalizePriority(input.priority),
   };
+}
+
+function normalizePriority(value: number | undefined) {
+  if (value === undefined || Number.isNaN(value)) return 100;
+  return Math.max(0, Math.min(999, Math.round(value)));
 }
 
 function normalizeProviderType(value: string): AiProviderType {
@@ -608,6 +673,8 @@ function toPublicConfig(row: typeof aiProviderConfigs.$inferSelect): PublicAiPro
     selected: row.selected,
     enabled: row.isEnabled ?? row.selected,
     isDefault: row.isDefault ?? row.selected,
+    isFallback: row.isFallback ?? false,
+    priority: row.priority ?? 100,
     lastTestStatus: row.lastTestStatus,
     lastTestMessage: row.lastTestMessage,
     lastTestLatencyMs: row.lastTestLatencyMs,

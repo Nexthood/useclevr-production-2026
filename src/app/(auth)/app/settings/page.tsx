@@ -6,6 +6,7 @@ import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { getBillingSettings } from "@/lib/billing/settings-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import { eq } from "drizzle-orm"
 
 export default async function SettingsPage() {
@@ -13,7 +14,14 @@ export default async function SettingsPage() {
   const setupStatus = session?.user?.id ? await getCompanySetup(session.user.id) : null
   const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role)
   const billingSettings = await getBillingSettings()
-  const aiProvider = session?.user?.id ? await getPublicAiProviderConfig(session.user.id) : null
+  let aiProvider: Awaited<ReturnType<typeof getPublicAiProviderConfig>> = null
+  if (session?.user?.id) {
+    try {
+      aiProvider = await getPublicAiProviderConfig(session.user.id)
+    } catch (error) {
+      debugError("[AI_PROVIDER] Failed to load account-center provider summary", error)
+    }
+  }
 
   let profile: { fullName: string | null; email: string | null } | null = null
   const db = getDb()

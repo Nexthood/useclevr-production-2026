@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
-import { saveAiProviderConfig, type AiProviderType } from "@/lib/ai/byoai-provider"
+import { saveAiProviderConfig, setAiProviderRouting, type AiProviderType } from "@/lib/ai/byoai-provider"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
@@ -122,6 +122,8 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
       apiKey: formData.has("apiKey") ? String(formData.get("apiKey") || "") : undefined,
       enabled: formData.get("enabled") === "on",
       isDefault: formData.get("isDefault") === "on",
+      isFallback: formData.get("isFallback") === "on",
+      priority: Number(formData.get("priority") || 100),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI provider was not saved."
@@ -141,6 +143,37 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
   revalidatePath("/app/settings/ai-providers")
 
   return success({ message: "AI provider saved." })
+}
+
+export async function updateAiProviderRouting(formData: FormData): Promise<Result<ProfileData>> {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) return failure("Please sign in again.")
+
+  try {
+    await setAiProviderRouting(userId, {
+      defaultProviderId: String(formData.get("defaultProviderId") || ""),
+      fallbackProviderId: String(formData.get("fallbackProviderId") || ""),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "AI provider routing was not saved."
+    return failure(message)
+  }
+
+  await recordActivity({
+    userId,
+    userEmail: session.user.email,
+    type: "profile_updated",
+    feature: "settings",
+    title: "AI provider routing saved",
+    description: "Default and fallback AI provider settings were updated.",
+  })
+
+  revalidatePath("/app/settings")
+  revalidatePath("/app/settings/ai-providers")
+
+  return success({ message: "AI provider routing saved." })
 }
 
 // ---------------------------------------------------------------------------

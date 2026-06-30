@@ -1,3 +1,4 @@
+- changed: complete the AI Providers settings page with provider list, add/edit dialog, encrypted-key saves, connection testing, detected models, default selector, fallback selector, and priority routing
 - changed: route dataset summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter with default cloud fallback
 - changed: route AI Assistant responses through the universal AI adapter, preserve cloud fallback behavior, and show provider status badges for healthy, fallback, and unavailable states
 - changed: reframe the Hybrid AI modal around Phase 1 BYOAI setup, link users to AI Providers settings, and mark helper downloads as coming soon without active missing-binary links
