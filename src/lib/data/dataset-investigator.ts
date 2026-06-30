@@ -6,6 +6,7 @@
 
 import type { DatasetIntelligence, DatasetRecord } from './dataset-intelligence';
 import { buildDatasetIntelligence } from './dataset-intelligence';
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 export interface Finding {
   type: 'top_performer' | 'weak_segment' | 'trend' | 'concentration' | 'outlier' | 'general';
@@ -30,7 +31,8 @@ export interface InvestigationResult {
  */
 export async function investigateDataset(
   datasetId: string,
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  userId?: string
 ): Promise<InvestigationResult> {
   const findings: Finding[] = [];
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
@@ -132,7 +134,7 @@ export async function investigateDataset(
   });
 
   // Generate natural language explanations
-  const findingsText = await generateFindingExplanations(findings, intelligence);
+  const findingsText = await generateFindingExplanations(findings, intelligence, userId);
 
   return {
     findings: findingsText,
@@ -345,7 +347,8 @@ function detectOutliers(
  */
 async function generateFindingExplanations(
   findings: Finding[],
-  intelligence: DatasetIntelligence
+  intelligence: DatasetIntelligence,
+  userId?: string
 ): Promise<string[]> {
   if (findings.length === 0) {
     return ['No significant patterns detected in this dataset.'];
@@ -355,24 +358,16 @@ async function generateFindingExplanations(
   const prompt = `Given these analytical findings about a dataset, provide short 1-sentence explanations for each finding:\n\n${findingsText.join('\n')}\n\nFormat each as a concise statement. Focus on business insights.`;
 
   try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: intelligence.schema.columns.map(c => c.name),
-        sampleData: [],
-        rowCount: intelligence.metrics.rowCount
-      })
+    const response = await generateServerAiText(prompt, {
+      userId,
+      context: "DATASET-INVESTIGATOR",
     });
-
-    if (!response.ok) {
+    if (!response?.text) {
       return findings.map(f => f.description);
     }
 
-    const text = await response.text();
     // Parse response - extract lines
-    const lines = text.split('\n')
+    const lines = response.text.split('\n')
       .filter(line => line.trim().length > 0)
       .slice(0, findings.length);
 

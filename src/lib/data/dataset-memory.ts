@@ -1,4 +1,5 @@
 import { debugLog } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 /**
  * AI Dataset Memory
@@ -92,7 +93,8 @@ export function listDatasetMemories(): DatasetMemory[] {
  */
 export async function findSimilarDatasets(
   data: Record<string, unknown>[],
-  currentDatasetName: string
+  currentDatasetName: string,
+  userId?: string
 ): Promise<SimilarityResult> {
   // Build intelligence for current dataset
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
@@ -141,7 +143,8 @@ export async function findSimilarDatasets(
     currentDatasetName,
     bestMatch,
     intelligence,
-    bestScore
+    bestScore,
+    userId
   );
   
   return {
@@ -158,7 +161,8 @@ async function generateSimilarityInsight(
   currentName: string,
   similar: DatasetMemory,
   intelligence: DatasetIntelligence,
-  score: number
+  score: number,
+  userId?: string
 ): Promise<string> {
   const similarityPercent = (score * 100).toFixed(2);
   
@@ -175,23 +179,12 @@ async function generateSimilarityInsight(
     `Common columns: ${commonColumns.join(', ')}\n\n` +
     `Provide a 1-2 sentence insight about what this comparison might reveal.`;
   
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: currentColumnNames,
-        sampleData: [],
-        rowCount: intelligence.metrics.rowCount
-      })
-    });
-    
-    if (response.ok) {
-      return await response.text();
-    }
-  } catch {
-    // Fallback
+  const insight = await generateServerAiText(prompt, {
+    userId,
+    context: "MEMORY",
+  });
+  if (insight?.text) {
+    return insight.text;
   }
   
   // Simple fallback insight

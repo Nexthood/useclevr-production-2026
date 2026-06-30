@@ -70,6 +70,7 @@ Text rules for this file:
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.
 - Test AI provider connections through a signed-in server endpoint and show connection status, latency, available models, and clear failure messages.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
+- Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
 - Try the default enabled AI provider first, then use other enabled providers as fallbacks, and log fallback events server-side.
 - Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
 - Show the AI Assistant provider state for each response, including the active provider label, connection healthy, fallback active, or provider unavailable.

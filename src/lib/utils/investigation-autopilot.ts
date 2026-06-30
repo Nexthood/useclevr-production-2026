@@ -1,4 +1,5 @@
 import { debugLog, debugWarn } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 /**
  * AI Investigation Autopilot
@@ -344,7 +345,8 @@ function analyzeResultsForPatterns(
  */
 async function generateAIExplanations(
   findings: PatternFinding[],
-  intelligence: DatasetIntelligence
+  intelligence: DatasetIntelligence,
+  userId?: string
 ): Promise<string[]> {
   if (findings.length === 0) {
     return ['No significant patterns detected in this dataset.'];
@@ -378,34 +380,21 @@ Rules:
 - Focus on business impact
 - Use natural language, not technical terms`;
 
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: intelligence.schema.columns.map(c => c.name),
-        sampleData: [],
-        rowCount: intelligence.metrics.rowCount
-      })
-    });
-    
-    if (response.ok) {
-      const text = await response.text();
-      // Try to parse JSON response
-      try {
-        const json = JSON.parse(text);
-        if (json.findings && Array.isArray(json.findings)) {
-          return json.findings;
-        }
-      } catch {
-        // Not JSON, return as single finding
-        return [text];
+  const aiExplanation = await generateServerAiText(prompt, {
+    userId,
+    context: "INVESTIGATOR",
+  });
+
+  if (aiExplanation?.text) {
+    try {
+      const json = JSON.parse(aiExplanation.text);
+      if (json.findings && Array.isArray(json.findings)) {
+        return json.findings;
       }
-      return [text];
+    } catch {
+      return [aiExplanation.text];
     }
-  } catch (error) {
-    debugWarn('[INVESTIGATOR] AI explanation failed:', error);
+    return [aiExplanation.text];
   }
   
   // Fallback: use descriptions from findings
@@ -422,7 +411,8 @@ Rules:
  */
 export async function investigateDataset(
   datasetId: string,
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  userId?: string
 ): Promise<InvestigationResult> {
   debugLog('[INVESTIGATOR] Starting investigation for dataset:', datasetId);
   
@@ -452,7 +442,7 @@ export async function investigateDataset(
   debugLog('[INVESTIGATOR] Found', patternFindings.length, 'patterns');
   
   // Generate AI explanations (only explanations, not calculations)
-  const explanations = await generateAIExplanations(patternFindings, intelligence);
+  const explanations = await generateAIExplanations(patternFindings, intelligence, userId);
   debugLog('[INVESTIGATOR] Generated', explanations.length, 'AI explanations');
   
   return {

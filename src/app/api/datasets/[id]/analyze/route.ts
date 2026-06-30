@@ -401,7 +401,7 @@ export async function POST(
         growthValid: businessAnalysis.kpis.growthValid,
         growthPercentage: businessAnalysis.kpis.growthPercentage
       };
-      const aiSummary = await generateAIExecutiveSummary(enrichedAnalysis);
+      const aiSummary = await generateAIExecutiveSummary(enrichedAnalysis, userId);
       (analysis as any).ai_summary = aiSummary;
       debugLog('[ANALYZE] AI Executive Summary generated');
     } catch (aiError) {

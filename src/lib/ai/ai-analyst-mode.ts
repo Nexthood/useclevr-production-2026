@@ -1,4 +1,5 @@
 import { debugLog, debugWarn } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 /**
  * UseClevr AI Analyst Mode
@@ -295,7 +296,8 @@ async function generateAIReport(
   plan: AnalysisPlan,
   executionDetails: { step: string; query: string; result_count: number }[],
   analysis: { key_findings: string[]; risks: string[]; opportunities: string[] },
-  intelligence: DatasetIntelligence
+  intelligence: DatasetIntelligence,
+  userId?: string
 ): Promise<AnalystReport> {
   const planSummary = plan.analysis_plan.join(', ');
   const findingsSummary = analysis.key_findings.join('\n');
@@ -337,31 +339,20 @@ Rules:
 - Opportunities should be growth recommendations
 - Use the actual data values when available`;
 
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: intelligence.schema.columns.map(c => c.name),
-        sampleData: [],
-        rowCount: intelligence.metrics.rowCount
-      })
-    });
+  const aiReport = await generateServerAiText(prompt, {
+    userId,
+    context: "ANALYST",
+  });
 
-    if (response.ok) {
-      const text = await response.text();
-      try {
-        const json = JSON.parse(text);
-        if (json.report) {
-          return json.report;
-        }
-      } catch {
-        // Not JSON
+  if (aiReport?.text) {
+    try {
+      const json = JSON.parse(aiReport.text);
+      if (json.report) {
+        return json.report;
       }
+    } catch {
+      debugWarn('[ANALYST] AI report response was not valid JSON');
     }
-  } catch (error) {
-    debugWarn('[ANALYST] AI report generation failed:', error);
   }
 
   // Fallback report
@@ -378,7 +369,8 @@ Rules:
  */
 export async function runAnalystMode(
   datasetId: string,
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  userId?: string
 ): Promise<AnalystResult> {
   debugLog('[ANALYST] Starting analyst mode for dataset:', datasetId);
 
@@ -406,7 +398,7 @@ export async function runAnalystMode(
   const analysis = analyzeResultsForReport(executionDetails, intelligence);
 
   // 4. Generate AI report
-  const report = await generateAIReport(plan, executionDetails, analysis, intelligence);
+  const report = await generateAIReport(plan, executionDetails, analysis, intelligence, userId);
 
   return {
     plan,

@@ -7,6 +7,7 @@
 
 import type { DatasetRecord } from '../data/dataset-intelligence';
 import { buildDatasetIntelligence } from '../data/dataset-intelligence';
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 export interface Prediction {
   id: string;
@@ -43,7 +44,8 @@ export interface PredictiveResult {
  */
 export async function generatePredictions(
   datasetId: string,
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  userId?: string
 ): Promise<PredictiveResult> {
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
   const timeCols = intelligence.dimensions.timeColumns;
@@ -144,7 +146,7 @@ export async function generatePredictions(
   insights.push(...concentrationRisks);
   
   // Generate summary
-  const summary = await generatePredictionSummary(predictions, insights);
+  const summary = await generatePredictionSummary(predictions, insights, userId);
   
   return {
     predictions,
@@ -329,7 +331,8 @@ function detectConcentrationRisks(
  */
 async function generatePredictionSummary(
   predictions: Prediction[],
-  insights: Insight[]
+  insights: Insight[],
+  userId?: string
 ): Promise<string> {
   if (predictions.length === 0 && insights.length === 0) {
     return 'Insufficient data for predictive analysis.';
@@ -344,24 +347,13 @@ async function generatePredictionSummary(
   );
   
   const prompt = `Given these predictive analytics, provide a brief 2-3 sentence summary:\n\nPredictions:\n${predictionTexts.join('\n')}\n\nInsights:\n${insightTexts.join('\n')}\n\nSummary:`;
-  
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: [],
-        sampleData: [],
-        rowCount: 0
-      })
-    });
-    
-    if (response.ok) {
-      return await response.text();
-    }
-  } catch {
-    // Fallback to simple summary
+
+  const aiSummary = await generateServerAiText(prompt, {
+    userId,
+    context: "PREDICT",
+  });
+  if (aiSummary?.text) {
+    return aiSummary.text;
   }
   
   // Simple fallback summary
