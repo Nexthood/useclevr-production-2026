@@ -16,6 +16,7 @@ const items = [
   { href: "/app/settings/profile", label: "Profile", icon: User },
   { href: "/app/settings/preferences", label: "Preferences", icon: SlidersHorizontal },
   { href: "/app/settings/ai-providers", label: "AI Providers", icon: Bot },
+  { href: "/app/settings/ai-activity", label: "AI Activity", icon: ShieldCheck },
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
   { href: "/app/settings/activity", label: "Activity", icon: Activity },
   { href: "/app/settings/billing", label: "Billing", icon: ReceiptText },

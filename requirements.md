@@ -71,6 +71,11 @@ Text rules for this file:
 - Test AI provider connections through a signed-in server endpoint and show connection status, latency, model confirmation, available models, and clear failure messages.
 - Check every enabled AI provider through a signed-in server endpoint and store reachability, latency, available models, last checked timestamp, classified error status, and last error message.
 - Show AI provider status badges for Healthy, Unreachable, Auth failed, Model missing, Fallback ready, and Offline mode active.
+- Show a Hybrid AI Chat page in the AI Analyst area for signed-in users to test configured providers through the universal AI adapter before running business analysis.
+- Route Hybrid AI Chat messages through `/api/hybrid-ai/chat` with OpenAI-compatible message input, server-side provider execution, no browser-exposed API keys, and visible provider name, model, local/cloud route, fallback, and unavailable states.
+- Let users select a dataset inside Hybrid AI Chat and ask questions through `/api/hybrid-ai/dataset-chat`.
+- Build Hybrid AI dataset-chat context from dataset metadata, schema, row count, detected columns, backend KPI extracts, column profiles, grouped summaries, and bounded sample rows instead of sending full large datasets to the model.
+- Show Hybrid AI dataset-chat status for selected dataset, provider used, local/cloud route, summarized context size, and cloud fallback privacy warnings.
 - Let users choose Auto, Local only / Offline mode, or Cloud only routing from the AI Providers settings page.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
@@ -82,6 +87,12 @@ Text rules for this file:
 - Check provider health with a non-customer prompt before sending analysis data to a configured provider.
 - Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
 - Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
+- Route existing AI Assistant chat through the same Hybrid AI provider routing, dataset-aware context builder, fallback rules, Local only cloud blocking, and provider status display as Hybrid AI Chat.
+- Allow AI Assistant users to ask general questions without a selected dataset and use summarized dataset context automatically when a dataset is selected.
+- Show an AI Privacy Status panel in the AI Assistant with the latest provider, local or cloud route, offline mode state, and fallback status.
+- Store metadata-only AI request audit entries for chat, dataset analysis, report generation, and recommendation requests, including provider, model, mode, local or cloud execution location, fallback use, success state, dataset ID when available, and safe failure reason.
+- Keep AI privacy audit logs free of raw prompts, model responses, API keys, and sensitive dataset content by default.
+- Show AI Activity under Settings so normal users see only their own AI provider usage and superadmins see provider usage across workspaces.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
 - Show Bring Your Own AI as the recommended Hybrid AI modal path.
 - Link Hybrid AI setup calls to the AI Providers settings page.

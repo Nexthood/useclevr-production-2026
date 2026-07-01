@@ -2,6 +2,10 @@
 
 ### Changed
 
+- Add metadata-only AI privacy audit logging so users and superadmins can see which provider handled each AI request, whether data stayed local or went to cloud, and whether fallback routing was used.
+- Route the existing AI Assistant through Hybrid AI provider routing so general and dataset-aware chat share the same BYOAI modes, summarized dataset context, fallback rules, and provider status display.
+- Make Hybrid AI Chat dataset-aware so users can select a dataset, ask business questions, and receive answers from summarized context, KPI extracts, column profiles, sample rows, and provider routing status.
+- Add a Hybrid AI Chat page so signed-in users can test configured AI providers through the universal adapter with provider, model, local/cloud route, fallback, and unavailable status shown in the chat.
 - Add Hybrid AI provider health checks so users can validate enabled providers with reachability, latency, model confirmation, model discovery, classified errors, and offline-safe routing before analysis.
 - Add Phase 1 Bring Your Own AI provider management so users can connect multiple encrypted AI providers, test latency and model availability, choose a default provider, and route analysis through automatic fallback.
 - Add Hybrid AI mode switching so users can choose Auto, Offline local-only, or Cloud-only routing with provider health checks and visible routing status.

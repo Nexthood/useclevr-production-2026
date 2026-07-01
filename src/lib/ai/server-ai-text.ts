@@ -3,10 +3,18 @@ import { generateText } from "ai";
 
 import {
   generateWithUniversalAiAdapter,
+  getAiMode,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
+  type AiMode,
 } from "@/lib/ai/universal-ai-adapter";
+import {
+  auditInputFromAdapterResult,
+  recordAiRequestAudit,
+  type AiRequestAuditInput,
+} from "@/lib/ai/ai-request-audit";
+import type { AiRequestAuditPurpose } from "@/lib/db/schema";
 import { debugLog, debugWarn } from "@/lib/utils/debug";
 
 export interface ServerAiTextResult {
@@ -23,14 +31,24 @@ export async function generateServerAiText(
   options: {
     userId?: string;
     context: string;
+    datasetId?: string | null;
+    purpose?: AiRequestAuditPurpose;
   }
 ): Promise<ServerAiTextResult | null> {
+  const purpose = options.purpose ?? inferAiRequestPurpose(options.context);
+  let aiMode: AiMode = "auto";
+  let userProviderFailed = false;
+
   if (options.userId) {
+    aiMode = await getAiMode(options.userId);
     try {
-      const result = await generateWithUniversalAiAdapter(options.userId, prompt);
+      const result = await generateWithUniversalAiAdapter(options.userId, prompt, { mode: aiMode });
 
       if (result) {
         logUniversalAiResponse(result);
+        recordAiRequestAudit(
+          auditInputFromAdapterResult(options.userId, result, purpose, options.datasetId),
+        );
         debugLog(`[${options.context}] User AI provider response generated`, {
           providerName: result.providerName,
           providerType: result.providerType,
@@ -49,12 +67,26 @@ export async function generateServerAiText(
       debugLog(`[${options.context}] No user AI provider configured; using default cloud AI`);
     } catch (error) {
       if (isLocalAiUnavailableError(error)) {
+        recordAiRequestAudit({
+          userId: options.userId,
+          datasetId: options.datasetId,
+          providerName: "Offline mode",
+          providerType: "offline-mode",
+          modelName: "none",
+          mode: aiMode,
+          executionLocation: "none",
+          fallbackUsed: false,
+          purpose,
+          success: false,
+          errorReason: error instanceof Error ? error.message : String(error),
+        });
         debugWarn(`[${options.context}] Offline mode blocked cloud fallback`, {
           error: error instanceof Error ? error.message : String(error),
         });
         return null;
       }
       logDefaultCloudFallback(options.userId, error);
+      userProviderFailed = true;
       debugWarn(`[${options.context}] User AI provider failed; using default cloud AI`, {
         error: error instanceof Error ? error.message : String(error),
       });
@@ -68,6 +100,16 @@ export async function generateServerAiText(
     });
     const normalizedText = text.trim();
     if (!normalizedText) return null;
+
+    if (options.userId) {
+      recordAiRequestAudit(defaultCloudAuditInput(options.userId, {
+        datasetId: options.datasetId,
+        mode: aiMode,
+        purpose,
+        fallbackUsed: userProviderFailed,
+        success: true,
+      }));
+    }
 
     debugLog(`[${options.context}] Default cloud AI response generated`, {
       providerName: "gemini-cloud",
@@ -83,9 +125,60 @@ export async function generateServerAiText(
       source: "default-cloud",
     };
   } catch (error) {
+    if (options.userId) {
+      recordAiRequestAudit(defaultCloudAuditInput(options.userId, {
+        datasetId: options.datasetId,
+        mode: aiMode,
+        purpose,
+        fallbackUsed: userProviderFailed,
+        success: false,
+        errorReason: error instanceof Error ? error.message : String(error),
+      }));
+    }
     debugWarn(`[${options.context}] Default cloud AI failed`, {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
   }
+}
+
+function defaultCloudAuditInput(
+  userId: string,
+  input: {
+    datasetId?: string | null;
+    mode: AiMode;
+    purpose: AiRequestAuditPurpose;
+    fallbackUsed: boolean;
+    success: boolean;
+    errorReason?: string | null;
+  },
+): AiRequestAuditInput {
+  return {
+    userId,
+    datasetId: input.datasetId,
+    providerName: "UseClevr Cloud Analysis",
+    providerType: "default-cloud",
+    modelName: "gemini-2.5-flash",
+    mode: input.mode,
+    executionLocation: "cloud",
+    fallbackUsed: input.fallbackUsed,
+    purpose: input.purpose,
+    success: input.success,
+    errorReason: input.errorReason,
+  };
+}
+
+function inferAiRequestPurpose(context: string): AiRequestAuditPurpose {
+  const normalized = context.toLowerCase();
+  if (normalized.includes("report")) return "report_generation";
+  if (
+    normalized.includes("recommend") ||
+    normalized.includes("suggestion") ||
+    normalized.includes("predictive") ||
+    normalized.includes("next action")
+  ) {
+    return "recommendation";
+  }
+  if (normalized.includes("chat") || normalized.includes("query")) return "chat";
+  return "dataset_analysis";
 }
