@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth/auth";
 import {
   type AiProviderType,
   classifyProviderError,
@@ -7,6 +6,7 @@ import {
   testSavedAiProviderConfig,
   updateAiProviderTestStatus,
 } from "@/lib/ai/byoai-provider";
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { debugError, debugWarn } from "@/lib/utils/debug";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -14,11 +14,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireHybridAiFeature("singleAiProvider");
+  if (!gate.success) return gate.error;
+  const userId = gate.session?.user?.id;
+  if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   let body: {
     id?: unknown;

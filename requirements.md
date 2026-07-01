@@ -65,6 +65,13 @@ Text rules for this file:
 - Use UseClevr Helper as the desktop bridge for Hybrid AI private analysis.
 - Keep normal Hybrid AI UI branded as UseClevr Hybrid AI, Private AI Analysis, Local AI Engine, Secure runtime connected, and Files stay on your device.
 - Keep technical runtime names, internal engine names, and model names out of normal customer UI.
+- Register every Hybrid AI capability in a centralized feature gate with a required Lite or MEGA tier and upgrade explanation.
+- Enforce Hybrid AI feature access on backend routes and server actions before local-provider chat, dataset-aware Hybrid AI chat, AI provider testing, provider health checks, provider saves, provider routing, and mode changes run.
+- Include Private Chat, CSV/Excel Analysis, Dashboard Insights, Basic Local AI, Single AI Provider, Auto/Local/Cloud mode, and Standard Reports in Hybrid AI Lite.
+- Include AI Agents, Deep Research, Multi-document Reasoning, Workflow Automation, Background Tasks, Business Assistants, Team AI, Enterprise Audit, Local Knowledge Base, and Future Helper integration in Hybrid AI MEGA.
+- Limit Hybrid AI Lite users to one configured AI provider and route only that provider through BYOAI execution.
+- Let Hybrid AI MEGA users configure multiple providers and fallback routing.
+- Show upgrade dialogs when users try to use a Hybrid AI feature that their active plan does not include.
 - Show an AI Providers settings page.
 - Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, model, enabled state, default-provider state, fallback-provider state, and priority.
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.

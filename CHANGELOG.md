@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add centralized Hybrid AI feature gates so Lite and MEGA capabilities are registered once, enforced on backend routes, and reflected in provider settings and upgrade dialogs.
 - Add metadata-only AI privacy audit logging so users and superadmins can see which provider handled each AI request, whether data stayed local or went to cloud, and whether fallback routing was used.
 - Route the existing AI Assistant through Hybrid AI provider routing so general and dataset-aware chat share the same BYOAI modes, summarized dataset context, fallback rules, and provider status display.
 - Make Hybrid AI Chat dataset-aware so users can select a dataset, ask business questions, and receive answers from summarized context, KPI extracts, column profiles, sample rows, and provider routing status.

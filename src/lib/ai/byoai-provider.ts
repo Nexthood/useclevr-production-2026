@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 
 import { db } from "@/lib/db";
 import { aiProviderConfigs, appSettings } from "@/lib/db/schema";
+import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { and, asc, desc, eq } from "drizzle-orm";
 
@@ -396,8 +397,15 @@ export async function generateWithUserAiProvider(userId: string, prompt: string)
 }
 
 export async function generateWithUniversalAiAdapter(userId: string, prompt: string, options: { mode?: AiMode } = {}) {
+  const featureAccess = await getHybridAiFeatureAccess(userId);
+  if (!featureAccess.enabledFeatureIds.includes("basicLocalAi")) {
+    debugLog("[AI_PROVIDER] Hybrid AI provider routing skipped by feature gate", { userId });
+    return null;
+  }
+
   const mode = options.mode ?? await getAiMode(userId);
-  const providers = await listPrivateAiProviderConfigsForMode(userId, mode);
+  const providersForMode = await listPrivateAiProviderConfigsForMode(userId, mode);
+  const providers = featureAccess.providerLimit === null ? providersForMode : providersForMode.slice(0, featureAccess.providerLimit);
   if (providers.length === 0) {
     if (mode === "local-only") {
       debugWarn("[AI_PROVIDER] Offline mode has no enabled local providers", { userId, mode });

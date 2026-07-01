@@ -1,3 +1,4 @@
+- changed: add centralized Hybrid AI feature gates that register Lite and MEGA capabilities, enforce plan access in backend routes and provider settings, cap Lite to one provider, and show upgrade dialogs for blocked Hybrid AI actions
 - changed: add metadata-only Hybrid AI privacy audit logging with provider, model, mode, local/cloud route, fallback use, success state, dataset ID, and safe error reason, plus an AI Privacy Status panel and Settings AI Activity review
 - changed: route the existing AI Assistant through Hybrid AI provider routing, dataset-aware context, fallback rules, local-only cloud blocking, and unified provider status display
 - changed: make Hybrid AI Chat dataset-aware with dataset selection, summarized context, backend KPI extracts, provider routing status, and cloud fallback privacy warnings
