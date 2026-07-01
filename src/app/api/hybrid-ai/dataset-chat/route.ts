@@ -4,10 +4,12 @@ import { z } from "zod";
 
 import {
   generateWithUniversalAiAdapter,
+  getAiMode,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
+import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { auth } from "@/lib/auth/auth";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
@@ -170,11 +172,14 @@ export async function POST(request: Request) {
     analysis: dataset.analysis,
   });
   const prompt = buildDatasetChatPrompt(messages, context);
+  const aiMode = await getAiMode(userId);
+  let userProviderFailed = false;
 
   try {
-    const result = await generateWithUniversalAiAdapter(userId, prompt);
+    const result = await generateWithUniversalAiAdapter(userId, prompt, { mode: aiMode });
     if (result) {
       logUniversalAiResponse(result);
+      recordAiRequestAudit(auditInputFromAdapterResult(userId, result, "dataset_analysis", parsed.datasetId));
       debugLog("[HYBRID_AI_DATASET_CHAT] User provider response generated", {
         userId,
         datasetId: parsed.datasetId,
@@ -210,6 +215,19 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isLocalAiUnavailableError(error)) {
       const message = "Offline mode is enabled, but your local AI provider is not reachable.";
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Offline mode",
+        providerType: "offline-mode",
+        modelName: "none",
+        mode: aiMode,
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: false,
+        errorReason: error instanceof Error ? error.message : String(error),
+      });
       debugWarn("[HYBRID_AI_DATASET_CHAT] Offline mode blocked cloud fallback", {
         userId,
         datasetId: parsed.datasetId,
@@ -237,6 +255,7 @@ export async function POST(request: Request) {
     }
 
     logDefaultCloudFallback(userId, error);
+    userProviderFailed = true;
     debugWarn("[HYBRID_AI_DATASET_CHAT] User provider failed; trying default cloud AI", {
       userId,
       datasetId: parsed.datasetId,
@@ -251,6 +270,18 @@ export async function POST(request: Request) {
     });
     const answer = text.trim();
     if (!answer) throw new Error("Default cloud AI returned an empty response.");
+    recordAiRequestAudit({
+      userId,
+      datasetId: parsed.datasetId,
+      providerName: "UseClevr Cloud Analysis",
+      providerType: "default-cloud",
+      modelName: "gemini-2.5-flash",
+      mode: aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: userProviderFailed,
+      purpose: "dataset_analysis",
+      success: true,
+    });
 
     return NextResponse.json({
       success: true,
@@ -272,6 +303,19 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Hybrid AI dataset chat failed.";
+    recordAiRequestAudit({
+      userId,
+      datasetId: parsed.datasetId,
+      providerName: "UseClevr Cloud Analysis",
+      providerType: "default-cloud",
+      modelName: "gemini-2.5-flash",
+      mode: aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: userProviderFailed,
+      purpose: "dataset_analysis",
+      success: false,
+      errorReason: message,
+    });
     debugError("[HYBRID_AI_DATASET_CHAT] Default cloud AI failed", { userId, datasetId: parsed.datasetId, message });
     return NextResponse.json({
       success: false,

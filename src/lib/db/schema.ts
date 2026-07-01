@@ -543,6 +543,50 @@ export const aiInteractionTraces = pgTable(
   }),
 );
 
+export const aiRequestAuditPurposes = [
+  "chat",
+  "dataset_analysis",
+  "report_generation",
+  "recommendation",
+] as const;
+export type AiRequestAuditPurpose = (typeof aiRequestAuditPurposes)[number];
+
+export const aiRequestExecutionLocations = ["local", "cloud", "none"] as const;
+export type AiRequestExecutionLocation = (typeof aiRequestExecutionLocations)[number];
+
+export const aiRequestAuditLogs = pgTable(
+  "AiRequestAuditLog",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    datasetId: text("datasetId"),
+    providerName: varchar("providerName", { length: 160 }).notNull(),
+    providerType: varchar("providerType", { length: 80 }).notNull(),
+    modelName: varchar("modelName", { length: 160 }).notNull(),
+    mode: varchar("mode", { length: 30 }).notNull(),
+    executionLocation: varchar("executionLocation", { length: 20 })
+      .notNull()
+      .$type<AiRequestExecutionLocation>(),
+    fallbackUsed: boolean("fallbackUsed").default(false).notNull(),
+    purpose: varchar("purpose", { length: 60 }).notNull().$type<AiRequestAuditPurpose>(),
+    success: boolean("success").default(true).notNull(),
+    errorReason: text("errorReason"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "AiRequestAuditLog_userId_fkey",
+    }).onDelete("cascade"),
+    datasetIdIdx: index("AiRequestAuditLog_datasetId_idx").on(table.datasetId),
+    userIdIdx: index("AiRequestAuditLog_userId_idx").on(table.userId),
+    createdAtIdx: index("AiRequestAuditLog_createdAt_idx").on(table.createdAt),
+    purposeIdx: index("AiRequestAuditLog_purpose_idx").on(table.purpose),
+    providerTypeIdx: index("AiRequestAuditLog_providerType_idx").on(table.providerType),
+  }),
+);
+
 export const aiProviderConfigs = pgTable(
   "AiProviderConfig",
   {

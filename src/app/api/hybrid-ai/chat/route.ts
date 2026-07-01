@@ -4,10 +4,12 @@ import { z } from "zod";
 
 import {
   generateWithUniversalAiAdapter,
+  getAiMode,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
+import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { auth } from "@/lib/auth/auth";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { NextResponse } from "next/server";
@@ -53,11 +55,14 @@ export async function POST(request: Request) {
   }
 
   const prompt = buildHybridChatPrompt(messages);
+  const aiMode = await getAiMode(userId);
+  let userProviderFailed = false;
 
   try {
-    const result = await generateWithUniversalAiAdapter(userId, prompt);
+    const result = await generateWithUniversalAiAdapter(userId, prompt, { mode: aiMode });
     if (result) {
       logUniversalAiResponse(result);
+      recordAiRequestAudit(auditInputFromAdapterResult(userId, result, "chat"));
       debugLog("[HYBRID_AI_CHAT] User provider response generated", {
         userId,
         providerName: result.providerName,
@@ -88,6 +93,18 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isLocalAiUnavailableError(error)) {
       const message = "Offline mode is enabled, but your local AI provider is not reachable.";
+      recordAiRequestAudit({
+        userId,
+        providerName: "Offline mode",
+        providerType: "offline-mode",
+        modelName: "none",
+        mode: aiMode,
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "chat",
+        success: false,
+        errorReason: error instanceof Error ? error.message : String(error),
+      });
       debugWarn("[HYBRID_AI_CHAT] Offline mode blocked cloud fallback", {
         userId,
         error: error instanceof Error ? error.message : String(error),
@@ -112,6 +129,7 @@ export async function POST(request: Request) {
     }
 
     logDefaultCloudFallback(userId, error);
+    userProviderFailed = true;
     debugWarn("[HYBRID_AI_CHAT] User provider failed; trying default cloud AI", {
       userId,
       error: error instanceof Error ? error.message : String(error),
@@ -125,6 +143,17 @@ export async function POST(request: Request) {
     });
     const answer = text.trim();
     if (!answer) throw new Error("Default cloud AI returned an empty response.");
+    recordAiRequestAudit({
+      userId,
+      providerName: "UseClevr Cloud Analysis",
+      providerType: "default-cloud",
+      modelName: "gemini-2.5-flash",
+      mode: aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: userProviderFailed,
+      purpose: "chat",
+      success: true,
+    });
 
     return NextResponse.json({
       success: true,
@@ -144,6 +173,18 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Hybrid AI chat failed.";
+    recordAiRequestAudit({
+      userId,
+      providerName: "UseClevr Cloud Analysis",
+      providerType: "default-cloud",
+      modelName: "gemini-2.5-flash",
+      mode: aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: userProviderFailed,
+      purpose: "chat",
+      success: false,
+      errorReason: message,
+    });
     debugError("[HYBRID_AI_CHAT] Default cloud AI failed", { userId, message });
     return NextResponse.json({
       success: false,

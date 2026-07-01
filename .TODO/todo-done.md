@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-903. Add metadata-only Hybrid AI privacy audit logging, AI Assistant privacy status, and user-scoped AI Activity review. (labels: ai, logging, security, ui; commit: worktree)
 - T-902. Route the existing AI Assistant through Hybrid AI provider routing, dataset-aware context, fallback rules, local-only cloud blocking, and unified provider status display. (labels: ai, local-ai, data, ui; commit: worktree)
 - T-901. Add dataset-aware Hybrid AI Chat with dataset selection, summarized dataset context, backend KPI extracts, provider routing status, and local-only cloud blocking. (labels: ai, local-ai, data, ui; commit: worktree)
 - T-900. Add a UseClevr Hybrid AI chat page and API route that use configured AI providers, respect Hybrid AI mode, show provider routing status, and keep provider secrets server-side. (labels: ai, local-ai, api, ui; commit: worktree)

@@ -1,3 +1,4 @@
+- changed: add metadata-only Hybrid AI privacy audit logging with provider, model, mode, local/cloud route, fallback use, success state, dataset ID, and safe error reason, plus an AI Privacy Status panel and Settings AI Activity review
 - changed: route the existing AI Assistant through Hybrid AI provider routing, dataset-aware context, fallback rules, local-only cloud blocking, and unified provider status display
 - changed: make Hybrid AI Chat dataset-aware with dataset selection, summarized context, backend KPI extracts, provider routing status, and cloud fallback privacy warnings
 - changed: add Hybrid AI Chat under AI Analyst with a server-side chat endpoint, universal adapter routing, provider/model/route status, and offline-mode cloud blocking
