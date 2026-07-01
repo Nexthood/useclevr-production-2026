@@ -1,15 +1,25 @@
 "use client";
 
-import { saveAiProvider } from "@/app/actions/settings";
+import { saveAiProvider, updateAiMode, updateAiProviderRouting } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
-import type { PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
-import { Bot, CheckCircle2, Clock3, PlugZap, ShieldCheck, TriangleAlert } from "lucide-react";
-import * as React from "react";
+import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
+import {
+  CheckCircle2,
+  Clock3,
+  ListChecks,
+  Plus,
+  PlugZap,
+  ShieldCheck,
+  SlidersHorizontal,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 
 type ProviderType =
   | "ollama"
@@ -20,13 +30,19 @@ type ProviderType =
   | "google-gemini"
   | "azure-openai";
 
-const providerTypes: Array<{ value: ProviderType; label: string; baseUrl: string; placeholderModel: string; keyOptional: boolean }> = [
+const providerTypes: Array<{
+  value: ProviderType;
+  label: string;
+  baseUrl: string;
+  placeholderModel: string;
+  keyOptional: boolean;
+}> = [
   { value: "ollama", label: "Ollama", baseUrl: "http://localhost:11434/v1", placeholderModel: "llama3.1", keyOptional: true },
   { value: "lm-studio", label: "LM Studio", baseUrl: "http://localhost:1234/v1", placeholderModel: "local-model", keyOptional: true },
   { value: "openai-compatible", label: "OpenAI Compatible", baseUrl: "http://localhost:8000/v1", placeholderModel: "model-name", keyOptional: true },
   { value: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", placeholderModel: "gpt-4o-mini", keyOptional: false },
   { value: "anthropic", label: "Anthropic", baseUrl: "https://api.anthropic.com", placeholderModel: "claude-3-5-sonnet-latest", keyOptional: false },
-  { value: "google-gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", placeholderModel: "gemini-2.5-flash", keyOptional: false },
+  { value: "google-gemini", label: "Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", placeholderModel: "gemini-2.5-flash", keyOptional: false },
   { value: "azure-openai", label: "Azure OpenAI", baseUrl: "https://your-resource.openai.azure.com", placeholderModel: "deployment-name", keyOptional: false },
 ];
 
@@ -39,6 +55,8 @@ type FormState = {
   apiKey: string;
   enabled: boolean;
   isDefault: boolean;
+  isFallback: boolean;
+  priority: number;
 };
 
 const emptyForm: FormState = {
@@ -50,14 +68,26 @@ const emptyForm: FormState = {
   apiKey: "",
   enabled: true,
   isDefault: false,
+  isFallback: false,
+  priority: 100,
 };
 
-export function AiProvidersClient({ providers }: { providers: PublicAiProviderConfig[] }) {
+export function AiProvidersClient({
+  providers,
+  aiMode,
+  loadError,
+}: {
+  providers: PublicAiProviderConfig[];
+  aiMode: AiMode;
+  loadError?: string | null;
+}) {
   const router = useRouter();
   const { showNotice } = useNotice();
-  const defaultProvider = providers.find((provider) => provider.isDefault) || providers[0];
-  const [form, setForm] = React.useState<FormState>(() => defaultProvider ? formFromProvider(defaultProvider) : emptyForm);
+  const [form, setForm] = React.useState<FormState>(emptyForm);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isSavingRouting, setIsSavingRouting] = React.useState(false);
+  const [isSavingMode, setIsSavingMode] = React.useState(false);
   const [isTesting, setIsTesting] = React.useState(false);
   const [testResult, setTestResult] = React.useState<{
     success: boolean;
@@ -66,20 +96,35 @@ export function AiProvidersClient({ providers }: { providers: PublicAiProviderCo
     availableModels?: string[];
   } | null>(null);
 
-  const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
-  const savedProvider = providers.find((provider) => provider.id === form.providerId);
+  const defaultProvider = providers.find((provider) => provider.isDefault) || providers[0] || null;
+  const fallbackProvider = providers.find((provider) => provider.isFallback) || null;
   const connectedCount = providers.filter((provider) => provider.lastTestStatus === "success").length;
   const enabledCount = providers.filter((provider) => provider.enabled).length;
+  const localProviderCount = providers.filter((provider) => isLocalProviderType(provider.providerType)).length;
+  const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
+  const savedProvider = providers.find((provider) => provider.id === form.providerId);
 
   function updateForm(patch: Partial<FormState>) {
     setForm((current) => ({ ...current, ...patch }));
+  }
+
+  function openNewDialog() {
+    setForm(emptyForm);
+    setTestResult(null);
+    setIsDialogOpen(true);
+  }
+
+  function openEditDialog(provider: PublicAiProviderConfig) {
+    setForm(formFromProvider(provider));
+    setTestResult(null);
+    setIsDialogOpen(true);
   }
 
   function handleProviderTypeChange(value: ProviderType) {
     const meta = providerTypes.find((type) => type.value === value) || providerTypes[2];
     updateForm({
       providerType: value,
-      baseUrl: form.baseUrl && form.providerId ? form.baseUrl : meta.baseUrl,
+      baseUrl: form.providerId ? form.baseUrl : meta.baseUrl,
       modelName: form.modelName,
     });
   }
@@ -95,10 +140,37 @@ export function AiProvidersClient({ providers }: { providers: PublicAiProviderCo
       showNotice({ type: "error", title: "AI provider was not saved.", message: result.error });
     } else {
       showNotice({ type: "success", title: "AI provider saved.", message: "UseClevr will route analysis through enabled providers first." });
-      updateForm({ apiKey: "" });
+      setIsDialogOpen(false);
+      setForm(emptyForm);
       router.refresh();
     }
     setIsSaving(false);
+  }
+
+  async function handleRoutingSave(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingRouting(true);
+    const result = await updateAiProviderRouting(new FormData(event.currentTarget));
+    if (!result.success) {
+      showNotice({ type: "error", title: "Routing was not saved.", message: result.error });
+    } else {
+      showNotice({ type: "success", title: "AI routing saved.", message: "Default and fallback providers were updated." });
+      router.refresh();
+    }
+    setIsSavingRouting(false);
+  }
+
+  async function handleModeSave(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingMode(true);
+    const result = await updateAiMode(new FormData(event.currentTarget));
+    if (!result.success) {
+      showNotice({ type: "error", title: "AI mode was not saved.", message: result.error });
+    } else {
+      showNotice({ type: "success", title: "AI mode saved.", message: modeNoticeMessage(String(new FormData(event.currentTarget).get("aiMode") || "auto") as AiMode) });
+      router.refresh();
+    }
+    setIsSavingMode(false);
   }
 
   async function handleTest() {
@@ -157,7 +229,7 @@ export function AiProvidersClient({ providers }: { providers: PublicAiProviderCo
             </div>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">AI Providers</h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Connect existing AI engines and let UseClevr route analysis through enabled providers with automatic fallback.
+              Connect existing AI engines and route UseClevr analysis through your default provider with automatic fallback.
             </p>
           </div>
           <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[420px]">
@@ -168,197 +240,381 @@ export function AiProvidersClient({ providers }: { providers: PublicAiProviderCo
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)]">
+      {loadError ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+          <div className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 h-4 w-4" />
+            <p>{loadError}</p>
+          </div>
+        </div>
+      ) : null}
+
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+                  <ListChecks className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle>Provider list</CardTitle>
+                  <CardDescription>API keys stay encrypted server-side and are never returned to the browser.</CardDescription>
+                </div>
+              </div>
+              <Button type="button" onClick={openNewDialog} className="gap-2 bg-gradient-primary hover:opacity-90">
+                <Plus className="h-4 w-4" />
+                Add provider
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {providers.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-background/70 p-6">
+                <p className="font-medium text-foreground">No providers connected</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Add a local or cloud provider to use Bring Your Own AI for analysis, reports, and assistant answers.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <div className="min-w-[780px]">
+                  <div className="grid grid-cols-[minmax(190px,1.4fr)_minmax(150px,1fr)_90px_120px_120px] gap-3 border-b border-border bg-muted/60 px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
+                    <span>Provider</span>
+                    <span>Model</span>
+                    <span>Priority</span>
+                    <span>Status</span>
+                    <span className="text-right">Action</span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {providers.map((provider) => (
+                      <div
+                        key={provider.id}
+                        className="grid grid-cols-[minmax(190px,1.4fr)_minmax(150px,1fr)_90px_120px_120px] items-center gap-3 px-4 py-4 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-foreground">{provider.providerName}</p>
+                            {provider.isDefault ? <Pill tone="primary">Default</Pill> : null}
+                            {provider.isFallback ? <Pill tone="muted">Fallback</Pill> : null}
+                          </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">{labelForType(provider.providerType)} · {provider.baseUrl}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-foreground">{provider.modelName}</p>
+                          {provider.hasApiKey ? <p className="text-xs text-muted-foreground">Saved key hidden</p> : <p className="text-xs text-muted-foreground">No API key</p>}
+                        </div>
+                        <p className="text-muted-foreground">{provider.priority}</p>
+                        <ProviderStatus provider={provider} />
+                        <div className="text-right">
+                          <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(provider)} className="bg-transparent">
+                            Edit
+                          </Button>
+                        </div>
+                        {provider.lastTestModels.length > 0 ? (
+                          <div className="col-span-5 -mt-1 flex flex-wrap gap-1.5">
+                            {provider.lastTestModels.slice(0, 10).map((model) => (
+                              <span key={model} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{model}</span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {provider.lastTestMessage ? (
+                          <p className="col-span-5 text-xs text-muted-foreground">{provider.lastTestMessage}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-5">
         <Card className="border-border bg-card">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
-                <Bot className="h-5 w-5" />
+                <PlugZap className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle>Provider configuration</CardTitle>
-                <CardDescription>API keys stay encrypted server-side and are never returned to the browser.</CardDescription>
+                <CardTitle>AI mode</CardTitle>
+                <CardDescription>Control when UseClevr can use local or cloud AI.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSave} className="space-y-5">
-              <input type="hidden" name="providerId" value={form.providerId} />
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Provider name" htmlFor="providerName">
-                  <Input
-                    id="providerName"
-                    name="providerName"
-                    value={form.providerName}
-                    onChange={(event) => updateForm({ providerName: event.target.value })}
-                    placeholder="Local analysis engine"
-                    className="h-11 bg-muted"
-                    required
-                  />
-                </Field>
-
-                <Field label="Provider type" htmlFor="providerType">
-                  <select
-                    id="providerType"
-                    name="providerType"
-                    value={form.providerType}
-                    onChange={(event) => handleProviderTypeChange(event.target.value as ProviderType)}
-                    className="h-11 w-full rounded-md border border-input bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {providerTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <Field label="Base URL" htmlFor="baseUrl">
-                <Input
-                  id="baseUrl"
-                  name="baseUrl"
-                  value={form.baseUrl}
-                  onChange={(event) => updateForm({ baseUrl: event.target.value })}
-                  placeholder={typeMeta.baseUrl}
-                  className="h-11 bg-muted font-mono text-sm"
-                  required
+            <form onSubmit={handleModeSave} className="space-y-4">
+              <div className="grid gap-3">
+                <ModeOption
+                  value="auto"
+                  current={aiMode}
+                  title="Auto"
+                  description="Try local providers first, then use fallback or cloud providers."
                 />
-              </Field>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Default model" htmlFor="modelName">
-                  <Input
-                    id="modelName"
-                    name="modelName"
-                    value={form.modelName}
-                    onChange={(event) => updateForm({ modelName: event.target.value })}
-                    placeholder={typeMeta.placeholderModel}
-                    className="h-11 bg-muted"
-                    required
-                  />
-                </Field>
-
-                <Field label={typeMeta.keyOptional ? "API key optional" : "API key"} htmlFor="apiKey">
-                  <Input
-                    id="apiKey"
-                    name="apiKey"
-                    type="password"
-                    value={form.apiKey}
-                    onChange={(event) => updateForm({ apiKey: event.target.value })}
-                    placeholder={savedProvider?.hasApiKey ? "Saved key hidden. Enter a new key to replace it." : typeMeta.keyOptional ? "Optional for local engines" : "Required"}
-                    className="h-11 bg-muted"
-                    autoComplete="off"
-                  />
-                </Field>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <CheckboxRow
-                  name="enabled"
-                  checked={form.enabled}
-                  onChange={(checked) => updateForm({ enabled: checked })}
-                  title="Enable provider"
-                  description="Use this provider for analysis routing."
+                <ModeOption
+                  value="local-only"
+                  current={aiMode}
+                  title="Local only / Offline mode"
+                  description="Never call cloud AI. If local AI is unavailable, analysis returns a clear error."
                 />
-                <CheckboxRow
-                  name="isDefault"
-                  checked={form.isDefault}
-                  onChange={(checked) => updateForm({ isDefault: checked })}
-                  title="Default provider"
-                  description="Try this provider before other enabled providers."
+                <ModeOption
+                  value="cloud-only"
+                  current={aiMode}
+                  title="Cloud only"
+                  description="Ignore local providers and use configured cloud providers or default cloud AI."
                 />
               </div>
 
-              {testResult && (
-                <ConnectionResult
-                  success={testResult.success}
-                  message={testResult.message}
-                  latencyMs={testResult.latencyMs}
-                  models={testResult.availableModels || []}
-                />
-              )}
+              {aiMode === "local-only" && localProviderCount === 0 ? (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  Offline mode needs at least one enabled local provider before analysis can run.
+                </div>
+              ) : null}
 
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="submit" disabled={isSaving} className="bg-gradient-primary hover:opacity-90">
-                  {isSaving ? "Saving..." : "Save provider"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isTesting || !form.providerName || !form.baseUrl || !form.modelName}
-                  onClick={handleTest}
-                  className="bg-transparent"
-                >
-                  {isTesting ? "Testing..." : "Test connection"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setForm(emptyForm);
-                    setTestResult(null);
-                  }}
-                  className="bg-transparent"
-                >
-                  New provider
-                </Button>
-              </div>
+              <Button type="submit" disabled={isSavingMode} className="w-full bg-gradient-primary hover:opacity-90">
+                {isSavingMode ? "Saving..." : "Save AI mode"}
+              </Button>
             </form>
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          {providers.length === 0 ? (
-            <Card className="border-dashed border-border bg-card">
-              <CardContent className="p-6">
-                <p className="font-medium text-foreground">No providers connected</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Add a local or cloud provider to route UseClevr AI analysis through your own engine.
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+                <SlidersHorizontal className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle>Routing</CardTitle>
+                <CardDescription>Select the primary and fallback provider.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleRoutingSave} className="space-y-4">
+              <Field label="Default provider" htmlFor="defaultProviderId">
+                <select
+                  id="defaultProviderId"
+                  name="defaultProviderId"
+                  defaultValue={defaultProvider?.id || ""}
+                  className="h-11 w-full rounded-md border border-input bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Cloud fallback</option>
+                  {providers.map((provider) => (
+                    <option key={provider.id} value={provider.id}>{provider.providerName}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Fallback provider" htmlFor="fallbackProviderId">
+                <select
+                  id="fallbackProviderId"
+                  name="fallbackProviderId"
+                  defaultValue={fallbackProvider?.id || ""}
+                  className="h-11 w-full rounded-md border border-input bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Default cloud AI</option>
+                  {providers.map((provider) => (
+                    <option key={provider.id} value={provider.id}>{provider.providerName}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <div className="rounded-lg border border-border bg-background/70 p-3 text-sm">
+                <p className="font-medium text-foreground">Current path</p>
+                <p className="mt-1 text-muted-foreground">
+                  {defaultProvider ? defaultProvider.providerName : "Cloud fallback"}
+                  {fallbackProvider ? `, then ${fallbackProvider.providerName}` : ", then default cloud AI"}
                 </p>
-              </CardContent>
-            </Card>
-          ) : (
-            providers.map((provider) => (
-              <button
-                key={provider.id}
-                type="button"
-                onClick={() => {
-                  setForm(formFromProvider(provider));
-                  setTestResult(null);
-                }}
-                className={[
-                  "w-full rounded-lg border bg-card p-4 text-left shadow-sm transition hover:bg-muted/40",
-                  form.providerId === provider.id ? "border-primary" : "border-border",
-                ].join(" ")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-foreground">{provider.providerName}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {labelForType(provider.providerType)} · {provider.modelName}
-                    </p>
-                  </div>
-                  <ProviderBadge provider={provider} />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                  {provider.isDefault && <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">Default</span>}
-                  <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
-                    {provider.enabled ? "Enabled" : "Disabled"}
-                  </span>
-                  {provider.lastTestLatencyMs ? (
-                    <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
-                      {provider.lastTestLatencyMs} ms
-                    </span>
-                  ) : null}
-                </div>
-                {provider.lastTestMessage && (
-                  <p className="mt-3 text-sm text-muted-foreground">{provider.lastTestMessage}</p>
-                )}
-              </button>
-            ))
-          )}
+              </div>
+
+              <Button type="submit" disabled={isSavingRouting || providers.length === 0} className="w-full bg-gradient-primary hover:opacity-90">
+                {isSavingRouting ? "Saving..." : "Save routing"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
         </div>
       </section>
+
+      {isDialogOpen ? (
+        <ProviderDialog
+          form={form}
+          typeMeta={typeMeta}
+          savedProvider={savedProvider}
+          testResult={testResult}
+          isSaving={isSaving}
+          isTesting={isTesting}
+          onClose={() => setIsDialogOpen(false)}
+          onSave={handleSave}
+          onTest={handleTest}
+          onUpdate={updateForm}
+          onProviderTypeChange={handleProviderTypeChange}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ProviderDialog({
+  form,
+  typeMeta,
+  savedProvider,
+  testResult,
+  isSaving,
+  isTesting,
+  onClose,
+  onSave,
+  onTest,
+  onUpdate,
+  onProviderTypeChange,
+}: {
+  form: FormState;
+  typeMeta: (typeof providerTypes)[number];
+  savedProvider?: PublicAiProviderConfig;
+  testResult: { success: boolean; message: string; latencyMs?: number; availableModels?: string[] } | null;
+  isSaving: boolean;
+  isTesting: boolean;
+  onClose: () => void;
+  onSave: (event: React.FormEvent<HTMLFormElement>) => void;
+  onTest: () => void;
+  onUpdate: (patch: Partial<FormState>) => void;
+  onProviderTypeChange: (value: ProviderType) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">{form.providerId ? "Edit provider" : "Add provider"}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Configure a local or cloud AI endpoint for UseClevr analysis.</p>
+          </div>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close provider dialog">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <form onSubmit={onSave} className="space-y-5 p-5">
+          <input type="hidden" name="providerId" value={form.providerId} />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Provider name" htmlFor="providerName">
+              <Input
+                id="providerName"
+                name="providerName"
+                value={form.providerName}
+                onChange={(event) => onUpdate({ providerName: event.target.value })}
+                placeholder="Local analysis engine"
+                className="h-11 bg-muted"
+                required
+              />
+            </Field>
+
+            <Field label="Provider type" htmlFor="providerType">
+              <select
+                id="providerType"
+                name="providerType"
+                value={form.providerType}
+                onChange={(event) => onProviderTypeChange(event.target.value as ProviderType)}
+                className="h-11 w-full rounded-md border border-input bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {providerTypes.map((type) => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Base URL" htmlFor="baseUrl">
+            <Input
+              id="baseUrl"
+              name="baseUrl"
+              value={form.baseUrl}
+              onChange={(event) => onUpdate({ baseUrl: event.target.value })}
+              placeholder={typeMeta.baseUrl}
+              className="h-11 bg-muted font-mono text-sm"
+              required
+            />
+          </Field>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Model" htmlFor="modelName">
+              <Input
+                id="modelName"
+                name="modelName"
+                value={form.modelName}
+                onChange={(event) => onUpdate({ modelName: event.target.value })}
+                placeholder={typeMeta.placeholderModel}
+                className="h-11 bg-muted"
+                required
+              />
+            </Field>
+
+            <Field label={typeMeta.keyOptional ? "API key optional" : "API key"} htmlFor="apiKey">
+              <Input
+                id="apiKey"
+                name="apiKey"
+                type="password"
+                value={form.apiKey}
+                onChange={(event) => onUpdate({ apiKey: event.target.value })}
+                placeholder={savedProvider?.hasApiKey ? "Saved key hidden. Enter a new key to replace it." : typeMeta.keyOptional ? "Optional for local engines" : "Required"}
+                className="h-11 bg-muted"
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-[1fr_160px]">
+            <Field label="Priority" htmlFor="priority">
+              <Input
+                id="priority"
+                name="priority"
+                type="number"
+                min={0}
+                max={999}
+                value={form.priority}
+                onChange={(event) => onUpdate({ priority: Number(event.target.value) })}
+                className="h-11 bg-muted"
+              />
+            </Field>
+            <div className="rounded-lg border border-border bg-background/70 p-3 text-xs text-muted-foreground">
+              Lower priority runs earlier after default and fallback providers.
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <CheckboxRow name="enabled" checked={form.enabled} onChange={(checked) => onUpdate({ enabled: checked })} title="Enabled" description="Allow routing." />
+            <CheckboxRow name="isDefault" checked={form.isDefault} onChange={(checked) => onUpdate({ isDefault: checked, isFallback: checked ? false : form.isFallback })} title="Default" description="Try first." />
+            <CheckboxRow name="isFallback" checked={form.isFallback} onChange={(checked) => onUpdate({ isFallback: checked, isDefault: checked ? false : form.isDefault })} title="Fallback" description="Try second." />
+          </div>
+
+          {testResult ? (
+            <ConnectionResult
+              success={testResult.success}
+              message={testResult.message}
+              latencyMs={testResult.latencyMs}
+              models={testResult.availableModels || []}
+            />
+          ) : null}
+
+          <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row">
+            <Button type="submit" disabled={isSaving} className="bg-gradient-primary hover:opacity-90">
+              {isSaving ? "Saving..." : "Save provider"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isTesting || !form.providerName || !form.baseUrl || !form.modelName}
+              onClick={onTest}
+              className="bg-transparent"
+            >
+              {isTesting ? "Testing..." : "Test connection"}
+            </Button>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -373,6 +629,8 @@ function formFromProvider(provider: PublicAiProviderConfig): FormState {
     apiKey: "",
     enabled: provider.enabled,
     isDefault: provider.isDefault,
+    isFallback: provider.isFallback,
+    priority: provider.priority,
   };
 }
 
@@ -415,6 +673,34 @@ function CheckboxRow({
   );
 }
 
+function ModeOption({
+  value,
+  current,
+  title,
+  description,
+}: {
+  value: AiMode;
+  current: AiMode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 p-3">
+      <input
+        type="radio"
+        name="aiMode"
+        value={value}
+        defaultChecked={current === value}
+        className="mt-1 h-4 w-4 border-border"
+      />
+      <span>
+        <span className="block text-sm font-medium text-foreground">{title}</span>
+        <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+      </span>
+    </label>
+  );
+}
+
 function ConnectionResult({ success, message, latencyMs, models }: { success: boolean; message: string; latencyMs?: number; models: string[] }) {
   return (
     <div className={`rounded-lg border p-4 text-sm ${success ? "border-emerald-500/30 bg-emerald-500/10" : "border-red-500/30 bg-red-500/10"}`}>
@@ -422,7 +708,7 @@ function ConnectionResult({ success, message, latencyMs, models }: { success: bo
         {success ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" /> : <TriangleAlert className="mt-0.5 h-4 w-4 text-red-600" />}
         <div>
           <p className={success ? "font-medium text-emerald-700 dark:text-emerald-300" : "font-medium text-red-700 dark:text-red-300"}>
-            {success ? "Connected" : "Connection failed"}
+            {success ? "Connected" : "Error"}
           </p>
           <p className="mt-1 text-muted-foreground">{message}</p>
           {latencyMs ? (
@@ -431,27 +717,42 @@ function ConnectionResult({ success, message, latencyMs, models }: { success: bo
               Latency {latencyMs} ms
             </p>
           ) : null}
-          {models.length > 0 && (
+          {models.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {models.slice(0, 12).map((model) => (
                 <span key={model} className="rounded-full bg-background px-2 py-1 text-xs text-muted-foreground">{model}</span>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function ProviderBadge({ provider }: { provider: PublicAiProviderConfig }) {
+function ProviderStatus({ provider }: { provider: PublicAiProviderConfig }) {
   if (provider.lastTestStatus === "success") {
-    return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+    return (
+      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-300">
+        <CheckCircle2 className="h-4 w-4" />
+        <span>{provider.lastTestLatencyMs ? `${provider.lastTestLatencyMs} ms` : "Connected"}</span>
+      </div>
+    );
   }
   if (provider.lastTestStatus === "failed") {
-    return <TriangleAlert className="h-5 w-5 text-amber-500" />;
+    return (
+      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-300">
+        <TriangleAlert className="h-4 w-4" />
+        <span>Error</span>
+      </div>
+    );
   }
-  return <ShieldCheck className="h-5 w-5 text-muted-foreground" />;
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <ShieldCheck className="h-4 w-4" />
+      <span>Not tested</span>
+    </div>
+  );
 }
 
 function StatusTile({ label, value }: { label: string; value: string }) {
@@ -463,6 +764,24 @@ function StatusTile({ label, value }: { label: string; value: string }) {
   );
 }
 
+function Pill({ children, tone }: { children: React.ReactNode; tone: "primary" | "muted" }) {
+  return (
+    <span className={tone === "primary" ? "rounded-full bg-primary/10 px-2 py-1 text-xs text-primary" : "rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"}>
+      {children}
+    </span>
+  );
+}
+
 function labelForType(type: string) {
   return providerTypes.find((providerType) => providerType.value === type)?.label || type;
+}
+
+function isLocalProviderType(type: string) {
+  return type === "ollama" || type === "lm-studio" || type === "openai-compatible";
+}
+
+function modeNoticeMessage(mode: AiMode) {
+  if (mode === "local-only") return "Offline mode is active. Cloud AI calls are blocked.";
+  if (mode === "cloud-only") return "Cloud-only mode is active. Local providers are ignored.";
+  return "Auto mode is active. Local providers are tried before fallback providers.";
 }

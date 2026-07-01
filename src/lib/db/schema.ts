@@ -556,6 +556,8 @@ export const aiProviderConfigs = pgTable(
     selected: boolean("selected").default(true).notNull(),
     isEnabled: boolean("isEnabled").default(true).notNull(),
     isDefault: boolean("isDefault").default(false).notNull(),
+    isFallback: boolean("isFallback").default(false).notNull(),
+    priority: integer("priority").default(100).notNull(),
     lastTestLatencyMs: integer("lastTestLatencyMs"),
     lastTestModels: jsonb("lastTestModels").$type<string[]>().default([]).notNull(),
     lastTestStatus: varchar("lastTestStatus", { length: 30 }),
@@ -572,6 +574,7 @@ export const aiProviderConfigs = pgTable(
     }).onDelete("cascade"),
     userIdIdx: index("AiProviderConfig_userId_idx").on(table.userId),
     defaultIdx: index("AiProviderConfig_user_default_idx").on(table.userId, table.isDefault),
+    fallbackIdx: index("AiProviderConfig_user_fallback_idx").on(table.userId, table.isFallback),
   }),
 );
 

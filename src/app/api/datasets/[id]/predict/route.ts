@@ -55,7 +55,7 @@ export async function POST(
     debugLog('[PREDICT] Analyzing', data.length, 'rows for predictions');
 
     // Generate predictions
-    const result = await generatePredictions(id, data);
+    const result = await generatePredictions(id, data, session.user.id);
 
     debugLog('[PREDICT] Generated', result.predictions.length, 'predictions and', result.insights.length, 'insights');
 

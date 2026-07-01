@@ -7,6 +7,7 @@
 
 import type { DatasetRecord } from './dataset-intelligence';
 import { buildDatasetIntelligence } from './dataset-intelligence';
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 export interface ComparisonMetric {
   metric: string;
@@ -40,7 +41,8 @@ export interface ComparisonResult {
  */
 export async function compareDatasets(
   datasetA: { id: string; name: string; data: Record<string, unknown>[] },
-  datasetB: { id: string; name: string; data: Record<string, unknown>[] }
+  datasetB: { id: string; name: string; data: Record<string, unknown>[] },
+  userId?: string
 ): Promise<ComparisonResult> {
   const metrics: ComparisonMetric[] = [];
   
@@ -102,7 +104,7 @@ export async function compareDatasets(
   const summary = generateComparisonSummary(metrics, datasetA.name, datasetB.name);
   
   // Generate AI narrative
-  const narrative = await generateComparisonNarrative(metrics, datasetA.name, datasetB.name);
+  const narrative = await generateComparisonNarrative(metrics, datasetA.name, datasetB.name, userId);
   
   return {
     datasetA: {
@@ -178,7 +180,8 @@ function generateComparisonSummary(
 async function generateComparisonNarrative(
   metrics: ComparisonMetric[],
   nameA: string,
-  nameB: string
+  nameB: string,
+  userId?: string
 ): Promise<string> {
   if (metrics.length === 0) {
     return `No common metrics found for comparison between ${nameA} and ${nameB}.`;
@@ -191,23 +194,12 @@ async function generateComparisonNarrative(
   
   const prompt = `Given this dataset comparison, provide a brief 2-3 sentence analysis:\n\n${nameA} vs ${nameB}:\n${metricText}\n\nAnalysis:`;
   
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: metrics.map(m => m.metric),
-        sampleData: [],
-        rowCount: 0
-      })
-    });
-    
-    if (response.ok) {
-      return await response.text();
-    }
-  } catch {
-    // Fallback to simple summary
+  const comparison = await generateServerAiText(prompt, {
+    userId,
+    context: "DATASET-COMPARATOR",
+  });
+  if (comparison?.text) {
+    return comparison.text;
   }
   
   // Simple fallback

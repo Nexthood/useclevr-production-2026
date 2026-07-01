@@ -3,6 +3,7 @@ import { datasets } from '@/lib/db/schema';
 import { debugError } from '@/lib/utils/debug';
 import {
   generateWithUniversalAiAdapter,
+  isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from '@/lib/ai/universal-ai-adapter';
@@ -12,6 +13,13 @@ import { generateText, streamText } from 'ai';
 import { normalizeDataset, generateAggregatedContext } from './sql-executor';
 import { formatAIResponse } from './explanation';
 import type { AppSearchResult } from '@/lib/search/app-search';
+
+export type ChatProviderStatus = {
+  label: string;
+  state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable";
+  message: string;
+  fallbackActive: boolean;
+};
 
 interface BuildSystemPromptParams {
   datasetId?: string;
@@ -223,7 +231,13 @@ export async function handleRegularChat(
   processedData?: any[],
   appSearchResults: AppSearchResult[] = [],
   userId?: string,
-): Promise<{ success: boolean; content: string }> {
+): Promise<{
+  success: boolean;
+  content: string;
+  providerName?: string;
+  modelName?: string;
+  providerStatus?: ChatProviderStatus;
+}> {
   const { datasetInfo, rows } = await fetchDatasetForChat(datasetId);
 
   let datasetRowsData = rows;
@@ -238,15 +252,42 @@ export async function handleRegularChat(
       const result = await generateWithUniversalAiAdapter(userId, buildPlainChatPrompt(messages, systemContent));
       if (result) {
         logUniversalAiResponse(result);
-        return { success: true, content: formatAIResponse(result.text) };
+        return {
+          success: true,
+          content: formatAIResponse(result.text),
+          providerName: result.providerName,
+          modelName: result.modelName,
+          providerStatus: providerStatusFromAdapterResult(result.providerType, result.providerName, result.fallbackUsed, result.mode, result.route),
+        };
       }
     } catch (error) {
+      if (isLocalAiUnavailableError(error)) {
+        return {
+          success: false,
+          content: "Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this request to cloud AI.",
+          providerStatus: {
+            label: "Offline mode",
+            state: "local_unavailable",
+            message: "Local provider unavailable",
+            fallbackActive: false,
+          },
+        };
+      }
       logDefaultCloudFallback(userId, error);
     }
   }
 
   if (!process.env.GEMINI_API_KEY) {
-    return { success: false, content: 'AI service not configured. Please contact support.' };
+    return {
+      success: false,
+      content: 'AI service not configured. Please contact support.',
+      providerStatus: {
+        label: "Cloud fallback",
+        state: "provider_unavailable",
+        message: "Provider unavailable",
+        fallbackActive: false,
+      },
+    };
   }
 
   try {
@@ -257,12 +298,29 @@ export async function handleRegularChat(
       maxOutputTokens: 1500,
     });
 
-    return { success: true, content: formatAIResponse(text) };
+    return {
+      success: true,
+      content: formatAIResponse(text),
+      providerName: "gemini-cloud",
+      modelName: "gemini-2.5-flash",
+      providerStatus: {
+        label: "Cloud fallback",
+        state: "connection_healthy",
+        message: "Connection healthy",
+        fallbackActive: false,
+      },
+    };
   } catch (aiError) {
     debugError('[AI ERROR]', aiError);
     return {
       success: false,
       content: `AI service error: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`,
+      providerStatus: {
+        label: "Cloud fallback",
+        state: "provider_unavailable",
+        message: "Provider unavailable",
+        fallbackActive: false,
+      },
     };
   }
 }
@@ -291,6 +349,9 @@ export async function handleRegularChatStream(
         return textToStream(formatAIResponse(result.text));
       }
     } catch (error) {
+      if (isLocalAiUnavailableError(error)) {
+        return textToStream("Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this request to cloud AI.");
+      }
       logDefaultCloudFallback(userId, error);
     }
   }
@@ -320,4 +381,24 @@ function textToStream(text: string) {
       controller.close();
     },
   });
+}
+
+function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean, mode?: string, route?: string): ChatProviderStatus {
+  return {
+    label: providerStatusLabel(providerType, providerName),
+    state: mode === "local-only" ? "offline_active" : fallbackUsed ? "fallback_active" : "connection_healthy",
+    message: mode === "local-only" ? "Offline mode active" : route === "local" ? "Local AI active" : fallbackUsed ? "Cloud fallback active" : "Connection healthy",
+    fallbackActive: fallbackUsed,
+  };
+}
+
+function providerStatusLabel(providerType: string, providerName: string) {
+  if (providerType === "ollama") return "Ollama";
+  if (providerType === "lm-studio") return "LM Studio";
+  if (providerType === "openai-compatible") return "OpenAI Compatible";
+  if (providerType === "azure-openai") return "Azure OpenAI";
+  if (providerType === "google-gemini") return "Google Gemini";
+  if (providerType === "openai") return "OpenAI";
+  if (providerType === "anthropic") return "Anthropic";
+  return providerName || "AI Provider";
 }

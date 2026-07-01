@@ -55,7 +55,7 @@ export async function POST(
     debugLog('[ANALYST] Running analyst mode on', data.length, 'rows...');
 
     // Run complete analyst mode
-    const result = await runAnalystMode(id, data);
+    const result = await runAnalystMode(id, data, session.user.id);
 
     debugLog('[ANALYST] Completed with plan:', result.plan.analysis_plan.length, 'steps');
     debugLog('[ANALYST] Report overview:', result.report.overview.substring(0, 100) + '...');

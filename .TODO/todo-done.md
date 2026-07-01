@@ -56,6 +56,11 @@ moving work between states.
 
 ## Label: ai
 
+- T-898. Add Hybrid AI mode switching with Auto, Offline local-only, and Cloud-only routing, provider health checks before analysis, cloud-blocking offline behavior, and visible provider status states. (labels: ai, local-ai, security, data; commit: worktree)
+- T-897. Provide a complete AI Providers settings page with provider list, add/edit dialog, encrypted-key storage, connection testing, detected models, default selector, fallback selector, and priority routing. (labels: ai, ui, security, data; commit: worktree)
+- T-896. Route dataset summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through configured AI providers with default cloud fallback. (labels: ai, data, reporting; commit: worktree)
+- T-895. Integrate the AI Assistant with the universal AI adapter and show provider status for default, fallback, and unavailable provider states. (labels: ai, ui, data; commit: worktree)
+- T-894. Reframe the Hybrid AI modal around Phase 1 BYOAI provider setup and mark UseClevr Helper downloads as coming soon until signed binaries exist. (labels: ai, ui; commit: worktree)
 - T-893. Implement Phase 1 Bring Your Own AI provider manager with multiple provider types, encrypted keys, connection testing, model discovery, default provider routing, and fallback through the universal adapter. (labels: ai, ui, security, data; commit: worktree)
 - T-821. Fix Auth.js 500 on `/api/auth/session` on Railway by setting `AUTH_SECRET` env var on both test and production services. Add `NEXTAUTH_SECRET` fallback to config Zod schema. (labels: auth, deployment, security; commit: worktree)
 

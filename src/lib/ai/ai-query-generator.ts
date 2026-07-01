@@ -1,4 +1,5 @@
 import { debugError } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 /**
  * AI Query Generator
@@ -23,7 +24,8 @@ export interface QueryResult {
  */
 export async function generateSQLQuery(
   question: string,
-  intelligence: DatasetIntelligence
+  intelligence: DatasetIntelligence,
+  userId?: string
 ): Promise<string> {
   // Build schema description for the prompt
   const schemaDesc = intelligence.schema.columns
@@ -58,27 +60,20 @@ Requirements:
 
 SQL Query:`;
 
-  // Call AI to generate SQL (using the analyze endpoint)
+  // Call AI to generate SQL.
   try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: intelligence.schema.columns.map(c => c.name),
-        sampleData: intelligence.schema.columns.slice(0, 5).map(c => c.sampleValues),
-        rowCount: intelligence.metrics.rowCount
-      })
+    const response = await generateServerAiText(prompt, {
+      userId,
+      context: "QUERY-GEN",
     });
 
-    if (!response.ok) {
+    if (!response?.text) {
       throw new Error('AI query generation failed');
     }
 
-    const text = await response.text();
     // Extract SQL from response (should be just the query)
-    const sqlMatch = text.match(/```sql\n?([\s\S]*?)\n?```|([\s\S]+)/);
-    const sql = (sqlMatch ? sqlMatch[1] || sqlMatch[2] : text)
+    const sqlMatch = response.text.match(/```sql\n?([\s\S]*?)\n?```|([\s\S]+)/);
+    const sql = (sqlMatch ? sqlMatch[1] || sqlMatch[2] : response.text)
       .trim()
       .replace(/^```sql|```$/g, '')
       .trim();
@@ -187,7 +182,8 @@ export async function executeQuery(
 export async function generateExplanation(
   question: string,
   sql: string,
-  result: unknown
+  result: unknown,
+  userId?: string
 ): Promise<string> {
   const prompt = `Given this question and SQL result, provide a short 1-2 sentence explanation.
 
@@ -198,22 +194,16 @@ Result: ${JSON.stringify(result)}
 Explanation:`;
 
   try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns: [],
-        sampleData: [],
-        rowCount: 0
-      })
+    const response = await generateServerAiText(prompt, {
+      userId,
+      context: "QUERY-GEN",
     });
 
-    if (!response.ok) {
+    if (!response?.text) {
       return 'Query executed successfully.';
     }
 
-    return await response.text();
+    return response.text;
   } catch {
     return 'Query executed successfully.';
   }
@@ -224,19 +214,20 @@ Explanation:`;
  */
 export async function processQuestion(
   question: string,
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  userId?: string
 ): Promise<QueryResult> {
   // Build intelligence from data
   const intelligence = buildDatasetIntelligence(data as DatasetRecord[]);
   
   // Generate SQL
-  const sql = await generateSQLQuery(question, intelligence);
+  const sql = await generateSQLQuery(question, intelligence, userId);
   
   // Execute query
   const result = await executeQuery(sql, data);
   
   // Generate explanation
-  const explanation = await generateExplanation(question, sql, result);
+  const explanation = await generateExplanation(question, sql, result, userId);
   
   return {
     sql,

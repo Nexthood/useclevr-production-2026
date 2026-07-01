@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/modal"
 import { billingPlans } from "@/lib/billing/plans"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 import { getHybridAiEntitlement, HYBRID_AI_MODULES } from "@/lib/hybrid-ai/features"
-import { Brain, Check, Download } from "lucide-react"
+import { Brain, Check, PlugZap } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -58,17 +58,17 @@ export default function HybridAiButton({
         open={open}
         onOpenChange={setOpen}
         title="UseClevr Hybrid AI"
-        description="Private AI Analysis with secure local processing."
+        description="Phase 1 connects your existing AI provider. Phase 2 adds the UseClevr Helper."
       >
         <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-              Included workflow
+              Hybrid AI workflow
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <HybridPoint title="Verified metrics" description="Deterministic calculations stay the source of truth." />
-              <HybridPoint title="Private AI Analysis" description="UseClevr Helper processes sensitive questions on your device." />
-              <HybridPoint title="Shared helper" description="Lite and MEGA use the same UseClevr Helper installation." />
+              <HybridPoint title="Connect Existing AI" description="Use Ollama, LM Studio, vLLM, or an OpenAI-compatible endpoint." />
+              <HybridPoint title="Provider fallback" description="UseClevr can route to another enabled provider if the default is unavailable." />
               <HybridPoint title="Plan access" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -80,25 +80,31 @@ export default function HybridAiButton({
           {hasLocalAiAccess ? (
             <div className="rounded-lg border border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
               <p className="text-sm font-semibold text-slate-950 dark:text-white">
-                UseClevr Hybrid AI is included in your plan.
+                Recommended: connect your AI provider
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {entitlement.accessTier === "mega"
-                  ? "Download UseClevr Helper for Hybrid AI MEGA and private business analysis."
-                  : "Download UseClevr Helper for Hybrid AI Lite and private analysis."}
+                BYOAI is available now for Hybrid AI. UseClevr Helper downloads are Phase 2 and marked coming soon.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Files stay on your device when Hybrid AI is active.
+                Configure Ollama, LM Studio, vLLM, or another compatible provider in Settings.
               </p>
+              <Link
+                href="/app/settings/ai-providers"
+                onClick={() => setOpen(false)}
+                className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+              >
+                <PlugZap className="mr-2 h-4 w-4" />
+                Connect AI Provider
+              </Link>
               <Button
-                className="mt-5 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                variant="outline"
+                className="mt-2 w-full bg-transparent"
                 onClick={() => {
                   setOpen(false)
                   setInstallerOpen(true)
                 }}
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download UseClevr Helper
+                View Helper roadmap
               </Button>
             </div>
           ) : (

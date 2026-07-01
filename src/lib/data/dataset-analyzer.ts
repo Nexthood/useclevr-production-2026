@@ -1,4 +1,5 @@
 import { debugLog } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 // ============================================================================
 // Executive KPI Engine - Core Analysis Function
@@ -542,11 +543,64 @@ export function analyzeDataset(rows: any[]): DatasetAnalysis {
  * Generate AI-powered executive summary from the analysis.
  * This is called separately from analyzeDataset to allow for async AI processing.
  */
-export async function generateAIExecutiveSummary(analysis: DatasetAnalysis): Promise<string> {
-  // Always use deterministic summary for consistency with KPI cards
-  // Skip AI to ensure values match exactly
-  debugLog('[AI SUMMARY] Using deterministic summary for consistency');
-  return generateFallbackSummary(analysis);
+export async function generateAIExecutiveSummary(analysis: DatasetAnalysis, userId?: string): Promise<string> {
+  const deterministicSummary = generateFallbackSummary(analysis);
+
+  if (!userId) {
+    debugLog('[AI SUMMARY] Using deterministic summary because no user provider context is available');
+    return deterministicSummary;
+  }
+
+  try {
+    const result = await generateServerAiText(buildExecutiveSummaryPrompt(analysis, deterministicSummary), {
+      userId,
+      context: "AI SUMMARY",
+    });
+
+    if (!result) {
+      debugLog('[AI SUMMARY] AI summary unavailable; using deterministic summary');
+      return deterministicSummary;
+    }
+
+    return result.text.trim() || deterministicSummary;
+  } catch {
+    debugLog('[AI SUMMARY] Provider summary failed; using deterministic summary');
+    return deterministicSummary;
+  }
+}
+
+function buildExecutiveSummaryPrompt(analysis: DatasetAnalysis, deterministicSummary: string): string {
+  const topCategory = analysis.topCategory
+    ? `${analysis.topCategory.name} (${analysis.topCategory.percentage}% of rows)`
+    : "none detected";
+
+  const growth = analysis.growthPercentage === null || analysis.growthPercentage === undefined
+    ? "not enough period data"
+    : `${analysis.growthPercentage.toFixed(2)}% ${analysis.growthTrend ?? "trend unknown"}`;
+
+  const revenue = analysis.totalRevenue === null || analysis.totalRevenue === undefined
+    ? "not detected"
+    : analysis.totalRevenue.toFixed(2);
+
+  return `You are generating a concise executive summary for a UseClevr dataset report.
+Use only the facts below. Do not invent values. Keep numbers consistent with the deterministic calculations.
+
+Computed facts:
+- Rows: ${analysis.totalRows}
+- Columns: ${analysis.totalColumns}
+- Numeric columns: ${analysis.numericColumns.join(", ") || "none"}
+- Categorical columns: ${analysis.categoricalColumns.join(", ") || "none"}
+- Revenue column: ${analysis.revenueColumn || "none"}
+- Total revenue: ${revenue}
+- Average revenue: ${analysis.avgRevenue?.toFixed(2) ?? "not detected"}
+- Top category: ${topCategory}
+- Growth: ${growth}
+- Date range: ${analysis.dateRange ? `${analysis.dateRange.start} to ${analysis.dateRange.end}` : "not detected"}
+
+Deterministic baseline summary:
+${deterministicSummary}
+
+Write 2-4 executive sentences that explain the main outcome, risk, or opportunity.`;
 }
 
 /**

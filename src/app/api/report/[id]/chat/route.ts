@@ -1,4 +1,5 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
+import { auth } from "@/lib/auth/auth";
 
 // app/api/report/[id]/chat/route.ts
 // Interactive AI chat for report pages - only uses report snapshot context
@@ -34,8 +35,10 @@ export async function POST(
       );
     }
     
+    const session = await auth().catch(() => null);
+
     // Answer question using only report context
-    const result = await answerReportQuestion(report, question);
+    const result = await answerReportQuestion(report, question, session?.user?.id);
     
     return NextResponse.json({
       success: true,

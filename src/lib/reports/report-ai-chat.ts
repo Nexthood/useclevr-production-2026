@@ -1,5 +1,5 @@
-import { runLLM } from "@/lib/ai/llmAdapter";
-import { debugError } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
+import { debugLog } from "@/lib/utils/debug";
 
 import type { Report } from './report-generator';
 
@@ -84,21 +84,25 @@ function generateReportContext(report: Report): string {
 
 export async function answerReportQuestion(
   report: Report,
-  question: string
+  question: string,
+  userId?: string
 ): Promise<ReportChatResult> {
   const context = generateReportContext(report);
   
   const prompt = `${context}\n\nUSER QUESTION:\n${question}\n\n`;
-  
-  try {
-    const answer = await runLLM(prompt, "deepseek-coder");
+
+  const answer = await generateServerAiText(prompt, {
+    userId,
+    context: "REPORT-CHAT",
+  });
+  if (answer?.text) {
     return {
-      response: answer,
+      response: answer.text,
       sources: ['Executive Summary', 'Findings', 'KPIs', 'Insights']
     };
-  } catch (error) {
-    debugError('[REPORT-CHAT] Error:', error);
   }
+
+  debugLog('[REPORT-CHAT] AI answer unavailable; using report context fallback');
   
   return {
     response: `I can help you understand the report "${report.datasetName}". ` +

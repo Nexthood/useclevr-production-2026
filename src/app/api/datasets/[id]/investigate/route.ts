@@ -57,7 +57,7 @@ export async function POST(
     debugLog('[INVESTIGATE] Analyzing', data.length, 'rows using DuckDB...');
 
     // Run investigation with DuckDB
-    const result = await investigateDataset(id, data);
+    const result = await investigateDataset(id, data, session.user.id);
 
     debugLog('[INVESTIGATE] Found', result.findings.length, 'findings');
     debugLog('[INVESTIGATE] Executed', result.queries.length, 'DuckDB queries');
@@ -66,7 +66,7 @@ export async function POST(
     storeDatasetMemory(id, dataset.name || 'Unknown', data);
 
     // Find similar datasets
-    const similarityResult = await findSimilarDatasets(data, dataset.name || 'Unknown');
+    const similarityResult = await findSimilarDatasets(data, dataset.name || 'Unknown', session.user.id);
 
     return NextResponse.json({
       success: true,

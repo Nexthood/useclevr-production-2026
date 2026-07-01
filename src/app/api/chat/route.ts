@@ -12,6 +12,7 @@ import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
 import {
   generateWithUniversalAiAdapter,
+  isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from '@/lib/ai/universal-ai-adapter';
@@ -22,7 +23,7 @@ import { NextResponse } from 'next/server';
 import { validateDatasetId } from '@/lib/chat/validation';
 import { executeStrictSQL } from '@/lib/chat/sql-executor';
 import { formatAIResponse } from '@/lib/chat/explanation';
-import { handleRegularChat, handleRegularChatStream } from '@/lib/chat/fallback';
+import { handleRegularChat, handleRegularChatStream, type ChatProviderStatus } from '@/lib/chat/fallback';
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
 
 function streamResponse(readable: ReadableStream<string>): Response {
@@ -92,12 +93,25 @@ async function handleAnalyticalQuery(
   }, lastMessage);
 
   const fullExplanationPrompt = `${EXPLANATION_SYSTEM_PROMPT}\n\n${explanationPrompt}`;
+  let providerStatus: ChatProviderStatus = {
+    label: "Cloud fallback",
+    state: "connection_healthy",
+    message: "Connection healthy",
+    fallbackActive: false,
+  };
 
   try {
     const adapterResult = await generateWithUniversalAiAdapter(userId, fullExplanationPrompt);
     if (adapterResult) {
       logUniversalAiResponse(adapterResult);
       const explanation = formatAIResponse(adapterResult.text);
+      providerStatus = providerStatusFromAdapterResult(
+        adapterResult.providerType,
+        adapterResult.providerName,
+        adapterResult.fallbackUsed,
+        adapterResult.mode,
+        adapterResult.route,
+      );
       if (stream) {
         return streamResponse(textToReadableStream(explanation));
       }
@@ -107,6 +121,9 @@ async function handleAnalyticalQuery(
         content: explanation,
         role: 'assistant',
         verified: true,
+        providerName: adapterResult.providerName,
+        modelName: adapterResult.modelName,
+        providerStatus,
         computation: {
           operation: sqlResult.result.operation,
           sql: sqlResult.sql,
@@ -115,6 +132,36 @@ async function handleAnalyticalQuery(
       });
     }
   } catch (adapterError) {
+    if (isLocalAiUnavailableError(adapterError)) {
+      providerStatus = {
+        label: "Offline mode",
+        state: "local_unavailable",
+        message: "Local provider unavailable",
+        fallbackActive: false,
+      };
+      const message = "Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this dataset to cloud AI.";
+      if (stream) {
+        return streamResponse(textToReadableStream(message));
+      }
+      return NextResponse.json({
+        success: false,
+        content: message,
+        role: "assistant",
+        verified: true,
+        providerStatus,
+        computation: {
+          operation: sqlResult.result.operation,
+          sql: sqlResult.sql,
+          result: sqlResult.result,
+        },
+      });
+    }
+    providerStatus = {
+      label: "Cloud fallback",
+      state: "fallback_active",
+      message: "Provider unavailable",
+      fallbackActive: true,
+    };
     logDefaultCloudFallback(userId, adapterError);
   }
 
@@ -174,6 +221,9 @@ async function handleAnalyticalQuery(
       content: explanation,
       role: 'assistant',
       verified: true,
+      providerName: "gemini-cloud",
+      modelName: "gemini-2.5-flash",
+      providerStatus,
       computation: {
         operation: sqlResult.result.operation,
         sql: sqlResult.sql,
@@ -187,6 +237,14 @@ async function handleAnalyticalQuery(
       content: `Result: ${JSON.stringify(sqlResult.result)}`,
       role: 'assistant',
       verified: true,
+      providerName: "system",
+      modelName: "deterministic-result",
+      providerStatus: {
+        label: "Cloud fallback",
+        state: "provider_unavailable",
+        message: "Provider unavailable",
+        fallbackActive: true,
+      },
       computation: {
         operation: sqlResult.result.operation,
         sql: sqlResult.sql,
@@ -323,6 +381,14 @@ export async function POST(request: Request) {
       success: true,
       content: result.content,
       role: 'assistant',
+      providerName: result.providerName || "gemini-cloud",
+      modelName: result.modelName || "gemini-2.5-flash",
+      providerStatus: result.providerStatus || {
+        label: "Cloud fallback",
+        state: "connection_healthy",
+        message: "Connection healthy",
+        fallbackActive: false,
+      },
     });
 
   } catch (err: any) {
@@ -339,6 +405,26 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean, mode?: string, route?: string): ChatProviderStatus {
+  return {
+    label: providerStatusLabel(providerType, providerName),
+    state: mode === "local-only" ? "offline_active" : fallbackUsed ? "fallback_active" : "connection_healthy",
+    message: mode === "local-only" ? "Offline mode active" : route === "local" ? "Local AI active" : fallbackUsed ? "Cloud fallback active" : "Connection healthy",
+    fallbackActive: fallbackUsed,
+  };
+}
+
+function providerStatusLabel(providerType: string, providerName: string) {
+  if (providerType === "ollama") return "Ollama";
+  if (providerType === "lm-studio") return "LM Studio";
+  if (providerType === "openai-compatible") return "OpenAI Compatible";
+  if (providerType === "azure-openai") return "Azure OpenAI";
+  if (providerType === "google-gemini") return "Google Gemini";
+  if (providerType === "openai") return "OpenAI";
+  if (providerType === "anthropic") return "Anthropic";
+  return providerName || "AI Provider";
 }
 
 function textToReadableStream(text: string): ReadableStream<string> {

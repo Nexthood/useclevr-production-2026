@@ -66,13 +66,25 @@ Text rules for this file:
 - Keep normal Hybrid AI UI branded as UseClevr Hybrid AI, Private AI Analysis, Local AI Engine, Secure runtime connected, and Files stay on your device.
 - Keep technical runtime names, internal engine names, and model names out of normal customer UI.
 - Show an AI Providers settings page.
-- Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, default model, enabled state, and default-provider state.
+- Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, model, enabled state, default-provider state, fallback-provider state, and priority.
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.
 - Test AI provider connections through a signed-in server endpoint and show connection status, latency, available models, and clear failure messages.
+- Let users choose Auto, Local only / Offline mode, or Cloud only routing from the AI Providers settings page.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
+- Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
 - Try the default enabled AI provider first, then use other enabled providers as fallbacks, and log fallback events server-side.
+- Let users choose the default provider and fallback provider from the AI Providers settings page.
+- In Auto mode, try enabled local providers before cloud providers and use fallback providers when the local provider is unavailable.
+- In Local only / Offline mode, never send customer data to cloud AI and show a clear local-provider-unavailable error when local AI cannot answer.
+- In Cloud only mode, ignore local providers and use configured cloud providers or the default cloud AI provider.
+- Check provider health with a non-customer prompt before sending analysis data to a configured provider.
 - Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
+- Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
+- Show Bring Your Own AI as the recommended Hybrid AI modal path.
+- Link Hybrid AI setup calls to the AI Providers settings page.
+- Present UseClevr Helper as Phase 2 advanced automation until signed helper binaries exist.
+- Keep UseClevr Helper download controls disabled while binaries are unavailable.
 
 ## Privacy Shield
 

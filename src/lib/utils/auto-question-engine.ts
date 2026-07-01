@@ -1,4 +1,5 @@
 import { debugWarn } from "@/lib/utils/debug";
+import { generateServerAiText } from "@/lib/ai/server-ai-text";
 /**
  * Auto Question Engine
  * 
@@ -207,7 +208,8 @@ export async function generateAIQuestions(
   columns: string[],
   sampleData: Record<string, any>[],
   rowCount: number,
-  columnCount: number
+  columnCount: number,
+  userId?: string
 ): Promise<AutoQuestionResult> {
   const columnNames = columns.join(', ');
   const sampleJson = JSON.stringify(sampleData.slice(0, 5), null, 2);
@@ -245,27 +247,19 @@ Suggested Questions:
 5. [Question 5]`;
 
   try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        columns,
-        sampleData: sampleData.slice(0, 5),
-        rowCount
-      })
+    const response = await generateServerAiText(prompt, {
+      userId,
+      context: "AUTO_QUESTIONS",
     });
-    
-    if (response.ok) {
-      const text = await response.text();
-      // Extract questions from response
-      const questionMatch = text.match(/Suggested Questions:\n([\s\S]*)/i);
+
+    if (response?.text) {
+      const questionMatch = response.text.match(/Suggested Questions:\n([\s\S]*)/i);
       if (questionMatch) {
         const questions = questionMatch[1]
           .split('\n')
           .map((q: string) => q.replace(/^\d+[\.\)]\s*/, '').trim())
           .filter((q: string) => q.length > 10 && q.length < 200);
-        
+
         if (questions.length >= 5) {
           return {
             suggestedQuestions: questions.slice(0, 5),

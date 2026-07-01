@@ -3,6 +3,11 @@
 ### Changed
 
 - Add Phase 1 Bring Your Own AI provider management so users can connect multiple encrypted AI providers, test latency and model availability, choose a default provider, and route analysis through automatic fallback.
+- Add Hybrid AI mode switching so users can choose Auto, Offline local-only, or Cloud-only routing with provider health checks and visible routing status.
+- Show a complete AI Providers settings page with provider list, add and edit dialog, connection results, detected models, explicit default and fallback selectors, and priority routing.
+- Show Bring Your Own AI as the recommended Hybrid AI setup path and mark UseClevr Helper downloads as coming soon until signed binaries are available.
+- Route AI Assistant answers through the selected AI provider with automatic fallback and show provider status on assistant responses.
+- Route dataset summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through selected AI providers with automatic default-cloud fallback.
 - Unlock Hybrid AI Lite and Hybrid AI MEGA modules from the same UseClevr Helper installation, with module access driven by the signed-in subscription.
 - Add the UseClevr Helper local bridge for Hybrid AI, including protected desktop-helper downloads, branded private-analysis status, and an optional helper chat panel in the AI Assistant.
 - Give Free accounts exactly two included analyst credits, then route upload, analysis, and report-download continuation through the existing Stripe upgrade path.

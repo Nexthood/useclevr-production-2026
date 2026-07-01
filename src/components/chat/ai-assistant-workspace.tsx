@@ -40,7 +40,15 @@ type AssistantMessage = {
   chartType?: string
   providerName?: string
   modelName?: string
+  providerStatus?: ProviderStatus
   error?: string
+}
+
+type ProviderStatus = {
+  label: string
+  state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable"
+  message: string
+  fallbackActive: boolean
 }
 
 type HistoryEntry = {
@@ -87,6 +95,15 @@ function displayProviderName(providerName?: string | null) {
   if (normalized.includes("gemini") || normalized.includes("google")) return "UseClevr Cloud Analysis"
   if (normalized.includes("mock")) return "UseClevr Test Analysis"
   return providerName
+}
+
+function providerStatusClassName(state?: ProviderStatus["state"]) {
+  if (state === "connection_healthy") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+  if (state === "fallback_active") return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+  if (state === "offline_active") return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+  if (state === "local_unavailable") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+  if (state === "provider_unavailable") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+  return "border-border bg-muted text-muted-foreground"
 }
 
 export function AiAssistantWorkspace() {
@@ -235,8 +252,11 @@ export function AiAssistantWorkspace() {
         recommendation: body.recommendation,
         data: Array.isArray(body.data) ? body.data : [],
         chartType: body.chartType,
-        providerName: displayProviderName(body.providerName),
+        providerName: typeof body.providerStatus?.label === "string"
+          ? body.providerStatus.label
+          : displayProviderName(body.providerName),
         modelName: body.modelName,
+        providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
       }
 
       setMessages((current) => [...current, assistantMessage])
@@ -451,11 +471,18 @@ export function AiAssistantWorkspace() {
                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
                       <Sparkles className="h-4 w-4 text-primary" />
                       AI Analyst
-                      {message.providerName && (
-                        <span className="ml-auto text-[10px] font-normal text-muted-foreground">
-                          via {displayProviderName(message.providerName)}
-                        </span>
-                      )}
+                      <span className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+                        {message.providerName && (
+                          <span className="text-[10px] font-normal text-muted-foreground">
+                            Using: {message.providerName}
+                          </span>
+                        )}
+                        {message.providerStatus && (
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${providerStatusClassName(message.providerStatus.state)}`}>
+                            {message.providerStatus.message}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   )}
 
@@ -777,6 +804,18 @@ export function AiAssistantWorkspace() {
         </div>
       </aside>
     </div>
+  )
+}
+
+function isProviderStatus(value: unknown): value is ProviderStatus {
+  if (!value || typeof value !== "object") return false
+  const status = value as Partial<ProviderStatus>
+  return (
+    typeof status.label === "string" &&
+    typeof status.message === "string" &&
+    (status.state === "connection_healthy" ||
+      status.state === "fallback_active" ||
+      status.state === "provider_unavailable")
   )
 }
 

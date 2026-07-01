@@ -11,7 +11,8 @@ import {
   HYBRID_AI_MODULES,
   type HybridAiModuleId,
 } from "@/lib/hybrid-ai/features"
-import { CheckCircle2, Download, Laptop, LockKeyhole, Monitor, Server, ShieldCheck } from "lucide-react"
+import { CheckCircle2, Laptop, LockKeyhole, Monitor, PlugZap, Server } from "lucide-react"
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 type TierId = "lite" | "mega"
@@ -30,7 +31,6 @@ type PlatformDownload = {
   id: "windows" | "macos" | "linux"
   label: string
   fileName: string
-  href: string
   icon: typeof Monitor
 }
 
@@ -39,22 +39,38 @@ const platformDownloads: PlatformDownload[] = [
     id: "windows",
     label: "Windows",
     fileName: "UseClevr-Helper-Setup.exe",
-    href: "/api/downloads/windows",
     icon: Monitor,
   },
   {
     id: "macos",
     label: "macOS",
     fileName: "UseClevr-Helper.dmg",
-    href: "/api/downloads/macos",
     icon: Laptop,
   },
   {
     id: "linux",
     label: "Linux",
     fileName: "UseClevr-Helper.AppImage",
-    href: "/api/downloads/linux",
     icon: Server,
+  },
+]
+
+const byoaiOptions = [
+  {
+    name: "Ollama",
+    description: "Connect a local endpoint such as http://localhost:11434/v1.",
+  },
+  {
+    name: "LM Studio",
+    description: "Use a local OpenAI-compatible server from your desktop workspace.",
+  },
+  {
+    name: "OpenAI-compatible endpoint",
+    description: "Connect hosted or private engines that support chat completions.",
+  },
+  {
+    name: "vLLM",
+    description: "Route analysis to an enterprise inference server you already operate.",
   },
 ]
 
@@ -142,35 +158,42 @@ export function MegaInstallerModal({
       open={open}
       onOpenChange={onOpenChange}
       title="UseClevr Hybrid AI"
-      description="Private analysis on your device with the UseClevr Helper."
+      description="Connect your existing AI engine first. UseClevr Helper arrives later for advanced automation."
     >
       <div className="space-y-5">
-        <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                Private AI Analysis
+                <PlugZap className="h-4 w-4 text-primary" />
+                Recommended: Connect Existing AI
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Files stay on your device when Hybrid AI is active. UseClevr Helper processes private analysis locally.
+                BYOAI is Phase 1 for Hybrid AI. Connect a local or hosted AI provider and UseClevr routes analysis through it with fallback.
               </p>
             </div>
-            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName(status.state)}`}>
-              {status.message}
-            </span>
+            <Link
+              href="/app/settings/ai-providers"
+              onClick={() => onOpenChange(false)}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Connect AI Provider
+            </Link>
           </div>
-          {status.state === "offline" && (
-            <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-              UseClevr Helper is not running. Start the helper or download it again.
-            </p>
-          )}
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {byoaiOptions.map((option) => (
+              <div key={option.name} className="rounded-md border border-border bg-card/80 p-3">
+                <p className="text-xs font-semibold text-foreground">{option.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="text-sm font-semibold text-foreground">Unlocked modules</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            One UseClevr Helper installation unlocks Lite or MEGA modules from your subscription.
+            Your subscription controls which Hybrid AI modules UseClevr can unlock as provider capabilities expand.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {availableModules.map((module) => (
@@ -225,28 +248,36 @@ export function MegaInstallerModal({
           ))}
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Download UseClevr Helper</h3>
+        <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">UseClevr Helper</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Phase 2 will add a UseClevr-managed desktop runtime for advanced automation, local workflows, and future enterprise modules.
+              </p>
+            </div>
+            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName(status.state)}`}>
+              {status.message}
+            </span>
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Install the desktop helper, start it, then return here to confirm the secure runtime connection.
+            Downloads are coming soon and stay disabled until signed binaries are available.
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {platformDownloads.map((platform) => {
               const Icon = platform.icon
               return (
-                <a
+                <div
                   key={platform.id}
-                  href={platform.href}
-                  className="rounded-lg border border-border bg-card p-4 transition hover:border-primary/50 hover:bg-muted/50"
+                  className="rounded-lg border border-border bg-card/70 p-4 opacity-80"
                 >
                   <Icon className="h-5 w-5 text-primary" />
                   <p className="mt-3 text-sm font-semibold text-foreground">{platform.label}</p>
                   <p className="mt-1 break-words text-xs text-muted-foreground">{platform.fileName}</p>
-                  <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-                    <Download className="h-3.5 w-3.5" />
-                    Download
+                  <span className="mt-3 inline-flex items-center rounded-full border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    Coming soon
                   </span>
-                </a>
+                </div>
               )
             })}
           </div>
@@ -257,7 +288,7 @@ export function MegaInstallerModal({
             Close
           </Button>
           <Button type="button" onClick={refreshStatus}>
-            Check connection
+            Check helper status
           </Button>
         </div>
       </div>
