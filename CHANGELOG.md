@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Make Hybrid AI Chat dataset-aware so users can select a dataset, ask business questions, and receive answers from summarized context, KPI extracts, column profiles, sample rows, and provider routing status.
 - Add a Hybrid AI Chat page so signed-in users can test configured AI providers through the universal adapter with provider, model, local/cloud route, fallback, and unavailable status shown in the chat.
 - Add Hybrid AI provider health checks so users can validate enabled providers with reachability, latency, model confirmation, model discovery, classified errors, and offline-safe routing before analysis.
 - Add Phase 1 Bring Your Own AI provider management so users can connect multiple encrypted AI providers, test latency and model availability, choose a default provider, and route analysis through automatic fallback.

@@ -73,6 +73,9 @@ Text rules for this file:
 - Show AI provider status badges for Healthy, Unreachable, Auth failed, Model missing, Fallback ready, and Offline mode active.
 - Show a Hybrid AI Chat page in the AI Analyst area for signed-in users to test configured providers through the universal AI adapter before running business analysis.
 - Route Hybrid AI Chat messages through `/api/hybrid-ai/chat` with OpenAI-compatible message input, server-side provider execution, no browser-exposed API keys, and visible provider name, model, local/cloud route, fallback, and unavailable states.
+- Let users select a dataset inside Hybrid AI Chat and ask questions through `/api/hybrid-ai/dataset-chat`.
+- Build Hybrid AI dataset-chat context from dataset metadata, schema, row count, detected columns, backend KPI extracts, column profiles, grouped summaries, and bounded sample rows instead of sending full large datasets to the model.
+- Show Hybrid AI dataset-chat status for selected dataset, provider used, local/cloud route, summarized context size, and cloud fallback privacy warnings.
 - Let users choose Auto, Local only / Offline mode, or Cloud only routing from the AI Providers settings page.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.

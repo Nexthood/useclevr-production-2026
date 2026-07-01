@@ -1,3 +1,4 @@
+- changed: make Hybrid AI Chat dataset-aware with dataset selection, summarized context, backend KPI extracts, provider routing status, and cloud fallback privacy warnings
 - changed: add Hybrid AI Chat under AI Analyst with a server-side chat endpoint, universal adapter routing, provider/model/route status, and offline-mode cloud blocking
 - changed: add Hybrid AI provider health checks with enabled-provider validation, classified status badges, model confirmation, masked key previews, and offline-safe local-provider errors
 - changed: add Hybrid AI Auto, Offline local-only, and Cloud-only modes with pre-analysis provider health checks, cloud-blocking offline behavior, and visible local/cloud/offline status states
