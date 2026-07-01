@@ -1,3 +1,4 @@
+- changed: add Hybrid AI Chat under AI Analyst with a server-side chat endpoint, universal adapter routing, provider/model/route status, and offline-mode cloud blocking
 - changed: add Hybrid AI provider health checks with enabled-provider validation, classified status badges, model confirmation, masked key previews, and offline-safe local-provider errors
 - changed: add Hybrid AI Auto, Offline local-only, and Cloud-only modes with pre-analysis provider health checks, cloud-blocking offline behavior, and visible local/cloud/offline status states
 - changed: complete the AI Providers settings page with provider list, add/edit dialog, encrypted-key saves, connection testing, detected models, default selector, fallback selector, and priority routing

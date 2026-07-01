@@ -71,6 +71,8 @@ Text rules for this file:
 - Test AI provider connections through a signed-in server endpoint and show connection status, latency, model confirmation, available models, and clear failure messages.
 - Check every enabled AI provider through a signed-in server endpoint and store reachability, latency, available models, last checked timestamp, classified error status, and last error message.
 - Show AI provider status badges for Healthy, Unreachable, Auth failed, Model missing, Fallback ready, and Offline mode active.
+- Show a Hybrid AI Chat page in the AI Analyst area for signed-in users to test configured providers through the universal AI adapter before running business analysis.
+- Route Hybrid AI Chat messages through `/api/hybrid-ai/chat` with OpenAI-compatible message input, server-side provider execution, no browser-exposed API keys, and visible provider name, model, local/cloud route, fallback, and unavailable states.
 - Let users choose Auto, Local only / Offline mode, or Cloud only routing from the AI Providers settings page.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
