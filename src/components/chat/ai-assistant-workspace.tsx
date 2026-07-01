@@ -41,6 +41,7 @@ type AssistantMessage = {
   providerName?: string
   modelName?: string
   providerStatus?: ProviderStatus
+  privacyWarning?: string | null
   error?: string
 }
 
@@ -49,6 +50,7 @@ type ProviderStatus = {
   state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable"
   message: string
   fallbackActive: boolean
+  route?: "local" | "cloud" | "none"
 }
 
 type HistoryEntry = {
@@ -118,10 +120,10 @@ export function AiAssistantWorkspace() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Select a dataset from the sidebar, then ask a business question. I will answer from your data.",
+      content: "Ask a general business question, or select a dataset from the sidebar for dataset-aware analysis.",
       insight: "AI assistant ready",
-      explanation: "Choose a dataset and use the suggested questions or write your own prompt.",
-      recommendation: "Start with a broad question to understand your data structure.",
+      explanation: "UseClevr routes answers through your AI Providers settings and Hybrid AI mode.",
+      recommendation: "Select a dataset for questions about risks, best performers, and next actions.",
     },
   ])
   const [inputValue, setInputValue] = React.useState("")
@@ -204,21 +206,6 @@ export function AiAssistantWorkspace() {
     const trimmed = question.trim()
     if (!trimmed || isAsking) return
 
-    if (!selectedDatasetId) {
-      setMessages((current) => [
-        ...current,
-{
-                     id: `assistant-error-${Date.now()}`,
-                     role: "assistant",
-                     content: "Please upload a dataset first.",
-                     insight: "No dataset",
-                     explanation: "The assistant needs CSV/Excel data to answer questions.",
-                     recommendation: "Upload a file before asking the assistant.",
-                   },
-      ])
-      return
-    }
-
     setInputValue("")
     setIsAsking(true)
 
@@ -231,10 +218,15 @@ export function AiAssistantWorkspace() {
     setMessages((current) => [...current, userMessage])
 
     try {
-      const response = await fetch("/api/analyze", {
+      const response = await fetch(selectedDatasetId ? "/api/hybrid-ai/dataset-chat" : "/api/hybrid-ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed, datasetId: selectedDatasetId }),
+        body: JSON.stringify({
+          datasetId: selectedDatasetId || undefined,
+          messages: [...messages, userMessage]
+            .filter((message) => message.role === "user" || message.role === "assistant")
+            .map((message) => ({ role: message.role, content: message.content })),
+        }),
       })
       const body = await response.json()
 
@@ -248,7 +240,7 @@ export function AiAssistantWorkspace() {
         role: "assistant",
         content: responseText(body),
         insight: body.insight,
-        explanation: body.explanation,
+        explanation: body.explanation || (selectedDatasetId ? "The response used summarized dataset context, backend KPI extracts, column profiles, and bounded sample rows." : undefined),
         recommendation: body.recommendation,
         data: Array.isArray(body.data) ? body.data : [],
         chartType: body.chartType,
@@ -257,6 +249,7 @@ export function AiAssistantWorkspace() {
           : displayProviderName(body.providerName),
         modelName: body.modelName,
         providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
+        privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
       }
 
       setMessages((current) => [...current, assistantMessage])
@@ -377,7 +370,7 @@ export function AiAssistantWorkspace() {
   const allSuggestionsCombined = selectedDatasetId
     ? [...new Set([...savedSuggestions.map((s) => s.text), ...messages.map((m) => m.content).filter((c) => c.startsWith("?"))])]
     : INITIAL_SUGGESTIONS
-  const canAsk = Boolean(selectedDatasetId) && !isAsking
+  const canAsk = !isAsking
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
@@ -441,7 +434,7 @@ export function AiAssistantWorkspace() {
           <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground">
             <Info className="h-3 w-3 flex-shrink-0" />
             <span>
-              AI analysis uses aggregated dataset metrics only. Raw row-level data never leaves the server.
+              AI analysis uses summarized dataset context, backend KPI extracts, column profiles, and bounded samples. Local only mode never sends dataset context to cloud AI.
             </span>
             <button
               type="button"
@@ -482,6 +475,16 @@ export function AiAssistantWorkspace() {
                             {message.providerStatus.message}
                           </span>
                         )}
+                        {message.modelName && (
+                          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {message.modelName}
+                          </span>
+                        )}
+                        {message.providerStatus?.route && (
+                          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {message.providerStatus.route === "local" ? "Local" : message.providerStatus.route === "cloud" ? "Cloud" : "Unavailable"}
+                          </span>
+                        )}
                       </span>
                     </div>
                   )}
@@ -494,6 +497,12 @@ export function AiAssistantWorkspace() {
                   )}
 
                   <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+
+                  {message.privacyWarning && (
+                    <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
+                      {message.privacyWarning}
+                    </div>
+                  )}
 
                   {/* Error transparency */}
                   {message.error && (
@@ -581,8 +590,8 @@ export function AiAssistantWorkspace() {
                   askAssistant(inputValue)
                 }
               }}
-              placeholder={selectedDatasetId ? "Ask a question about the selected dataset..." : "Select a dataset first..."}
-              disabled={!selectedDatasetId || isAsking}
+              placeholder={selectedDatasetId ? "Ask a question about the selected dataset..." : "Ask a general question or select a dataset..."}
+              disabled={isAsking}
               className="min-h-11 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-offset-background transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               rows={1}
             />
@@ -815,7 +824,9 @@ function isProviderStatus(value: unknown): value is ProviderStatus {
     typeof status.message === "string" &&
     (status.state === "connection_healthy" ||
       status.state === "fallback_active" ||
-      status.state === "provider_unavailable")
+      status.state === "provider_unavailable" ||
+      status.state === "offline_active" ||
+      status.state === "local_unavailable")
   )
 }
 

@@ -87,6 +87,8 @@ Text rules for this file:
 - Check provider health with a non-customer prompt before sending analysis data to a configured provider.
 - Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
 - Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
+- Route existing AI Assistant chat through the same Hybrid AI provider routing, dataset-aware context builder, fallback rules, Local only cloud blocking, and provider status display as Hybrid AI Chat.
+- Allow AI Assistant users to ask general questions without a selected dataset and use summarized dataset context automatically when a dataset is selected.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.
 - Show Bring Your Own AI as the recommended Hybrid AI modal path.
 - Link Hybrid AI setup calls to the AI Providers settings page.
