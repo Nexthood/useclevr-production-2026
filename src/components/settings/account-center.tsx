@@ -87,7 +87,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
   } | null>(
     aiProvider?.lastTestMessage
       ? {
-          success: aiProvider.lastTestStatus === "success",
+          success: aiProvider.lastTestStatus === "healthy" || aiProvider.lastTestStatus === "success",
           message: aiProvider.lastTestMessage,
         }
       : null,

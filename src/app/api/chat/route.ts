@@ -139,7 +139,7 @@ async function handleAnalyticalQuery(
         message: "Local provider unavailable",
         fallbackActive: false,
       };
-      const message = "Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this dataset to cloud AI.";
+      const message = "Offline mode is enabled, but your local AI provider is not reachable.";
       if (stream) {
         return streamResponse(textToReadableStream(message));
       }

@@ -264,7 +264,7 @@ export async function handleRegularChat(
       if (isLocalAiUnavailableError(error)) {
         return {
           success: false,
-          content: "Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this request to cloud AI.",
+          content: "Offline mode is enabled, but your local AI provider is not reachable.",
           providerStatus: {
             label: "Offline mode",
             state: "local_unavailable",
@@ -350,7 +350,7 @@ export async function handleRegularChatStream(
       }
     } catch (error) {
       if (isLocalAiUnavailableError(error)) {
-        return textToStream("Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this request to cloud AI.");
+        return textToStream("Offline mode is enabled, but your local AI provider is not reachable.");
       }
       logDefaultCloudFallback(userId, error);
     }

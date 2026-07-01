@@ -15,6 +15,7 @@ export type AiProviderType =
   | "azure-openai";
 
 export type AiMode = "auto" | "local-only" | "cloud-only";
+export type AiProviderHealthStatus = "healthy" | "unreachable" | "auth_failed" | "model_missing" | "failed" | "not_tested";
 
 export type PublicAiProviderConfig = {
   id: string;
@@ -23,6 +24,7 @@ export type PublicAiProviderConfig = {
   baseUrl: string;
   modelName: string;
   hasApiKey: boolean;
+  apiKeyPreview: string | null;
   selected: boolean;
   enabled: boolean;
   isDefault: boolean;
@@ -83,13 +85,30 @@ type ModelListResponse = {
 
 export type AiProviderTestResult = {
   success: boolean;
+  status: AiProviderHealthStatus;
   message: string;
   providerName: string;
   providerType: AiProviderType;
   modelName: string;
   latencyMs: number;
   availableModels: string[];
+  modelConfirmed: boolean;
   sample: string;
+  checkedAt: string;
+};
+
+export type AiProviderHealthCheckResult = {
+  providerId: string;
+  providerName: string;
+  providerType: AiProviderType;
+  modelName: string;
+  status: AiProviderHealthStatus;
+  success: boolean;
+  message: string;
+  latencyMs: number | null;
+  availableModels: string[];
+  modelConfirmed: boolean;
+  checkedAt: string;
 };
 
 export type UniversalAiGenerateResult = {
@@ -310,6 +329,7 @@ export async function testAiProviderConfig(input: AiProviderInput) {
     baseUrl: normalized.baseUrl,
     modelName: normalized.modelName,
     hasApiKey: Boolean(normalized.apiKey),
+    apiKeyPreview: normalized.apiKey ? maskSecretPreview(normalized.apiKey) : null,
     selected: normalized.enabled,
     enabled: normalized.enabled,
     isDefault: normalized.isDefault,
@@ -381,7 +401,7 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
   if (providers.length === 0) {
     if (mode === "local-only") {
       debugWarn("[AI_PROVIDER] Offline mode has no enabled local providers", { userId, mode });
-      throw new LocalAiUnavailableError("Offline mode is active, but no enabled local provider is configured.");
+      throw new LocalAiUnavailableError("Offline mode is enabled, but your local AI provider is not reachable.");
     }
     debugLog("[AI_PROVIDER] No configured providers for selected AI mode", { userId, mode });
     return null;
@@ -391,7 +411,19 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
     try {
+      const healthStartedAt = Date.now();
       await checkProviderHealth(provider);
+      await updateAiProviderTestStatus(userId, "healthy", "Connection successful. Model confirmed.", {
+        providerId: provider.id,
+        latencyMs: Date.now() - healthStartedAt,
+      }).catch((statusError) => {
+        debugWarn("[AI_PROVIDER] Failed to update provider health status", {
+          userId,
+          providerName: provider.providerName,
+          providerType: provider.providerType,
+          error: statusError instanceof Error ? statusError.message : String(statusError),
+        });
+      });
       const text = await callProviderChat(provider, prompt, 900);
       if (index > 0) {
         debugWarn("[AI_PROVIDER] Fallback provider used after primary provider failed", {
@@ -414,19 +446,31 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
       } satisfies UniversalAiGenerateResult;
     } catch (error) {
       lastError = error;
+      const status = classifyProviderError(error);
+      await updateAiProviderTestStatus(userId, status, safeProviderErrorMessage(error), {
+        providerId: provider.id,
+      }).catch((statusError) => {
+        debugWarn("[AI_PROVIDER] Failed to update provider failure status", {
+          userId,
+          providerName: provider.providerName,
+          providerType: provider.providerType,
+          error: statusError instanceof Error ? statusError.message : String(statusError),
+        });
+      });
       debugWarn("[AI_PROVIDER] Provider unavailable, trying fallback", {
         userId,
         mode,
         providerName: provider.providerName,
         providerType: provider.providerType,
         modelName: provider.modelName,
+        status,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
   if (mode === "local-only") {
-    throw new LocalAiUnavailableError(lastError instanceof Error ? lastError.message : "Local provider unavailable.");
+    throw new LocalAiUnavailableError("Offline mode is enabled, but your local AI provider is not reachable.");
   }
 
   throw lastError instanceof Error ? lastError : new Error("All configured AI providers failed.");
@@ -434,25 +478,79 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
 
 export async function updateAiProviderTestStatus(
   userId: string,
-  status: "success" | "failed",
+  status: AiProviderHealthStatus | "success" | "failed",
   message: string,
   options: { providerId?: string; latencyMs?: number | null; availableModels?: string[] } = {},
 ) {
   const where = options.providerId
     ? and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, options.providerId))
     : eq(aiProviderConfigs.userId, userId);
+  const updateValues: Partial<typeof aiProviderConfigs.$inferInsert> = {
+    lastTestStatus: status,
+    lastTestMessage: message,
+    lastTestLatencyMs: options.latencyMs ?? null,
+    lastTestedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  if (options.availableModels !== undefined) {
+    updateValues.lastTestModels = options.availableModels;
+  }
 
   await db
     .update(aiProviderConfigs)
-    .set({
-      lastTestStatus: status,
-      lastTestMessage: message,
-      lastTestLatencyMs: options.latencyMs ?? null,
-      lastTestModels: options.availableModels ?? [],
-      lastTestedAt: new Date(),
-      updatedAt: new Date(),
-    })
+    .set(updateValues)
     .where(where);
+}
+
+export async function healthCheckEnabledAiProviders(userId: string): Promise<AiProviderHealthCheckResult[]> {
+  const providers = await listPrivateAiProviderConfigs(userId);
+  const results: AiProviderHealthCheckResult[] = [];
+
+  for (const provider of providers) {
+    try {
+      const result = await testPrivateProvider(provider);
+      await updateAiProviderTestStatus(userId, result.status, result.message, {
+        providerId: provider.id,
+        latencyMs: result.latencyMs,
+        availableModels: result.availableModels,
+      });
+      results.push({
+        providerId: provider.id,
+        providerName: result.providerName,
+        providerType: result.providerType,
+        modelName: result.modelName,
+        status: result.status,
+        success: result.success,
+        message: result.message,
+        latencyMs: result.latencyMs,
+        availableModels: result.availableModels,
+        modelConfirmed: result.modelConfirmed,
+        checkedAt: result.checkedAt,
+      });
+    } catch (error) {
+      const status = classifyProviderError(error);
+      const message = safeProviderErrorMessage(error);
+      const checkedAt = new Date().toISOString();
+      await updateAiProviderTestStatus(userId, status, message, {
+        providerId: provider.id,
+      });
+      results.push({
+        providerId: provider.id,
+        providerName: provider.providerName,
+        providerType: provider.providerType,
+        modelName: provider.modelName,
+        status,
+        success: false,
+        message,
+        latencyMs: null,
+        availableModels: [],
+        modelConfirmed: false,
+        checkedAt,
+      });
+    }
+  }
+
+  return results;
 }
 
 async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<AiProviderTestResult> {
@@ -471,13 +569,16 @@ async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<A
 
   return {
     success: true,
-    message: "Connection successful.",
+    status: "healthy",
+    message: "Connection successful. Model confirmed.",
     providerName: provider.providerName,
     providerType: provider.providerType,
     modelName: provider.modelName,
     latencyMs: Date.now() - startedAt,
     availableModels,
+    modelConfirmed: true,
     sample: answer.slice(0, 120),
+    checkedAt: new Date().toISOString(),
   };
 }
 
@@ -542,6 +643,56 @@ export function isCloudProvider(providerType: AiProviderType) {
 
 export function isLocalAiUnavailableError(error: unknown) {
   return error instanceof LocalAiUnavailableError || (error instanceof Error && error.name === "LocalAiUnavailableError");
+}
+
+export function isHealthyProviderStatus(status: string | null | undefined) {
+  return status === "healthy" || status === "success";
+}
+
+export function classifyProviderError(error: unknown): AiProviderHealthStatus {
+  const message = safeProviderErrorMessage(error).toLowerCase();
+
+  if (
+    message.includes("401") ||
+    message.includes("403") ||
+    message.includes("unauthorized") ||
+    message.includes("forbidden") ||
+    message.includes("api key") ||
+    message.includes("authentication") ||
+    message.includes("auth")
+  ) {
+    return "auth_failed";
+  }
+
+  if (
+    message.includes("404") ||
+    message.includes("model") ||
+    message.includes("deployment") ||
+    message.includes("not found")
+  ) {
+    return "model_missing";
+  }
+
+  if (
+    message.includes("timed out") ||
+    message.includes("timeout") ||
+    message.includes("fetch failed") ||
+    message.includes("econnrefused") ||
+    message.includes("econnreset") ||
+    message.includes("enotfound") ||
+    message.includes("network") ||
+    message.includes("unreachable")
+  ) {
+    return "unreachable";
+  }
+
+  return "failed";
+}
+
+export function safeProviderErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return "Connection failed.";
 }
 
 function normalizeBaseUrl(value: string, providerType: AiProviderType) {
@@ -766,6 +917,7 @@ function toPublicConfig(row: typeof aiProviderConfigs.$inferSelect): PublicAiPro
     baseUrl: row.baseUrl,
     modelName: row.modelName,
     hasApiKey: Boolean(row.encryptedApiKey),
+    apiKeyPreview: row.encryptedApiKey ? getSecretPreview(row.encryptedApiKey) : null,
     selected: row.selected,
     enabled: row.isEnabled ?? row.selected,
     isDefault: row.isDefault ?? row.selected,
@@ -777,6 +929,21 @@ function toPublicConfig(row: typeof aiProviderConfigs.$inferSelect): PublicAiPro
     lastTestModels: Array.isArray(row.lastTestModels) ? row.lastTestModels.filter((value): value is string => typeof value === "string") : [],
     lastTestedAt: row.lastTestedAt?.toISOString() ?? null,
   };
+}
+
+function getSecretPreview(payload: string) {
+  try {
+    return maskSecretPreview(decryptSecret(payload));
+  } catch {
+    return "Saved key";
+  }
+}
+
+function maskSecretPreview(secret: string) {
+  const trimmed = secret.trim();
+  if (!trimmed) return null;
+  const suffix = trimmed.slice(-4);
+  return `•••• ${suffix}`;
 }
 
 function encryptSecret(secret: string) {

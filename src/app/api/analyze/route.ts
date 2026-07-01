@@ -599,7 +599,7 @@ try {
               return Response.json({
                 success: false,
                 error: "Local provider unavailable",
-                answer: "Offline mode is active, but the local AI provider is unavailable.",
+                answer: "Offline mode is enabled, but your local AI provider is not reachable.",
                 insight: "Local AI unavailable",
                 explanation: "UseClevr did not send this dataset to cloud AI because Offline mode is enabled.",
                 recommendation: "Start your local AI provider, switch to Auto mode, or switch to Cloud only mode.",

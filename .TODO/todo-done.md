@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-899. Add Hybrid AI provider health checks with classified connection status, bulk enabled-provider validation, model confirmation, masked key previews, and offline-safe routing errors. (labels: ai, local-ai, security, testing; commit: worktree)
 - T-898. Add Hybrid AI mode switching with Auto, Offline local-only, and Cloud-only routing, provider health checks before analysis, cloud-blocking offline behavior, and visible provider status states. (labels: ai, local-ai, security, data; commit: worktree)
 - T-897. Provide a complete AI Providers settings page with provider list, add/edit dialog, encrypted-key storage, connection testing, detected models, default selector, fallback selector, and priority routing. (labels: ai, ui, security, data; commit: worktree)
 - T-896. Route dataset summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through configured AI providers with default cloud fallback. (labels: ai, data, reporting; commit: worktree)
