@@ -72,6 +72,10 @@ const emptyForm: FormState = {
   priority: 100,
 };
 
+type HealthCheckResult = {
+  success?: boolean;
+};
+
 export function AiProvidersClient({
   providers,
   aiMode,
@@ -89,16 +93,19 @@ export function AiProvidersClient({
   const [isSavingRouting, setIsSavingRouting] = React.useState(false);
   const [isSavingMode, setIsSavingMode] = React.useState(false);
   const [isTesting, setIsTesting] = React.useState(false);
+  const [isCheckingHealth, setIsCheckingHealth] = React.useState(false);
   const [testResult, setTestResult] = React.useState<{
     success: boolean;
+    status?: string;
     message: string;
     latencyMs?: number;
     availableModels?: string[];
+    modelConfirmed?: boolean;
   } | null>(null);
 
   const defaultProvider = providers.find((provider) => provider.isDefault) || providers[0] || null;
   const fallbackProvider = providers.find((provider) => provider.isFallback) || null;
-  const connectedCount = providers.filter((provider) => provider.lastTestStatus === "success").length;
+  const connectedCount = providers.filter((provider) => isHealthyStatus(provider.lastTestStatus)).length;
   const enabledCount = providers.filter((provider) => provider.enabled).length;
   const localProviderCount = providers.filter((provider) => isLocalProviderType(provider.providerType)).length;
   const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
@@ -195,7 +202,7 @@ export function AiProvidersClient({
 
       if (!response.ok || !body.success) {
         const message = body.error || "Connection failed.";
-        setTestResult({ success: false, message });
+        setTestResult({ success: false, status: body.status, message, modelConfirmed: false });
         showNotice({ type: "error", title: "Provider connection failed.", message });
         return;
       }
@@ -203,9 +210,11 @@ export function AiProvidersClient({
       const message = `Connected in ${body.latencyMs} ms.`;
       setTestResult({
         success: true,
+        status: body.status,
         message,
         latencyMs: body.latencyMs,
         availableModels: Array.isArray(body.availableModels) ? body.availableModels : [],
+        modelConfirmed: body.modelConfirmed === true,
       });
       showNotice({ type: "success", title: "Provider connected.", message });
       router.refresh();
@@ -215,6 +224,34 @@ export function AiProvidersClient({
       showNotice({ type: "error", title: "Provider connection failed.", message });
     } finally {
       setIsTesting(false);
+    }
+  }
+
+  async function handleHealthCheck() {
+    setIsCheckingHealth(true);
+    try {
+      const response = await fetch("/api/ai-providers/health", { method: "POST" });
+      const body = await response.json();
+      if (!response.ok || !body.success) {
+        const message = body.error || "Provider health check failed.";
+        showNotice({ type: "error", title: "Health check failed.", message });
+        return;
+      }
+
+      const results: HealthCheckResult[] = Array.isArray(body.results) ? body.results : [];
+      const healthy = results.filter((result) => result?.success).length;
+      const failed = results.length - healthy;
+      showNotice({
+        type: failed > 0 ? "info" : "success",
+        title: "Provider health checked.",
+        message: `${healthy} healthy, ${failed} unavailable.`,
+      });
+      router.refresh();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Provider health check failed.";
+      showNotice({ type: "error", title: "Health check failed.", message });
+    } finally {
+      setIsCheckingHealth(false);
     }
   }
 
@@ -262,10 +299,16 @@ export function AiProvidersClient({
                   <CardDescription>API keys stay encrypted server-side and are never returned to the browser.</CardDescription>
                 </div>
               </div>
-              <Button type="button" onClick={openNewDialog} className="gap-2 bg-gradient-primary hover:opacity-90">
-                <Plus className="h-4 w-4" />
-                Add provider
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button type="button" variant="outline" onClick={handleHealthCheck} disabled={isCheckingHealth || enabledCount === 0} className="gap-2 bg-transparent">
+                  <ListChecks className="h-4 w-4" />
+                  {isCheckingHealth ? "Checking..." : "Check enabled"}
+                </Button>
+                <Button type="button" onClick={openNewDialog} className="gap-2 bg-gradient-primary hover:opacity-90">
+                  <Plus className="h-4 w-4" />
+                  Add provider
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -302,7 +345,11 @@ export function AiProvidersClient({
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-foreground">{provider.modelName}</p>
-                          {provider.hasApiKey ? <p className="text-xs text-muted-foreground">Saved key hidden</p> : <p className="text-xs text-muted-foreground">No API key</p>}
+                          {provider.hasApiKey ? (
+                            <p className="text-xs text-muted-foreground">{provider.apiKeyPreview || "Saved key"}</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No API key</p>
+                          )}
                         </div>
                         <p className="text-muted-foreground">{provider.priority}</p>
                         <ProviderStatus provider={provider} />
@@ -365,6 +412,13 @@ export function AiProvidersClient({
                   description="Ignore local providers and use configured cloud providers or default cloud AI."
                 />
               </div>
+
+              {aiMode === "local-only" ? (
+                <div className="flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-800 dark:text-sky-200">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Offline mode active</span>
+                </div>
+              ) : null}
 
               {aiMode === "local-only" && localProviderCount === 0 ? (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
@@ -473,7 +527,7 @@ function ProviderDialog({
   form: FormState;
   typeMeta: (typeof providerTypes)[number];
   savedProvider?: PublicAiProviderConfig;
-  testResult: { success: boolean; message: string; latencyMs?: number; availableModels?: string[] } | null;
+  testResult: { success: boolean; status?: string; message: string; latencyMs?: number; availableModels?: string[]; modelConfirmed?: boolean } | null;
   isSaving: boolean;
   isTesting: boolean;
   onClose: () => void;
@@ -595,6 +649,8 @@ function ProviderDialog({
               message={testResult.message}
               latencyMs={testResult.latencyMs}
               models={testResult.availableModels || []}
+              modelConfirmed={testResult.modelConfirmed === true}
+              status={testResult.status}
             />
           ) : null}
 
@@ -701,7 +757,21 @@ function ModeOption({
   );
 }
 
-function ConnectionResult({ success, message, latencyMs, models }: { success: boolean; message: string; latencyMs?: number; models: string[] }) {
+function ConnectionResult({
+  success,
+  message,
+  latencyMs,
+  models,
+  modelConfirmed,
+  status,
+}: {
+  success: boolean;
+  message: string;
+  latencyMs?: number;
+  models: string[];
+  modelConfirmed?: boolean;
+  status?: string;
+}) {
   return (
     <div className={`rounded-lg border p-4 text-sm ${success ? "border-emerald-500/30 bg-emerald-500/10" : "border-red-500/30 bg-red-500/10"}`}>
       <div className="flex items-start gap-2">
@@ -717,6 +787,12 @@ function ConnectionResult({ success, message, latencyMs, models }: { success: bo
               Latency {latencyMs} ms
             </p>
           ) : null}
+          {success && modelConfirmed ? (
+            <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">Model confirmed</p>
+          ) : null}
+          {!success && status ? (
+            <p className="mt-2 text-xs font-medium text-red-700 dark:text-red-300">{statusLabel(status)}</p>
+          ) : null}
           {models.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {models.slice(0, 12).map((model) => (
@@ -731,19 +807,41 @@ function ConnectionResult({ success, message, latencyMs, models }: { success: bo
 }
 
 function ProviderStatus({ provider }: { provider: PublicAiProviderConfig }) {
-  if (provider.lastTestStatus === "success") {
+  const status = normalizeHealthStatus(provider.lastTestStatus);
+  const lastChecked = provider.lastTestedAt ? `Checked ${formatDateTime(provider.lastTestedAt)}` : null;
+
+  if (provider.isFallback && isHealthyStatus(provider.lastTestStatus)) {
     return (
-      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-300">
-        <CheckCircle2 className="h-4 w-4" />
-        <span>{provider.lastTestLatencyMs ? `${provider.lastTestLatencyMs} ms` : "Connected"}</span>
+      <div className="text-emerald-600 dark:text-emerald-300">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>Fallback ready</span>
+        </div>
+        {lastChecked ? <p className="mt-1 text-xs text-muted-foreground">{lastChecked}</p> : null}
       </div>
     );
   }
-  if (provider.lastTestStatus === "failed") {
+
+  if (status === "healthy") {
     return (
-      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-300">
-        <TriangleAlert className="h-4 w-4" />
-        <span>Error</span>
+      <div className="text-emerald-600 dark:text-emerald-300">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>{provider.lastTestLatencyMs ? `Healthy ${provider.lastTestLatencyMs} ms` : "Healthy"}</span>
+        </div>
+        {lastChecked ? <p className="mt-1 text-xs text-muted-foreground">{lastChecked}</p> : null}
+      </div>
+    );
+  }
+
+  if (status !== "not_tested") {
+    return (
+      <div className="text-amber-600 dark:text-amber-300">
+        <div className="flex items-center gap-2">
+          <TriangleAlert className="h-4 w-4" />
+          <span>{statusLabel(status)}</span>
+        </div>
+        {lastChecked ? <p className="mt-1 text-xs text-muted-foreground">{lastChecked}</p> : null}
       </div>
     );
   }
@@ -778,6 +876,44 @@ function labelForType(type: string) {
 
 function isLocalProviderType(type: string) {
   return type === "ollama" || type === "lm-studio" || type === "openai-compatible";
+}
+
+function isHealthyStatus(status: string | null | undefined) {
+  return status === "healthy" || status === "success";
+}
+
+function normalizeHealthStatus(status: string | null | undefined) {
+  if (status === "success") return "healthy";
+  if (status === "auth_failed" || status === "model_missing" || status === "unreachable" || status === "failed" || status === "healthy") {
+    return status;
+  }
+  return "not_tested";
+}
+
+function statusLabel(status: string) {
+  switch (normalizeHealthStatus(status)) {
+    case "healthy":
+      return "Healthy";
+    case "auth_failed":
+      return "Auth failed";
+    case "model_missing":
+      return "Model missing";
+    case "unreachable":
+      return "Unreachable";
+    case "failed":
+      return "Error";
+    default:
+      return "Not tested";
+  }
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function modeNoticeMessage(mode: AiMode) {

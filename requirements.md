@@ -68,7 +68,9 @@ Text rules for this file:
 - Show an AI Providers settings page.
 - Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, model, enabled state, default-provider state, fallback-provider state, and priority.
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.
-- Test AI provider connections through a signed-in server endpoint and show connection status, latency, available models, and clear failure messages.
+- Test AI provider connections through a signed-in server endpoint and show connection status, latency, model confirmation, available models, and clear failure messages.
+- Check every enabled AI provider through a signed-in server endpoint and store reachability, latency, available models, last checked timestamp, classified error status, and last error message.
+- Show AI provider status badges for Healthy, Unreachable, Auth failed, Model missing, Fallback ready, and Offline mode active.
 - Let users choose Auto, Local only / Offline mode, or Cloud only routing from the AI Providers settings page.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.

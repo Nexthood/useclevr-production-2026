@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth/auth";
 import {
   type AiProviderType,
+  classifyProviderError,
+  safeProviderErrorMessage,
   testAiProviderConfig,
   testSavedAiProviderConfig,
   updateAiProviderTestStatus,
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
         : await testSavedAiProviderConfig(userId, input);
 
     if (input.id) {
-      await updateAiProviderTestStatus(userId, "success", result.message, {
+      await updateAiProviderTestStatus(userId, result.status, result.message, {
         providerId: input.id,
         latencyMs: result.latencyMs,
         availableModels: result.availableModels,
@@ -61,9 +63,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Connection failed.";
+    const message = safeProviderErrorMessage(error);
+    const status = classifyProviderError(error);
     debugError("[BYOAI] Provider test failed", {
       message,
+      status,
       providerName: input.providerName,
       providerType: input.providerType,
       baseUrl: input.baseUrl,
@@ -72,11 +76,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (input.id) {
-      await updateAiProviderTestStatus(userId, "failed", message, { providerId: input.id }).catch((updateError) => {
+      await updateAiProviderTestStatus(userId, status, message, { providerId: input.id }).catch((updateError) => {
         debugWarn("[BYOAI] Failed to update provider test failure status", updateError);
       });
     }
 
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return NextResponse.json({ success: false, status, error: message, modelConfirmed: false }, { status: 400 });
   }
 }

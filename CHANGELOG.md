@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add Hybrid AI provider health checks so users can validate enabled providers with reachability, latency, model confirmation, model discovery, classified errors, and offline-safe routing before analysis.
 - Add Phase 1 Bring Your Own AI provider management so users can connect multiple encrypted AI providers, test latency and model availability, choose a default provider, and route analysis through automatic fallback.
 - Add Hybrid AI mode switching so users can choose Auto, Offline local-only, or Cloud-only routing with provider health checks and visible routing status.
 - Show a complete AI Providers settings page with provider list, add and edit dialog, connection results, detected models, explicit default and fallback selectors, and priority routing.
