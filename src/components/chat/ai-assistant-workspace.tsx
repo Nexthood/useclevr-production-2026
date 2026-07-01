@@ -46,7 +46,7 @@ type AssistantMessage = {
 
 type ProviderStatus = {
   label: string
-  state: "connection_healthy" | "fallback_active" | "provider_unavailable"
+  state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable"
   message: string
   fallbackActive: boolean
 }
@@ -100,6 +100,8 @@ function displayProviderName(providerName?: string | null) {
 function providerStatusClassName(state?: ProviderStatus["state"]) {
   if (state === "connection_healthy") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
   if (state === "fallback_active") return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+  if (state === "offline_active") return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+  if (state === "local_unavailable") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
   if (state === "provider_unavailable") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
   return "border-border bg-muted text-muted-foreground"
 }

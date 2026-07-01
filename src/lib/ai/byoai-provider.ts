@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 
 import { db } from "@/lib/db";
-import { aiProviderConfigs } from "@/lib/db/schema";
+import { aiProviderConfigs, appSettings } from "@/lib/db/schema";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { and, asc, desc, eq } from "drizzle-orm";
 
@@ -13,6 +13,8 @@ export type AiProviderType =
   | "anthropic"
   | "google-gemini"
   | "azure-openai";
+
+export type AiMode = "auto" | "local-only" | "cloud-only";
 
 export type PublicAiProviderConfig = {
   id: string;
@@ -96,7 +98,16 @@ export type UniversalAiGenerateResult = {
   providerType: AiProviderType;
   modelName: string;
   fallbackUsed: boolean;
+  mode: AiMode;
+  route: "local" | "cloud";
 };
+
+export class LocalAiUnavailableError extends Error {
+  constructor(message = "Local provider unavailable.") {
+    super(message);
+    this.name = "LocalAiUnavailableError";
+  }
+}
 
 const TEST_PROMPT = "Reply with exactly: UseClevr BYOAI OK";
 const REQUEST_TIMEOUT_MS = 25_000;
@@ -119,6 +130,40 @@ export const AI_PROVIDER_TYPE_LABELS: Record<AiProviderType, string> = {
   "google-gemini": "Google Gemini",
   "azure-openai": "Azure OpenAI",
 };
+
+const AI_MODE_KEY_PREFIX = "ai-provider-mode:";
+const LOCAL_PROVIDER_TYPES: AiProviderType[] = ["ollama", "lm-studio", "openai-compatible"];
+const CLOUD_PROVIDER_TYPES: AiProviderType[] = ["openai", "anthropic", "google-gemini", "azure-openai"];
+
+export async function getAiMode(userId: string): Promise<AiMode> {
+  const [row] = await db
+    .select({ value: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, aiModeKey(userId)))
+    .limit(1);
+  const mode = typeof row?.value === "object" && row.value && "mode" in row.value
+    ? (row.value as { mode?: unknown }).mode
+    : null;
+  return normalizeAiMode(mode);
+}
+
+export async function setAiMode(userId: string, mode: AiMode) {
+  const normalized = normalizeAiMode(mode);
+  await db
+    .insert(appSettings)
+    .values({
+      key: aiModeKey(userId),
+      value: { mode: normalized },
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: appSettings.key,
+      set: {
+        value: { mode: normalized },
+        updatedAt: new Date(),
+      },
+    });
+}
 
 export async function listPublicAiProviderConfigs(userId: string): Promise<PublicAiProviderConfig[]> {
   const rows = await db.query.aiProviderConfigs.findMany({
@@ -162,6 +207,15 @@ export async function listPrivateAiProviderConfigs(userId: string): Promise<Priv
       apiKey: row.encryptedApiKey ? decryptSecret(row.encryptedApiKey) : null,
     }))
     .filter((provider) => provider.enabled);
+}
+
+export async function listPrivateAiProviderConfigsForMode(userId: string, mode: AiMode): Promise<PrivateAiProviderConfig[]> {
+  const providers = await listPrivateAiProviderConfigs(userId);
+  if (mode === "local-only") return providers.filter((provider) => isLocalProvider(provider.providerType));
+  if (mode === "cloud-only") return providers.filter((provider) => isCloudProvider(provider.providerType));
+  const localProviders = providers.filter((provider) => isLocalProvider(provider.providerType));
+  const cloudProviders = providers.filter((provider) => isCloudProvider(provider.providerType));
+  return [...localProviders, ...cloudProviders];
 }
 
 export async function saveAiProviderConfig(userId: string, input: AiProviderInput) {
@@ -321,18 +375,28 @@ export async function generateWithUserAiProvider(userId: string, prompt: string)
   return generateWithUniversalAiAdapter(userId, prompt);
 }
 
-export async function generateWithUniversalAiAdapter(userId: string, prompt: string) {
-  const providers = await listPrivateAiProviderConfigs(userId);
-  if (providers.length === 0) return null;
+export async function generateWithUniversalAiAdapter(userId: string, prompt: string, options: { mode?: AiMode } = {}) {
+  const mode = options.mode ?? await getAiMode(userId);
+  const providers = await listPrivateAiProviderConfigsForMode(userId, mode);
+  if (providers.length === 0) {
+    if (mode === "local-only") {
+      debugWarn("[AI_PROVIDER] Offline mode has no enabled local providers", { userId, mode });
+      throw new LocalAiUnavailableError("Offline mode is active, but no enabled local provider is configured.");
+    }
+    debugLog("[AI_PROVIDER] No configured providers for selected AI mode", { userId, mode });
+    return null;
+  }
 
   let lastError: unknown = null;
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
     try {
+      await checkProviderHealth(provider);
       const text = await callProviderChat(provider, prompt, 900);
       if (index > 0) {
         debugWarn("[AI_PROVIDER] Fallback provider used after primary provider failed", {
           userId,
+          mode,
           providerName: provider.providerName,
           providerType: provider.providerType,
           modelName: provider.modelName,
@@ -345,17 +409,24 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
         providerType: provider.providerType,
         modelName: provider.modelName,
         fallbackUsed: index > 0,
+        mode,
+        route: isLocalProvider(provider.providerType) ? "local" : "cloud",
       } satisfies UniversalAiGenerateResult;
     } catch (error) {
       lastError = error;
       debugWarn("[AI_PROVIDER] Provider unavailable, trying fallback", {
         userId,
+        mode,
         providerName: provider.providerName,
         providerType: provider.providerType,
         modelName: provider.modelName,
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  if (mode === "local-only") {
+    throw new LocalAiUnavailableError(lastError instanceof Error ? lastError.message : "Local provider unavailable.");
   }
 
   throw lastError instanceof Error ? lastError : new Error("All configured AI providers failed.");
@@ -410,6 +481,10 @@ async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<A
   };
 }
 
+async function checkProviderHealth(provider: PrivateAiProviderConfig) {
+  await callProviderChat(provider, TEST_PROMPT, 12);
+}
+
 function normalizeAiProviderInput(input: AiProviderInput) {
   const providerType = normalizeProviderType(input.providerType);
   const providerName = input.providerName.trim();
@@ -446,6 +521,27 @@ function normalizeProviderType(value: string): AiProviderType {
   const allowed = Object.keys(AI_PROVIDER_TYPE_LABELS) as AiProviderType[];
   if (allowed.includes(value as AiProviderType)) return value as AiProviderType;
   throw new Error("Choose a supported provider type.");
+}
+
+function normalizeAiMode(value: unknown): AiMode {
+  if (value === "local-only" || value === "cloud-only" || value === "auto") return value;
+  return "auto";
+}
+
+function aiModeKey(userId: string) {
+  return `${AI_MODE_KEY_PREFIX}${userId}`;
+}
+
+export function isLocalProvider(providerType: AiProviderType) {
+  return LOCAL_PROVIDER_TYPES.includes(providerType);
+}
+
+export function isCloudProvider(providerType: AiProviderType) {
+  return CLOUD_PROVIDER_TYPES.includes(providerType);
+}
+
+export function isLocalAiUnavailableError(error: unknown) {
+  return error instanceof LocalAiUnavailableError || (error instanceof Error && error.name === "LocalAiUnavailableError");
 }
 
 function normalizeBaseUrl(value: string, providerType: AiProviderType) {
@@ -750,5 +846,7 @@ export function logUniversalAiResponse(result: UniversalAiGenerateResult) {
     providerType: result.providerType,
     modelName: result.modelName,
     fallbackUsed: result.fallbackUsed,
+    mode: result.mode,
+    route: result.route,
   });
 }

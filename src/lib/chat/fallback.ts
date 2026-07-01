@@ -3,6 +3,7 @@ import { datasets } from '@/lib/db/schema';
 import { debugError } from '@/lib/utils/debug';
 import {
   generateWithUniversalAiAdapter,
+  isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from '@/lib/ai/universal-ai-adapter';
@@ -15,7 +16,7 @@ import type { AppSearchResult } from '@/lib/search/app-search';
 
 export type ChatProviderStatus = {
   label: string;
-  state: "connection_healthy" | "fallback_active" | "provider_unavailable";
+  state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable";
   message: string;
   fallbackActive: boolean;
 };
@@ -256,10 +257,22 @@ export async function handleRegularChat(
           content: formatAIResponse(result.text),
           providerName: result.providerName,
           modelName: result.modelName,
-          providerStatus: providerStatusFromAdapterResult(result.providerType, result.providerName, result.fallbackUsed),
+          providerStatus: providerStatusFromAdapterResult(result.providerType, result.providerName, result.fallbackUsed, result.mode, result.route),
         };
       }
     } catch (error) {
+      if (isLocalAiUnavailableError(error)) {
+        return {
+          success: false,
+          content: "Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this request to cloud AI.",
+          providerStatus: {
+            label: "Offline mode",
+            state: "local_unavailable",
+            message: "Local provider unavailable",
+            fallbackActive: false,
+          },
+        };
+      }
       logDefaultCloudFallback(userId, error);
     }
   }
@@ -336,6 +349,9 @@ export async function handleRegularChatStream(
         return textToStream(formatAIResponse(result.text));
       }
     } catch (error) {
+      if (isLocalAiUnavailableError(error)) {
+        return textToStream("Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this request to cloud AI.");
+      }
       logDefaultCloudFallback(userId, error);
     }
   }
@@ -367,11 +383,11 @@ function textToStream(text: string) {
   });
 }
 
-function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean): ChatProviderStatus {
+function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean, mode?: string, route?: string): ChatProviderStatus {
   return {
     label: providerStatusLabel(providerType, providerName),
-    state: fallbackUsed ? "fallback_active" : "connection_healthy",
-    message: fallbackUsed ? "Fallback active" : "Connection healthy",
+    state: mode === "local-only" ? "offline_active" : fallbackUsed ? "fallback_active" : "connection_healthy",
+    message: mode === "local-only" ? "Offline mode active" : route === "local" ? "Local AI active" : fallbackUsed ? "Cloud fallback active" : "Connection healthy",
     fallbackActive: fallbackUsed,
   };
 }

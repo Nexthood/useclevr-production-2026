@@ -3,6 +3,7 @@ import { generateText } from "ai";
 
 import {
   generateWithUniversalAiAdapter,
+  isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
@@ -14,6 +15,7 @@ export interface ServerAiTextResult {
   modelName: string;
   fallbackUsed: boolean;
   source: "user-provider" | "default-cloud";
+  statusMessage?: string;
 }
 
 export async function generateServerAiText(
@@ -46,6 +48,12 @@ export async function generateServerAiText(
 
       debugLog(`[${options.context}] No user AI provider configured; using default cloud AI`);
     } catch (error) {
+      if (isLocalAiUnavailableError(error)) {
+        debugWarn(`[${options.context}] Offline mode blocked cloud fallback`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return null;
+      }
       logDefaultCloudFallback(options.userId, error);
       debugWarn(`[${options.context}] User AI provider failed; using default cloud AI`, {
         error: error instanceof Error ? error.message : String(error),

@@ -20,6 +20,7 @@
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import {
   generateWithUniversalAiAdapter,
+  isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
@@ -53,7 +54,7 @@ import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 
 type AiProviderStatus = {
   label: string;
-  state: "connection_healthy" | "fallback_active" | "provider_unavailable";
+  state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable";
   message: string;
   fallbackActive: boolean;
 };
@@ -580,13 +581,33 @@ try {
               traceModel = byoAiResult.modelName;
               providerStatus = {
                 label: providerStatusLabel(byoAiResult.providerType, byoAiResult.providerName),
-                state: byoAiResult.fallbackUsed ? "fallback_active" : "connection_healthy",
-                message: byoAiResult.fallbackUsed ? "Fallback active" : "Connection healthy",
+                state: byoAiResult.mode === "local-only" ? "offline_active" : byoAiResult.fallbackUsed ? "fallback_active" : "connection_healthy",
+                message: byoAiResult.mode === "local-only" ? "Offline mode active" : byoAiResult.route === "local" ? "Local AI active" : byoAiResult.fallbackUsed ? "Cloud fallback active" : "Connection healthy",
                 fallbackActive: byoAiResult.fallbackUsed,
               };
               logUniversalAiResponse(byoAiResult);
             }
           } catch (byoAiError) {
+            if (isLocalAiUnavailableError(byoAiError)) {
+              providerStatus = {
+                label: "Offline mode",
+                state: "local_unavailable",
+                message: "Local provider unavailable",
+                fallbackActive: false,
+              };
+              traceError = byoAiError instanceof Error ? byoAiError.message : "Local provider unavailable";
+              return Response.json({
+                success: false,
+                error: "Local provider unavailable",
+                answer: "Offline mode is active, but the local AI provider is unavailable.",
+                insight: "Local AI unavailable",
+                explanation: "UseClevr did not send this dataset to cloud AI because Offline mode is enabled.",
+                recommendation: "Start your local AI provider, switch to Auto mode, or switch to Cloud only mode.",
+                data: result,
+                chartType,
+                providerStatus,
+              });
+            }
             providerStatus = {
               label: "Cloud fallback",
               state: "fallback_active",

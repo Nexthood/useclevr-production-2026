@@ -12,6 +12,7 @@ import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
 import {
   generateWithUniversalAiAdapter,
+  isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from '@/lib/ai/universal-ai-adapter';
@@ -108,6 +109,8 @@ async function handleAnalyticalQuery(
         adapterResult.providerType,
         adapterResult.providerName,
         adapterResult.fallbackUsed,
+        adapterResult.mode,
+        adapterResult.route,
       );
       if (stream) {
         return streamResponse(textToReadableStream(explanation));
@@ -129,6 +132,30 @@ async function handleAnalyticalQuery(
       });
     }
   } catch (adapterError) {
+    if (isLocalAiUnavailableError(adapterError)) {
+      providerStatus = {
+        label: "Offline mode",
+        state: "local_unavailable",
+        message: "Local provider unavailable",
+        fallbackActive: false,
+      };
+      const message = "Offline mode is active, but the local AI provider is unavailable. UseClevr did not send this dataset to cloud AI.";
+      if (stream) {
+        return streamResponse(textToReadableStream(message));
+      }
+      return NextResponse.json({
+        success: false,
+        content: message,
+        role: "assistant",
+        verified: true,
+        providerStatus,
+        computation: {
+          operation: sqlResult.result.operation,
+          sql: sqlResult.sql,
+          result: sqlResult.result,
+        },
+      });
+    }
     providerStatus = {
       label: "Cloud fallback",
       state: "fallback_active",
@@ -380,11 +407,11 @@ export async function POST(request: Request) {
   }
 }
 
-function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean): ChatProviderStatus {
+function providerStatusFromAdapterResult(providerType: string, providerName: string, fallbackUsed: boolean, mode?: string, route?: string): ChatProviderStatus {
   return {
     label: providerStatusLabel(providerType, providerName),
-    state: fallbackUsed ? "fallback_active" : "connection_healthy",
-    message: fallbackUsed ? "Fallback active" : "Connection healthy",
+    state: mode === "local-only" ? "offline_active" : fallbackUsed ? "fallback_active" : "connection_healthy",
+    message: mode === "local-only" ? "Offline mode active" : route === "local" ? "Local AI active" : fallbackUsed ? "Cloud fallback active" : "Connection healthy",
     fallbackActive: fallbackUsed,
   };
 }

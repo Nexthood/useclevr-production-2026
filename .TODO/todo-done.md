@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-898. Add Hybrid AI mode switching with Auto, Offline local-only, and Cloud-only routing, provider health checks before analysis, cloud-blocking offline behavior, and visible provider status states. (labels: ai, local-ai, security, data; commit: worktree)
 - T-897. Provide a complete AI Providers settings page with provider list, add/edit dialog, encrypted-key storage, connection testing, detected models, default selector, fallback selector, and priority routing. (labels: ai, ui, security, data; commit: worktree)
 - T-896. Route dataset summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through configured AI providers with default cloud fallback. (labels: ai, data, reporting; commit: worktree)
 - T-895. Integrate the AI Assistant with the universal AI adapter and show provider status for default, fallback, and unavailable provider states. (labels: ai, ui, data; commit: worktree)

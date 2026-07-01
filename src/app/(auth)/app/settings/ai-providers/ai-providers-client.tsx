@@ -1,12 +1,12 @@
 "use client";
 
-import { saveAiProvider, updateAiProviderRouting } from "@/app/actions/settings";
+import { saveAiProvider, updateAiMode, updateAiProviderRouting } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
-import type { PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
+import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
 import {
   CheckCircle2,
   Clock3,
@@ -74,9 +74,11 @@ const emptyForm: FormState = {
 
 export function AiProvidersClient({
   providers,
+  aiMode,
   loadError,
 }: {
   providers: PublicAiProviderConfig[];
+  aiMode: AiMode;
   loadError?: string | null;
 }) {
   const router = useRouter();
@@ -85,6 +87,7 @@ export function AiProvidersClient({
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSavingRouting, setIsSavingRouting] = React.useState(false);
+  const [isSavingMode, setIsSavingMode] = React.useState(false);
   const [isTesting, setIsTesting] = React.useState(false);
   const [testResult, setTestResult] = React.useState<{
     success: boolean;
@@ -97,6 +100,7 @@ export function AiProvidersClient({
   const fallbackProvider = providers.find((provider) => provider.isFallback) || null;
   const connectedCount = providers.filter((provider) => provider.lastTestStatus === "success").length;
   const enabledCount = providers.filter((provider) => provider.enabled).length;
+  const localProviderCount = providers.filter((provider) => isLocalProviderType(provider.providerType)).length;
   const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
   const savedProvider = providers.find((provider) => provider.id === form.providerId);
 
@@ -154,6 +158,19 @@ export function AiProvidersClient({
       router.refresh();
     }
     setIsSavingRouting(false);
+  }
+
+  async function handleModeSave(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingMode(true);
+    const result = await updateAiMode(new FormData(event.currentTarget));
+    if (!result.success) {
+      showNotice({ type: "error", title: "AI mode was not saved.", message: result.error });
+    } else {
+      showNotice({ type: "success", title: "AI mode saved.", message: modeNoticeMessage(String(new FormData(event.currentTarget).get("aiMode") || "auto") as AiMode) });
+      router.refresh();
+    }
+    setIsSavingMode(false);
   }
 
   async function handleTest() {
@@ -262,54 +279,103 @@ export function AiProvidersClient({
             ) : (
               <div className="overflow-x-auto rounded-lg border border-border">
                 <div className="min-w-[780px]">
-                <div className="grid grid-cols-[minmax(190px,1.4fr)_minmax(150px,1fr)_90px_120px_120px] gap-3 border-b border-border bg-muted/60 px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
-                  <span>Provider</span>
-                  <span>Model</span>
-                  <span>Priority</span>
-                  <span>Status</span>
-                  <span className="text-right">Action</span>
-                </div>
-                <div className="divide-y divide-border">
-                  {providers.map((provider) => (
-                    <div
-                      key={provider.id}
-                      className="grid grid-cols-[minmax(190px,1.4fr)_minmax(150px,1fr)_90px_120px_120px] items-center gap-3 px-4 py-4 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-medium text-foreground">{provider.providerName}</p>
-                          {provider.isDefault ? <Pill tone="primary">Default</Pill> : null}
-                          {provider.isFallback ? <Pill tone="muted">Fallback</Pill> : null}
+                  <div className="grid grid-cols-[minmax(190px,1.4fr)_minmax(150px,1fr)_90px_120px_120px] gap-3 border-b border-border bg-muted/60 px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
+                    <span>Provider</span>
+                    <span>Model</span>
+                    <span>Priority</span>
+                    <span>Status</span>
+                    <span className="text-right">Action</span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {providers.map((provider) => (
+                      <div
+                        key={provider.id}
+                        className="grid grid-cols-[minmax(190px,1.4fr)_minmax(150px,1fr)_90px_120px_120px] items-center gap-3 px-4 py-4 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-foreground">{provider.providerName}</p>
+                            {provider.isDefault ? <Pill tone="primary">Default</Pill> : null}
+                            {provider.isFallback ? <Pill tone="muted">Fallback</Pill> : null}
+                          </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">{labelForType(provider.providerType)} · {provider.baseUrl}</p>
                         </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">{labelForType(provider.providerType)} · {provider.baseUrl}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-foreground">{provider.modelName}</p>
-                        {provider.hasApiKey ? <p className="text-xs text-muted-foreground">Saved key hidden</p> : <p className="text-xs text-muted-foreground">No API key</p>}
-                      </div>
-                      <p className="text-muted-foreground">{provider.priority}</p>
-                      <ProviderStatus provider={provider} />
-                      <div className="text-right">
-                        <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(provider)} className="bg-transparent">
-                          Edit
-                        </Button>
-                      </div>
-                      {provider.lastTestModels.length > 0 ? (
-                        <div className="col-span-5 -mt-1 flex flex-wrap gap-1.5">
-                          {provider.lastTestModels.slice(0, 10).map((model) => (
-                            <span key={model} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{model}</span>
-                          ))}
+                        <div className="min-w-0">
+                          <p className="truncate text-foreground">{provider.modelName}</p>
+                          {provider.hasApiKey ? <p className="text-xs text-muted-foreground">Saved key hidden</p> : <p className="text-xs text-muted-foreground">No API key</p>}
                         </div>
-                      ) : null}
-                      {provider.lastTestMessage ? (
-                        <p className="col-span-5 text-xs text-muted-foreground">{provider.lastTestMessage}</p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
+                        <p className="text-muted-foreground">{provider.priority}</p>
+                        <ProviderStatus provider={provider} />
+                        <div className="text-right">
+                          <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(provider)} className="bg-transparent">
+                            Edit
+                          </Button>
+                        </div>
+                        {provider.lastTestModels.length > 0 ? (
+                          <div className="col-span-5 -mt-1 flex flex-wrap gap-1.5">
+                            {provider.lastTestModels.slice(0, 10).map((model) => (
+                              <span key={model} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{model}</span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {provider.lastTestMessage ? (
+                          <p className="col-span-5 text-xs text-muted-foreground">{provider.lastTestMessage}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-5">
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+                <PlugZap className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle>AI mode</CardTitle>
+                <CardDescription>Control when UseClevr can use local or cloud AI.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleModeSave} className="space-y-4">
+              <div className="grid gap-3">
+                <ModeOption
+                  value="auto"
+                  current={aiMode}
+                  title="Auto"
+                  description="Try local providers first, then use fallback or cloud providers."
+                />
+                <ModeOption
+                  value="local-only"
+                  current={aiMode}
+                  title="Local only / Offline mode"
+                  description="Never call cloud AI. If local AI is unavailable, analysis returns a clear error."
+                />
+                <ModeOption
+                  value="cloud-only"
+                  current={aiMode}
+                  title="Cloud only"
+                  description="Ignore local providers and use configured cloud providers or default cloud AI."
+                />
+              </div>
+
+              {aiMode === "local-only" && localProviderCount === 0 ? (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  Offline mode needs at least one enabled local provider before analysis can run.
+                </div>
+              ) : null}
+
+              <Button type="submit" disabled={isSavingMode} className="w-full bg-gradient-primary hover:opacity-90">
+                {isSavingMode ? "Saving..." : "Save AI mode"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
@@ -369,6 +435,7 @@ export function AiProvidersClient({
             </form>
           </CardContent>
         </Card>
+        </div>
       </section>
 
       {isDialogOpen ? (
@@ -606,6 +673,34 @@ function CheckboxRow({
   );
 }
 
+function ModeOption({
+  value,
+  current,
+  title,
+  description,
+}: {
+  value: AiMode;
+  current: AiMode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 p-3">
+      <input
+        type="radio"
+        name="aiMode"
+        value={value}
+        defaultChecked={current === value}
+        className="mt-1 h-4 w-4 border-border"
+      />
+      <span>
+        <span className="block text-sm font-medium text-foreground">{title}</span>
+        <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+      </span>
+    </label>
+  );
+}
+
 function ConnectionResult({ success, message, latencyMs, models }: { success: boolean; message: string; latencyMs?: number; models: string[] }) {
   return (
     <div className={`rounded-lg border p-4 text-sm ${success ? "border-emerald-500/30 bg-emerald-500/10" : "border-red-500/30 bg-red-500/10"}`}>
@@ -679,4 +774,14 @@ function Pill({ children, tone }: { children: React.ReactNode; tone: "primary" |
 
 function labelForType(type: string) {
   return providerTypes.find((providerType) => providerType.value === type)?.label || type;
+}
+
+function isLocalProviderType(type: string) {
+  return type === "ollama" || type === "lm-studio" || type === "openai-compatible";
+}
+
+function modeNoticeMessage(mode: AiMode) {
+  if (mode === "local-only") return "Offline mode is active. Cloud AI calls are blocked.";
+  if (mode === "cloud-only") return "Cloud-only mode is active. Local providers are ignored.";
+  return "Auto mode is active. Local providers are tried before fallback providers.";
 }
