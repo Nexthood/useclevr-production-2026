@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-907. Hide unconfigured Google and LinkedIn sign-in options on the login page, suppress social-auth configuration alerts when no social provider is enabled, and keep email-password plus demo sign-in available. (labels: auth, ui, stability; commit: worktree)
 - T-892. Fix OAuth provider availability detection, sanitized server config logging, exact provider callback paths, and successful social-login dashboard redirects. (labels: auth, deployment, ui; commit: worktree)
 - T-891. Fix OAuth callback, sign-out redirect, and generated app-link origins so browser URLs use localhost locally and the active UseClevr host in deployed environments instead of the server bind host. (labels: auth, deployment, ui; commit: worktree)
 - T-889. Route email verification delivery through Resend only, expose a guarded Resend status diagnostic, and surface unverified sender-domain failures in server logs. (labels: auth, logging, deployment, testing; commit: worktree)

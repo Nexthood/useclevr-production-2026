@@ -278,6 +278,9 @@ Text rules for this file:
 - Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
+- Hide Google and LinkedIn sign-in options when their provider setup is incomplete.
+- Keep email-password and demo sign-in usable when social sign-in providers are disabled.
+- Suppress social sign-in configuration alerts on the login page when no social provider is enabled.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Authenticate the built-in superadmin account with the `superadmin` session role and allow protected administrator pages.
 - Keep built-in base, demo, and superadmin identities locked to fixed IDs, emails, roles, and credentials.
@@ -288,6 +291,7 @@ Text rules for this file:
 - Keep login and sign-out redirects on the active app host.
 - Keep OAuth callback URLs on the active public app host, never on the internal server bind host.
 - Enable each OAuth login button only when its provider client ID, provider client secret, and auth secret are configured.
+- Log incomplete social sign-in setup only in development diagnostics with sanitized values.
 - Log OAuth provider configuration status on the server with booleans and callback URLs only, never secret values.
 - Redirect successful OAuth sign-ins to the authenticated dashboard route.
 - Keep generated app links on a safe public app origin, never on the internal server bind host.
