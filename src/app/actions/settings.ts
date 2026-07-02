@@ -161,12 +161,12 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
 
   try {
     const access = await getHybridAiFeatureAccess(userId, session.user.role)
-    if (!access.enabledFeatureIds.includes("singleAiProvider")) {
+    if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
       logBlockedHybridAiFeatureAttempt({
         userId,
         role: access.role,
         subscriptionTier: access.subscriptionTier,
-        featureId: "singleAiProvider",
+        featureId: "aiProviderManagement",
         requiredTier: "lite",
         source: "provider-routing",
         message: "AI provider routing requires Hybrid AI Lite or MEGA.",
@@ -179,7 +179,7 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
         userId,
         role: access.role,
         subscriptionTier: access.subscriptionTier,
-        featureId: "multipleAiProviders",
+        featureId: "providerFallback",
         requiredTier: "mega",
         source: "provider-routing",
         message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.",
@@ -220,12 +220,13 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
 
   try {
     const access = await getHybridAiFeatureAccess(userId, session.user.role)
-    if (!access.enabledFeatureIds.includes("aiModeRouting")) {
+    const requiredModeFeature = mode === "local-only" ? "localMode" : mode === "cloud-only" ? "cloudMode" : "autoMode"
+    if (!access.enabledFeatureIds.includes(requiredModeFeature)) {
       logBlockedHybridAiFeatureAttempt({
         userId,
         role: access.role,
         subscriptionTier: access.subscriptionTier,
-        featureId: "aiModeRouting",
+        featureId: requiredModeFeature,
         requiredTier: "lite",
         source: "ai-mode",
         message: "AI mode switching requires Hybrid AI Lite or MEGA.",

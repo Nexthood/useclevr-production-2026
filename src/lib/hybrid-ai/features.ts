@@ -1,15 +1,22 @@
 export type HybridAiTier = "lite" | "mega"
 
 export type HybridAiFeatureId =
+  | "hybridAiModal"
   | "privateChat"
   | "csvExcelAnalysis"
   | "dashboardInsights"
-  | "singleAiProvider"
-  | "aiModeRouting"
+  | "aiProviderManagement"
+  | "providerHealthChecks"
+  | "autoMode"
+  | "localMode"
+  | "cloudMode"
+  | "aiAssistantIntegration"
+  | "datasetAwareChat"
   | "multipleAiProviders"
+  | "providerFallback"
   | "multiDocumentAnalysis"
-  | "advancedReports"
-  | "aiAuditLogs"
+  | "aiReports"
+  | "auditLogs"
   | "workflowAutomationRoadmap"
   | "helperRoadmap"
   | "aiAgents"
@@ -31,6 +38,14 @@ export type HybridAiModule = {
 }
 
 export const HYBRID_AI_MODULES: HybridAiModule[] = [
+  {
+    id: "hybridAiModal",
+    tier: "lite",
+    name: "Hybrid AI Modal",
+    description: "Open the Hybrid AI setup and plan access experience.",
+    upgradeReason: "Hybrid AI setup is included with Hybrid AI Lite and MEGA.",
+    status: "active",
+  },
   {
     id: "privateChat",
     tier: "lite",
@@ -56,19 +71,59 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     status: "active",
   },
   {
-    id: "singleAiProvider",
+    id: "aiProviderManagement",
     tier: "lite",
-    name: "Single AI Provider",
+    name: "AI Provider Management",
     description: "Connect one local or cloud AI provider for private routing.",
-    upgradeReason: "Single AI Provider setup is included with Hybrid AI Lite and MEGA.",
+    upgradeReason: "AI Provider Management is included with Hybrid AI Lite and MEGA.",
     status: "active",
   },
   {
-    id: "aiModeRouting",
+    id: "providerHealthChecks",
     tier: "lite",
-    name: "Auto/Local/Cloud mode",
-    description: "Choose automatic, offline local-only, or cloud-only routing.",
-    upgradeReason: "Hybrid AI mode switching is included with Hybrid AI Lite and MEGA.",
+    name: "Provider Health Checks",
+    description: "Test provider reachability, latency, and model availability.",
+    upgradeReason: "Provider Health Checks are included with Hybrid AI Lite and MEGA.",
+    status: "active",
+  },
+  {
+    id: "autoMode",
+    tier: "lite",
+    name: "Auto Mode",
+    description: "Try configured providers first and use allowed fallback routing.",
+    upgradeReason: "Auto Mode is included with Hybrid AI Lite and MEGA.",
+    status: "active",
+  },
+  {
+    id: "localMode",
+    tier: "lite",
+    name: "Local Mode",
+    description: "Keep Hybrid AI requests on configured local providers only.",
+    upgradeReason: "Local Mode is included with Hybrid AI Lite and MEGA.",
+    status: "active",
+  },
+  {
+    id: "cloudMode",
+    tier: "lite",
+    name: "Cloud Mode",
+    description: "Route Hybrid AI requests through configured cloud providers or default cloud AI.",
+    upgradeReason: "Cloud Mode is included with Hybrid AI Lite and MEGA.",
+    status: "active",
+  },
+  {
+    id: "aiAssistantIntegration",
+    tier: "lite",
+    name: "AI Assistant integration",
+    description: "Use Hybrid AI routing inside the existing UseClevr AI Assistant.",
+    upgradeReason: "AI Assistant integration is included with Hybrid AI Lite and MEGA.",
+    status: "active",
+  },
+  {
+    id: "datasetAwareChat",
+    tier: "lite",
+    name: "Dataset-aware chat",
+    description: "Ask questions with summarized dataset context and privacy routing.",
+    upgradeReason: "Dataset-aware chat is included with Hybrid AI Lite and MEGA.",
     status: "active",
   },
   {
@@ -80,6 +135,14 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     status: "active",
   },
   {
+    id: "providerFallback",
+    tier: "mega",
+    name: "Provider Fallback",
+    description: "Route to a configured fallback provider when the default provider is unavailable.",
+    upgradeReason: "Provider Fallback requires Hybrid AI MEGA because Lite includes one provider.",
+    status: "active",
+  },
+  {
     id: "multiDocumentAnalysis",
     tier: "mega",
     name: "Multi-document Analysis",
@@ -88,19 +151,19 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     status: "active",
   },
   {
-    id: "advancedReports",
+    id: "aiReports",
     tier: "mega",
-    name: "Advanced Reports",
+    name: "AI Reports",
     description: "Use advanced Hybrid AI report enhancement.",
-    upgradeReason: "Advanced Reports require Hybrid AI MEGA because they use deeper provider-powered report generation.",
+    upgradeReason: "AI Reports require Hybrid AI MEGA because they use deeper provider-powered report generation.",
     status: "active",
   },
   {
-    id: "aiAuditLogs",
+    id: "auditLogs",
     tier: "mega",
-    name: "AI Audit Logs",
+    name: "Audit Logs",
     description: "Review AI provider usage and privacy-routing metadata.",
-    upgradeReason: "AI Audit Logs require Hybrid AI MEGA because they support governance and audit review.",
+    upgradeReason: "Audit Logs require Hybrid AI MEGA because they support governance and audit review.",
     status: "active",
   },
   {
@@ -172,10 +235,16 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
 export const HYBRID_AI_FEATURES = HYBRID_AI_MODULES
 
 export const HYBRID_AI_LITE_MODULE_IDS = HYBRID_AI_MODULES
-  .filter((module) => module.tier === "lite")
+  .filter((module) => module.tier === "lite" && module.status === "active")
   .map((module) => module.id)
 
-export const HYBRID_AI_MEGA_MODULE_IDS = HYBRID_AI_MODULES.map((module) => module.id)
+export const HYBRID_AI_MEGA_MODULE_IDS = HYBRID_AI_MODULES
+  .filter((module) => module.status === "active")
+  .map((module) => module.id)
+
+export const HYBRID_AI_COMING_SOON_MODULE_IDS = HYBRID_AI_MODULES
+  .filter((module) => module.status === "coming-soon")
+  .map((module) => module.id)
 
 export function getHybridAiFeature(featureId: HybridAiFeatureId) {
   return HYBRID_AI_FEATURES.find((feature) => feature.id === featureId)
@@ -207,6 +276,7 @@ export function getHybridAiEntitlement(subscriptionTier?: string | null, role?: 
     canUseMega: accessTier === "mega",
     enabledModuleIds:
       accessTier === "mega" ? HYBRID_AI_MEGA_MODULE_IDS : accessTier === "lite" ? HYBRID_AI_LITE_MODULE_IDS : [],
+    comingSoonModuleIds: accessTier === "mega" ? HYBRID_AI_COMING_SOON_MODULE_IDS : [],
     providerLimit: accessTier === "mega" ? null : accessTier === "lite" ? 1 : 0,
   }
 }

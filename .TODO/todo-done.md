@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-905. Complete Hybrid AI feature gates for current Lite and MEGA features with backend enforcement and automated entitlement tests. (labels: ai, billing, security, testing; commit: worktree)
 - T-904. Apply simplified Hybrid AI MVP feature gates across frontend, backend routes, provider settings, audit activity, helper roadmap actions, blocked-attempt logs, and user-facing upgrade paths. (labels: ai, billing, security, ui; commit: worktree)
 - T-903. Add metadata-only Hybrid AI privacy audit logging, AI Assistant privacy status, and user-scoped AI Activity review. (labels: ai, logging, security, ui; commit: worktree)
 - T-902. Route the existing AI Assistant through Hybrid AI provider routing, dataset-aware context, fallback rules, local-only cloud blocking, and unified provider status display. (labels: ai, local-ai, data, ui; commit: worktree)

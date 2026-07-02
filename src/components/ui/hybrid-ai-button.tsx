@@ -35,8 +35,9 @@ export default function HybridAiButton({
       : (["lite"] as const)
   const defaultTier = subscriptionTier === "business" ? "mega" : "lite"
   const availableModules = HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id))
+  const comingSoonModules = HYBRID_AI_MODULES.filter((module) => entitlement.comingSoonModuleIds.includes(module.id))
   const liteModules = availableModules.filter((module) => module.tier === "lite")
-  const megaModules = availableModules.filter((module) => module.tier === "mega")
+  const megaModules = [...availableModules.filter((module) => module.tier === "mega"), ...comingSoonModules]
 
   return (
     <>

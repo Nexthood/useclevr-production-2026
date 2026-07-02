@@ -2,7 +2,7 @@
 
 ### Changed
 
-- Add centralized Hybrid AI feature gates so Lite includes private chat, CSV/Excel analysis, dashboard insights, one provider, and AI mode routing, while MEGA enforces multiple providers, multi-document analysis, advanced reports, AI audit logs, and roadmap actions.
+- Add centralized Hybrid AI feature gates so Lite includes private chat, CSV/Excel analysis, dashboard insights, provider management, provider health checks, Auto/Local/Cloud modes, AI Assistant integration, and dataset-aware chat, while MEGA enforces multiple providers, provider fallback, multi-document analysis, AI reports, audit logs, and roadmap actions.
 - Add metadata-only AI privacy audit logging so users and superadmins can see which provider handled each AI request, whether data stayed local or went to cloud, and whether fallback routing was used.
 - Route the existing AI Assistant through Hybrid AI provider routing so general and dataset-aware chat share the same BYOAI modes, summarized dataset context, fallback rules, and provider status display.
 - Make Hybrid AI Chat dataset-aware so users can select a dataset, ask business questions, and receive answers from summarized context, KPI extracts, column profiles, sample rows, and provider routing status.

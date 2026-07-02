@@ -1,4 +1,4 @@
-- changed: simplify Hybrid AI feature gates for MVP so Lite covers private chat, CSV/Excel analysis, dashboard insights, one provider, and AI mode routing, while MEGA enforces multiple providers, multi-document analysis, advanced reports, AI audit logs, and roadmap actions with future modules marked coming soon
+- changed: complete Hybrid AI feature gates for current MVP features with explicit Lite and MEGA registry IDs, backend enforcement for provider health, dataset-aware chat, mode routing, provider fallback, reports, audit logs, roadmap actions, and automated entitlement tests
 - changed: add metadata-only Hybrid AI privacy audit logging with provider, model, mode, local/cloud route, fallback use, success state, dataset ID, and safe error reason, plus an AI Privacy Status panel and Settings AI Activity review
 - changed: route the existing AI Assistant through Hybrid AI provider routing, dataset-aware context, fallback rules, local-only cloud blocking, and unified provider status display
 - changed: make Hybrid AI Chat dataset-aware with dataset selection, summarized context, backend KPI extracts, provider routing status, and cloud fallback privacy warnings

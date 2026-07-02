@@ -138,7 +138,7 @@ export async function canUseHybridAiFeatureForUser(userId: string, featureId: Hy
 }
 
 export async function canUseConfiguredAiProviders(userId: string, sessionRole?: string | null) {
-  return canUseHybridAiFeatureForUser(userId, "singleAiProvider", sessionRole)
+  return canUseHybridAiFeatureForUser(userId, "aiProviderManagement", sessionRole)
 }
 
 export async function assertCanSaveAiProvider(input: {
@@ -148,17 +148,17 @@ export async function assertCanSaveAiProvider(input: {
 }) {
   const access = await getHybridAiFeatureAccess(input.userId, input.sessionRole)
 
-  if (!access.enabledFeatureIds.includes("singleAiProvider")) {
+  if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
     logBlockedHybridAiFeatureAttempt({
       userId: input.userId,
       role: access.role,
       subscriptionTier: access.subscriptionTier,
-      featureId: "singleAiProvider",
+      featureId: "aiProviderManagement",
       requiredTier: "lite",
       source: "provider-save",
       message: "AI Providers require Hybrid AI Lite or MEGA.",
     })
-    throw new HybridAiFeatureGateError("AI Providers require Hybrid AI Lite or MEGA.", "lite", "singleAiProvider")
+    throw new HybridAiFeatureGateError("AI Providers require Hybrid AI Lite or MEGA.", "lite", "aiProviderManagement")
   }
 
   if (access.providerLimit === null) return access

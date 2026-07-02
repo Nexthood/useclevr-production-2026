@@ -25,6 +25,7 @@ import { executeStrictSQL } from '@/lib/chat/sql-executor';
 import { formatAIResponse } from '@/lib/chat/explanation';
 import { handleRegularChat, handleRegularChatStream, type ChatProviderStatus } from '@/lib/chat/fallback';
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
+import { requireHybridAiFeature } from '@/lib/hybrid-ai/feature-gate';
 
 function streamResponse(readable: ReadableStream<string>): Response {
   const encoder = new TextEncoder()
@@ -275,6 +276,9 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    const gate = await requireHybridAiFeature("aiAssistantIntegration");
+    if (!gate.success) return gate.error;
 
     const lastMessage = messages[messages.length - 1]?.content || '';
     const isAnalyticalQuery = /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
