@@ -82,7 +82,7 @@ const datasetChatSchema = z.object({
 });
 
 export async function GET() {
-  const gate = await requireHybridAiFeature("csvExcelAnalysis");
+  const gate = await requireHybridAiFeature("datasetAwareChat");
   if (!gate.success) return gate.error;
   const userId = gate.session?.user?.id;
   if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -111,7 +111,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireHybridAiFeature("csvExcelAnalysis");
+  const gate = await requireHybridAiFeature("datasetAwareChat");
   if (!gate.success) return gate.error;
   const userId = gate.session?.user?.id;
   if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

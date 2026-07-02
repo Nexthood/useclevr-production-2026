@@ -106,6 +106,26 @@ interface CSVAnalysisResult {
   
   // AI Summary
   ai_summary?: string
+  business_intelligence?: {
+    healthScore: {
+      overall: number
+      dataQuality: number
+      kpiCompleteness: number
+      trendStability: number
+      riskScore: number
+    }
+    detectedKpis: Record<string, string | null>
+    risks: { title: string; description: string; severity?: 'High' | 'Medium' | 'Low'; confidence: number }[]
+    opportunities: { title: string; description: string; severity?: 'High' | 'Medium' | 'Low'; confidence: number }[]
+    executiveSummary: string
+    recommendedActions: {
+      priority: 'High' | 'Medium' | 'Low'
+      action: string
+      reason: string
+      expectedBusinessImpact: string
+      confidence: number
+    }[]
+  }
 }
 
 interface DatasetAnalyzerProps {
@@ -841,6 +861,107 @@ export function DatasetAnalyzer({
         <div className="mb-4 rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm text-violet-900 dark:text-violet-100">
           {forecastStatus}
         </div>
+      )}
+
+      {analysis?.business_intelligence && (
+        <Card className="mb-6 border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <Sparkles className="h-5 w-5 text-violet-500" />
+              Business Intelligence Engine
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-5">
+              {[
+                ["Health", analysis.business_intelligence.healthScore.overall],
+                ["Data quality", analysis.business_intelligence.healthScore.dataQuality],
+                ["KPI coverage", analysis.business_intelligence.healthScore.kpiCompleteness],
+                ["Trend stability", analysis.business_intelligence.healthScore.trendStability],
+                ["Risk control", analysis.business_intelligence.healthScore.riskScore],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="rounded-lg border border-border bg-muted/30 p-3">
+                  <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">{Number(value)}/100</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="rounded-lg border border-border bg-background p-3 text-sm leading-6 text-foreground">
+              {analysis.business_intelligence.executiveSummary}
+            </p>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-lg border border-border bg-background p-3">
+                <h3 className="text-sm font-semibold text-foreground">Detected KPIs</h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {Object.entries(analysis.business_intelligence.detectedKpis)
+                    .filter(([, column]) => Boolean(column))
+                    .slice(0, 10)
+                    .map(([kpi, column]) => (
+                      <span key={kpi} className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                        {kpi}: {column}
+                      </span>
+                    ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-background p-3">
+                <h3 className="text-sm font-semibold text-foreground">Risks</h3>
+                <div className="mt-3 space-y-2">
+                  {analysis.business_intelligence.risks.slice(0, 3).map((risk) => (
+                    <div key={`${risk.title}-${risk.description}`} className="text-sm">
+                      <p className="font-medium text-foreground">{risk.title}</p>
+                      <p className="text-xs leading-5 text-muted-foreground">{risk.description}</p>
+                    </div>
+                  ))}
+                  {analysis.business_intelligence.risks.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No major automatic risk signal detected.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-background p-3">
+                <h3 className="text-sm font-semibold text-foreground">Opportunities</h3>
+                <div className="mt-3 space-y-2">
+                  {analysis.business_intelligence.opportunities.slice(0, 3).map((opportunity) => (
+                    <div key={`${opportunity.title}-${opportunity.description}`} className="text-sm">
+                      <p className="font-medium text-foreground">{opportunity.title}</p>
+                      <p className="text-xs leading-5 text-muted-foreground">{opportunity.description}</p>
+                    </div>
+                  ))}
+                  {analysis.business_intelligence.opportunities.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Add revenue, product, customer, or time fields to unlock more opportunities.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {analysis.business_intelligence.recommendedActions.length > 0 && (
+              <div className="rounded-lg border border-border bg-background p-3">
+                <h3 className="text-sm font-semibold text-foreground">Recommended Actions</h3>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  {analysis.business_intelligence.recommendedActions.slice(0, 6).map((item) => (
+                    <div key={`${item.priority}-${item.action}`} className="rounded-md border border-border bg-muted/20 p-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        item.priority === 'High'
+                          ? 'bg-red-500/10 text-red-700 dark:text-red-300'
+                          : item.priority === 'Medium'
+                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                            : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                      }`}>
+                        {item.priority}
+                      </span>
+                      <p className="mt-2 text-sm font-medium text-foreground">{item.action}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.reason}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">Impact: {item.expectedBusinessImpact}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Tabs */}

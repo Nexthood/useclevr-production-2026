@@ -114,8 +114,12 @@ export function AiProvidersClient({
   const localProviderCount = providers.filter((provider) => isLocalProviderType(provider.providerType)).length;
   const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
   const savedProvider = providers.find((provider) => provider.id === form.providerId);
-  const canUseAiProviders = Boolean(featureAccess?.enabledFeatureIds.includes("singleAiProvider"));
-  const canUseModeRouting = Boolean(featureAccess?.enabledFeatureIds.includes("aiModeRouting"));
+  const canUseAiProviders = Boolean(featureAccess?.enabledFeatureIds.includes("aiProviderManagement"));
+  const canUseModeRouting = Boolean(
+    featureAccess?.enabledFeatureIds.includes("autoMode") &&
+      featureAccess.enabledFeatureIds.includes("localMode") &&
+      featureAccess.enabledFeatureIds.includes("cloudMode"),
+  );
   const providerLimit = featureAccess?.providerLimit ?? 0;
   const canAddProvider = canUseAiProviders && (providerLimit === null || providers.length < providerLimit);
 

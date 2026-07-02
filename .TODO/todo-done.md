@@ -41,6 +41,8 @@ moving work between states.
 
 ## Label: auth
 
+- T-908. Prefer the Railway social sign-in environment names for Google and LinkedIn provider setup, keep legacy provider names as fallback aliases, and suppress stale OAuth configuration query errors after provider status loads. (labels: auth, deployment, ui; commit: 000129bf)
+- T-907. Hide unconfigured Google and LinkedIn sign-in options on the login page, suppress social-auth configuration alerts when no social provider is enabled, and keep email-password plus demo sign-in available. (labels: auth, ui, stability; commit: worktree)
 - T-892. Fix OAuth provider availability detection, sanitized server config logging, exact provider callback paths, and successful social-login dashboard redirects. (labels: auth, deployment, ui; commit: worktree)
 - T-891. Fix OAuth callback, sign-out redirect, and generated app-link origins so browser URLs use localhost locally and the active UseClevr host in deployed environments instead of the server bind host. (labels: auth, deployment, ui; commit: worktree)
 - T-889. Route email verification delivery through Resend only, expose a guarded Resend status diagnostic, and surface unverified sender-domain failures in server logs. (labels: auth, logging, deployment, testing; commit: worktree)
@@ -56,6 +58,8 @@ moving work between states.
 
 ## Label: ai
 
+- T-906. Add Business Intelligence Engine Phase 1 with automatic post-upload profiling, KPI detection, health scoring, risk detection, opportunity detection, summaries, prioritized actions, and deterministic tests. (labels: ai, data, business, testing; commit: worktree)
+- T-905. Complete Hybrid AI feature gates for current Lite and MEGA features with backend enforcement and automated entitlement tests. (labels: ai, billing, security, testing; commit: worktree)
 - T-904. Apply simplified Hybrid AI MVP feature gates across frontend, backend routes, provider settings, audit activity, helper roadmap actions, blocked-attempt logs, and user-facing upgrade paths. (labels: ai, billing, security, ui; commit: worktree)
 - T-903. Add metadata-only Hybrid AI privacy audit logging, AI Assistant privacy status, and user-scoped AI Activity review. (labels: ai, logging, security, ui; commit: worktree)
 - T-902. Route the existing AI Assistant through Hybrid AI provider routing, dataset-aware context, fallback rules, local-only cloud blocking, and unified provider status display. (labels: ai, local-ai, data, ui; commit: worktree)

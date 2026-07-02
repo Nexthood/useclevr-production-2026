@@ -71,8 +71,8 @@ export function UseClevrHybridAiChatPanel({
     [entitlement.enabledModuleIds, status.features],
   )
   const comingSoonModules = React.useMemo(
-    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id] && module.status === "coming-soon"),
-    [entitlement.enabledModuleIds, status.features],
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.comingSoonModuleIds.includes(module.id) && status.features[module.id]),
+    [entitlement.comingSoonModuleIds, status.features],
   )
   const lockedMegaModules = React.useMemo(
     () => HYBRID_AI_MODULES.filter((module) => module.tier === "mega" && !entitlement.canUseMega && status.features[module.id]),

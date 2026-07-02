@@ -4,12 +4,13 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
-import { parseCSVString, parseCSVFileBrowser, parseCSVStreaming, computePrecomputedMetrics, type AggregatedMetrics } from "@/lib/data/csvLoader"
+import { parseCSVString, parseCSVStreaming, computePrecomputedMetrics, type AggregatedMetrics } from "@/lib/data/csvLoader"
 const PREVIEW_ROW_COUNT = 100
 import { auth } from "@/lib/auth/auth"
 import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
+import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit, getRowLimitForUser, formatRowLimitError, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
@@ -476,6 +477,58 @@ export async function uploadCSV(formData: FormData): Promise<{
           debugLog("[UPLOAD] Wrote", allRows.length, "rows to datasetRows")
         } else if (useStreamingStorage) {
           debugLog("[UPLOAD] Streaming mode - preview rows stored in dataset.data, skipping datasetRows")
+        }
+
+        const rowsForBusinessIntelligence = (isProfitabilityAnalysis ? previewRows : useStreamingStorage ? previewRows : allRows) as Record<string, unknown>[]
+        if (rowsForBusinessIntelligence.length > 0) {
+          try {
+            debugLog("[UPLOAD] Running Business Intelligence Engine Phase 1:", datasetId)
+            const businessIntelligence = await generateBusinessIntelligence({
+              rows: rowsForBusinessIntelligence,
+              columns: headers,
+              datasetId,
+              datasetName,
+              userId: effectiveUserId,
+            })
+            const existingAnalysis = (insertData.analysis || {}) as Record<string, unknown>
+            await executeWithRetry(
+              () => (db as any)
+                .update(datasets)
+                .set({
+                  analysis: {
+                    ...existingAnalysis,
+                    business_intelligence: businessIntelligence,
+                  },
+                  aiInsights: businessIntelligence,
+                  analysisStatus: "completed",
+                  analysisProgress: 100,
+                  analysisMessage: "Business Intelligence Engine completed.",
+                  updatedAt: new Date(),
+                })
+                .where(eq(datasets.id, datasetId)),
+              "Save Business Intelligence Engine output",
+            )
+            debugLog("[UPLOAD] Business Intelligence Engine completed:", {
+              datasetId,
+              healthScore: businessIntelligence.healthScore.overall,
+              risks: businessIntelligence.risks.length,
+              opportunities: businessIntelligence.opportunities.length,
+            })
+          } catch (biError) {
+            debugError("[UPLOAD] Business Intelligence Engine failed:", biError)
+            await executeWithRetry(
+              () => (db as any)
+                .update(datasets)
+                .set({
+                  analysisStatus: "ready",
+                  analysisMessage: "Dataset uploaded. Automatic insights can be refreshed from the analysis page.",
+                  analysisError: biError instanceof Error ? biError.message.slice(0, 500) : "Business Intelligence Engine failed.",
+                  updatedAt: new Date(),
+                })
+                .where(eq(datasets.id, datasetId)),
+              "Save Business Intelligence Engine failure status",
+            ).catch(() => {})
+          }
         }
       } catch (insertErr) {
         debugError("[UPLOAD] INSERT FAILED:", insertErr)

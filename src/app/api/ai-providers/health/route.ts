@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const gate = await requireHybridAiFeature("singleAiProvider");
+  const gate = await requireHybridAiFeature("providerHealthChecks");
   if (!gate.success) return gate.error;
   const userId = gate.session?.user?.id;
   if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

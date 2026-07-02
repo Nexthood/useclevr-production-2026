@@ -3,6 +3,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { auth } from "@/lib/auth/auth";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
+import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 import type { CSVAnalysisResult, DatasetRecord } from "@/lib/data/csv-analyzer";
@@ -409,11 +410,33 @@ export async function POST(
       (analysis as any).ai_summary = null;
     }
 
+    try {
+      const businessIntelligence = await generateBusinessIntelligence({
+        rows: data as Record<string, unknown>[],
+        columns: datasetData.columns,
+        datasetId: id,
+        datasetName: datasetData.name,
+        userId,
+      });
+      (analysis as any).business_intelligence = businessIntelligence;
+      debugLog('[ANALYZE] Business Intelligence Engine completed:', {
+        healthScore: businessIntelligence.healthScore.overall,
+        risks: businessIntelligence.risks.length,
+        opportunities: businessIntelligence.opportunities.length,
+      });
+    } catch (biError) {
+      debugError('[ANALYZE] Business Intelligence Engine failed:', biError);
+    }
+
     // Save analysis result to database for persistence
     try {
       await db.update(datasets)
         .set({ 
           analysis: analysis as any,
+          aiInsights: (analysis as any).business_intelligence || null,
+          analysisStatus: "completed",
+          analysisProgress: 100,
+          analysisMessage: "Analysis completed.",
           updatedAt: new Date()
         })
         .where(and(eq(datasets.id, id), eq(datasets.userId, userId)));

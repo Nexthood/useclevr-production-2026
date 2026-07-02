@@ -14,13 +14,13 @@ export default async function AiActivityPage() {
   if (!session?.user?.id) redirect("/login");
 
   const access = await getHybridAiFeatureAccess(session.user.id, session.user.role);
-  const canViewAiAuditLogs = access.enabledFeatureIds.includes("aiAuditLogs");
+  const canViewAiAuditLogs = access.enabledFeatureIds.includes("auditLogs");
   if (!canViewAiAuditLogs) {
     logBlockedHybridAiFeatureAttempt({
       userId: session.user.id,
       role: access.role,
       subscriptionTier: access.subscriptionTier,
-      featureId: "aiAuditLogs",
+      featureId: "auditLogs",
       requiredTier: "mega",
       source: "settings-ai-activity",
       message: "AI Audit Logs require Hybrid AI MEGA.",

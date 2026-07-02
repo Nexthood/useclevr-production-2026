@@ -111,7 +111,10 @@ function LoginForm() {
   };
 
   const dashboardCallbackUrl = () => "/app/dashboard";
-  const visibleAuthError = authError || getReadableAuthError(authQueryError);
+  const oauthProviderEnabled = Boolean(oauthStatus?.googleEnabled || oauthStatus?.linkedInEnabled);
+  const visibleAuthError =
+    authError ||
+    (authQueryError === "Configuration" && oauthStatus ? null : getReadableAuthError(authQueryError));
   const isVerificationOpen = Boolean(pendingVerificationEmail);
   const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
 
@@ -433,36 +436,42 @@ function LoginForm() {
         </span>
       </Button>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={isLoading || oauthStatus?.googleEnabled !== true}
-          onClick={() => startProviderSignIn("google")}
-        >
-          {authAction === "google" ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
+      {oauthProviderEnabled && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {oauthStatus?.googleEnabled && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isLoading}
+              onClick={() => startProviderSignIn("google")}
+            >
+              {authAction === "google" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
+              )}
+              Google
+            </Button>
           )}
-          Google
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={isLoading || oauthStatus?.linkedInEnabled !== true}
-          onClick={() => startProviderSignIn("linkedin")}
-        >
-          {authAction === "linkedin" ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <FaLinkedin className="mr-2 h-4 w-4 text-sky-600" />
+          {oauthStatus?.linkedInEnabled && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isLoading}
+              onClick={() => startProviderSignIn("linkedin")}
+            >
+              {authAction === "linkedin" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FaLinkedin className="mr-2 h-4 w-4 text-sky-600" />
+              )}
+              LinkedIn
+            </Button>
           )}
-          LinkedIn
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 

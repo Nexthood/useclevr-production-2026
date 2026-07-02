@@ -59,6 +59,14 @@ Text rules for this file:
 - Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
 - Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
+- Generate Business Intelligence Engine Phase 1 output automatically after CSV or Excel upload.
+- Profile uploaded datasets by columns, data types, missing values, duplicate rows, and invalid values.
+- Detect business KPI columns for revenue, profit, cost, margin, inventory, customers, orders, products, and time.
+- Calculate a 0-100 Business Health Score from data quality, KPI completeness, trend stability, and business risk signals.
+- Detect business risks including declining revenue, falling margins, low stock, customer concentration, seasonal or trend anomalies, and outliers.
+- Detect business opportunities including high-performing products, growth opportunities, upselling opportunities, inventory optimization, and cost savings.
+- Show a concise executive summary and prioritized High, Medium, and Low recommended actions with reason, expected business impact, and confidence.
+- Route Business Intelligence Engine narrative generation through the Universal AI Adapter while keeping deterministic calculations in the backend.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
 - Explain Hybrid AI plan access in customer-facing plan copy.
@@ -67,13 +75,14 @@ Text rules for this file:
 - Keep technical runtime names, internal engine names, and model names out of normal customer UI.
 - Register every Hybrid AI capability in a centralized feature gate with a required Lite or MEGA tier and upgrade explanation.
 - Enforce Hybrid AI feature access on backend routes and server actions before local-provider chat, dataset-aware Hybrid AI chat, AI provider testing, provider health checks, provider saves, provider routing, and mode changes run.
-- Include Private Chat, CSV/Excel Analysis, Dashboard Insights, One AI Provider, and Auto/Local/Cloud mode in Hybrid AI Lite.
-- Include Multiple AI Providers, Multi-document Analysis, Advanced Reports, AI Audit Logs, Workflow Automation roadmap, and UseClevr Helper roadmap in Hybrid AI MEGA.
+- Include Hybrid AI Modal, Private Chat, CSV/Excel Analysis, Dashboard Insights, AI Provider Management, Provider Health Checks, Auto Mode, Local Mode, Cloud Mode, AI Assistant integration, and Dataset-aware chat in Hybrid AI Lite.
+- Include Multiple AI Providers, Provider Fallback, Multi-document Analysis, AI Reports, Audit Logs, Workflow Automation roadmap, and UseClevr Helper roadmap in Hybrid AI MEGA.
 - Mark AI Agents, Deep Research, Background Tasks, Business Assistants, Team AI, and Local Knowledge Base as coming soon MEGA modules.
 - Limit Hybrid AI Lite users to one configured AI provider and route only that provider through BYOAI execution.
 - Let Hybrid AI MEGA users configure multiple providers and fallback routing.
 - Show upgrade dialogs when users try to use a Hybrid AI feature that their active plan does not include.
 - Log blocked Hybrid AI feature attempts server-side with user ID, role, subscription tier, feature ID, required tier, source, and safe message.
+- Test Hybrid AI feature gates for Lite users, MEGA users, expired subscriptions, trial accounts, and superadmin access.
 - Show an AI Providers settings page.
 - Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, model, enabled state, default-provider state, fallback-provider state, and priority.
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.
@@ -269,6 +278,9 @@ Text rules for this file:
 - Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.
 - Combine sign-in and sign-up in tabs on the login page.
 - Offer the built-in demo account and configured Google or LinkedIn sign-in options.
+- Hide Google and LinkedIn sign-in options when their provider setup is incomplete.
+- Keep email-password and demo sign-in usable when social sign-in providers are disabled.
+- Suppress social sign-in configuration alerts on the login page when no social provider is enabled.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Authenticate the built-in superadmin account with the `superadmin` session role and allow protected administrator pages.
 - Keep built-in base, demo, and superadmin identities locked to fixed IDs, emails, roles, and credentials.
@@ -278,7 +290,9 @@ Text rules for this file:
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
 - Keep OAuth callback URLs on the active public app host, never on the internal server bind host.
+- Read the canonical UseClevr Google and LinkedIn social sign-in settings before checking legacy provider aliases.
 - Enable each OAuth login button only when its provider client ID, provider client secret, and auth secret are configured.
+- Log incomplete social sign-in setup only in development diagnostics with sanitized values.
 - Log OAuth provider configuration status on the server with booleans and callback URLs only, never secret values.
 - Redirect successful OAuth sign-ins to the authenticated dashboard route.
 - Keep generated app links on a safe public app origin, never on the internal server bind host.
@@ -430,8 +444,8 @@ Text rules for this file:
 - Use UseClevr Helper on localhost port 14567 for health, status, and private-analysis chat checks.
 - Expose Hybrid AI module feature flags from the UseClevr Helper status response.
 - Unlock Hybrid AI Lite and Hybrid AI MEGA modules in the web app from the authenticated subscription, using one shared helper installation.
-- Include Private Chat, CSV/Excel Analysis, Dashboard Insights, One AI Provider, and Auto/Local/Cloud mode in Hybrid AI Lite.
-- Include Multiple AI Providers, Multi-document Analysis, Advanced Reports, AI Audit Logs, Workflow Automation roadmap, and UseClevr Helper roadmap in Hybrid AI MEGA.
+- Include Hybrid AI Modal, Private Chat, CSV/Excel Analysis, Dashboard Insights, AI Provider Management, Provider Health Checks, Auto Mode, Local Mode, Cloud Mode, AI Assistant integration, and Dataset-aware chat in Hybrid AI Lite.
+- Include Multiple AI Providers, Provider Fallback, Multi-document Analysis, AI Reports, Audit Logs, Workflow Automation roadmap, and UseClevr Helper roadmap in Hybrid AI MEGA.
 - Mark AI Agents, Deep Research, Background task execution, Business assistants, Team AI, and Local Knowledge Base as coming soon MEGA modules.
 - Keep future Hybrid AI modules modular so new module flags extend the helper contract without creating another desktop app.
 - Show UseClevr Helper offline, setup-needed, and secure-runtime-connected states in branded wording.
