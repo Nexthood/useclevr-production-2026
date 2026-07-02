@@ -30,10 +30,9 @@ into the active queue.
 
 ## Label: auth
 
-- Add OAuth and customer-data authorization before Payload MCP exposes private datasets to ChatGPT or other non-demo clients. (labels: auth, mcp, security, api)
+- Add customer-data authorization before Payload MCP exposes private datasets to ChatGPT or other non-demo clients. (labels: auth, mcp, security, api)
 - Allow signed internal MCP token access through the global proxy or narrow the proxy bypass for trusted MCP headers so documented token-based MCP calls can run without a browser session. (labels: auth, mcp, security, workflow)
 - Add OAuth providers if the product roadmap requires them. (labels: auth, ai, workflow)
-- OAuth user ID generation uses Date.now() + Math.random() — switch to uuid for collision resistance. (labels: auth)
 - Add a development settings toggle for switching between real local AI and Mock AI during local-only sessions. (labels: auth, local-ai, ai, dashboard)
 - Verify role handling for user, admin, and superadmin. Make sure protected routes are consistent. Fix onboarding/session edge cases only where needed. (labels: auth, api, dashboard, workflow)
 - Add multi-factor authentication option for sensitive operations. (labels: auth, security)

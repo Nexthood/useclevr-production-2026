@@ -277,10 +277,9 @@ Text rules for this file:
 - Log email-password signup, verification, proof consumption, and credentials sign-in outcomes on the server with masked email addresses and without logging passwords or verification codes.
 - Allow a temporary superadmin-only fallback verification code when `ADMIN_AUTH_BYPASS_ENABLED=true`, matching only `ADMIN_AUTH_BYPASS_EMAIL`, checking `ADMIN_AUTH_BYPASS_CODE` on the server, and keeping the bypass code out of client logs and server logs.
 - Combine sign-in and sign-up in tabs on the login page.
-- Offer the built-in demo account and configured Google or LinkedIn sign-in options.
-- Hide Google and LinkedIn sign-in options when their provider setup is incomplete.
-- Keep email-password and demo sign-in usable when social sign-in providers are disabled.
-- Suppress social sign-in configuration alerts on the login page when no social provider is enabled.
+- Offer email-password sign-in, email-password sign-up, email verification, password reset, and the built-in demo account as the MVP authentication paths.
+- Keep Google and LinkedIn social sign-in unavailable in the MVP authentication surface.
+- Keep the login page free of social sign-in provider buttons, social sign-in dividers, and social sign-in configuration alerts.
 - Show built-in base-role and superadmin demo credentials on the login page for app and admin testing.
 - Authenticate the built-in superadmin account with the `superadmin` session role and allow protected administrator pages.
 - Keep built-in base, demo, and superadmin identities locked to fixed IDs, emails, roles, and credentials.
@@ -289,12 +288,8 @@ Text rules for this file:
 - Use compact inner labels in login fields.
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
-- Keep OAuth callback URLs on the active public app host, never on the internal server bind host.
-- Read the canonical UseClevr Google and LinkedIn social sign-in settings before checking legacy provider aliases.
-- Enable each OAuth login button only when its provider client ID, provider client secret, and auth secret are configured.
-- Log incomplete social sign-in setup only in development diagnostics with sanitized values.
-- Log OAuth provider configuration status on the server with booleans and callback URLs only, never secret values.
-- Redirect successful OAuth sign-ins to the authenticated dashboard route.
+- Keep Auth.js configured with credentials and demo providers only.
+- Keep Google and LinkedIn social sign-in environment variables unnecessary for MVP authentication.
 - Keep generated app links on a safe public app origin, never on the internal server bind host.
 - Convert local development redirects from `0.0.0.0` to `localhost` before sending them to the browser.
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
@@ -373,8 +368,7 @@ Text rules for this file:
   accountancy review, support issues, and administrator dataset uploads.
 - Combine Payload operator sign-in and sign-up in tabs on the same login page.
 - Create self-registered Payload operator accounts with the base role.
-- Let configured Google and LinkedIn dashboard sessions provision and authenticate a matching
-  base-role Payload operator account.
+- Keep Payload operator authentication on email and password only.
 - Preserve the built-in superadmin role when its dashboard session authenticates through Payload.
 - Match Payload admin typography, colors, control radius, navigation surfaces, and light/dark
   backgrounds to the dashboard design system.
@@ -467,4 +461,4 @@ Text rules for this file:
 - Route `mcp-test.useclevr.com/api/payload/mcp` to Payload Streamable HTTP MCP with a server-held API key.
 - Expose only locked demo-account dataset metadata and stored analysis through the public test
   connector; never expose uploaded rows or customer-owned datasets.
-- Require OAuth before the ChatGPT MCP app accesses private customer datasets.
+- Require a customer-data authorization flow before the ChatGPT MCP app accesses private customer datasets.

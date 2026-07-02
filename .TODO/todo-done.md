@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
 - T-908. Prefer the Railway social sign-in environment names for Google and LinkedIn provider setup, keep legacy provider names as fallback aliases, and suppress stale OAuth configuration query errors after provider status loads. (labels: auth, deployment, ui; commit: 000129bf)
 - T-907. Hide unconfigured Google and LinkedIn sign-in options on the login page, suppress social-auth configuration alerts when no social provider is enabled, and keep email-password plus demo sign-in available. (labels: auth, ui, stability; commit: worktree)
 - T-892. Fix OAuth provider availability detection, sanitized server config logging, exact provider callback paths, and successful social-login dashboard redirects. (labels: auth, deployment, ui; commit: worktree)

@@ -85,50 +85,6 @@ export async function signup(formData: FormData) {
     return { error: "If this email can be used, we sent a verification code." };
   }
 
-  // Handle existing OAuth user - automatically link password before email code verification
-  if (existingUser && !existingUser.password) {
-    // Automatically add password to existing OAuth user
-    try {
-      const hashedPassword = await bcrypt.hash(password, 12);
-      await db
-        .update(users)
-        .set({ password: hashedPassword, name: name || existingUser.name, emailVerified: null })
-        .where(eq(users.id, existingUser.id));
-
-      const delivery = await createAndSendVerificationCode({
-        userId: existingUser.id,
-        email,
-        purpose: "signup",
-      });
-
-      if (!delivery.success) {
-        if (canUseAdminAuthBypass(email)) {
-          return {
-            ...adminBypassVerificationRequired(
-              email,
-              "signup",
-              getVerificationErrorMessage(delivery.reason),
-            ),
-            linked: true,
-          };
-        }
-
-        return { error: getVerificationErrorMessage(delivery.reason) };
-      }
-
-      return {
-        success: true,
-        linked: true,
-        verificationRequired: true,
-        email,
-        purpose: "signup" as const,
-      };
-    } catch (dbError) {
-      debugError("Error linking password to OAuth user:", dbError);
-      return { error: "Failed to link account. Please try again." };
-    }
-  }
-
   if (existingUser) {
     return { error: "An account with this email already exists" };
   }

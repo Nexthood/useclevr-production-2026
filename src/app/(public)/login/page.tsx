@@ -35,7 +35,6 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { FaGoogle, FaLinkedin } from "react-icons/fa6";
 
 export default function LoginPage() {
   return (
@@ -79,7 +78,7 @@ function LoginForm() {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authAction, setAuthAction] = useState<
-    "signin" | "signup" | "demo" | "google" | "linkedin" | "admin-bypass" | null
+    "signin" | "signup" | "demo" | "admin-bypass" | null
   >(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
@@ -97,10 +96,6 @@ function LoginForm() {
   const [nowMs, setNowMs] = useState(Date.now());
   const [revealPassword, setRevealPassword] = useState("");
   const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false);
-  const [oauthStatus, setOauthStatus] = useState<{
-    googleEnabled: boolean;
-    linkedInEnabled: boolean;
-  } | null>(null);
   const authQueryError = searchParams.get("error");
 
   const REVEAL_PASSWORD = "edely";
@@ -111,10 +106,7 @@ function LoginForm() {
   };
 
   const dashboardCallbackUrl = () => "/app/dashboard";
-  const oauthProviderEnabled = Boolean(oauthStatus?.googleEnabled || oauthStatus?.linkedInEnabled);
-  const visibleAuthError =
-    authError ||
-    (authQueryError === "Configuration" && oauthStatus ? null : getReadableAuthError(authQueryError));
+  const visibleAuthError = authError || getReadableAuthError(authQueryError);
   const isVerificationOpen = Boolean(pendingVerificationEmail);
   const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
 
@@ -123,29 +115,6 @@ function LoginForm() {
     const interval = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(interval);
   }, [resendAvailableAt]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch("/api/auth/oauth-status", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((status) => {
-        if (cancelled || !status) return;
-        setOauthStatus({
-          googleEnabled: Boolean(status.googleEnabled),
-          linkedInEnabled: Boolean(status.linkedInEnabled),
-        });
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setOauthStatus({ googleEnabled: false, linkedInEnabled: false });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const showVerificationStep = (
     email: string,
@@ -166,44 +135,26 @@ function LoginForm() {
     setNowMs(Date.now());
   };
 
-  const startProviderSignIn = async (provider: "demo" | "google" | "linkedin") => {
+  const startDemoSignIn = async () => {
     setIsLoading(true);
-    setAuthAction(provider);
+    setAuthAction("demo");
     setAuthError(null);
 
     try {
-      if (provider === "demo") {
-        const result = await signIn("demo", {
-          redirect: false,
-          callbackUrl: dashboardCallbackUrl(),
-        });
-
-        if (!result?.ok) {
-          setAuthError("Demo sign-in failed. Please try again.");
-          return;
-        }
-
-        goToDashboard();
-        return;
-      }
-
-      if (provider === "google" && oauthStatus && !oauthStatus.googleEnabled) {
-        setAuthError("Google sign-in is not configured yet. Use email sign-in or try again later.");
-        return;
-      }
-
-      if (provider === "linkedin" && oauthStatus && !oauthStatus.linkedInEnabled) {
-        setAuthError("LinkedIn sign-in is not configured yet. Use email sign-in or try again later.");
-        return;
-      }
-
-      await signIn(provider, {
+      const result = await signIn("demo", {
+        redirect: false,
         callbackUrl: dashboardCallbackUrl(),
-        redirect: true,
       });
+
+      if (!result?.ok) {
+        setAuthError("Demo sign-in failed. Please try again.");
+        return;
+      }
+
+      goToDashboard();
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
-      setAuthError(message || "Social sign-in failed. Please try again.");
+      setAuthError(message || "Demo sign-in failed. Please try again.");
     } finally {
       setIsLoading(false);
       setAuthAction(null);
@@ -423,7 +374,7 @@ function LoginForm() {
         variant="outline"
         className="w-full border-primary/40 bg-background text-foreground hover:bg-primary/10"
         disabled={isLoading}
-        onClick={() => startProviderSignIn("demo")}
+        onClick={startDemoSignIn}
       >
         {authAction === "demo" ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -435,43 +386,6 @@ function LoginForm() {
           Free
         </span>
       </Button>
-
-      {oauthProviderEnabled && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {oauthStatus?.googleEnabled && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={isLoading}
-              onClick={() => startProviderSignIn("google")}
-            >
-              {authAction === "google" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
-              )}
-              Google
-            </Button>
-          )}
-          {oauthStatus?.linkedInEnabled && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={isLoading}
-              onClick={() => startProviderSignIn("linkedin")}
-            >
-              {authAction === "linkedin" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FaLinkedin className="mr-2 h-4 w-4 text-sky-600" />
-              )}
-              LinkedIn
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 
@@ -883,15 +797,6 @@ function LoginForm() {
                     </form>
                   </TabsContent>
 
-                  <div className="relative my-5">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
-                  </div>
-
                   {providerButtons}
                 </Tabs>
               )}
@@ -918,19 +823,11 @@ function getReadableAuthError(error: string | null) {
   if (!error) return null;
 
   const messages: Record<string, string> = {
-    Configuration:
-      "OAuth sign-in is not configured correctly. Check the provider client ID, client secret, auth secret, and callback URL.",
-    AccessDenied:
-      "OAuth sign-in was denied. Choose an allowed account or try another sign-in method.",
-    OAuthSignin: "OAuth sign-in could not start. Check the provider configuration and try again.",
-    OAuthCallback:
-      "OAuth sign-in could not complete. Check that the provider callback URL matches this app.",
-    OAuthCreateAccount:
-      "OAuth sign-in succeeded, but the account could not be created. Try again or use email sign-in.",
+    Configuration: "Sign-in is not configured correctly. Please contact support.",
+    AccessDenied: "Sign-in was denied. Use email sign-in or try again.",
     EmailCreateAccount: "The account could not be created for this email address.",
     Callback: "The sign-in callback failed. Try again or use another sign-in method.",
-    OAuthAccountNotLinked:
-      "This email is already linked to another sign-in method. Sign in with the original method first.",
+    CredentialsSignin: "Invalid email, password, or verification code.",
     SessionRequired: "Sign in to continue.",
     Default: "Sign-in failed. Try again or use another sign-in method.",
   };
