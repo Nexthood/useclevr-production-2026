@@ -9,7 +9,7 @@ import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
 import { debugError, debugLog } from "@/lib/utils/debug"
-import { AlertCircle, CheckCircle2, Cloud, Cpu, FileText, Loader2, Receipt, Wifi, WifiOff } from "lucide-react"
+import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileText, Loader2, Receipt, Sparkles, Wifi, WifiOff } from "lucide-react"
 import * as React from "react"
 
 type UploadType = "csv" | "excel" | "pdf" | "receipt" | "bank"
@@ -34,8 +34,9 @@ export function AccountancyUpload({
   const [uploading, setUploading] = React.useState(false)
   const [dragActive, setDragActive] = React.useState(false)
   const [uploadProgress, setUploadProgress] = React.useState(0)
-  const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline">("idle")
+  const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline" | "limit-reached">("idle")
   const [errorMessage, setErrorMessage] = React.useState("")
+  const [limitReachedInfo, setLimitReachedInfo] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
 const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
@@ -54,6 +55,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
   const isOffline = connectionMode === "offline"
   const _isHybrid = connectionMode === "hybrid"
+  const isPlanLimitReached = uploadStatus === "limit-reached"
 
   const getConnectionIcon = (mode: ConnectionMode) => {
     switch (mode) {
@@ -97,6 +99,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (isPlanLimitReached) {
+      setDragActive(false)
+      return
+    }
     if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true)
     } else if (e.type === "dragleave") {
@@ -108,6 +114,8 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
+
+    if (isPlanLimitReached) return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await uploadFile(e.dataTransfer.files[0])
@@ -180,6 +188,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     setUploadStatus("uploading")
     setUploadProgress(0)
     setErrorMessage("")
+    setLimitReachedInfo(null)
 
     let progressInterval: NodeJS.Timeout | undefined
 
@@ -240,15 +249,30 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         const result = await response.json().catch(() => ({ error: "Upload failed" }))
         const uploadError = result.error || result.message || "Upload failed"
 
-        // Check for dataset limit error and show upgrade modal
+        // Plan limits are an upgrade state, not an upload failure.
         if (result.datasetLimit?.limitReached) {
-          setUpgradeModalData({
+          const datasetLimit = {
             currentCount: result.datasetLimit.currentCount,
             limit: result.datasetLimit.limit,
             planName: result.datasetLimit.planName || "Free",
+          }
+          setUploadStatus("limit-reached")
+          setLimitReachedInfo(datasetLimit)
+          setUpgradeModalData(datasetLimit)
+          setUpgradeModalCopy({
+            title: "Free plan limit reached",
+            description:
+              "You have reached the maximum number of datasets included in your Free plan. Continue analyzing your business by upgrading your account.",
+            usageLabel: "datasets included",
           })
-          setUpgradeModalCopy({})
           setShowUpgradeModal(true)
+          setProcessingStep(0)
+          showNotice({
+            type: "info",
+            title: "Free plan limit reached",
+            message: "Upgrade to continue uploading and analyzing new datasets.",
+          })
+          return
         } else if (result.usage?.limitReached) {
           setUpgradeModalData({
             currentCount: result.usage.analysisCount || 2,
@@ -332,9 +356,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
       <Card
         className={`relative border-2 border-dashed transition-all duration-300 overflow-hidden ${
-          dragActive
-            ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10"
-            : "border-border hover:border-primary/30"
+          isPlanLimitReached
+            ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
+            : dragActive
+              ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10"
+              : "border-border hover:border-primary/30"
         } ${
           uploadStatus === "success" ? "border-green-500 bg-green-500/5" : ""
         }`}
@@ -351,11 +377,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
           className="hidden"
           id={`accountancy-upload-${selectedType}`}
-          disabled={uploading}
+          disabled={uploading || isPlanLimitReached}
         />
         <label
           htmlFor={`accountancy-upload-${selectedType}`}
-          className={`cursor-pointer block p-5 sm:p-7 ${uploading ? "cursor-not-allowed" : ""}`}
+          className={`block p-5 sm:p-7 ${uploading || isPlanLimitReached ? "cursor-not-allowed" : "cursor-pointer"}`}
         >
           <div className="flex flex-col items-center gap-3">
             {uploading && processingStep > 0 && (
@@ -397,8 +423,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                   ? "bg-primary/10"
                   : uploadStatus === "success"
                     ? "bg-green-500/10"
-                    : uploadStatus === "offline"
-                      ? "bg-amber-500/10"
+                  : uploadStatus === "offline"
+                    ? "bg-amber-500/10"
+                    : uploadStatus === "limit-reached"
+                      ? "bg-primary/10"
                       : "bg-gradient-primary"
               }`}
             >
@@ -408,6 +436,8 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                 <CheckCircle2 className="h-6 w-6 text-green-500" />
               ) : uploadStatus === "offline" ? (
                 <AlertCircle className="h-6 w-6 text-amber-500" />
+              ) : uploadStatus === "limit-reached" ? (
+                <Sparkles className="h-6 w-6 text-primary" />
               ) : uploadStatus === "error" ? (
                 <AlertCircle className="h-6 w-6 text-destructive" />
               ) : (
@@ -443,6 +473,56 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                     Retry
                   </Button>
                 </>
+              ) : uploadStatus === "limit-reached" ? (
+                <div className="mx-auto max-w-2xl space-y-5 text-left">
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-foreground">Free plan limit reached</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      You have reached the maximum number of datasets included in your Free plan.
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Continue analyzing your business by upgrading your account.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 text-sm sm:grid-cols-3">
+                    <AccountancyPlanSummaryCard title="Free" items={["2 datasets", "Basic AI"]} muted />
+                    <AccountancyPlanSummaryCard title="Pro" items={["More datasets", "Advanced AI", "Faster analysis"]} />
+                    <AccountancyPlanSummaryCard title="Business" items={["Unlimited datasets", "Team features", "Priority support"]} highlighted />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        setShowUpgradeModal(true)
+                      }}
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Upgrade to Pro
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-primary/40 bg-background/70 font-semibold hover:bg-primary/10"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        setShowUpgradeModal(true)
+                      }}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                      Upgrade to Business
+                    </Button>
+                  </div>
+
+                  {limitReachedInfo && (
+                    <p className="text-center text-xs text-muted-foreground">
+                      Current usage: {limitReachedInfo.currentCount} of {limitReachedInfo.limit} datasets included in {limitReachedInfo.planName}.
+                    </p>
+                  )}
+                </div>
               ) : uploadStatus === "offline" ? (
                 <>
                   <h3 className="text-base font-semibold text-amber-500">No internet detected</h3>
@@ -527,6 +607,37 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           usageLabel={upgradeModalCopy.usageLabel}
         />
       )}
+    </div>
+  )
+}
+
+function AccountancyPlanSummaryCard({
+  title,
+  items,
+  muted = false,
+  highlighted = false,
+}: {
+  title: string
+  items: string[]
+  muted?: boolean
+  highlighted?: boolean
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        highlighted
+          ? "border-primary/40 bg-primary/10"
+          : muted
+            ? "border-border/70 bg-background/70"
+            : "border-cyan-500/30 bg-cyan-500/10"
+      }`}
+    >
+      <p className="font-semibold text-foreground">{title}</p>
+      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+        {items.map((item) => (
+          <li key={item}>• {item}</li>
+        ))}
+      </ul>
     </div>
   )
 }

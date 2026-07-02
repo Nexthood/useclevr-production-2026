@@ -39,6 +39,10 @@ moving work between states.
 - T-851. Distribute the project phase map into active and deferred TODO queues with explicit phase gates. (labels: workflow, docs; commit: worktree)
 - T-852. Align sales, product, user, and developer descriptions with usable-MVP, sales-validation, AI-differentiation, and platform-expansion phases. (labels: docs, sales, workflow; commit: worktree)
 
+## Label: upload
+
+- T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
+
 ## Label: auth
 
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)

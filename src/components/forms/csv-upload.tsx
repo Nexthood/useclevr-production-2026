@@ -9,7 +9,7 @@ import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
 import { debugError, debugLog } from "@/lib/utils/debug"
-import { AlertCircle, CheckCircle2, Cloud, Cpu, FileSpreadsheet, Loader2, Wifi, WifiOff } from "lucide-react"
+import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileSpreadsheet, Loader2, Sparkles, Wifi, WifiOff } from "lucide-react"
 import * as React from "react"
 
 const UPLOAD_QUEUE_KEY = "useclevr_upload_queue"
@@ -43,8 +43,9 @@ export function CsvUpload() {
    const [uploading, setUploading] = React.useState(false)
    const [dragActive, setDragActive] = React.useState(false)
    const [uploadProgress, setUploadProgress] = React.useState(0)
-   const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline">("idle")
+   const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline" | "limit-reached">("idle")
    const [errorMessage, setErrorMessage] = React.useState("")
+   const [limitReachedInfo, setLimitReachedInfo] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
    const [currentFileName, setCurrentFileName] = React.useState("")
    const [processingStep, setProcessingStep] = React.useState(0)
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
@@ -64,6 +65,7 @@ export function CsvUpload() {
   const isOffline = connectionMode === 'offline'
   const isHybrid = connectionMode === 'hybrid'
   const _isOnline = connectionMode === 'online'
+  const isPlanLimitReached = uploadStatus === "limit-reached"
 
   // Get connection status icon and color
   const getConnectionIcon = (mode: ConnectionMode) => {
@@ -110,6 +112,10 @@ export function CsvUpload() {
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (isPlanLimitReached) {
+      setDragActive(false)
+      return
+    }
     if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true)
     } else if (e.type === "dragleave") {
@@ -121,6 +127,8 @@ export function CsvUpload() {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
+
+    if (isPlanLimitReached) return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await uploadFile(e.dataTransfer.files[0])
@@ -152,6 +160,7 @@ export function CsvUpload() {
     setUploadStatus("uploading")
     setUploadProgress(0)
     setErrorMessage("")
+    setLimitReachedInfo(null)
 
     // Show appropriate message based on file size tier
     if (isLargeFile) {
@@ -251,6 +260,33 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
         }, 2000)
       } else {
         const uploadError = result.error || result.message || "Upload failed"
+
+        // Plan limits are an upgrade state, not an upload failure.
+        if (result.datasetLimit?.limitReached) {
+          const datasetLimit = {
+            currentCount: result.datasetLimit.currentCount,
+            limit: result.datasetLimit.limit,
+            planName: result.datasetLimit.planName || "Free",
+          }
+          setUploadStatus("limit-reached")
+          setLimitReachedInfo(datasetLimit)
+          setUpgradeModalData(datasetLimit)
+          setUpgradeModalCopy({
+            title: "Free plan limit reached",
+            description:
+              "You have reached the maximum number of datasets included in your Free plan. Continue analyzing your business by upgrading your account.",
+            usageLabel: "datasets included",
+          })
+          setShowUpgradeModal(true)
+          setProcessingStep(0)
+          showNotice({
+            type: "info",
+            title: "Free plan limit reached",
+            message: "Upgrade to continue uploading and analyzing new datasets.",
+          })
+          return
+        }
+
         debugLog('[CSV-UPLOAD] Failed:', uploadError)
 
         // Check for row limit exceeded error
@@ -279,16 +315,6 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
           return
         }
 
-        // Check for dataset limit error and show upgrade modal
-        if (result.datasetLimit?.limitReached) {
-          setUpgradeModalData({
-            currentCount: result.datasetLimit.currentCount,
-            limit: result.datasetLimit.limit,
-            planName: result.datasetLimit.planName || "Free",
-          })
-          setUpgradeModalCopy({})
-          setShowUpgradeModal(true)
-        }
         // Only queue if truly offline (API unreachable and no UseClevr Helper)
         if (isOffline) {
           setUploadStatus("offline")
@@ -353,7 +379,11 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
     <>
       <Card
         className={`relative border-2 border-dashed transition-all duration-300 overflow-hidden ${
-          dragActive ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10" : "border-border hover:border-primary/30"
+          isPlanLimitReached
+            ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
+            : dragActive
+              ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10"
+              : "border-border hover:border-primary/30"
         } ${
           uploadStatus === "success" ? "border-green-500 bg-green-500/5" : ""
         }`}
@@ -371,9 +401,9 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
         onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
         className="hidden"
         id="file-upload"
-        disabled={uploading}
+        disabled={uploading || isPlanLimitReached}
       />
-      <label htmlFor="file-upload" className={`cursor-pointer block p-5 sm:p-7 ${uploading ? "cursor-not-allowed" : ""}`}>
+      <label htmlFor="file-upload" className={`block p-5 sm:p-7 ${uploading || isPlanLimitReached ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <div className="flex flex-col items-center gap-3">
           {/* Processing Flow Animation */}
           {uploading && processingStep > 0 && (
@@ -418,6 +448,7 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
             uploadStatus === "uploading" ? "bg-primary/10" : 
             uploadStatus === "success" ? "bg-green-500/10" : 
             uploadStatus === "offline" ? "bg-amber-500/10" :
+            uploadStatus === "limit-reached" ? "bg-primary/10" :
             "bg-gradient-primary"
           }`}>
             {uploadStatus === "uploading" ? (
@@ -426,6 +457,8 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             ) : uploadStatus === "offline" ? (
               <AlertCircle className="h-6 w-6 text-amber-500" />
+            ) : uploadStatus === "limit-reached" ? (
+              <Sparkles className="h-6 w-6 text-primary" />
             ) : uploadStatus === "error" ? (
               <AlertCircle className="h-6 w-6 text-destructive" />
             ) : (
@@ -477,6 +510,56 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
                   Retry
                 </Button>
               </>
+            ) : uploadStatus === "limit-reached" ? (
+              <div className="mx-auto max-w-2xl space-y-5 text-left">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-foreground">Free plan limit reached</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    You have reached the maximum number of datasets included in your Free plan.
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Continue analyzing your business by upgrading your account.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 text-sm sm:grid-cols-3">
+                  <PlanSummaryCard title="Free" items={["2 datasets", "Basic AI"]} muted />
+                  <PlanSummaryCard title="Pro" items={["More datasets", "Advanced AI", "Faster analysis"]} />
+                  <PlanSummaryCard title="Business" items={["Unlimited datasets", "Team features", "Priority support"]} highlighted />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 font-bold text-white hover:opacity-95"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      setShowUpgradeModal(true)
+                    }}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Upgrade to Pro
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-primary/40 bg-background/70 font-semibold hover:bg-primary/10"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      setShowUpgradeModal(true)
+                    }}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                    Upgrade to Business
+                  </Button>
+                </div>
+
+                {limitReachedInfo && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Current usage: {limitReachedInfo.currentCount} of {limitReachedInfo.limit} datasets included in {limitReachedInfo.planName}.
+                  </p>
+                )}
+              </div>
             ) : uploadStatus === "offline" ? (
               <>
                 <h3 className="text-base font-semibold text-amber-500">No internet detected</h3>
@@ -543,5 +626,36 @@ message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total}
         usageLabel={upgradeModalCopy.usageLabel}
       />
     </>
+  )
+}
+
+function PlanSummaryCard({
+  title,
+  items,
+  muted = false,
+  highlighted = false,
+}: {
+  title: string
+  items: string[]
+  muted?: boolean
+  highlighted?: boolean
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        highlighted
+          ? "border-primary/40 bg-primary/10"
+          : muted
+            ? "border-border/70 bg-background/70"
+            : "border-cyan-500/30 bg-cyan-500/10"
+      }`}
+    >
+      <p className="font-semibold text-foreground">{title}</p>
+      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+        {items.map((item) => (
+          <li key={item}>• {item}</li>
+        ))}
+      </ul>
+    </div>
   )
 }

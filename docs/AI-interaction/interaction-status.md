@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-02
-- **Goal**: Simplify MVP authentication by removing OAuth completely.
-- **Durable change**: UseClevr MVP authentication supports email-password signup, Resend email verification, email-password login, password reset, and demo login only. Google and LinkedIn OAuth providers, login buttons, status route, provider env checks, social-login messages, social-only signup linking, and the unused icon dependency are removed.
-- **Verification**: TypeScript and focused ESLint pass; stale generated route types were cleared before rechecking.
+- **Goal**: Improve the upload experience when the Free plan dataset limit is reached.
+- **Durable change**: Standard CSV/Excel upload and Accountancy upload treat Free plan dataset-limit responses as an informational upgrade state instead of an upload failure, show Free/Pro/Business comparison copy, offer Upgrade to Pro and Upgrade to Business actions through the existing upgrade modal, and disable drag-and-drop/file input until upgrade.
+- **Verification**: TypeScript and focused ESLint pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

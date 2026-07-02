@@ -27,6 +27,10 @@ Text rules for this file:
 ## Upload & Analysis
 
 - Upload CSV files for AI analysis.
+- Show Free plan dataset-limit responses as an informational upgrade state, not as an upload failure.
+- Disable upload drag-and-drop after the Free plan dataset limit is reached until the user upgrades.
+- Show Pro and Business upgrade actions from the Free plan dataset-limit upload state.
+- Compare Free, Pro, and Business upload benefits in the dataset-limit upload state.
 - Show uploaded datasets in structured tables with row counts.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Ask AI questions about uploaded datasets and receive structured answers.
