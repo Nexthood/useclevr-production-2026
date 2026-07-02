@@ -6,18 +6,27 @@ export const googleProviderId = "google";
 export const linkedinProviderId = "linkedin";
 export const oauthDashboardCallbackUrl = "/app/dashboard";
 
-export const googleClientId = firstEnvValue("AUTH_GOOGLE_ID", "GOOGLE_CLIENT_ID", "GOOGLE_ID");
-export const googleClientSecret = firstEnvValue(
+const googleClientIdConfig = readOAuthEnv("AUTH_GOOGLE_ID", "GOOGLE_CLIENT_ID", "GOOGLE_ID");
+const googleClientSecretConfig = readOAuthEnv(
   "AUTH_GOOGLE_SECRET",
   "GOOGLE_CLIENT_SECRET",
   "GOOGLE_SECRET",
 );
-export const linkedinClientId = firstEnvValue("AUTH_LINKEDIN_ID", "LINKEDIN_CLIENT_ID", "LINKEDIN_ID");
-export const linkedinClientSecret = firstEnvValue(
+const linkedinClientIdConfig = readOAuthEnv(
+  "AUTH_LINKEDIN_ID",
+  "LINKEDIN_CLIENT_ID",
+  "LINKEDIN_ID",
+);
+const linkedinClientSecretConfig = readOAuthEnv(
   "AUTH_LINKEDIN_SECRET",
   "LINKEDIN_CLIENT_SECRET",
   "LINKEDIN_SECRET",
 );
+
+export const googleClientId = googleClientIdConfig.value;
+export const googleClientSecret = googleClientSecretConfig.value;
+export const linkedinClientId = linkedinClientIdConfig.value;
+export const linkedinClientSecret = linkedinClientSecretConfig.value;
 export const authSecret = config.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
 export function getOAuthConfigStatus() {
@@ -42,6 +51,10 @@ export function getOAuthConfigStatus() {
     linkedInProviderId: linkedinProviderId,
     googleCallbackUrl: `${callbackBase}/${googleProviderId}`,
     linkedInCallbackUrl: `${callbackBase}/${linkedinProviderId}`,
+    googleClientIdSource: googleClientIdConfig.source,
+    googleClientSecretSource: googleClientSecretConfig.source,
+    linkedInClientIdSource: linkedinClientIdConfig.source,
+    linkedInClientSecretSource: linkedinClientSecretConfig.source,
   };
 }
 
@@ -61,6 +74,10 @@ export function logOAuthConfigStatus(source: string) {
     linkedInProviderId: status.linkedInProviderId,
     googleCallbackUrl: status.googleCallbackUrl,
     linkedInCallbackUrl: status.linkedInCallbackUrl,
+    googleClientIdSource: status.googleClientIdSource,
+    googleClientSecretSource: status.googleClientSecretSource,
+    linkedInClientIdSource: status.linkedInClientIdSource,
+    linkedInClientSecretSource: status.linkedInClientSecretSource,
   };
 
   if (!status.authSecretPresent) {
@@ -71,10 +88,17 @@ export function logOAuthConfigStatus(source: string) {
   debugLog("[Auth] OAuth config status:", sanitizedStatus);
 }
 
+function readOAuthEnv(primaryName: string, ...fallbackNames: string[]) {
+  const primaryValue = process.env[primaryName]?.trim();
+  if (primaryValue) return { value: primaryValue, source: primaryName };
+
+  return firstEnvValue(...fallbackNames);
+}
+
 function firstEnvValue(...names: string[]) {
   for (const name of names) {
     const value = process.env[name]?.trim();
-    if (value) return value;
+    if (value) return { value, source: name };
   }
-  return undefined;
+  return { value: undefined, source: undefined };
 }

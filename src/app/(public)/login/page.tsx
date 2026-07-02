@@ -114,9 +114,7 @@ function LoginForm() {
   const oauthProviderEnabled = Boolean(oauthStatus?.googleEnabled || oauthStatus?.linkedInEnabled);
   const visibleAuthError =
     authError ||
-    (authQueryError === "Configuration" && oauthStatus && !oauthProviderEnabled
-      ? null
-      : getReadableAuthError(authQueryError));
+    (authQueryError === "Configuration" && oauthStatus ? null : getReadableAuthError(authQueryError));
   const isVerificationOpen = Boolean(pendingVerificationEmail);
   const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
 
