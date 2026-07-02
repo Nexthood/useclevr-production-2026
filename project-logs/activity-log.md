@@ -1,3 +1,4 @@
+- changed: simplify MVP authentication to email-password, Resend verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and the unused social-login icon dependency
 - fixed: prefer the Railway social sign-in variable names for Google and LinkedIn OAuth setup, keep legacy aliases as fallback, and remove stale OAuth configuration query alerts after server provider status loads
 - fixed: hide unconfigured Google and LinkedIn sign-in options, suppress social-auth configuration alerts when social providers are disabled, and keep email-password plus demo sign-in available
 - changed: add Business Intelligence Engine Phase 1 with automatic post-upload profiling, KPI detection, health scoring, risk detection, opportunity detection, executive summaries, prioritized actions, Universal AI Adapter narrative routing, and deterministic tests

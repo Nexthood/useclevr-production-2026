@@ -24,9 +24,7 @@ import {
   User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { FaGoogle, FaLinkedin } from "react-icons/fa6";
 
 import { PayloadThemeToggle } from "./payload-theme-toggle";
 
@@ -41,7 +39,7 @@ export function PayloadLoginView() {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [authAction, setAuthAction] = useState<"signin" | "signup" | "google" | "linkedin" | null>(null);
+  const [authAction, setAuthAction] = useState<"signin" | "signup" | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showBuiltInAccounts, setShowBuiltInAccounts] = useState(false);
   const [showTestControls, setShowTestControls] = useState(false);
@@ -141,19 +139,6 @@ export function PayloadLoginView() {
     } catch {
       setAuthError("Account setup failed. Please try again.");
     } finally {
-      setIsLoading(false);
-      setAuthAction(null);
-    }
-  };
-
-  const startSocialSignIn = async (provider: "google" | "linkedin") => {
-    setIsLoading(true);
-    setAuthAction(provider);
-    setAuthError(null);
-    try {
-      await signIn(provider, { callbackUrl: "/admin", redirect: true });
-    } catch {
-      setAuthError("Social sign-in failed. Please try again.");
       setIsLoading(false);
       setAuthAction(null);
     }
@@ -337,45 +322,6 @@ export function PayloadLoginView() {
                   </form>
                 </TabsContent>
 
-                <div className="relative my-5">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={isLoading}
-                    onClick={() => startSocialSignIn("google")}
-                  >
-                    {authAction === "google" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
-                    )}
-                    Google
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={isLoading}
-                    onClick={() => startSocialSignIn("linkedin")}
-                  >
-                    {authAction === "linkedin" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <FaLinkedin className="mr-2 h-4 w-4 text-sky-600" />
-                    )}
-                    LinkedIn
-                  </Button>
-                </div>
               </Tabs>
 
               {showTestControls && showBuiltInAccounts ? (

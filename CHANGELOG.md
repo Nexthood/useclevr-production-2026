@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Simplify MVP authentication to email-password, email verification, password reset, and demo access while removing Google and LinkedIn sign-in.
 - Add Business Intelligence Engine Phase 1 so uploaded datasets automatically receive profiling, KPI detection, business health scoring, risk and opportunity detection, executive summaries, and prioritized recommended actions.
 - Add centralized Hybrid AI feature gates so Lite includes private chat, CSV/Excel analysis, dashboard insights, provider management, provider health checks, Auto/Local/Cloud modes, AI Assistant integration, and dataset-aware chat, while MEGA enforces multiple providers, provider fallback, multi-document analysis, AI reports, audit logs, and roadmap actions.
 - Add metadata-only AI privacy audit logging so users and superadmins can see which provider handled each AI request, whether data stayed local or went to cloud, and whether fallback routing was used.
@@ -41,15 +42,9 @@
 
 ### Fixed
 
-- Prefer configured UseClevr social sign-in settings before legacy aliases so connected Google and LinkedIn providers appear correctly on the login page.
-- Hide unavailable social sign-in options so email-password and demo sign-in stay usable when social providers are not connected.
-- Fix OAuth provider availability detection so Google and LinkedIn sign-in buttons only activate when their credentials and the auth secret are configured, with sanitized server diagnostics and dashboard redirects.
-- Fix OAuth callback, sign-out redirects, and generated app links so local auth uses `localhost` and deployed auth uses the active UseClevr host instead of the server bind host.
-- Fix Google and LinkedIn sign-in setup so OAuth credentials work with common hosting env names and return users to the dashboard.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.
 - Fix Dashboard 2.0 TypeScript build blockers so production builds complete.
-- Fix Google and LinkedIn sign-in so provider callbacks use the correct destination and failed sign-ins show a clear login-page message.
 - Remove hardcoded pricing text from the homepage preview so validation accepts the public landing page.
 - Add consistent spacing below page headers on Downloads, Datasets, Business, Accountancy, and Retail pages so content cards do not crowd the top navigation.
 - Show plan price and a secure checkout button in the Upgrade to Pro modal, then start Stripe Checkout directly with a visible error if payment setup fails.

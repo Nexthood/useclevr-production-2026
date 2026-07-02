@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 import {
@@ -9,26 +8,15 @@ import {
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { consumeVerifiedAuthProof } from "@/lib/auth/email-verification-codes";
-import {
-  authSecret,
-  googleClientId,
-  googleClientSecret,
-  googleProviderId,
-  linkedinClientId,
-  linkedinClientSecret,
-  linkedinProviderId,
-  logOAuthConfigStatus,
-} from "@/lib/auth/oauth-config";
+import { config } from "@/lib/config";
 import { normalizePublicAuthBaseUrl, resolveAuthRedirect } from "@/lib/auth/redirect-origin";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { getDb } from "@/lib/db";
-import { accounts, profiles, users } from "@/lib/db/schema";
+import { profiles, users } from "@/lib/db/schema";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
-import LinkedIn from "next-auth/providers/linkedin";
 import { z } from "zod";
 
 // DIAGNOSTIC: Log when auth module is loaded
@@ -65,10 +53,7 @@ const loginSchema = z.object({
 });
 
 normalizePublicAuthUrlEnv();
-logOAuthConfigStatus("auth-module");
-
-const googleOAuthEnabled = Boolean(googleClientId && googleClientSecret && authSecret);
-const linkedinOAuthEnabled = Boolean(linkedinClientId && linkedinClientSecret && authSecret);
+const authSecret = config.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: authSecret,
@@ -201,34 +186,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
-    ...(googleOAuthEnabled
-      ? [
-          Google({
-            id: googleProviderId,
-            clientId: googleClientId!,
-            clientSecret: googleClientSecret!,
-            authorization: {
-              params: {
-                scope: "openid email profile",
-              },
-            },
-          }),
-        ]
-      : []),
-    ...(linkedinOAuthEnabled
-      ? [
-          LinkedIn({
-            id: linkedinProviderId,
-            clientId: linkedinClientId!,
-            clientSecret: linkedinClientSecret!,
-            authorization: {
-              params: {
-                scope: "openid profile email",
-              },
-            },
-          }),
-        ]
-      : []),
   ],
   session: {
     strategy: "jwt",
@@ -316,31 +273,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
         return true;
-      }
-
-      if (account?.provider && account.providerAccountId) {
-        if (!user.email || !isOAuthEmailVerified(account.provider, account.id_token)) {
-          debugWarn("[Auth] Blocked OAuth sign-in without verified provider email:", {
-            provider: account.provider,
-            hasEmail: Boolean(user.email),
-          });
-          return false;
-        }
-
-        await ensureOAuthUserRecord({
-          user,
-          provider: account.provider,
-          providerAccountId: account.providerAccountId,
-          accountType: account.type,
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          expiresAt: account.expires_at,
-          tokenType: account.token_type,
-          scope: account.scope,
-          idToken: account.id_token,
-          sessionState:
-            typeof account.session_state === "string" ? account.session_state : undefined,
-        });
       }
 
       return true;
@@ -477,150 +409,4 @@ function maskEmail(email?: string | null) {
   if (!local || !domain) return "[invalid-email]";
   const visible = local.slice(0, 2);
   return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
-}
-
-function isOAuthEmailVerified(provider?: string, idToken?: string) {
-  if (!idToken) return true;
-
-  try {
-    const payload = JSON.parse(
-      Buffer.from(idToken.split(".")[1] || "", "base64url").toString("utf8"),
-    ) as {
-      email_verified?: boolean;
-    };
-    if (payload.email_verified === false) return false;
-    if (provider === linkedinProviderId) return true;
-    return true;
-  } catch {
-    return true;
-  }
-}
-
-async function ensureOAuthUserRecord({
-  user,
-  provider,
-  providerAccountId,
-  accountType,
-  accessToken,
-  refreshToken,
-  expiresAt,
-  tokenType,
-  scope,
-  idToken,
-  sessionState,
-}: {
-  user: { id?: string; email?: string | null; name?: string | null; image?: string | null };
-  provider: string;
-  providerAccountId: string;
-  accountType?: string;
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: number;
-  tokenType?: string;
-  scope?: string;
-  idToken?: string;
-  sessionState?: string;
-}) {
-  const dbClient = getDbClient();
-  const email = user.email?.trim().toLowerCase();
-
-  if (!dbClient || !email) return;
-
-  const existingUser = await dbClient.query.users.findFirst({
-    where: eq(users.email, email),
-    columns: { id: true },
-  });
-
-  // Use consistent ID format: user_{uuid} for new users
-  const userId = existingUser?.id || `user_${uuidv4()}`;
-  user.id = userId;
-
-  if (existingUser) {
-    await dbClient
-      .update(users)
-      .set({
-        name: user.name || null,
-        image: user.image || null,
-      })
-      .where(eq(users.id, userId));
-  } else {
-    await dbClient.insert(users).values({
-      id: userId,
-      email,
-      name: user.name || null,
-      image: user.image || null,
-      emailVerified: new Date(),
-    });
-
-    await recordActivity({
-      userId,
-      userEmail: email,
-      type: "register",
-      feature: "account",
-      title: "Account registered",
-      description: "Account access was created.",
-    });
-  }
-
-  await dbClient
-    .insert(accounts)
-    .values({
-      id: uuidv4(),
-      userId,
-      type: accountType || "oauth",
-      provider,
-      providerAccountId,
-      accessToken: accessToken || null,
-      refreshToken: refreshToken || null,
-      expiresAt: expiresAt || null,
-      tokenType: tokenType || null,
-      scope: scope || null,
-      idToken: idToken || null,
-      sessionState: sessionState || null,
-    })
-    .onConflictDoUpdate({
-      target: [accounts.provider, accounts.providerAccountId],
-      set: {
-        userId,
-        accessToken: accessToken || null,
-        refreshToken: refreshToken || null,
-        expiresAt: expiresAt || null,
-        tokenType: tokenType || null,
-        scope: scope || null,
-        idToken: idToken || null,
-        sessionState: sessionState || null,
-      },
-    });
-
-  const existingProfile = await dbClient.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-    columns: { id: true },
-  });
-
-  if (existingProfile) {
-    await dbClient
-      .update(profiles)
-      .set({
-        email,
-        firstName: getFirstName(user.name || null),
-        fullName: user.name || null,
-        avatarUrl: user.image || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(profiles.userId, userId));
-  } else {
-    await dbClient.insert(profiles).values({
-      id: uuidv4(),
-      userId,
-      email,
-      firstName: getFirstName(user.name || null),
-      fullName: user.name || null,
-      avatarUrl: user.image || null,
-      role: "owner",
-    });
-  }
-}
-
-function getFirstName(name?: string | null) {
-  return name?.trim().split(/\s+/)[0] || null;
 }
