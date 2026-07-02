@@ -290,6 +290,7 @@ Text rules for this file:
 - Require strong signup passwords with length, character variety, and personal-information checks.
 - Keep login and sign-out redirects on the active app host.
 - Keep OAuth callback URLs on the active public app host, never on the internal server bind host.
+- Read the canonical UseClevr Google and LinkedIn social sign-in settings before checking legacy provider aliases.
 - Enable each OAuth login button only when its provider client ID, provider client secret, and auth secret are configured.
 - Log incomplete social sign-in setup only in development diagnostics with sanitized values.
 - Log OAuth provider configuration status on the server with booleans and callback URLs only, never secret values.

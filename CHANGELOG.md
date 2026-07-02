@@ -41,6 +41,7 @@
 
 ### Fixed
 
+- Prefer configured UseClevr social sign-in settings before legacy aliases so connected Google and LinkedIn providers appear correctly on the login page.
 - Hide unavailable social sign-in options so email-password and demo sign-in stay usable when social providers are not connected.
 - Fix OAuth provider availability detection so Google and LinkedIn sign-in buttons only activate when their credentials and the auth secret are configured, with sanitized server diagnostics and dashboard redirects.
 - Fix OAuth callback, sign-out redirects, and generated app links so local auth uses `localhost` and deployed auth uses the active UseClevr host instead of the server bind host.

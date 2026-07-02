@@ -1,3 +1,4 @@
+- fixed: prefer the Railway social sign-in variable names for Google and LinkedIn OAuth setup, keep legacy aliases as fallback, and remove stale OAuth configuration query alerts after server provider status loads
 - fixed: hide unconfigured Google and LinkedIn sign-in options, suppress social-auth configuration alerts when social providers are disabled, and keep email-password plus demo sign-in available
 - changed: add Business Intelligence Engine Phase 1 with automatic post-upload profiling, KPI detection, health scoring, risk detection, opportunity detection, executive summaries, prioritized actions, Universal AI Adapter narrative routing, and deterministic tests
 - changed: complete Hybrid AI feature gates for current MVP features with explicit Lite and MEGA registry IDs, backend enforcement for provider health, dataset-aware chat, mode routing, provider fallback, reports, audit logs, roadmap actions, and automated entitlement tests
