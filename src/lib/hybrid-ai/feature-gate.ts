@@ -12,6 +12,7 @@ import {
 import { and, eq, ne } from "drizzle-orm"
 import type { Session } from "next-auth"
 import { NextResponse } from "next/server"
+import { debugWarn } from "@/lib/utils/debug"
 
 export type HybridAiFeatureAccess = {
   userId: string
@@ -81,6 +82,15 @@ export async function requireHybridAiFeature(featureId: HybridAiFeatureId): Prom
       ? `${feature?.name || "This Hybrid AI feature"} requires Hybrid AI MEGA.`
       : `${feature?.name || "This Hybrid AI feature"} requires Hybrid AI Lite or MEGA.`
 
+  logBlockedHybridAiFeatureAttempt({
+    userId,
+    role: access.role,
+    subscriptionTier: access.subscriptionTier,
+    featureId,
+    requiredTier,
+    message,
+  })
+
   return {
     success: false,
     status: 403,
@@ -102,6 +112,26 @@ export async function requireHybridAiFeature(featureId: HybridAiFeatureId): Prom
   }
 }
 
+export function logBlockedHybridAiFeatureAttempt(input: {
+  userId?: string | null
+  role?: string | null
+  subscriptionTier?: string | null
+  featureId: HybridAiFeatureId
+  requiredTier: HybridAiTier
+  message: string
+  source?: string
+}) {
+  debugWarn("[HYBRID_AI_GATE] Blocked feature attempt", {
+    userId: input.userId || null,
+    role: input.role || null,
+    subscriptionTier: input.subscriptionTier || null,
+    featureId: input.featureId,
+    requiredTier: input.requiredTier,
+    source: input.source || "feature-gate",
+    message: input.message,
+  })
+}
+
 export async function canUseHybridAiFeatureForUser(userId: string, featureId: HybridAiFeatureId, sessionRole?: string | null) {
   const access = await getHybridAiFeatureAccess(userId, sessionRole)
   return canUseHybridAiFeature(featureId, access.subscriptionTier, access.role)
@@ -119,6 +149,15 @@ export async function assertCanSaveAiProvider(input: {
   const access = await getHybridAiFeatureAccess(input.userId, input.sessionRole)
 
   if (!access.enabledFeatureIds.includes("singleAiProvider")) {
+    logBlockedHybridAiFeatureAttempt({
+      userId: input.userId,
+      role: access.role,
+      subscriptionTier: access.subscriptionTier,
+      featureId: "singleAiProvider",
+      requiredTier: "lite",
+      source: "provider-save",
+      message: "AI Providers require Hybrid AI Lite or MEGA.",
+    })
     throw new HybridAiFeatureGateError("AI Providers require Hybrid AI Lite or MEGA.", "lite", "singleAiProvider")
   }
 
@@ -135,6 +174,15 @@ export async function assertCanSaveAiProvider(input: {
   })
 
   if (existingProviders.length >= access.providerLimit) {
+    logBlockedHybridAiFeatureAttempt({
+      userId: input.userId,
+      role: access.role,
+      subscriptionTier: access.subscriptionTier,
+      featureId: "singleAiProvider",
+      requiredTier: "mega",
+      source: "provider-save",
+      message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to connect multiple providers.",
+    })
     throw new HybridAiFeatureGateError(
       "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to connect multiple providers.",
       "mega",

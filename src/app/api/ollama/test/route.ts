@@ -1,10 +1,14 @@
 import { generateOllamaCompletion } from "@/lib/ai/ollama-client"
 import { isMockAIMode } from "@/lib/ai/mock-ai"
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate"
 import { NextResponse } from "next/server"
 
 const TIMEOUT_MS = 15000 // 15s minimal verification window
 
 export async function POST(request: Request) {
+  const gate = await requireHybridAiFeature("futureHelperIntegration")
+  if (!gate.success) return gate.error
+
   try {
     const { model } = await request.json()
     if (typeof model !== 'string' || !model.trim()) {

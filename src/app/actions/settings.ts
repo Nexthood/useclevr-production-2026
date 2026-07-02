@@ -9,7 +9,7 @@ import { saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, typ
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
-import { assertCanSaveAiProvider, featureGateFailureMessage, getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate"
+import { assertCanSaveAiProvider, featureGateFailureMessage, getHybridAiFeatureAccess, logBlockedHybridAiFeatureAttempt } from "@/lib/hybrid-ai/feature-gate"
 import { failure, type Result, success } from "@/lib/result"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -162,10 +162,28 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
   try {
     const access = await getHybridAiFeatureAccess(userId, session.user.role)
     if (!access.enabledFeatureIds.includes("singleAiProvider")) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: "singleAiProvider",
+        requiredTier: "lite",
+        source: "provider-routing",
+        message: "AI provider routing requires Hybrid AI Lite or MEGA.",
+      })
       return failure("AI provider routing requires Hybrid AI Lite or MEGA.")
     }
     const fallbackProviderId = String(formData.get("fallbackProviderId") || "").trim()
     if (access.providerLimit === 1 && fallbackProviderId) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: "singleAiProvider",
+        requiredTier: "mega",
+        source: "provider-routing",
+        message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.",
+      })
       return failure("Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.")
     }
     await setAiProviderRouting(userId, {
@@ -203,6 +221,15 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
   try {
     const access = await getHybridAiFeatureAccess(userId, session.user.role)
     if (!access.enabledFeatureIds.includes("aiModeRouting")) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: "aiModeRouting",
+        requiredTier: "lite",
+        source: "ai-mode",
+        message: "AI mode switching requires Hybrid AI Lite or MEGA.",
+      })
       return failure("AI mode switching requires Hybrid AI Lite or MEGA.")
     }
     await setAiMode(userId, mode)

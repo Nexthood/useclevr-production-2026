@@ -1,10 +1,14 @@
 import { fetchOllamaModels } from "@/lib/ai/ollama-client"
 import { isMockAIMode } from "@/lib/ai/mock-ai"
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate"
 import { NextResponse } from "next/server"
 
 const TIMEOUT_MS = 5000
 
 export async function GET() {
+  const gate = await requireHybridAiFeature("futureHelperIntegration")
+  if (!gate.success) return gate.error
+
   if (isMockAIMode()) {
     return NextResponse.json({
       models: [

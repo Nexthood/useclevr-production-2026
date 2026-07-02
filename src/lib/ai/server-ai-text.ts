@@ -15,6 +15,11 @@ import {
   type AiRequestAuditInput,
 } from "@/lib/ai/ai-request-audit";
 import type { AiRequestAuditPurpose } from "@/lib/db/schema";
+import {
+  getHybridAiFeatureAccess,
+  logBlockedHybridAiFeatureAttempt,
+} from "@/lib/hybrid-ai/feature-gate";
+import type { HybridAiFeatureId } from "@/lib/hybrid-ai/features";
 import { debugLog, debugWarn } from "@/lib/utils/debug";
 
 export interface ServerAiTextResult {
@@ -41,6 +46,19 @@ export async function generateServerAiText(
 
   if (options.userId) {
     aiMode = await getAiMode(options.userId);
+    const requiredFeature = featureForAiPurpose(purpose);
+    const access = await getHybridAiFeatureAccess(options.userId);
+    if (!access.enabledFeatureIds.includes(requiredFeature)) {
+      logBlockedHybridAiFeatureAttempt({
+        userId: options.userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: requiredFeature,
+        requiredTier: requiredFeature === "standardReports" ? "lite" : "lite",
+        source: options.context,
+        message: "Hybrid AI provider routing is unavailable for this plan; using default cloud AI.",
+      });
+    } else {
     try {
       const result = await generateWithUniversalAiAdapter(options.userId, prompt, { mode: aiMode });
 
@@ -90,6 +108,7 @@ export async function generateServerAiText(
       debugWarn(`[${options.context}] User AI provider failed; using default cloud AI`, {
         error: error instanceof Error ? error.message : String(error),
       });
+    }
     }
   }
 
@@ -181,4 +200,11 @@ function inferAiRequestPurpose(context: string): AiRequestAuditPurpose {
   }
   if (normalized.includes("chat") || normalized.includes("query")) return "chat";
   return "dataset_analysis";
+}
+
+function featureForAiPurpose(purpose: AiRequestAuditPurpose): HybridAiFeatureId {
+  if (purpose === "chat") return "privateChat";
+  if (purpose === "report_generation") return "standardReports";
+  if (purpose === "recommendation") return "dashboardInsights";
+  return "csvExcelAnalysis";
 }

@@ -72,6 +72,7 @@ Text rules for this file:
 - Limit Hybrid AI Lite users to one configured AI provider and route only that provider through BYOAI execution.
 - Let Hybrid AI MEGA users configure multiple providers and fallback routing.
 - Show upgrade dialogs when users try to use a Hybrid AI feature that their active plan does not include.
+- Log blocked Hybrid AI feature attempts server-side with user ID, role, subscription tier, feature ID, required tier, source, and safe message.
 - Show an AI Providers settings page.
 - Let signed-in users configure Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI providers with provider name, type, base URL, optional encrypted API key, model, enabled state, default-provider state, fallback-provider state, and priority.
 - Store AI provider API keys encrypted on the server and never return saved keys to the browser.

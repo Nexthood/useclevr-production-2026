@@ -1,11 +1,15 @@
 import { getOllamaBaseUrl } from "@/lib/ai/ollama-client"
 import { isMockAIMode } from "@/lib/ai/mock-ai"
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate"
 import { NextResponse } from "next/server"
 
 const PULL_PATH = "/api/pull"
 const TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes
 
 export async function POST(request: Request) {
+  const gate = await requireHybridAiFeature("futureHelperIntegration")
+  if (!gate.success) return gate.error
+
   try {
     const { model } = await request.json()
     if (typeof model !== 'string' || !model.trim()) {

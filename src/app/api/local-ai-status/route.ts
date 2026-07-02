@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { isMockAIMode } from "@/lib/ai/mock-ai"
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate"
 
 // Step 3: Route status detection through the UseClevr Local Agent instead of probing Ollama directly
 
@@ -10,6 +11,9 @@ const TIMEOUT_MS = 5000
 type Status = "reachable" | "unavailable" | "error"
 
 export async function GET() {
+  const gate = await requireHybridAiFeature("basicLocalAi")
+  if (!gate.success) return gate.error
+
   if (isMockAIMode()) {
     return NextResponse.json({
       available: true,
