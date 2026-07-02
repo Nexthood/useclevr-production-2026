@@ -4,20 +4,20 @@ export type HybridAiFeatureId =
   | "privateChat"
   | "csvExcelAnalysis"
   | "dashboardInsights"
-  | "basicLocalAi"
   | "singleAiProvider"
   | "aiModeRouting"
-  | "standardReports"
+  | "multipleAiProviders"
+  | "multiDocumentAnalysis"
+  | "advancedReports"
+  | "aiAuditLogs"
+  | "workflowAutomationRoadmap"
+  | "helperRoadmap"
   | "aiAgents"
   | "deepResearch"
-  | "multiDocumentReasoning"
-  | "workflowAutomation"
   | "backgroundTasks"
   | "businessAssistants"
   | "teamAi"
-  | "enterpriseAudit"
   | "localKnowledgeBase"
-  | "futureHelperIntegration"
 
 export type HybridAiModuleId = HybridAiFeatureId
 
@@ -27,6 +27,7 @@ export type HybridAiModule = {
   name: string
   description: string
   upgradeReason: string
+  status: "active" | "coming-soon"
 }
 
 export const HYBRID_AI_MODULES: HybridAiModule[] = [
@@ -36,6 +37,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Private Chat",
     description: "Ask business questions through the local helper.",
     upgradeReason: "Private Chat is included with Hybrid AI Lite and MEGA.",
+    status: "active",
   },
   {
     id: "csvExcelAnalysis",
@@ -43,6 +45,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "CSV/Excel Analysis",
     description: "Analyze uploaded spreadsheets privately when Hybrid AI is active.",
     upgradeReason: "Private CSV and Excel analysis is included with Hybrid AI Lite and MEGA.",
+    status: "active",
   },
   {
     id: "dashboardInsights",
@@ -50,13 +53,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Dashboard Insights",
     description: "Use local context for dashboard summaries and next-step suggestions.",
     upgradeReason: "Dashboard Insights are included with Hybrid AI Lite and MEGA.",
-  },
-  {
-    id: "basicLocalAi",
-    tier: "lite",
-    name: "Basic Local AI",
-    description: "Run everyday private analysis on your device.",
-    upgradeReason: "Basic Local AI is included with Hybrid AI Lite and MEGA.",
+    status: "active",
   },
   {
     id: "singleAiProvider",
@@ -64,6 +61,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Single AI Provider",
     description: "Connect one local or cloud AI provider for private routing.",
     upgradeReason: "Single AI Provider setup is included with Hybrid AI Lite and MEGA.",
+    status: "active",
   },
   {
     id: "aiModeRouting",
@@ -71,13 +69,55 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Auto/Local/Cloud mode",
     description: "Choose automatic, offline local-only, or cloud-only routing.",
     upgradeReason: "Hybrid AI mode switching is included with Hybrid AI Lite and MEGA.",
+    status: "active",
   },
   {
-    id: "standardReports",
-    tier: "lite",
-    name: "Standard Reports",
-    description: "Use Hybrid AI routing for standard report explanations.",
-    upgradeReason: "Standard Reports are included with Hybrid AI Lite and MEGA.",
+    id: "multipleAiProviders",
+    tier: "mega",
+    name: "Multiple AI Providers",
+    description: "Connect multiple providers and configure fallback routing.",
+    upgradeReason: "Multiple AI Providers require Hybrid AI MEGA because Lite includes one provider.",
+    status: "active",
+  },
+  {
+    id: "multiDocumentAnalysis",
+    tier: "mega",
+    name: "Multi-document Analysis",
+    description: "Analyze multiple datasets or documents together.",
+    upgradeReason: "Multi-document Analysis requires Hybrid AI MEGA because it combines multiple private sources.",
+    status: "active",
+  },
+  {
+    id: "advancedReports",
+    tier: "mega",
+    name: "Advanced Reports",
+    description: "Use advanced Hybrid AI report enhancement.",
+    upgradeReason: "Advanced Reports require Hybrid AI MEGA because they use deeper provider-powered report generation.",
+    status: "active",
+  },
+  {
+    id: "aiAuditLogs",
+    tier: "mega",
+    name: "AI Audit Logs",
+    description: "Review AI provider usage and privacy-routing metadata.",
+    upgradeReason: "AI Audit Logs require Hybrid AI MEGA because they support governance and audit review.",
+    status: "active",
+  },
+  {
+    id: "workflowAutomationRoadmap",
+    tier: "mega",
+    name: "Workflow Automation roadmap",
+    description: "Track future workflow automation capabilities.",
+    upgradeReason: "Workflow Automation roadmap access requires Hybrid AI MEGA.",
+    status: "active",
+  },
+  {
+    id: "helperRoadmap",
+    tier: "mega",
+    name: "UseClevr Helper roadmap",
+    description: "Access advanced helper roadmap actions when they are available.",
+    upgradeReason: "UseClevr Helper roadmap actions require Hybrid AI MEGA.",
+    status: "active",
   },
   {
     id: "aiAgents",
@@ -85,6 +125,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "AI Agents",
     description: "Coordinate guided analysis tasks from one private workspace.",
     upgradeReason: "AI Agents require Hybrid AI MEGA because they coordinate advanced multi-step work.",
+    status: "coming-soon",
   },
   {
     id: "deepResearch",
@@ -92,20 +133,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Deep Research",
     description: "Run structured research workflows with private business context.",
     upgradeReason: "Deep Research requires Hybrid AI MEGA because it runs advanced research workflows.",
-  },
-  {
-    id: "multiDocumentReasoning",
-    tier: "mega",
-    name: "Multi-document reasoning",
-    description: "Connect multiple business documents for deeper local analysis.",
-    upgradeReason: "Multi-document reasoning requires Hybrid AI MEGA because it combines multiple private sources.",
-  },
-  {
-    id: "workflowAutomation",
-    tier: "mega",
-    name: "Workflow automation",
-    description: "Automate recurring analysis steps across business workflows.",
-    upgradeReason: "Workflow automation requires Hybrid AI MEGA because it can run cross-workflow actions.",
+    status: "coming-soon",
   },
   {
     id: "backgroundTasks",
@@ -113,6 +141,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Background task execution",
     description: "Continue long-running private work while you stay in UseClevr.",
     upgradeReason: "Background tasks require Hybrid AI MEGA because they run long-lived automated work.",
+    status: "coming-soon",
   },
   {
     id: "businessAssistants",
@@ -120,6 +149,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Business assistants",
     description: "Unlock specialized assistants for business functions.",
     upgradeReason: "Business assistants require Hybrid AI MEGA because they unlock specialized role-based modules.",
+    status: "coming-soon",
   },
   {
     id: "teamAi",
@@ -127,13 +157,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Team AI",
     description: "Coordinate Hybrid AI work across team workspaces.",
     upgradeReason: "Team AI requires Hybrid AI MEGA because it is built for shared business workspaces.",
-  },
-  {
-    id: "enterpriseAudit",
-    tier: "mega",
-    name: "Enterprise Audit",
-    description: "Review detailed provider usage and governance metadata.",
-    upgradeReason: "Enterprise Audit requires Hybrid AI MEGA because it supports governance and compliance review.",
+    status: "coming-soon",
   },
   {
     id: "localKnowledgeBase",
@@ -141,13 +165,7 @@ export const HYBRID_AI_MODULES: HybridAiModule[] = [
     name: "Local Knowledge Base",
     description: "Use private business knowledge as reusable local context.",
     upgradeReason: "Local Knowledge Base requires Hybrid AI MEGA because it maintains reusable private context.",
-  },
-  {
-    id: "futureHelperIntegration",
-    tier: "mega",
-    name: "Future Helper integration",
-    description: "Add advanced helper modules without changing the core app.",
-    upgradeReason: "Future Helper integration requires Hybrid AI MEGA because it unlocks advanced local automation.",
+    status: "coming-soon",
   },
 ]
 

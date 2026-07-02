@@ -29,7 +29,7 @@ export async function POST(_request: Request) {
   const access = await requireDevelopmentOrSuperAdmin()
   if (!access.success) return access.error
   if (!("mode" in access) || access.mode !== "development") {
-    const gate = await requireHybridAiFeature("futureHelperIntegration")
+    const gate = await requireHybridAiFeature("helperRoadmap")
     if (!gate.success) return gate.error
   }
 
@@ -131,7 +131,7 @@ export async function GET() {
   const access = await requireDevelopmentOrSuperAdmin()
   if (!access.success) return access.error
   if (!("mode" in access) || access.mode !== "development") {
-    const gate = await requireHybridAiFeature("futureHelperIntegration")
+    const gate = await requireHybridAiFeature("helperRoadmap")
     if (!gate.success) return gate.error
   }
 

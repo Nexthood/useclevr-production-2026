@@ -6,7 +6,6 @@ import { auth } from "@/lib/auth/auth";
 
 import { answerReportQuestion } from '@/lib/reports/report-ai-chat';
 import { getReport } from '@/lib/reports/report-generator';
-import { requireHybridAiFeature } from '@/lib/hybrid-ai/feature-gate';
 import { NextResponse } from 'next/server';
 
 export async function POST(
@@ -25,8 +24,6 @@ export async function POST(
     }
     
     debugLog('[REPORT-CHAT] Question for report:', id);
-    const gate = await requireHybridAiFeature("standardReports");
-    if (!gate.success) return gate.error;
     
     // Get the report
     const report = getReport(id);

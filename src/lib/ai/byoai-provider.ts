@@ -398,7 +398,7 @@ export async function generateWithUserAiProvider(userId: string, prompt: string)
 
 export async function generateWithUniversalAiAdapter(userId: string, prompt: string, options: { mode?: AiMode } = {}) {
   const featureAccess = await getHybridAiFeatureAccess(userId);
-  if (!featureAccess.enabledFeatureIds.includes("basicLocalAi")) {
+  if (!featureAccess.enabledFeatureIds.includes("singleAiProvider")) {
     debugLog("[AI_PROVIDER] Hybrid AI provider routing skipped by feature gate", { userId });
     return null;
   }

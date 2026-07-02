@@ -138,7 +138,7 @@ export async function canUseHybridAiFeatureForUser(userId: string, featureId: Hy
 }
 
 export async function canUseConfiguredAiProviders(userId: string, sessionRole?: string | null) {
-  return canUseHybridAiFeatureForUser(userId, "basicLocalAi", sessionRole)
+  return canUseHybridAiFeatureForUser(userId, "singleAiProvider", sessionRole)
 }
 
 export async function assertCanSaveAiProvider(input: {
@@ -178,7 +178,7 @@ export async function assertCanSaveAiProvider(input: {
       userId: input.userId,
       role: access.role,
       subscriptionTier: access.subscriptionTier,
-      featureId: "singleAiProvider",
+      featureId: "multipleAiProviders",
       requiredTier: "mega",
       source: "provider-save",
       message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to connect multiple providers.",
@@ -186,7 +186,7 @@ export async function assertCanSaveAiProvider(input: {
     throw new HybridAiFeatureGateError(
       "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to connect multiple providers.",
       "mega",
-      "singleAiProvider",
+      "multipleAiProviders",
     )
   }
 

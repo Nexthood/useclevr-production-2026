@@ -4,7 +4,6 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
-import { requireHybridAiFeature } from '@/lib/hybrid-ai/feature-gate';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import { NextResponse } from 'next/server';
@@ -227,9 +226,6 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-
-    const gate = await requireHybridAiFeature("standardReports");
-    if (!gate.success) return gate.error;
 
     // 2. Parse request body
     const body = await request.json();

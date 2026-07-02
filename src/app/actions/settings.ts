@@ -179,7 +179,7 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
         userId,
         role: access.role,
         subscriptionTier: access.subscriptionTier,
-        featureId: "singleAiProvider",
+        featureId: "multipleAiProviders",
         requiredTier: "mega",
         source: "provider-routing",
         message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.",

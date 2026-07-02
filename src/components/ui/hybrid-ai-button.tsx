@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { billingPlans } from "@/lib/billing/plans"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
-import { getHybridAiEntitlement, HYBRID_AI_MODULES } from "@/lib/hybrid-ai/features"
+import { getHybridAiEntitlement, HYBRID_AI_MODULES, type HybridAiModule } from "@/lib/hybrid-ai/features"
 import { Brain, Check, PlugZap } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -74,9 +74,9 @@ export default function HybridAiButton({
               <HybridPoint title="Plan access" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <ModuleGroup title="Hybrid AI Lite" modules={liteModules.map((module) => module.name)} />
+              <ModuleGroup title="Hybrid AI Lite" modules={liteModules} />
               {entitlement.canUseMega ? (
-                <ModuleGroup title="Hybrid AI MEGA" modules={megaModules.slice(0, 6).map((module) => module.name)} />
+                <ModuleGroup title="Hybrid AI MEGA" modules={megaModules.slice(0, 8)} />
               ) : (
                 <UpgradePreview onOpen={() => setMegaUpgradeOpen(true)} />
               )}
@@ -152,7 +152,7 @@ export default function HybridAiButton({
         >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Hybrid AI Lite keeps private chat, CSV/Excel analysis, dashboard insights, one AI provider, mode switching, and standard reports. MEGA unlocks advanced modules for deeper business automation.
+              Hybrid AI Lite keeps private chat, CSV/Excel analysis, dashboard insights, one AI provider, and mode switching. MEGA unlocks multiple providers, audit logs, multi-document analysis, advanced reports, and roadmap access.
             </p>
             <Link
               href="/app/settings/checkout?plan=business_monthly"
@@ -187,14 +187,15 @@ function UpgradePreview({ onOpen }: { onOpen: () => void }) {
   )
 }
 
-function ModuleGroup({ title, modules }: { title: string; modules: string[] }) {
+function ModuleGroup({ title, modules }: { title: string; modules: HybridAiModule[] }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="text-sm font-semibold text-foreground">{title}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {modules.map((module) => (
-          <span key={module} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
-            {module}
+          <span key={module.id} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+            {module.name}
+            {module.status === "coming-soon" ? " · Coming soon" : ""}
           </span>
         ))}
       </div>

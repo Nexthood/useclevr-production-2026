@@ -12,7 +12,7 @@ export async function POST() {
   const access = await requireDevelopmentOrSuperAdmin()
   if (!access.success) return access.error
   if (!("mode" in access) || access.mode !== "development") {
-    const gate = await requireHybridAiFeature("futureHelperIntegration")
+    const gate = await requireHybridAiFeature("helperRoadmap")
     if (!gate.success) return gate.error
   }
 

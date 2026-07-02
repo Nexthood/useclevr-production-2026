@@ -7,7 +7,7 @@ const PULL_PATH = "/api/pull"
 const TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes
 
 export async function POST(request: Request) {
-  const gate = await requireHybridAiFeature("futureHelperIntegration")
+  const gate = await requireHybridAiFeature("helperRoadmap")
   if (!gate.success) return gate.error
 
   try {

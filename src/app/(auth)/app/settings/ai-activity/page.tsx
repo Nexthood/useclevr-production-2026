@@ -14,29 +14,27 @@ export default async function AiActivityPage() {
   if (!session?.user?.id) redirect("/login");
 
   const access = await getHybridAiFeatureAccess(session.user.id, session.user.role);
-  const isSuperAdmin = session.user.role === "superadmin";
-  const canViewOwnActivity = access.canUseLite;
-  const canViewEnterpriseAudit = access.enabledFeatureIds.includes("enterpriseAudit");
-  if (!canViewOwnActivity) {
+  const canViewAiAuditLogs = access.enabledFeatureIds.includes("aiAuditLogs");
+  if (!canViewAiAuditLogs) {
     logBlockedHybridAiFeatureAttempt({
       userId: session.user.id,
       role: access.role,
       subscriptionTier: access.subscriptionTier,
-      featureId: "enterpriseAudit",
-      requiredTier: "lite",
+      featureId: "aiAuditLogs",
+      requiredTier: "mega",
       source: "settings-ai-activity",
-      message: "AI Activity requires Hybrid AI Lite or MEGA.",
+      message: "AI Audit Logs require Hybrid AI MEGA.",
     });
   }
 
-  const entries = canViewOwnActivity
+  const entries = canViewAiAuditLogs
     ? await listAiRequestAuditLogs({
         userId: session.user.id,
-        role: canViewEnterpriseAudit ? session.user.role : "user",
+        role: session.user.role,
         limit: 100,
       })
     : [];
-  const showEnterpriseAudit = isSuperAdmin && canViewEnterpriseAudit;
+  const showEnterpriseAudit = canViewAiAuditLogs && session.user.role === "superadmin";
 
   return (
     <div className="space-y-6">
@@ -47,26 +45,26 @@ export default async function AiActivityPage() {
         </p>
       </div>
 
-      {!canViewOwnActivity ? (
+      {!canViewAiAuditLogs ? (
         <Card>
           <CardHeader>
-            <CardTitle>Hybrid AI Lite required</CardTitle>
+            <CardTitle>Hybrid AI MEGA required</CardTitle>
             <CardDescription>
-              AI Activity is available with Hybrid AI Lite and MEGA because it reviews provider routing for Hybrid AI requests.
+              AI Audit Logs are available with Hybrid AI MEGA because they support provider usage and privacy governance.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link
-              href="/app/settings/checkout?plan=pro_monthly"
+              href="/app/settings/checkout?plan=business_monthly"
               className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
             >
-              Upgrade to Pro
+              Upgrade to Business
             </Link>
           </CardContent>
         </Card>
       ) : null}
 
-      {canViewOwnActivity ? (
+      {canViewAiAuditLogs ? (
         <Card>
           <CardHeader>
             <CardTitle>{showEnterpriseAudit ? "Provider usage across workspaces" : "Your AI provider usage"}</CardTitle>

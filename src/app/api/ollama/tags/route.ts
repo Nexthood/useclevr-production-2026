@@ -6,7 +6,7 @@ import { NextResponse } from "next/server"
 const TIMEOUT_MS = 5000
 
 export async function GET() {
-  const gate = await requireHybridAiFeature("futureHelperIntegration")
+  const gate = await requireHybridAiFeature("helperRoadmap")
   if (!gate.success) return gate.error
 
   if (isMockAIMode()) {

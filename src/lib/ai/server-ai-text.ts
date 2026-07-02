@@ -54,7 +54,7 @@ export async function generateServerAiText(
         role: access.role,
         subscriptionTier: access.subscriptionTier,
         featureId: requiredFeature,
-        requiredTier: requiredFeature === "standardReports" ? "lite" : "lite",
+        requiredTier: requiredFeature === "advancedReports" ? "mega" : "lite",
         source: options.context,
         message: "Hybrid AI provider routing is unavailable for this plan; using default cloud AI.",
       });
@@ -204,7 +204,7 @@ function inferAiRequestPurpose(context: string): AiRequestAuditPurpose {
 
 function featureForAiPurpose(purpose: AiRequestAuditPurpose): HybridAiFeatureId {
   if (purpose === "chat") return "privateChat";
-  if (purpose === "report_generation") return "standardReports";
+  if (purpose === "report_generation") return "advancedReports";
   if (purpose === "recommendation") return "dashboardInsights";
   return "csvExcelAnalysis";
 }
