@@ -151,7 +151,7 @@ export default async function AnalyzePage({
           data={data}
           rowCount={rowCount}
           isAnalyzed={hasAnalysis}
-          initialAnalysis={undefined}
+          initialAnalysis={_initialAnalysis as any}
         />
       </main>
     </div>

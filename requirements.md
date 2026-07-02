@@ -59,6 +59,14 @@ Text rules for this file:
 - Use AI interaction records to speed future development by preserving concise correction patterns, user expectations, and reusable lessons for developers working with multiple AI agents.
 - Redact credential-like values before AI interaction traces are stored or exported.
 - Map business KPI columns by explicit meaning, including quantity, product, country or region, and revenue.
+- Generate Business Intelligence Engine Phase 1 output automatically after CSV or Excel upload.
+- Profile uploaded datasets by columns, data types, missing values, duplicate rows, and invalid values.
+- Detect business KPI columns for revenue, profit, cost, margin, inventory, customers, orders, products, and time.
+- Calculate a 0-100 Business Health Score from data quality, KPI completeness, trend stability, and business risk signals.
+- Detect business risks including declining revenue, falling margins, low stock, customer concentration, seasonal or trend anomalies, and outliers.
+- Detect business opportunities including high-performing products, growth opportunities, upselling opportunities, inventory optimization, and cost savings.
+- Show a concise executive summary and prioritized High, Medium, and Low recommended actions with reason, expected business impact, and confidence.
+- Route Business Intelligence Engine narrative generation through the Universal AI Adapter while keeping deterministic calculations in the backend.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
 - Explain Hybrid AI plan access in customer-facing plan copy.

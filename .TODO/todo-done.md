@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-906. Add Business Intelligence Engine Phase 1 with automatic post-upload profiling, KPI detection, health scoring, risk detection, opportunity detection, summaries, prioritized actions, and deterministic tests. (labels: ai, data, business, testing; commit: worktree)
 - T-905. Complete Hybrid AI feature gates for current Lite and MEGA features with backend enforcement and automated entitlement tests. (labels: ai, billing, security, testing; commit: worktree)
 - T-904. Apply simplified Hybrid AI MVP feature gates across frontend, backend routes, provider settings, audit activity, helper roadmap actions, blocked-attempt logs, and user-facing upgrade paths. (labels: ai, billing, security, ui; commit: worktree)
 - T-903. Add metadata-only Hybrid AI privacy audit logging, AI Assistant privacy status, and user-scoped AI Activity review. (labels: ai, logging, security, ui; commit: worktree)
