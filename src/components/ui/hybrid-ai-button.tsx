@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { billingPlans } from "@/lib/billing/plans"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
-import { getHybridAiEntitlement, HYBRID_AI_MODULES } from "@/lib/hybrid-ai/features"
+import { getHybridAiEntitlement, HYBRID_AI_MODULES, type HybridAiModule } from "@/lib/hybrid-ai/features"
 import { Brain, Check, PlugZap } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -26,6 +26,7 @@ export default function HybridAiButton({
 }) {
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
+  const [megaUpgradeOpen, setMegaUpgradeOpen] = React.useState(false)
   const entitlement = React.useMemo(() => getHybridAiEntitlement(subscriptionTier), [subscriptionTier])
   const hasLocalAiAccess = entitlement.canDownload
   const hybridTiers =
@@ -33,8 +34,9 @@ export default function HybridAiButton({
       ? (["lite", "mega"] as const)
       : (["lite"] as const)
   const defaultTier = subscriptionTier === "business" ? "mega" : "lite"
-  const liteModules = HYBRID_AI_MODULES.filter((module) => module.tier === "lite")
-  const megaModules = HYBRID_AI_MODULES.filter((module) => module.tier === "mega")
+  const availableModules = HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id))
+  const liteModules = availableModules.filter((module) => module.tier === "lite")
+  const megaModules = availableModules.filter((module) => module.tier === "mega")
 
   return (
     <>
@@ -72,8 +74,12 @@ export default function HybridAiButton({
               <HybridPoint title="Plan access" description={`Lite uses ${hybridAiCreditCosts.lite} credits; MEGA uses ${hybridAiCreditCosts.mega}.`} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <ModuleGroup title="Hybrid AI Lite" modules={liteModules.map((module) => module.name)} />
-              <ModuleGroup title="Hybrid AI MEGA" modules={megaModules.slice(0, 6).map((module) => module.name)} />
+              <ModuleGroup title="Hybrid AI Lite" modules={liteModules} />
+              {entitlement.canUseMega ? (
+                <ModuleGroup title="Hybrid AI MEGA" modules={megaModules.slice(0, 8)} />
+              ) : (
+                <UpgradePreview onOpen={() => setMegaUpgradeOpen(true)} />
+              )}
             </div>
           </div>
 
@@ -136,18 +142,60 @@ export default function HybridAiButton({
         allowedTiers={[...hybridTiers]}
         subscriptionTier={subscriptionTier}
       />
+
+      {megaUpgradeOpen ? (
+        <Modal
+          open={megaUpgradeOpen}
+          onOpenChange={setMegaUpgradeOpen}
+          title="Hybrid AI MEGA required"
+          description="Advanced automation, agents, research, team AI, enterprise audit, and local knowledge features require Business access."
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Hybrid AI Lite keeps private chat, CSV/Excel analysis, dashboard insights, one AI provider, and mode switching. MEGA unlocks multiple providers, audit logs, multi-document analysis, advanced reports, and roadmap access.
+            </p>
+            <Link
+              href="/app/settings/checkout?plan=business_monthly"
+              onClick={() => {
+                setMegaUpgradeOpen(false)
+                setOpen(false)
+              }}
+              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+            >
+              Review Business plan
+            </Link>
+          </div>
+        </Modal>
+      ) : null}
     </>
   )
 }
 
-function ModuleGroup({ title, modules }: { title: string; modules: string[] }) {
+function UpgradePreview({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-left transition hover:border-amber-500/50"
+    >
+      <p className="text-sm font-semibold text-foreground">Hybrid AI MEGA</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Advanced automation, agents, research, team AI, enterprise audit, and local knowledge require Business.
+      </p>
+      <span className="mt-3 inline-flex text-xs font-semibold text-primary">View upgrade</span>
+    </button>
+  )
+}
+
+function ModuleGroup({ title, modules }: { title: string; modules: HybridAiModule[] }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="text-sm font-semibold text-foreground">{title}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {modules.map((module) => (
-          <span key={module} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
-            {module}
+          <span key={module.id} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+            {module.name}
+            {module.status === "coming-soon" ? " · Coming soon" : ""}
           </span>
         ))}
       </div>

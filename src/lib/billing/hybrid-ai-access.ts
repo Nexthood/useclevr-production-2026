@@ -1,7 +1,5 @@
 import { auth } from "@/lib/auth/auth"
-import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate"
 import { NextResponse } from "next/server"
 
 export type HybridAiTier = "lite" | "mega"
@@ -15,26 +13,8 @@ export async function requireHybridAiDownloadAccess(tier: HybridAiTier = "lite")
     }
   }
 
-  const sessionRole: string = session.user.role ?? "user"
-
-  if (sessionRole === "superadmin") {
-    return { success: true as const, session, subscriptionTier: "admin" }
-  }
-
-  const db = getDb()
-  const profile = db
-    ? await db.query.profiles.findFirst({
-        where: eq(profiles.userId, session.user.id),
-        columns: { subscriptionTier: true, role: true },
-      })
-    : null
-
-  const subscriptionTier = profile?.subscriptionTier || "free"
-  const profileRole = profile?.role || sessionRole
-  const isAdmin = profileRole === "superadmin" || profileRole === "admin"
-  const hasLite = isAdmin || subscriptionTier === "pro" || subscriptionTier === "business"
-  const hasMega = isAdmin || subscriptionTier === "business"
-  const allowed = tier === "mega" ? hasMega : hasLite
+  const access = await getHybridAiFeatureAccess(session.user.id, session.user.role)
+  const allowed = tier === "mega" ? access.canUseMega : access.canUseLite
 
   if (!allowed) {
     return {
@@ -49,5 +29,5 @@ export async function requireHybridAiDownloadAccess(tier: HybridAiTier = "lite")
     }
   }
 
-  return { success: true as const, session, subscriptionTier }
+  return { success: true as const, session, subscriptionTier: access.subscriptionTier }
 }

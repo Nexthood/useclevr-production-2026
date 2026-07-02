@@ -1,7 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAiRequestAuditLogs } from "@/lib/ai/ai-request-audit";
 import { auth } from "@/lib/auth/auth";
+import { getHybridAiFeatureAccess, logBlockedHybridAiFeatureAttempt } from "@/lib/hybrid-ai/feature-gate";
 import type { AiRequestAuditEntry } from "@/lib/ai/ai-request-audit";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type React from "react";
 
@@ -11,12 +13,28 @@ export default async function AiActivityPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const entries = await listAiRequestAuditLogs({
-    userId: session.user.id,
-    role: session.user.role,
-    limit: 100,
-  });
-  const isSuperAdmin = session.user.role === "superadmin";
+  const access = await getHybridAiFeatureAccess(session.user.id, session.user.role);
+  const canViewAiAuditLogs = access.enabledFeatureIds.includes("aiAuditLogs");
+  if (!canViewAiAuditLogs) {
+    logBlockedHybridAiFeatureAttempt({
+      userId: session.user.id,
+      role: access.role,
+      subscriptionTier: access.subscriptionTier,
+      featureId: "aiAuditLogs",
+      requiredTier: "mega",
+      source: "settings-ai-activity",
+      message: "AI Audit Logs require Hybrid AI MEGA.",
+    });
+  }
+
+  const entries = canViewAiAuditLogs
+    ? await listAiRequestAuditLogs({
+        userId: session.user.id,
+        role: session.user.role,
+        limit: 100,
+      })
+    : [];
+  const showEnterpriseAudit = canViewAiAuditLogs && session.user.role === "superadmin";
 
   return (
     <div className="space-y-6">
@@ -27,44 +45,65 @@ export default async function AiActivityPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{isSuperAdmin ? "Provider usage across workspaces" : "Your AI provider usage"}</CardTitle>
-          <CardDescription>
-            This log stores routing metadata only. Prompts, responses, API keys, and dataset content are not stored here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {entries.length === 0 ? (
-            <p className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-              No AI provider activity has been recorded yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Time</th>
-                    {isSuperAdmin && <th className="px-3 py-2 font-medium">User</th>}
-                    <th className="px-3 py-2 font-medium">Purpose</th>
-                    <th className="px-3 py-2 font-medium">Provider</th>
-                    <th className="px-3 py-2 font-medium">Model</th>
-                    <th className="px-3 py-2 font-medium">Mode</th>
-                    <th className="px-3 py-2 font-medium">Location</th>
-                    <th className="px-3 py-2 font-medium">Fallback</th>
-                    <th className="px-3 py-2 font-medium">Result</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {entries.map((entry) => (
-                    <AiActivityRow key={entry.id} entry={entry} showUser={isSuperAdmin} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {!canViewAiAuditLogs ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Hybrid AI MEGA required</CardTitle>
+            <CardDescription>
+              AI Audit Logs are available with Hybrid AI MEGA because they support provider usage and privacy governance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href="/app/settings/checkout?plan=business_monthly"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+            >
+              Upgrade to Business
+            </Link>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {canViewAiAuditLogs ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{showEnterpriseAudit ? "Provider usage across workspaces" : "Your AI provider usage"}</CardTitle>
+            <CardDescription>
+              This log stores routing metadata only. Prompts, responses, API keys, and dataset content are not stored here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {entries.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                No AI provider activity has been recorded yet.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[920px] text-left text-sm">
+                  <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Time</th>
+                      {showEnterpriseAudit && <th className="px-3 py-2 font-medium">User</th>}
+                      <th className="px-3 py-2 font-medium">Purpose</th>
+                      <th className="px-3 py-2 font-medium">Provider</th>
+                      <th className="px-3 py-2 font-medium">Model</th>
+                      <th className="px-3 py-2 font-medium">Mode</th>
+                      <th className="px-3 py-2 font-medium">Location</th>
+                      <th className="px-3 py-2 font-medium">Fallback</th>
+                      <th className="px-3 py-2 font-medium">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {entries.map((entry) => (
+                      <AiActivityRow key={entry.id} entry={entry} showUser={showEnterpriseAudit} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

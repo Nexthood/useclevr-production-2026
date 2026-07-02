@@ -10,8 +10,8 @@ import {
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
-import { auth } from "@/lib/auth/auth";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +36,10 @@ const hybridChatSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireHybridAiFeature("privateChat");
+  if (!gate.success) return gate.error;
+  const userId = gate.session?.user?.id;
+  if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   let parsed: z.infer<typeof hybridChatSchema>;
   try {

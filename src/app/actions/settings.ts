@@ -9,6 +9,7 @@ import { saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, typ
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
+import { assertCanSaveAiProvider, featureGateFailureMessage, getHybridAiFeatureAccess, logBlockedHybridAiFeatureAttempt } from "@/lib/hybrid-ai/feature-gate"
 import { failure, type Result, success } from "@/lib/result"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -113,6 +114,11 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
   if (!userId) return failure("Please sign in again.")
 
   try {
+    await assertCanSaveAiProvider({
+      userId,
+      sessionRole: session.user.role,
+      providerId: String(formData.get("providerId") || "") || undefined,
+    })
     await saveAiProviderConfig(userId, {
       id: String(formData.get("providerId") || "") || undefined,
       providerName: String(formData.get("providerName") || ""),
@@ -126,6 +132,8 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
       priority: Number(formData.get("priority") || 100),
     })
   } catch (error) {
+    const gateMessage = featureGateFailureMessage(error)
+    if (gateMessage) return failure(gateMessage)
     const message = error instanceof Error ? error.message : "AI provider was not saved."
     return failure(message)
   }
@@ -152,9 +160,35 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
   if (!userId) return failure("Please sign in again.")
 
   try {
+    const access = await getHybridAiFeatureAccess(userId, session.user.role)
+    if (!access.enabledFeatureIds.includes("singleAiProvider")) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: "singleAiProvider",
+        requiredTier: "lite",
+        source: "provider-routing",
+        message: "AI provider routing requires Hybrid AI Lite or MEGA.",
+      })
+      return failure("AI provider routing requires Hybrid AI Lite or MEGA.")
+    }
+    const fallbackProviderId = String(formData.get("fallbackProviderId") || "").trim()
+    if (access.providerLimit === 1 && fallbackProviderId) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: "multipleAiProviders",
+        requiredTier: "mega",
+        source: "provider-routing",
+        message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.",
+      })
+      return failure("Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.")
+    }
     await setAiProviderRouting(userId, {
       defaultProviderId: String(formData.get("defaultProviderId") || ""),
-      fallbackProviderId: String(formData.get("fallbackProviderId") || ""),
+      fallbackProviderId,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI provider routing was not saved."
@@ -185,6 +219,19 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
   const mode = String(formData.get("aiMode") || "auto") as AiMode
 
   try {
+    const access = await getHybridAiFeatureAccess(userId, session.user.role)
+    if (!access.enabledFeatureIds.includes("aiModeRouting")) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: access.role,
+        subscriptionTier: access.subscriptionTier,
+        featureId: "aiModeRouting",
+        requiredTier: "lite",
+        source: "ai-mode",
+        message: "AI mode switching requires Hybrid AI Lite or MEGA.",
+      })
+      return failure("AI mode switching requires Hybrid AI Lite or MEGA.")
+    }
     await setAiMode(userId, mode)
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI mode was not saved."

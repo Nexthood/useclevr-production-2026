@@ -1,5 +1,6 @@
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { requireDevelopmentOrSuperAdmin } from "@/lib/auth/require-session";
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 
 /**
  * UseClevr AI MEGA Installer
@@ -27,6 +28,10 @@ let installationError = '';
 export async function POST(_request: Request) {
   const access = await requireDevelopmentOrSuperAdmin()
   if (!access.success) return access.error
+  if (!("mode" in access) || access.mode !== "development") {
+    const gate = await requireHybridAiFeature("helperRoadmap")
+    if (!gate.success) return gate.error
+  }
 
   debugLog('[INSTALLER] Starting AI engine installation...');
   
@@ -125,6 +130,10 @@ export async function POST(_request: Request) {
 export async function GET() {
   const access = await requireDevelopmentOrSuperAdmin()
   if (!access.success) return access.error
+  if (!("mode" in access) || access.mode !== "development") {
+    const gate = await requireHybridAiFeature("helperRoadmap")
+    if (!gate.success) return gate.error
+  }
 
   // Return current installation status
   const helperStatus = await checkOllamaInstalled();

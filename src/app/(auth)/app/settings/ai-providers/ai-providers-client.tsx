@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
 import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
+import type { HybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import {
   CheckCircle2,
   Clock3,
@@ -18,6 +19,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -79,16 +81,19 @@ type HealthCheckResult = {
 export function AiProvidersClient({
   providers,
   aiMode,
+  featureAccess,
   loadError,
 }: {
   providers: PublicAiProviderConfig[];
   aiMode: AiMode;
+  featureAccess: HybridAiFeatureAccess | null;
   loadError?: string | null;
 }) {
   const router = useRouter();
   const { showNotice } = useNotice();
   const [form, setForm] = React.useState<FormState>(emptyForm);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [upgradeDialog, setUpgradeDialog] = React.useState<{ title: string; message: string; requiredTier: "lite" | "mega" } | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSavingRouting, setIsSavingRouting] = React.useState(false);
   const [isSavingMode, setIsSavingMode] = React.useState(false);
@@ -105,23 +110,38 @@ export function AiProvidersClient({
 
   const defaultProvider = providers.find((provider) => provider.isDefault) || providers[0] || null;
   const fallbackProvider = providers.find((provider) => provider.isFallback) || null;
-  const connectedCount = providers.filter((provider) => isHealthyStatus(provider.lastTestStatus)).length;
   const enabledCount = providers.filter((provider) => provider.enabled).length;
   const localProviderCount = providers.filter((provider) => isLocalProviderType(provider.providerType)).length;
   const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
   const savedProvider = providers.find((provider) => provider.id === form.providerId);
+  const canUseAiProviders = Boolean(featureAccess?.enabledFeatureIds.includes("singleAiProvider"));
+  const canUseModeRouting = Boolean(featureAccess?.enabledFeatureIds.includes("aiModeRouting"));
+  const providerLimit = featureAccess?.providerLimit ?? 0;
+  const canAddProvider = canUseAiProviders && (providerLimit === null || providers.length < providerLimit);
 
   function updateForm(patch: Partial<FormState>) {
     setForm((current) => ({ ...current, ...patch }));
   }
 
   function openNewDialog() {
+    if (!canUseAiProviders) {
+      openUpgradeDialog("lite", "AI Providers require Hybrid AI Lite.", "Upgrade to Pro or Business to connect your own AI provider.");
+      return;
+    }
+    if (!canAddProvider) {
+      openUpgradeDialog("mega", "Hybrid AI Lite includes one AI provider.", "Upgrade to Hybrid AI MEGA to connect multiple providers and unlock enterprise modules.");
+      return;
+    }
     setForm(emptyForm);
     setTestResult(null);
     setIsDialogOpen(true);
   }
 
   function openEditDialog(provider: PublicAiProviderConfig) {
+    if (!canUseAiProviders) {
+      openUpgradeDialog("lite", "AI Providers require Hybrid AI Lite.", "Upgrade to Pro or Business to edit provider settings.");
+      return;
+    }
     setForm(formFromProvider(provider));
     setTestResult(null);
     setIsDialogOpen(true);
@@ -138,6 +158,10 @@ export function AiProvidersClient({
 
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canUseAiProviders) {
+      openUpgradeDialog("lite", "AI Providers require Hybrid AI Lite.", "Upgrade to Pro or Business to save provider settings.");
+      return;
+    }
     setIsSaving(true);
     const formData = new FormData(event.currentTarget);
     if (!form.apiKey.trim()) formData.delete("apiKey");
@@ -156,6 +180,10 @@ export function AiProvidersClient({
 
   async function handleRoutingSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canUseAiProviders) {
+      openUpgradeDialog("lite", "AI routing requires Hybrid AI Lite.", "Upgrade to Pro or Business to configure provider routing.");
+      return;
+    }
     setIsSavingRouting(true);
     const result = await updateAiProviderRouting(new FormData(event.currentTarget));
     if (!result.success) {
@@ -169,6 +197,10 @@ export function AiProvidersClient({
 
   async function handleModeSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canUseModeRouting) {
+      openUpgradeDialog("lite", "Hybrid AI modes require Hybrid AI Lite.", "Upgrade to Pro or Business to use Auto, Local only, and Cloud only modes.");
+      return;
+    }
     setIsSavingMode(true);
     const result = await updateAiMode(new FormData(event.currentTarget));
     if (!result.success) {
@@ -181,6 +213,10 @@ export function AiProvidersClient({
   }
 
   async function handleTest() {
+    if (!canUseAiProviders) {
+      openUpgradeDialog("lite", "Provider testing requires Hybrid AI Lite.", "Upgrade to Pro or Business to test provider connections.");
+      return;
+    }
     setIsTesting(true);
     setTestResult(null);
 
@@ -228,6 +264,10 @@ export function AiProvidersClient({
   }
 
   async function handleHealthCheck() {
+    if (!canUseAiProviders) {
+      openUpgradeDialog("lite", "Provider health checks require Hybrid AI Lite.", "Upgrade to Pro or Business to check provider availability.");
+      return;
+    }
     setIsCheckingHealth(true);
     try {
       const response = await fetch("/api/ai-providers/health", { method: "POST" });
@@ -255,6 +295,10 @@ export function AiProvidersClient({
     }
   }
 
+  function openUpgradeDialog(requiredTier: "lite" | "mega", title: string, message: string) {
+    setUpgradeDialog({ requiredTier, title, message });
+  }
+
   return (
     <div className="space-y-5">
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -272,10 +316,22 @@ export function AiProvidersClient({
           <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[420px]">
             <StatusTile label="Providers" value={String(providers.length)} />
             <StatusTile label="Enabled" value={String(enabledCount)} />
-            <StatusTile label="Connected" value={String(connectedCount)} />
+            <StatusTile label="Plan limit" value={providerLimit === null ? "Unlimited" : String(providerLimit)} />
           </div>
         </div>
       </section>
+
+      {!canUseAiProviders ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+          <div className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 h-4 w-4" />
+            <div>
+              <p className="font-medium">AI Providers require Hybrid AI Lite.</p>
+              <p className="mt-1">Upgrade to Pro or Business to connect your own local or cloud AI provider.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {loadError ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
@@ -300,13 +356,13 @@ export function AiProvidersClient({
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="button" variant="outline" onClick={handleHealthCheck} disabled={isCheckingHealth || enabledCount === 0} className="gap-2 bg-transparent">
+                <Button type="button" variant="outline" onClick={handleHealthCheck} disabled={isCheckingHealth || enabledCount === 0 || !canUseAiProviders} className="gap-2 bg-transparent">
                   <ListChecks className="h-4 w-4" />
                   {isCheckingHealth ? "Checking..." : "Check enabled"}
                 </Button>
                 <Button type="button" onClick={openNewDialog} className="gap-2 bg-gradient-primary hover:opacity-90">
                   <Plus className="h-4 w-4" />
-                  Add provider
+                  {canAddProvider ? "Add provider" : "Upgrade for more"}
                 </Button>
               </div>
             </div>
@@ -427,7 +483,7 @@ export function AiProvidersClient({
               ) : null}
 
               <Button type="submit" disabled={isSavingMode} className="w-full bg-gradient-primary hover:opacity-90">
-                {isSavingMode ? "Saving..." : "Save AI mode"}
+                {isSavingMode ? "Saving..." : canUseModeRouting ? "Save AI mode" : "Upgrade for modes"}
               </Button>
             </form>
           </CardContent>
@@ -461,19 +517,25 @@ export function AiProvidersClient({
                 </select>
               </Field>
 
-              <Field label="Fallback provider" htmlFor="fallbackProviderId">
-                <select
-                  id="fallbackProviderId"
-                  name="fallbackProviderId"
-                  defaultValue={fallbackProvider?.id || ""}
-                  className="h-11 w-full rounded-md border border-input bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Default cloud AI</option>
-                  {providers.map((provider) => (
-                    <option key={provider.id} value={provider.id}>{provider.providerName}</option>
-                  ))}
-                </select>
-              </Field>
+              {providerLimit === 1 ? (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  Hybrid AI Lite uses one AI provider. Upgrade to MEGA to configure a second provider as fallback.
+                </div>
+              ) : (
+                <Field label="Fallback provider" htmlFor="fallbackProviderId">
+                  <select
+                    id="fallbackProviderId"
+                    name="fallbackProviderId"
+                    defaultValue={fallbackProvider?.id || ""}
+                    className="h-11 w-full rounded-md border border-input bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Default cloud AI</option>
+                    {providers.map((provider) => (
+                      <option key={provider.id} value={provider.id}>{provider.providerName}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
 
               <div className="rounded-lg border border-border bg-background/70 p-3 text-sm">
                 <p className="font-medium text-foreground">Current path</p>
@@ -484,7 +546,7 @@ export function AiProvidersClient({
               </div>
 
               <Button type="submit" disabled={isSavingRouting || providers.length === 0} className="w-full bg-gradient-primary hover:opacity-90">
-                {isSavingRouting ? "Saving..." : "Save routing"}
+                {isSavingRouting ? "Saving..." : canUseAiProviders ? "Save routing" : "Upgrade for routing"}
               </Button>
             </form>
           </CardContent>
@@ -505,6 +567,15 @@ export function AiProvidersClient({
           onTest={handleTest}
           onUpdate={updateForm}
           onProviderTypeChange={handleProviderTypeChange}
+        />
+      ) : null}
+
+      {upgradeDialog ? (
+        <UpgradeGateDialog
+          title={upgradeDialog.title}
+          message={upgradeDialog.message}
+          requiredTier={upgradeDialog.requiredTier}
+          onClose={() => setUpgradeDialog(null)}
         />
       ) : null}
     </div>
@@ -670,6 +741,49 @@ function ProviderDialog({
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function UpgradeGateDialog({
+  title,
+  message,
+  requiredTier,
+  onClose,
+}: {
+  title: string;
+  message: string;
+  requiredTier: "lite" | "mega";
+  onClose: () => void;
+}) {
+  const planId = requiredTier === "mega" ? "business_monthly" : "pro_monthly";
+  const label = requiredTier === "mega" ? "Upgrade to Business" : "Upgrade to Pro";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-xl">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+            <TriangleAlert className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <Link
+            href={`/app/settings/checkout?plan=${planId}`}
+            onClick={onClose}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            {label}
+          </Link>
+          <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
+            Not now
+          </Button>
+        </div>
       </div>
     </div>
   );

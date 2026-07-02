@@ -1,5 +1,5 @@
 import { healthCheckEnabledAiProviders } from "@/lib/ai/byoai-provider";
-import { auth } from "@/lib/auth/auth";
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { debugError } from "@/lib/utils/debug";
 import { NextResponse } from "next/server";
 
@@ -7,11 +7,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireHybridAiFeature("singleAiProvider");
+  if (!gate.success) return gate.error;
+  const userId = gate.session?.user?.id;
+  if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   try {
     const results = await healthCheckEnabledAiProviders(userId);

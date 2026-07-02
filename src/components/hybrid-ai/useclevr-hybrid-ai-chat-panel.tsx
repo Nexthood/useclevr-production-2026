@@ -67,7 +67,11 @@ export function UseClevrHybridAiChatPanel({
     [subscriptionTier, userRole],
   )
   const enabledModules = React.useMemo(
-    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id]),
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id] && module.status === "active"),
+    [entitlement.enabledModuleIds, status.features],
+  )
+  const comingSoonModules = React.useMemo(
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id] && module.status === "coming-soon"),
     [entitlement.enabledModuleIds, status.features],
   )
   const lockedMegaModules = React.useMemo(
@@ -158,6 +162,11 @@ export function UseClevrHybridAiChatPanel({
               MEGA modules available with Business
             </span>
           )}
+          {comingSoonModules.slice(0, compact ? 3 : comingSoonModules.length).map((module) => (
+            <span key={module.id} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {module.name} · Coming soon
+            </span>
+          ))}
         </div>
       </div>
 

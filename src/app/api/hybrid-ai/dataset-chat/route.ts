@@ -10,11 +10,11 @@ import {
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
-import { auth } from "@/lib/auth/auth";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -82,11 +82,10 @@ const datasetChatSchema = z.object({
 });
 
 export async function GET() {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireHybridAiFeature("csvExcelAnalysis");
+  if (!gate.success) return gate.error;
+  const userId = gate.session?.user?.id;
+  if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   const rows = await db
     .select({
@@ -112,11 +111,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireHybridAiFeature("csvExcelAnalysis");
+  if (!gate.success) return gate.error;
+  const userId = gate.session?.user?.id;
+  if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   let parsed: z.infer<typeof datasetChatSchema>;
   try {

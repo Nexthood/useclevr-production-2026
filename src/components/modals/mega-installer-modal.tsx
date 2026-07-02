@@ -123,7 +123,11 @@ export function MegaInstallerModal({
   }, [allowedTiers, entitlement.canUseLite, entitlement.canUseMega])
 
   const availableModules = useMemo(
-    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id]),
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id] && module.status === "active"),
+    [entitlement.enabledModuleIds, status.features],
+  )
+  const comingSoonModules = useMemo(
+    () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id] && module.status === "coming-soon"),
     [entitlement.enabledModuleIds, status.features],
   )
   const lockedMegaModules = useMemo(
@@ -210,6 +214,15 @@ export function MegaInstallerModal({
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                   <LockKeyhole className="h-3.5 w-3.5" />
                   {module.name}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{module.description}</p>
+              </div>
+            ))}
+            {comingSoonModules.slice(0, 6).map((module) => (
+              <div key={module.id} className="rounded-md border border-border bg-muted/50 p-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <LockKeyhole className="h-3.5 w-3.5" />
+                  {module.name} · Coming soon
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{module.description}</p>
               </div>

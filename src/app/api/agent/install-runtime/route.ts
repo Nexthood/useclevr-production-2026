@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireDevelopmentOrSuperAdmin } from "@/lib/auth/require-session"
+import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate"
 
 const DEFAULT_AGENT_BASE = "http://127.0.0.1:5143"
 const INSTALL_PATH = "/install-runtime"
@@ -10,6 +11,10 @@ type AgentInstallState = 'accepted' | 'unsupported' | 'agent_unavailable' | 'alr
 export async function POST() {
   const access = await requireDevelopmentOrSuperAdmin()
   if (!access.success) return access.error
+  if (!("mode" in access) || access.mode !== "development") {
+    const gate = await requireHybridAiFeature("helperRoadmap")
+    if (!gate.success) return gate.error
+  }
 
   const agentBase = process.env.USECLEVR_AGENT_BASE?.trim() || DEFAULT_AGENT_BASE
   const url = `${agentBase.replace(/\/$/, '')}${INSTALL_PATH}`
