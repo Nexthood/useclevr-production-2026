@@ -33,6 +33,8 @@ Text rules for this file:
 - Compare Free, Pro, and Business upload benefits in the dataset-limit upload state.
 - Show uploaded datasets in structured tables with row counts.
 - Use title links, open/edit links, and row-end actions in dataset rows.
+- Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
+- Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
 - Require a signed-in user for dataset upload, analysis, query, dashboard, prediction, investigation, and suggestion operations.
 - Scope every persisted dataset read and calculation to the owning user.
@@ -46,6 +48,7 @@ Text rules for this file:
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
+- Show forecast guidance when time columns, numeric business columns, or enough rows are missing instead of a generic forecast failure.
 - Show Retail Inventory Analyst results as owner-readable inventory cards and scrollable tables.
 - Show every Retail Inventory Analyst result row in the relevant table without hiding remaining products behind summary-only overflow text.
 - Show SKU, product name, category, current stock, reorder point, units sold, revenue, cost, gross profit, margin percentage, last sale date, and order number in Retail Inventory Analyst rows when the uploaded dataset provides those fields.

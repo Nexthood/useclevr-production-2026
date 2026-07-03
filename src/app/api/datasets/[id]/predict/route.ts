@@ -5,17 +5,16 @@ import { auth } from '@/lib/auth/auth';
 // Predictive Insight Engine - detect trends and generate forward-looking insights
 
 import { generatePredictions } from '@/lib/business/predictive-engine';
-import { db } from '@/lib/db';
-import { datasetRows, datasets } from '@/lib/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { findAccessibleDataset, loadDatasetData } from '@/lib/data/dataset-access';
 import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
   try {
-    const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,10 +22,15 @@ export async function POST(
 
     debugLog('[PREDICT] Generating predictions for dataset:', id);
 
-    // Get dataset
-    const dataset = await db.query.datasets.findFirst({
-      where: and(eq(datasets.id, id), eq(datasets.userId, session.user.id)),
-    });
+    const { dataset, dbUnavailable } = await findAccessibleDataset(id, session.user.id, session.user.role);
+
+    if (dbUnavailable) {
+      debugError('[PREDICT] Database unavailable while loading dataset', { datasetId: id });
+      return NextResponse.json(
+        { error: 'Database is temporarily unavailable. Please try again shortly.' },
+        { status: 503 }
+      );
+    }
 
     if (!dataset) {
       return NextResponse.json(
@@ -35,15 +39,7 @@ export async function POST(
       );
     }
 
-    let data = (dataset.data as Record<string, unknown>[]) || [];
-    if (data.length === 0) {
-      const rows = await db.query.datasetRows.findMany({
-        where: eq(datasetRows.datasetId, id),
-        columns: { data: true },
-        orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
-      });
-      data = rows.map((row) => row.data as Record<string, unknown>);
-    }
+    const data = await loadDatasetData(id, dataset);
     
     if (data.length === 0) {
       return NextResponse.json(
@@ -64,10 +60,14 @@ export async function POST(
       ...result
     });
 
-  } catch (error: any) {
-    debugError('[PREDICT] Error:', error.message);
+  } catch (error: unknown) {
+    debugError('[PREDICT] Forecast generation failed', {
+      datasetId: id,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Forecast could not be generated because of a system error.' },
       { status: 500 }
     );
   }

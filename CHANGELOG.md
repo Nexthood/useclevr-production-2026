@@ -43,6 +43,7 @@
 
 ### Fixed
 
+- Fix dataset detail and forecast actions so dataset pages use the same signed-in access rules, analysis avoids broken dataset navigation, and forecast guidance names missing data requirements.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.
 - Fix Dashboard 2.0 TypeScript build blockers so production builds complete.

@@ -275,6 +275,8 @@ moving work between states.
 
 ## Label: data
 
+- T-911. Load dataset detail and analysis through shared user-scoped access, keep superadmin dataset access available, remove broken dataset navigation from analysis, and show forecast guidance for missing forecast inputs. (labels: data, reporting, ui; commit: worktree)
+
 - T-780. Classify numeric, text, date, boolean, identifier, and mixed CSV columns from representative values without treating every unique value as an identifier. (labels: data, upload, testing; commit: worktree)
 - T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable. (labels: data, reports, search, sales; commit: 53deaed7)
 - T-582. Merge duplicate upload implementations — made the server action `uploadCSV` in `src/app/actions/upload.ts` canonical, merged database retry logic and processRows types, and delegated the API route `/api/upload` to call it. (labels: api, data, upload, performance; commit: 72b947d6)

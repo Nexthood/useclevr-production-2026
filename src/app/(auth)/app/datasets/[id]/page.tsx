@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
-import { db } from "@/lib/db"
-import { datasets, datasetRows } from "@/lib/db/schema"
-import { and, eq } from "drizzle-orm"
+import { getDb } from "@/lib/db"
+import { datasetRows } from "@/lib/db/schema"
+import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
+import { eq } from "drizzle-orm"
 import { ChevronLeft, ChevronRight, Database, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 const PAGE_SIZE = 100
 
@@ -17,11 +18,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const session = await auth()
   if (!session?.user?.id) return { title: "Dataset" }
 
-  const dataset = await db.query.datasets.findFirst({
-    where: and(eq(datasets.id, id), eq(datasets.userId, session.user.id)),
-    columns: { name: true },
-  })
-  return { title: dataset?.name ?? "Dataset" }
+  try {
+    const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role)
+    return { title: dataset?.name ?? "Dataset" }
+  } catch {
+    return { title: "Dataset" }
+  }
 }
 
 export default async function DatasetDetailPage({
@@ -38,24 +40,39 @@ export default async function DatasetDetailPage({
 
   const session = await auth()
   const userId = (session?.user as { id?: string })?.id
+  const userRole = session?.user?.role
 
   if (!userId) {
     notFound()
   }
 
-  const dataset = await db.query.datasets.findFirst({
-    where: and(eq(datasets.id, id), eq(datasets.userId, userId)),
-  })
+  let accessResult
+  try {
+    accessResult = await findAccessibleDataset(id, userId, userRole)
+  } catch {
+    redirect(`/app/datasets/${id}/analyze`)
+  }
+
+  const { dataset, dbUnavailable } = accessResult
+
+  if (dbUnavailable) {
+    redirect(`/app/datasets/${id}/analyze`)
+  }
 
   if (!dataset) {
     notFound()
   }
 
-  const columns = (dataset as any).columns || []
+  const columns = getDatasetColumns(dataset.columns)
   const rowCount = dataset.rowCount || 0
   const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE))
 
   let data: Record<string, unknown>[] = []
+  const db = getDb()
+  if (!db) {
+    redirect(`/app/datasets/${id}/analyze`)
+  }
+
   try {
     const resultRows = await db.query.datasetRows.findMany({
       where: eq(datasetRows.datasetId, id),
@@ -64,8 +81,17 @@ export default async function DatasetDetailPage({
       limit: PAGE_SIZE,
     })
     data = resultRows.map((r) => r.data) as Record<string, unknown>[]
+    if (data.length === 0) {
+      const storedData = await loadDatasetData(id, dataset)
+      data = storedData.slice(offset, offset + PAGE_SIZE)
+    }
   } catch {
-    data = []
+    try {
+      const storedData = await loadDatasetData(id, dataset)
+      data = storedData.slice(offset, offset + PAGE_SIZE)
+    } catch {
+      redirect(`/app/datasets/${id}/analyze`)
+    }
   }
 
   const previewColumns: DataTableColumn<Record<string, unknown>>[] = columns.map((column: string) => ({
@@ -171,4 +197,8 @@ export default async function DatasetDetailPage({
       </main>
     </div>
   )
+}
+
+function getDatasetColumns(value: unknown) {
+  return Array.isArray(value) ? value.filter((column): column is string => typeof column === "string") : []
 }
