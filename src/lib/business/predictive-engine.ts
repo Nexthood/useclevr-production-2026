@@ -62,17 +62,41 @@ export async function generatePredictions(
       c.name.toLowerCase().includes('year')
     )?.name;
   
+  if (data.length < 2) {
+    return {
+      predictions: [],
+      insights: [{
+        id: 'not_enough_rows',
+        type: 'warning',
+        title: 'More Rows Needed',
+        description: 'Forecasting needs at least two rows with business metrics to estimate a direction.',
+        severity: 'low'
+      }],
+      summary: 'Forecasting needs more rows before it can estimate a trend.',
+      metadata: {
+        datasetId,
+        timeColumn: timeCol || 'none',
+        analyzedAt: new Date().toISOString()
+      }
+    };
+  }
+
   if (!timeCol || numericCols.length === 0) {
+    const missing = [
+      !timeCol ? 'date, month, year, or another time column' : null,
+      numericCols.length === 0 ? 'numeric business columns such as revenue, sales, profit, quantity, or cost' : null,
+    ].filter(Boolean).join(' and ');
+
     return {
       predictions: [],
       insights: [{
         id: 'no_time_data',
         type: 'warning',
-        title: 'Insufficient Data for Prediction',
-        description: 'Dataset lacks time series data. Predictions require date/time columns.',
+        title: 'Forecast Columns Missing',
+        description: `Forecasting needs ${missing}.`,
         severity: 'low'
       }],
-      summary: 'Unable to generate predictions - no time-based data detected.',
+      summary: `Forecasting needs ${missing}.`,
       metadata: {
         datasetId,
         timeColumn: timeCol || 'none',
@@ -313,7 +337,7 @@ function detectConcentrationRisks(
   }
   
   // Check for lack of diversity
-  if (sorted.length < 3 && sorted[0].pct > 40) {
+  if (sorted.length > 0 && sorted.length < 3 && sorted[0].pct > 40) {
     insights.push({
       id: 'diversity_concern',
       type: 'warning',

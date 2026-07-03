@@ -3,29 +3,27 @@ import { debugLog } from "@/lib/utils/debug"
 import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer"
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
-import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
-import { db } from "@/lib/db"
-import { datasetRows, datasets } from "@/lib/db/schema"
-import { and, eq } from "drizzle-orm"
+import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { AlertTriangle, Sparkles, BriefcaseBusiness } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
 // Type for analysis result (simplified for props)
-type AnalysisResult = Record<string, unknown>
+type DatasetAnalyzerInitialAnalysis = Parameters<typeof DatasetAnalyzer>[0]["initialAnalysis"]
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await auth()
   if (!session?.user?.id) return { title: "Analyze" }
 
-  const dataset = await db.query.datasets.findFirst({
-    where: and(eq(datasets.id, id), eq(datasets.userId, session.user.id)),
-    columns: { name: true },
-  })
-  return { title: dataset ? `Analyze: ${dataset.name}` : "Analyze" }
+  try {
+    const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role)
+    return { title: dataset ? `Analyze: ${dataset.name}` : "Analyze" }
+  } catch {
+    return { title: "Analyze" }
+  }
 }
 
 export default async function AnalyzePage({
@@ -37,6 +35,7 @@ export default async function AnalyzePage({
 
   const session = await auth()
   const userId = (session?.user as { id?: string })?.id
+  const userRole = session?.user?.role
 
   if (!userId) {
     notFound()
@@ -48,27 +47,17 @@ export default async function AnalyzePage({
   const hasIncompleteProfile = profileCompletion < 80
 
   // Get dataset using Drizzle - read data directly from dataset.data column
-  const dataset = await db.query.datasets.findFirst({
-    where: and(eq(datasets.id, id), eq(datasets.userId, userId)),
-  })
+  const { dataset } = await findAccessibleDataset(id, userId, userRole)
 
   if (!dataset) {
     notFound()
   }
 
   // Read rows from the data column in Dataset table (full dataset)
-  let data = ((dataset as any).data || []) as Record<string, unknown>[]
-  if (data.length === 0) {
-    const rows = await db.query.datasetRows.findMany({
-      where: eq(datasetRows.datasetId, id),
-      columns: { data: true },
-      orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
-    })
-    data = rows.map((row) => row.data as Record<string, unknown>)
-  }
-  const columns = (dataset as any).columns || []
+  const data = await loadDatasetData(id, dataset)
+  const columns = getDatasetColumns(dataset.columns)
   // Use dataset.rowCount for total
-  const rowCount = (dataset as any).rowCount || data.length
+  const rowCount = dataset.rowCount || data.length
 
   // Get column types from dataset record (stored during upload)
   const columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
@@ -86,7 +75,7 @@ export default async function AnalyzePage({
   const hasAnalysis: boolean = Boolean(
     dataset.analysis && typeof dataset.analysis === 'object' && Object.keys(dataset.analysis as object).length > 0
   )
-  const _initialAnalysis = hasAnalysis ? (dataset.analysis as AnalysisResult) : undefined
+  const initialAnalysis = hasAnalysis ? (dataset.analysis as DatasetAnalyzerInitialAnalysis) : undefined
   
   debugLog('[DEBUG-PAGE] Dataset analysis status:', { 
     id: dataset.id, 
@@ -97,25 +86,16 @@ export default async function AnalyzePage({
   return (
     <div className="flex flex-col flex-1">
       <AppPageHeader
-        title={`Analyze: ${(dataset as { name: string }).name}`}
+        title={`Analyze: ${dataset.name}`}
         description={hasAnalysis ? "View insights and ask questions" : "Analyze your dataset with AI"}
         breadcrumbs={[
           { label: "Dashboard", href: "/app" },
           { label: "Datasets", href: "/app/datasets" },
-          { label: (dataset as { name: string }).name, href: `/app/datasets/${id}` },
+          { label: dataset.name },
           { label: "Analyze" },
         ]}
         icon={Sparkles}
       />
-
-      <PageActionRow description="Use analysis tools here, or return to the dataset rows for review.">
-        <Link href={`/app/datasets/${id}`} className="shrink-0">
-          <Button size="sm" variant="outline" className="whitespace-nowrap">
-            <Sparkles className="mr-2 h-4 w-4" />
-            Dataset
-          </Button>
-        </Link>
-      </PageActionRow>
 
       {hasIncompleteProfile && (
         <div className="mb-4 px-4 sm:px-6">
@@ -146,14 +126,18 @@ export default async function AnalyzePage({
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <DatasetAnalyzer
           datasetId={id}
-          datasetName={(dataset as { name: string }).name}
+          datasetName={dataset.name}
           columns={columns}
           data={data}
           rowCount={rowCount}
           isAnalyzed={hasAnalysis}
-          initialAnalysis={_initialAnalysis as any}
+          initialAnalysis={initialAnalysis}
         />
       </main>
     </div>
   )
+}
+
+function getDatasetColumns(value: unknown) {
+  return Array.isArray(value) ? value.filter((column): column is string => typeof column === "string") : []
 }

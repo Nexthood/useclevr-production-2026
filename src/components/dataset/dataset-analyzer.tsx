@@ -602,8 +602,23 @@ export function DatasetAnalyzer({
         const result = await response.json()
         const predictionCount = Array.isArray(result.predictions) ? result.predictions.length : 0
         const insightCount = Array.isArray(result.insights) ? result.insights.length : 0
-        setForecastStatus(`Generated ${predictionCount} forecasts and ${insightCount} forward-looking insights.`)
+        if (predictionCount > 0) {
+          setForecastStatus(`Generated ${predictionCount} forecasts and ${insightCount} forward-looking insights.`)
+        } else {
+          const warning = Array.isArray(result.insights) ? result.insights[0] : null
+          setForecastStatus(
+            result.summary ||
+              warning?.description ||
+              "Forecast needs a time column and numeric business values such as revenue, sales, profit, quantity, or cost.",
+          )
+        }
       } else {
+        const body = await response.json().catch(() => ({}))
+        if (typeof body.error === "string" && response.status < 500) {
+          setForecastStatus(body.error)
+          return
+        }
+
         const fallbackValues = analysis?.business_analysis?.kpis
           ? [
               analysis.business_analysis.kpis.avgRevenue,
@@ -629,8 +644,8 @@ export function DatasetAnalyzer({
         }
       }
     } catch (error) {
-      debugError('Forecast failed:', error)
-      setForecastStatus('Forecast failed. Please try again.')
+      debugError('Forecast system error:', error)
+      setForecastStatus('Forecast could not run because of a system error. Please try again.')
     } finally {
       setIsForecasting(false)
     }

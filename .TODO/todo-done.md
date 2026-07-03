@@ -39,6 +39,10 @@ moving work between states.
 - T-851. Distribute the project phase map into active and deferred TODO queues with explicit phase gates. (labels: workflow, docs; commit: worktree)
 - T-852. Align sales, product, user, and developer descriptions with usable-MVP, sales-validation, AI-differentiation, and platform-expansion phases. (labels: docs, sales, workflow; commit: worktree)
 
+## Label: upload
+
+- T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
+
 ## Label: auth
 
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
@@ -270,6 +274,8 @@ moving work between states.
 - T-560. Business Profile pre-accounting: company setup persistence via JSONB column on businesses table, API route (GET/PUT/DELETE /api/business/setup), wizard wired to save/load, missing-data warnings on business overview page. (labels: api, dashboard, ui, business; commit: eace3e2d)
 
 ## Label: data
+
+- T-911. Load dataset detail and analysis through shared user-scoped access, keep superadmin dataset access available, remove broken dataset navigation from analysis, and show forecast guidance for missing forecast inputs. (labels: data, reporting, ui; commit: worktree)
 
 - T-780. Classify numeric, text, date, boolean, identifier, and mixed CSV columns from representative values without treating every unique value as an identifier. (labels: data, upload, testing; commit: worktree)
 - T-437. Enhanced sales and marketing materials: added research data and mermaid charts where applicable. (labels: data, reports, search, sales; commit: 53deaed7)

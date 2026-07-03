@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
+import { debugError } from "@/lib/utils/debug"
 
 interface ForecastPoint {
   period: number
@@ -47,22 +48,33 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}))
-  const values = toFiniteNumbers(body.values)
-  const periods = Math.min(Math.max(Number(body.periods) || 3, 1), 12)
+  try {
+    const body = await request.json().catch(() => ({}))
+    const values = toFiniteNumbers(body.values)
+    const periods = Math.min(Math.max(Number(body.periods) || 3, 1), 12)
 
-  if (values.length === 0) {
+    if (values.length === 0) {
+      return NextResponse.json(
+        { error: "Forecast needs at least one numeric value." },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      method: "linear_trend",
+      inputCount: values.length,
+      periods,
+      forecast: linearForecast(values, periods),
+    })
+  } catch (error) {
+    debugError("[FORECAST] Lightweight forecast failed", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json(
-      { error: "Provide at least one numeric value in `values`." },
-      { status: 400 }
+      { error: "Forecast could not be generated because of a system error." },
+      { status: 500 },
     )
   }
-
-  return NextResponse.json({
-    success: true,
-    method: "linear_trend",
-    inputCount: values.length,
-    periods,
-    forecast: linearForecast(values, periods),
-  })
 }

@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show Free plan dataset limits as an upgrade path on upload surfaces instead of a failed-upload error.
 - Simplify MVP authentication to email-password, email verification, password reset, and demo access while removing Google and LinkedIn sign-in.
 - Add Business Intelligence Engine Phase 1 so uploaded datasets automatically receive profiling, KPI detection, business health scoring, risk and opportunity detection, executive summaries, and prioritized recommended actions.
 - Add centralized Hybrid AI feature gates so Lite includes private chat, CSV/Excel analysis, dashboard insights, provider management, provider health checks, Auto/Local/Cloud modes, AI Assistant integration, and dataset-aware chat, while MEGA enforces multiple providers, provider fallback, multi-document analysis, AI reports, audit logs, and roadmap actions.
@@ -42,6 +43,7 @@
 
 ### Fixed
 
+- Fix dataset detail and forecast actions so dataset pages use the same signed-in access rules, analysis avoids broken dataset navigation, and forecast guidance names missing data requirements.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.
 - Fix Dashboard 2.0 TypeScript build blockers so production builds complete.
