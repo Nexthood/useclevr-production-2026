@@ -338,14 +338,13 @@ Text rules for this file:
 - Persist support tickets, support notes, billing settings, and referral events in the database when database access is configured.
 - Answer account, billing, dataset, report, credit, and Hybrid AI questions in the dashboard FAQ.
 - Show protected operator FAQ content for authorised platform staff.
-- Search FAQ answers from floating help chat.
-- Answer public FAQ in the public help chat.
-- Answer public and dashboard FAQ in the dashboard help chat.
-- Answer public, dashboard, and operator FAQ in the super-admin help chat.
-- Keep floating help chat clear of the footer.
-- Keep the floating help chat launcher aligned to the right when the chat panel is open.
-- Use a larger message input in floating help chat.
-- Use high-contrast message bubbles in floating help chat.
+- Show Usy as the official UseClevr AI Business Intelligence Assistant in the floating assistant panel.
+- Use the female Usy avatar in a premium circular frame with subtle cyan, purple, and soft-blue glow.
+- Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.
+- Let Usy use the Hybrid AI chat endpoint when available and fall back to UseClevr-specific knowledge when AI is unavailable.
+- Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.
+- Open Usy as a desktop floating panel and a mobile bottom sheet.
+- Use a prompt-style message box, clickable suggestion chips, and high-contrast message bubbles in Usy.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.
 - Answer display, contrast, and text-size questions in public and dashboard FAQ.

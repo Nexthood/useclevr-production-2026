@@ -21,7 +21,7 @@ UseClevr includes separate theme and accessibility controls.
 ## Keyboard And Screen Reader Notes
 
 - Display controls expose button labels, tooltips, and pressed states.
-- Sidebar collapse, notices, search, and help chat controls use labelled buttons.
+- Sidebar collapse, notices, search, and Usy assistant controls use labelled buttons.
 - Tables use visible title links and row-end actions for predictable scanning.
 
 ## Support

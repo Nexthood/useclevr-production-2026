@@ -20,7 +20,7 @@ Upload CSV → Ask question in plain language → Review AI answer + computed KP
 | **Accountancy Readiness** | Track bookkeeping, tax context, and compliance readiness from uploaded datasets.                       |
 | **Reports & Downloads**   | Download analysis as PDF or CSV. Share with stakeholders, investors, or advisors.                      |
 | **AI Trace History**      | Review past questions, re-run with different providers, export conversation history.                   |
-| **Guided Setup**          | Progress tracking, quick links, FAQ, help chat, and support tickets.                                   |
+| **Guided Setup**          | Progress tracking, quick links, FAQ, Usy assistant guidance, and support tickets.                       |
 
 ## Who It's For
 
@@ -68,4 +68,4 @@ UseClevr is live with working upload, AI Assistant, Business Profile, Accountanc
 
 - Web: https://useclevr.com
 - Sales: sales@useclevr.com
-- Support: UseClevr dashboard tickets / help chat
+- Support: UseClevr dashboard tickets / Usy assistant

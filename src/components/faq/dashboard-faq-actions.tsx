@@ -11,8 +11,8 @@ const actions = [
     icon: Send,
   },
   {
-    label: "Chat support",
-    description: "Open the floating help chat.",
+    label: "Ask Usy",
+    description: "Open the UseClevr AI Business Assistant.",
     action: "chat",
     icon: MessageCircle,
   },

@@ -107,6 +107,33 @@
   100% { transform: translateX(100%); opacity: 0; }
 }
 
+@keyframes usy-soft-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(34, 211, 238, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(34, 211, 238, 0.26)) drop-shadow(0 0 26px rgba(168, 85, 247, 0.18));
+  }
+}
+
+.usy-avatar-glow::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 58%),
+    radial-gradient(circle, rgba(168, 85, 247, 0.18), transparent 70%);
+  opacity: 0.72;
+  animation: usy-soft-pulse 4.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usy-avatar-glow::before {
+    animation: none;
+  }
+}
+
 .animate-sweep-light::before {
   content: '';
   position: absolute;
