@@ -190,19 +190,19 @@ async function askUsyAi(question: string) {
 }
 
 function UsyAvatar({ size = "lg", interactive = false }: { size?: "sm" | "md" | "lg"; interactive?: boolean }) {
-  const dimensions = size === "sm" ? "h-14 w-14" : size === "md" ? "h-20 w-20" : "h-28 w-28"
-  const imageSize = size === "sm" ? 56 : size === "md" ? 80 : 112
+  const dimensions = size === "sm" ? "h-14 w-14" : size === "md" ? "h-16 w-16" : "h-24 w-24"
+  const imageSize = size === "sm" ? 56 : size === "md" ? 64 : 96
 
   return (
     <div
       className={[
-        "usy-avatar-glow relative shrink-0 rounded-full",
+        "usy-avatar-glow relative isolate shrink-0 rounded-full",
         dimensions,
         interactive ? "transition duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.03]" : "",
       ].filter(Boolean).join(" ")}
       aria-hidden="true"
     >
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-200 via-sky-300 to-fuchsia-300 p-[2px] shadow-[0_0_34px_rgba(34,211,238,0.38),0_0_48px_rgba(168,85,247,0.22)]">
+      <div className="absolute inset-0 z-[1] rounded-full bg-gradient-to-br from-cyan-200 via-sky-300 to-fuchsia-300 p-[2px] shadow-[0_0_26px_rgba(34,211,238,0.3),0_0_34px_rgba(168,85,247,0.18)]">
         <div className="relative h-full w-full overflow-hidden rounded-full bg-slate-950">
           <Image
             src={usyAvatar}
@@ -281,20 +281,20 @@ export function HelpChatbox({
     <div className="fixed bottom-4 right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
         <section
-          className="usy-panel-open fixed inset-x-3 bottom-3 top-auto flex max-h-[calc(100svh-1.5rem)] flex-col overflow-hidden rounded-[28px] border border-cyan-200/20 bg-slate-950/[0.94] text-white shadow-[0_34px_110px_rgba(8,13,30,0.62),0_0_70px_rgba(34,211,238,0.18)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:right-0 sm:inset-x-auto sm:w-[min(calc(100vw-2rem),500px)] sm:max-h-[min(780px,calc(100vh-7rem))]"
+          className="usy-panel-open fixed inset-x-3 bottom-3 top-auto flex max-h-[calc(100svh-1.5rem)] flex-col overflow-hidden rounded-[28px] border border-cyan-200/25 bg-slate-950/[0.94] text-white shadow-[0_34px_100px_rgba(8,13,30,0.58),0_0_48px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:right-0 sm:inset-x-auto sm:w-[min(calc(100vw-2rem),500px)] sm:max-h-[min(780px,calc(100vh-7rem))]"
           aria-label="Usy chat assistant"
         >
-          <div className="relative overflow-hidden border-b border-cyan-200/15 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.34),transparent_36%),radial-gradient(circle_at_84%_10%,rgba(216,180,254,0.32),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(17,24,39,0.9))] px-5 py-5 sm:px-6">
+          <div className="relative overflow-hidden border-b border-cyan-200/20 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.28),transparent_34%),radial-gradient(circle_at_84%_10%,rgba(216,180,254,0.26),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(17,24,39,0.92))] px-5 pb-5 pt-6 sm:px-6">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200 to-fuchsia-200/80" />
-            <div className="flex items-center justify-between gap-5">
-              <div className="flex min-w-0 items-center gap-4">
+            <div className="flex min-w-0 items-center justify-between gap-4">
+              <div className="flex min-w-0 flex-1 items-center gap-4 pr-2">
                 <UsyAvatar size="md" />
                 <div className="min-w-0">
                   <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-300/[0.12] px-2.5 py-0.5 text-[11px] font-medium text-emerald-100">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
                     Online
                   </div>
-                  <h2 className="truncate text-xl font-semibold leading-tight tracking-tight">Usy</h2>
+                  <h2 className="truncate text-[1.45rem] font-semibold leading-[1.08] tracking-tight">Usy</h2>
                   <p className="truncate text-sm text-cyan-50/[0.85]">UseClevr AI Business Assistant</p>
                 </div>
               </div>
@@ -337,7 +337,14 @@ export function HelpChatbox({
                         key={suggestion}
                         type="button"
                         onClick={() => submitQuestion(suggestion)}
-                        className="rounded-2xl border border-cyan-200/15 bg-white/[0.07] px-3.5 py-3 text-left text-sm font-medium text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/60 hover:bg-cyan-200/[0.12] hover:shadow-[0_12px_34px_rgba(34,211,238,0.14)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+                        className={[
+                          "rounded-2xl px-3.5 py-3 text-left text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
+                          "border bg-[linear-gradient(135deg,rgba(34,211,238,0.16),rgba(216,180,254,0.12))]",
+                          "hover:shadow-[0_14px_36px_rgba(34,211,238,0.18),0_0_22px_rgba(216,180,254,0.1)]",
+                          starterSuggestions.indexOf(suggestion) % 2 === 0
+                            ? "border-cyan-200/35 hover:border-cyan-100/75 hover:bg-cyan-200/[0.16]"
+                            : "border-fuchsia-200/30 hover:border-fuchsia-100/70 hover:bg-fuchsia-200/[0.14]",
+                        ].join(" ")}
                       >
                         {suggestion}
                       </button>
@@ -431,7 +438,7 @@ export function HelpChatbox({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="usy-launcher group inline-flex h-16 items-center gap-3 rounded-full border border-cyan-200/35 bg-slate-950/[0.92] px-2.5 pr-5 text-white shadow-[0_22px_60px_rgba(8,13,30,0.42),0_0_42px_rgba(34,211,238,0.18)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-200/70 hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+        className="usy-launcher group inline-flex h-16 items-center gap-3 rounded-full border border-cyan-200/35 bg-slate-950/[0.92] px-2.5 pr-5 text-white shadow-[0_20px_52px_rgba(8,13,30,0.38),0_0_30px_rgba(34,211,238,0.16)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-200/70 hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
         aria-label={open ? "Close Usy chat" : "Ask Usy"}
         aria-expanded={open}
         title="Ask Usy"
