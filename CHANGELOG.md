@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add a global cookie consent banner with essential-only, accept-all, and preference-management choices for analytics and product-improvement cookies.
 - Limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and keep the Usy assistant panel constrained inside the viewport.
 - Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces.
 - Provide globally oriented Terms of Service and Privacy Policy pages with GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, SEO, and working internal legal links.

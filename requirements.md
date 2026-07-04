@@ -322,6 +322,8 @@ Text rules for this file:
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
 - Serve globally oriented Terms of Service and Privacy Policy pages at `/terms` and `/privacy` that cover GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, and worldwide SaaS subscription terms.
 - Link Terms and Privacy pages to each other and keep legal links internal across public, authenticated, and checkout surfaces.
+- Show a global cookie consent banner only until the user chooses Accept all, Essential only, or saved preferences; store choices under `useclevr_cookie_consent` with essential cookies always enabled and analytics plus product-improvement cookies optional.
+- Let optional analytics and product-improvement scripts check reusable cookie-consent helpers before loading.
 - Render upgrade prompts and paid-plan cards only after authenticated usage, plan, and role state resolves; never treat unresolved admin or superadmin sessions as Free users during app-page loading.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.
