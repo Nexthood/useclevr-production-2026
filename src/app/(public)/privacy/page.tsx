@@ -10,7 +10,7 @@ const LAST_UPDATED = "July 4, 2026"
 const privacySections = [
   {
     title: "Information Collected",
-    body: "UseClevr collects the information needed to create accounts, verify identity, provide the service, process payments, secure the platform, support customers, and improve product quality. This can include name, email address, company details, role, plan, usage events, support messages, device and browser metadata, and operational logs.",
+    body: "UseClevr collects the information needed to create accounts, verify identity, provide the service, process payments, secure the platform, support customers, and improve product quality for users worldwide. This can include name, email address, company details, role, country or region, plan, usage events, support messages, device and browser metadata, uploaded filenames or dataset metadata, and operational logs.",
   },
   {
     title: "Cookies",
@@ -26,7 +26,7 @@ const privacySections = [
   },
   {
     title: "Stripe Payments",
-    body: "UseClevr uses Stripe or another payment provider to process subscription checkout, billing, invoices, payment status, and related account updates. UseClevr does not store full payment card numbers. Payment processing is subject to the payment provider's own privacy and security practices.",
+    body: "UseClevr uses Stripe or another payment provider to process subscription checkout, recurring billing, invoices, payment status, taxes, fraud prevention, currency handling, and related account updates for customers in supported countries. UseClevr does not store full payment card numbers. Payment processing is subject to the payment provider's own privacy, security, and compliance practices.",
   },
   {
     title: "Uploaded Datasets",
@@ -34,7 +34,7 @@ const privacySections = [
   },
   {
     title: "AI Processing",
-    body: "UseClevr may use configured AI providers, cloud AI, or local/private provider routing to explain analysis results, summarize datasets, generate recommendations, and support chat workflows. UseClevr aims to send only the context needed for the requested analysis and to keep deterministic calculations in the backend where possible. AI outputs are not guaranteed to be complete or error-free.",
+    body: "UseClevr may use configured AI providers, cloud AI, or local/private provider routing to explain analysis results, summarize datasets, generate recommendations, and support chat workflows. Depending on your settings, plan, and provider configuration, AI processing may occur through providers located in different countries. UseClevr aims to send only the context needed for the requested analysis and to keep deterministic calculations in the backend where possible. AI outputs are not guaranteed to be complete, current, or error-free.",
   },
   {
     title: "Data Retention",
@@ -45,12 +45,28 @@ const privacySections = [
     body: "UseClevr applies role-based access controls, transport encryption, server-side secret handling, operational logging, and administrative safeguards designed to protect account and dataset information. No internet-connected service can guarantee absolute security, but UseClevr works to reduce risk and respond to issues promptly.",
   },
   {
-    title: "GDPR Compliance",
-    body: "Where GDPR applies, UseClevr processes personal data under appropriate legal bases such as contract performance, legitimate interests, consent where required, and legal obligations. UseClevr supports user rights and data-protection requests according to applicable law.",
+    title: "GDPR, EU, and UK GDPR",
+    body: "Where the EU GDPR or UK GDPR applies, UseClevr processes personal data under appropriate legal bases such as contract performance, legitimate interests, consent where required, and legal obligations. UseClevr supports applicable rights such as access, correction, deletion, restriction, objection, portability, and withdrawal of consent where processing is based on consent. International transfers are handled using appropriate safeguards where required.",
+  },
+  {
+    title: "CCPA and CPRA for California",
+    body: "Where the California Consumer Privacy Act as amended by the California Privacy Rights Act applies, California residents may have rights to know, access, correct, delete, and receive information about certain personal information practices, and rights related to sale, sharing, sensitive personal information, and non-discrimination. UseClevr does not intend to sell personal information. Requests can be sent to start@useclevr.com and may require identity verification.",
+  },
+  {
+    title: "General US Privacy and Business Terms",
+    body: "For users in the United States, UseClevr processes account, billing, security, support, analytics, and uploaded business data to provide SaaS services, prevent fraud, maintain platform reliability, and support subscriptions. State privacy rights may vary, and UseClevr responds to applicable requests according to the law that applies to the user, organization, and data.",
+  },
+  {
+    title: "International Users and Cross-Border Processing",
+    body: "UseClevr is intended for a worldwide market. Your information may be processed in countries other than where you live or operate, including countries where UseClevr, hosting providers, analytics providers, AI providers, payment providers, support tools, or security vendors maintain systems. Those countries may have data-protection laws that differ from your local laws, and UseClevr uses contractual, technical, and organizational safeguards where required.",
   },
   {
     title: "User Rights",
-    body: "Depending on your jurisdiction, you may have rights to access, correct, delete, export, restrict, or object to processing of personal data. You may also have the right to withdraw consent where processing is based on consent. Requests can be sent to start@useclevr.com and may require identity verification.",
+    body: "Depending on your jurisdiction, you may have rights to access, correct, delete, export, restrict, object to, or opt out of certain processing of personal data. You may also have the right to withdraw consent where processing is based on consent, appeal a privacy decision where local law provides that right, or use an authorized agent where permitted. Requests can be sent to start@useclevr.com and may require identity verification.",
+  },
+  {
+    title: "Legal Review Notice",
+    body: "This Privacy Policy is intended as a general SaaS legal framework and should be reviewed by a qualified legal professional before large-scale commercial launch. Privacy obligations differ by country, customer type, industry, dataset content, and processing role.",
   },
   {
     title: "Contact Information",
@@ -60,11 +76,11 @@ const privacySections = [
 
 export const metadata: Metadata = {
   title: "Privacy Policy | UseClevr",
-  description: "Read the UseClevr Privacy Policy covering account data, cookies, email verification, Stripe payments, uploaded datasets, AI processing, retention, security, GDPR, and user rights.",
+  description: "Read the global UseClevr Privacy Policy covering account data, cookies, authentication, email verification, Stripe payments, datasets, AI processing, GDPR, UK GDPR, CCPA, CPRA, international users, and user rights.",
   alternates: { canonical: "/privacy" },
   openGraph: {
     title: "Privacy Policy | UseClevr",
-    description: "How UseClevr handles account data, uploaded datasets, AI processing, billing, cookies, retention, and user rights.",
+    description: "How UseClevr handles account data, uploaded datasets, AI processing, billing, cookies, global privacy rights, retention, security, and cross-border processing.",
     url: "/privacy",
     siteName: "UseClevr",
     type: "website",
@@ -85,7 +101,7 @@ export default function PrivacyPolicyPage() {
               </div>
               <h1 className="text-4xl font-bold tracking-tight md:text-6xl">Privacy Policy</h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-                How UseClevr collects, protects, and processes account information, uploaded datasets, billing data, and AI analysis context.
+                How UseClevr collects, protects, and processes account information, uploaded datasets, billing data, AI analysis context, and privacy rights for users worldwide.
               </p>
               <p className="mt-4 text-sm font-medium text-cyan-100">Last Updated: {LAST_UPDATED}</p>
             </div>
@@ -135,6 +151,12 @@ export default function PrivacyPolicyPage() {
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">Role-based access, secret handling, encryption in transit, and audit logs reduce risk.</p>
                 </Card>
               </div>
+
+              <Card className="border-l-4 border-l-cyan-300 border-cyan-200/15 bg-card/80 p-6 shadow-[0_20px_80px_rgba(2,6,23,0.16)] backdrop-blur">
+                <p className="text-sm leading-7 text-muted-foreground">
+                  This Privacy Policy is intended as a general SaaS legal framework and should be reviewed by a qualified legal professional before large-scale commercial launch. It is globally oriented and covers common privacy concepts, but legal obligations vary by country, state, industry, customer type, and data category.
+                </p>
+              </Card>
 
               {privacySections.map((section, index) => (
                 <Card key={section.title} className="border-border/60 bg-card/80 p-6 shadow-sm backdrop-blur transition hover:border-cyan-200/25">

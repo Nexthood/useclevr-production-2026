@@ -2,7 +2,7 @@
 
 ### Changed
 
-- Provide production-ready Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, and checkout links that use app routes.
+- Provide globally oriented Terms of Service and Privacy Policy pages with GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, SEO, and working internal legal links.
 - Replace the floating Help Chat with Usy, a premium UseClevr AI Business Intelligence Assistant that uses the assistant avatar, balanced header spacing, refined cyan-lilac motion, bright suggestion chips, Hybrid AI when available, and UseClevr-specific fallback answers.
 - Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status.
 - Make Usy role-aware with route, plan, usage, intent-scored fallback answers, admin-safe guidance, and contextual follow-up chips for short natural messages.

@@ -10,11 +10,11 @@ const LAST_UPDATED = "July 4, 2026"
 const termsSections = [
   {
     title: "Acceptance of Terms",
-    body: "By creating an account, accessing UseClevr, uploading data, or using any UseClevr feature, you agree to these Terms of Service and any plan-specific terms shown during checkout. If you use UseClevr for an organization, you confirm that you are authorized to accept these terms on its behalf.",
+    body: "By creating an account, accessing UseClevr, uploading data, purchasing a subscription, or using any UseClevr feature from any country, you agree to these Terms of Service and any plan-specific terms shown during checkout. If you use UseClevr for an organization, you confirm that you are authorized to accept these terms on its behalf.",
   },
   {
     title: "Use of Service",
-    body: "UseClevr provides AI-assisted business intelligence, dataset analysis, reporting, forecasting support, dashboard insights, and related workflow tools. You may use the service only for lawful business purposes and in accordance with these terms.",
+    body: "UseClevr provides AI-assisted business intelligence, dataset analysis, reporting, forecasting support, dashboard insights, and related SaaS workflow tools for global business users. You may use the service only for lawful business purposes and in accordance with these terms, applicable local laws, export-control rules, sanctions rules, and data-protection requirements.",
   },
   {
     title: "User Accounts",
@@ -22,19 +22,19 @@ const termsSections = [
   },
   {
     title: "AI-Generated Content Disclaimer",
-    body: "UseClevr may generate summaries, recommendations, forecasts, explanations, and business insights using AI systems and deterministic calculations. AI-generated content can be incomplete or inaccurate and does not replace professional legal, tax, accounting, investment, or operational advice. You are responsible for reviewing outputs before relying on them.",
+    body: "UseClevr may generate summaries, recommendations, forecasts, explanations, and business insights using AI systems, configured AI providers, local or cloud processing, and deterministic calculations. AI-generated content can be incomplete, outdated, or inaccurate and does not replace professional legal, tax, accounting, financial, medical, investment, employment, compliance, or operational advice in any jurisdiction. You are responsible for reviewing outputs before relying on them.",
   },
   {
-    title: "Subscription & Billing",
-    body: "Paid subscriptions are billed through the checkout and billing provider shown in the product. Fees, billing intervals, included usage, and available features are displayed before purchase. You authorize the payment provider to charge applicable subscription fees, taxes, and renewal amounts until cancellation.",
+    title: "Global SaaS Subscription & Billing",
+    body: "Paid subscriptions are billed through the checkout and billing provider shown in the product, including Stripe where available. Fees, billing intervals, included usage, available features, local taxes, currency handling, and renewal terms are displayed before purchase. You authorize the payment provider to charge applicable subscription fees, taxes, currency conversion amounts, and renewal amounts until cancellation.",
   },
   {
     title: "Free and Paid Plans",
-    body: "Free plans include limited datasets and limited AI usage for evaluation. Paid plans unlock additional capacity and features according to the active plan. UseClevr may update plan names, included usage, or features, but material changes are communicated through the product or account areas.",
+    body: "Free plans include limited datasets and limited AI usage for evaluation. Paid plans unlock additional capacity and features according to the active plan and the country where the service is offered. UseClevr may update plan names, included usage, pricing, taxes, currencies, or features, but material changes are communicated through the product, checkout, account areas, or other reasonable notice.",
   },
   {
     title: "Refund Policy",
-    body: "Unless required by law, subscription fees are generally non-refundable once a billing period starts. If you believe a charge was made in error or the service was not delivered as expected, contact UseClevr support so the request can be reviewed case by case.",
+    body: "Unless required by applicable law or mandatory consumer rights in your jurisdiction, subscription fees are generally non-refundable once a billing period starts. If you believe a charge was made in error, local consumer law gives you a specific cancellation right, or the service was not delivered as expected, contact UseClevr support so the request can be reviewed case by case.",
   },
   {
     title: "User Responsibilities",
@@ -42,15 +42,15 @@ const termsSections = [
   },
   {
     title: "Intellectual Property",
-    body: "UseClevr, its software, interface, brand, documentation, workflows, templates, and platform content remain owned by UseClevr or its licensors. You retain ownership of uploaded datasets and your business content. UseClevr receives the limited rights needed to process, secure, display, and support that content within the service.",
+    body: "UseClevr, its software, interface, brand, documentation, workflows, templates, analytics methods, and platform content remain owned by UseClevr or its licensors worldwide. You retain ownership of uploaded datasets and your business content. UseClevr receives the limited rights needed to process, secure, display, transmit, host, back up, and support that content within the service and with service providers acting on UseClevr's behalf.",
   },
   {
     title: "Acceptable Use",
-    body: "You may not use UseClevr to break the law, infringe rights, upload malicious code, attempt unauthorized access, overload the service, scrape the platform, reverse engineer restricted systems, misrepresent AI outputs as guaranteed facts, or process sensitive data without a lawful basis.",
+    body: "You may not use UseClevr to break the law, infringe rights, upload malicious code, attempt unauthorized access, overload the service, scrape the platform, reverse engineer restricted systems, bypass plan limits, violate sanctions or export-control rules, misrepresent AI outputs as guaranteed facts, or process sensitive data without a lawful basis and required permissions.",
   },
   {
     title: "Limitation of Liability",
-    body: "To the maximum extent permitted by law, UseClevr is not liable for indirect, incidental, consequential, special, punitive, or lost-profit damages. UseClevr's aggregate liability for claims related to the service is limited to the amounts paid for the affected service during the twelve months before the claim, unless a different limit is required by law.",
+    body: "To the maximum extent permitted by applicable law, UseClevr is not liable for indirect, incidental, consequential, special, punitive, exemplary, business-interruption, data-loss, or lost-profit damages. UseClevr's aggregate liability for claims related to the service is limited to the amounts paid for the affected service during the twelve months before the claim, unless a different limit is required by mandatory law.",
   },
   {
     title: "Service Availability",
@@ -62,7 +62,11 @@ const termsSections = [
   },
   {
     title: "Governing Law",
-    body: "These terms are governed by the laws applicable to the UseClevr operating entity, without limiting mandatory consumer or data-protection rights that apply in your jurisdiction. Disputes should first be raised with UseClevr so the parties can attempt to resolve them informally.",
+    body: "These terms are governed by the laws applicable to the UseClevr operating entity, without limiting mandatory consumer, privacy, payment, or data-protection rights that apply in your jurisdiction. International users remain responsible for complying with local laws that apply to their organization, industry, data, and use of the service. Disputes should first be raised with UseClevr so the parties can attempt to resolve them informally.",
+  },
+  {
+    title: "International Users",
+    body: "UseClevr is intended for a worldwide market. Access to the service may vary by country because of payment availability, local law, sanctions, export controls, tax requirements, infrastructure, or third-party provider availability. By using the service from outside the UseClevr operating country, you understand that service delivery, support, billing, and data processing may involve systems and providers in other countries.",
   },
   {
     title: "Contact Information",
@@ -72,11 +76,11 @@ const termsSections = [
 
 export const metadata: Metadata = {
   title: "Terms of Service | UseClevr",
-  description: "Read the UseClevr Terms of Service for accounts, AI-generated content, subscriptions, billing, acceptable use, liability, and contact information.",
+  description: "Read the global UseClevr Terms of Service for SaaS accounts, AI-generated content, subscriptions, Stripe billing, acceptable use, liability, international users, and contact information.",
   alternates: { canonical: "/terms" },
   openGraph: {
     title: "Terms of Service | UseClevr",
-    description: "UseClevr terms for SaaS accounts, subscriptions, AI-assisted business intelligence, and acceptable use.",
+    description: "UseClevr global SaaS terms for accounts, subscriptions, AI-assisted business intelligence, acceptable use, international users, and billing.",
     url: "/terms",
     siteName: "UseClevr",
     type: "website",
@@ -97,7 +101,7 @@ export default function TermsPage() {
               </div>
               <h1 className="text-4xl font-bold tracking-tight md:text-6xl">Terms of Service</h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-                The rules for using UseClevr, including accounts, AI-assisted outputs, subscriptions, acceptable use, and service availability.
+                The worldwide SaaS terms for using UseClevr, including accounts, AI-assisted outputs, subscriptions, billing, acceptable use, and service availability.
               </p>
               <p className="mt-4 text-sm font-medium text-cyan-100">Last Updated: {LAST_UPDATED}</p>
             </div>
@@ -132,7 +136,7 @@ export default function TermsPage() {
             <div className="space-y-5">
               <Card className="border-l-4 border-l-cyan-300 border-cyan-200/15 bg-card/80 p-6 shadow-[0_20px_80px_rgba(2,6,23,0.16)] backdrop-blur">
                 <p className="text-sm leading-7 text-muted-foreground">
-                  These Terms of Service are written for product clarity and operational transparency. They are not a substitute for independent legal advice, and business customers should review them with counsel where appropriate.
+                  These terms are intended as a general SaaS legal framework and should be reviewed by a qualified legal professional before large-scale commercial launch. They are written for product clarity and operational transparency, not as a substitute for legal advice in any specific country.
                 </p>
               </Card>
 
