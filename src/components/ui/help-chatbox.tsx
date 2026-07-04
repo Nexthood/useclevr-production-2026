@@ -2,6 +2,7 @@
 
 import usyAvatar from "@/assets/images/avatar.png"
 import { Button } from "@/components/ui/button"
+import { publicMonthlyPlanPrices } from "@/lib/billing/plans"
 import { dashboardFaqCategories, superAdminFaqCategories } from "@/lib/content/dashboard-faq"
 import { allFaqCategories } from "@/lib/content/faq"
 import { ArrowUp, Bot, Loader2, MessageCircle, Sparkles, X } from "lucide-react"
@@ -151,17 +152,17 @@ const knowledgeAnswers = [
   {
     keywords: ["credit", "credits", "free credits", "ai credits"],
     answer:
-      "AI Credits control included analysis usage on Free accounts. Free users get included credits to test the workflow, while paid plans unlock more analysis capacity and advanced AI features. Open Billing or Settings to review your current plan.",
+      `AI Credits control included analysis usage on Free accounts. Free users get included credits to test the workflow. Pro is €${publicMonthlyPlanPrices.pro}/month and unlocks more analysis capacity with advanced AI features. Business is €${publicMonthlyPlanPrices.business}/month for broader team and business usage. Open Billing or Settings to review your current plan.`,
   },
   {
     keywords: ["upgrade", "pro", "business", "plan", "pricing"],
     answer:
-      "Upgrade to Pro when you need more datasets, advanced AI analysis, and faster workflows. Choose Business when you need unlimited dataset capacity, team features, priority support, and the most complete Hybrid AI feature set.",
+      `Pro is €${publicMonthlyPlanPrices.pro}/month. Upgrade to Pro when you need more datasets, advanced AI analysis, and faster workflows. Business is €${publicMonthlyPlanPrices.business}/month. Choose Business when you need unlimited dataset capacity, team features, priority support, and the most complete Hybrid AI feature set.`,
   },
   {
     keywords: ["billing", "invoice", "stripe", "subscription", "payment"],
     answer:
-      "Billing and invoices are managed through the secure Stripe flow in Settings. You can review your plan, open checkout, manage payment details, and access billing actions from the account and billing areas.",
+      `Billing and invoices are managed through the secure Stripe flow in Settings. Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. You can review your plan, open checkout, manage payment details, and access billing actions from the account and billing areas.`,
   },
   {
     keywords: ["snowflake", "integration", "connect", "warehouse", "database"],
@@ -255,7 +256,7 @@ async function askUsyAi(question: string) {
         {
           role: "system",
           content:
-            "You are Usy, the official AI Business Intelligence Assistant of UseClevr. Be warm, concise, professional, calm, trustworthy, and practical. Help users understand UseClevr, business intelligence, uploads, dashboards, datasets, forecasts, reports, credits, billing, integrations, and troubleshooting. Explain simply and recommend a useful next action.",
+            `You are Usy, the official AI Business Intelligence Assistant of UseClevr. Be warm, concise, professional, calm, trustworthy, and practical. Help users understand UseClevr, business intelligence, uploads, dashboards, datasets, forecasts, reports, credits, billing, integrations, and troubleshooting. Current pricing: Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Do not mention annual pricing unless UseClevr explicitly provides it in the current prompt. Explain simply and recommend a useful next action.`,
         },
         { role: "user", content: question },
       ],

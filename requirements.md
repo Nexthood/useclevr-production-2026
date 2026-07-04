@@ -344,6 +344,8 @@ Text rules for this file:
 - Animate the Usy avatar with a reduced-motion-safe compact breathing pulse, close soft outer glow, and subtle floating motion.
 - Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.
 - Let Usy use the Hybrid AI chat endpoint when available and fall back to UseClevr-specific knowledge when AI is unavailable.
+- Keep Usy billing answers on current monthly prices: Pro is €40/month and Business is €420/month.
+- Do not let Usy mention annual pricing unless the current prompt provides an official annual price.
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.
 - Open Usy as a desktop floating panel and a mobile bottom sheet.
 - Position the opened Usy desktop panel below the top browser and app header with visible breathing room.

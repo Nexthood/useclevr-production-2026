@@ -3,6 +3,7 @@
 ### Changed
 
 - Replace the floating Help Chat with Usy, a premium UseClevr AI Business Intelligence Assistant that uses the assistant avatar, balanced header spacing, refined cyan-lilac motion, bright suggestion chips, Hybrid AI when available, and UseClevr-specific fallback answers.
+- Keep Usy billing answers on current monthly pricing, showing Pro at €40/month and Business at €420/month without annual pricing guesses.
 - Position the opened Usy desktop assistant panel lower below the top UI so it feels properly spaced from the browser and app header.
 - Show contextual follow-up chips after each Usy response so users can continue with relevant next-step questions.
 - Show Free plan dataset limits as an upgrade path on upload surfaces instead of a failed-upload error.

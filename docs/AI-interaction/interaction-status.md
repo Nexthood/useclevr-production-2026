@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-04
-- **Goal**: Lower the opened Usy desktop assistant panel below the top UI.
-- **Durable change**: The opened Usy desktop assistant panel has a smaller desktop height budget so its top edge sits about 38px lower, while the avatar/header design, chat content, launcher position, and mobile bottom-sheet layout stay unchanged.
-- **Verification**: TypeScript, focused ESLint, diff whitespace, TODO, project-record, changelog, package, and secret checks pass.
+- **Goal**: Correct Usy billing and pricing answers.
+- **Durable change**: Usy's fallback knowledge, FAQ lookup path, and AI system instruction use current monthly pricing, with Pro at €40/month and Business at €420/month, and avoid annual pricing unless the current prompt provides an official annual price.
+- **Verification**: TypeScript, focused ESLint, stale-pricing search, diff whitespace, TODO, project-record, changelog, package, and secret checks pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

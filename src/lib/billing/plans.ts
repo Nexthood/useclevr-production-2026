@@ -70,6 +70,11 @@ export const billingPlans: BillingPlan[] = [
   },
 ];
 
+export const publicMonthlyPlanPrices = {
+  pro: billingPlans.find((plan) => plan.id === "pro_monthly")?.price ?? 40,
+  business: billingPlans.find((plan) => plan.id === "business_monthly")?.price ?? 420,
+} as const
+
 export function getBillingPlan(planId: string | null | undefined) {
   return billingPlans.find((plan) => plan.id === planId) || billingPlans[1];
 }
