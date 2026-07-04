@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card"
+import { WorldMapRevenue } from "@/components/ui/world-map-revenue"
 import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
 import { datasetRows, datasets, profiles } from "@/lib/db/schema"
@@ -782,6 +783,10 @@ function RetailReportDashboard({
           />
         </ReportSection>
       </div>
+
+      <ReportSection title="Regional Revenue Map" description="Revenue by country/region with performance indicators.">
+        <WorldMapRevenue regions={report.regions} />
+      </ReportSection>
 
       <ReportSection title="Inventory Intelligence" description="Inventory health, reorder risk, overstock, and dead-stock signals.">
         <div className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
