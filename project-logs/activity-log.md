@@ -1,3 +1,4 @@
+- changed: position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout
 - changed: show contextual follow-up chips below the latest Usy answer so upload, dashboard, billing, forecasting, profile, integration, and fallback topics guide the next user question
 - changed: tighten Usy header spacing so avatar, title, subtitle, online badge, and close button do not overlap; reduce avatar pulse radius; brighten cyan-lilac suggestion buttons; and balance the dark glass assistant panel
 - changed: polish Usy with stronger UseClevr cyan-lilac color, larger non-overlapping avatar placement, multi-layer breathing glow, modern glass chat bubbles, prompt-style input, cleaner suggestion chips, and no embedded support request form

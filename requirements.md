@@ -346,6 +346,7 @@ Text rules for this file:
 - Let Usy use the Hybrid AI chat endpoint when available and fall back to UseClevr-specific knowledge when AI is unavailable.
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.
 - Open Usy as a desktop floating panel and a mobile bottom sheet.
+- Position the opened Usy desktop panel below the top browser and app header with visible breathing room.
 - Use a prompt-style message box, bright cyan-lilac clickable suggestion chips, and high-contrast message bubbles in Usy.
 - Keep starter suggestion chips on the Usy welcome screen.
 - Show up to five contextual follow-up suggestion chips directly below the latest Usy answer.
