@@ -65,7 +65,7 @@ export default async function AppLayout({
           <main className="flex min-h-[calc(100vh-4rem)] flex-col pt-[var(--app-topbar-offset,40px)]">
             {children}
           </main>
-          <HelpChatbox audience={session.user.role === "superadmin" ? "superadmin" : "dashboard"} />
+          <HelpChatbox audience={session.user.role === "superadmin" ? "superadmin" : "dashboard"} userRole={session.user.role} />
         </div>
       </div>
     </FormattingProvider>

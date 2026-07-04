@@ -1,3 +1,4 @@
+- changed: upgrade Usy from loose FAQ matching to role-aware AI and intent-scored fallback guidance with route, plan, usage, admin-safe boundaries, and contextual follow-up chips
 - changed: refactor the opened Usy assistant into a premium flex panel with a compact text header, centered avatar welcome card, fully visible chips, scroll-only conversation area, compact fixed input, and smaller cyan-lilac avatar pulse
 - changed: keep Usy billing answers on current monthly prices by using Pro at €40/month and Business at €420/month without annual pricing guesses
 - changed: position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout

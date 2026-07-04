@@ -344,7 +344,11 @@ Text rules for this file:
 - Center the main Usy avatar inside the welcome card with generous whitespace.
 - Animate the Usy avatar with a reduced-motion-safe compact breathing pulse, close soft outer glow, and subtle floating motion.
 - Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.
-- Let Usy use the Hybrid AI chat endpoint when available and fall back to UseClevr-specific knowledge when AI is unavailable.
+- Let Usy use the Hybrid AI chat endpoint when available with current route, page module, user role, plan, and usage context.
+- Let Usy fall back to intent-scored UseClevr guidance when AI is unavailable.
+- Match short natural Usy messages such as price pro, business price, upload not working, forecast failed, and credits to the correct topic.
+- Keep Usy guidance role-aware for public visitors, normal users, admins, and superadmins.
+- Do not let Usy expose superadmin-only guidance to normal users.
 - Keep Usy billing answers on current monthly prices: Pro is €40/month and Business is €420/month.
 - Do not let Usy mention annual pricing unless the current prompt provides an official annual price.
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.

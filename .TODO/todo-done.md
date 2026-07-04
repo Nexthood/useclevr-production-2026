@@ -48,6 +48,7 @@ moving work between states.
 - T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)
 - T-917. Keep Usy billing answers on current monthly pricing, naming Pro at €40/month and Business at €420/month without annual pricing guesses. (labels: ui, billing, ai; commit: worktree)
 - T-918. Refactor the Usy assistant panel into a premium flex layout with fixed header and input regions, a centered welcome card, fully visible suggestion chips, and a scroll-only conversation area. (labels: ui, ai, accessibility; commit: worktree)
+- T-919. Upgrade Usy to a role-aware assistant with route, plan, usage, intent-scored fallback answers, admin-safe guidance, and contextual follow-up chips. (labels: ui, ai, auth, billing; commit: worktree)
 
 ## Label: auth
 

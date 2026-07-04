@@ -3,8 +3,6 @@
 import usyAvatar from "@/assets/images/avatar.png"
 import { Button } from "@/components/ui/button"
 import { publicMonthlyPlanPrices } from "@/lib/billing/plans"
-import { dashboardFaqCategories, superAdminFaqCategories } from "@/lib/content/dashboard-faq"
-import { allFaqCategories } from "@/lib/content/faq"
 import { ArrowUp, Bot, Loader2, MessageCircle, Sparkles, X } from "lucide-react"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -19,6 +17,35 @@ type ChatMessage = {
 }
 
 type HelpChatboxAudience = "public" | "dashboard" | "superadmin"
+
+type UsyRole = "public" | "user" | "admin" | "superadmin"
+
+type UsyUsageContext = {
+  subscriptionTier?: string
+  analysisCount?: number
+  total?: number
+  limitReached?: boolean
+  unlimited?: boolean
+  unlimitedLabel?: string | null
+}
+
+type UsyContext = {
+  audience: HelpChatboxAudience
+  role: UsyRole
+  route: string
+  plan?: string
+  usage?: UsyUsageContext | null
+}
+
+type UsyIntent = {
+  id: string
+  label: string
+  keywords: string[]
+  roles?: UsyRole[]
+  minScore?: number
+  answer: (context: UsyContext) => string
+  followUps: readonly string[]
+}
 
 const starterSuggestions = [
   "Analyze my CSV",
@@ -57,194 +84,308 @@ const fallbackFollowUps = [
   "Contact support",
 ]
 
-const followUpTopics = [
-  {
-    keywords: ["upload", "csv", "excel", "file", "import", "dataset"],
-    questions: [
-      "How do I prepare my CSV?",
-      "What file formats are supported?",
-      "Why did my upload fail?",
-      "Analyze my uploaded dataset",
-    ],
-  },
-  {
-    keywords: ["dashboard", "kpi", "score", "health", "metric", "result"],
-    questions: [
-      "Explain these KPIs",
-      "What does this score mean?",
-      "Show business opportunities",
-      "How can I improve this result?",
-    ],
-  },
-  {
-    keywords: ["billing", "invoice", "stripe", "subscription", "payment", "plan", "upgrade", "pro", "business", "credit", "credits"],
-    questions: [
-      "Compare Free vs Pro",
-      "Upgrade to Business",
-      "Where are invoices?",
-      "How do credits work?",
-    ],
-  },
-  {
-    keywords: ["forecast", "sales", "predict", "projection", "trend", "accuracy"],
-    questions: [
-      "What columns are needed?",
-      "Why did forecast fail?",
-      "Forecast my sales",
-      "Improve forecast accuracy",
-    ],
-  },
-  {
-    keywords: ["opportunity", "growth", "risk", "recommendation", "action", "insight"],
-    questions: [
-      "Find business opportunities",
-      "What are the biggest risks?",
-      "What should I do next?",
-      "Prioritize my actions",
-    ],
-  },
-  {
-    keywords: ["business profile", "profile", "company", "setup", "onboarding"],
-    questions: [
-      "What profile fields matter?",
-      "Complete Business Profile",
-      "How does profile data improve AI?",
-      "What should I enter first?",
-    ],
-  },
-  {
-    keywords: ["snowflake", "integration", "connect", "provider", "ai provider"],
-    questions: [
-      "Connect an AI provider",
-      "What integrations are available?",
-      "Connect Snowflake",
-      "Use local AI analysis",
-    ],
-  },
-] as const
+const pricingFollowUps = ["Compare Free vs Pro", "Upgrade to Pro", "Business plan", "Billing & invoices"]
 
-const knowledgeAnswers = [
+const userFollowUps = {
+  upload: ["Prepare my CSV", "File formats", "Upload limit", "Analyze my dataset"],
+  dashboard: ["Explain these KPIs", "What does this score mean?", "Show business opportunities", "How can I improve this result?"],
+  billing: pricingFollowUps,
+  forecast: ["What columns are needed?", "Why did forecast fail?", "Forecast my sales", "Improve forecast accuracy"],
+  credits: ["How do AI credits work?", "Upgrade to Pro", "View Billing Settings", "Upload limit"],
+  profile: ["What profile fields matter?", "Complete Business Profile", "How does profile data improve AI?", "What should I enter first?"],
+  reports: ["Generate a report", "Download reports", "Executive summary", "Share with accountant"],
+  integrations: ["Connect an AI provider", "What integrations are available?", "Connect Snowflake", "Use local AI analysis"],
+} as const
+
+const superadminFollowUps = ["View customers", "Check AI traces", "Billing settings", "Customer levels"]
+
+const usyIntents: UsyIntent[] = [
   {
+    id: "pro-pricing",
+    label: "Pro pricing",
+    keywords: ["price pro", "pro price", "pricing pro", "pro pricing", "cost pro", "pro cost", "pro plan", "upgrade pro", "upgrade to pro", "how much pro"],
+    minScore: 3,
+    followUps: pricingFollowUps,
+    answer: () =>
+      `Pro is €${publicMonthlyPlanPrices.pro}/month. It gives you more datasets, advanced AI analysis, and faster business insights. You can upgrade from Billing Settings.`,
+  },
+  {
+    id: "business-pricing",
+    label: "Business pricing",
+    keywords: ["business price", "price business", "business pricing", "cost business", "business cost", "business plan", "upgrade business", "upgrade to business", "how much business"],
+    minScore: 3,
+    followUps: pricingFollowUps,
+    answer: () =>
+      `Business is €${publicMonthlyPlanPrices.business}/month. It is the best fit when you need unlimited dataset capacity, team features, priority support, and the full Hybrid AI feature set. You can start from Billing Settings.`,
+  },
+  {
+    id: "pricing-general",
+    label: "Pricing",
+    keywords: ["price", "pricing", "cost", "costs", "plans", "subscription", "upgrade", "compare free pro", "free vs pro"],
+    followUps: pricingFollowUps,
+    answer: () =>
+      `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with limited included usage; Pro adds more datasets and advanced AI analysis; Business adds unlimited dataset capacity, team features, priority support, and the most complete Hybrid AI access.`,
+  },
+  {
+    id: "upload",
+    label: "Uploads",
     keywords: ["upload", "csv", "excel", "first dataset", "import"],
-    answer:
+    followUps: userFollowUps.upload,
+    answer: () =>
       "Start with Upload, then drag in a CSV or Excel file. UseClevr profiles the columns, checks data quality, detects KPIs, and prepares an analysis workspace. For the best result, keep headers clear and include date, revenue, product, customer, cost, or quantity columns when available.",
   },
   {
+    id: "upload-trouble",
+    label: "Upload troubleshooting",
+    keywords: ["upload not working", "upload failed", "can't upload", "cannot upload", "file failed", "csv failed", "excel failed", "upload error", "upload limit"],
+    followUps: userFollowUps.upload,
+    answer: (context) => {
+      if (context.usage?.limitReached) {
+        return "Your upload is blocked because your current plan limit is reached, not because the file failed. Open Billing Settings and upgrade to Pro or Business to continue uploading datasets."
+      }
+      return "If upload is not working, first check that the file is CSV or Excel, has clear column headers, and is within your plan limits. If the message mentions a Free plan limit, use Billing Settings to upgrade. If it mentions file parsing, simplify merged cells or unusual formatting and try again."
+    },
+  },
+  {
+    id: "dashboard",
+    label: "Dashboard",
     keywords: ["dashboard", "explain", "home", "health score", "business health"],
-    answer:
+    followUps: userFollowUps.dashboard,
+    answer: () =>
       "Your dashboard summarizes business health, KPIs, risks, opportunities, recommendations, and recent activity. Treat it like a management briefing: first check the health score, then review the highest-risk items and the next recommended action.",
   },
   {
+    id: "analysis",
+    label: "AI analysis",
     keywords: ["analyze", "analysis", "ai analysis", "csv analysis", "insight"],
-    answer:
-      "UseClevr analysis combines deterministic calculations with AI explanations. The backend calculates metrics from your uploaded rows, and the assistant explains what the results mean, what risks matter, and what you can do next.",
+    followUps: ["Analyze my CSV", "Explain my dashboard", "Find business opportunities", "Generate a report"],
+    answer: () =>
+      "UseClevr analysis combines deterministic calculations with AI explanations. The backend calculates metrics from your uploaded rows, and Usy explains what the results mean, what risks matter, and what you can do next.",
   },
   {
+    id: "forecast",
+    label: "Forecasting",
     keywords: ["forecast", "sales", "predict", "projection", "trend"],
-    answer:
-      "Forecasting works best when your dataset has a time column and numeric business values such as revenue, sales, profit, quantity, or cost. If those columns are missing, UseClevr will explain what it needs instead of guessing.",
+    followUps: userFollowUps.forecast,
+    answer: () =>
+      "Forecasting works best when your dataset has a time column and numeric business values such as revenue, sales, profit, quantity, or cost. If forecasting fails, UseClevr should explain which required columns or row counts are missing instead of guessing.",
   },
   {
+    id: "business-profile",
+    label: "Business Profile",
     keywords: ["business profile", "profile", "setup", "company"],
-    answer:
+    followUps: userFollowUps.profile,
+    answer: () =>
       "The Business Profile helps UseClevr personalize analysis for your company. Add your industry, region, currency, size, goals, role, and data purpose so dashboards, recommendations, and reports use the right business context.",
   },
   {
+    id: "credits",
+    label: "Credits",
     keywords: ["credit", "credits", "free credits", "ai credits"],
-    answer:
-      `AI Credits control included analysis usage on Free accounts. Free users get included credits to test the workflow. Pro is €${publicMonthlyPlanPrices.pro}/month and unlocks more analysis capacity with advanced AI features. Business is €${publicMonthlyPlanPrices.business}/month for broader team and business usage. Open Billing or Settings to review your current plan.`,
+    followUps: userFollowUps.credits,
+    answer: (context) => {
+      const usageText =
+        typeof context.usage?.analysisCount === "number" && typeof context.usage?.total === "number" && !context.usage.unlimited
+          ? ` Your current usage is ${context.usage.analysisCount}/${context.usage.total} included credits.`
+          : context.usage?.unlimited
+            ? ` Your account has ${context.usage.unlimitedLabel || "unlimited"} analyst usage.`
+            : ""
+      return `AI Credits control included analysis usage on Free accounts.${usageText} Pro is €${publicMonthlyPlanPrices.pro}/month and unlocks more analysis capacity with advanced AI features. Business is €${publicMonthlyPlanPrices.business}/month for broader team and business usage. Open Billing or Settings to review your current plan.`
+    },
   },
   {
-    keywords: ["upgrade", "pro", "business", "plan", "pricing"],
-    answer:
-      `Pro is €${publicMonthlyPlanPrices.pro}/month. Upgrade to Pro when you need more datasets, advanced AI analysis, and faster workflows. Business is €${publicMonthlyPlanPrices.business}/month. Choose Business when you need unlimited dataset capacity, team features, priority support, and the most complete Hybrid AI feature set.`,
-  },
-  {
+    id: "billing",
+    label: "Billing",
     keywords: ["billing", "invoice", "stripe", "subscription", "payment"],
-    answer:
+    followUps: userFollowUps.billing,
+    answer: () =>
       `Billing and invoices are managed through the secure Stripe flow in Settings. Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. You can review your plan, open checkout, manage payment details, and access billing actions from the account and billing areas.`,
   },
   {
+    id: "integrations",
+    label: "Integrations",
     keywords: ["snowflake", "integration", "connect", "warehouse", "database"],
-    answer:
+    followUps: userFollowUps.integrations,
+    answer: () =>
       "Snowflake and deeper data-warehouse connectors are planned as integration features. For now, upload CSV or Excel exports, or use AI Providers if you want to connect your own AI engine for analysis routing.",
   },
   {
+    id: "support",
+    label: "Support",
     keywords: ["support", "ticket", "contact", "help", "human"],
-    answer:
+    followUps: ["Create a ticket", "Troubleshoot upload", "Billing & invoices", "Contact support"],
+    answer: () =>
       "I can guide you here, and you can also create a dashboard ticket or contact support. Describe the issue, include the dataset or page involved, and UseClevr support can follow up with the right context.",
   },
   {
+    id: "retail",
+    label: "Retail Analytics",
     keywords: ["retail", "inventory", "stock", "sku", "product"],
-    answer:
+    followUps: ["Low stock risks", "Top products", "Inventory optimization", "Analyze my dataset"],
+    answer: () =>
       "Retail Analytics helps identify low stock, dead stock, top-profit products, category performance, supplier patterns, and reorder priorities. Include SKU, product, stock, sales, cost, revenue, and date columns for stronger results.",
   },
   {
+    id: "reports",
+    label: "Reports",
     keywords: ["report", "download", "pdf", "executive summary"],
-    answer:
+    followUps: userFollowUps.reports,
+    answer: () =>
       "Reports turn your analysis into a shareable management summary. Use them for executive updates, accountant handoff, investor conversations, or internal planning after the dataset analysis is complete.",
+  },
+  {
+    id: "admin-customers",
+    label: "Customers",
+    roles: ["superadmin"],
+    keywords: ["customers", "customer", "users", "user troubleshooting", "customer list"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "The Customers admin area helps superadmins review users, plans, account status, and troubleshooting context. Use it to find a customer, inspect their plan or signup state, and resolve access or billing support issues.",
+  },
+  {
+    id: "admin-levels",
+    label: "Customer levels",
+    roles: ["superadmin"],
+    keywords: ["customer levels", "levels", "user levels", "level rules"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "Customer Levels let superadmins manage progression rules and customer segmentation. Use them to review how users move between levels and how rewards or access states are assigned.",
+  },
+  {
+    id: "admin-discounts",
+    label: "Discount rules",
+    roles: ["superadmin"],
+    keywords: ["discount", "discounts", "discount rules", "coupon", "promo"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "Discount Rules let superadmins review and manage promotional pricing logic. Use Billing Settings and Discount Rules together when checking upgrade offers or customer subscription issues.",
+  },
+  {
+    id: "admin-billing",
+    label: "Billing settings",
+    roles: ["superadmin"],
+    keywords: ["billing settings", "payment settings", "stripe settings", "plan settings"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "Billing Settings is the superadmin area for plan configuration, checkout readiness, and payment-provider setup. Use it when pricing, Stripe, checkout, invoices, or upgrade paths need verification.",
+  },
+  {
+    id: "admin-ai-traces",
+    label: "AI traces",
+    roles: ["superadmin"],
+    keywords: ["ai traces", "traces", "ai activity", "provider usage", "audit logs"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "AI Traces show superadmins how AI requests behave across the platform: provider usage, prompts metadata, response status, feedback, and retention. Use them for debugging quality, privacy routing, and provider failures without exposing secrets.",
+  },
+  {
+    id: "admin-ai-benchmarking",
+    label: "AI benchmarking",
+    roles: ["superadmin"],
+    keywords: ["ai benchmarking", "benchmark", "benchmarks", "model quality"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "AI Benchmarking helps superadmins compare AI provider behavior and response quality. Use it to validate provider changes, quality regressions, and Hybrid AI routing performance.",
+  },
+  {
+    id: "admin-mcp",
+    label: "MCP tokens",
+    roles: ["superadmin"],
+    keywords: ["mcp", "mcp tokens", "tokens", "api token", "developer token"],
+    followUps: superadminFollowUps,
+    answer: () =>
+      "MCP Tokens are superadmin-controlled credentials for approved UseClevr data and content access. Use this area to create, review, or revoke tokens and keep scopes limited to the intended integration.",
   },
 ]
 
-function getFaqItems(audience: HelpChatboxAudience) {
-  const categories =
-    audience === "public"
-      ? allFaqCategories
-      : audience === "superadmin"
-        ? [...allFaqCategories, ...dashboardFaqCategories, ...superAdminFaqCategories]
-        : [...allFaqCategories, ...dashboardFaqCategories]
-
-  return categories.flatMap((category) =>
-    category.items.map((item) => ({
-      category: category.category,
-      q: item.q,
-      a: item.a,
-      text: `${category.category} ${item.q} ${item.a}`.toLowerCase(),
-    })),
-  )
+function normalizeQuestion(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}\s?]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
-function findFaqAnswer(query: string, audience: HelpChatboxAudience) {
-  const terms = query.toLowerCase().split(/\s+/).filter((term) => term.length > 2)
-  if (terms.length === 0) return null
-
-  return getFaqItems(audience)
-    .map((item) => ({
-      item,
-      score: terms.reduce((score, term) => score + (item.text.includes(term) ? 1 : 0), 0),
-    }))
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score)[0]?.item ?? null
+function questionTokens(normalized: string) {
+  return new Set(normalized.split(" ").filter((token) => token.length > 1))
 }
 
-function findKnowledgeAnswer(query: string) {
-  const normalized = query.toLowerCase()
-  const match = knowledgeAnswers
-    .map((item) => ({
-      item,
-      score: item.keywords.reduce((score, keyword) => score + (normalized.includes(keyword) ? 1 : 0), 0),
-    }))
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score)[0]?.item
+function scoreIntent(normalized: string, tokens: Set<string>, intent: UsyIntent, role: UsyRole) {
+  if (intent.roles && !intent.roles.includes(role)) return 0
 
-  if (match) return match.answer
-
-  return "I can help with uploads, datasets, dashboards, AI analysis, forecasting, reports, billing, credits, Business Profile setup, integrations, and troubleshooting. Tell me what you are trying to do, and I will point you to the clearest next step."
+  return intent.keywords.reduce((score, keyword) => {
+    const normalizedKeyword = normalizeQuestion(keyword)
+    if (!normalizedKeyword) return score
+    if (normalized === normalizedKeyword) return score + 8
+    if (normalized.includes(normalizedKeyword)) return score + (normalizedKeyword.includes(" ") ? 5 : 3)
+    return score + normalizedKeyword.split(" ").filter((part) => tokens.has(part)).length
+  }, 0)
 }
 
-function buildFallbackAnswer(query: string, audience: HelpChatboxAudience) {
-  const faqAnswer = findFaqAnswer(query, audience)
-  if (faqAnswer) {
-    return `${faqAnswer.q}\n\n${faqAnswer.a}\n\nNext step: if you want, ask me how this applies to your current UseClevr workflow.`
+function detectIntent(question: string, role: UsyRole) {
+  const normalized = normalizeQuestion(question)
+  const tokens = questionTokens(normalized)
+
+  return usyIntents
+    .map((intent) => ({ intent, score: scoreIntent(normalized, tokens, intent, role) }))
+    .filter(({ intent, score }) => score >= (intent.minScore ?? 2))
+    .sort((a, b) => b.score - a.score)[0]?.intent ?? null
+}
+
+function buildFallbackAnswer(question: string, context: UsyContext) {
+  const intent = detectIntent(question, context.role)
+  if (intent) {
+    return `${intent.answer(context)}\n\nNext step: ${nextStepForIntent(intent, context)}`
   }
 
-  return `${findKnowledgeAnswer(query)}\n\nNext step: open the matching UseClevr area and I can help you decide what to check first.`
+  if (context.role !== "superadmin" && detectIntent(question, "superadmin")) {
+    return "That area is reserved for superadmin users. I can help you with datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscriptions, and Business Profile setup from your own workspace."
+  }
+
+  return "I can help with UseClevr uploads, datasets, dashboards, AI analysis, forecasting, reports, billing, credits, Business Profile setup, integrations, and troubleshooting. Tell me what you are trying to do, and I will point you to the clearest next step."
 }
 
-function getFollowUpSuggestions(query: string, answer: string) {
-  const haystack = `${query} ${answer}`.toLowerCase()
-  const topic = followUpTopics.find((item) => item.keywords.some((keyword) => haystack.includes(keyword)))
-  return (topic?.questions ?? fallbackFollowUps).slice(0, 5)
+function nextStepForIntent(intent: UsyIntent, context: UsyContext) {
+  if (intent.id === "pro-pricing" || intent.id === "pricing-general") return "open Billing Settings and choose Upgrade to Pro when you are ready."
+  if (intent.id === "business-pricing") return "open Billing Settings and choose Business if you need team or unlimited dataset capacity."
+  if (intent.id.startsWith("admin-") && context.role === "superadmin") return "open the matching admin sidebar page and check the latest platform state there."
+  if (intent.id.includes("upload")) return "open Upload, try the file again, and check whether the message points to plan limits or file formatting."
+  if (intent.id === "forecast") return "check that your dataset includes a date column and a numeric business column such as revenue, sales, profit, quantity, or cost."
+  return "open the matching UseClevr area and I can help you decide what to check first."
+}
+
+function getFollowUpSuggestions(question: string, answer: string, context: UsyContext) {
+  const intent = detectIntent(`${question} ${answer}`, context.role)
+  if (intent) return intent.followUps.slice(0, 5)
+  return (context.role === "superadmin" ? superadminFollowUps : fallbackFollowUps).slice(0, 5)
+}
+
+function roleFromAudience(audience: HelpChatboxAudience, sessionRole?: string | null): UsyRole {
+  if (sessionRole === "superadmin" || audience === "superadmin") return "superadmin"
+  if (sessionRole === "admin") return "admin"
+  if (audience === "public") return "public"
+  return "user"
+}
+
+function moduleNameFromPath(pathname: string) {
+  if (pathname.includes("/admin/customers")) return "Customers admin"
+  if (pathname.includes("/admin/levels")) return "Customer levels"
+  if (pathname.includes("/admin/discounts")) return "Discount rules"
+  if (pathname.includes("/admin/billing-settings")) return "Billing settings"
+  if (pathname.includes("/admin/ai-traces")) return "AI traces"
+  if (pathname.includes("/admin/ai-benchmarking")) return "AI benchmarking"
+  if (pathname.includes("/admin/mcp-tokens")) return "MCP tokens"
+  if (pathname.includes("/datasets")) return "Datasets"
+  if (pathname.includes("/assistant")) return "AI Assistant"
+  if (pathname.includes("/upload")) return "Upload"
+  if (pathname.includes("/settings/billing")) return "Billing settings"
+  if (pathname.includes("/settings")) return "Settings"
+  if (pathname.includes("/dashboard") || pathname === "/app") return "Dashboard"
+  if (pathname.includes("/business")) return "Business Profile"
+  if (pathname.includes("/retail")) return "Retail Analytics"
+  if (pathname.includes("/reports") || pathname.includes("/downloads")) return "Reports and Downloads"
+  return pathname === "/" ? "Public homepage" : pathname
 }
 
 function SuggestionChip({
@@ -277,7 +418,31 @@ function SuggestionChip({
   )
 }
 
-async function askUsyAi(question: string) {
+function buildUsySystemPrompt(context: UsyContext) {
+  const moduleName = moduleNameFromPath(context.route)
+  const usageText = context.usage?.unlimited
+    ? `Analyst usage: ${context.usage.unlimitedLabel || "Unlimited"}.`
+    : typeof context.usage?.analysisCount === "number" && typeof context.usage?.total === "number"
+      ? `Analyst usage: ${context.usage.analysisCount}/${context.usage.total} included credits used.`
+      : "Analyst usage: unknown."
+
+  return [
+    "You are Usy, the official AI Business Intelligence Assistant of UseClevr.",
+    "Be warm, concise, professional, calm, trustworthy, and practical.",
+    "Answer the user's actual message, including short or messy messages.",
+    `Current route: ${context.route}. Current module: ${moduleName}. Current user role: ${context.role}. Current plan: ${context.plan || "unknown"}. ${usageText}`,
+    `Current pricing: Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month.`,
+    "Do not mention annual pricing unless UseClevr explicitly provides it in the current prompt.",
+    "Normal users can receive help with datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscription, and Business Profile.",
+    "Admins can receive help with assigned workspace/admin functions, but not superadmin-only platform controls.",
+    "Superadmins can receive help with customers, customer levels, discount rules, billing settings, AI traces, AI benchmarking, MCP tokens, platform settings, user troubleshooting, and usage monitoring.",
+    "Never expose superadmin-only guidance to normal users. Never hallucinate private customer data, dataset values, secrets, API keys, or hidden account state.",
+    "If exact private data is needed, tell the user where to check inside UseClevr instead of inventing it.",
+    "Give a useful next step. Ask a clarifying question only when needed.",
+  ].join("\n")
+}
+
+async function askUsyAi(question: string, context: UsyContext) {
   const response = await fetch("/api/hybrid-ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -285,8 +450,7 @@ async function askUsyAi(question: string) {
       messages: [
         {
           role: "system",
-          content:
-            `You are Usy, the official AI Business Intelligence Assistant of UseClevr. Be warm, concise, professional, calm, trustworthy, and practical. Help users understand UseClevr, business intelligence, uploads, dashboards, datasets, forecasts, reports, credits, billing, integrations, and troubleshooting. Current pricing: Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Do not mention annual pricing unless UseClevr explicitly provides it in the current prompt. Explain simply and recommend a useful next action.`,
+          content: buildUsySystemPrompt(context),
         },
         { role: "user", content: question },
       ],
@@ -333,15 +497,18 @@ function UsyAvatar({ size = "lg", interactive = false }: { size?: "sm" | "md" | 
 export function HelpChatbox({
   audience = "public",
   hideOnApp = false,
+  userRole,
 }: {
   audience?: HelpChatboxAudience
   hideOnApp?: boolean
+  userRole?: string | null
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isAsking, setIsAsking] = useState(false)
+  const [usage, setUsage] = useState<UsyUsageContext | null>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -360,29 +527,59 @@ export function HelpChatbox({
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, isAsking])
 
+  useEffect(() => {
+    if (!open || audience === "public") return
+    let cancelled = false
+
+    fetch("/api/usage")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: UsyUsageContext | null) => {
+        if (!cancelled) setUsage(data)
+      })
+      .catch(() => {
+        if (!cancelled) setUsage(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [audience, open])
+
   if (hideOnApp && pathname.startsWith("/app")) {
     return null
+  }
+
+  function currentUsyContext(): UsyContext {
+    const role = roleFromAudience(audience, userRole)
+    return {
+      audience,
+      role,
+      route: pathname,
+      plan: usage?.subscriptionTier || (role === "superadmin" ? "superadmin" : role === "admin" ? "admin" : undefined),
+      usage,
+    }
   }
 
   async function submitQuestion(question: string) {
     const trimmed = question.trim()
     if (!trimmed || isAsking) return
 
+    const context = currentUsyContext()
     setQuery("")
     setMessages((current) => [...current, { role: "user", text: trimmed }])
     setIsAsking(true)
 
     try {
-      const answer = await askUsyAi(trimmed)
+      const answer = await askUsyAi(trimmed, context)
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: answer, source: "ai", followUps: getFollowUpSuggestions(trimmed, answer) },
+        { role: "assistant", text: answer, source: "ai", followUps: getFollowUpSuggestions(trimmed, answer, context) },
       ])
     } catch {
-      const answer = buildFallbackAnswer(trimmed, audience)
+      const answer = buildFallbackAnswer(trimmed, context)
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: answer, source: "knowledge", followUps: getFollowUpSuggestions(trimmed, answer) },
+        { role: "assistant", text: answer, source: "knowledge", followUps: getFollowUpSuggestions(trimmed, answer, context) },
       ])
     } finally {
       setIsAsking(false)
