@@ -36,10 +36,7 @@ const pricingFaqs = getPricingFaqs()
 
 const freePlan = billingPlans.find(p => p.id === "free")!;
 const proMonthlyPlan = billingPlans.find(p => p.id === "pro_monthly")!;
-const proAnnualPlan = billingPlans.find(p => p.id === "pro_annual")!;
 const businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
-const proAnnualOriginalPrice = proMonthlyPlan.price * 12;
-const proAnnualSavingsPercent = Math.round(((proAnnualOriginalPrice - proAnnualPlan.price) / proAnnualOriginalPrice) * 100);
 
 export default function PricingPage() {
   return (
@@ -180,9 +177,7 @@ export default function PricingPage() {
                      <span className="text-muted-foreground text-sm">/month</span>
                    </div>
                    <p className="text-sm text-muted-foreground">
-                     Monthly plan available • Annual <span className="line-through">€{proAnnualOriginalPrice}/year</span>{" "}
-                     <span className="font-medium text-cyan-800 dark:text-cyan-100">€{proAnnualPlan.price}/year</span>{" "}
-                     <span className="font-medium text-cyan-800 dark:text-cyan-100">Save {proAnnualSavingsPercent}%</span>
+                     Monthly plan
                    </p>
                 </div>
 
@@ -196,7 +191,7 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Up to 50 datasets</div>
+                      <div className="text-sm font-medium">Up to {proMonthlyPlan.maxDatasets} datasets</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
@@ -305,14 +300,14 @@ export default function PricingPage() {
                 </Link>
               </Card>
 
-              {/* Business / Custom Tier */}
+              {/* Business Tier */}
               <Card className="space-y-4 border-border/50 bg-card p-6">
                 <div className="space-y-3">
                   <div className="h-12 w-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
                     <Building2 className="h-6 w-6 text-[#7C3AED]" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-1">Business / Custom</h3>
+                    <h3 className="text-xl font-bold mb-1">Business</h3>
                     <p className="text-sm text-muted-foreground">Retail, Accounting and Business Automation Platform</p>
                   </div>
                    <div className="flex flex-wrap items-baseline gap-1">

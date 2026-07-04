@@ -11,14 +11,11 @@ import * as React from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 
 type ThemeChoice = "light" | "dark"
-type ZoomLevel = "50" | "75" | "100" | "125" | "150"
+type ZoomLevel = "75" | "100"
 
 const zoomOptions = [
-  { id: "50" as const, label: "50%" },
   { id: "75" as const, label: "75%" },
   { id: "100" as const, label: "100%" },
-  { id: "125" as const, label: "125%" },
-  { id: "150" as const, label: "150%" },
 ]
 
 const themeOptions = [
@@ -54,6 +51,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     setZoomLevel(savedZoom)
     setTheme(savedTheme)
     applyZoomPreference(savedZoom)
+    localStorage.setItem("theme-zoom-level", savedZoom)
     setMounted(true)
   }, [setTheme])
 
@@ -136,7 +134,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             >
               Zoom
             </h2>
-            <div className="grid grid-cols-5 gap-1 rounded-md bg-muted/60 p-1">
+            <div className="grid grid-cols-2 gap-1 rounded-md bg-muted/60 p-1">
               {zoomOptions.map((option) => (
                 <button
                   key={option.id}

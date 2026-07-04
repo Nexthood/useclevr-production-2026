@@ -62,7 +62,7 @@ function CheckoutClient() {
     loadDiscounts();
   }, [plan.tier]);
 
-  const tscUrl = "https://useclevr.com/terms";
+  const tscUrl = "/terms";
   const canReview = !!plan.stripePriceId;
   const submitLabel = canReview ? "Continue to secure payment" : "Checkout unavailable";
 
@@ -239,7 +239,7 @@ function CheckoutClient() {
                   Uploaded datasets and generated reports remain your property. UseClevr processes
                   data in accordance with the{" "}
                   <a
-                    href="https://useclevr.com/privacy"
+                    href="/privacy"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline"
@@ -265,7 +265,7 @@ function CheckoutClient() {
                     rel="noopener noreferrer"
                     className="text-primary underline"
                   >
-                    useclevr.com/terms
+                    Terms of Service
                   </a>
                   .
                 </p>

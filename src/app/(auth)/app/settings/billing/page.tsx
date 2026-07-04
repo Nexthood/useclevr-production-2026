@@ -34,11 +34,7 @@ export default async function BillingSettingsPage() {
       : providerConfigured
         ? "Ready for checkout"
         : "Not configured";
-  const billingCycle = profile?.stripePriceId === process.env.STRIPE_PRICE_PRO_ANNUAL
-    ? "Annual"
-    : profile?.stripePriceId
-      ? "Monthly"
-      : "None";
+  const billingCycle = profile?.stripePriceId ? "Monthly" : "None";
   const planLabel =
     usage.subscriptionTier === "superadmin"
       ? "Super admin"

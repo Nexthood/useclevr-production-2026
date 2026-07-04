@@ -41,8 +41,8 @@ UseClevr creates value by turning business datasets into accessible analysis, AI
 ## Revenue Model
 
 - Free tier supports trial and onboarding.
-- Pro Monthly and Pro Annual plans support individual and small-team usage.
-- Business Monthly plan supports deeper business workflows.
+- Pro supports individual and small-team usage at €40/month.
+- Business supports deeper business workflows at €420/month.
 - Hybrid AI options create additional upgrade value.
 - Referral and discount rules support acquisition and retention campaigns.
 

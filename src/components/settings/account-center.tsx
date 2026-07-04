@@ -23,6 +23,10 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "security", label: "Security", icon: LockKeyhole },
 ]
 
+function formatAccountPlanPrice(plan: { price: number }) {
+  return plan.price === 0 ? "€0/month" : `€${plan.price}/month`
+}
+
 type AccountCenterProps = {
   profile: { fullName: string | null; email: string | null } | null
   setupStatus: { setupAccuracy: number; completedSections: string[]; missingFields: string[]; accountantReviewFlags: string[]; completed: boolean } | null
@@ -334,9 +338,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
               </div>
 
               <div className="grid min-w-0 gap-3 md:grid-cols-2">
-                {billingSettings?.plans
-                  .filter((plan) => plan.id !== "pro_annual")
-                  .map((plan) => {
+                {billingSettings?.plans.map((plan) => {
                     const isCurrent =
                       (plan.tier === "free" && !isUnlimited) ||
                       (plan.tier === "pro" && usage?.subscriptionTier === "pro") ||
@@ -347,7 +349,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                         <div className="flex min-w-0 items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="font-semibold text-foreground">{plan.name}</p>
-                            <p className="break-words text-sm text-muted-foreground">${plan.price}/{plan.interval}</p>
+                            <p className="break-words text-sm text-muted-foreground">{formatAccountPlanPrice(plan)}</p>
                           </div>
                           {isCurrent && (
                             <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">

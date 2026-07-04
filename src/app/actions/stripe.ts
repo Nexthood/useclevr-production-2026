@@ -24,18 +24,15 @@ export async function createCheckoutSession(productId: ProductId, returnUrl?: st
     throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY environment variable.")
   }
 
-  const priceId =
-    productId === "pro_yearly"
-      ? process.env.STRIPE_PRICE_PRO_ANNUAL || process.env.STRIPE_PRICE_PRO_MONTHLY
-      : process.env.STRIPE_PRICE_PRO_MONTHLY || process.env.STRIPE_PRICE_PRO_ANNUAL
+  const priceId = process.env.STRIPE_PRICE_PRO_MONTHLY
   if (!priceId) {
-    throw new Error("Stripe price ID not configured. Set STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_PRO_ANNUAL.")
+    throw new Error("Stripe price ID not configured. Set STRIPE_PRICE_PRO_MONTHLY.")
   }
 
   const baseUrl = getBaseUrl()
   const checkoutToken = issueCheckoutToken("pending", session.user.id)
   const successUrl = returnUrl || `${baseUrl}/checkout/success?t=${checkoutToken}&s={CHECKOUT_SESSION_ID}`
-  const cancelUrl = `${baseUrl}/app/settings/checkout?plan=${productId === "pro_yearly" ? "pro_annual" : productId}`
+  const cancelUrl = `${baseUrl}/app/settings/checkout?plan=${productId}`
   const db = getDb()
   const profile = db
     ? await db.query.profiles.findFirst({

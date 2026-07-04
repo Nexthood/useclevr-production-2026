@@ -79,7 +79,7 @@ Upload business data, ask questions in plain language, review structured insight
 
 ### Consideration
 
-- Pricing page explains Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Pricing page explains Free, Pro, and Business monthly plans.
 - FAQ answers data use, AI scope, billing, credits, reports, and support questions.
 - Contact page captures demo and sales requests.
 - Affiliate page supports referral-driven acquisition.

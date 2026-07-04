@@ -50,6 +50,8 @@ export default function DownloadsPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [downloads, setDownloads] = useState<DownloadItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [usageResolved, setUsageResolved] = useState(false)
+  const [usageLoadFailed, setUsageLoadFailed] = useState(false)
   const [isPro, setIsPro] = useState(false)
   const [creditsUsed, setCreditsUsed] = useState(0)
   const [creditsLimit, setCreditsLimit] = useState(2)
@@ -67,16 +69,12 @@ export default function DownloadsPage() {
   // Fetch user data and downloads in parallel
   const fetchData = useCallback(async () => {
     setIsLoading(true)
+    setUsageResolved(false)
+    setUsageLoadFailed(false)
     setError(null)
     try {
       // Fetch usage and reports - handle each separately to not fail the whole thing
-      let usageData: UsageResponse = {
-        analysisCount: 0,
-        total: 2,
-        subscriptionTier: "free",
-        canAnalyze: true,
-        limitReached: false,
-      }
+      let usageData: UsageResponse | null = null
       let reportsData: { reports: ReportListItem[] } = { reports: [] }
       
       // Fetch usage
@@ -84,17 +82,33 @@ export default function DownloadsPage() {
         const usageRes = await fetch("/api/usage")
         if (usageRes.ok) {
           usageData = await usageRes.json()
+        } else {
+          debugWarn("[Downloads] Usage fetch failed:", usageRes.status)
         }
       } catch (usageErr) {
         debugWarn('Failed to fetch usage:', usageErr)
       }
       
-      // Update usage state
-      setCreditsUsed(usageData.analysisCount || 0)
-      setCreditsLimit(usageData.total || 2)
-      setLimitReached(Boolean(usageData.limitReached))
-      setUnlimitedLabel(usageData.unlimitedLabel || null)
-      setIsPro(Boolean(usageData.unlimited) || ["pro", "business", "superadmin", "admin", "builtin"].includes(usageData.subscriptionTier))
+      if (usageData) {
+        const hasUnlimitedAccess =
+          Boolean(usageData.unlimited) ||
+          ["pro", "business", "superadmin", "admin", "builtin"].includes(usageData.subscriptionTier)
+
+        setCreditsUsed(usageData.analysisCount || 0)
+        setCreditsLimit(usageData.total || 2)
+        setLimitReached(Boolean(usageData.limitReached))
+        setUnlimitedLabel(usageData.unlimitedLabel || null)
+        setIsPro(hasUnlimitedAccess)
+        setUsageLoadFailed(false)
+      } else {
+        // Anti-flicker guard: unknown usage is not treated as Free. This prevents
+        // admin/superadmin sessions from briefly seeing upgrade UI while usage loads.
+        setLimitReached(false)
+        setUnlimitedLabel(null)
+        setIsPro(false)
+        setUsageLoadFailed(true)
+      }
+      setUsageResolved(true)
       
       // Fetch reports
       try {
@@ -147,6 +161,11 @@ export default function DownloadsPage() {
     }
 
     // Check download limit for non-pro users
+    if (!usageResolved) {
+      setError("Usage details are still loading. Please try again in a moment.")
+      return
+    }
+
     if (!isPro && limitReached) {
       setShowUpgradeModal(true)
       return
@@ -260,7 +279,21 @@ export default function DownloadsPage() {
   }
 
   // Calculate usage percentage
-  const creditPercent = Math.min((creditsUsed / creditsLimit) * 100, 100)
+  const creditPercent = Math.min((creditsUsed / Math.max(creditsLimit, 1)) * 100, 100)
+  const canShowUpgradeUi = usageResolved && !usageLoadFailed && !isPro
+  const creditSummary = !usageResolved
+    ? "Loading usage..."
+    : usageLoadFailed
+      ? "Usage details unavailable"
+      : isPro
+        ? `${unlimitedLabel || "Unlimited"} analyses and downloads`
+        : `${creditsUsed} / ${creditsLimit} analyses used this month`
+
+  useEffect(() => {
+    if (!canShowUpgradeUi && showUpgradeModal) {
+      setShowUpgradeModal(false)
+    }
+  }, [canShowUpgradeUi, showUpgradeModal])
 
   // Client-side search over existing rendered data
   const normalizedQuery = searchQuery.trim().toLowerCase()
@@ -362,13 +395,10 @@ export default function DownloadsPage() {
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-foreground">Analysis Credits</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {isPro
-                    ? `${unlimitedLabel || "Unlimited"} analyses and downloads`
-                    : `${creditsUsed} / ${creditsLimit} analyses used this month`
-                  }
+                  {creditSummary}
                 </p>
               </div>
-              {!isPro && limitReached && (
+              {canShowUpgradeUi && limitReached && (
                 <Button
                   onClick={() => setShowUpgradeModal(true)}
                   className="bg-gradient-primary hover:opacity-90"
@@ -377,7 +407,7 @@ export default function DownloadsPage() {
                 </Button>
               )}
             </div>
-            {!isPro && (
+            {canShowUpgradeUi && (
               <div className="mt-3">
                 <div className="h-2 rounded-full bg-border overflow-hidden">
                   <div 
@@ -393,11 +423,13 @@ export default function DownloadsPage() {
               </div>
             )}
             <div className="mt-3 text-xs text-muted-foreground">
-              Downloads are counted against your analysis quota. Each file download uses one analysis credit.
+              {usageLoadFailed
+                ? "Refresh the page to reload usage details before starting paid-plan actions."
+                : "Downloads are counted against your analysis quota. Each file download uses one analysis credit."}
             </div>
           </Card>
 
-          {!isPro && (
+          {canShowUpgradeUi && (
             <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20">
               <div className="flex flex-col gap-4">
                 <div className="min-w-0">
@@ -525,9 +557,9 @@ export default function DownloadsPage() {
       </main>
 
       <Modal
-        open={showUpgradeModal}
+        open={canShowUpgradeUi && showUpgradeModal}
         onOpenChange={(open) => {
-          setShowUpgradeModal(open)
+          setShowUpgradeModal(canShowUpgradeUi && open)
           if (!open) {
             setCheckoutError(null)
             setIsStartingCheckout(false)
@@ -546,9 +578,7 @@ export default function DownloadsPage() {
               </div>
               <div className="rounded-lg bg-primary/10 px-3 py-2 text-left sm:text-right">
                 <p className="text-xl font-semibold text-foreground">{formatPlanPrice(selectedPlan)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {selectedPlan.interval === "year" ? "Annual billing" : "Monthly billing"}
-                </p>
+                <p className="text-xs text-muted-foreground">Monthly billing</p>
               </div>
             </div>
 

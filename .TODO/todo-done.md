@@ -43,8 +43,15 @@ moving work between states.
 
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
 
+## Label: billing
+
+- T-923. Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces with shared monthly plan pricing as the canonical source. (labels: billing, ui, content; commit: worktree)
+
 ## Label: ui
 
+- T-924. Limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and constrain the Usy assistant panel inside the viewport with an always-visible close button. (labels: ui, accessibility, stability; commit: worktree)
+- T-922. Prevent upgrade prompts and cards from rendering before app usage, plan, and role state resolves, so admin and superadmin sessions never see automatic Free-plan upgrade flashes on Downloads. (labels: ui, billing, stability; commit: worktree)
+- T-921. Provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, worldwide SaaS subscription terms, and checkout links that use app routes. (labels: ui, content, security; commit: worktree)
 - T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)
 - T-917. Keep Usy billing answers on current monthly pricing, naming Pro at €40/month and Business at €420/month without annual pricing guesses. (labels: ui, billing, ai; commit: worktree)
 - T-918. Refactor the Usy assistant panel into a premium flex layout with fixed header and input regions, a centered welcome card, fully visible suggestion chips, and a scroll-only conversation area. (labels: ui, ai, accessibility; commit: worktree)

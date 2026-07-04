@@ -631,7 +631,7 @@ export function HelpChatbox({
     <div className="fixed bottom-4 right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
         <section
-          className="usy-panel-open fixed inset-x-3 bottom-3 top-6 flex flex-col overflow-hidden rounded-[30px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:right-0 sm:top-auto sm:inset-x-auto sm:h-[min(700px,calc(100vh-11rem))] sm:w-[min(calc(100vw-2rem),520px)]"
+          className="usy-panel-open fixed inset-x-3 bottom-3 top-6 flex max-h-[calc(100vh-2.25rem)] flex-col overflow-hidden rounded-[30px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:right-0 sm:top-auto sm:inset-x-auto sm:h-auto sm:max-h-[calc(100vh-8rem)] sm:w-[min(calc(100vw-2rem),520px)]"
           aria-label="Usy chat assistant"
         >
           <header className="relative shrink-0 overflow-hidden border-b border-cyan-200/18 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.24),transparent_34%),radial-gradient(circle_at_86%_0%,rgba(216,180,254,0.22),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.99),rgba(17,24,39,0.94))] px-5 py-4 sm:px-6">

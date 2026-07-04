@@ -183,7 +183,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Can I self-host UseClevr?",
-        a: "Self-hosting is available on the Business / Custom plan. Contact sales@useclevr.com to discuss private deployment options for your organisation.",
+        a: "Self-hosting is available on the Business plan. Contact sales@useclevr.com to discuss private deployment options for your organisation.",
       },
       {
         q: "Can I change theme, contrast, or text size?",

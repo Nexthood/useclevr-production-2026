@@ -2,6 +2,9 @@
 
 ### Changed
 
+- Limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and keep the Usy assistant panel constrained inside the viewport.
+- Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces.
+- Provide globally oriented Terms of Service and Privacy Policy pages with GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, SEO, and working internal legal links.
 - Replace the floating Help Chat with Usy, a premium UseClevr AI Business Intelligence Assistant that uses the assistant avatar, balanced header spacing, refined cyan-lilac motion, bright suggestion chips, Hybrid AI when available, and UseClevr-specific fallback answers.
 - Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status.
 - Make Usy role-aware with route, plan, usage, intent-scored fallback answers, admin-safe guidance, and contextual follow-up chips for short natural messages.
@@ -50,6 +53,7 @@
 
 ### Fixed
 
+- Prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes.
 - Fix dataset detail and forecast actions so dataset pages use the same signed-in access rules, analysis avoids broken dataset navigation, and forecast guidance names missing data requirements.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.
 - Fix dashboard report greeting spacing and Business Profile completion scoring so completed visible profile fields show 100%.

@@ -147,7 +147,8 @@ Text rules for this file:
 
 ## Subscriptions & Billing
 
-- Show Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Show Free at €0/month, Pro at €40/month, and Business at €420/month.
+- Use shared monthly billing plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
 - Show Account settings as a professional control center with centered wide content, Profile,
   Company, Subscription, and Security sections, visible completion indicators, a Continue Setup
   action, and a right-side Setup Progress and Account Status rail instead of generic quick tips.
@@ -303,8 +304,7 @@ Text rules for this file:
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
-- Keep display controls as a compact menu with Light Mode, Dark Mode, and zoom levels 50%, 75%,
-  100%, 125%, and 150%, with dark mode as the default and saved user preferences.
+- Keep display controls as a compact menu with Light Mode, Dark Mode, and zoom levels 75% and 100%, with 100% as the default zoom and unsupported saved zoom values reset to 100%.
 - Start authenticated sidebar page content below the sticky top navigation with consistent spacing so the first greeting, heading, or report title stays fully visible.
 - Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
   the completion percentage, switch to a completed check at 100%, and route incomplete Business
@@ -320,6 +320,9 @@ Text rules for this file:
 - Use dashboard search context in chat support.
 - Collapse and expand the desktop sidebar from the compact control beside Dashboard.
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
+- Serve globally oriented Terms of Service and Privacy Policy pages at `/terms` and `/privacy` that cover GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, and worldwide SaaS subscription terms.
+- Link Terms and Privacy pages to each other and keep legal links internal across public, authenticated, and checkout surfaces.
+- Render upgrade prompts and paid-plan cards only after authenticated usage, plan, and role state resolves; never treat unresolved admin or superadmin sessions as Free users during app-page loading.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.
 - Show notices in the topbar inbox with a persistent count.
