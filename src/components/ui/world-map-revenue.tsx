@@ -21,6 +21,112 @@ interface WorldMapRevenueProps {
   onRegionClick?: (region: RegionData) => void
 }
 
+const COUNTRY_COORDS: Record<string, { lat: number; lng: number; code: string }> = {
+  "united states": { lat: 37.0902, lng: -95.7129, code: "US" },
+  "usa": { lat: 37.0902, lng: -95.7129, code: "US" },
+  "us": { lat: 37.0902, lng: -95.7129, code: "US" },
+  "united kingdom": { lat: 55.3781, lng: -3.436, code: "GB" },
+  "uk": { lat: 55.3781, lng: -3.436, code: "GB" },
+  "great britain": { lat: 55.3781, lng: -3.436, code: "GB" },
+  "germany": { lat: 51.1657, lng: 10.4515, code: "DE" },
+  "france": { lat: 46.2276, lng: 2.2137, code: "FR" },
+  "spain": { lat: 40.4637, lng: -3.7492, code: "ES" },
+  "italy": { lat: 41.8719, lng: 12.5674, code: "IT" },
+  "netherlands": { lat: 52.1326, lng: 5.2913, code: "NL" },
+  "belgium": { lat: 50.5039, lng: 4.4699, code: "BE" },
+  "switzerland": { lat: 46.8182, lng: 8.2275, code: "CH" },
+  "austria": { lat: 47.5162, lng: 14.5501, code: "AT" },
+  "poland": { lat: 51.9194, lng: 19.1451, code: "PL" },
+  "sweden": { lat: 60.1282, lng: 18.6435, code: "SE" },
+  "norway": { lat: 60.472, lng: 8.4689, code: "NO" },
+  "denmark": { lat: 56.2639, lng: 9.5018, code: "DK" },
+  "finland": { lat: 61.9241, lng: 25.7482, code: "FI" },
+  "ireland": { lat: 53.1424, lng: -7.6921, code: "IE" },
+  "portugal": { lat: 39.3999, lng: -8.2245, code: "PT" },
+  "greece": { lat: 39.0742, lng: 21.8243, code: "GR" },
+  "czech republic": { lat: 49.8175, lng: 15.473, code: "CZ" },
+  "hungary": { lat: 47.1625, lng: 19.5033, code: "HU" },
+  "romania": { lat: 45.9432, lng: 24.9668, code: "RO" },
+  "canada": { lat: 56.1304, lng: -106.3468, code: "CA" },
+  "mexico": { lat: 23.6345, lng: -102.5528, code: "MX" },
+  "brazil": { lat: -14.235, lng: -51.9253, code: "BR" },
+  "argentina": { lat: -38.4161, lng: -63.6167, code: "AR" },
+  "chile": { lat: -35.6751, lng: -71.543, code: "CL" },
+  "colombia": { lat: 4.5709, lng: -74.2973, code: "CO" },
+  "australia": { lat: -25.2744, lng: 133.7751, code: "AU" },
+  "new zealand": { lat: -40.9006, lng: 174.886, code: "NZ" },
+  "japan": { lat: 36.2048, lng: 138.2529, code: "JP" },
+  "china": { lat: 35.8617, lng: 104.1954, code: "CN" },
+  "india": { lat: 20.5937, lng: 78.9629, code: "IN" },
+  "south korea": { lat: 35.9078, lng: 127.7669, code: "KR" },
+  "korea": { lat: 35.9078, lng: 127.7669, code: "KR" },
+  "singapore": { lat: 1.3521, lng: 103.8198, code: "SG" },
+  "hong kong": { lat: 22.3193, lng: 114.1694, code: "HK" },
+  "taiwan": { lat: 23.6978, lng: 120.9605, code: "TW" },
+  "thailand": { lat: 15.87, lng: 100.9925, code: "TH" },
+  "malaysia": { lat: 4.2105, lng: 101.9758, code: "MY" },
+  "indonesia": { lat: -0.7893, lng: 113.9213, code: "ID" },
+  "philippines": { lat: 12.8797, lng: 121.774, code: "PH" },
+  "vietnam": { lat: 14.0583, lng: 108.2772, code: "VN" },
+  "uae": { lat: 23.4241, lng: 53.8478, code: "AE" },
+  "united arab emirates": { lat: 23.4241, lng: 53.8478, code: "AE" },
+  "saudi arabia": { lat: 23.8859, lng: 45.0792, code: "SA" },
+  "israel": { lat: 31.0461, lng: 34.8516, code: "IL" },
+  "turkey": { lat: 38.9637, lng: 35.2433, code: "TR" },
+  "egypt": { lat: 26.8206, lng: 30.8025, code: "EG" },
+  "south africa": { lat: -30.5595, lng: 22.9375, code: "ZA" },
+  "nigeria": { lat: 9.082, lng: 8.6753, code: "NG" },
+  "russia": { lat: 61.524, lng: 105.3188, code: "RU" },
+  "ukraine": { lat: 48.3794, lng: 31.1656, code: "UA" },
+  // Regions
+  "europe": { lat: 50, lng: 10, code: "EU" },
+  "asia": { lat: 30, lng: 100, code: "AS" },
+  "north america": { lat: 40, lng: -100, code: "NA" },
+  "south america": { lat: -15, lng: -60, code: "SA" },
+  "africa": { lat: 0, lng: 20, code: "AF" },
+  "oceania": { lat: -25, lng: 135, code: "OC" },
+  "middle east": { lat: 25, lng: 45, code: "ME" },
+  "central america": { lat: 15, lng: -90, code: "CA" },
+  "western europe": { lat: 48, lng: 5, code: "WE" },
+  "eastern europe": { lat: 50, lng: 25, code: "EE" },
+  "northern europe": { lat: 60, lng: 10, code: "NE" },
+  "southern europe": { lat: 38, lng: 15, code: "SE" },
+  "western asia": { lat: 30, lng: 45, code: "WA" },
+  "eastern asia": { lat: 35, lng: 130, code: "EA" },
+  "southern asia": { lat: 20, lng: 78, code: "SA" },
+  "southeast asia": { lat: 15, lng: 105, code: "SEA" },
+  "central asia": { lat: 42, lng: 65, code: "CA" },
+  "northwestern europe": { lat: 55, lng: -5, code: "NWE" },
+  "west europe": { lat: 48, lng: 2, code: "WE" },
+  "east asia": { lat: 35, lng: 130, code: "EA" },
+}
+
+function getRegionCoords(name: string): { lat: number; lng: number; code: string } | undefined {
+  const normalized = name.toLowerCase().trim()
+  
+  // Direct match
+  if (COUNTRY_COORDS[normalized]) {
+    return COUNTRY_COORDS[normalized]
+  }
+  
+  // Try matching parts
+  const parts = normalized.split(/[\s,-]+/)
+  for (const part of parts) {
+    if (COUNTRY_COORDS[part]) {
+      return COUNTRY_COORDS[part]
+    }
+  }
+  
+  // Try contains match
+  for (const [key, coords] of Object.entries(COUNTRY_COORDS)) {
+    if (normalized.includes(key) || key.includes(normalized)) {
+      return coords
+    }
+  }
+  
+  return undefined
+}
+
 function formatCurrency(value: number): string {
   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
   if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
@@ -123,8 +229,24 @@ export function WorldMapRevenue({ regions, onRegionClick }: WorldMapRevenueProps
         <WorldMapSVG />
         
         {regions.map((region) => {
-          const lat = region.latitude ?? 0
-          const lng = region.longitude ?? 0
+          // Use provided coordinates or try to look up by name
+          let lat = region.latitude
+          let lng = region.longitude
+          
+          // If no coordinates, try to get from region name
+          if ((lat === undefined || lng === undefined) && region.name) {
+            const coords = getRegionCoords(region.name)
+            if (coords) {
+              lat = coords.lat
+              lng = coords.lng
+            }
+          }
+          
+          // Skip if still no valid coordinates
+          if (lat === undefined || lng === undefined) {
+            return null
+          }
+          
           const coords = mercatorProjection(lat, lng)
           const size = getBubbleSize(region.revenue, maxRevenue)
           const color = getPerformanceColor(region.growth, region.margin)

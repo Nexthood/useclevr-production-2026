@@ -4,6 +4,8 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
+import { WorldMapRevenue, type RegionData as MapRegionData } from "@/components/ui/world-map-revenue"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -1413,7 +1415,7 @@ export function DatasetAnalyzer({
               {capabilities.regionRankingAvailable && analysis.business_analysis.kpis.topRegions.length > 0 && (
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-foreground text-base">Revenue by Region/Country</CardTitle>
+                    <CardTitle className="text-foreground text-base">World Revenue Map</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {/* Debug: Log the data */}
@@ -1423,10 +1425,10 @@ export function DatasetAnalyzer({
                       rawData={data}
                     />
                     
-                    {/* Use breakdowns.revenueByRegion directly - contains ALL regions */}
-                    <RegionBarChart 
+                    {/* Use World Map when geographic columns are detected, otherwise use bar chart */}
+                    <WorldMapChart 
                       rawData={data} 
-                      fallbackData={analysis.business_analysis.kpis.topRegions}
+                      fallbackData={analysis.business_analysis.kpis.topRegions.map(r => ({ name: r.name, revenue: r.revenue, orders: 0, profit: 0, margin: null, growth: null }))}
                       breakdowns={analysis.business_analysis.breakdowns}
                     />
                   </CardContent>
@@ -2251,7 +2253,7 @@ export function DatasetAnalyzer({
 // Helper Components for Overview Tab
 // ============================================================================
 
-interface RegionData {
+interface BarChartRegionData {
   name: string;
   revenue: number;
   percentage: number;
@@ -2268,7 +2270,7 @@ function DebugRegionData({
   breakdowns, 
   rawData 
 }: { 
-  topRegions: RegionData[]; 
+  topRegions: BarChartRegionData[]; 
   breakdowns?: Breakdowns;
   rawData?: any[];
 }) {
@@ -2290,7 +2292,7 @@ function RegionBarChart({
   breakdowns
 }: { 
   rawData?: any[]; 
-  fallbackData: RegionData[];
+  fallbackData: BarChartRegionData[];
   breakdowns?: Breakdowns;
 }) {
   // Aggregate data from raw dataset - show ALL regions, not just top 5
@@ -2413,6 +2415,164 @@ function RegionBarChart({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Geographic column detection
+const GEOGRAPHIC_COLUMNS = ['country', 'region', 'city', 'market', 'location', 'state', 'province', 'territory', 'area', 'zone'];
+const REVENUE_COLUMNS = ['revenue_eur', 'revenue', 'sales', 'amount', 'total_sales', 'net_sales', 'order_total', 'total'];
+
+function detectGeographicColumns(columns: string[]): string | null {
+  return columns.find(col => GEOGRAPHIC_COLUMNS.some(geo => col.toLowerCase().includes(geo))) || null;
+}
+
+function detectRevenueColumn(columns: string[]): string | null {
+  return columns.find(col => REVENUE_COLUMNS.some(rev => col.toLowerCase().includes(rev))) || null;
+}
+
+function detectOrdersColumn(columns: string[]): string | null {
+  return columns.find(col => /order|quantity|unit|count/i.test(col)) || null;
+}
+
+function detectGrowthColumn(columns: string[]): string | null {
+  return columns.find(col => /growth|pct|percent|change/i.test(col)) || null;
+}
+
+function detectCategoryColumn(columns: string[]): string | null {
+  return columns.find(col => /category|product|type|segment/i.test(col)) || null;
+}
+
+function detectProductColumn(columns: string[]): string | null {
+  return columns.find(col => /product|item|name|description/i.test(col)) || null;
+}
+
+// World Map Chart component - shows interactive world map with revenue bubbles
+function WorldMapChart({ 
+  rawData,
+  fallbackData,
+  breakdowns
+}: { 
+  rawData?: any[]; 
+  fallbackData: MapRegionData[];
+  breakdowns?: Breakdowns;
+}) {
+  const [selectedRegion, setSelectedRegion] = React.useState<MapRegionData | null>(null);
+
+  const mapData: MapRegionData[] = React.useMemo(() => {
+    debugLog('[WorldMapChart] Processing map data...');
+    
+    // If we have breakdowns with region data, use that
+    if (breakdowns?.revenueByRegion && Object.keys(breakdowns.revenueByRegion).length > 0) {
+      const entries: MapRegionData[] = Object.entries(breakdowns.revenueByRegion)
+        .map(([name, revenue]) => ({ name, revenue, orders: 0, profit: 0, margin: null, growth: null }))
+        .filter(item => item.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue);
+      debugLog('[WorldMapChart] Using breakdowns - regions:', entries.length);
+      return entries;
+    }
+    
+    // Otherwise, aggregate from rawData
+    if (rawData && rawData.length > 0) {
+      const columns = Object.keys(rawData[0] || {});
+      const geoCol = detectGeographicColumns(columns);
+      const revenueCol = detectRevenueColumn(columns);
+      const ordersCol = detectOrdersColumn(columns);
+      const growthCol = detectGrowthColumn(columns);
+      const categoryCol = detectCategoryColumn(columns);
+      const productCol = detectProductColumn(columns);
+      
+      debugLog('[WorldMapChart] Detected columns:', { geoCol, revenueCol, ordersCol, growthCol, categoryCol, productCol });
+      
+      if (geoCol && revenueCol) {
+        const agg: Record<string, { revenue: number; orders: number; growth: number | null; topCategory: string | undefined; topProduct: string | undefined }> = {};
+        
+        rawData.forEach(r => {
+          const key = String(r[geoCol] || 'Unknown').trim() || 'Unknown';
+          const revenue = parseFloat(String(r[revenueCol])) || 0;
+          const orders = ordersCol ? (parseFloat(String(r[ordersCol])) || 0) : 0;
+          const growth = growthCol ? (parseFloat(String(r[growthCol])) || null) : null;
+          const category = categoryCol ? String(r[categoryCol] || '') : '';
+          const product = productCol ? String(r[productCol] || '') : '';
+          
+          if (!agg[key]) {
+            agg[key] = { revenue: 0, orders: 0, growth: null, topCategory: undefined, topProduct: undefined };
+          }
+          agg[key].revenue += revenue;
+          agg[key].orders += orders;
+          if (growth !== null) agg[key].growth = growth;
+          if (category && !agg[key].topCategory) agg[key].topCategory = category;
+          if (product && !agg[key].topProduct) agg[key].topProduct = product;
+        });
+        
+        const result = Object.entries(agg)
+          .map(([name, data]) => ({
+            name,
+            revenue: data.revenue,
+            orders: data.orders,
+            profit: data.revenue * 0.3, // Approximate
+            margin: 30,
+            growth: data.growth,
+            topCategory: data.topCategory,
+            topProduct: data.topProduct,
+          }))
+          .filter(item => item.revenue > 0)
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 30);
+        
+        debugLog('[WorldMapChart] Aggregated from rawData - regions:', result.length);
+        return result;
+      }
+    }
+    
+    // Fallback
+    debugLog('[WorldMapChart] Using fallback data');
+    return fallbackData;
+  }, [rawData, fallbackData, breakdowns]);
+
+  const hasGeoData = mapData.length > 0 && mapData.some(d => d.name && (
+    d.latitude !== undefined || 
+    d.countryCode !== undefined ||
+    /europe|asia|america|africa|oceania|north|south|west|east|central/i.test(d.name)
+  ));
+
+  const handleRegionClick = (region: MapRegionData) => {
+    setSelectedRegion(region);
+  };
+
+  return (
+    <div className="space-y-4">
+      <WorldMapRevenue 
+        regions={mapData} 
+        onRegionClick={handleRegionClick}
+      />
+      
+      {selectedRegion && (
+        <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-foreground">{selectedRegion.name}</p>
+              <p className="text-sm text-muted-foreground">
+                Revenue: {selectedRegion.revenue?.toLocaleString()}
+                {selectedRegion.orders ? ` • Orders: ${selectedRegion.orders.toLocaleString()}` : ''}
+                {selectedRegion.growth !== null ? ` • Growth: ${selectedRegion.growth >= 0 ? '+' : ''}${selectedRegion.growth.toFixed(1)}%` : ''}
+              </p>
+              {selectedRegion.topCategory && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Top: {selectedRegion.topCategory}
+                </p>
+              )}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSelectedRegion(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
