@@ -322,6 +322,7 @@ Text rules for this file:
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
 - Serve globally oriented Terms of Service and Privacy Policy pages at `/terms` and `/privacy` that cover GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, and worldwide SaaS subscription terms.
 - Link Terms and Privacy pages to each other and keep legal links internal across public, authenticated, and checkout surfaces.
+- Render upgrade prompts and paid-plan cards only after authenticated usage, plan, and role state resolves; never treat unresolved admin or superadmin sessions as Free users during app-page loading.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.
 - Show notices in the topbar inbox with a persistent count.

@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-922. Prevent upgrade prompts and cards from rendering before app usage, plan, and role state resolves, so admin and superadmin sessions never see automatic Free-plan upgrade flashes on Downloads. (labels: ui, billing, stability; commit: worktree)
 - T-921. Provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, worldwide SaaS subscription terms, and checkout links that use app routes. (labels: ui, content, security; commit: worktree)
 - T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)
 - T-917. Keep Usy billing answers on current monthly pricing, naming Pro at €40/month and Business at €420/month without annual pricing guesses. (labels: ui, billing, ai; commit: worktree)

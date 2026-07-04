@@ -1,3 +1,4 @@
+- fixed: prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes
 - changed: provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, worldwide SaaS terms, cross-links, and checkout legal links that use app routes
 - changed: extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status
 - changed: upgrade Usy from loose FAQ matching to role-aware AI and intent-scored fallback guidance with route, plan, usage, admin-safe boundaries, and contextual follow-up chips

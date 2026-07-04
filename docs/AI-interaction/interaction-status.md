@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-04
-- **Goal**: Create globally oriented UseClevr Terms of Service and Privacy Policy pages.
-- **Durable change**: `/terms` and `/privacy` now render self-contained dark UseClevr legal pages with SEO metadata, last-updated dates, internal cross-links, contact details, copyright footers, GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, worldwide SaaS subscription terms, legal-review notices, and checkout legal links that use app routes.
-- **Verification**: TypeScript, focused ESLint, legal-link search, diff whitespace, TODO, project-record, changelog, package, secret, and production build checks pass.
+- **Goal**: Fix flashing Upgrade to Pro modal/card behavior on authenticated app pages.
+- **Durable change**: Downloads upgrade prompts, cards, and modal rendering now wait for authenticated usage, plan, and role state to resolve before showing limited-plan UI, and unresolved or failed usage state is never treated as Free.
+- **Verification**: TypeScript, focused ESLint, upgrade-open search, TODO, project-record, changelog, and diff whitespace checks pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
