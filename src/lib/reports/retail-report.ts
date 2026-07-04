@@ -14,6 +14,7 @@ export type RetailColumns = {
   stock?: string
   reorderLevel?: string
   date?: string
+  region?: string
 }
 
 export type RetailKpis = {
@@ -75,6 +76,20 @@ export type Recommendation = {
   impact?: string
 }
 
+export type RegionData = {
+  name: string
+  countryCode?: string
+  latitude?: number
+  longitude?: number
+  revenue: number
+  orders: number
+  profit: number
+  margin: number | null
+  growth: number | null
+  topProduct?: string
+  topCategory?: string
+}
+
 export type RetailReport = {
   columns: RetailColumns
   kpis: RetailKpis
@@ -84,6 +99,7 @@ export type RetailReport = {
   products: ProductPerformance[]
   categories: RetailGroup[]
   suppliers: RetailGroup[]
+  regions: RegionData[]
   abc: AbcItem[]
   revenueTrend: RetailGroup[]
   profitTrend: RetailGroup[]
@@ -105,7 +121,155 @@ const COLUMN_PATTERNS: Array<[keyof RetailColumns, RegExp[]]> = [
   ["stock", [/^stock$/i, /inventory/i, /on.*hand/i, /available/i, /stock.*level/i]],
   ["reorderLevel", [/reorder/i, /minimum.*stock/i, /min.*stock/i, /safety.*stock/i]],
   ["date", [/^date$/i, /order.*date/i, /sale.*date/i, /created.*at/i, /period/i]],
+  ["region", [/country/i, /region/i, /city/i, /market/i, /location/i, /state/i, /province/i, /territory/i, /zone/i, /area/i]],
 ]
+
+const COUNTRY_COORDS: Record<string, { lat: number; lng: number; code: string }> = {
+  "united states": { lat: 37.0902, lng: -95.7129, code: "US" },
+  "usa": { lat: 37.0902, lng: -95.7129, code: "US" },
+  "us": { lat: 37.0902, lng: -95.7129, code: "US" },
+  "united kingdom": { lat: 55.3781, lng: -3.436, code: "GB" },
+  "uk": { lat: 55.3781, lng: -3.436, code: "GB" },
+  "great britain": { lat: 55.3781, lng: -3.436, code: "GB" },
+  "germany": { lat: 51.1657, lng: 10.4515, code: "DE" },
+  "france": { lat: 46.2276, lng: 2.2137, code: "FR" },
+  "spain": { lat: 40.4637, lng: -3.7492, code: "ES" },
+  "italy": { lat: 41.8719, lng: 12.5674, code: "IT" },
+  "netherlands": { lat: 52.1326, lng: 5.2913, code: "NL" },
+  "belgium": { lat: 50.5039, lng: 4.4699, code: "BE" },
+  "switzerland": { lat: 46.8182, lng: 8.2275, code: "CH" },
+  "austria": { lat: 47.5162, lng: 14.5501, code: "AT" },
+  "poland": { lat: 51.9194, lng: 19.1451, code: "PL" },
+  "sweden": { lat: 60.1282, lng: 18.6435, code: "SE" },
+  "norway": { lat: 60.472, lng: 8.4689, code: "NO" },
+  "denmark": { lat: 56.2639, lng: 9.5018, code: "DK" },
+  "finland": { lat: 61.9241, lng: 25.7482, code: "FI" },
+  "ireland": { lat: 53.1424, lng: -7.6921, code: "IE" },
+  "portugal": { lat: 39.3999, lng: -8.2245, code: "PT" },
+  "greece": { lat: 39.0742, lng: 21.8243, code: "GR" },
+  "czech republic": { lat: 49.8175, lng: 15.473, code: "CZ" },
+  "hungary": { lat: 47.1625, lng: 19.5033, code: "HU" },
+  "romania": { lat: 45.9432, lng: 24.9668, code: "RO" },
+  "bulgaria": { lat: 42.7339, lng: 25.4858, code: "BG" },
+  "croatia": { lat: 45.1, lng: 15.2, code: "HR" },
+  "slovakia": { lat: 48.669, lng: 19.699, code: "SK" },
+  "slovenia": { lat: 46.1512, lng: 14.9955, code: "SI" },
+  "canada": { lat: 56.1304, lng: -106.3468, code: "CA" },
+  "mexico": { lat: 23.6345, lng: -102.5528, code: "MX" },
+  "brazil": { lat: -14.235, lng: -51.9253, code: "BR" },
+  "argentina": { lat: -38.4161, lng: -63.6167, code: "AR" },
+  "chile": { lat: -35.6751, lng: -71.543, code: "CL" },
+  "colombia": { lat: 4.5709, lng: -74.2973, code: "CO" },
+  "peru": { lat: -9.19, lng: -75.0152, code: "PE" },
+  "venezuela": { lat: 6.4238, lng: -66.5897, code: "VE" },
+  "australia": { lat: -25.2744, lng: 133.7751, code: "AU" },
+  "new zealand": { lat: -40.9006, lng: 174.886, code: "NZ" },
+  "japan": { lat: 36.2048, lng: 138.2529, code: "JP" },
+  "china": { lat: 35.8617, lng: 104.1954, code: "CN" },
+  "india": { lat: 20.5937, lng: 78.9629, code: "IN" },
+  "south korea": { lat: 35.9078, lng: 127.7669, code: "KR" },
+  "korea": { lat: 35.9078, lng: 127.7669, code: "KR" },
+  "singapore": { lat: 1.3521, lng: 103.8198, code: "SG" },
+  "hong kong": { lat: 22.3193, lng: 114.1694, code: "HK" },
+  "taiwan": { lat: 23.6978, lng: 120.9605, code: "TW" },
+  "thailand": { lat: 15.87, lng: 100.9925, code: "TH" },
+  "malaysia": { lat: 4.2105, lng: 101.9758, code: "MY" },
+  "indonesia": { lat: -0.7893, lng: 113.9213, code: "ID" },
+  "philippines": { lat: 12.8797, lng: 121.774, code: "PH" },
+  "vietnam": { lat: 14.0583, lng: 108.2772, code: "VN" },
+  "pakistan": { lat: 30.3753, lng: 69.3451, code: "PK" },
+  "bangladesh": { lat: 23.685, lng: 90.3563, code: "BD" },
+  "sri lanka": { lat: 7.8731, lng: 80.7718, code: "LK" },
+  "uae": { lat: 23.4241, lng: 53.8478, code: "AE" },
+  "united arab emirates": { lat: 23.4241, lng: 53.8478, code: "AE" },
+  "saudi arabia": { lat: 23.8859, lng: 45.0792, code: "SA" },
+  "israel": { lat: 31.0461, lng: 34.8516, code: "IL" },
+  "turkey": { lat: 38.9637, lng: 35.2433, code: "TR" },
+  "egypt": { lat: 26.8206, lng: 30.8025, code: "EG" },
+  "south africa": { lat: -30.5595, lng: 22.9375, code: "ZA" },
+  "nigeria": { lat: 9.082, lng: 8.6753, code: "NG" },
+  "kenya": { lat: -0.0236, lng: 37.9062, code: "KE" },
+  "morocco": { lat: 31.7917, lng: -7.0926, code: "MA" },
+  "russia": { lat: 61.524, lng: 105.3188, code: "RU" },
+  "ukraine": { lat: 48.3794, lng: 31.1656, code: "UA" },
+}
+
+function getCountryCoords(name: string): { lat: number; lng: number; code: string } | undefined {
+  const normalized = name.toLowerCase().trim()
+  return COUNTRY_COORDS[normalized]
+}
+
+function normalizeRegionName(name: string): string {
+  const cleaned = name.toString().trim()
+  if (!cleaned) return "Unknown"
+  
+  const coords = getCountryCoords(cleaned)
+  if (coords) return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+  
+  const parts = cleaned.split(/[,\s]+/)
+  for (const part of parts) {
+    const coords = getCountryCoords(part)
+    if (coords) return part.charAt(0).toUpperCase() + part.slice(1)
+  }
+  
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+}
+
+function aggregateRegions(
+  rows: RetailRow[],
+  columns: RetailColumns
+): RegionData[] {
+  if (!columns.region || !columns.revenue) return []
+
+  const regionMap = new Map<string, RegionData>()
+
+  for (const row of rows) {
+    const regionValue = row[columns.region]
+    if (!regionValue) continue
+
+    const regionName = normalizeRegionName(regionValue.toString())
+    const coords = getCountryCoords(regionName)
+
+    const revenue = getNumber(row, columns.revenue) || 0
+    const profit = getNumber(row, columns.profit) ?? 0
+    const quantity = getNumber(row, columns.quantitySold) || 0
+    const category = columns.category ? row[columns.category]?.toString() : undefined
+
+    const existing = regionMap.get(regionName)
+    if (existing) {
+      existing.revenue += revenue
+      existing.orders += quantity
+      if (profit !== null) existing.profit += profit
+    } else {
+      regionMap.set(regionName, {
+        name: regionName,
+        countryCode: coords?.code,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
+        revenue,
+        orders: quantity,
+        profit: profit ?? 0,
+        margin: null,
+        growth: null,
+        topCategory: category,
+      })
+    }
+  }
+
+  const regions = Array.from(regionMap.values())
+    .map((r) => ({
+      ...r,
+      margin: r.revenue > 0 ? (r.profit / r.revenue) * 100 : null,
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+
+  const maxRevenue = regions.length > 0 ? regions[0].revenue : 1
+  regions.forEach((r) => {
+    r.growth = maxRevenue > 0 ? (r.revenue / maxRevenue) * 100 - 50 : 0
+  })
+
+  return regions
+}
 
 export function getDisplayName({
   profile,
@@ -175,6 +339,7 @@ export function buildRetailReport(rows: RetailRow[], explicitColumns: string[] =
   const products = aggregateProducts(rows, columns)
   const categories = aggregateGroups(products, "category")
   const suppliers = aggregateGroups(products, "supplier")
+  const regions = aggregateRegions(rows, columns)
   const kpis = calculateKpis(rows, columns)
   const inventoryHealth = calculateInventoryHealth(products)
   const abc = calculateABCAnalysis(products)
@@ -184,12 +349,13 @@ export function buildRetailReport(rows: RetailRow[], explicitColumns: string[] =
   return {
     columns,
     kpis,
-    executiveSummary: generateExecutiveSummary({ kpis, products, categories, suppliers, inventoryHealth }),
+    executiveSummary: generateExecutiveSummary({ kpis, products, categories, suppliers, inventoryHealth, regions }),
     recommendations: generateRecommendations({ kpis, products, categories, suppliers, inventoryHealth, abc }),
     inventoryHealth,
     products,
     categories,
     suppliers,
+    regions,
     abc,
     revenueTrend,
     profitTrend,
@@ -204,18 +370,21 @@ export function generateExecutiveSummary({
   categories,
   suppliers,
   inventoryHealth,
+  regions,
 }: {
   kpis: RetailKpis
   products: ProductPerformance[]
   categories: RetailGroup[]
   suppliers: RetailGroup[]
   inventoryHealth: InventoryHealth
+  regions: RegionData[]
 }) {
   const summary: string[] = []
   const topProduct = [...products].sort((a, b) => b.revenue - a.revenue)[0]
   const topProfit = [...products].sort((a, b) => b.profit - a.profit)[0]
   const topCategory = categories[0]
   const topSupplier = suppliers[0]
+  const topRegion = regions[0]
 
   if (kpis.totalRevenue !== null) summary.push(`Total revenue is ${formatCurrency(kpis.totalRevenue)} across ${kpis.salesRows.toLocaleString()} sales rows.`)
   if (kpis.grossProfit !== null) summary.push(`Gross profit is ${formatCurrency(kpis.grossProfit)}${kpis.profitMargin !== null ? ` with a ${kpis.profitMargin.toFixed(1)}% margin` : ""}.`)
@@ -223,6 +392,7 @@ export function generateExecutiveSummary({
   if (topProfit) summary.push(`${topProfit.name} contributes the highest product profit at ${formatCurrency(topProfit.profit)}.`)
   if (topCategory) summary.push(`${topCategory.name} is the strongest category by revenue with ${formatCurrency(topCategory.revenue)}.`)
   if (topSupplier) summary.push(`${topSupplier.name} is the highest revenue supplier at ${formatCurrency(topSupplier.revenue)}.`)
+  if (topRegion) summary.push(`${topRegion.name} is the top region by revenue with ${formatCurrency(topRegion.revenue)}.`)
   if (kpis.lowStockItems > 0) summary.push(`${kpis.lowStockItems} product${kpis.lowStockItems === 1 ? "" : "s"} are below reorder level and need stock attention.`)
   if (kpis.deadStockItems > 0) summary.push(`${kpis.deadStockItems} product${kpis.deadStockItems === 1 ? "" : "s"} show dead-stock risk because stock remains with no detected sales.`)
   summary.push(`Inventory health score is ${inventoryHealth.score}/100 based on healthy, low-stock, overstock, and dead-stock signals.`)

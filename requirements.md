@@ -304,15 +304,13 @@ Text rules for this file:
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
-- Keep display controls as a compact menu with Light Mode, Dark Mode, and zoom levels 75% and 100%, with 100% as the default zoom and unsupported saved zoom values reset to 100%.
 - Start authenticated sidebar page content below the sticky top navigation with consistent spacing so the first greeting, heading, or report title stays fully visible.
 - Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
   the completion percentage, switch to a completed check at 100%, and route incomplete Business
   clicks directly to Business Profile setup.
 - Keep topbar items on one line with consistent icon color and compact hover targets.
 - Show a host-specific keyboard shortcut in the dashboard search trigger.
-- Separate Light, Dark, and System theme selection from accessibility controls.
-- Provide icon-only state controls for text size, page zoom, and contrast with accessible labels and pressed states.
+- Show a simple sun/moon theme toggle in the global topbar.
 - Use full-height hover and click targets in the dashboard topbar.
 - Use a horizontal subpage bar for account profile, preferences, subscription, billing, and activity pages.
 - Search app pages, datasets, reports, and FAQ answers from the dashboard search overlay.
@@ -322,6 +320,8 @@ Text rules for this file:
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
 - Serve globally oriented Terms of Service and Privacy Policy pages at `/terms` and `/privacy` that cover GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, and worldwide SaaS subscription terms.
 - Link Terms and Privacy pages to each other and keep legal links internal across public, authenticated, and checkout surfaces.
+- Show a global cookie consent banner only until the user chooses Accept all, Essential only, or saved preferences; store choices under `useclevr_cookie_consent` with essential cookies always enabled and analytics plus product-improvement cookies optional.
+- Let optional analytics and product-improvement scripts check reusable cookie-consent helpers before loading.
 - Render upgrade prompts and paid-plan cards only after authenticated usage, plan, and role state resolves; never treat unresolved admin or superadmin sessions as Free users during app-page loading.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.

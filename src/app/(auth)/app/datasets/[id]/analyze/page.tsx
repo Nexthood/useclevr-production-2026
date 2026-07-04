@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { auth } from "@/lib/auth/auth"
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
-import { AlertTriangle, Sparkles, BriefcaseBusiness } from "lucide-react"
+import { AlertTriangle, Sparkles, BriefcaseBusiness, LayoutDashboard, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -16,13 +16,13 @@ type DatasetAnalyzerInitialAnalysis = Parameters<typeof DatasetAnalyzer>[0]["ini
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await auth()
-  if (!session?.user?.id) return { title: "Analyze" }
+  if (!session?.user?.id) return { title: "Dataset Details" }
 
   try {
     const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role)
-    return { title: dataset ? `Analyze: ${dataset.name}` : "Analyze" }
+    return { title: dataset ? `Dataset: ${dataset.name}` : "Dataset Details" }
   } catch {
-    return { title: "Analyze" }
+    return { title: "Dataset Details" }
   }
 }
 
@@ -86,15 +86,23 @@ export default async function AnalyzePage({
   return (
     <div className="flex flex-col flex-1">
       <AppPageHeader
-        title={`Analyze: ${dataset.name}`}
-        description={hasAnalysis ? "View insights and ask questions" : "Analyze your dataset with AI"}
+        title={`Dataset: ${dataset.name}`}
+        description="Data preview, columns, and management"
         breadcrumbs={[
           { label: "Dashboard", href: "/app" },
           { label: "Datasets", href: "/app/datasets" },
           { label: dataset.name },
-          { label: "Analyze" },
         ]}
         icon={Sparkles}
+        actions={
+          <Link href={`/app?datasetId=${id}`}>
+            <Button className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Open in Dashboard
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          </Link>
+        }
       />
 
       {hasIncompleteProfile && (
@@ -108,7 +116,7 @@ export default async function AnalyzePage({
                     Business Profile Incomplete
                   </p>
                   <p className="text-sm text-amber-800 dark:text-amber-300">
-                    Tax, payroll, insurance, fixed costs, profitability, forecasting, and KPI calculations depend on Business Profile data.
+                    Complete your Business Profile for accurate insights.
                   </p>
                 </div>
               </div>
@@ -124,6 +132,42 @@ export default async function AnalyzePage({
       )}
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="rounded-lg border border-border bg-card p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Dataset Overview</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Rows</p>
+              <p className="text-2xl font-semibold text-foreground">{rowCount.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Columns</p>
+              <p className="text-2xl font-semibold text-foreground">{columns.length}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Uploaded</p>
+              <p className="text-lg font-medium text-foreground">{dataset.createdAt ? new Date(dataset.createdAt).toLocaleDateString() : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="text-lg font-medium text-emerald-500">{hasAnalysis ? 'Analyzed' : 'Pending'}</p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-2">Columns: {columns.join(', ')}</p>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Link href={`/app?datasetId=${id}`}>
+              <Button className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                View Full Dashboard
+              </Button>
+            </Link>
+            <Link href="/app/datasets">
+              <Button variant="outline">Back to Datasets</Button>
+            </Link>
+          </div>
+        </div>
+
         <DatasetAnalyzer
           datasetId={id}
           datasetName={dataset.name}

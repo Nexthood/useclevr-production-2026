@@ -783,6 +783,30 @@ function RetailReportDashboard({
         </ReportSection>
       </div>
 
+      <ReportSection title="Regional Revenue" description="Revenue by country/region with performance indicators.">
+        {report.regions && report.regions.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground mb-3">Interactive map coming soon.</p>
+            <div className="grid gap-2">
+              {report.regions.slice(0, 8).map((region) => (
+                <div key={region.name} className="flex items-center gap-3">
+                  <span className="w-24 truncate text-sm font-medium text-foreground">{region.name}</span>
+                  <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
+                      style={{ width: `${Math.min((region.revenue / (report.regions[0]?.revenue || 1)) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-20 text-right text-sm text-muted-foreground">{money(region.revenue)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No regional data available. Add a country, region, city, or market column to unlock regional insights.</p>
+        )}
+      </ReportSection>
+
       <ReportSection title="Inventory Intelligence" description="Inventory health, reorder risk, overstock, and dead-stock signals.">
         <div className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
           <Card className="p-5">

@@ -249,12 +249,12 @@ export function CsvUpload() {
         } else if (result.usage) {
           showNotice({
             type: "success",
-            title: "Dataset uploaded.",
-message: `Analyst credits: ${result.usage.analysisCount} / ${result.usage.total} used.`,
+            title: "Dataset uploaded successfully.",
+            message: "Dashboard updated with your latest insights.",
           })
         }
         setTimeout(() => {
-          const redirectPath = result.redirectTo || `/app/datasets/${result.datasetId}/analyze`
+          const redirectPath = result.redirectTo || `/app?datasetId=${result.datasetId}`
           debugLog('[CSV-UPLOAD] Navigating to:', redirectPath)
           window.location.href = redirectPath
         }, 2000)
