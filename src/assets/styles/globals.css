@@ -266,12 +266,6 @@
   html.text-size-large {
     font-size: 100%;
   }
-  html.zoom-75 body {
-    zoom: 0.75;
-  }
-  html.zoom-100 body {
-    zoom: 1;
-  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
