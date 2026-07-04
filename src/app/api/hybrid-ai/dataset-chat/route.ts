@@ -1,5 +1,3 @@
-import { google } from "@ai-sdk/google";
-import { generateText } from "ai";
 import { z } from "zod";
 
 import {
@@ -9,6 +7,7 @@ import {
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from "@/lib/ai/universal-ai-adapter";
+import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
@@ -261,60 +260,102 @@ export async function POST(request: Request) {
     });
   }
 
-  try {
-    const { text } = await generateText({
-      model: google("gemini-2.5-flash"),
-      prompt,
-    });
-    const answer = text.trim();
-    if (!answer) throw new Error("Default cloud AI returned an empty response.");
-    recordAiRequestAudit({
-      userId,
-      datasetId: parsed.datasetId,
-      providerName: "UseClevr Cloud Analysis",
-      providerType: "default-cloud",
-      modelName: "gemini-2.5-flash",
-      mode: aiMode,
-      executionLocation: "cloud",
-      fallbackUsed: userProviderFailed,
-      purpose: "dataset_analysis",
-      success: true,
-    });
+  const configuredProviders = await listPrivateAiProviderConfigs(userId);
+  const hasCloudProvider = configuredProviders.some((p) => p.enabled && isCloudProvider(p.providerType));
 
-    return NextResponse.json({
-      success: true,
-      answer,
-      content: answer,
-      providerName: "UseClevr Cloud Analysis",
-      modelName: "gemini-2.5-flash",
-      mode: "auto",
-      route: "cloud",
-      datasetContext: contextForClient(context),
-      privacyWarning: "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset.",
-      providerStatus: {
-        label: "UseClevr Cloud Analysis",
-        state: "fallback_active",
-        message: "Cloud fallback active",
-        fallbackActive: true,
-        route: "cloud",
-      } satisfies HybridProviderStatus,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Hybrid AI dataset chat failed.";
+  if (!hasCloudProvider) {
+    const message = "AI provider is not configured yet. Please check AI provider settings.";
+    debugWarn("[HYBRID_AI_DATASET_CHAT] No cloud provider configured", { userId, datasetId: parsed.datasetId });
     recordAiRequestAudit({
       userId,
       datasetId: parsed.datasetId,
-      providerName: "UseClevr Cloud Analysis",
-      providerType: "default-cloud",
-      modelName: "gemini-2.5-flash",
+      providerName: "No provider configured",
+      providerType: "none",
+      modelName: "none",
       mode: aiMode,
-      executionLocation: "cloud",
+      executionLocation: "none",
       fallbackUsed: userProviderFailed,
       purpose: "dataset_analysis",
       success: false,
-      errorReason: message,
+      errorReason: "No cloud provider configured",
     });
-    debugError("[HYBRID_AI_DATASET_CHAT] Default cloud AI failed", { userId, datasetId: parsed.datasetId, message });
+    return NextResponse.json({
+      success: false,
+      error: message,
+      answer: message,
+      content: message,
+      providerName: "UseClevr Hybrid AI",
+      modelName: "",
+      mode: aiMode,
+      route: "none",
+      datasetContext: contextForClient(context),
+      privacyWarning: null,
+      providerStatus: {
+        label: "Hybrid AI",
+        state: "provider_unavailable",
+        message: "Provider not configured",
+        fallbackActive: false,
+        route: "none",
+      } satisfies HybridProviderStatus,
+    }, { status: 503 });
+  }
+
+  try {
+    const result = await generateWithUniversalAiAdapter(userId, prompt, { mode: "cloud-only" });
+    if (result) {
+      logUniversalAiResponse(result);
+      recordAiRequestAudit(auditInputFromAdapterResult(userId, result, "dataset_analysis", parsed.datasetId));
+      debugLog("[HYBRID_AI_DATASET_CHAT] Cloud fallback provider response generated", {
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: result.providerName,
+        providerType: result.providerType,
+        modelName: result.modelName,
+        fallbackUsed: true,
+        mode: result.mode,
+        route: result.route,
+      });
+
+      return NextResponse.json({
+        success: true,
+        answer: result.text,
+        content: result.text,
+        providerName: result.providerName,
+        modelName: result.modelName,
+        mode: result.mode,
+        route: result.route,
+        datasetContext: contextForClient(context),
+        privacyWarning: result.route === "cloud" ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset." : null,
+        providerStatus: providerStatusFromAdapterResult(
+          result.providerType,
+          result.providerName,
+          true,
+          result.mode,
+          result.route,
+        ),
+      });
+    }
+    throw new Error("Cloud fallback provider returned no response.");
+  } catch (cloudError) {
+    const message = "AI provider is not configured yet. Please check AI provider settings.";
+    debugError("[HYBRID_AI_DATASET_CHAT] Cloud fallback failed", { 
+      userId, 
+      datasetId: parsed.datasetId, 
+      error: cloudError instanceof Error ? cloudError.message : String(cloudError) 
+    });
+    recordAiRequestAudit({
+      userId,
+      datasetId: parsed.datasetId,
+      providerName: "Cloud fallback",
+      providerType: "cloud",
+      modelName: "none",
+      mode: aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: true,
+      purpose: "dataset_analysis",
+      success: false,
+      errorReason: cloudError instanceof Error ? cloudError.message : String(cloudError),
+    });
     return NextResponse.json({
       success: false,
       error: message,
@@ -327,7 +368,7 @@ export async function POST(request: Request) {
         fallbackActive: false,
         route: "none",
       } satisfies HybridProviderStatus,
-    }, { status: 500 });
+    }, { status: 503 });
   }
 }
 
