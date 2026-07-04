@@ -3,6 +3,7 @@
 ### Changed
 
 - Replace the floating Help Chat with Usy, a premium UseClevr AI Business Intelligence Assistant that uses the assistant avatar, balanced header spacing, refined cyan-lilac motion, bright suggestion chips, Hybrid AI when available, and UseClevr-specific fallback answers.
+- Show contextual follow-up chips after each Usy response so users can continue with relevant next-step questions.
 - Show Free plan dataset limits as an upgrade path on upload surfaces instead of a failed-upload error.
 - Simplify MVP authentication to email-password, email verification, password reset, and demo access while removing Google and LinkedIn sign-in.
 - Add Business Intelligence Engine Phase 1 so uploaded datasets automatically receive profiling, KPI detection, business health scoring, risk and opportunity detection, executive summaries, and prioritized recommended actions.

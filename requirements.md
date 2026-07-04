@@ -347,6 +347,9 @@ Text rules for this file:
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.
 - Open Usy as a desktop floating panel and a mobile bottom sheet.
 - Use a prompt-style message box, bright cyan-lilac clickable suggestion chips, and high-contrast message bubbles in Usy.
+- Keep starter suggestion chips on the Usy welcome screen.
+- Show up to five contextual follow-up suggestion chips directly below the latest Usy answer.
+- Let users click any Usy follow-up chip to send that question immediately.
 - Keep Usy focused on AI companion guidance and do not show an embedded support request form inside the assistant panel.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.

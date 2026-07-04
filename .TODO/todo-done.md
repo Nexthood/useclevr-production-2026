@@ -103,6 +103,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-915. Show contextual follow-up suggestion chips below the latest Usy answer so users always have clear next-step questions after each response. (labels: ui, ai, faq; commit: worktree)
 - T-914. Tighten Usy header spacing, reduce avatar pulse radius, brighten cyan-lilac suggestion buttons, and balance the assistant panel without reintroducing support-form fields. (labels: ui, ai, accessibility; commit: worktree)
 - T-913. Polish Usy with stronger UseClevr colors, larger non-overlapping avatar placement, multi-layer breathing glow, cleaner companion copy, modern chat bubbles, prompt-style input, and no embedded support form. (labels: ui, ai, accessibility; commit: worktree)
 - T-912. Replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, including avatar-led welcome, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr knowledge fallback. (labels: ui, ai, faq; commit: worktree)

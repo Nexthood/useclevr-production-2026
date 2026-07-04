@@ -14,6 +14,7 @@ type ChatMessage = {
   role: "user" | "assistant"
   text: string
   source?: "ai" | "knowledge"
+  followUps?: string[]
 }
 
 type HelpChatboxAudience = "public" | "dashboard" | "superadmin"
@@ -47,6 +48,79 @@ const capabilities = [
   "Integrations",
   "Troubleshooting",
 ]
+
+const fallbackFollowUps = [
+  "Upload my first dataset",
+  "Explain my dashboard",
+  "How do AI credits work?",
+  "Contact support",
+]
+
+const followUpTopics = [
+  {
+    keywords: ["upload", "csv", "excel", "file", "import", "dataset"],
+    questions: [
+      "How do I prepare my CSV?",
+      "What file formats are supported?",
+      "Why did my upload fail?",
+      "Analyze my uploaded dataset",
+    ],
+  },
+  {
+    keywords: ["dashboard", "kpi", "score", "health", "metric", "result"],
+    questions: [
+      "Explain these KPIs",
+      "What does this score mean?",
+      "Show business opportunities",
+      "How can I improve this result?",
+    ],
+  },
+  {
+    keywords: ["billing", "invoice", "stripe", "subscription", "payment", "plan", "upgrade", "pro", "business", "credit", "credits"],
+    questions: [
+      "Compare Free vs Pro",
+      "Upgrade to Business",
+      "Where are invoices?",
+      "How do credits work?",
+    ],
+  },
+  {
+    keywords: ["forecast", "sales", "predict", "projection", "trend", "accuracy"],
+    questions: [
+      "What columns are needed?",
+      "Why did forecast fail?",
+      "Forecast my sales",
+      "Improve forecast accuracy",
+    ],
+  },
+  {
+    keywords: ["opportunity", "growth", "risk", "recommendation", "action", "insight"],
+    questions: [
+      "Find business opportunities",
+      "What are the biggest risks?",
+      "What should I do next?",
+      "Prioritize my actions",
+    ],
+  },
+  {
+    keywords: ["business profile", "profile", "company", "setup", "onboarding"],
+    questions: [
+      "What profile fields matter?",
+      "Complete Business Profile",
+      "How does profile data improve AI?",
+      "What should I enter first?",
+    ],
+  },
+  {
+    keywords: ["snowflake", "integration", "connect", "provider", "ai provider"],
+    questions: [
+      "Connect an AI provider",
+      "What integrations are available?",
+      "Connect Snowflake",
+      "Use local AI analysis",
+    ],
+  },
+] as const
 
 const knowledgeAnswers = [
   {
@@ -166,6 +240,12 @@ function buildFallbackAnswer(query: string, audience: HelpChatboxAudience) {
   return `${findKnowledgeAnswer(query)}\n\nNext step: open the matching UseClevr area and I can help you decide what to check first.`
 }
 
+function getFollowUpSuggestions(query: string, answer: string) {
+  const haystack = `${query} ${answer}`.toLowerCase()
+  const topic = followUpTopics.find((item) => item.keywords.some((keyword) => haystack.includes(keyword)))
+  return (topic?.questions ?? fallbackFollowUps).slice(0, 5)
+}
+
 async function askUsyAi(question: string) {
   const response = await fetch("/api/hybrid-ai/chat", {
     method: "POST",
@@ -263,10 +343,16 @@ export function HelpChatbox({
 
     try {
       const answer = await askUsyAi(trimmed)
-      setMessages((current) => [...current, { role: "assistant", text: answer, source: "ai" }])
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", text: answer, source: "ai", followUps: getFollowUpSuggestions(trimmed, answer) },
+      ])
     } catch {
       const answer = buildFallbackAnswer(trimmed, audience)
-      setMessages((current) => [...current, { role: "assistant", text: answer, source: "knowledge" }])
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", text: answer, source: "knowledge", followUps: getFollowUpSuggestions(trimmed, answer) },
+      ])
     } finally {
       setIsAsking(false)
     }
@@ -368,28 +454,59 @@ export function HelpChatbox({
               </div>
             ) : (
               <div className="space-y-3">
-                {messages.map((message, index) => (
-                  <div
-                    key={`${message.role}-${index}`}
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
+                {messages.map((message, index) => {
+                  const showFollowUps =
+                    message.role === "assistant" &&
+                    index === messages.length - 1 &&
+                    Array.isArray(message.followUps) &&
+                    message.followUps.length > 0 &&
+                    !isAsking
+
+                  return (
                     <div
-                      className={`max-w-[88%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-6 ${
-                        message.role === "user"
-                          ? "rounded-br-md bg-gradient-to-br from-cyan-200 via-sky-200 to-fuchsia-200 text-slate-950 shadow-[0_16px_38px_rgba(34,211,238,0.18)]"
-                          : "rounded-bl-md border border-cyan-100/15 bg-white/[0.085] text-slate-50 shadow-[inset_3px_0_0_rgba(34,211,238,0.62),0_16px_38px_rgba(2,6,23,0.18)] backdrop-blur"
-                      }`}
+                      key={`${message.role}-${index}`}
+                      className={`space-y-2 ${message.role === "user" ? "flex justify-end" : ""}`}
                     >
-                      {message.role === "assistant" && (
-                        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100/80">
-                          <Bot className="h-3 w-3" />
-                          Usy
+                      <div className="max-w-[88%]">
+                        <div
+                          className={`whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-6 ${
+                            message.role === "user"
+                              ? "rounded-br-md bg-gradient-to-br from-cyan-200 via-sky-200 to-fuchsia-200 text-slate-950 shadow-[0_16px_38px_rgba(34,211,238,0.18)]"
+                              : "rounded-bl-md border border-cyan-100/15 bg-white/[0.085] text-slate-50 shadow-[inset_3px_0_0_rgba(34,211,238,0.62),0_16px_38px_rgba(2,6,23,0.18)] backdrop-blur"
+                          }`}
+                        >
+                          {message.role === "assistant" && (
+                            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100/80">
+                              <Bot className="h-3 w-3" />
+                              Usy
+                            </div>
+                          )}
+                          {message.text}
                         </div>
-                      )}
-                      {message.text}
+                        {showFollowUps && (
+                          <div className="mt-2 flex flex-wrap gap-2 pl-1">
+                            {message.followUps?.map((followUp, followUpIndex) => (
+                              <button
+                                key={followUp}
+                                type="button"
+                                onClick={() => submitQuestion(followUp)}
+                                className={[
+                                  "rounded-full px-3 py-1.5 text-xs font-semibold text-white transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
+                                  "border bg-[linear-gradient(135deg,rgba(34,211,238,0.14),rgba(216,180,254,0.12))]",
+                                  followUpIndex % 2 === 0
+                                    ? "border-cyan-200/35 hover:border-cyan-100/70 hover:bg-cyan-200/[0.15]"
+                                    : "border-fuchsia-200/30 hover:border-fuchsia-100/70 hover:bg-fuchsia-200/[0.14]",
+                                ].join(" ")}
+                              >
+                                {followUp}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
                 {isAsking && (
                   <div className="flex justify-start">
                     <div className="flex items-center gap-2 rounded-2xl border border-cyan-100/15 bg-white/[0.085] px-4 py-3 text-sm text-slate-100 shadow-[inset_3px_0_0_rgba(34,211,238,0.62)]">

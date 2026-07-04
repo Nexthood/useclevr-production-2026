@@ -1,3 +1,4 @@
+- changed: show contextual follow-up chips below the latest Usy answer so upload, dashboard, billing, forecasting, profile, integration, and fallback topics guide the next user question
 - changed: tighten Usy header spacing so avatar, title, subtitle, online badge, and close button do not overlap; reduce avatar pulse radius; brighten cyan-lilac suggestion buttons; and balance the dark glass assistant panel
 - changed: polish Usy with stronger UseClevr cyan-lilac color, larger non-overlapping avatar placement, multi-layer breathing glow, modern glass chat bubbles, prompt-style input, cleaner suggestion chips, and no embedded support request form
 - changed: replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, with the female assistant avatar, premium glass panel, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr-specific knowledge fallback
