@@ -57,7 +57,7 @@ future platform-expansion work.
 
 - Use the topbar Help menu for support tickets, dashboard FAQ, and admin FAQ when available.
 - Use Usy, the floating AI Business Intelligence Assistant, to ask UseClevr, dashboard, and support questions from inside the dashboard.
-- If Usy cannot resolve a support issue, send a support request with an email and message.
+- If Usy cannot resolve a support issue, create a dashboard ticket with the issue details.
 - Dashboard FAQ links signed-in users to ticket creation for direct support.
 
 ## Admin Areas

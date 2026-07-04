@@ -1,3 +1,4 @@
+- changed: polish Usy with stronger UseClevr cyan-lilac color, larger non-overlapping avatar placement, multi-layer breathing glow, modern glass chat bubbles, prompt-style input, cleaner suggestion chips, and no embedded support request form
 - changed: replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, with the female assistant avatar, premium glass panel, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr-specific knowledge fallback
 - fixed: load dataset detail and analysis through shared signed-in access with superadmin access, remove broken analysis-page dataset navigation, and show forecast guidance for missing time, numeric, or row inputs instead of generic failure
 - changed: show Free plan dataset-limit upload responses as an informational upgrade state with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop instead of a failed-upload error
