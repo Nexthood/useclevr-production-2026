@@ -109,14 +109,14 @@
 
 @keyframes usy-soft-pulse {
   0%, 100% {
-    opacity: 0.54;
+    opacity: 0.48;
     transform: scale(0.99);
-    filter: blur(0) drop-shadow(0 0 8px rgba(34, 211, 238, 0.2));
+    filter: blur(0) drop-shadow(0 0 7px rgba(34, 211, 238, 0.18));
   }
   50% {
-    opacity: 0.86;
-    transform: scale(1.055);
-    filter: blur(0.25px) drop-shadow(0 0 18px rgba(34, 211, 238, 0.38)) drop-shadow(0 0 24px rgba(216, 180, 254, 0.24));
+    opacity: 0.78;
+    transform: scale(1.035);
+    filter: blur(0.2px) drop-shadow(0 0 14px rgba(34, 211, 238, 0.34)) drop-shadow(0 0 18px rgba(216, 180, 254, 0.22));
   }
 }
 
@@ -154,7 +154,7 @@
 .usy-avatar-glow::before {
   content: "";
   position: absolute;
-  inset: -6px;
+  inset: -5px;
   border-radius: 9999px;
   background:
     radial-gradient(circle, rgba(103, 232, 249, 0.38), transparent 54%),
@@ -167,11 +167,11 @@
 .usy-avatar-glow::after {
   content: "";
   position: absolute;
-  inset: -10px;
+  inset: -7px;
   border-radius: 9999px;
   border: 1px solid rgba(125, 249, 255, 0.14);
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.18), rgba(216, 180, 254, 0.12) 46%, transparent 68%);
-  mask: radial-gradient(circle, transparent 62%, #000 63%);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.16), rgba(216, 180, 254, 0.1) 46%, transparent 68%);
+  mask: radial-gradient(circle, transparent 64%, #000 65%);
   animation: usy-orbit-pulse 5.2s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;

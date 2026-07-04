@@ -5,12 +5,9 @@
 // CMS REST endpoint (e.g. Contentful, Sanity, Strapi) and keep the
 // `FaqCategory` type as the wire format contract.
 
-import { billingPlans } from "@/lib/billing/plans"
+import { billingPlans, publicMonthlyPlanPrices } from "@/lib/billing/plans"
 
 const _freePlan = billingPlans.find(p => p.id === "free")!;
-const _proMonthlyPlan = billingPlans.find(p => p.id === "pro_monthly")!;
-const _proAnnualPlan = billingPlans.find(p => p.id === "pro_annual")!;
-const _businessPlan = billingPlans.find(p => p.id === "business_monthly")!;
 
 export interface FaqItem {
   q: string
@@ -83,7 +80,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Is there a free plan?",
-        a: "Yes — the Free plan includes 1 dataset and limited AI questions so you can try the platform before upgrading. No credit card required.",
+        a: `Yes. The Free plan includes ${_freePlan.maxDatasets} datasets and limited AI questions so you can try the platform before upgrading. No credit card required.`,
       },
       {
         q: "Can I receive an invoice?",
@@ -106,12 +103,12 @@ export const allFaqCategories: FaqCategory[] = [
         a: "Check your account and subscription details first, then contact support. Contact your card issuer if the charge looks unauthorized.",
       },
        {
-         q: "What is the Pro Annual plan?",
-         a: `The Pro Annual plan charges €${_proAnnualPlan.price} per year (€${(_proAnnualPlan.price / 12).toFixed(0)}/month equivalent) with an automatic yearly discount of €${((_proMonthlyPlan.price * 12) - _proAnnualPlan.price).toFixed(0)} compared to monthly billing.`,
+         q: "What does Pro cost?",
+         a: `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month.`,
        },
        {
          q: "Can I get a custom business plan?",
-         a: `Yes. The Business / Custom plan starts at €${_businessPlan.price}/month and scales with your needs. Contact sales@useclevr.com for custom pricing, private SLAs, or on-premise deployment.`,
+         a: `Yes. Business is €${publicMonthlyPlanPrices.business}/month and scales with your needs. Contact sales@useclevr.com for private SLAs or deployment questions.`,
        },
       {
         q: "Will I be charged on my billing day?",

@@ -340,13 +340,27 @@ Text rules for this file:
 - Show protected operator FAQ content for authorised platform staff.
 - Show Usy as the official UseClevr AI Business Intelligence Assistant in the floating assistant panel.
 - Use the female Usy avatar in a premium circular frame with bright cyan, electric cyan, lilac, and soft-purple glow.
-- Keep the Usy avatar, title, subtitle, online badge, and close button visually separate inside the header without overlap or clipping.
+- Keep the Usy assistant header compact with title, subtitle, online badge, and close button aligned without overlap or clipping.
+- Center the main Usy avatar inside the welcome card with generous whitespace.
 - Animate the Usy avatar with a reduced-motion-safe compact breathing pulse, close soft outer glow, and subtle floating motion.
 - Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.
-- Let Usy use the Hybrid AI chat endpoint when available and fall back to UseClevr-specific knowledge when AI is unavailable.
+- Let Usy use the Hybrid AI chat endpoint when available with current route, page module, user role, plan, and usage context.
+- Let Usy fall back to intent-scored UseClevr guidance when AI is unavailable.
+- Match short natural Usy messages such as price pro, business price, upload not working, forecast failed, and credits to the correct topic.
+- Keep Usy guidance role-aware for public visitors, normal users, admins, and superadmins.
+- Let admin and superadmin Usy act as UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status.
+- Let admin and superadmin Usy help answer which customer has problems, why upload or forecast failed, which users reached limits, which plan is active, where billing issues are, what happened in AI traces, and what to check next.
+- Do not let Usy expose platform-brain or admin guidance to normal users.
+- Keep Usy billing answers on current monthly prices: Pro is €40/month and Business is €420/month.
+- Do not let Usy mention annual pricing unless the current prompt provides an official annual price.
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.
 - Open Usy as a desktop floating panel and a mobile bottom sheet.
+- Position the opened Usy desktop panel below the top browser and app header with visible breathing room.
+- Structure the opened Usy panel as fixed header, welcome or conversation content, and fixed compact input so only the content area scrolls.
 - Use a prompt-style message box, bright cyan-lilac clickable suggestion chips, and high-contrast message bubbles in Usy.
+- Keep starter suggestion chips on the Usy welcome screen.
+- Show up to five contextual follow-up suggestion chips directly below the latest Usy answer.
+- Let users click any Usy follow-up chip to send that question immediately.
 - Keep Usy focused on AI companion guidance and do not show an embedded support request form inside the assistant panel.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.

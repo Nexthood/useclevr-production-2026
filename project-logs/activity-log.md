@@ -1,3 +1,9 @@
+- changed: extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status
+- changed: upgrade Usy from loose FAQ matching to role-aware AI and intent-scored fallback guidance with route, plan, usage, admin-safe boundaries, and contextual follow-up chips
+- changed: refactor the opened Usy assistant into a premium flex panel with a compact text header, centered avatar welcome card, fully visible chips, scroll-only conversation area, compact fixed input, and smaller cyan-lilac avatar pulse
+- changed: keep Usy billing answers on current monthly prices by using Pro at €40/month and Business at €420/month without annual pricing guesses
+- changed: position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout
+- changed: show contextual follow-up chips below the latest Usy answer so upload, dashboard, billing, forecasting, profile, integration, and fallback topics guide the next user question
 - changed: tighten Usy header spacing so avatar, title, subtitle, online badge, and close button do not overlap; reduce avatar pulse radius; brighten cyan-lilac suggestion buttons; and balance the dark glass assistant panel
 - changed: polish Usy with stronger UseClevr cyan-lilac color, larger non-overlapping avatar placement, multi-layer breathing glow, modern glass chat bubbles, prompt-style input, cleaner suggestion chips, and no embedded support request form
 - changed: replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, with the female assistant avatar, premium glass panel, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr-specific knowledge fallback

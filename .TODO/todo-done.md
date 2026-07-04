@@ -43,6 +43,14 @@ moving work between states.
 
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
 
+## Label: ui
+
+- T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)
+- T-917. Keep Usy billing answers on current monthly pricing, naming Pro at €40/month and Business at €420/month without annual pricing guesses. (labels: ui, billing, ai; commit: worktree)
+- T-918. Refactor the Usy assistant panel into a premium flex layout with fixed header and input regions, a centered welcome card, fully visible suggestion chips, and a scroll-only conversation area. (labels: ui, ai, accessibility; commit: worktree)
+- T-919. Upgrade Usy to a role-aware assistant with route, plan, usage, intent-scored fallback answers, admin-safe guidance, and contextual follow-up chips. (labels: ui, ai, auth, billing; commit: worktree)
+- T-920. Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status. (labels: ui, ai, auth, monitoring; commit: worktree)
+
 ## Label: auth
 
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
@@ -103,6 +111,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-915. Show contextual follow-up suggestion chips below the latest Usy answer so users always have clear next-step questions after each response. (labels: ui, ai, faq; commit: worktree)
 - T-914. Tighten Usy header spacing, reduce avatar pulse radius, brighten cyan-lilac suggestion buttons, and balance the assistant panel without reintroducing support-form fields. (labels: ui, ai, accessibility; commit: worktree)
 - T-913. Polish Usy with stronger UseClevr colors, larger non-overlapping avatar placement, multi-layer breathing glow, cleaner companion copy, modern chat bubbles, prompt-style input, and no embedded support form. (labels: ui, ai, accessibility; commit: worktree)
 - T-912. Replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, including avatar-led welcome, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr knowledge fallback. (labels: ui, ai, faq; commit: worktree)
