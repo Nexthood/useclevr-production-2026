@@ -340,13 +340,13 @@ Text rules for this file:
 - Show protected operator FAQ content for authorised platform staff.
 - Show Usy as the official UseClevr AI Business Intelligence Assistant in the floating assistant panel.
 - Use the female Usy avatar in a premium circular frame with bright cyan, electric cyan, lilac, and soft-purple glow.
-- Keep the Usy avatar visually separate from the title and centered inside header and welcome sections without overlap.
-- Animate the Usy avatar with a reduced-motion-safe multi-layer breathing pulse, soft outer glow, and subtle floating motion.
+- Keep the Usy avatar, title, subtitle, online badge, and close button visually separate inside the header without overlap or clipping.
+- Animate the Usy avatar with a reduced-motion-safe compact breathing pulse, close soft outer glow, and subtle floating motion.
 - Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.
 - Let Usy use the Hybrid AI chat endpoint when available and fall back to UseClevr-specific knowledge when AI is unavailable.
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.
 - Open Usy as a desktop floating panel and a mobile bottom sheet.
-- Use a prompt-style message box, clickable suggestion chips, and high-contrast message bubbles in Usy.
+- Use a prompt-style message box, bright cyan-lilac clickable suggestion chips, and high-contrast message bubbles in Usy.
 - Keep Usy focused on AI companion guidance and do not show an embedded support request form inside the assistant panel.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.

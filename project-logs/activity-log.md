@@ -1,3 +1,4 @@
+- changed: tighten Usy header spacing so avatar, title, subtitle, online badge, and close button do not overlap; reduce avatar pulse radius; brighten cyan-lilac suggestion buttons; and balance the dark glass assistant panel
 - changed: polish Usy with stronger UseClevr cyan-lilac color, larger non-overlapping avatar placement, multi-layer breathing glow, modern glass chat bubbles, prompt-style input, cleaner suggestion chips, and no embedded support request form
 - changed: replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, with the female assistant avatar, premium glass panel, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr-specific knowledge fallback
 - fixed: load dataset detail and analysis through shared signed-in access with superadmin access, remove broken analysis-page dataset navigation, and show forecast guidance for missing time, numeric, or row inputs instead of generic failure

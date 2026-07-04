@@ -109,25 +109,25 @@
 
 @keyframes usy-soft-pulse {
   0%, 100% {
-    opacity: 0.62;
-    transform: scale(0.98);
-    filter: blur(0) drop-shadow(0 0 12px rgba(34, 211, 238, 0.24));
+    opacity: 0.54;
+    transform: scale(0.99);
+    filter: blur(0) drop-shadow(0 0 8px rgba(34, 211, 238, 0.2));
   }
   50% {
-    opacity: 0.98;
-    transform: scale(1.12);
-    filter: blur(0.5px) drop-shadow(0 0 28px rgba(34, 211, 238, 0.52)) drop-shadow(0 0 42px rgba(216, 180, 254, 0.34));
+    opacity: 0.86;
+    transform: scale(1.055);
+    filter: blur(0.25px) drop-shadow(0 0 18px rgba(34, 211, 238, 0.38)) drop-shadow(0 0 24px rgba(216, 180, 254, 0.24));
   }
 }
 
 @keyframes usy-orbit-pulse {
   0%, 100% {
-    opacity: 0.28;
+    opacity: 0.18;
     transform: scale(1);
   }
   50% {
-    opacity: 0.78;
-    transform: scale(1.2);
+    opacity: 0.46;
+    transform: scale(1.07);
   }
 }
 
@@ -154,23 +154,27 @@
 .usy-avatar-glow::before {
   content: "";
   position: absolute;
-  inset: -12px;
+  inset: -6px;
   border-radius: 9999px;
   background:
-    radial-gradient(circle, rgba(103, 232, 249, 0.48), transparent 48%),
-    radial-gradient(circle, rgba(216, 180, 254, 0.36), transparent 68%);
+    radial-gradient(circle, rgba(103, 232, 249, 0.38), transparent 54%),
+    radial-gradient(circle, rgba(216, 180, 254, 0.28), transparent 72%);
   animation: usy-soft-pulse 4.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .usy-avatar-glow::after {
   content: "";
   position: absolute;
-  inset: -20px;
+  inset: -10px;
   border-radius: 9999px;
-  border: 1px solid rgba(125, 249, 255, 0.2);
-  background: conic-gradient(from 120deg, rgba(34, 211, 238, 0), rgba(34, 211, 238, 0.22), rgba(216, 180, 254, 0.2), rgba(34, 211, 238, 0));
-  mask: radial-gradient(circle, transparent 58%, #000 59%);
+  border: 1px solid rgba(125, 249, 255, 0.14);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.18), rgba(216, 180, 254, 0.12) 46%, transparent 68%);
+  mask: radial-gradient(circle, transparent 62%, #000 63%);
   animation: usy-orbit-pulse 5.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .usy-avatar-glow > div {
