@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import type { DataTableColumn } from "@/components/ui/data-table"
+import { debugError } from "@/lib/utils/debug"
 import {
   BarChart3,
   ChevronLeft,
@@ -79,7 +80,14 @@ const FALLBACK_SUGGESTIONS = [
 ]
 
 function responseText(data: Record<string, unknown>) {
-  return String(data.answer || data.response || data.content || "I could not generate an answer for that question.")
+  const text = data.answer || data.response || data.content
+  if (typeof text === "string" && text.trim()) {
+    return text.trim()
+  }
+  if (typeof data.error === "string" && data.error.trim()) {
+    return data.error.trim()
+  }
+  return "I could not generate an answer for that question."
 }
 
 type SavedSuggestion = {
@@ -228,10 +236,22 @@ export function AiAssistantWorkspace() {
             .map((message) => ({ role: message.role, content: message.content })),
         }),
       })
-      const body = await response.json()
+      
+      let body: Record<string, unknown>
+      try {
+        body = await response.json()
+      } catch {
+        const responseText = await response.text()
+        debugError("[AI_ASSISTANT] Failed to parse response as JSON", { 
+          status: response.status, 
+          text: responseText.slice(0, 500) 
+        })
+        throw new Error("I received an incomplete AI response. Please try again.")
+      }
 
       if (!response.ok || body.success === false) {
-        throw new Error(body.message || body.error || "The assistant could not answer that question.")
+        const errorMessage = String(body.message || body.error || "The assistant could not answer that question.")
+        throw new Error(errorMessage)
       }
 
       const assistantMessage: AssistantMessage = {
@@ -239,15 +259,15 @@ export function AiAssistantWorkspace() {
         traceId: typeof body.traceId === "string" ? body.traceId : undefined,
         role: "assistant",
         content: responseText(body),
-        insight: body.insight,
-        explanation: body.explanation || (selectedDatasetId ? "The response used summarized dataset context, backend KPI extracts, column profiles, and bounded sample rows." : undefined),
-        recommendation: body.recommendation,
+        insight: typeof body.insight === "string" ? body.insight : undefined,
+        explanation: typeof body.explanation === "string" ? body.explanation : (selectedDatasetId ? "The response used summarized dataset context, backend KPI extracts, column profiles, and bounded sample rows." : undefined),
+        recommendation: typeof body.recommendation === "string" ? body.recommendation : undefined,
         data: Array.isArray(body.data) ? body.data : [],
-        chartType: body.chartType,
-        providerName: typeof body.providerStatus?.label === "string"
+        chartType: typeof body.chartType === "string" ? body.chartType : undefined,
+        providerName: isProviderStatus(body.providerStatus) && typeof body.providerStatus.label === "string"
           ? body.providerStatus.label
-          : displayProviderName(body.providerName),
-        modelName: body.modelName,
+          : displayProviderName(typeof body.providerName === "string" ? body.providerName : undefined),
+        modelName: typeof body.modelName === "string" ? body.modelName : undefined,
         providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
         privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
       }
