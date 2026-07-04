@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-921. Provide production-ready Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, and checkout links that use app routes. (labels: ui, content, security; commit: worktree)
 - T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)
 - T-917. Keep Usy billing answers on current monthly pricing, naming Pro at €40/month and Business at €420/month without annual pricing guesses. (labels: ui, billing, ai; commit: worktree)
 - T-918. Refactor the Usy assistant panel into a premium flex layout with fixed header and input regions, a centered welcome card, fully visible suggestion chips, and a scroll-only conversation area. (labels: ui, ai, accessibility; commit: worktree)

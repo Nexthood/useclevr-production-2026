@@ -320,6 +320,8 @@ Text rules for this file:
 - Use dashboard search context in chat support.
 - Collapse and expand the desktop sidebar from the compact control beside Dashboard.
 - Show Terms, Privacy, copyright, social links, and coming-soon app badges in the global footer.
+- Serve production-ready Terms of Service and Privacy Policy pages at `/terms` and `/privacy`.
+- Link Terms and Privacy pages to each other and keep legal links internal across public, authenticated, and checkout surfaces.
 - Open social links in a new page.
 - Show App Store and Google Play coming-soon badges.
 - Show notices in the topbar inbox with a persistent count.
