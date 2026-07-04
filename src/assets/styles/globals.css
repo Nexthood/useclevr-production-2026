@@ -107,6 +107,94 @@
   100% { transform: translateX(100%); opacity: 0; }
 }
 
+@keyframes usy-soft-pulse {
+  0%, 100% {
+    opacity: 0.62;
+    transform: scale(0.98);
+    filter: blur(0) drop-shadow(0 0 12px rgba(34, 211, 238, 0.24));
+  }
+  50% {
+    opacity: 0.98;
+    transform: scale(1.12);
+    filter: blur(0.5px) drop-shadow(0 0 28px rgba(34, 211, 238, 0.52)) drop-shadow(0 0 42px rgba(216, 180, 254, 0.34));
+  }
+}
+
+@keyframes usy-orbit-pulse {
+  0%, 100% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.78;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes usy-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes usy-panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.usy-avatar-glow::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle, rgba(103, 232, 249, 0.48), transparent 48%),
+    radial-gradient(circle, rgba(216, 180, 254, 0.36), transparent 68%);
+  animation: usy-soft-pulse 4.8s ease-in-out infinite;
+}
+
+.usy-avatar-glow::after {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  border-radius: 9999px;
+  border: 1px solid rgba(125, 249, 255, 0.2);
+  background: conic-gradient(from 120deg, rgba(34, 211, 238, 0), rgba(34, 211, 238, 0.22), rgba(216, 180, 254, 0.2), rgba(34, 211, 238, 0));
+  mask: radial-gradient(circle, transparent 58%, #000 59%);
+  animation: usy-orbit-pulse 5.2s ease-in-out infinite;
+}
+
+.usy-avatar-glow > div {
+  animation: usy-float 4.6s ease-in-out infinite;
+}
+
+.usy-panel-open {
+  animation: usy-panel-rise 220ms ease-out;
+}
+
+.usy-launcher {
+  animation: usy-float 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usy-avatar-glow::before,
+  .usy-avatar-glow::after,
+  .usy-avatar-glow > div,
+  .usy-panel-open,
+  .usy-launcher {
+    animation: none;
+  }
+}
+
 .animate-sweep-light::before {
   content: '';
   position: absolute;

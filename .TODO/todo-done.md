@@ -103,6 +103,9 @@ moving work between states.
 
 ## Label: ui
 
+- T-913. Polish Usy with stronger UseClevr colors, larger non-overlapping avatar placement, multi-layer breathing glow, cleaner companion copy, modern chat bubbles, prompt-style input, and no embedded support form. (labels: ui, ai, accessibility; commit: worktree)
+- T-912. Replace the floating Help Chat with Usy, the UseClevr AI Business Intelligence Assistant, including avatar-led welcome, suggestion chips, prompt-style input, Hybrid AI attempt, and UseClevr knowledge fallback. (labels: ui, ai, faq; commit: worktree)
+
 - T-873. Remove setup progress and guided tour popups, stop guided-tour visit tracking, and keep onboarding indicators focused on Business Profile, Accountancy, Dataset Upload, and Analysis. (labels: ui, dashboard, workflow; commit: worktree)
 - T-872. Add consistent page-header spacing on Downloads, Datasets, Business, Accountancy, and Retail pages so main content starts below the top navigation with readable separation. (labels: ui, dashboard; commit: worktree)
 - T-870. Simplify display controls to a compact Light Mode, Dark Mode, and zoom-level menu with dark mode as the default and saved preferences. (labels: ui, dashboard, accessibility; commit: worktree)
