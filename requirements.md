@@ -348,7 +348,9 @@ Text rules for this file:
 - Let Usy fall back to intent-scored UseClevr guidance when AI is unavailable.
 - Match short natural Usy messages such as price pro, business price, upload not working, forecast failed, and credits to the correct topic.
 - Keep Usy guidance role-aware for public visitors, normal users, admins, and superadmins.
-- Do not let Usy expose superadmin-only guidance to normal users.
+- Let admin and superadmin Usy act as UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status.
+- Let admin and superadmin Usy help answer which customer has problems, why upload or forecast failed, which users reached limits, which plan is active, where billing issues are, what happened in AI traces, and what to check next.
+- Do not let Usy expose platform-brain or admin guidance to normal users.
 - Keep Usy billing answers on current monthly prices: Pro is €40/month and Business is €420/month.
 - Do not let Usy mention annual pricing unless the current prompt provides an official annual price.
 - Keep Usy clear of the footer on public pages and aligned to the right when the assistant panel is open.

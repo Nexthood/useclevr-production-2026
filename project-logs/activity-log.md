@@ -1,3 +1,4 @@
+- changed: extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status
 - changed: upgrade Usy from loose FAQ matching to role-aware AI and intent-scored fallback guidance with route, plan, usage, admin-safe boundaries, and contextual follow-up chips
 - changed: refactor the opened Usy assistant into a premium flex panel with a compact text header, centered avatar welcome card, fully visible chips, scroll-only conversation area, compact fixed input, and smaller cyan-lilac avatar pulse
 - changed: keep Usy billing answers on current monthly prices by using Pro at €40/month and Business at €420/month without annual pricing guesses

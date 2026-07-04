@@ -49,6 +49,7 @@ moving work between states.
 - T-917. Keep Usy billing answers on current monthly pricing, naming Pro at €40/month and Business at €420/month without annual pricing guesses. (labels: ui, billing, ai; commit: worktree)
 - T-918. Refactor the Usy assistant panel into a premium flex layout with fixed header and input regions, a centered welcome card, fully visible suggestion chips, and a scroll-only conversation area. (labels: ui, ai, accessibility; commit: worktree)
 - T-919. Upgrade Usy to a role-aware assistant with route, plan, usage, intent-scored fallback answers, admin-safe guidance, and contextual follow-up chips. (labels: ui, ai, auth, billing; commit: worktree)
+- T-920. Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status. (labels: ui, ai, auth, monitoring; commit: worktree)
 
 ## Label: auth
 

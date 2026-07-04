@@ -97,7 +97,8 @@ const userFollowUps = {
   integrations: ["Connect an AI provider", "What integrations are available?", "Connect Snowflake", "Use local AI analysis"],
 } as const
 
-const superadminFollowUps = ["View customers", "Check AI traces", "Billing settings", "Customer levels"]
+const platformBrainRoles: UsyRole[] = ["admin", "superadmin"]
+const platformBrainFollowUps = ["View customers", "Check AI traces", "Billing settings", "Customer levels", "Platform status"]
 
 const usyIntents: UsyIntent[] = [
   {
@@ -236,65 +237,101 @@ const usyIntents: UsyIntent[] = [
   {
     id: "admin-customers",
     label: "Customers",
-    roles: ["superadmin"],
-    keywords: ["customers", "customer", "users", "user troubleshooting", "customer list"],
-    followUps: superadminFollowUps,
+    roles: platformBrainRoles,
+    keywords: ["customers", "customer", "users", "user troubleshooting", "customer list", "which customer has problems", "customer problems", "user issues"],
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "The Customers admin area helps superadmins review users, plans, account status, and troubleshooting context. Use it to find a customer, inspect their plan or signup state, and resolve access or billing support issues.",
+      "The Customers admin area helps platform admins review users, plans, account status, and troubleshooting context. To find customers with problems, check Customers for plan state and account status, then cross-check recent uploads, usage limits, tickets, billing state, and AI traces for the same user.",
+  },
+  {
+    id: "admin-plans",
+    label: "Plans",
+    roles: platformBrainRoles,
+    keywords: ["active plan", "which plan", "plan active", "plans", "subscription tier", "customer plan", "user plan", "which plan is active"],
+    followUps: platformBrainFollowUps,
+    answer: () =>
+      "Use Customers to inspect the active plan or subscription tier for a user. If the plan looks wrong, check Billing Settings, Stripe checkout status, webhook history if available, and the customer's latest account updates before changing access manually.",
+  },
+  {
+    id: "admin-limits",
+    label: "Usage limits",
+    roles: platformBrainRoles,
+    keywords: ["reached limits", "users reached limits", "limit reached", "credits used", "dataset limit", "upload limit", "free limit", "usage limit"],
+    followUps: platformBrainFollowUps,
+    answer: () =>
+      "To find users who reached limits, start in Customers for subscription tier and account state, then check usage or upload-limit signals on the affected workflow. Free users are expected to hit included dataset or analyst-credit limits; paid or admin users should not be blocked by Free limits.",
+  },
+  {
+    id: "admin-failed-analysis",
+    label: "Failed analyses",
+    roles: platformBrainRoles,
+    keywords: ["failed analyses", "analysis failed", "failed analysis", "forecast failed", "upload failed", "why did upload fail", "why did forecast fail", "errors", "error"],
+    followUps: platformBrainFollowUps,
+    answer: () =>
+      "For failed uploads, check whether the user hit a plan limit, file parsing issue, missing headers, or row/file limits. For failed forecasts, check whether the dataset has a usable time column, numeric business column, and enough rows. For AI analysis failures, check AI traces and provider status before blaming the dataset.",
   },
   {
     id: "admin-levels",
     label: "Customer levels",
-    roles: ["superadmin"],
+    roles: platformBrainRoles,
     keywords: ["customer levels", "levels", "user levels", "level rules"],
-    followUps: superadminFollowUps,
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "Customer Levels let superadmins manage progression rules and customer segmentation. Use them to review how users move between levels and how rewards or access states are assigned.",
+      "Customer Levels let platform admins review progression rules and customer segmentation. Use them to understand how users move between levels and how rewards or access states are assigned.",
   },
   {
     id: "admin-discounts",
     label: "Discount rules",
-    roles: ["superadmin"],
+    roles: platformBrainRoles,
     keywords: ["discount", "discounts", "discount rules", "coupon", "promo"],
-    followUps: superadminFollowUps,
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "Discount Rules let superadmins review and manage promotional pricing logic. Use Billing Settings and Discount Rules together when checking upgrade offers or customer subscription issues.",
+      "Discount Rules let platform admins review promotional pricing logic. Use Billing Settings and Discount Rules together when checking upgrade offers, coupon issues, and customer subscription questions.",
   },
   {
     id: "admin-billing",
     label: "Billing settings",
-    roles: ["superadmin"],
-    keywords: ["billing settings", "payment settings", "stripe settings", "plan settings"],
-    followUps: superadminFollowUps,
+    roles: platformBrainRoles,
+    keywords: ["billing settings", "payment settings", "stripe settings", "plan settings", "billing issues", "where are billing issues", "checkout issue", "invoice issue"],
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "Billing Settings is the superadmin area for plan configuration, checkout readiness, and payment-provider setup. Use it when pricing, Stripe, checkout, invoices, or upgrade paths need verification.",
+      "Billing Settings is the platform area for plan configuration, checkout readiness, and payment-provider setup. Use it when pricing, Stripe, checkout, invoices, upgrade paths, or billing access need verification.",
   },
   {
     id: "admin-ai-traces",
     label: "AI traces",
-    roles: ["superadmin"],
-    keywords: ["ai traces", "traces", "ai activity", "provider usage", "audit logs"],
-    followUps: superadminFollowUps,
+    roles: platformBrainRoles,
+    keywords: ["ai traces", "traces", "ai activity", "provider usage", "audit logs", "what happened in ai traces", "ai error", "provider failed"],
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "AI Traces show superadmins how AI requests behave across the platform: provider usage, prompts metadata, response status, feedback, and retention. Use them for debugging quality, privacy routing, and provider failures without exposing secrets.",
+      "AI Traces show platform admins how AI requests behave: provider usage, request metadata, response status, feedback, retention, fallback, and errors. Use them to debug quality, privacy routing, provider failures, and failed analyses without exposing secrets or raw customer data.",
   },
   {
     id: "admin-ai-benchmarking",
     label: "AI benchmarking",
-    roles: ["superadmin"],
+    roles: platformBrainRoles,
     keywords: ["ai benchmarking", "benchmark", "benchmarks", "model quality"],
-    followUps: superadminFollowUps,
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "AI Benchmarking helps superadmins compare AI provider behavior and response quality. Use it to validate provider changes, quality regressions, and Hybrid AI routing performance.",
+      "AI Benchmarking helps platform admins compare AI provider behavior and response quality. Use it to validate provider changes, quality regressions, and Hybrid AI routing performance.",
   },
   {
     id: "admin-mcp",
     label: "MCP tokens",
-    roles: ["superadmin"],
+    roles: platformBrainRoles,
     keywords: ["mcp", "mcp tokens", "tokens", "api token", "developer token"],
-    followUps: superadminFollowUps,
+    followUps: platformBrainFollowUps,
     answer: () =>
-      "MCP Tokens are superadmin-controlled credentials for approved UseClevr data and content access. Use this area to create, review, or revoke tokens and keep scopes limited to the intended integration.",
+      "MCP Tokens are platform-controlled credentials for approved UseClevr data and content access. Use this area to create, review, or revoke tokens and keep scopes limited to the intended integration.",
+  },
+  {
+    id: "admin-platform-status",
+    label: "Platform status",
+    roles: platformBrainRoles,
+    keywords: ["platform status", "status", "system status", "what should i check next", "check next", "monitoring", "health", "platform health"],
+    followUps: platformBrainFollowUps,
+    answer: () =>
+      "For platform status, check the current customer impact first: failed uploads, failed analyses, users at limits, billing issues, and AI provider errors. Then review AI traces, billing settings, customers, and recent tickets to identify whether the problem is user data, plan limits, payment setup, provider routing, or a system error.",
   },
 ]
 
@@ -339,8 +376,8 @@ function buildFallbackAnswer(question: string, context: UsyContext) {
     return `${intent.answer(context)}\n\nNext step: ${nextStepForIntent(intent, context)}`
   }
 
-  if (context.role !== "superadmin" && detectIntent(question, "superadmin")) {
-    return "That area is reserved for superadmin users. I can help you with datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscriptions, and Business Profile setup from your own workspace."
+  if (!platformBrainRoles.includes(context.role) && detectIntent(question, "superadmin")) {
+    return "That area is reserved for platform admins. I can help you with datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscriptions, and Business Profile setup from your own workspace."
   }
 
   return "I can help with UseClevr uploads, datasets, dashboards, AI analysis, forecasting, reports, billing, credits, Business Profile setup, integrations, and troubleshooting. Tell me what you are trying to do, and I will point you to the clearest next step."
@@ -349,7 +386,7 @@ function buildFallbackAnswer(question: string, context: UsyContext) {
 function nextStepForIntent(intent: UsyIntent, context: UsyContext) {
   if (intent.id === "pro-pricing" || intent.id === "pricing-general") return "open Billing Settings and choose Upgrade to Pro when you are ready."
   if (intent.id === "business-pricing") return "open Billing Settings and choose Business if you need team or unlimited dataset capacity."
-  if (intent.id.startsWith("admin-") && context.role === "superadmin") return "open the matching admin sidebar page and check the latest platform state there."
+  if (intent.id.startsWith("admin-") && platformBrainRoles.includes(context.role)) return "open the matching admin sidebar page and check the latest platform state there."
   if (intent.id.includes("upload")) return "open Upload, try the file again, and check whether the message points to plan limits or file formatting."
   if (intent.id === "forecast") return "check that your dataset includes a date column and a numeric business column such as revenue, sales, profit, quantity, or cost."
   return "open the matching UseClevr area and I can help you decide what to check first."
@@ -358,7 +395,7 @@ function nextStepForIntent(intent: UsyIntent, context: UsyContext) {
 function getFollowUpSuggestions(question: string, answer: string, context: UsyContext) {
   const intent = detectIntent(`${question} ${answer}`, context.role)
   if (intent) return intent.followUps.slice(0, 5)
-  return (context.role === "superadmin" ? superadminFollowUps : fallbackFollowUps).slice(0, 5)
+  return (platformBrainRoles.includes(context.role) ? platformBrainFollowUps : fallbackFollowUps).slice(0, 5)
 }
 
 function roleFromAudience(audience: HelpChatboxAudience, sessionRole?: string | null): UsyRole {
@@ -433,10 +470,9 @@ function buildUsySystemPrompt(context: UsyContext) {
     `Current route: ${context.route}. Current module: ${moduleName}. Current user role: ${context.role}. Current plan: ${context.plan || "unknown"}. ${usageText}`,
     `Current pricing: Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month.`,
     "Do not mention annual pricing unless UseClevr explicitly provides it in the current prompt.",
-    "Normal users can receive help with datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscription, and Business Profile.",
-    "Admins can receive help with assigned workspace/admin functions, but not superadmin-only platform controls.",
-    "Superadmins can receive help with customers, customer levels, discount rules, billing settings, AI traces, AI benchmarking, MCP tokens, platform settings, user troubleshooting, and usage monitoring.",
-    "Never expose superadmin-only guidance to normal users. Never hallucinate private customer data, dataset values, secrets, API keys, or hidden account state.",
+    "Normal users can receive help only with their own datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscription, and Business Profile.",
+    "Admins and superadmins can use Usy as UseClevr Company Brain Lite for customers, plans, credits, uploads, errors, failed analyses, AI traces, billing settings, discount rules, MCP tokens, user issues, platform status, and usage monitoring.",
+    "Never expose platform-brain or admin guidance to normal users. Never hallucinate private customer data, dataset values, secrets, API keys, or hidden account state.",
     "If exact private data is needed, tell the user where to check inside UseClevr instead of inventing it.",
     "Give a useful next step. Ask a clarifying question only when needed.",
   ].join("\n")
