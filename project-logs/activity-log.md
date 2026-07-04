@@ -1,3 +1,4 @@
+- changed: limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button
 - changed: show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces with shared monthly plan pricing as the canonical source
 - fixed: prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes
 - changed: provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, worldwide SaaS terms, cross-links, and checkout legal links that use app routes

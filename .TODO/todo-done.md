@@ -49,6 +49,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-924. Limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and constrain the Usy assistant panel inside the viewport with an always-visible close button. (labels: ui, accessibility, stability; commit: worktree)
 - T-922. Prevent upgrade prompts and cards from rendering before app usage, plan, and role state resolves, so admin and superadmin sessions never see automatic Free-plan upgrade flashes on Downloads. (labels: ui, billing, stability; commit: worktree)
 - T-921. Provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, worldwide SaaS subscription terms, and checkout links that use app routes. (labels: ui, content, security; commit: worktree)
 - T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)

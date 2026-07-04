@@ -266,20 +266,11 @@
   html.text-size-large {
     font-size: 100%;
   }
-  html.zoom-50 body {
-    zoom: 0.5;
-  }
   html.zoom-75 body {
     zoom: 0.75;
   }
   html.zoom-100 body {
     zoom: 1;
-  }
-  html.zoom-125 body {
-    zoom: 1.25;
-  }
-  html.zoom-150 body {
-    zoom: 1.5;
   }
   body {
     @apply bg-background text-foreground;
