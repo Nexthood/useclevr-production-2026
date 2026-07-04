@@ -8,15 +8,6 @@ export const PRODUCTS = {
     currency: "eur",
     interval: "month" as const,
   },
-  pro_yearly: {
-    id: "pro_yearly",
-    name: "UseClevr Pro (Yearly)",
-    description:
-      "For professionals & teams. Unlimited datasets, advanced AI assistant, priority processing, email support, and API access.",
-    priceInCents: 40000,
-    currency: "eur",
-    interval: "year" as const,
-  },
 }
 
 // Credit-based pricing (like v0)

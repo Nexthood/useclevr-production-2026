@@ -68,7 +68,6 @@ export const defaultBillingSettings: BillingSettings = {
     { id: "5", name: "Champion",  minInteractions: 100,minPageVisits: 50, minUploads: 20,minCreditsUsed: 40,minLogins: 30, creditReward: 20 },
   ],
   discountRules: [
-    { id: "1", type: "percentage", name: "Pro Annual Discount", code: "ANNUAL20", percent: 17, description: "17 % off annual billing for Pro.", enabled: true },
     { id: "2", type: "referral",   name: "Referral Reward",   code: "REFERRAL",  percent: 100, description: "Free month per successful referral.", enabled: true },
   ],
 }
@@ -90,7 +89,18 @@ function mergeSettings(input: Partial<BillingSettings>): BillingSettings {
   const incomingPlans = Array.isArray(input.plans) ? input.plans : []
   const plans = defaultBillingSettings.plans.map((defaultPlan) => {
     const incoming = incomingPlans.find((plan) => plan.id === defaultPlan.id)
-    return sanitizePlan({ ...defaultById.get(defaultPlan.id)!, ...incoming, id: defaultPlan.id })
+    const merged = sanitizePlan({ ...defaultById.get(defaultPlan.id)!, ...incoming, id: defaultPlan.id })
+
+    return {
+      ...merged,
+      name: defaultPlan.name,
+      tier: defaultPlan.tier,
+      price: defaultPlan.price,
+      interval: defaultPlan.interval,
+      stripePriceId: defaultPlan.stripePriceId,
+      maxDatasets: defaultPlan.maxDatasets,
+      maxRowsPerFile: defaultPlan.maxRowsPerFile,
+    }
   })
 
   return {

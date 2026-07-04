@@ -578,9 +578,7 @@ export default function DownloadsPage() {
               </div>
               <div className="rounded-lg bg-primary/10 px-3 py-2 text-left sm:text-right">
                 <p className="text-xl font-semibold text-foreground">{formatPlanPrice(selectedPlan)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {selectedPlan.interval === "year" ? "Annual billing" : "Monthly billing"}
-                </p>
+                <p className="text-xs text-muted-foreground">Monthly billing</p>
               </div>
             </div>
 

@@ -43,6 +43,10 @@ moving work between states.
 
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
 
+## Label: billing
+
+- T-923. Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces with shared monthly plan pricing as the canonical source. (labels: billing, ui, content; commit: worktree)
+
 ## Label: ui
 
 - T-922. Prevent upgrade prompts and cards from rendering before app usage, plan, and role state resolves, so admin and superadmin sessions never see automatic Free-plan upgrade flashes on Downloads. (labels: ui, billing, stability; commit: worktree)

@@ -22,15 +22,6 @@ export type DiscountRule = {
 
 const DEFAULT_RULES: DiscountRule[] = [
   {
-    id: "1",
-    type: "percentage",
-    name: "Pro Annual Discount",
-    code: "ANNUAL20",
-    percent: 17,
-    description: "17 % off when billing annually for Pro.",
-    enabled: true,
-  },
-  {
     id: "2",
     type: "referral",
     name: "Referral Reward",

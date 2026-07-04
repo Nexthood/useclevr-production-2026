@@ -1,11 +1,11 @@
-export type BillingPlanId = "free" | "pro_monthly" | "pro_annual" | "business_monthly";
+export type BillingPlanId = "free" | "pro_monthly" | "business_monthly";
 
 export interface BillingPlan {
   id: BillingPlanId;
   name: string;
   tier: "free" | "pro" | "business";
   price: number;
-  interval: "month" | "year";
+  interval: "month";
   description: string;
   features: string[];
   discountLabel?: string;
@@ -39,21 +39,8 @@ export const billingPlans: BillingPlan[] = [
     stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY,
   },
   {
-    id: "pro_annual",
-    name: "Pro Annual",
-    tier: "pro",
-    price: 400,
-    interval: "year",
-    description: "Pro access with the automatic annual discount applied.",
-    features: ["Everything in Pro", "Automatic annual discount", "Hybrid AI Lite"],
-    maxDatasets: 25,
-    maxRowsPerFile: 100_000,
-    discountLabel: "Auto discount: save €80/year",
-    stripePriceId: process.env.STRIPE_PRICE_PRO_ANNUAL,
-  },
-  {
     id: "business_monthly",
-    name: "Business / Custom",
+    name: "Business",
     tier: "business",
     price: 420,
     interval: "month",
@@ -85,7 +72,7 @@ export function getBillingPlanByTier(tier: string | null | undefined) {
 
 export function formatPlanPrice(plan: BillingPlan) {
   if (plan.price === 0) return "€0/month";
-  return `€${plan.price}/${plan.interval === "year" ? "year" : "month"}`;
+  return `€${plan.price}/month`;
 }
 
 export function getDatasetLimitForTier(tier: string | null | undefined): number {

@@ -147,7 +147,8 @@ Text rules for this file:
 
 ## Subscriptions & Billing
 
-- Show Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Show Free at €0/month, Pro at €40/month, and Business at €420/month.
+- Use shared monthly billing plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
 - Show Account settings as a professional control center with centered wide content, Profile,
   Company, Subscription, and Security sections, visible completion indicators, a Continue Setup
   action, and a right-side Setup Progress and Account Status rail instead of generic quick tips.

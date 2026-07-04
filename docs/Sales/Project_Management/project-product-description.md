@@ -61,7 +61,7 @@ remain Platform Expansion work.
 
 ### Payment Product Surface
 
-- Free, Pro Monthly, Pro Annual, and Business Monthly plans.
+- Free, Pro, and Business monthly plans.
 - Checkout review.
 - Stripe checkout.
 - Billing portal access.

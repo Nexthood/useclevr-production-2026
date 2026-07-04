@@ -93,9 +93,7 @@ export default async function SubscriptionSettingsPage() {
           </Link>
         </div>
         <div className="grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-          {billingSettings.plans
-            .filter((plan) => plan.id !== "pro_annual")
-            .map((plan) => {
+          {billingSettings.plans.map((plan) => {
               const isCurrent =
                 (plan.tier === "free" && !isUnlimited) ||
                 (plan.tier === "pro" && usage.subscriptionTier === "pro") ||
@@ -142,8 +140,8 @@ export default async function SubscriptionSettingsPage() {
             })}
         </div>
         <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Annual Pro discounts are applied automatically in checkout. If a payment provider is not
-          connected, checkout saves a review instead of collecting a card.
+          Checkout uses the active monthly plan price. If a payment provider is not connected,
+          checkout saves a review instead of collecting a card.
         </div>
       </CardContent>
     </Card>
