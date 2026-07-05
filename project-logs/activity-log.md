@@ -1,3 +1,4 @@
+- changed: show the current UseClevr logo as the browser tab favicon across SVG, PNG, and ICO icon paths
 - fixed: show completed Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves
 - changed: add a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, plus reusable consent helpers for analytics and product-improvement cookie checks
 - changed: remove app zoom controls, reset saved zoom preferences, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button

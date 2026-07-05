@@ -303,6 +303,7 @@ Text rules for this file:
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
+- Show the current UseClevr logo as the browser tab favicon through the root app icon paths.
 - Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Start authenticated sidebar page content below the sticky top navigation with consistent spacing so the first greeting, heading, or report title stays fully visible.
 - Show Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile
