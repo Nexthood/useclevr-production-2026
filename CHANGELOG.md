@@ -2,7 +2,7 @@
 
 ### Changed
 
-- Show the current UseClevr logo as the browser tab favicon across SVG, PNG, and ICO icon paths.
+- Use a single `6.svg` file as the browser tab favicon.
 - Show completed sidebar badges for Business, Accountancy, and Retail from the latest saved Business Profile status.
 - Remove app zoom controls completely and simplify theme toggle to a single sun/moon button.
 - Add a global cookie consent banner with essential-only, accept-all, and preference-management choices for analytics and product-improvement cookies.
