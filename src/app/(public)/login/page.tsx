@@ -804,13 +804,13 @@ function LoginForm() {
           </Card>
         </section>
 
-        <section className="relative hidden min-h-[720px] overflow-hidden lg:flex lg:items-center lg:justify-center lg:px-6 xl:px-12">
+        <section className="relative hidden overflow-hidden lg:flex lg:items-center lg:justify-center lg:px-4 xl:px-6">
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-pink-500/10" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(6,182,212,0.28),transparent_28%),radial-gradient(circle_at_70%_40%,rgba(124,58,237,0.24),transparent_30%),radial-gradient(circle_at_50%_70%,rgba(34,211,238,0.12),transparent_32%)]" />
-          <div className="absolute left-10 top-10 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-[#7C3AED]/20 blur-3xl" />
+          <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute bottom-8 right-8 h-28 w-28 rounded-full bg-[#7C3AED]/20 blur-3xl" />
 
-          <div className="relative mx-auto w-full max-w-4xl px-2">
+          <div className="relative mx-auto w-full max-w-2xl">
             <UseClevrHeroDemo layout="auth" className="shadow-purple-950/30" />
           </div>
         </section>

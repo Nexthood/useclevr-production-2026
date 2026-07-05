@@ -65,9 +65,10 @@ type AppSidebarProps = {
   user: Session["user"];
   businessStatus?: SidebarStatus;
   accountancyStatus?: SidebarStatus;
+  retailStatus?: SidebarStatus;
 };
 
-export function AppSidebar({ user, businessStatus, accountancyStatus }: AppSidebarProps) {
+export function AppSidebar({ user, businessStatus, accountancyStatus, retailStatus }: AppSidebarProps) {
   const pathname = usePathname();
   const { usage, total, isPro, isLoading, unlimitedLabel } = useUsage();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -101,6 +102,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus }: AppSideb
   const navigationWithStatus = primaryNavigation.map((item) => {
     if (item.name === "Business") return { ...item, status: businessStatus }
     if (item.name === "Accountancy") return { ...item, status: accountancyStatus }
+    if (item.name === "Retail") return { ...item, status: retailStatus }
     return item
   })
   const navigationItems =
@@ -147,7 +149,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus }: AppSideb
 
         {remainingNavigationItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const href = item.status && !item.status.complete ? item.status.hrefWhenIncomplete : item.href
+          const href = item.status && !isStatusComplete(item.status) ? item.status.hrefWhenIncomplete : item.href
           return (
             <SidebarLink
               key={item.name}
@@ -227,13 +229,14 @@ function SidebarLink({
   isCollapsed: boolean
 }) {
   const status = item.status
+  const isComplete = status ? isStatusComplete(status) : false
   const title = isCollapsed
     ? status
-      ? `${item.name}: ${status.complete ? "complete" : status.requiredLabel}`
+      ? `${item.name}: ${isComplete ? "complete" : status.requiredLabel}`
       : item.name
     : undefined
   const ariaLabel = status
-    ? `${item.name}. ${status.complete ? "Complete" : `${status.requiredLabel}. Complete this step to improve analysis accuracy.`}`
+    ? `${item.name}. ${isComplete ? "Complete" : `${status.requiredLabel}. Complete this step to improve analysis accuracy.`}`
     : item.name
 
   return (
@@ -261,8 +264,12 @@ function SidebarLink({
   )
 }
 
+function isStatusComplete(status: SidebarStatus) {
+  return status.complete || status.completion >= 100
+}
+
 function SidebarStatusBadge({ status }: { status: SidebarStatus }) {
-  if (status.complete) {
+  if (isStatusComplete(status)) {
     return (
       <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">
         ✓
@@ -290,7 +297,7 @@ function CollapsedStatusDot({ status }: { status: SidebarStatus }) {
     <span
       className={[
         "absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-sidebar",
-        status.complete ? "bg-emerald-500" : status.requiredLabel === "Required" ? "bg-red-500" : "bg-amber-500",
+        isStatusComplete(status) ? "bg-emerald-500" : status.requiredLabel === "Required" ? "bg-red-500" : "bg-amber-500",
       ].join(" ")}
     />
   )

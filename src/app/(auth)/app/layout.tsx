@@ -10,6 +10,8 @@ import { count, eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import type React from "react"
 
+export const dynamic = "force-dynamic"
+
 export default async function AppLayout({
   children,
 }: {
@@ -41,24 +43,26 @@ export default async function AppLayout({
     : businessComplete || uploadedDatasetCount > 0
       ? 50
       : 0
+  const businessReadinessStatus = {
+    completion: businessCompletion,
+    requiredLabel: businessCompletion === 0 ? "Required" : `${businessCompletion}%`,
+    complete: businessComplete,
+    hrefWhenIncomplete: "/app/business/setup",
+  }
 
   return (
     <FormattingProvider>
       <div className="min-h-screen bg-background">
         <AppSidebar
           user={session.user}
-          businessStatus={{
-            completion: businessCompletion,
-            requiredLabel: businessCompletion === 0 ? "Required" : `${businessCompletion}%`,
-            complete: businessComplete,
-            hrefWhenIncomplete: "/app/business/setup",
-          }}
+          businessStatus={businessReadinessStatus}
           accountancyStatus={{
             completion: accountancyCompletion,
             requiredLabel: accountancyCompletion === 0 ? "Required" : `${accountancyCompletion}%`,
             complete: accountancyCompletion >= 100,
             hrefWhenIncomplete: "/app/accountancy",
           }}
+          retailStatus={businessReadinessStatus}
         />
         <div className="transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
           <Topbar />
