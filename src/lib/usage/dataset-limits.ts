@@ -2,6 +2,7 @@ import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { eq, count } from "drizzle-orm"
 import { getBillingPlanByTier } from "@/lib/billing/plans"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 
 export interface DatasetLimitInfo {
   limit: number
@@ -11,7 +12,19 @@ export interface DatasetLimitInfo {
   tier: string
 }
 
-export async function getDatasetLimitInfo(userId: string, role?: string | null): Promise<DatasetLimitInfo> {
+export async function getDatasetLimitInfo(userId: string, role?: string | null, email?: string | null): Promise<DatasetLimitInfo> {
+  const isSuperadmin = isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)
+
+  if (isSuperadmin) {
+    return {
+      limit: Infinity,
+      currentCount: 0,
+      canCreate: true,
+      planName: "Superadmin",
+      tier: "superadmin",
+    }
+  }
+
   const db = getDb()
   const profile = db
     ? await db.query.profiles.findFirst({

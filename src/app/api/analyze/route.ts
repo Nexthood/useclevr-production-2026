@@ -355,7 +355,9 @@ export async function POST(request: Request) {
         }, { status: 402 })
       }
 
-      const enforcementCheck = await checkActionEnforcement(effectiveUserId, "dataset_analysis")
+      const enforcementCheck = isSuperAdmin
+        ? { allowed: true }
+        : await checkActionEnforcement(effectiveUserId, "dataset_analysis", session?.user?.role ?? null, userEmail)
       if (!enforcementCheck.allowed) {
         await logAiCost({
           userId: effectiveUserId,

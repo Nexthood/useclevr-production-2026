@@ -1,4 +1,4 @@
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import { FREE_PLAN_LIMITS, getDatasetLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
@@ -80,8 +80,16 @@ function getUnlimitedLabel(tier: string, role?: string | null, userId?: string |
   return null
 }
 
-export async function getAnalystCreditUsage(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  if (isSuperAdminUserId(userId)) {
+export async function getAnalystCreditUsage(
+  userId?: string | null,
+  role?: string | null,
+  email?: string | null
+): Promise<AnalystCreditUsage> {
+  const isOfficialSuperadmin = isSuperAdminUserId(userId) ||
+    (role === "superadmin") ||
+    isOfficialSuperAdminEmail(email)
+
+  if (isOfficialSuperadmin) {
     return {
       analysisCount: 0,
       total: 0,
@@ -168,9 +176,11 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
   }
 }
 
-export async function consumeAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  if (!userId || isSuperAdminUserId(userId)) {
-    return getAnalystCreditUsage(userId, role)
+export async function consumeAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
+  const isOfficialSuperadmin = isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)
+
+  if (!userId || isOfficialSuperadmin) {
+    return getAnalystCreditUsage(userId, role, email)
   }
 
   const db = getDb()
@@ -178,7 +188,7 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
     return defaultUsage
   }
 
-  const usage = await getAnalystCreditUsage(userId, role)
+  const usage = await getAnalystCreditUsage(userId, role, email)
   if (usage.unlimited || ["pro", "business", "superadmin", "admin"].includes(usage.subscriptionTier)) {
     return usage
   }
@@ -207,8 +217,8 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
   }
 }
 
-export async function requireAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  return getAnalystCreditUsage(userId, role)
+export async function requireAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
+  return getAnalystCreditUsage(userId, role, email)
 }
 
 export async function getRowLimitForUser(userId?: string | null, role?: string | null): Promise<number> {

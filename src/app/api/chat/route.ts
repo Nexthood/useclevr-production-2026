@@ -302,7 +302,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const enforcementCheck = await checkActionEnforcement(userId, "ai_chat");
+    const enforcementCheck = await checkActionEnforcement(
+      userId,
+      "ai_chat",
+      session?.user?.role ?? null,
+      session?.user?.email ?? null
+    );
     if (!enforcementCheck.allowed) {
       return NextResponse.json(
         {

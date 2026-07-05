@@ -285,7 +285,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const enforcementCheck = await checkActionEnforcement(userId, 'report_generation');
+    const enforcementCheck = await checkActionEnforcement(
+      userId,
+      'report_generation',
+      (session?.user as { role?: string })?.role ?? null,
+      session?.user?.email ?? null
+    );
     if (!enforcementCheck.allowed) {
       await logAiCost({
         userId,

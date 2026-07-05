@@ -387,7 +387,10 @@ export async function POST(request: NextRequest) {
     return addCorsHeaders(forbidden(), request);
   }
 
-  const enforcementCheck = authContext.userId ? await checkActionEnforcement(authContext.userId, "mcp_tool_invocation") : { allowed: true };
+  const isMcpSuperAdmin = authContext.role === "admin"
+  const enforcementCheck = authContext.userId && !isMcpSuperAdmin
+    ? await checkActionEnforcement(authContext.userId, "mcp_tool_invocation", authContext.role, null)
+    : { allowed: true }
   if (!enforcementCheck.allowed) {
     await logMCPAudit("auth_failure", {
       tokenId: authContext.tokenId,
