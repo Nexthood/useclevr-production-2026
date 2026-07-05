@@ -148,6 +148,7 @@ Text rules for this file:
 ## Subscriptions & Billing
 
 - Show Free at €0/month, Pro at €40/month, and Business at €420/month.
+- Use the Free plan with limited AI credits as the only free UseClevr entry point, and do not advertise separate trial periods on public landing or pricing surfaces.
 - Use shared monthly billing plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
 - Show customer-facing plan feature lists from the shared billing plan source, limiting Free to CSV and Excel upload, 50 AI credits, 2 datasets, basic AI insights, retail dashboard, and community support; limiting Pro to 500 AI credits, 25 datasets, AI business analysis, revenue analysis, margin analysis, stock detection, reports, exports, and priority support; and limiting Business to 5000 AI credits, Pro benefits, Accounting AI, invoice processing, receipt processing, and dedicated support.
 - Keep future enterprise features hidden from pricing and upgrade surfaces until their customer workflow is production-ready.

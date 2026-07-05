@@ -49,7 +49,7 @@ const checkoutHref: Record<BillingPlan["tier"], string> = {
 
 const ctaLabel: Record<BillingPlan["tier"], string> = {
   free: "Get Started",
-  pro: "Start Free Trial",
+  pro: "Upgrade to Pro",
   business: "Review Business",
 }
 
@@ -120,7 +120,7 @@ export default function PricingPage() {
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
               <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
                 <Check className="h-4 w-4" />
-                <span>14-day free trial</span>
+                <span>Free plan included</span>
               </div>
               <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-100">
                 <Check className="h-4 w-4" />

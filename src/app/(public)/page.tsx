@@ -485,7 +485,7 @@ export default async function HomePage() {
                   size="lg"
                   className="h-12 rounded-full bg-primary px-8 text-base text-primary-foreground shadow-lg shadow-black/10 hover:bg-primary/90 dark:shadow-black/30"
                 >
-                  Start your free trial
+                  Start with Free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -499,7 +499,7 @@ export default async function HomePage() {
                 </Button>
               </a>
             </div>
-            <p className="mt-6 text-sm font-medium text-cyan-800 dark:text-cyan-100">No credit card required · 14-day free trial · Cancel anytime</p>
+            <p className="mt-6 text-sm font-medium text-cyan-800 dark:text-cyan-100">No credit card required · Free plan with limited AI credits · Upgrade anytime</p>
           </Card>
         </section>
 

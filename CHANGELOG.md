@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Replace public Free Trial messaging with Free plan and Upgrade to Pro copy so the only free entry point is the limited Free plan.
 - Simplify customer-facing plan feature lists so Free, Pro, and Business pricing cards focus on current upload, analysis, report, export, accounting, support, dataset, and AI-credit benefits.
 - Support both Pro and Business plan selection in checkout so Business upgrade actions open the €420/month Business package and Stripe receives the Business price.
 - Use a single `6.svg` file as the browser tab favicon.

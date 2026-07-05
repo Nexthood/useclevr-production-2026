@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-932. Remove Free Trial messaging from public landing and pricing surfaces so the Free plan remains the only free UseClevr entry point. (labels: billing, ui, content; commit: worktree)
 - T-931. Simplify customer-facing plan feature lists across pricing, checkout, upgrade, billing, account, upload-limit, assistant, and FAQ surfaces to advertise only current and immediate-release features. (labels: billing, ui, content; commit: worktree)
 - T-930. Resolve Business checkout payment readiness from server-side Stripe price configuration, use the Business monthly Stripe price env variable with the legacy fallback, and log missing paid-plan price env names in development. (labels: billing, payment, logging; commit: worktree)
 - T-929. Support Pro and Business plan selection in checkout, route Business upgrade actions to the Business package, and send the selected paid plan's Stripe price ID. (labels: billing, payment, ui; commit: worktree)
