@@ -6,6 +6,17 @@ type StripePriceEnvConfig = {
   fallbacks?: string[];
 };
 
+export interface PlanLimits {
+  monthlyCredits: number;
+  maxDatasets: number;
+  maxFileSizeMb: number;
+  maxRowsPerDataset: number;
+  maxTeamMembers: number;
+  maxAiRequestsPerDay: number;
+  maxConcurrentAnalyses: number;
+  creditResetDay: number;
+}
+
 export interface BillingPlan {
   id: BillingPlanId;
   name: string;
@@ -16,8 +27,7 @@ export interface BillingPlan {
   features: string[];
   discountLabel?: string;
   stripePriceId?: string;
-  maxDatasets: number;
-  maxRowsPerFile: number;
+  limits: PlanLimits;
 }
 
 const stripePriceEnvByPlanId: Partial<Record<StripePricePlanId, StripePriceEnvConfig>> = {
@@ -54,6 +64,39 @@ export function logMissingStripePriceId(plan: BillingPlan, context: string) {
   );
 }
 
+export const FREE_PLAN_LIMITS: PlanLimits = {
+  monthlyCredits: 50,
+  maxDatasets: 2,
+  maxFileSizeMb: 10,
+  maxRowsPerDataset: 5000,
+  maxTeamMembers: 1,
+  maxAiRequestsPerDay: 20,
+  maxConcurrentAnalyses: 1,
+  creditResetDay: 1,
+};
+
+export const PRO_PLAN_LIMITS: PlanLimits = {
+  monthlyCredits: 500,
+  maxDatasets: 25,
+  maxFileSizeMb: 100,
+  maxRowsPerDataset: 100000,
+  maxTeamMembers: 5,
+  maxAiRequestsPerDay: 200,
+  maxConcurrentAnalyses: 3,
+  creditResetDay: 1,
+};
+
+export const BUSINESS_PLAN_LIMITS: PlanLimits = {
+  monthlyCredits: 5000,
+  maxDatasets: 100,
+  maxFileSizeMb: 500,
+  maxRowsPerDataset: 300000,
+  maxTeamMembers: 20,
+  maxAiRequestsPerDay: 1000,
+  maxConcurrentAnalyses: 10,
+  creditResetDay: 1,
+};
+
 export const billingPlans: BillingPlan[] = [
   {
     id: "free",
@@ -62,9 +105,15 @@ export const billingPlans: BillingPlan[] = [
     price: 0,
     interval: "month",
     description: "Explore UseClevr with basic cloud analysis.",
-    features: ["2 datasets", "Limited AI questions", "Basic insights"],
-    maxDatasets: 2,
-    maxRowsPerFile: 5_000,
+    features: [
+      "50 AI credits/month",
+      "2 datasets",
+      "10MB file size limit",
+      "5,000 rows per dataset",
+      "20 AI requests/day",
+      "Basic AI insights",
+    ],
+    limits: FREE_PLAN_LIMITS,
   },
   {
     id: "pro_monthly",
@@ -73,9 +122,18 @@ export const billingPlans: BillingPlan[] = [
     price: 40,
     interval: "month",
     description: "Up to 25 datasets, report downloads, and Hybrid AI Lite.",
-    features: ["25 datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
-    maxDatasets: 25,
-    maxRowsPerFile: 100_000,
+    features: [
+      "500 AI credits/month",
+      "25 datasets",
+      "100MB file size limit",
+      "100,000 rows per dataset",
+      "5 team members",
+      "200 AI requests/day",
+      "Hybrid AI Lite",
+      "Priority processing",
+      "Download center",
+    ],
+    limits: PRO_PLAN_LIMITS,
     stripePriceId: resolveStripePriceId("pro_monthly"),
   },
   {
@@ -86,20 +144,21 @@ export const billingPlans: BillingPlan[] = [
     interval: "month",
     description: "Unlimited datasets, full Hybrid AI, teams, API access, and enterprise-grade support.",
     features: [
-      "Unlimited datasets",
-      "Unlimited AI analyses",
+      "5,000 AI credits/month",
+      "100 datasets",
+      "500MB file size limit",
+      "300,000 rows per dataset",
+      "20 team members",
+      "1,000 AI requests/day",
       "Full Hybrid AI",
-      "Team members",
       "API & MCP access",
       "Priority infrastructure",
       "Advanced BI modules",
-      "Private deployment options",
       "Dedicated support",
       "White-label options",
       "Enterprise billing",
     ],
-    maxDatasets: Infinity,
-    maxRowsPerFile: 300_000,
+    limits: BUSINESS_PLAN_LIMITS,
     stripePriceId: resolveStripePriceId("business_monthly"),
   },
 ];
@@ -130,10 +189,40 @@ export function formatPlanPrice(plan: BillingPlan) {
 
 export function getDatasetLimitForTier(tier: string | null | undefined): number {
   const plan = getBillingPlanByTier(tier)
-  return plan.maxDatasets
+  return plan.limits.maxDatasets
 }
 
 export function getRowLimitForTier(tier: string | null | undefined): number {
   const plan = getBillingPlanByTier(tier)
-  return plan.maxRowsPerFile
+  return plan.limits.maxRowsPerDataset
+}
+
+export function getCreditsLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.limits.monthlyCredits
+}
+
+export function getFileSizeLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.limits.maxFileSizeMb
+}
+
+export function getTeamMembersLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.limits.maxTeamMembers
+}
+
+export function getAiRequestsLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.limits.maxAiRequestsPerDay
+}
+
+export function getConcurrentAnalysesLimitForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.limits.maxConcurrentAnalyses
+}
+
+export function getCreditResetDayForTier(tier: string | null | undefined): number {
+  const plan = getBillingPlanByTier(tier)
+  return plan.limits.creditResetDay
 }

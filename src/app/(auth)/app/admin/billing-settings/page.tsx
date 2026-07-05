@@ -86,12 +86,12 @@ export default function AdminBillingSettingsPage() {
                   <p className="text-sm text-foreground">
                     Max datasets:{" "}
                     <span className="font-medium">
-                      {plan.maxDatasets === Infinity ? (
+                      {plan.limits.maxDatasets === Infinity ? (
                         <span className="inline-flex items-center gap-1">
                           Unlimited <InfinityIcon className="h-3.5 w-3.5" />
                         </span>
                       ) : (
-                        plan.maxDatasets
+                        plan.limits.maxDatasets
                       )}
                     </span>
                   </p>

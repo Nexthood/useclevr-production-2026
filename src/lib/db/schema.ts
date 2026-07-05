@@ -746,3 +746,202 @@ export const mcpAuditLogs = pgTable(
     createdAtIdx: index("MCPAuditLog_createdAt_idx").on(table.createdAt),
   }),
 );
+
+// ============================================================================
+// CREDIT & TOKEN MANAGEMENT TABLES
+// ============================================================================
+
+export const subscriptionPlans = pgTable(
+  "SubscriptionPlan",
+  {
+    id: text("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    tier: varchar("tier", { length: 50 }).notNull(),
+    monthlyCredits: integer("monthlyCredits").notNull(),
+    maxDatasets: integer("maxDatasets").notNull(),
+    maxFileSizeMb: integer("maxFileSizeMb").notNull(),
+    maxRowsPerDataset: integer("maxRowsPerDataset").notNull(),
+    maxTeamMembers: integer("maxTeamMembers").notNull(),
+    maxAiRequestsPerDay: integer("maxAiRequestsPerDay").notNull(),
+    maxConcurrentAnalyses: integer("maxConcurrentAnalyses").notNull(),
+    creditResetDay: integer("creditResetDay").notNull(),
+    priceEur: integer("priceEur").notNull(),
+    stripePriceId: text("stripePriceId"),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    tierIdx: uniqueIndex("SubscriptionPlan_tier_key").on(table.tier),
+  }),
+);
+
+export const userCredits = pgTable(
+  "UserCredit",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    planId: text("planId").notNull(),
+    totalCredits: integer("totalCredits").notNull(),
+    usedCredits: integer("usedCredits").default(0).notNull(),
+    remainingCredits: integer("remainingCredits").notNull(),
+    creditsResetAt: timestamp("creditsResetAt").notNull(),
+    lastResetAt: timestamp("lastResetAt"),
+    lifetimeCreditsEarned: integer("lifetimeCreditsEarned").default(0).notNull(),
+    lifetimeCreditsUsed: integer("lifetimeCreditsUsed").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "UserCredit_userId_fkey",
+    }).onDelete("cascade"),
+    userIdIdx: uniqueIndex("UserCredit_userId_key").on(table.userId),
+    planIdFk: foreignKey({
+      columns: [table.planId],
+      foreignColumns: [subscriptionPlans.id],
+      name: "UserCredit_planId_fkey",
+    }),
+    creditsResetAtIdx: index("UserCredit_creditsResetAt_idx").on(table.creditsResetAt),
+  }),
+);
+
+export const creditLedgerTypes = ["credit_grant", "credit_used", "credit_refund", "credit_adjustment", "monthly_reset", "subscription_upgrade", "subscription_downgrade"] as const;
+export type CreditLedgerType = (typeof creditLedgerTypes)[number];
+
+export const creditLedger = pgTable(
+  "CreditLedger",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    type: varchar("type", { length: 30 }).notNull().$type<CreditLedgerType>(),
+    amount: integer("amount").notNull(),
+    balanceBefore: integer("balanceBefore").notNull(),
+    balanceAfter: integer("balanceAfter").notNull(),
+    action: varchar("action", { length: 100 }).notNull(),
+    description: text("description"),
+    relatedDatasetId: text("relatedDatasetId"),
+    relatedPlanId: text("relatedPlanId"),
+    adminUserId: text("adminUserId"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "CreditLedger_userId_fkey",
+    }).onDelete("cascade"),
+    userIdIdx: index("CreditLedger_userId_idx").on(table.userId),
+    typeIdx: index("CreditLedger_type_idx").on(table.type),
+    createdAtIdx: index("CreditLedger_createdAt_idx").on(table.createdAt),
+  }),
+);
+
+export const aiProviderTypes = ["openai", "anthropic", "google", "ollama", "local"] as const;
+export type AIProviderType = (typeof aiProviderTypes)[number];
+
+export const providerModelPricing = pgTable(
+  "ProviderModelPricing",
+  {
+    id: text("id").primaryKey(),
+    provider: varchar("provider", { length: 50 }).notNull().$type<AIProviderType>(),
+    model: varchar("model", { length: 100 }).notNull(),
+    inputCostPer1M: integer("inputCostPer1M").notNull(),
+    outputCostPer1M: integer("outputCostPer1M").notNull(),
+    currency: varchar("currency", { length: 3 }).default("EUR").notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    effectiveFrom: timestamp("effectiveFrom").defaultNow().notNull(),
+    effectiveTo: timestamp("effectiveTo"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    providerModelIdx: uniqueIndex("ProviderModelPricing_provider_model_key").on(table.provider, table.model),
+    providerIdx: index("ProviderModelPricing_provider_idx").on(table.provider),
+    isActiveIdx: index("ProviderModelPricing_isActive_idx").on(table.isActive),
+  }),
+);
+
+export const aiActionTypes = [
+  "dataset_analysis",
+  "ai_chat",
+  "dashboard_generation",
+  "report_generation",
+  "forecast_analysis",
+  "multi_dataset_analysis",
+  "data_insight",
+  "mcp_tool_invocation",
+] as const;
+export type AIActionType = (typeof aiActionTypes)[number];
+
+export const aiCostLogs = pgTable(
+  "AICostLog",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    organizationId: text("organizationId"),
+    subscriptionPlan: varchar("subscriptionPlan", { length: 50 }),
+    provider: varchar("provider", { length: 50 }).notNull().$type<AIProviderType>(),
+    model: varchar("model", { length: 100 }).notNull(),
+    actionType: varchar("actionType", { length: 50 }).notNull().$type<AIActionType>(),
+    inputTokens: integer("inputTokens").default(0).notNull(),
+    outputTokens: integer("outputTokens").default(0).notNull(),
+    totalTokens: integer("totalTokens").default(0).notNull(),
+    estimatedCostEur: integer("estimatedCostEur").notNull(),
+    creditsCharged: integer("creditsCharged").notNull(),
+    requestStatus: varchar("requestStatus", { length: 20 }).default("success").notNull(),
+    errorMessage: text("errorMessage"),
+    datasetId: text("datasetId"),
+    requestMetadata: jsonb("requestMetadata").$type<Record<string, unknown>>().default({}).notNull(),
+    latencyMs: integer("latencyMs"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "AICostLog_userId_fkey",
+    }).onDelete("cascade"),
+    userIdIdx: index("AICostLog_userId_idx").on(table.userId),
+    organizationIdIdx: index("AICostLog_organizationId_idx").on(table.organizationId),
+    providerIdx: index("AICostLog_provider_idx").on(table.provider),
+    modelIdx: index("AICostLog_model_idx").on(table.model),
+    actionTypeIdx: index("AICostLog_actionType_idx").on(table.actionType),
+    createdAtIdx: index("AICostLog_createdAt_idx").on(table.createdAt),
+    requestStatusIdx: index("AICostLog_requestStatus_idx").on(table.requestStatus),
+  }),
+);
+
+export const dailyAiRequestCounts = pgTable(
+  "DailyAIRequestCount",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    date: varchar("date", { length: 10 }).notNull(),
+    requestCount: integer("requestCount").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdDateIdx: uniqueIndex("DailyAIRequestCount_userId_date_key").on(table.userId, table.date),
+    userIdIdx: index("DailyAIRequestCount_userId_idx").on(table.userId),
+    dateIdx: index("DailyAIRequestCount_date_idx").on(table.date),
+  }),
+);
+
+export const concurrentAnalysisCounts = pgTable(
+  "ConcurrentAnalysisCount",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    activeCount: integer("activeCount").default(0).notNull(),
+    maxReachedAt: timestamp("maxReachedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: uniqueIndex("ConcurrentAnalysisCount_userId_key").on(table.userId),
+  }),
+);

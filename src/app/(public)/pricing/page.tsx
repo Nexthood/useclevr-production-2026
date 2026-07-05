@@ -191,7 +191,7 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Up to {proMonthlyPlan.maxDatasets} datasets</div>
+                      <div className="text-sm font-medium">Up to {proMonthlyPlan.limits.maxDatasets} datasets</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">

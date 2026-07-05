@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-05
-- **Goal**: Fix checkout flow for Pro and Business plans.
-- **Durable change**: UseClevr checkout now supports Pro and Business selection, accepts Business plan aliases, shows the Business package, routes Business upgrade actions to Business checkout, and sends the selected paid plan's Stripe price ID.
-- **Verification**: Focused ESLint, TypeScript, TODO, project-record, changelog, secrets, checkout-route search, diff whitespace checks, and production build pass.
+- **Goal**: Fix Business plan Stripe checkout configuration.
+- **Durable change**: Business monthly checkout now resolves its Stripe price server-side from the current env name with the legacy fallback, checkout routes log missing paid-plan price env names in development, and the checkout page uses server-confirmed plan readiness before showing payment availability.
+- **Verification**: Focused ESLint, TypeScript, and production build pass; the production build completes with existing compile warnings.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
