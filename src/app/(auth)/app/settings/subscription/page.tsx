@@ -3,149 +3,372 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { auth } from "@/lib/auth/auth";
 import { formatPlanPrice } from "@/lib/billing/plans";
 import { getBillingSettings } from "@/lib/billing/settings-store";
+import { getDb } from "@/lib/db";
+import { datasets, profiles } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
-import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
+import { count, eq, sum } from "drizzle-orm";
+import { ArrowUpRight, CreditCard, FileText, HardDrive, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = { title: "Subscription" };
 
-export default async function SubscriptionSettingsPage() {
+type SubscriptionTab = "overview" | "billing" | "usage" | "terms";
+
+const tabs: Array<{ id: SubscriptionTab; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "billing", label: "Billing" },
+  { id: "usage", label: "AI Usage & Credits" },
+  { id: "terms", label: "Terms & Conditions" },
+];
+
+function normalizeTab(value: string | string[] | undefined): SubscriptionTab {
+  const tab = Array.isArray(value) ? value[0] : value;
+  if (tab === "billing" || tab === "usage" || tab === "terms") return tab;
+  return "overview";
+}
+
+function planLabel(tier: string | null | undefined) {
+  if (tier === "superadmin") return "Super admin";
+  if (tier === "admin") return "Admin";
+  if (tier === "business") return "Business";
+  if (tier === "pro") return "Pro";
+  return "Free";
+}
+
+function bytesToDisplay(bytes: number) {
+  if (bytes <= 0) return "0 MB";
+  const mb = bytes / 1024 / 1024;
+  if (mb < 1024) return `${Math.max(0.1, mb).toFixed(mb < 10 ? 1 : 0)} MB`;
+  return `${(mb / 1024).toFixed(1)} GB`;
+}
+
+function MetricCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
+      {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
+    </div>
+  );
+}
+
+export default async function SubscriptionSettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const activeTab = normalizeTab(params?.tab);
   const session = await auth();
   const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role);
   const billingSettings = await getBillingSettings();
   const remaining = Math.max(0, usage.total - usage.analysisCount);
   const isUnlimited = usage.unlimited;
+  const db = getDb();
+
+  const [profile, datasetStats] = await Promise.all([
+    db && session?.user?.id
+      ? db.query.profiles.findFirst({
+          where: eq(profiles.userId, session.user.id),
+          columns: {
+            stripeCustomerId: true,
+            stripeCurrentPeriodEnd: true,
+            stripePriceId: true,
+            stripeStatus: true,
+            subscriptionTier: true,
+          },
+        })
+      : null,
+    db && session?.user?.id
+      ? db
+          .select({
+            datasetCount: count(),
+            storageBytes: sum(datasets.fileSize),
+          })
+          .from(datasets)
+          .where(eq(datasets.userId, session.user.id))
+          .then((rows) => rows[0] ?? { datasetCount: 0, storageBytes: "0" })
+          .catch(() => ({ datasetCount: 0, storageBytes: "0" }))
+      : { datasetCount: 0, storageBytes: "0" },
+  ]);
+
+  const providerConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+  const tier = profile?.subscriptionTier || usage.subscriptionTier || "free";
+  const currentPlanLabel = planLabel(tier);
+  const paymentStatus = profile?.stripeStatus
+    ? profile.stripeStatus.replaceAll("_", " ")
+    : profile?.stripeCustomerId
+      ? "Customer connected"
+      : providerConfigured
+        ? "Ready for checkout"
+        : "Not configured";
+  const billingCycle = profile?.stripePriceId ? "Monthly" : "None";
+  const nextBillingDate = profile?.stripeCurrentPeriodEnd
+    ? profile.stripeCurrentPeriodEnd.toLocaleDateString()
+    : "Not scheduled";
+  const datasetCount = Number(datasetStats.datasetCount ?? 0);
+  const storageBytes = Number(datasetStats.storageBytes ?? 0);
+  const activePlan = billingSettings.plans.find((plan) => plan.tier === tier) ?? billingSettings.plans[0];
+  const datasetLimit = Number.isFinite(activePlan.limits.maxDatasets)
+    ? String(activePlan.limits.maxDatasets)
+    : "Unlimited";
 
   return (
-    <Card className="min-w-0 bg-card border-border">
+    <Card className="min-w-0 border-border bg-card">
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
             <CreditCard className="h-5 w-5" />
           </div>
           <div>
-            <CardTitle className="text-foreground">Subscription</CardTitle>
+            <CardTitle className="text-foreground">Subscription Management</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Manage your plan and billing.
+              Manage your plan, billing, AI usage, credits, and subscription terms.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <p className="text-sm font-medium text-foreground">Current plan</p>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {usage.subscriptionTier === "superadmin"
-              ? "Super admin"
-              : usage.subscriptionTier === "admin"
-                ? "Admin"
-                : usage.subscriptionTier === "business"
-                  ? "Business"
-                  : usage.subscriptionTier === "pro"
-                    ? "Pro"
-                    : "Free"}
-          </p>
-          {!isUnlimited && (
-            <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="mt-3 block">
-              <Button variant="outline" size="sm" className="bg-transparent">
-                Upgrade
-              </Button>
-            </Link>
-          )}
+
+      <CardContent className="space-y-5">
+        <div className="flex min-w-0 gap-2 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1" role="tablist" aria-label="Subscription sections">
+          {tabs.map((tab) => {
+            const active = tab.id === activeTab;
+            return (
+              <Link
+                key={tab.id}
+                href={tab.id === "overview" ? "/app/settings/subscription" : `/app/settings/subscription?tab=${tab.id}`}
+                className={[
+                  "shrink-0 rounded-md px-3 py-2 text-sm font-medium transition",
+                  active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                ].join(" ")}
+                role="tab"
+                aria-selected={active}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
-            <p className="text-sm font-medium text-foreground">Analyst credits</p>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {isUnlimited
-              ? usage.unlimitedLabel || "Included AI credits"
-              : `${usage.analysisCount} / ${usage.total} included credits used`}
-          </p>
-          {!isUnlimited && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              {usage.limitReached
-                ? "Included credits are used. Upgrade to a higher plan to continue analysis."
-                : `${remaining} included ${remaining === 1 ? "credit" : "credits"} remaining.`}
-            </p>
-          )}
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-3 pt-2">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary mb-2">
-              <Sparkles className="h-3 w-3" />
-              Pricing
+        {activeTab === "overview" && (
+          <div className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-3">
+              <MetricCard label="Current Plan" value={currentPlanLabel} detail="Active account access" />
+              <MetricCard
+                label="AI Credits Summary"
+                value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount} / ${usage.total} used`}
+                detail={isUnlimited ? "No monthly credit limit applies." : `${remaining} credits remaining.`}
+              />
+              <MetricCard label="Dataset Usage" value={`${datasetCount} / ${datasetLimit}`} detail="Uploaded datasets in this workspace" />
+              <MetricCard label="Storage Usage" value={bytesToDisplay(storageBytes)} detail="Based on uploaded dataset file sizes" />
+              <MetricCard label="Monthly Reset" value="Monthly" detail="AI credits refresh each billing month." />
+              <MetricCard label="Upgrade Recommendation" value={usage.limitReached ? "Upgrade recommended" : "Plan is active"} detail={usage.limitReached ? "More credits are needed to continue analysis." : "Usage is within the current plan."} />
             </div>
-            <h2 className="text-base font-semibold text-foreground">Plans</h2>
-            <p className="text-sm text-muted-foreground">
-              Short plan overview. Full plan details live on the public plans page.
-            </p>
-          </div>
-          <Link href="/pricing">
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              Home plans
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-        <div className="grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-          {billingSettings.plans.map((plan) => {
-              const isCurrent =
-                (plan.tier === "free" && !isUnlimited) ||
-                (plan.tier === "pro" && usage.subscriptionTier === "pro") ||
-                (plan.tier === "business" && usage.subscriptionTier === "business");
 
-              return (
-                <div key={plan.id} className="min-w-0 rounded-lg border border-border bg-background p-4">
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground">{plan.name}</p>
-                      <p className="break-words text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
+            <div className="rounded-lg border border-border bg-background p-5">
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-foreground">Plan Benefits</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{activePlan.description}</p>
+                </div>
+                {!isUnlimited && (
+                  <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
+                    <Button className="shrink-0">Quick Upgrade</Button>
+                  </Link>
+                )}
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {activePlan.features.map((feature) => (
+                  <div key={feature} className="rounded-md bg-muted/50 px-3 py-2 text-sm text-foreground">
+                    {feature}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+              {billingSettings.plans.map((plan) => {
+                const isCurrent =
+                  (plan.tier === "free" && currentPlanLabel === "Free") ||
+                  (plan.tier === "pro" && tier === "pro") ||
+                  (plan.tier === "business" && tier === "business");
+
+                return (
+                  <div key={plan.id} className="min-w-0 rounded-lg border border-border bg-background p-4">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground">{plan.name}</p>
+                        <p className="break-words text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
+                      </div>
+                      {isCurrent && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
+                          Current
+                        </span>
+                      )}
                     </div>
-                    {isCurrent && (
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
-                        Current
-                      </span>
+                    <p className="mt-3 min-h-10 break-words text-sm text-muted-foreground">{plan.description}</p>
+                    {isCurrent ? (
+                      <Button disabled size="sm" variant="outline" className="mt-4 w-full bg-transparent">
+                        Active plan
+                      </Button>
+                    ) : (
+                      <Link href={`/app/settings/checkout?plan=${plan.id}`}>
+                        <Button
+                          size="sm"
+                          variant={plan.tier === "free" ? "outline" : "default"}
+                          className={plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"}
+                        >
+                          {plan.tier === "free" ? "Downgrade" : "Review change"}
+                        </Button>
+                      </Link>
                     )}
                   </div>
-                  <p className="mt-3 min-h-10 break-words text-sm text-muted-foreground">{plan.description}</p>
-                  {isCurrent ? (
-                    <Button
-                      disabled
-                      size="sm"
-                      variant="outline"
-                      className="mt-4 w-full bg-transparent"
-                    >
-                      Active plan
-                    </Button>
-                  ) : (
-                    <Link href={`/app/settings/checkout?plan=${plan.id}`}>
-                      <Button
-                        size="sm"
-                        variant={plan.tier === "free" ? "outline" : "default"}
-                        className={
-                          plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"
-                        }
-                      >
-                        {plan.tier === "free" ? "Downgrade" : "Review change"}
-                      </Button>
-                    </Link>
-                  )}
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "billing" && (
+          <div className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-3">
+              <MetricCard label="Current Subscription" value={currentPlanLabel} />
+              <MetricCard label="Payment Method" value={profile?.stripeCustomerId ? "Connected" : "Not connected"} />
+              <MetricCard label="Next Billing Date" value={nextBillingDate} />
+              <MetricCard label="Billing Cycle" value={billingCycle} />
+              <MetricCard label="Payment Status" value={paymentStatus} />
+              <MetricCard label="Billing History" value="No invoices yet" />
+            </div>
+
+            <div className="rounded-lg border border-dashed border-border bg-muted/40 p-4">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">
+                    {providerConfigured ? "Subscription billing" : "Payment provider not configured"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {profile?.stripeCurrentPeriodEnd
+                      ? `The current subscription period ends ${nextBillingDate}.`
+                      : providerConfigured
+                        ? "Choose a paid plan to open secure Stripe checkout."
+                        : "Contact sales to enable card collection and subscription billing."}
+                  </p>
                 </div>
-              );
-            })}
-        </div>
-        <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Checkout uses the active monthly plan price. If a payment provider is not connected,
-          checkout saves a review instead of collecting a card.
-        </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
+                <Button>Upgrade Plan</Button>
+              </Link>
+              <a href="mailto:sales@useclevr.com">
+                <Button variant="outline" className="bg-transparent">
+                  Cancel Subscription
+                </Button>
+              </a>
+            </div>
+
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ReceiptText className="h-4 w-4" />
+                  Invoices
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-hidden rounded-b-lg border-t border-border">
+                  <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr] bg-muted/30 px-5 py-3 text-xs font-medium text-muted-foreground">
+                    <span>Invoice</span>
+                    <span>Status</span>
+                    <span className="text-right">Amount</span>
+                  </div>
+                  <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+                    No invoices yet.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "usage" && (
+          <div className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-3">
+              <MetricCard label="Monthly Credits" value={isUnlimited ? "Unlimited" : String(usage.total)} />
+              <MetricCard label="Credits Used" value={isUnlimited ? "0" : String(usage.analysisCount)} />
+              <MetricCard label="Credits Remaining" value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : String(remaining)} />
+              <MetricCard label="Token Usage" value="Calculated per AI request" />
+              <MetricCard label="Estimated AI Cost" value="Tracked by provider usage" />
+              <MetricCard label="Monthly Reset Date" value="Monthly billing reset" />
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-cyan-800 dark:text-cyan-100" />
+                <h2 className="text-base font-semibold text-foreground">Usage History</h2>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Dataset usage currently shows {datasetCount} uploaded {datasetCount === 1 ? "dataset" : "datasets"}.
+                AI request history appears in AI Activity when provider audit logging is available for your plan.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <p className="text-sm font-semibold text-foreground">Upgrade Recommendation</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {usage.limitReached
+                  ? "You have used the included credits for this plan. Upgrade to continue analysis."
+                  : "Your current plan has enough credits for normal usage."}
+              </p>
+              {!isUnlimited && (
+                <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="mt-3 inline-block">
+                  <Button size="sm">Upgrade</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "terms" && (
+          <div className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-2">
+              <PolicyCard title="Terms" description="UseClevr service terms and acceptable use." href="/terms" />
+              <PolicyCard title="Privacy" description="Data handling, AI processing, cookies, and user rights." href="/privacy" />
+              <PolicyCard title="Billing Policy" description="Subscription billing, payment handling, invoices, and renewals." href="/terms" />
+              <PolicyCard title="Refund Policy" description="Refund requests are handled case by case through support." href="/terms" />
+            </div>
+            <div className="rounded-lg border border-border bg-background p-5">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <h2 className="text-base font-semibold text-foreground">Subscription Rules</h2>
+              </div>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li>Free plan usage is limited by included datasets and AI credits.</li>
+                <li>Paid subscriptions renew monthly unless cancelled before renewal.</li>
+                <li>Plan access changes after checkout and payment confirmation.</li>
+                <li>Invoices and payment receipts are handled through the payment provider.</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+function PolicyCard({ title, description, href }: { title: string; description: string; href: string }) {
+  return (
+    <Link href={href} className="block">
+      <div className="h-full rounded-lg border border-border bg-background p-5 transition hover:border-primary/40 hover:bg-muted/30">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <p className="font-semibold text-foreground">{title}</p>
+          <ArrowUpRight className="ml-auto h-4 w-4 text-muted-foreground" />
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+      </div>
+    </Link>
   );
 }
