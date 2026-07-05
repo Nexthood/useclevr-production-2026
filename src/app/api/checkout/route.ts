@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { logMissingStripePriceId } from "@/lib/billing/plans";
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
 import { getDb } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const plan = await getConfiguredBillingPlan(body.productId || body.plan);
+  logMissingStripePriceId(plan, "checkout");
 
   if (plan.tier === "free") {
     return NextResponse.json(

@@ -80,7 +80,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Is there a free plan?",
-        a: `Yes. The Free plan includes ${_freePlan.maxDatasets} datasets and limited AI questions so you can try the platform before upgrading. No credit card required.`,
+        a: `Yes. The Free plan includes ${_freePlan.limits.maxDatasets} datasets and limited AI questions so you can try the platform before upgrading. No credit card required.`,
       },
       {
         q: "Can I receive an invoice?",

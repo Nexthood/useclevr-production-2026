@@ -35,7 +35,7 @@ import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { skillEngine } from "@/lib/business/skill-engine";
 import { runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";
-import { datasetRows, datasets } from "@/lib/db/schema";
+import { datasetRows, datasets, profiles } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/data/queryEngine";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
@@ -51,6 +51,8 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
+import { checkCredits, deductCredits, getUserCreditInfo, initializeUserCredits } from "@/lib/billing/credit-engine";
+import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
 
 type AiProviderStatus = {
   label: string;
@@ -265,6 +267,78 @@ export async function POST(request: Request) {
         data: [],
         chartType: "table",
       }, { status: 429 });
+    }
+
+    // ============================================================================
+    // CREDIT & ENFORCEMENT CHECK - Check credits and usage limits
+    // ============================================================================
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+    })
+    const subscriptionTier = profile?.subscriptionTier || "free"
+
+    if (!isBuiltinUserId(userId)) {
+      await initializeUserCredits(userId, subscriptionTier)
+
+      const creditCheck = await checkCredits(userId, "dataset_analysis")
+      if (!creditCheck.allowed) {
+        await logAiCost({
+          userId,
+          subscriptionPlan: subscriptionTier,
+          provider: "system",
+          model: "system",
+          actionType: "dataset_analysis",
+          inputTokens: 0,
+          outputTokens: 0,
+          estimatedCostEur: 0,
+          creditsCharged: 0,
+          requestStatus: "blocked",
+          errorMessage: creditCheck.upgradeMessage,
+        })
+        return Response.json({
+          success: false,
+          error: "Insufficient credits",
+          answer: "You don't have enough AI credits for this analysis.",
+          insight: "Credit limit reached",
+          explanation: creditCheck.upgradeMessage || "Upgrade your plan or purchase more credits.",
+          recommendation: "Visit the subscription page to upgrade.",
+          data: [],
+          chartType: "table",
+          upgradeRequired: true,
+          remainingCredits: creditCheck.remainingCredits,
+        }, { status: 402 })
+      }
+
+      const enforcementCheck = await checkActionEnforcement(userId, "dataset_analysis")
+      if (!enforcementCheck.allowed) {
+        await logAiCost({
+          userId,
+          subscriptionPlan: subscriptionTier,
+          provider: "system",
+          model: "system",
+          actionType: "dataset_analysis",
+          inputTokens: 0,
+          outputTokens: 0,
+          estimatedCostEur: 0,
+          creditsCharged: 0,
+          requestStatus: "blocked",
+          errorMessage: enforcementCheck.reason,
+        })
+        return Response.json({
+          success: false,
+          error: enforcementCheck.reason || "Usage limit reached",
+          answer: "You've reached a usage limit for this action.",
+          insight: "Usage limit",
+          explanation: enforcementCheck.upgradeMessage || "Upgrade your plan for higher limits.",
+          recommendation: "Visit the subscription page to upgrade.",
+          data: [],
+          chartType: "table",
+          upgradeRequired: true,
+          usage: enforcementCheck.currentUsage,
+        }, { status: 402 })
+      }
+
+      await incrementDailyRequestCount(userId)
     }
 
     // ============================================================================
@@ -762,6 +836,28 @@ try {
         estimatedCostUsd: 0,
       })
       savedTraceId = trace?.id ?? null
+
+      // Deduct credits for successful analysis
+      if (!isBuiltinUserId(traceUserId)) {
+        const creditInfo = await getUserCreditInfo(traceUserId)
+        const deductionResult = await deductCredits(traceUserId, "dataset_analysis", traceDatasetId || undefined)
+
+        const latencyMs = Date.now() - requestStart
+        await logAiCost({
+          userId: traceUserId,
+          subscriptionPlan: subscriptionTier,
+          provider: traceProvider.toLowerCase().includes("gemini") ? "google" : traceProvider.toLowerCase().includes("ollama") ? "ollama" : "openai",
+          model: traceModel,
+          actionType: "dataset_analysis",
+          inputTokens: Math.ceil(question.length / 4),
+          outputTokens: Math.ceil(answer.length / 4),
+          estimatedCostEur: 0.001,
+          creditsCharged: deductionResult.creditsDeducted || 10,
+          requestStatus: "success",
+          datasetId: traceDatasetId || undefined,
+          latencyMs,
+        })
+      }
     }
 
     const responseBody = {

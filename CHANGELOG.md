@@ -57,6 +57,7 @@
 
 ### Fixed
 
+- Fix Business checkout payment readiness so the €420/month Business plan uses the configured Stripe monthly price and no longer shows a missing-provider warning when Stripe is configured.
 - Prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes.
 - Fix dataset detail and forecast actions so dataset pages use the same signed-in access rules, analysis avoids broken dataset navigation, and forecast guidance names missing data requirements.
 - Fix authenticated sidebar page spacing globally so page greetings and first headings start below the sticky top navigation without clipping.

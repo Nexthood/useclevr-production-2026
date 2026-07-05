@@ -1,9 +1,11 @@
 import { getBillingSettings } from "@/lib/billing/settings-store";
+import { logMissingStripePriceId } from "@/lib/billing/plans";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export async function GET(_request: NextRequest) {
   const settings = await getBillingSettings();
+  settings.plans.forEach((plan) => logMissingStripePriceId(plan, "checkout/options"));
 
   return NextResponse.json({
     plans: settings.plans.map((plan) => ({
@@ -16,7 +18,7 @@ export async function GET(_request: NextRequest) {
       features: plan.features,
       discountLabel: plan.discountLabel ?? null,
       stripePriceId: plan.stripePriceId ?? null,
-      status: plan.stripePriceId ? "ready" : "payment_provider_not_connected",
+      status: plan.tier === "free" || plan.stripePriceId ? "ready" : "payment_provider_not_connected",
     })),
   });
 }

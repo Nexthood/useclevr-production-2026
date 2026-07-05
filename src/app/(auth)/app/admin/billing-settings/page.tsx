@@ -1,6 +1,6 @@
 import { DashboardSubpageLayout, DashboardContent } from "@/components/layout/dashboard-subpage-layout";
 import { Card } from "@/components/ui/card";
-import { billingPlans, formatPlanPrice } from "@/lib/billing/plans";
+import { billingPlans, formatPlanPrice, getStripePriceEnvNames, type BillingPlanId } from "@/lib/billing/plans";
 import { CreditCard, Check, Infinity as InfinityIcon } from "lucide-react";
 
 function tierColor(tier: string): string {
@@ -30,10 +30,9 @@ function tierBadge(tier: string): string {
   }
 }
 
-function stripeEnvLabel(priceId: string | undefined): string {
-  if (!priceId) return "N/A (Free plan)";
-  const clean = priceId.replace(/^process\.env\./, "");
-  return clean || "N/A";
+function stripeEnvLabel(planId: BillingPlanId): string {
+  const envNames = getStripePriceEnvNames(planId);
+  return envNames.length > 0 ? envNames.join(" / ") : "N/A (Free plan)";
 }
 
 export default function AdminBillingSettingsPage() {
@@ -76,7 +75,7 @@ export default function AdminBillingSettingsPage() {
                     Env Variable
                   </h4>
                   <code className="block rounded bg-muted px-2 py-1 text-xs text-foreground">
-                    {stripeEnvLabel(plan.stripePriceId)}
+                    {stripeEnvLabel(plan.id)}
                   </code>
                 </div>
 
@@ -87,12 +86,12 @@ export default function AdminBillingSettingsPage() {
                   <p className="text-sm text-foreground">
                     Max datasets:{" "}
                     <span className="font-medium">
-                      {plan.maxDatasets === Infinity ? (
+                      {plan.limits.maxDatasets === Infinity ? (
                         <span className="inline-flex items-center gap-1">
                           Unlimited <InfinityIcon className="h-3.5 w-3.5" />
                         </span>
                       ) : (
-                        plan.maxDatasets
+                        plan.limits.maxDatasets
                       )}
                     </span>
                   </p>
