@@ -202,7 +202,7 @@ export async function checkActionEnforcement(
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
     return { allowed: true }
   }
 
@@ -423,7 +423,7 @@ export async function validateFileSize(userId: string, fileSizeMb: number): Prom
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
     return { allowed: true, limit: 1000 }
   }
 
@@ -456,7 +456,7 @@ export async function validateRowCount(userId: string, rowCount: number): Promis
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
     return { allowed: true, limit: 500000 }
   }
 

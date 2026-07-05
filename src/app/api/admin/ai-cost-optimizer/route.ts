@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth/auth"
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import { getAiCostOptimizerSnapshot, getProviderConfigurationStatus } from "@/lib/billing/ai-cost-optimizer"
 
 export async function GET(request: Request) {
   const session = await auth()
   const adminUserId = session?.user?.id
+  const adminEmail = session?.user?.email
 
-  if (!adminUserId || !isSuperAdminUserId(adminUserId)) {
+  const hasSuperAdminRole = adminUserId && isSuperAdminUserId(adminUserId)
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(adminEmail)
+
+  if (!adminUserId || (!hasSuperAdminRole && !isOfficialSuperAdmin)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

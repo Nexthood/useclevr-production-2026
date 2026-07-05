@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
 import { mcpTokens, type McpTokenScope } from "@/lib/db/schema";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -15,8 +16,13 @@ function generateToken(): { raw: string; hash: string; prefix: string } {
 
 async function requireAdmin(): Promise<{ userId: string } | NextResponse> {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== "superadmin") {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 }) as NextResponse;
+  }
+  const hasSuperAdminRole = session.user.role === "superadmin";
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session.user.email);
+  if (!hasSuperAdminRole && !isOfficialSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 }) as NextResponse;
   }
   return { userId: session.user.id };
 }

@@ -1,5 +1,8 @@
 export const DEMO_PASS = "12345678" as const
 
+export const OFFICIAL_SUPERADMIN_EMAIL = "superadmin@useclevr.com"
+export const OFFICIAL_SUPERADMIN_NAME = "Csaba Sztoika"
+
 export const BUILTIN_BASE_USER = {
   id: "base-user-id",
   email: "base@useclevr.app",
@@ -18,8 +21,8 @@ export const BUILTIN_DEMO_USER = {
 
 export const BUILTIN_SUPER_ADMIN_USER = {
   id: "super-admin-user-id",
-  email: "superadmin@useclevr.app",
-  name: "Super Admin",
+  email: OFFICIAL_SUPERADMIN_EMAIL,
+  name: OFFICIAL_SUPERADMIN_NAME,
   password: DEMO_PASS,
   role: "superadmin",
 } as const
@@ -45,4 +48,13 @@ export function isBuiltinUserId(userId?: string | null) {
 
 export function isSuperAdminUserId(userId?: string | null) {
   return userId === BUILTIN_SUPER_ADMIN_USER.id
+}
+
+export function isOfficialSuperAdminEmail(email?: string | null): boolean {
+  if (!email) return false
+  return email.trim().toLowerCase() === OFFICIAL_SUPERADMIN_EMAIL
+}
+
+export function isSuperAdminAccess(userId?: string | null, email?: string | null): boolean {
+  return isSuperAdminUserId(userId) || isOfficialSuperAdminEmail(email)
 }

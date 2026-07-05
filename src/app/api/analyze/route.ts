@@ -27,7 +27,7 @@ import {
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users";
+import { isSuperAdminUserId, isOfficialSuperAdminEmail, isSuperAdminAccess } from "@/lib/auth/builtin-users";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
 import { buildBusinessProfileContext } from "@/lib/business/company-setup";
@@ -240,10 +240,12 @@ export async function POST(request: Request) {
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
     const demoSessionToken = request.headers.get("x-demo-session");
     traceUserId = userId || null
 
     const isDemoUser = !userId && !!demoSessionToken;
+    const isSuperAdmin = (userId && isSuperAdminUserId(userId)) || isOfficialSuperAdminEmail(userEmail);
 
     if (!userId && !demoSessionToken) {
       return Response.json({
@@ -321,7 +323,7 @@ export async function POST(request: Request) {
 
     const effectiveUserId = userId || null
 
-    if (!isDemoUser && effectiveUserId && !isSuperAdminUserId(effectiveUserId)) {
+    if (!isDemoUser && effectiveUserId && !isSuperAdmin) {
       await initializeUserCredits(effectiveUserId, subscriptionTier)
 
       const creditCheck = await checkCredits(effectiveUserId, "dataset_analysis")
@@ -874,7 +876,7 @@ try {
       savedTraceId = trace?.id ?? null
 
       // Deduct credits for successful analysis
-      if (!isSuperAdminUserId(traceUserId)) {
+      if (!isSuperAdminAccess(traceUserId, userEmail)) {
         const creditInfo = await getUserCreditInfo(traceUserId)
         const deductionResult = await deductCredits(traceUserId, "dataset_analysis", traceDatasetId || undefined)
 

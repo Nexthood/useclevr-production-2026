@@ -61,11 +61,11 @@ function getTrialStatus(createdAt: Date | null | undefined, subscriptionTier: st
 }
 
 function isAdminAccess(value?: string | null) {
-  return value === "superadmin" || value === "admin"
+  return value === "admin"
 }
 
 function getUnlimitedLabel(tier: string, role?: string | null, userId?: string | null) {
-  if (isSuperAdminUserId(userId) || tier === "superadmin" || role === "superadmin") {
+  if (isSuperAdminUserId(userId)) {
     return "Superadmin unlimited"
   }
 
@@ -216,8 +216,8 @@ export async function getRowLimitForUser(userId?: string | null, role?: string |
     return ROW_LIMITS.SUPERADMIN
   }
 
-  if (userId && (role === "superadmin" || role === "admin")) {
-    return role === "superadmin" ? ROW_LIMITS.SUPERADMIN : ROW_LIMITS.ADMIN
+  if (userId && role === "admin") {
+    return ROW_LIMITS.ADMIN
   }
 
   if (!userId) {
@@ -240,10 +240,10 @@ export async function getRowLimitForUser(userId?: string | null, role?: string |
 
     const tier = profile?.subscriptionTier || "free"
     const profileRole = profile?.role || null
-    const isAdmin = profileRole === "superadmin" || profileRole === "admin"
+    const isAdmin = profileRole === "admin"
 
-    if (isAdmin || tier === "superadmin") return ROW_LIMITS.SUPERADMIN
-    if (tier === "admin" || profileRole === "admin") return ROW_LIMITS.ADMIN
+    if (tier === "superadmin") return ROW_LIMITS.SUPERADMIN
+    if (isAdmin || tier === "admin") return ROW_LIMITS.ADMIN
     if (tier === "business") return ROW_LIMITS.BUSINESS
     if (tier === "pro") return ROW_LIMITS.PRO
     return ROW_LIMITS.FREE

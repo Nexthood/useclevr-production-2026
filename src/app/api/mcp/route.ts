@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users";
 import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin";
 import { config as appConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
@@ -166,12 +167,16 @@ async function validateMCPAuth(request: NextRequest): Promise<MCPAuthContext> {
   // 3. Fall back to session auth
   const session = await auth();
   if (session?.user?.id) {
+    const hasSuperAdminRole = session.user.role === "superadmin"
+    const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session.user.email)
+    const isSuperAdmin = hasSuperAdminRole || isOfficialSuperAdmin
+    
     return {
       authenticated: true,
-      role: session.user.role === "superadmin" ? "admin" : "user",
+      role: isSuperAdmin ? "admin" : "user",
       userId: session.user.id,
       clientId: `user-${session.user.id}`,
-      scopes: session.user.role === "superadmin"
+      scopes: isSuperAdmin
         ? ["dataset:read", "dataset:write", "admin"]
         : ["dataset:read"],
     };

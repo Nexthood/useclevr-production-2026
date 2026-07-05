@@ -1,13 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { isBuiltinUserId, isOfficialSuperAdminEmail, OFFICIAL_SUPERADMIN_NAME } from "@/lib/auth/builtin-users"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { debugError } from "@/lib/utils/debug"
 import { eq } from "drizzle-orm"
-import { Building2, CheckCircle2, CreditCard, LockKeyhole, ShieldCheck, Sparkles, User } from "lucide-react"
+import { Building2, CheckCircle2, CreditCard, LockKeyhole, ShieldCheck, Sparkles, Star, User } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import type React from "react"
@@ -18,6 +18,8 @@ export const metadata: Metadata = { title: "Profile Settings" }
 export default async function ProfileSettingsPage() {
   const session = await auth()
   const user = session?.user
+  const userEmail = user?.email
+  const isSuperAdmin = isOfficialSuperAdminEmail(userEmail)
   const db = getDb()
   let loadError: string | null = null
   let profile: {
@@ -50,8 +52,8 @@ export default async function ProfileSettingsPage() {
     }
   }
 
-  const fullName = profile?.fullName || user?.name || ""
-  const email = profile?.email || user?.email || ""
+  const fullName = isSuperAdmin ? OFFICIAL_SUPERADMIN_NAME : (profile?.fullName || user?.name || "")
+  const email = isSuperAdmin ? (userEmail || "") : (profile?.email || user?.email || "")
   const setupStatus = user?.id ? await getSetupStatus(user.id) : null
   const usage = await getAnalystCreditUsage(user?.id, user?.role)
   const profileComplete = Boolean(fullName && email)
@@ -162,18 +164,33 @@ export default async function ProfileSettingsPage() {
           </Card>
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            <Card className="border-border bg-card">
-              <CardHeader className="pb-4">
-                <SectionTitle icon={CreditCard} title="Subscription" description="Plan access and analyst usage." complete={subscriptionComplete} />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <MetricLine label="Plan" value={planLabel} />
-                <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount}/${usage.total} used`} />
-                <Link href="/app/settings/subscription" className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted">
-                  Manage subscription
-                </Link>
-              </CardContent>
-            </Card>
+            {isSuperAdmin ? (
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-4">
+                  <SectionTitle icon={Star} title="Superadmin Access" description="Internal UseClevr administrator." complete={true} />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <MetricLine label="Status" value="Unlimited Superadmin" />
+                  <MetricLine label="Email" value={email || "Missing"} />
+                  <div className="rounded-md border border-purple-500/30 bg-purple-500/10 p-3 text-sm text-purple-700 dark:text-purple-300">
+                    Superadmin has unlimited internal access. Usage is tracked for analytics but no payment is required.
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-4">
+                  <SectionTitle icon={CreditCard} title="Subscription" description="Plan access and analyst usage." complete={subscriptionComplete} />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <MetricLine label="Plan" value={planLabel} />
+                  <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount}/${usage.total} used`} />
+                  <Link href="/app/settings/subscription" className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                    Manage subscription
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="border-border bg-card">
               <CardHeader className="pb-4">
@@ -181,7 +198,7 @@ export default async function ProfileSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <MetricLine label="Email identity" value={email || "Missing"} />
-                <MetricLine label="Account type" value={isBuiltinUserId(user?.id) ? "Built-in demo" : "User account"} />
+                <MetricLine label="Account type" value={isSuperAdmin ? "Unlimited Superadmin" : (isBuiltinUserId(user?.id) ? "Built-in demo" : "User account")} />
                 <div className="rounded-md border border-border bg-background/70 p-3 text-sm text-muted-foreground">
                   Authentication settings are managed by the active sign-in provider.
                 </div>

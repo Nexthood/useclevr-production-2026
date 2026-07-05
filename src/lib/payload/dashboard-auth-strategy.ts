@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth"
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail, OFFICIAL_SUPERADMIN_EMAIL } from "@/lib/auth/builtin-users"
 import type { AuthStrategy } from "payload"
 
 export const dashboardSessionStrategy: AuthStrategy = {
@@ -18,9 +18,13 @@ export const dashboardSessionStrategy: AuthStrategy = {
       overrideAccess: true,
     })
 
-    const role = isSuperAdminUserId(dashboardUser.id) ? "superadmin" : "base"
+    const isBuiltinSuperAdmin = isSuperAdminUserId(dashboardUser.id)
+    const isOfficialSuperAdmin = isOfficialSuperAdminEmail(dashboardUser.email)
+    const isSuperAdmin = isBuiltinSuperAdmin || isOfficialSuperAdmin
+    const role = isSuperAdmin ? "superadmin" : "base"
+    
     const existingDoc = existing.docs[0]
-    if (existingDoc?.role === "superadmin" && role !== "superadmin") {
+    if (existingDoc?.role === "superadmin" && !isSuperAdmin) {
       return { user: null }
     }
 
