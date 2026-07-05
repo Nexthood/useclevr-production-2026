@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
-import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
+import { billingPlans, formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
 import { AlertCircle, CreditCard, Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
@@ -64,7 +64,9 @@ export default function DownloadsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
-  const selectedPlan = getBillingPlan("pro_monthly")
+  const [selectedPlanId, setSelectedPlanId] = useState<"pro_monthly" | "business_monthly">("pro_monthly")
+  const selectedPlan = getBillingPlan(selectedPlanId)
+  const paidPlans = billingPlans.filter((plan) => plan.id === "pro_monthly" || plan.id === "business_monthly")
 
   // Fetch user data and downloads in parallel
   const fetchData = useCallback(async () => {
@@ -570,6 +572,31 @@ export default function DownloadsPage() {
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-background p-4">
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              {paidPlans.map((plan) => {
+                const isSelected = plan.id === selectedPlan.id
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlanId(plan.id as "pro_monthly" | "business_monthly")
+                      setCheckoutError(null)
+                    }}
+                    className={[
+                      "rounded-lg border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isSelected ? "border-primary bg-primary/10" : "border-border bg-muted/30 hover:border-primary/50",
+                    ].join(" ")}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{plan.name}</span>
+                    <span className="mt-1 block text-xs font-medium text-foreground">{formatPlanPrice(plan)}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{plan.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Selected plan</p>

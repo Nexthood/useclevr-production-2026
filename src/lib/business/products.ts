@@ -8,6 +8,15 @@ export const PRODUCTS = {
     currency: "eur",
     interval: "month" as const,
   },
+  business_monthly: {
+    id: "business_monthly",
+    name: "UseClevr Business",
+    description:
+      "For teams and companies. Unlimited datasets, full Hybrid AI, team members, API and MCP access, priority infrastructure, advanced BI modules, dedicated support, and enterprise billing.",
+    priceInCents: 42000,
+    currency: "eur",
+    interval: "month" as const,
+  },
 }
 
 // Credit-based pricing (like v0)
