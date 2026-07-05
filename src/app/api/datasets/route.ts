@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     if (!currentUsage.canAnalyze) {
       return NextResponse.json({
         error: "Analyst credit limit reached",
-        message: "You have used your free dataset credits. Subscribe to Pro or top up to upload another dataset.",
+        message: "You have used your included AI credits for this plan. Upgrade to continue uploading another dataset.",
         usage: currentUsage,
       }, { status: 402 })
     }

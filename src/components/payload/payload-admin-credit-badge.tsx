@@ -19,7 +19,7 @@ export function PayloadCreditBadge() {
 
   return (
     <a
-      href="/app/settings/billing"
+      href="/app/settings/subscription?tab=billing"
       target="_parent"
       title={`${credits} credits remaining — Click to manage billing`}
       style={{

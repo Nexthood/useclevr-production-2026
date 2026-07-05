@@ -38,7 +38,6 @@ import { db } from "@/lib/db";
 import { datasetRows, datasets, profiles } from "@/lib/db/schema";
 import { analyzeWithMCP, buildMCPToolsPrompt, initializeMCPContext } from "@/lib/mcp/integration";
 import { detectChartType, detectMetricColumn, generateQuery } from "@/lib/data/queryEngine";
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { analyzeRequestSchema, validateOrError } from "@/lib/validation";
 import type { PrecomputedMetrics } from "@/lib/utils/pipeline-types";
 import {
@@ -364,28 +363,6 @@ export async function POST(request: Request) {
         debugLog('[ANALYZE] MCP context initialized for dataset:', datasetId);
       } catch (mcpError) {
         debugLog('[ANALYZE] MCP initialization skipped:', mcpError);
-      }
-    }
-
-    // Only check limits for persisted customer users
-    if (userId && !isBuiltinUserId(userId)) {
-      try {
-        const usage = await getAnalystCreditUsage(userId, session.user.role);
-        if (usage.limitReached) {
-          debugLog('[ANALYZE] REJECTED: Free limit reached');
-          return Response.json({
-            success: false,
-            error: 'Free limit reached',
-            message: 'You\'ve used your 2 included Analyst credits. Subscribe to Pro or top up your balance to continue.',
-            upgradeRequired: true,
-            analysisCount: usage.analysisCount,
-            creditsRemaining: 0,
-          });
-        }
-      } catch (profileError: any) {
-        // Log the DB error but do NOT block the analyze request
-        debugError('[ANALYZE] Profile query failed:', profileError?.message || profileError);
-        // Continue without blocking - usage tracking is secondary
       }
     }
 

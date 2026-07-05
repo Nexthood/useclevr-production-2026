@@ -68,7 +68,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "What happens after I upgrade?",
-        a: "After upgrading, your account is updated automatically and you get access to the features included in your selected plan, such as higher usage limits, advanced reports, downloads, and premium analysis features.",
+        a: "After upgrading, your account is updated automatically and you get access to the features included in your selected plan, such as more datasets, more AI credits, business analysis, reports, exports, and support.",
       },
       {
         q: "Can I cancel my subscription?",
@@ -108,7 +108,7 @@ export const allFaqCategories: FaqCategory[] = [
        },
        {
          q: "Can I get a custom business plan?",
-         a: `Yes. Business is €${publicMonthlyPlanPrices.business}/month and scales with your needs. Contact sales@useclevr.com for private SLAs or deployment questions.`,
+         a: `Business is €${publicMonthlyPlanPrices.business}/month and is designed for teams that need accounting AI, document processing, and dedicated support. Contact sales@useclevr.com for billing or support questions.`,
        },
       {
         q: "Will I be charged on my billing day?",
@@ -183,7 +183,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Can I self-host UseClevr?",
-        a: "Self-hosting is available on the Business plan. Contact sales@useclevr.com to discuss private deployment options for your organisation.",
+        a: "Self-hosting is not part of the standard public plans. Contact sales@useclevr.com if you need to discuss a future private setup.",
       },
       {
         q: "Can I change theme, contrast, or text size?",

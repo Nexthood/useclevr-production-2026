@@ -77,16 +77,20 @@ export default async function Topbar() {
             <TopbarPanelLink href="/mentoring">Public page</TopbarPanelLink>
           </TopbarSection>
 
-          <TopbarSection
-            icon={<CreditCard className="h-4 w-4" />}
-            label="Credits"
-            value={`${remainingCredits} ${levelLabel}`}
-            iconOnly
+          <Link
+            href="/app/settings/subscription"
+            className="group flex h-full min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
+            title="Subscription"
+            aria-label="Subscription"
           >
-            <TopbarPanelLink href="/app/settings/subscription">Subscription</TopbarPanelLink>
-            <TopbarPanelLink href="/app/settings/billing">Billing</TopbarPanelLink>
-            <TopbarPanelLink href="/app/settings/credits">Rules</TopbarPanelLink>
-          </TopbarSection>
+            <CreditCard className="h-4 w-4 flex-shrink-0 text-muted-foreground transition group-hover:text-foreground" />
+            <span className="hidden min-w-0 lg:block">
+              <span className="block truncate text-xs font-semibold leading-4 whitespace-nowrap">Subscription</span>
+              <span className="block truncate text-[11px] leading-4 whitespace-nowrap text-muted-foreground">
+                {remainingCredits} {levelLabel}
+              </span>
+            </span>
+          </Link>
 
           {session?.user?.role === "superadmin" && (
             <TopbarSection
@@ -98,6 +102,7 @@ export default async function Topbar() {
               <TopbarPanelLink href="/app/admin/levels">Levels</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/discounts">Discounts</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/billing-settings">Billing</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/ai-cost-optimizer">AI Cost Optimizer</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/ai-traces">AI Traces</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/ai-benchmarking">Benchmarking</TopbarPanelLink>
             </TopbarSection>

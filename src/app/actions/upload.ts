@@ -13,8 +13,10 @@ import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
-import { consumeAnalystCredit, requireAnalystCredit, getRowLimitForUser, formatRowLimitError, type AnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { formatRowLimitError } from "@/lib/usage/analyst-credits"
 import { getDatasetLimitInfo, getDatasetLimitError, type DatasetLimitInfo } from "@/lib/usage/dataset-limits"
+import { checkActionEnforcement, validateFileSize, validateRowCount } from "@/lib/billing/usage-enforcement"
+import { getRowLimitForTier } from "@/lib/billing/plans"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
@@ -82,7 +84,7 @@ export async function uploadCSV(formData: FormData): Promise<{
   fileName?: string
   preview?: { headers: string[]; rows: CsvRow[] }
   profitabilityResult?: any
-  usage?: AnalystCreditUsage
+  usage?: { limitReached?: boolean; analysisCount?: number; total?: number; subscriptionTier?: string }
   step?: string
   limitInfo?: DatasetLimitInfo
 }> {
@@ -225,15 +227,6 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "User ID not found. Please sign in again." }
     }
 
-    const currentUsage = await requireAnalystCredit(effectiveUserId, sessionRole)
-    if (!currentUsage.canAnalyze) {
-      return {
-        success: false,
-        error: "Analyst credit limit reached. Subscribe to Pro or top up to upload another dataset.",
-        usage: currentUsage,
-      }
-    }
-
     const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
@@ -241,7 +234,17 @@ export async function uploadCSV(formData: FormData): Promise<{
         success: false,
         error: limitError,
         limitInfo,
-        usage: currentUsage,
+        usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
+      }
+    }
+
+    const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload")
+    if (!enforcementCheck.allowed) {
+      return {
+        success: false,
+        error: `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`,
+        limitInfo,
+        usage: { limitReached: true, analysisCount: enforcementCheck.currentUsage?.datasets ?? limitInfo.currentCount, total: enforcementCheck.currentUsage?.datasetLimit ?? limitInfo.limit, subscriptionTier: limitInfo.tier },
       }
     }
 
@@ -261,14 +264,20 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "File must be a CSV or Excel file (.csv, .xlsx, .xls)" }
     }
 
-    // File size limits - support up to 50MB
     const maxSize = 50 * 1024 * 1024 // 50MB
     if (file.size > maxSize) {
       return { success: false, error: "File size must be less than 50MB" }
     }
 
-    // Get user's row limit based on plan tier
-    const rowLimit = await getRowLimitForUser(effectiveUserId, sessionRole)
+    const fileSizeValidation = await validateFileSize(effectiveUserId, file.size / (1024 * 1024))
+    if (!fileSizeValidation.allowed) {
+      return {
+        success: false,
+        error: `FILE_SIZE_LIMIT|${fileSizeValidation.message || "File size exceeds your plan limit."}`,
+      }
+    }
+
+    const rowLimit = getRowLimitForTier(limitInfo.tier)
     debugLog("[UPLOAD] Row limit for user:", rowLimit)
 
     // Use streaming parser to handle large files efficiently
@@ -288,13 +297,20 @@ export async function uploadCSV(formData: FormData): Promise<{
     debugLog("[UPLOAD] row count detected:", totalRowCount)
     debugLog("[UPLOAD] exceeds limit:", parseResult.exceedsLimit)
 
-    // Check if file exceeds row limit - show upgrade message
-    if (parseResult.exceedsLimit) {
-      const planName = currentUsage.unlimitedLabel || currentUsage.subscriptionTier || "Free"
+    const rowValidation = await validateRowCount(effectiveUserId, totalRowCount)
+    if (!rowValidation.allowed) {
       return {
         success: false,
-        error: formatRowLimitError(totalRowCount, rowLimit, planName),
-        usage: currentUsage,
+        error: formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName),
+        usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
+      }
+    }
+
+    if (parseResult.exceedsLimit) {
+      return {
+        success: false,
+        error: formatRowLimitError(totalRowCount, rowLimit, limitInfo.planName),
+        usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
       }
     }
 
@@ -568,7 +584,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       // Suggestion refresh is best-effort
     }
 
-    const usage = await consumeAnalystCredit(effectiveUserId, sessionRole)
+    const usage = { limitReached: false, analysisCount: limitInfo.currentCount + 1, total: limitInfo.limit, subscriptionTier: limitInfo.tier }
 
     debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 

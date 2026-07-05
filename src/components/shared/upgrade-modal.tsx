@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
+import { billingPlans } from "@/lib/billing/plans"
 import { CreditCard, Sparkles, Store } from "lucide-react"
 import Link from "next/link"
 
@@ -26,6 +27,9 @@ export function UpgradeModal({
   description = `Your current plan allows up to ${limit} datasets. You currently have ${currentCount} datasets.`,
   usageLabel = "datasets used",
 }: UpgradeModalProps) {
+  const proPlan = billingPlans.find((plan) => plan.id === "pro_monthly")
+  const businessPlan = billingPlans.find((plan) => plan.id === "business_monthly")
+
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={title} description={description}>
       <div className="space-y-5">
@@ -49,7 +53,9 @@ export function UpgradeModal({
               <Sparkles className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold text-foreground">Pro</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">25 datasets, Hybrid AI Lite, priority processing, and downloads.</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              {proPlan?.description || "AI-powered analytics for growing businesses."}
+            </p>
             <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="block">
               <Button size="sm" className="w-full" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />
@@ -63,7 +69,9 @@ export function UpgradeModal({
               <Store className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold text-foreground">Business</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">Unlimited datasets, advanced security, private deployment, and dedicated support.</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              {businessPlan?.description || "Advanced AI platform for business teams."}
+            </p>
             <Link href="/app/settings/checkout?plan=business_monthly" className="block">
               <Button size="sm" variant="outline" className="w-full bg-transparent" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />

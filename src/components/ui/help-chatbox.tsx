@@ -108,7 +108,7 @@ const usyIntents: UsyIntent[] = [
     minScore: 3,
     followUps: pricingFollowUps,
     answer: () =>
-      `Pro is €${publicMonthlyPlanPrices.pro}/month. It gives you more datasets, advanced AI analysis, and faster business insights. You can upgrade from Billing Settings.`,
+      `Pro is €${publicMonthlyPlanPrices.pro}/month. It includes 500 AI credits per month, up to 25 datasets, AI business analysis, revenue and margin analysis, stock detection, reports, exports, and priority support. You can upgrade from Billing Settings.`,
   },
   {
     id: "business-pricing",
@@ -117,7 +117,7 @@ const usyIntents: UsyIntent[] = [
     minScore: 3,
     followUps: pricingFollowUps,
     answer: () =>
-      `Business is €${publicMonthlyPlanPrices.business}/month. It is the best fit when you need unlimited dataset capacity, team features, priority support, and the full Hybrid AI feature set. You can start from Billing Settings.`,
+      `Business is €${publicMonthlyPlanPrices.business}/month. It includes 5000 AI credits per month, everything in Pro, Accounting AI, invoice and receipt processing, and dedicated support. You can start from Billing Settings.`,
   },
   {
     id: "pricing-general",
@@ -125,7 +125,7 @@ const usyIntents: UsyIntent[] = [
     keywords: ["price", "pricing", "cost", "costs", "plans", "subscription", "upgrade", "compare free pro", "free vs pro"],
     followUps: pricingFollowUps,
     answer: () =>
-      `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with limited included usage; Pro adds more datasets and advanced AI analysis; Business adds unlimited dataset capacity, team features, priority support, and the most complete Hybrid AI access.`,
+      `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with 50 AI credits and 2 datasets; Pro adds 500 AI credits, 25 datasets, business analysis, reports, exports, and priority support; Business adds 5000 AI credits, Accounting AI, document processing, and dedicated support.`,
   },
   {
     id: "upload",
@@ -385,7 +385,7 @@ function buildFallbackAnswer(question: string, context: UsyContext) {
 
 function nextStepForIntent(intent: UsyIntent, context: UsyContext) {
   if (intent.id === "pro-pricing" || intent.id === "pricing-general") return "open Billing Settings and choose Upgrade to Pro when you are ready."
-  if (intent.id === "business-pricing") return "open Billing Settings and choose Business if you need team or unlimited dataset capacity."
+  if (intent.id === "business-pricing") return "open Billing Settings and choose Business if you need Accounting AI, document processing, and dedicated support."
   if (intent.id.startsWith("admin-") && platformBrainRoles.includes(context.role)) return "open the matching admin sidebar page and check the latest platform state there."
   if (intent.id.includes("upload")) return "open Upload, try the file again, and check whether the message points to plan limits or file formatting."
   if (intent.id === "forecast") return "check that your dataset includes a date column and a numeric business column such as revenue, sales, profit, quantity, or cost."

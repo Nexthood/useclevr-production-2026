@@ -27,6 +27,7 @@ export type EnforcementAction =
   | "multi_dataset_analysis"
   | "data_insight"
   | "file_upload"
+  | "mcp_tool_invocation"
 
 export interface EnforcementResult {
   allowed: boolean
