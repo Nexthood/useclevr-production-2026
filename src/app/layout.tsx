@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
   icons: {
     icon: [
+      { url: "/useclevr-favicon-2026.svg", type: "image/svg+xml" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icon.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon.ico", sizes: "any" },
