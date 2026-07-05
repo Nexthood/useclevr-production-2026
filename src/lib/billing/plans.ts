@@ -1,4 +1,10 @@
 export type BillingPlanId = "free" | "pro_monthly" | "business_monthly";
+export type StripePricePlanId = BillingPlanId | "pro_annual";
+
+type StripePriceEnvConfig = {
+  primary: string;
+  fallbacks?: string[];
+};
 
 export interface BillingPlan {
   id: BillingPlanId;
@@ -12,6 +18,40 @@ export interface BillingPlan {
   stripePriceId?: string;
   maxDatasets: number;
   maxRowsPerFile: number;
+}
+
+const stripePriceEnvByPlanId: Partial<Record<StripePricePlanId, StripePriceEnvConfig>> = {
+  pro_monthly: { primary: "STRIPE_PRICE_PRO_MONTHLY" },
+  pro_annual: { primary: "STRIPE_PRICE_PRO_ANNUAL" },
+  business_monthly: {
+    primary: "STRIPE_PRICE_BUSINESS_MONTHLY",
+    fallbacks: ["STRIPE_PRICE_ID_BUSINESS_MONTHLY"],
+  },
+};
+
+export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
+  const config = stripePriceEnvByPlanId[planId];
+  if (!config) return [];
+  return [config.primary, ...(config.fallbacks ?? [])];
+}
+
+export function resolveStripePriceId(planId: StripePricePlanId): string | undefined {
+  return getStripePriceEnvNames(planId)
+    .map((envName) => process.env[envName]?.trim())
+    .find((priceId): priceId is string => Boolean(priceId));
+}
+
+export function getMissingStripePriceEnvLabel(planId: StripePricePlanId): string {
+  const envNames = getStripePriceEnvNames(planId);
+  return envNames.length > 0 ? envNames.join(" or ") : "no Stripe price env configured";
+}
+
+export function logMissingStripePriceId(plan: BillingPlan, context: string) {
+  if (process.env.NODE_ENV === "production" || plan.tier === "free" || plan.stripePriceId) return;
+
+  console.warn(
+    `[${context}] Missing Stripe price ID for plan "${plan.id}". Set ${getMissingStripePriceEnvLabel(plan.id)}.`,
+  );
 }
 
 export const billingPlans: BillingPlan[] = [
@@ -36,7 +76,7 @@ export const billingPlans: BillingPlan[] = [
     features: ["25 datasets", "Hybrid AI Lite", "Priority processing", "Download center"],
     maxDatasets: 25,
     maxRowsPerFile: 100_000,
-    stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY,
+    stripePriceId: resolveStripePriceId("pro_monthly"),
   },
   {
     id: "business_monthly",
@@ -60,7 +100,7 @@ export const billingPlans: BillingPlan[] = [
     ],
     maxDatasets: Infinity,
     maxRowsPerFile: 300_000,
-    stripePriceId: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
+    stripePriceId: resolveStripePriceId("business_monthly"),
   },
 ];
 

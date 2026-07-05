@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { billingPlans, formatPlanPrice, getBillingPlan, normalizeBillingPlanId } from "@/lib/billing/plans";
+import { billingPlans, formatPlanPrice, getBillingPlan, normalizeBillingPlanId, type BillingPlan } from "@/lib/billing/plans";
 
 type DiscountRule = {
   id: string;
@@ -21,6 +21,19 @@ import * as React from "react";
 
 type CheckoutStep = "review" | "terms";
 
+type CheckoutPlan = BillingPlan & {
+  status?: "ready" | "payment_provider_not_connected";
+};
+
+type CheckoutPlanOption = Omit<CheckoutPlan, "stripePriceId"> & {
+  stripePriceId?: string | null;
+};
+
+const defaultCheckoutPlans: CheckoutPlan[] = billingPlans.map((plan) => ({
+  ...plan,
+  status: plan.tier === "free" ? "ready" : "payment_provider_not_connected",
+}));
+
 function CheckoutClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,23 +43,61 @@ function CheckoutClient() {
   const planId = normalizeBillingPlanId(searchParams.get("plan"));
   const initialDiscount = searchParams.get("discount");
   const [discount, _setDiscount] = React.useState<boolean>(initialDiscount === "auto");
-  const [plan, setPlan] = React.useState(getBillingPlan(planId));
+  const [availablePlans, setAvailablePlans] = React.useState<CheckoutPlan[]>(defaultCheckoutPlans);
+  const [isPlanConfigLoading, setIsPlanConfigLoading] = React.useState(true);
   const [step, setStep] = React.useState<CheckoutStep>("review");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [isGoing, setIsGoing] = React.useState(false);
   const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
   const [availableDiscounts, setAvailableDiscounts] = React.useState<DiscountRule[]>([]);
 
-  // When the URL changes (back/forward), keep state in sync.
-  React.useEffect(() => {
-    setPlan(getBillingPlan(searchParams.get("plan")));
-  }, [searchParams]);
+  const plan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
+  const paidPlans = availablePlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
 
-  const paidPlans = billingPlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
+  // Load checkout readiness from the server because Stripe price env vars are server-only.
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadCheckoutOptions() {
+      setIsPlanConfigLoading(true);
+      try {
+        const response = await fetch("/api/checkout/options", { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !Array.isArray(data.plans)) return;
+
+        const serverPlans = new Map<string, CheckoutPlanOption>(
+          data.plans.map((serverPlan: CheckoutPlanOption) => [serverPlan.id, serverPlan]),
+        );
+
+        if (!cancelled) {
+          setAvailablePlans(
+            billingPlans.map((staticPlan) => {
+              const serverPlan = serverPlans.get(staticPlan.id);
+              return {
+                ...staticPlan,
+                ...(serverPlan ?? {}),
+                stripePriceId:
+                  typeof serverPlan?.stripePriceId === "string" ? serverPlan.stripePriceId : undefined,
+              };
+            }),
+          );
+        }
+      } catch {
+        // Keep the static plan copy visible; the payment panel explains when checkout is unavailable.
+      } finally {
+        if (!cancelled) setIsPlanConfigLoading(false);
+      }
+    }
+
+    loadCheckoutOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectPlan = (nextPlanId: string) => {
     const normalized = normalizeBillingPlanId(nextPlanId);
-    setPlan(getBillingPlan(normalized));
     setStep("review");
     setTermsAccepted(false);
     setCheckoutError(null);
@@ -74,8 +125,12 @@ function CheckoutClient() {
   }, [plan.tier]);
 
   const tscUrl = "/terms";
-  const canReview = !!plan.stripePriceId;
-  const submitLabel = canReview ? "Continue to secure payment" : "Checkout unavailable";
+  const canReview = !isPlanConfigLoading && !!plan.stripePriceId;
+  const submitLabel = isPlanConfigLoading
+    ? "Checking payment provider..."
+    : canReview
+      ? "Continue to secure payment"
+      : "Checkout unavailable";
 
   const onSubmit = async () => {
     if (!termsAccepted) return;
@@ -330,11 +385,13 @@ function CheckoutClient() {
                   <h2 className="font-semibold text-base">Payment</h2>
                 </div>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  {canReview
+                  {isPlanConfigLoading
+                    ? "Checking the payment provider for this plan."
+                    : canReview
                     ? "Payment will be processed once you continue past this screen."
                     : "Card payment activates after the payment provider is connected."}
                 </p>
-                {!canReview && (
+                {!isPlanConfigLoading && !canReview && (
                   <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     Payment provider connection is required before saving card details. Contact support to enable Stripe integration.
                   </div>
@@ -342,7 +399,7 @@ function CheckoutClient() {
                 <div className="mt-3 space-y-1.5">
                   <Button
                     onClick={onSubmit}
-                    disabled={!termsAccepted || isGoing || !canReview}
+                    disabled={!termsAccepted || isGoing || isPlanConfigLoading || !canReview}
                     className="w-full"
                   >
                     {isGoing
@@ -362,7 +419,11 @@ function CheckoutClient() {
                 </div>
                 <div className="mt-2 space-y-1.5">
                   <p className="text-xs text-muted-foreground">
-                    Checkout requires an active payment provider and a configured price for this plan.
+                    {isPlanConfigLoading
+                      ? "Checking secure checkout availability for this plan."
+                      : canReview
+                        ? "Secure Stripe checkout opens after you accept the terms."
+                        : "Checkout requires an active payment provider and a configured price for this plan."}
                   </p>
                   <Link href="/app/settings/subscription" className="block">
                     <Button variant="outline" className="w-full bg-transparent">
