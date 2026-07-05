@@ -305,9 +305,9 @@ Text rules for this file:
 - Use a compact default text scale across public and dashboard pages.
 - Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Start authenticated sidebar page content below the sticky top navigation with consistent spacing so the first greeting, heading, or report title stays fully visible.
-- Show Business and Accountancy sidebar badges that mark incomplete onboarding as Required or show
-  the completion percentage, switch to a completed check at 100%, and route incomplete Business
-  clicks directly to Business Profile setup.
+- Show Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile
+  status; keep Required only for missing or incomplete profiles, switch to a green completed
+  check at 100%, and route incomplete Business clicks directly to Business Profile setup.
 - Keep topbar items on one line with consistent icon color and compact hover targets.
 - Show a host-specific keyboard shortcut in the dashboard search trigger.
 - Show a simple sun/moon theme toggle in the global topbar.

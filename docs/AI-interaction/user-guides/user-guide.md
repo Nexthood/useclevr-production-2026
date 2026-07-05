@@ -44,8 +44,8 @@ future path.
 
 ## Theme Settings
 
-- Click the theme icon in the topbar to switch between Light, Dark, and System themes.
-- Use the icon controls under Accessibility to change text size, page zoom, and contrast.
+- Click the sun/moon icon in the topbar to switch between Light and Dark themes.
+- Use browser or operating-system accessibility settings for text size, page zoom, and contrast.
 - Your theme preference persists across sessions.
 - Use [Accessibility and display settings](../../User_Guides/accessibility.md) for display guidance.
 

@@ -1,5 +1,6 @@
+- fixed: show completed Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves
 - changed: add a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, plus reusable consent helpers for analytics and product-improvement cookie checks
-- changed: limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button
+- changed: remove app zoom controls, reset saved zoom preferences, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button
 - changed: show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces with shared monthly plan pricing as the canonical source
 - fixed: prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes
 - changed: provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, worldwide SaaS terms, cross-links, and checkout legal links that use app routes
@@ -54,7 +55,7 @@
 - changed: remove setup progress and guided tour popups so onboarding focuses on Business Profile, Accountancy, Dataset Upload, and Analysis
 - fixed: add consistent 24px page-header spacing on Downloads, Datasets, Business, Accountancy, and Retail pages
 - changed: generate contextual AI Assistant suggestions automatically after dataset selection with dataset-type detection, per-dataset caching, and fallback questions
-- changed: simplify display controls to a compact Light Mode, Dark Mode, and zoom-level menu with dark mode as the default
+- changed: simplify display controls to a compact Light Mode and Dark Mode theme control with dark mode as the default
 - changed: show Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states that route incomplete users to setup workflows
 - changed: redesign Account settings as a wide control center with Profile, Company, Subscription, Security, account status, completion indicators, and Continue Setup
 - changed: expand Business Profile setup into a conditional professional wizard with tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth assumptions for uploaded-data analysis

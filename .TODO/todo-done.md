@@ -49,8 +49,9 @@ moving work between states.
 
 ## Label: ui
 
+- T-926. Show Business, Accountancy, and Retail completed sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves. (labels: ui, business, stability; commit: worktree)
 - T-925. Show a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, storing reusable consent choices under `useclevr_cookie_consent`. (labels: ui, security, accessibility; commit: worktree)
-- T-924. Limit app zoom controls to 75% and 100%, reset unsupported saved zoom values to 100%, and constrain the Usy assistant panel inside the viewport with an always-visible close button. (labels: ui, accessibility, stability; commit: worktree)
+- T-924. Remove app zoom controls, reset saved zoom preferences, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button. (labels: ui, accessibility, stability; commit: worktree)
 - T-922. Prevent upgrade prompts and cards from rendering before app usage, plan, and role state resolves, so admin and superadmin sessions never see automatic Free-plan upgrade flashes on Downloads. (labels: ui, billing, stability; commit: worktree)
 - T-921. Provide globally oriented Terms of Service and Privacy Policy pages with working internal legal links, SEO metadata, dark UseClevr styling, GDPR, UK GDPR, CCPA, CPRA, international users, cross-border processing, Stripe payment processing, AI processing, worldwide SaaS subscription terms, and checkout links that use app routes. (labels: ui, content, security; commit: worktree)
 - T-916. Position the opened Usy desktop assistant panel lower below the top browser and app header while preserving the avatar, launcher, content, and mobile bottom-sheet layout. (labels: ui, ai; commit: worktree)
@@ -126,7 +127,7 @@ moving work between states.
 
 - T-873. Remove setup progress and guided tour popups, stop guided-tour visit tracking, and keep onboarding indicators focused on Business Profile, Accountancy, Dataset Upload, and Analysis. (labels: ui, dashboard, workflow; commit: worktree)
 - T-872. Add consistent page-header spacing on Downloads, Datasets, Business, Accountancy, and Retail pages so main content starts below the top navigation with readable separation. (labels: ui, dashboard; commit: worktree)
-- T-870. Simplify display controls to a compact Light Mode, Dark Mode, and zoom-level menu with dark mode as the default and saved preferences. (labels: ui, dashboard, accessibility; commit: worktree)
+- T-870. Simplify display controls to a compact Light Mode and Dark Mode theme control with dark mode as the default and saved preferences. (labels: ui, dashboard, accessibility; commit: worktree)
 - T-868. Show Account settings as a wide control center with Profile, Company, Subscription, Security, account status, completion indicators, and a Continue Setup action. (labels: ui, dashboard, billing; commit: worktree)
 - T-842. Align the Payload admin shell with the dashboard hierarchy using a left main-menu sidebar, topbar, page header, body subheader, centered content area, and responsive right information panels. (labels: ui, content, dashboard, accessibility; commit: worktree)
 - T-828. Apply gradient background style to login panel matching affiliate page bottom CTA section. (labels: ui, auth, dashboard; commit: worktree)

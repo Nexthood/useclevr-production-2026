@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show completed sidebar badges for Business, Accountancy, and Retail from the latest saved Business Profile status.
 - Remove app zoom controls completely and simplify theme toggle to a single sun/moon button.
 - Add a global cookie consent banner with essential-only, accept-all, and preference-management choices for analytics and product-improvement cookies.
 - Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces.

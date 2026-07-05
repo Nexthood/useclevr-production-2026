@@ -26,6 +26,7 @@ import {
   type TaxEntry,
 } from "@/lib/business/company-setup"
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 
 type QuestionId =
@@ -462,6 +463,7 @@ function validateQuestion(question: Question, payload: CompanySetupPayload, requ
 }
 
 export function BusinessProfileQuestionWizard() {
+  const router = useRouter()
   const [payload, setPayload] = useState<CompanySetupPayload>(emptyCompanySetupPayload)
   const [isLoading, setIsLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
@@ -570,6 +572,7 @@ export function BusinessProfileQuestionWizard() {
       setSaveMessage(markComplete ? "Business Profile completed and ready for future analysis." : "Progress saved.")
       if (markComplete) setCompleted(true)
       if (typeof nextIndex === "number") setActiveIndex(Math.max(0, Math.min(nextIndex, visibleQuestions.length - 1)))
+      router.refresh()
     } catch {
       setSaveMessage("Business profile was not saved. Try again.")
     } finally {
