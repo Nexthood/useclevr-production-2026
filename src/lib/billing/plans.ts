@@ -1,4 +1,4 @@
-export type BillingPlanId = "free" | "pro_monthly" | "business_monthly";
+export type BillingPlanId = "free" | "pro_monthly" | "business_monthly" | "demo";
 export type StripePricePlanId = BillingPlanId | "pro_annual";
 
 type StripePriceEnvConfig = {
@@ -15,12 +15,13 @@ export interface PlanLimits {
   maxAiRequestsPerDay: number;
   maxConcurrentAnalyses: number;
   creditResetDay: number;
+  isDemo?: boolean;
 }
 
 export interface BillingPlan {
   id: BillingPlanId;
   name: string;
-  tier: "free" | "pro" | "business";
+  tier: "free" | "pro" | "business" | "demo";
   price: number;
   interval: "month";
   description: string;
@@ -75,9 +76,17 @@ export const FREE_PLAN_LIMITS: PlanLimits = {
   creditResetDay: 1,
 };
 
-// Demo accounts intentionally share the exact Free plan limits so they cannot
-// drift into a more permissive experience than a real Free account.
-export const DEMO_PLAN_LIMITS = FREE_PLAN_LIMITS;
+export const DEMO_PLAN_LIMITS: PlanLimits = {
+  monthlyCredits: 2,
+  maxDatasets: 1,
+  maxFileSizeMb: 10,
+  maxRowsPerDataset: 5000,
+  maxTeamMembers: 1,
+  maxAiRequestsPerDay: 10,
+  maxConcurrentAnalyses: 1,
+  creditResetDay: 1,
+  isDemo: true,
+};
 
 export const PRO_PLAN_LIMITS: PlanLimits = {
   monthlyCredits: 500,
@@ -161,6 +170,22 @@ export const billingPlans: BillingPlan[] = [
     limits: BUSINESS_PLAN_LIMITS,
     stripePriceId: resolveStripePriceId("business_monthly"),
   },
+  {
+    id: "demo",
+    name: "Demo",
+    tier: "demo",
+    price: 0,
+    interval: "month",
+    description: "Try UseClevr with limited demo access.",
+    features: [
+      "2 AI Credits Total",
+      "1 Dataset",
+      "Basic AI Insights",
+      "CSV & Excel Upload",
+      "Email Verification Required",
+    ],
+    limits: DEMO_PLAN_LIMITS,
+  },
 ];
 
 export const publicMonthlyPlanPrices = {
@@ -179,6 +204,7 @@ export function getBillingPlanByTier(tier: string | null | undefined) {
 export function normalizeBillingPlanId(planId: string | null | undefined): BillingPlanId {
   if (planId === "business" || planId === "business_monthly") return "business_monthly"
   if (planId === "free") return "free"
+  if (planId === "demo") return "demo"
   return "pro_monthly"
 }
 
@@ -186,6 +212,7 @@ export function normalizeSubscriptionTier(tier: string | null | undefined): Bill
   const normalizedTier = tier?.toLowerCase()
   if (normalizedTier === "business") return "business"
   if (normalizedTier === "pro") return "pro"
+  if (normalizedTier === "demo") return "demo"
   return "free"
 }
 
