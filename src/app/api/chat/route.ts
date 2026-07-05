@@ -1,13 +1,14 @@
 import { auth } from '@/lib/auth/auth';
 import { isBuiltinUserId } from '@/lib/auth/builtin-users';
 import { db } from '@/lib/db';
-import { datasets } from '@/lib/db/schema';
+import { datasets, profiles } from '@/lib/db/schema';
 import {
   EXPLANATION_SYSTEM_PROMPT,
   generateExplanationPrompt
 } from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
-import { getAnalystCreditUsage } from '@/lib/usage/analyst-credits';
+import { checkCredits, initializeUserCredits } from '@/lib/billing/credit-engine';
+import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billing/usage-enforcement';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
 import {
@@ -280,6 +281,44 @@ export async function POST(request: Request) {
     const gate = await requireHybridAiFeature("aiAssistantIntegration");
     if (!gate.success) return gate.error;
 
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: { subscriptionTier: true },
+    });
+    const subscriptionTier = profile?.subscriptionTier || "free";
+
+    await initializeUserCredits(userId, subscriptionTier);
+
+    const creditCheck = await checkCredits(userId, "ai_chat");
+    if (!creditCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Insufficient credits',
+          message: creditCheck.upgradeMessage || 'You do not have enough credits for this chat request.',
+          upgradeRequired: true,
+          remainingCredits: creditCheck.remainingCredits,
+        },
+        { status: 402 }
+      );
+    }
+
+    const enforcementCheck = await checkActionEnforcement(userId, "ai_chat");
+    if (!enforcementCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Usage limit reached',
+          message: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit for chat.',
+          upgradeRequired: true,
+          usage: enforcementCheck.currentUsage,
+        },
+        { status: 402 }
+      );
+    }
+
+    await incrementDailyRequestCount(userId);
+
     const lastMessage = messages[messages.length - 1]?.content || '';
     const isAnalyticalQuery = /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
 
@@ -301,24 +340,6 @@ export async function POST(request: Request) {
       role: session.user.role,
       limit: 6,
     });
-
-    if (userId && !isBuiltinUserId(userId)) {
-      const usage = await getAnalystCreditUsage(userId, session.user.role);
-      if (usage.limitReached) {
-        debugLog('[CHAT] REJECTED: Free limit reached');
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Free limit reached',
-            message: 'You\'ve used your 2 included Analyst credits. Subscribe to Pro or top up your balance to continue.',
-            upgradeRequired: true,
-            analysisCount: usage.analysisCount,
-            creditsRemaining: 0,
-          },
-          { status: 403 }
-        );
-      }
-    }
 
     if (datasetId) {
       debugLog('[CHAT] Validating datasetId:', datasetId);

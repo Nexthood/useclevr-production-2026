@@ -49,6 +49,7 @@ export const CREDIT_COSTS: Record<string, number> = {
   forecast_analysis: 25,
   multi_dataset_analysis: 30,
   data_insight: 5,
+  file_upload: 0,
   mcp_tool_invocation: 1,
 }
 

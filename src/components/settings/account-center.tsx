@@ -283,7 +283,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                 <div>
                   <CardTitle className="text-foreground">Subscription</CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    Manage your plan and analyst credits.
+                    Manage your plan and included AI credits.
                   </CardDescription>
                 </div>
               </div>
@@ -309,14 +309,14 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {isUnlimited
-                    ? usage?.unlimitedLabel || "Unlimited analyst usage"
-                    : `${usage?.analysisCount || 0} / ${usage?.total || 0} free credits used`}
+                    ? usage?.unlimitedLabel || "Included AI credits"
+                    : `${usage?.analysisCount || 0} / ${usage?.total || 0} included credits used`}
                 </p>
                 {!isUnlimited && usage && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {usage.limitReached
-                      ? "Free credits are used. Subscribe to Pro or top up to continue analysis."
-                      : `${Math.max(0, (usage.total || 0) - (usage.analysisCount || 0))} free credits remaining.`}
+                      ? "Included credits are used. Upgrade to a higher plan to continue analysis."
+                      : `${Math.max(0, (usage.total || 0) - (usage.analysisCount || 0))} included credits remaining.`}
                   </p>
                 )}
               </div>
@@ -500,22 +500,22 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
               <CardHeader>
                 <CardTitle className="text-foreground">Role Limits</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  These values reflect the active hard-coded limits.
+                  These values reflect the current shared plan limits.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-hidden rounded-lg border border-border">
                   <div className="grid grid-cols-2 gap-4 border-b border-border px-4 py-3">
                     <p className="text-sm font-medium text-foreground">Free customer</p>
-                    <p className="text-sm text-muted-foreground">3 credits</p>
+                    <p className="text-sm text-muted-foreground">50 credits/month</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-b border-border px-4 py-3">
                     <p className="text-sm font-medium text-foreground">Pro customer</p>
-                    <p className="text-sm text-muted-foreground">Unlimited</p>
+                    <p className="text-sm text-muted-foreground">500 credits/month</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 px-4 py-3">
                     <p className="text-sm font-medium text-foreground">Super admin</p>
-                    <p className="text-sm text-muted-foreground">Unlimited</p>
+                    <p className="text-sm text-muted-foreground">Configured by role</p>
                   </div>
                 </div>
               </CardContent>

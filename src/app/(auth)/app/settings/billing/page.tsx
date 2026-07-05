@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { auth } from "@/lib/auth/auth";
 import { getDb } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { getBillingPlanByTier } from "@/lib/billing/plans";
 import { eq } from "drizzle-orm";
 import { CreditCard, FileText, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
@@ -13,7 +13,6 @@ export const metadata: Metadata = { title: "Billing" };
 
 export default async function BillingSettingsPage() {
   const session = await auth();
-  const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role);
   const db = getDb();
   const profile = db && session?.user?.id
     ? await db.query.profiles.findFirst({
@@ -23,10 +22,13 @@ export default async function BillingSettingsPage() {
           stripeCurrentPeriodEnd: true,
           stripePriceId: true,
           stripeStatus: true,
+          subscriptionTier: true,
         },
       })
     : null;
   const providerConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+  const tier = profile?.subscriptionTier || "free";
+  const plan = getBillingPlanByTier(tier);
   const paymentStatus = profile?.stripeStatus
     ? profile.stripeStatus.replaceAll("_", " ")
     : profile?.stripeCustomerId
@@ -35,16 +37,7 @@ export default async function BillingSettingsPage() {
         ? "Ready for checkout"
         : "Not configured";
   const billingCycle = profile?.stripePriceId ? "Monthly" : "None";
-  const planLabel =
-    usage.subscriptionTier === "superadmin"
-      ? "Super admin"
-      : usage.subscriptionTier === "admin"
-        ? "Admin"
-      : usage.subscriptionTier === "pro"
-        ? "Pro"
-        : usage.subscriptionTier === "business"
-          ? "Business"
-        : "Free";
+const planLabel = plan.name;
 
   return (
     <div className="space-y-4">

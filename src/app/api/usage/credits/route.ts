@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { getUserCreditInfo, getCreditLedger } from "@/lib/billing/credit-engine"
 import { getUserCostAnalytics, getDailyRequestCount, getConcurrentAnalysisCount } from "@/lib/billing/usage-enforcement"
+import { getBillingPlanByTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { profiles, datasets } from "@/lib/db/schema"
 import { eq, count } from "drizzle-orm"
@@ -54,16 +55,15 @@ export async function GET() {
     }
 
     const tier = profile?.subscriptionTier || "free"
+    const plan = getBillingPlanByTier(tier)
     const dailyRequestData = await getDailyRequestCount(userId)
     concurrentAnalyses = await getConcurrentAnalysisCount(userId)
 
-    const tierLimits: Record<string, { datasets: number; aiRequestsPerDay: number; concurrentAnalyses: number }> = {
-      free: { datasets: 2, aiRequestsPerDay: 20, concurrentAnalyses: 1 },
-      pro: { datasets: 25, aiRequestsPerDay: 200, concurrentAnalyses: 3 },
-      business: { datasets: 100, aiRequestsPerDay: 1000, concurrentAnalyses: 10 },
+    const limits = {
+      datasets: plan.limits.maxDatasets,
+      aiRequestsPerDay: plan.limits.maxAiRequestsPerDay,
+      concurrentAnalyses: plan.limits.maxConcurrentAnalyses,
     }
-
-    const limits = tierLimits[tier] || tierLimits.free
 
     const costAnalytics = await getUserCostAnalytics(userId)
 
@@ -74,7 +74,7 @@ export async function GET() {
         used: creditInfo?.usedCredits || 0,
         remaining: creditInfo?.remainingCredits || 0,
         resetAt: creditInfo?.creditsResetAt?.toISOString(),
-        unlimited: tier !== "free",
+        unlimited: false,
       },
       usage: {
         datasets: {

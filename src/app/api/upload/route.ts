@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       } else if (limitReached) {
         userMessage = structuredMessage || "You have reached the dataset limit for your plan."
       } else if (analystLimitReached) {
-        userMessage = "You have used all analyst credits. Upgrade to continue."
+        userMessage = "You have used all included AI credits for your plan. Upgrade to continue."
       }
 
       return NextResponse.json({

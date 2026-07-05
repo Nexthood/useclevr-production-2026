@@ -1,8 +1,7 @@
 import { getDb } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
+import { datasets, profiles } from "@/lib/db/schema"
 import { eq, count } from "drizzle-orm"
-import { getDatasetLimitForTier, type BillingPlan } from "@/lib/billing/plans"
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { getBillingPlanByTier } from "@/lib/billing/plans"
 
 export interface DatasetLimitInfo {
   limit: number
@@ -14,9 +13,16 @@ export interface DatasetLimitInfo {
 
 export async function getDatasetLimitInfo(userId: string, role?: string | null): Promise<DatasetLimitInfo> {
   const db = getDb()
-  const usage = await getAnalystCreditUsage(userId, role)
-  const tier = usage.subscriptionTier || "free"
-  const limit = usage.unlimited ? Infinity : getDatasetLimitForTier(tier)
+  const profile = db
+    ? await db.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+        columns: { subscriptionTier: true, role: true },
+      })
+    : null
+
+  const tier = profile?.subscriptionTier || "free"
+  const plan = getBillingPlanByTier(tier)
+  const limit = plan.limits.maxDatasets
 
   let currentCount = 0
   if (db) {
@@ -31,13 +37,11 @@ export async function getDatasetLimitInfo(userId: string, role?: string | null):
     }
   }
 
-  const planName = usage.unlimitedLabel || (tier === "business" ? "Business" : tier === "pro" ? "Pro" : "Free")
-
   return {
     limit,
     currentCount,
-    canCreate: limit === Infinity || currentCount < limit,
-    planName,
+    canCreate: currentCount < limit,
+    planName: plan.name,
     tier,
   }
 }

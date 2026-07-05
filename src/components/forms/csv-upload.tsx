@@ -245,8 +245,8 @@ export function CsvUpload() {
         if (result.usage?.limitReached) {
           showNotice({
             type: "info",
-            title: "Analyst credits used.",
-            message: "You have used all free analyst credits. Subscribe to Pro or top up to continue.",
+            title: "Included credits used.",
+            message: "You have used all included AI credits for your plan. Upgrade to continue.",
           })
         } else if (result.usage) {
           showNotice({
@@ -339,15 +339,15 @@ export function CsvUpload() {
               planName: "Free",
             })
             setUpgradeModalCopy({
-              title: "Analyst Credits Used",
-              description: "You have used your 2 included analyst credits. Upgrade to continue uploading, analyzing, and generating reports.",
-              usageLabel: "analyst credits used",
+              title: "Included credits used",
+              description: "You have used your included AI credits for this plan. Upgrade to continue uploading, analyzing, and generating reports.",
+              usageLabel: "included credits used",
             })
             setShowUpgradeModal(true)
             showNotice({
               type: "info",
-              title: "Analyst credit limit reached.",
-              message: "You have used all free dataset credits. Subscribe to Pro or top up to upload another dataset.",
+              title: "Included credits used.",
+              message: "You have used all included AI credits for your plan. Upgrade to continue uploading another dataset.",
             })
           }
         }

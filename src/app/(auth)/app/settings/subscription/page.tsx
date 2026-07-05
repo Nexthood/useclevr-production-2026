@@ -43,9 +43,11 @@ export default async function SubscriptionSettingsPage() {
               ? "Super admin"
               : usage.subscriptionTier === "admin"
                 ? "Admin"
-              : isUnlimited
-                ? "Pro tier"
-                : "Free tier"}
+                : usage.subscriptionTier === "business"
+                  ? "Business"
+                  : usage.subscriptionTier === "pro"
+                    ? "Pro"
+                    : "Free"}
           </p>
           {!isUnlimited && (
             <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="mt-3 block">
@@ -63,14 +65,14 @@ export default async function SubscriptionSettingsPage() {
           </div>
           <p className="text-sm text-muted-foreground">
             {isUnlimited
-              ? usage.unlimitedLabel || "Unlimited analyst usage"
-              : `${usage.analysisCount} / ${usage.total} free credits used`}
+              ? usage.unlimitedLabel || "Included AI credits"
+              : `${usage.analysisCount} / ${usage.total} included credits used`}
           </p>
           {!isUnlimited && (
             <p className="mt-1 text-xs text-muted-foreground">
               {usage.limitReached
-                ? "Free credits are used. Subscribe to Pro or top up to continue analysis."
-                : `${remaining} free ${remaining === 1 ? "credit" : "credits"} remaining.`}
+                ? "Included credits are used. Upgrade to a higher plan to continue analysis."
+                : `${remaining} included ${remaining === 1 ? "credit" : "credits"} remaining.`}
             </p>
           )}
         </div>

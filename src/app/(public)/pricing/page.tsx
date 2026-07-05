@@ -90,19 +90,19 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Up to 5 uploads per month</div>
+                      <div className="text-sm font-medium">{freePlan.limits.monthlyCredits} AI credits/month</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">1 dataset</div>
+                      <div className="text-sm font-medium">Up to {freePlan.limits.maxDatasets} datasets</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Up to 5,000 rows</div>
+                      <div className="text-sm font-medium">Up to {freePlan.limits.maxRowsPerDataset.toLocaleString()} rows per dataset</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
@@ -185,7 +185,7 @@ export default function PricingPage() {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-medium">Up to 50 CSV & Excel uploads per month</div>
+                      <div className="text-sm font-medium">{proMonthlyPlan.limits.monthlyCredits} AI credits/month</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
@@ -322,6 +322,12 @@ export default function PricingPage() {
                     <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
                     <div>
                       <div className="text-sm font-medium">Everything in Pro, plus:</div>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">{businessPlan.limits.monthlyCredits} AI credits/month</div>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">

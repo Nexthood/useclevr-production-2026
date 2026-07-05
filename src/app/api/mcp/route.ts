@@ -8,6 +8,7 @@ import { getResource, invokeTool, listResources, listToolsByScope } from "@/lib/
 import type { MCPScope } from "@/lib/mcp/tools";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
+import { checkActionEnforcement } from "@/lib/billing/usage-enforcement";
 import { and, eq } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
@@ -379,6 +380,25 @@ export async function POST(request: NextRequest) {
       errorMessage: "Forbidden: cannot access dataset",
     });
     return addCorsHeaders(forbidden(), request);
+  }
+
+  const enforcementCheck = authContext.userId ? await checkActionEnforcement(authContext.userId, "mcp_tool_invocation") : { allowed: true };
+  if (!enforcementCheck.allowed) {
+    await logMCPAudit("auth_failure", {
+      tokenId: authContext.tokenId,
+      tokenName: authContext.tokenName,
+      userId: authContext.userId,
+      toolName,
+      success: false,
+      errorMessage: enforcementCheck.upgradeMessage || enforcementCheck.reason || "Usage limit reached",
+    });
+    return addCorsHeaders(
+      NextResponse.json(
+        { error: enforcementCheck.upgradeMessage || enforcementCheck.reason || "Usage limit reached", upgradeRequired: true, usage: enforcementCheck.currentUsage },
+        { status: 402 },
+      ),
+      request,
+    );
   }
 
   const startMs = Date.now();

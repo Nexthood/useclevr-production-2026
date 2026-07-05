@@ -5,6 +5,8 @@ import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { checkCredits, deductCredits, initializeUserCredits } from '@/lib/billing/credit-engine';
+import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
 import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
@@ -259,19 +261,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Validate Pro plan
-    if (profile.subscriptionTier !== 'pro') {
+    const subscriptionTier = profile.subscriptionTier || 'free';
+    await initializeUserCredits(userId, subscriptionTier);
+
+    const creditCheck = await checkCredits(userId, 'report_generation');
+    if (!creditCheck.allowed) {
+      await logAiCost({
+        userId,
+        subscriptionPlan: subscriptionTier,
+        provider: 'system',
+        model: 'system',
+        actionType: 'report_generation',
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCostEur: 0,
+        creditsCharged: 0,
+        requestStatus: 'blocked',
+        errorMessage: creditCheck.upgradeMessage,
+      });
       return NextResponse.json(
-        { success: false, error: 'Pro subscription required for report generation' },
-        { status: 403 }
+        { success: false, error: creditCheck.upgradeMessage || 'No credits remaining. Please upgrade to generate reports.' },
+        { status: 402 }
       );
     }
 
-    // 5. Validate credits
-    if (profile.credits <= 0) {
+    const enforcementCheck = await checkActionEnforcement(userId, 'report_generation');
+    if (!enforcementCheck.allowed) {
+      await logAiCost({
+        userId,
+        subscriptionPlan: subscriptionTier,
+        provider: 'system',
+        model: 'system',
+        actionType: 'report_generation',
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCostEur: 0,
+        creditsCharged: 0,
+        requestStatus: 'blocked',
+        errorMessage: enforcementCheck.reason,
+      });
       return NextResponse.json(
-        { success: false, error: 'No credits remaining. Please purchase credits to generate reports.' },
-        { status: 403 }
+        { success: false, error: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit.' },
+        { status: 402 }
       );
     }
 
@@ -282,17 +313,17 @@ export async function POST(request: Request) {
     // 7. Generate report file
     const fileUrl = await generateReportFile(format, reportData, fileName);
 
-    // 8. Deduct credit (server-side only)
-    await db.update(profiles)
-      .set({ credits: profile.credits - 1 })
-      .where(eq(profiles.userId, userId));
+    const deduction = await deductCredits(userId, 'report_generation');
+    if (!deduction.success) {
+      return NextResponse.json({ success: false, error: deduction.error || 'Unable to deduct report credits.' }, { status: 402 });
+    }
 
-    debugLog(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${profile.credits - 1}`);
+    debugLog(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${deduction.remainingCredits}`);
 
     return NextResponse.json({
       success: true,
       fileUrl,
-      creditsRemaining: profile.credits - 1,
+      creditsRemaining: deduction.remainingCredits,
     });
 
   } catch (error) {

@@ -21,10 +21,10 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
     return (
       <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-          Analyst Credits
+          Included Credits
         </h4>
         <p className="text-sm font-medium text-foreground">
-          {unlimitedLabel || "Unlimited"}
+          {unlimitedLabel || "Included AI credits"}
         </p>
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
           <div
@@ -41,7 +41,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
     return (
       <div className="usage-box rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-sm dark:bg-amber-950/10">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-          Analyst Credits
+          Included Credits
         </h4>
         <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
           {used} / {total} used
@@ -53,7 +53,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Subscribe to Pro or top up
+          Upgrade to a higher plan
         </p>
       </div>
     );
@@ -62,7 +62,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
   return (
     <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
       <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-        Analyst Credits
+        Included Credits
       </h4>
       <p className="text-sm font-medium text-foreground">
         {used} / {total} used
@@ -74,7 +74,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
         />
       </div>
       {percent >= 80 && (
-        <p className="mt-1.5 text-xs text-muted-foreground">Upgrade to Pro for more</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">Upgrade for more included credits</p>
       )}
     </div>
   );
@@ -100,8 +100,8 @@ export function useUsage() {
     limitNoticeShownRef.current = true
     showNotice({
       type: "info",
-      title: "Analyst credits used.",
-      message: "You have used all free analyst credits. Subscribe to Pro or top up to continue.",
+      title: "Included credits used.",
+      message: "You have used all included AI credits for your plan. Upgrade to continue.",
     })
   }, [showNotice])
 

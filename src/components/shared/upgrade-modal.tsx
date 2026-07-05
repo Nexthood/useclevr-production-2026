@@ -49,7 +49,7 @@ export function UpgradeModal({
               <Sparkles className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold text-foreground">Pro</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">25 datasets, Hybrid AI Lite, priority processing, and downloads.</p>
+            <p className="text-xs text-muted-foreground mb-3">500 included AI credits, 25 datasets, Hybrid AI Lite, priority processing, and downloads.</p>
             <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="block">
               <Button size="sm" className="w-full" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />
@@ -63,7 +63,7 @@ export function UpgradeModal({
               <Store className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold text-foreground">Business</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">Unlimited datasets, advanced security, private deployment, and dedicated support.</p>
+            <p className="text-xs text-muted-foreground mb-3">5,000 included AI credits, expanded dataset capacity, advanced security, private deployment, and dedicated support.</p>
             <Link href="/app/settings/checkout?plan=business_monthly" className="block">
               <Button size="sm" variant="outline" className="w-full bg-transparent" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />
