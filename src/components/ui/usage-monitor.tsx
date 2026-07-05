@@ -4,6 +4,8 @@ import { useNotice } from "@/components/ui/notice-bar"
 import { debugError } from "@/lib/utils/debug"
 import * as React from "react"
 
+export const USAGE_REFRESH_EVENT = "useclevr:usage-refresh"
+
 interface UsageMonitorProps {
   used: number
   total?: number
@@ -44,6 +46,12 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
         <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
           {used} / {total} used
         </p>
+        <div className="h-1.5 mt-2 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/40">
+          <div
+            className="h-full rounded-full"
+            style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
+          />
+        </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Subscribe to Pro or top up
         </p>
@@ -97,34 +105,7 @@ export function useUsage() {
     })
   }, [showNotice])
 
-  React.useEffect(() => {
-    // Fetch user usage from API
-    async function fetchUsage() {
-      try {
-        const res = await fetch("/api/usage")
-        if (res.ok) {
-          const data = await res.json()
-          const hasUnlimitedAccess =
-            Boolean(data.unlimited) ||
-            ["pro", "business", "superadmin", "admin", "builtin"].includes(data.subscriptionTier)
-          setUsage(data.analysisCount || 0)
-          setTotal(data.total ?? 2)
-          setIsPro(hasUnlimitedAccess)
-          setUnlimitedLabel(data.unlimitedLabel || null)
-          setLimitReached(Boolean(data.limitReached))
-          setCanAnalyze(Boolean(data.canAnalyze ?? hasUnlimitedAccess))
-          maybeShowLimitNotice(!hasUnlimitedAccess && Boolean(data.limitReached))
-        }
-      } catch (error) {
-        debugError("Failed to fetch usage:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchUsage()
-  }, [maybeShowLimitNotice])
-
-  const refreshUsage = async () => {
+  const refreshUsage = React.useCallback(async () => {
     try {
       const res = await fetch("/api/usage")
       if (res.ok) {
@@ -142,8 +123,23 @@ export function useUsage() {
       }
     } catch (error) {
       debugError("Failed to refresh usage:", error)
+    } finally {
+      setIsLoading(false)
     }
-  }
+  }, [maybeShowLimitNotice])
+
+  React.useEffect(() => {
+    void refreshUsage()
+  }, [refreshUsage])
+
+  React.useEffect(() => {
+    const handleRefresh = () => {
+      void refreshUsage()
+    }
+
+    window.addEventListener(USAGE_REFRESH_EVENT, handleRefresh)
+    return () => window.removeEventListener(USAGE_REFRESH_EVENT, handleRefresh)
+  }, [refreshUsage])
 
   return { usage, total, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
 }

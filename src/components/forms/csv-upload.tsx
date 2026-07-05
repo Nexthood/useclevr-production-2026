@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
+import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
@@ -240,6 +241,7 @@ export function CsvUpload() {
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
+        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         if (result.usage?.limitReached) {
           showNotice({
             type: "info",

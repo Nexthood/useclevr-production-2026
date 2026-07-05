@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -27,6 +28,7 @@ export function BatchDeleteButton({
         throw new Error(result.error || "Failed to delete datasets")
       }
       onDeleted?.()
+      window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
       router.refresh()
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to delete datasets")

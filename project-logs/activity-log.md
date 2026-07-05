@@ -1,3 +1,5 @@
+- fixed: show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion
+- changed: show the current UseClevr logo as the browser tab favicon from the single 6.svg asset
 - fixed: show completed Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves
 - changed: add a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, plus reusable consent helpers for analytics and product-improvement cookie checks
 - changed: remove app zoom controls, reset saved zoom preferences, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button

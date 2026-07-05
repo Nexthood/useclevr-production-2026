@@ -1,8 +1,9 @@
 import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { getDatasetLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
-import { profiles } from "@/lib/db/schema"
+import { datasets, profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
-import { eq } from "drizzle-orm"
+import { count, eq } from "drizzle-orm"
 
 export const FREE_ANALYST_CREDITS = 2
 export const TRIAL_DAYS = 14
@@ -26,6 +27,7 @@ export type AnalystCreditUsage = {
   trialActive: boolean
   trialEndsAt: string | null
   trialDaysRemaining: number
+  datasetCount: number
 }
 
 const defaultUsage: AnalystCreditUsage = {
@@ -39,6 +41,7 @@ const defaultUsage: AnalystCreditUsage = {
   trialActive: false,
   trialEndsAt: null,
   trialDaysRemaining: 0,
+  datasetCount: 0,
 }
 
 function getTrialStatus(createdAt: Date | null | undefined, subscriptionTier: string) {
@@ -91,6 +94,7 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
       trialActive: false,
       trialEndsAt: null,
       trialDaysRemaining: 0,
+      datasetCount: 0,
     }
   }
 
@@ -107,6 +111,7 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
       trialActive: false,
       trialEndsAt: null,
       trialDaysRemaining: 0,
+      datasetCount: 0,
     }
   }
 
@@ -130,7 +135,6 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
       },
     })
 
-    const analysisCount = Math.min(profile?.analysisCount || 0, FREE_ANALYST_CREDITS)
     const profileRole = role || profile?.role || null
     const storedTier = profile?.subscriptionTier || "free"
     const adminAccess = isAdminAccess(storedTier) || isAdminAccess(profileRole)
@@ -139,15 +143,24 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
     const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
     const hasUnlimitedAccess = isPaid || adminAccess
     const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId) : null
+    const [{ count: datasetTotal }] = await db
+      .select({ count: count() })
+      .from(datasets)
+      .where(eq(datasets.userId, userId))
+    const datasetCount = Number(datasetTotal ?? 0)
+    const limitedDatasetTotal = getDatasetLimitForTier(subscriptionTier)
+    const usageTotal = hasUnlimitedAccess ? 0 : limitedDatasetTotal
+    const analysisCount = hasUnlimitedAccess ? 0 : Math.min(datasetCount, usageTotal)
 
     return {
       analysisCount,
-      total: hasUnlimitedAccess ? 0 : FREE_ANALYST_CREDITS,
+      total: usageTotal,
       subscriptionTier,
-      canAnalyze: hasUnlimitedAccess || analysisCount < FREE_ANALYST_CREDITS,
-      limitReached: !hasUnlimitedAccess && analysisCount >= FREE_ANALYST_CREDITS,
+      canAnalyze: hasUnlimitedAccess || datasetCount < limitedDatasetTotal,
+      limitReached: !hasUnlimitedAccess && datasetCount >= limitedDatasetTotal,
       unlimited: hasUnlimitedAccess,
       unlimitedLabel,
+      datasetCount,
       ...trial,
     }
   } catch (error) {

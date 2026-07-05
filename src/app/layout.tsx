@@ -21,12 +21,9 @@ export const metadata: Metadata = {
     "AI-powered business intelligence without the complexity. Analyze data, get insights in natural language. Free for 14 days.",
   keywords: ["AI", "business intelligence", "data analysis", "CSV", "analytics"],
   icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", sizes: "32x32", type: "image/png" },
-    ],
-    shortcut: "/icon.png",
-    apple: "/icon.png",
+    icon: [{ url: "/6.svg", type: "image/svg+xml" }],
+    shortcut: "/6.svg",
+    apple: "/6.svg",
   },
   metadataBase: new URL("https://useclevr.com"),
   openGraph: {

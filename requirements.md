@@ -169,6 +169,8 @@ Text rules for this file:
 - Apply the annual Pro discount at checkout.
 - Sync subscription status from the payment provider.
 - Give newly registered Free accounts exactly two included analyst credits.
+- Show sidebar Analyst Credits for limited accounts from the current dataset count and dataset
+  limit, with the progress bar full when the Free plan reaches 2 of 2 datasets.
 - Block upload, analysis, and report-download continuation for Free users after both included analyst credits are used, and show a Stripe upgrade path.
 - Let superadmin, admin, and built-in testing accounts use unlimited analyst credits without decrementing included credits or showing upgrade blocking.
 - Let Stripe webhook requests reach signature verification without requiring a browser session.
@@ -303,6 +305,7 @@ Text rules for this file:
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.
+- Show the current UseClevr logo as the browser tab favicon from the single `/6.svg` asset.
 - Show logo, Hybrid AI, search, help, credits, display controls, profile settings, sign-out, and notices in the global topbar.
 - Start authenticated sidebar page content below the sticky top navigation with consistent spacing so the first greeting, heading, or report title stays fully visible.
 - Show Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile
