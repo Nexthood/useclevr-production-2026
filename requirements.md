@@ -176,10 +176,11 @@ Text rules for this file:
 - Verify checkout redirects with signed, time-limited server tokens.
 - Sync subscription status from the payment provider.
 - Give newly registered Free accounts exactly two included analyst credits.
+- Limit Demo mode to the same Free plan rule source: 50 AI credits, 2 datasets, 5,000 rows per dataset, CSV and Excel upload, and Basic AI Insights.
 - Show sidebar Analyst Credits for limited accounts from the current dataset count and dataset
   limit, with the progress bar full when the Free plan reaches 2 of 2 datasets.
 - Block upload, analysis, and report-download continuation for Free users after both included analyst credits are used, and show a Stripe upgrade path.
-- Let superadmin, admin, and built-in testing accounts use unlimited analyst credits without decrementing included credits or showing upgrade blocking.
+- Let superadmin and admin accounts use unlimited analyst credits without decrementing included credits or showing upgrade blocking.
 - Let Stripe webhook requests reach signature verification without requiring a browser session.
 - Return an unavailable-checkout error when a paid plan has no configured payment price instead of reporting an unpersisted checkout success.
 - Open the hosted billing portal for users with linked payment customers.

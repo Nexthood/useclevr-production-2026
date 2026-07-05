@@ -1,11 +1,11 @@
-import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
-import { getDatasetLimitForTier } from "@/lib/billing/plans"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { FREE_PLAN_LIMITS, getDatasetLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
 import { count, eq } from "drizzle-orm"
 
-export const FREE_ANALYST_CREDITS = 2
+export const FREE_ANALYST_CREDITS = FREE_PLAN_LIMITS.maxDatasets
 export const TRIAL_DAYS = 14
 
 export const ROW_LIMITS = {
@@ -73,7 +73,7 @@ function getUnlimitedLabel(tier: string, role?: string | null, userId?: string |
     return "Admin unlimited"
   }
 
-  if (tier === "pro" || tier === "business" || tier === "builtin") {
+  if (tier === "pro" || tier === "business") {
     return "Unlimited"
   }
 
@@ -81,16 +81,15 @@ function getUnlimitedLabel(tier: string, role?: string | null, userId?: string |
 }
 
 export async function getAnalystCreditUsage(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  if (isBuiltinUserId(userId)) {
-    const subscriptionTier = isSuperAdminUserId(userId) ? "superadmin" : "builtin"
+  if (isSuperAdminUserId(userId)) {
     return {
       analysisCount: 0,
       total: 0,
-      subscriptionTier,
+      subscriptionTier: "superadmin",
       canAnalyze: true,
       limitReached: false,
       unlimited: true,
-      unlimitedLabel: getUnlimitedLabel(subscriptionTier, role, userId),
+      unlimitedLabel: getUnlimitedLabel("superadmin", role, userId),
       trialActive: false,
       trialEndsAt: null,
       trialDaysRemaining: 0,
@@ -115,7 +114,7 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
     }
   }
 
-  if (!userId || isBuiltinUserId(userId)) {
+  if (!userId) {
     return defaultUsage
   }
 
@@ -170,7 +169,7 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
 }
 
 export async function consumeAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  if (!userId || isBuiltinUserId(userId)) {
+  if (!userId || isSuperAdminUserId(userId)) {
     return getAnalystCreditUsage(userId, role)
   }
 
@@ -180,7 +179,7 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
   }
 
   const usage = await getAnalystCreditUsage(userId, role)
-  if (usage.unlimited || ["pro", "business", "superadmin", "admin", "builtin"].includes(usage.subscriptionTier)) {
+  if (usage.unlimited || ["pro", "business", "superadmin", "admin"].includes(usage.subscriptionTier)) {
     return usage
   }
 
@@ -213,8 +212,8 @@ export async function requireAnalystCredit(userId?: string | null, role?: string
 }
 
 export async function getRowLimitForUser(userId?: string | null, role?: string | null): Promise<number> {
-  if (isBuiltinUserId(userId)) {
-    return isSuperAdminUserId(userId) ? ROW_LIMITS.SUPERADMIN : ROW_LIMITS.ADMIN
+  if (isSuperAdminUserId(userId)) {
+    return ROW_LIMITS.SUPERADMIN
   }
 
   if (userId && (role === "superadmin" || role === "admin")) {

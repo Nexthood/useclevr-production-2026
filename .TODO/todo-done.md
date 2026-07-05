@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-935. Limit Demo mode to the Free plan's shared dataset, row, upload, AI-credit, and feature-access rules across backend enforcement and usage displays. (labels: billing, auth, security; commit: worktree)
 - T-934. Show Business as a stronger paid plan with 5000 AI credits, 250 datasets, larger uploads, Accounting AI, document processing, dedicated support, and Upgrade to Business CTAs. (labels: billing, ui, content; commit: worktree)
 - T-933. Consolidate Subscription, Billing, and Credit Rules navigation into one Subscription Management entry with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs. (labels: billing, ui, workflow; commit: worktree)
 - T-932. Remove Free Trial messaging from public landing and pricing surfaces so the Free plan remains the only free UseClevr entry point. (labels: billing, ui, content; commit: worktree)

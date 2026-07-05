@@ -7,7 +7,7 @@ import {
   profiles,
 } from "@/lib/db/schema"
 import { eq, and, gte, lte, sql, count, sum, desc } from "drizzle-orm"
-import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { calculateTokenCost } from "./provider-pricing"
 import {
   getBillingPlanByTier,
@@ -77,7 +77,7 @@ export async function incrementDailyRequestCount(userId: string): Promise<number
 
   if (!db) return 0
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return 999999
   }
 
@@ -111,7 +111,7 @@ export async function getConcurrentAnalysisCount(userId: string): Promise<number
   const db = getDb()
   if (!db) return 0
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return 0
   }
 
@@ -126,7 +126,7 @@ export async function incrementConcurrentAnalyses(userId: string): Promise<boole
   const db = getDb()
   if (!db) return false
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return true
   }
 
@@ -167,7 +167,7 @@ export async function decrementConcurrentAnalyses(userId: string): Promise<void>
   const db = getDb()
   if (!db) return
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return
   }
 
@@ -190,7 +190,7 @@ export async function checkActionEnforcement(
   userId: string,
   action: EnforcementAction
 ): Promise<EnforcementResult> {
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return { allowed: true }
   }
 
@@ -202,6 +202,10 @@ export async function checkActionEnforcement(
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
+  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+    return { allowed: true }
+  }
+
   const tier = profile?.subscriptionTier || "free"
 
   const dailyInfo = await getDailyRequestCount(userId)
@@ -412,13 +416,17 @@ export async function validateFileSize(userId: string, fileSizeMb: number): Prom
   const db = getDb()
   if (!db) return { allowed: false, limit: 10 }
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return { allowed: true, limit: 1000 }
   }
 
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
+  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+    return { allowed: true, limit: 1000 }
+  }
+
   const tier = profile?.subscriptionTier || "free"
   const limit = getFileSizeLimitForTier(tier)
 
@@ -441,13 +449,17 @@ export async function validateRowCount(userId: string, rowCount: number): Promis
   const db = getDb()
   if (!db) return { allowed: false, limit: 5000 }
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return { allowed: true, limit: 500000 }
   }
 
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
+  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+    return { allowed: true, limit: 500000 }
+  }
+
   const tier = profile?.subscriptionTier || "free"
   const limit = getRowLimitForTier(tier)
 

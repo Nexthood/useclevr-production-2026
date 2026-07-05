@@ -75,6 +75,10 @@ export const FREE_PLAN_LIMITS: PlanLimits = {
   creditResetDay: 1,
 };
 
+// Demo accounts intentionally share the exact Free plan limits so they cannot
+// drift into a more permissive experience than a real Free account.
+export const DEMO_PLAN_LIMITS = FREE_PLAN_LIMITS;
+
 export const PRO_PLAN_LIMITS: PlanLimits = {
   monthlyCredits: 500,
   maxDatasets: 25,
@@ -169,13 +173,20 @@ export function getBillingPlan(planId: string | null | undefined) {
 }
 
 export function getBillingPlanByTier(tier: string | null | undefined) {
-  return billingPlans.find((plan) => plan.tier === tier) || billingPlans[0];
+  return billingPlans.find((plan) => plan.tier === normalizeSubscriptionTier(tier)) || billingPlans[0];
 }
 
 export function normalizeBillingPlanId(planId: string | null | undefined): BillingPlanId {
   if (planId === "business" || planId === "business_monthly") return "business_monthly"
   if (planId === "free") return "free"
   return "pro_monthly"
+}
+
+export function normalizeSubscriptionTier(tier: string | null | undefined): BillingPlan["tier"] {
+  const normalizedTier = tier?.toLowerCase()
+  if (normalizedTier === "business") return "business"
+  if (normalizedTier === "pro") return "pro"
+  return "free"
 }
 
 export function formatPlanPrice(plan: BillingPlan) {

@@ -1,5 +1,4 @@
 import { auth } from '@/lib/auth/auth';
-import { isBuiltinUserId } from '@/lib/auth/builtin-users';
 import { db } from '@/lib/db';
 import { datasets, profiles } from '@/lib/db/schema';
 import {

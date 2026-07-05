@@ -27,7 +27,7 @@ import {
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
-import { isBuiltinUserId } from "@/lib/auth/builtin-users";
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
 import { buildBusinessProfileContext } from "@/lib/business/company-setup";
@@ -276,7 +276,7 @@ export async function POST(request: Request) {
     })
     const subscriptionTier = profile?.subscriptionTier || "free"
 
-    if (!isBuiltinUserId(userId)) {
+    if (!isSuperAdminUserId(userId)) {
       await initializeUserCredits(userId, subscriptionTier)
 
       const creditCheck = await checkCredits(userId, "dataset_analysis")
@@ -815,7 +815,7 @@ try {
       savedTraceId = trace?.id ?? null
 
       // Deduct credits for successful analysis
-      if (!isBuiltinUserId(traceUserId)) {
+      if (!isSuperAdminUserId(traceUserId)) {
         const creditInfo = await getUserCreditInfo(traceUserId)
         const deductionResult = await deductCredits(traceUserId, "dataset_analysis", traceDatasetId || undefined)
 

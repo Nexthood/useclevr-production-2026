@@ -94,7 +94,7 @@ export default function DownloadsPage() {
       if (usageData) {
         const hasUnlimitedAccess =
           Boolean(usageData.unlimited) ||
-          ["pro", "business", "superadmin", "admin", "builtin"].includes(usageData.subscriptionTier)
+          ["pro", "business", "superadmin", "admin"].includes(usageData.subscriptionTier)
 
         setCreditsUsed(usageData.analysisCount || 0)
         setCreditsLimit(usageData.total || 2)
