@@ -490,7 +490,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                   <div className="grid gap-3 text-sm sm:grid-cols-3">
                     <AccountancyPlanSummaryCard title="Free" items={["2 datasets", "Basic AI"]} muted />
                     <AccountancyPlanSummaryCard title="Pro" items={["25 datasets", "Business analysis", "Reports"]} />
-                    <AccountancyPlanSummaryCard title="Business" items={["5000 AI credits", "Accounting AI", "Dedicated support"]} highlighted />
+                    <AccountancyPlanSummaryCard title="Business" items={["250 datasets", "Larger uploads", "Dedicated support"]} highlighted />
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">

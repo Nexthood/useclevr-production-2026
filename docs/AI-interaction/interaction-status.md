@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-05
-- **Goal**: Consolidate Subscription, Billing, and Credit Rules navigation into one Subscription Management page.
-- **Durable change**: The authenticated topbar and Settings navigation now expose Subscription as the single customer-facing subscription-management entry, with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs on `/app/settings/subscription`.
-- **Verification**: Focused ESLint, TypeScript, and production build pass; the build completes with existing compile warnings.
+- **Goal**: Improve the Business pricing card without adding unfinished features.
+- **Durable change**: Business now shows Everything in Pro, 5000 AI Credits / Month, Up to 250 Datasets, Larger File Upload Limits, Accounting AI, Invoice Processing, Receipt Processing, and Dedicated Support, with Upgrade to Business CTAs.
+- **Verification**: Focused ESLint and TypeScript pass; source search confirms old Business CTA and removed feature labels are absent from pricing/settings/upgrade surfaces.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

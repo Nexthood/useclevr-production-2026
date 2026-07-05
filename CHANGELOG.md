@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Strengthen Business plan cards with 250 datasets, larger uploads, Accounting AI, document processing, dedicated support, and Upgrade to Business actions.
 - Consolidate Subscription, Billing, and Credit Rules into one Subscription Management page with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs.
 - Replace public Free Trial messaging with Free plan and Upgrade to Pro copy so the only free entry point is the limited Free plan.
 - Simplify customer-facing plan feature lists so Free, Pro, and Business pricing cards focus on current upload, analysis, report, export, accounting, support, dataset, and AI-credit benefits.

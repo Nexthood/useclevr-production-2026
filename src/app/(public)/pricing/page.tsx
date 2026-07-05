@@ -50,7 +50,7 @@ const checkoutHref: Record<BillingPlan["tier"], string> = {
 const ctaLabel: Record<BillingPlan["tier"], string> = {
   free: "Get Started",
   pro: "Upgrade to Pro",
-  business: "Review Business",
+  business: "Upgrade to Business",
 }
 
 function PricingCard({ plan }: { plan: BillingPlan }) {

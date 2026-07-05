@@ -163,7 +163,7 @@ export default function HybridAiButton({
               }}
               className="inline-flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
             >
-              Review Business plan
+              Upgrade to Business
             </Link>
           </div>
         </Modal>
