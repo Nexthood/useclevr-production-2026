@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-05
-- **Goal**: Consolidate Subscription, Billing, and Credit Rules navigation into one Subscription Management page.
-- **Durable change**: The authenticated topbar and Settings navigation now expose Subscription as the single customer-facing subscription-management entry, with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs on `/app/settings/subscription`.
-- **Verification**: Focused ESLint, TypeScript, and production build pass; the build completes with existing compile warnings.
+- **Goal**: Update Demo mode so it cannot exceed Free plan functionality.
+- **Durable change**: Demo uses the Free plan's shared dataset, row, upload, AI-credit, and feature-access rules, while admin and superadmin unlimited access remains intact.
+- **Verification**: TypeScript, TODO, changelog, project-record, secret, diff whitespace, and production build checks pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Limit Demo mode to the Free plan's shared dataset, row, upload, AI-credit, and feature-access rules so demo access cannot exceed Free account capabilities.
+- Strengthen Business plan cards with 250 datasets, larger uploads, Accounting AI, document processing, dedicated support, and Upgrade to Business actions.
 - Consolidate Subscription, Billing, and Credit Rules into one Subscription Management page with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs.
 - Replace public Free Trial messaging with Free plan and Upgrade to Pro copy so the only free entry point is the limited Free plan.
 - Simplify customer-facing plan feature lists so Free, Pro, and Business pricing cards focus on current upload, analysis, report, export, accounting, support, dataset, and AI-credit benefits.
@@ -38,7 +40,7 @@
 - Unlock Hybrid AI Lite and Hybrid AI MEGA modules from the same UseClevr Helper installation, with module access driven by the signed-in subscription.
 - Add the UseClevr Helper local bridge for Hybrid AI, including protected desktop-helper downloads, branded private-analysis status, and an optional helper chat panel in the AI Assistant.
 - Give Free accounts exactly two included analyst credits, then route upload, analysis, and report-download continuation through the existing Stripe upgrade path.
-- Show superadmin, admin, and built-in testing accounts as unlimited for analyst usage without decrementing included credits or showing upgrade blocking.
+- Show superadmin and admin accounts as unlimited for analyst usage without decrementing included credits or showing upgrade blocking.
 - Show the authenticated dashboard as an executive report-style workspace with health scores, AI readiness, KPI cards, chart panels, risks, opportunities, recommendations, activity, and quick actions.
 - Show the same self-running AI demo on the login page so visitors see the spreadsheet pain, AI analysis, discovered insights, and recommended action story before signing in.
 - Show a premium self-running homepage hero demo that connects spreadsheet search pain to upload, AI analysis, discovered insights, and a recommended next action.

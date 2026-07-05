@@ -39,18 +39,21 @@ const planIcon = {
   free: Sparkles,
   pro: Zap,
   business: Building2,
+  demo: Sparkles,
 } as const
 
 const checkoutHref: Record<BillingPlan["tier"], string> = {
   free: "/signup",
   pro: "/signup",
   business: "/app/settings/checkout?plan=business_monthly",
+  demo: "/demo",
 }
 
 const ctaLabel: Record<BillingPlan["tier"], string> = {
   free: "Get Started",
   pro: "Upgrade to Pro",
-  business: "Review Business",
+  business: "Upgrade to Business",
+  demo: "Try Demo",
 }
 
 function PricingCard({ plan }: { plan: BillingPlan }) {

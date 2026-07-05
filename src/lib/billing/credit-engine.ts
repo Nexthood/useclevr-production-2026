@@ -1,14 +1,11 @@
 import { getDb } from "@/lib/db"
 import { userCredits, creditLedger, subscriptionPlans, profiles } from "@/lib/db/schema"
 import { eq, and, gt, lt, lte, gte } from "drizzle-orm"
-import { isBuiltinUserId, isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import {
   getBillingPlanByTier,
   getCreditsLimitForTier,
   getCreditResetDayForTier,
-  FREE_PLAN_LIMITS,
-  PRO_PLAN_LIMITS,
-  BUSINESS_PLAN_LIMITS,
 } from "./plans"
 import { calculateTokenCost } from "./provider-pricing"
 
@@ -67,6 +64,25 @@ export function creditsToEuros(credits: number): number {
   return credits / CREDITS_PER_EURO
 }
 
+async function hasUnlimitedCreditAccess(userId: string): Promise<boolean> {
+  if (isSuperAdminUserId(userId)) return true
+
+  const db = getDb()
+  if (!db) return false
+
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    columns: { role: true, subscriptionTier: true },
+  })
+
+  return (
+    profile?.role === "admin" ||
+    profile?.role === "superadmin" ||
+    profile?.subscriptionTier === "admin" ||
+    profile?.subscriptionTier === "superadmin"
+  )
+}
+
 export async function initializeUserCredits(
   userId: string,
   tier: string
@@ -74,10 +90,10 @@ export async function initializeUserCredits(
   const db = getDb()
   if (!db) return null
 
-  if (isBuiltinUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return {
       userId,
-      planId: "builtin",
+      planId: "superadmin",
       totalCredits: 999999999,
       usedCredits: 0,
       remainingCredits: 999999999,
@@ -157,10 +173,10 @@ export async function getUserCreditInfo(userId: string): Promise<UserCreditInfo 
   const db = getDb()
   if (!db) return null
 
-  if (isBuiltinUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return {
       userId,
-      planId: "builtin",
+      planId: "superadmin",
       totalCredits: 999999999,
       usedCredits: 0,
       remainingCredits: 999999999,
@@ -202,7 +218,7 @@ export async function checkCredits(
   userId: string,
   actionType: string
 ): Promise<CreditCheckResult> {
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (await hasUnlimitedCreditAccess(userId)) {
     return {
       allowed: true,
       remainingCredits: 999999999,
@@ -249,7 +265,7 @@ export async function deductCredits(
     return { success: false, remainingCredits: 0, creditsDeducted: 0, error: "Database unavailable" }
   }
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (await hasUnlimitedCreditAccess(userId)) {
     return { success: true, remainingCredits: 999999999, creditsDeducted: 0 }
   }
 
@@ -322,7 +338,7 @@ export async function refundCredits(
   const db = getDb()
   if (!db) return false
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (await hasUnlimitedCreditAccess(userId)) {
     return true
   }
 
@@ -408,7 +424,7 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
   const db = getDb()
   if (!db) return false
 
-  if (isBuiltinUserId(userId) || isSuperAdminUserId(userId)) {
+  if (await hasUnlimitedCreditAccess(userId)) {
     return false
   }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth/auth"
-import { isBuiltinUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { getUserCreditInfo, getCreditLedger } from "@/lib/billing/credit-engine"
 import { getUserCostAnalytics, getDailyRequestCount, getConcurrentAnalysisCount } from "@/lib/billing/usage-enforcement"
 import { getBillingPlanByTier } from "@/lib/billing/plans"
@@ -16,9 +16,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  if (isBuiltinUserId(userId)) {
+  if (isSuperAdminUserId(userId)) {
     return NextResponse.json({
-      plan: "builtin",
+      plan: "superadmin",
       credits: {
         total: 999999999,
         used: 0,

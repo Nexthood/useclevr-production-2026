@@ -117,7 +117,7 @@ const usyIntents: UsyIntent[] = [
     minScore: 3,
     followUps: pricingFollowUps,
     answer: () =>
-      `Business is €${publicMonthlyPlanPrices.business}/month. It includes 5000 AI credits per month, everything in Pro, Accounting AI, invoice and receipt processing, and dedicated support. You can start from Billing Settings.`,
+      `Business is €${publicMonthlyPlanPrices.business}/month. It includes everything in Pro, 5000 AI credits per month, up to 250 datasets, larger file upload limits, Accounting AI, invoice processing, receipt processing, and dedicated support. You can start from Billing Settings.`,
   },
   {
     id: "pricing-general",
@@ -125,7 +125,7 @@ const usyIntents: UsyIntent[] = [
     keywords: ["price", "pricing", "cost", "costs", "plans", "subscription", "upgrade", "compare free pro", "free vs pro"],
     followUps: pricingFollowUps,
     answer: () =>
-      `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with 50 AI credits and 2 datasets; Pro adds 500 AI credits, 25 datasets, business analysis, reports, exports, and priority support; Business adds 5000 AI credits, Accounting AI, document processing, and dedicated support.`,
+      `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with 50 AI credits and 2 datasets; Pro adds 500 AI credits, 25 datasets, business analysis, reports, exports, and priority support; Business adds everything in Pro, 5000 AI credits, 250 datasets, larger uploads, Accounting AI, document processing, and dedicated support.`,
   },
   {
     id: "upload",

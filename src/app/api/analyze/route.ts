@@ -27,7 +27,7 @@ import {
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
-import { isBuiltinUserId } from "@/lib/auth/builtin-users";
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
 import { buildBusinessProfileContext } from "@/lib/business/company-setup";
@@ -240,9 +240,12 @@ export async function POST(request: Request) {
     // ============================================================================
     const session = await auth();
     const userId = session?.user?.id;
+    const demoSessionToken = request.headers.get("x-demo-session");
     traceUserId = userId || null
 
-    if (!userId) {
+    const isDemoUser = !userId && !!demoSessionToken;
+
+    if (!userId && !demoSessionToken) {
       return Response.json({
         success: false,
         error: "Unauthorized",
@@ -253,6 +256,38 @@ export async function POST(request: Request) {
         data: [],
         chartType: "table",
       }, { status: 401 });
+    }
+
+    if (isDemoUser) {
+      const { checkDemoAccess, consumeDemoCredit } = await import("@/lib/billing/demo-access");
+      const demoCheck = await checkDemoAccess(demoSessionToken!, "ai_analysis");
+      if (!demoCheck.allowed) {
+        await logAiCost({
+          userId: "demo",
+          subscriptionPlan: "demo",
+          provider: "system",
+          model: "system",
+          actionType: "dataset_analysis",
+          inputTokens: 0,
+          outputTokens: 0,
+          estimatedCostEur: 0,
+          creditsCharged: 0,
+          requestStatus: "blocked",
+          errorMessage: demoCheck.reason,
+        });
+        return Response.json({
+          success: false,
+          error: demoCheck.reason || "Demo limit reached",
+          answer: "Demo credits exhausted.",
+          insight: "Demo limit",
+          explanation: demoCheck.upgradeMessage || "Upgrade to continue.",
+          recommendation: "Sign up for a free account.",
+          data: [],
+          chartType: "table",
+          upgradeRequired: true,
+          demoLimit: true,
+        }, { status: 402 });
+      }
     }
 
     if (!checkRateLimit(`analyze:${userId || "anonymous"}`, 30, 60_000)) {
@@ -271,18 +306,28 @@ export async function POST(request: Request) {
     // ============================================================================
     // CREDIT & ENFORCEMENT CHECK - Check credits and usage limits
     // ============================================================================
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-    })
-    const subscriptionTier = profile?.subscriptionTier || "free"
+    let subscriptionTier = "free"
 
-    if (!isBuiltinUserId(userId)) {
-      await initializeUserCredits(userId, subscriptionTier)
+    if (!isDemoUser && userId) {
+      const profile = await db.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+      })
+      subscriptionTier = profile?.subscriptionTier || "free"
+    }
 
-      const creditCheck = await checkCredits(userId, "dataset_analysis")
+    if (isDemoUser) {
+      subscriptionTier = "demo"
+    }
+
+    const effectiveUserId = userId || null
+
+    if (!isDemoUser && effectiveUserId && !isSuperAdminUserId(effectiveUserId)) {
+      await initializeUserCredits(effectiveUserId, subscriptionTier)
+
+      const creditCheck = await checkCredits(effectiveUserId, "dataset_analysis")
       if (!creditCheck.allowed) {
         await logAiCost({
-          userId,
+          userId: effectiveUserId,
           subscriptionPlan: subscriptionTier,
           provider: "system",
           model: "system",
@@ -308,10 +353,10 @@ export async function POST(request: Request) {
         }, { status: 402 })
       }
 
-      const enforcementCheck = await checkActionEnforcement(userId, "dataset_analysis")
+      const enforcementCheck = await checkActionEnforcement(effectiveUserId, "dataset_analysis")
       if (!enforcementCheck.allowed) {
         await logAiCost({
-          userId,
+          userId: effectiveUserId,
           subscriptionPlan: subscriptionTier,
           provider: "system",
           model: "system",
@@ -337,7 +382,7 @@ export async function POST(request: Request) {
         }, { status: 402 })
       }
 
-      await incrementDailyRequestCount(userId)
+      await incrementDailyRequestCount(effectiveUserId)
     }
 
     // ============================================================================
@@ -347,9 +392,16 @@ export async function POST(request: Request) {
     // If datasetId provided but no precomputedAnalysis/data, fetch from DB
     let analysisToUse = precomputedAnalysis;
     if (datasetId && !data && !precomputedAnalysis) {
-      const storedDataset = await db.query.datasets.findFirst({
-        where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
-      });
+      let storedDataset;
+      if (isDemoUser) {
+        storedDataset = await db.query.datasets.findFirst({
+          where: eq(datasets.id, datasetId),
+        });
+      } else if (effectiveUserId) {
+        storedDataset = await db.query.datasets.findFirst({
+          where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
+        });
+      }
       if (storedDataset) {
         analysisToUse = storedDataset.analysis as Record<string, unknown> | null;
         debugLog('[ANALYZE] Loaded precomputedAnalysis from DB');
@@ -373,9 +425,16 @@ export async function POST(request: Request) {
     if (datasetId) {
       debugLog('[ANALYZE] Loading dataset from database...');
       try {
-        const storedDataset = await db.query.datasets.findFirst({
-          where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
-        });
+        let storedDataset;
+        if (isDemoUser) {
+          storedDataset = await db.query.datasets.findFirst({
+            where: eq(datasets.id, datasetId),
+          });
+        } else if (effectiveUserId) {
+          storedDataset = await db.query.datasets.findFirst({
+            where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
+          });
+        }
 
         if (!storedDataset) {
           return Response.json({
@@ -559,9 +618,9 @@ try {
        }
 
        let businessProfilePrompt = "";
-       let skillResult = null;
-       try {
-         const businessProfile = await getCompanySetup(userId);
+        let skillResult = null;
+        try {
+          const businessProfile = effectiveUserId ? await getCompanySetup(effectiveUserId) : null;
 
          // Run Skill Engine analysis for expert perspective
          if (datasetId && (analysisToUse ?? precomputedAnalysis)) {
@@ -585,32 +644,32 @@ try {
            debugLog('[ANALYZE] Skill engine result:', skillResult?.expert);
          }
 
-         businessProfilePrompt = `\n\nBUSINESS PROFILE CONTEXT\nUse only these user-confirmed business profile values. Do not assume missing business data. If a value is missing, say it is missing and explain how that limits confidence.\n${buildBusinessProfileContext(businessProfile)}\n`;
-         const contextSource = (analysisToUse ?? precomputedAnalysis) as {
-           business_analysis?: {
-             businessProfileContext?: unknown;
-           };
-         } | null | undefined;
-         let profileCalculationLayer = contextSource?.business_analysis?.businessProfileContext;
-         if (!profileCalculationLayer && requestDataset.length > 0) {
-           const detectedColumns = detectBusinessColumns(requestDataset);
-           const businessAnalysis = analyzeBusinessData(requestDataset, detectedColumns);
-           const kpisWithCosts = businessAnalysis.kpis as typeof businessAnalysis.kpis & {
-             totalCost?: number | null;
-           };
-           const datasetCosts =
-             typeof kpisWithCosts.totalCost === "number"
-               ? kpisWithCosts.totalCost
-               : typeof businessAnalysis.kpis.totalRevenue === "number" && typeof businessAnalysis.kpis.totalProfit === "number"
-                 ? businessAnalysis.kpis.totalRevenue - businessAnalysis.kpis.totalProfit
-                 : null;
-           profileCalculationLayer = buildProfileCalculationLayer({
-             setup: businessProfile,
-             rows: requestDataset,
-             revenue: businessAnalysis.kpis.totalRevenue,
-             datasetCosts,
-           });
-         }
+          businessProfilePrompt = businessProfile ? `\n\nBUSINESS PROFILE CONTEXT\nUse only these user-confirmed business profile values. Do not assume missing business data. If a value is missing, say it is missing and explain how that limits confidence.\n${buildBusinessProfileContext(businessProfile)}\n` : "";
+          const contextSource = (analysisToUse ?? precomputedAnalysis) as {
+            business_analysis?: {
+              businessProfileContext?: unknown;
+            };
+          } | null | undefined;
+          let profileCalculationLayer = contextSource?.business_analysis?.businessProfileContext;
+          if (!profileCalculationLayer && requestDataset.length > 0 && businessProfile) {
+            const detectedColumns = detectBusinessColumns(requestDataset);
+            const businessAnalysis = analyzeBusinessData(requestDataset, detectedColumns);
+            const kpisWithCosts = businessAnalysis.kpis as typeof businessAnalysis.kpis & {
+              totalCost?: number | null;
+            };
+            const datasetCosts =
+              typeof kpisWithCosts.totalCost === "number"
+                ? kpisWithCosts.totalCost
+                : typeof businessAnalysis.kpis.totalRevenue === "number" && typeof businessAnalysis.kpis.totalProfit === "number"
+                  ? businessAnalysis.kpis.totalRevenue - businessAnalysis.kpis.totalProfit
+                  : null;
+            profileCalculationLayer = buildProfileCalculationLayer({
+              setup: businessProfile,
+              rows: requestDataset,
+              revenue: businessAnalysis.kpis.totalRevenue,
+              datasetCosts,
+            });
+          }
          if (profileCalculationLayer) {
            businessProfilePrompt += `\nPROFILE-ADJUSTED CALCULATION LAYER\nUse this uploaded-data + Business Profile calculation layer for tax, margin, payroll, fixed-cost, insurance, forecast, cash-flow, and recommendation answers. If warnings or conflicts exist, show them clearly and ask the user to confirm which value should be used before treating the final calculation as definitive.\n${JSON.stringify(profileCalculationLayer, null, 2)}\n`;
          }
@@ -625,7 +684,7 @@ try {
 
         if (!mockAIMode) {
           try {
-            const byoAiResult = await generateWithUniversalAiAdapter(userId, prompt);
+            const byoAiResult = effectiveUserId ? await generateWithUniversalAiAdapter(effectiveUserId, prompt) : null;
             if (byoAiResult) {
               text = byoAiResult.text;
               traceProvider = byoAiResult.providerName;
@@ -665,7 +724,7 @@ try {
               message: "Provider unavailable",
               fallbackActive: true,
             };
-            logDefaultCloudFallback(userId, byoAiError);
+            logDefaultCloudFallback(effectiveUserId || "demo", byoAiError);
           }
         }
 
@@ -815,7 +874,7 @@ try {
       savedTraceId = trace?.id ?? null
 
       // Deduct credits for successful analysis
-      if (!isBuiltinUserId(traceUserId)) {
+      if (!isSuperAdminUserId(traceUserId)) {
         const creditInfo = await getUserCreditInfo(traceUserId)
         const deductionResult = await deductCredits(traceUserId, "dataset_analysis", traceDatasetId || undefined)
 
@@ -837,6 +896,13 @@ try {
       }
     }
 
+    let demoCreditsRemaining: number | undefined
+    if (isDemoUser && demoSessionToken) {
+      const { consumeDemoCredit } = await import("@/lib/billing/demo-access");
+      const consumeResult = await consumeDemoCredit(demoSessionToken, "ai_analysis", 1);
+      demoCreditsRemaining = consumeResult.remainingCredits;
+    }
+
     const responseBody = {
       success: true,
       answer,
@@ -851,6 +917,7 @@ try {
       providerName: traceProvider,
       modelName: traceModel,
       providerStatus,
+      demoCreditsRemaining,
     }
 
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');

@@ -112,7 +112,7 @@ export function useUsage() {
         const data = await res.json()
         const hasUnlimitedAccess =
           Boolean(data.unlimited) ||
-          ["pro", "business", "superadmin", "admin", "builtin"].includes(data.subscriptionTier)
+          ["pro", "business", "superadmin", "admin"].includes(data.subscriptionTier)
         setUsage(data.analysisCount || 0)
         setTotal(data.total ?? 2)
         setIsPro(hasUnlimitedAccess)

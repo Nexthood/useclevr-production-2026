@@ -16,7 +16,8 @@ import { datasetRows, datasets } from "@/lib/db/schema"
 import { formatRowLimitError } from "@/lib/usage/analyst-credits"
 import { getDatasetLimitInfo, getDatasetLimitError, type DatasetLimitInfo } from "@/lib/usage/dataset-limits"
 import { checkActionEnforcement, validateFileSize, validateRowCount } from "@/lib/billing/usage-enforcement"
-import { getRowLimitForTier } from "@/lib/billing/plans"
+import { getRowLimitForTier, DEMO_PLAN_LIMITS } from "@/lib/billing/plans"
+import { checkDemoAccess, consumeDemoCredit, getDemoLimits } from "@/lib/billing/demo-access"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from 'uuid'
@@ -87,6 +88,7 @@ export async function uploadCSV(formData: FormData): Promise<{
   usage?: { limitReached?: boolean; analysisCount?: number; total?: number; subscriptionTier?: string }
   step?: string
   limitInfo?: DatasetLimitInfo
+  demoCreditsRemaining?: number
 }> {
   try {
     const db = getDb()
@@ -101,13 +103,31 @@ export async function uploadCSV(formData: FormData): Promise<{
     const session = await auth()
     const sessionUserId = session?.user?.id
     const sessionRole = session?.user?.role
+    const demoSessionToken = formData.get("demoSession") as string | null
 
-    if (!sessionUserId) {
+    if (!sessionUserId && !demoSessionToken) {
       return {
         success: false,
         error: "Unauthorized|Please sign in before uploading a dataset.",
       }
     }
+
+    if (!sessionUserId && demoSessionToken) {
+      const demoCheck = await checkDemoAccess(demoSessionToken, "upload")
+      if (!demoCheck.allowed) {
+        return {
+          success: false,
+          error: `DEMO_LIMIT|${demoCheck.reason}|${demoCheck.upgradeMessage || ""}`,
+        }
+      }
+
+      const limits = getDemoLimits()
+      if (demoCheck.creditsRemaining !== undefined && demoCheck.creditsRemaining < limits.credits) {
+        debugLog("[UPLOAD] Demo credits remaining:", demoCheck.creditsRemaining)
+      }
+    }
+
+    const isDemoUser = !sessionUserId && !!demoSessionToken
     
     debugLog("[UPLOAD] Session:", session ? { userId: session.user?.id, email: session.user?.email } : null)
     debugLog("[UPLOAD] FormData keys:", Array.from(formData.keys()))
@@ -277,6 +297,16 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
     }
 
+    if (isDemoUser) {
+      const demoLimits = getDemoLimits()
+      if (file.size > demoLimits.maxFileSizeMb * 1024 * 1024) {
+        return {
+          success: false,
+          error: `DEMO_LIMIT|Demo file size limit is ${demoLimits.maxFileSizeMb}MB. Upgrade to continue with larger files.`,
+        }
+      }
+    }
+
     const rowLimit = getRowLimitForTier(limitInfo.tier)
     debugLog("[UPLOAD] Row limit for user:", rowLimit)
 
@@ -303,6 +333,16 @@ export async function uploadCSV(formData: FormData): Promise<{
         success: false,
         error: formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName),
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
+      }
+    }
+
+    if (isDemoUser) {
+      const demoLimits = getDemoLimits()
+      if (totalRowCount > demoLimits.maxRowsPerDataset) {
+        return {
+          success: false,
+          error: `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`,
+        }
       }
     }
 
@@ -590,6 +630,12 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     const previewRowsToReturn = useStreamingStorage ? previewRows : allRows.slice(0, 5)
 
+    let demoCreditsRemaining: number | undefined
+    if (isDemoUser && demoSessionToken) {
+      const consumeResult = await consumeDemoCredit(demoSessionToken, "upload", 1)
+      demoCreditsRemaining = consumeResult.remainingCredits
+    }
+
     return {
       success: true,
       datasetId: datasetId,
@@ -601,6 +647,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       },
       profitabilityResult: profitabilityData || undefined,
       usage,
+      demoCreditsRemaining,
     }
   } catch (error) {
     debugError("Upload error:", error)

@@ -945,3 +945,82 @@ export const concurrentAnalysisCounts = pgTable(
     userIdIdx: uniqueIndex("ConcurrentAnalysisCount_userId_key").on(table.userId),
   }),
 );
+
+// ============================================================================
+// DEMO ACCESS TABLES
+// ============================================================================
+
+export const demoVerificationCodes = pgTable(
+  "DemoVerificationCode",
+  {
+    id: text("id").primaryKey(),
+    email: varchar("email", { length: 255 }).notNull(),
+    emailHash: varchar("emailHash", { length: 64 }).notNull(),
+    codeHash: varchar("codeHash", { length: 255 }).notNull(),
+    ipHash: varchar("ipHash", { length: 64 }),
+    userAgent: text("userAgent"),
+    sessionToken: varchar("sessionToken", { length: 255 }),
+    status: varchar("status", { length: 20 }).default("pending").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    usedAt: timestamp("usedAt"),
+    attempts: integer("attempts").default(0).notNull(),
+    resendCount: integer("resendCount").default(0).notNull(),
+    lastResendAt: timestamp("lastResendAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    emailIdx: index("DemoVerificationCode_email_idx").on(table.email),
+    emailHashIdx: index("DemoVerificationCode_emailHash_idx").on(table.emailHash),
+    sessionTokenIdx: index("DemoVerificationCode_sessionToken_idx").on(table.sessionToken),
+    statusIdx: index("DemoVerificationCode_status_idx").on(table.status),
+    expiresAtIdx: index("DemoVerificationCode_expiresAt_idx").on(table.expiresAt),
+  }),
+);
+
+export const demoUsage = pgTable(
+  "DemoUsage",
+  {
+    id: text("id").primaryKey(),
+    email: varchar("email", { length: 255 }).notNull(),
+    emailHash: varchar("emailHash", { length: 64 }).notNull(),
+    ipHash: varchar("ipHash", { length: 64 }),
+    sessionToken: varchar("sessionToken", { length: 255 }),
+    totalCreditsUsed: integer("totalCreditsUsed").default(0).notNull(),
+    datasetUploads: integer("datasetUploads").default(0).notNull(),
+    aiRequests: integer("aiRequests").default(0).notNull(),
+    rowCountTotal: integer("rowCountTotal").default(0).notNull(),
+    hasVerifiedEmail: boolean("hasVerifiedEmail").default(false).notNull(),
+    blockedAt: timestamp("blockedAt"),
+    blockReason: text("blockReason"),
+    firstAccessAt: timestamp("firstAccessAt").defaultNow().notNull(),
+    lastAccessAt: timestamp("lastAccessAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    emailIdx: uniqueIndex("DemoUsage_email_key").on(table.email),
+    emailHashIdx: index("DemoUsage_emailHash_idx").on(table.emailHash),
+    sessionTokenIdx: index("DemoUsage_sessionToken_idx").on(table.sessionToken),
+  }),
+);
+
+export const demoSessions = pgTable(
+  "DemoSession",
+  {
+    id: text("id").primaryKey(),
+    demoUsageId: text("demoUsageId").notNull(),
+    sessionToken: varchar("sessionToken", { length: 255 }).notNull(),
+    creditsUsed: integer("creditsUsed").default(0).notNull(),
+    datasetsCreated: integer("datasetsCreated").default(0).notNull(),
+    aiRequests: integer("aiRequests").default(0).notNull(),
+    ipHash: varchar("ipHash", { length: 64 }),
+    userAgent: text("userAgent"),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    demoUsageIdIdx: index("DemoSession_demoUsageId_idx").on(table.demoUsageId),
+    sessionTokenIdx: uniqueIndex("DemoSession_sessionToken_key").on(table.sessionToken),
+    expiresAtIdx: index("DemoSession_expiresAt_idx").on(table.expiresAt),
+  }),
+);
