@@ -119,14 +119,14 @@ export default function HybridAiButton({
               <PlanOption
                 title="Pro"
                 price={`€${proPlan.price}/month`}
-                description="Includes UseClevr Hybrid AI Lite, unlimited datasets, and report downloads."
+                description="Includes private chat, CSV/Excel analysis, dashboard insights, and one AI provider."
                 productId="pro_monthly"
                 onNavigate={() => setOpen(false)}
               />
               <PlanOption
                 title="Business"
                 price={`€${businessPlan.price}/month`}
-                description="Includes UseClevr Hybrid AI MEGA, higher volume, advanced security, and dedicated support."
+                description="Adds multiple AI providers, audit logs, advanced reports, and dedicated support."
                 productId="business_monthly"
                 secondary
                 onNavigate={() => setOpen(false)}

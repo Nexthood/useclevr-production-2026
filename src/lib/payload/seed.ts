@@ -182,7 +182,7 @@ const faqSeed = [
   {
     category: "Technical",
     question: "Can I self-host UseClevr?",
-    answer: "Self-hosting is available on the Business plan. Contact sales@useclevr.com to discuss private deployment options for your organisation.",
+    answer: "Self-hosting is not part of the standard public plans. Contact sales@useclevr.com if you need to discuss a future private setup.",
     sortOrder: 4,
     scope: "public" as const,
   },

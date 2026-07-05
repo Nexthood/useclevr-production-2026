@@ -419,7 +419,7 @@ export default function DownloadsPage() {
                 </div>
                 {limitReached && (
                   <p className="text-xs text-amber-500 mt-2">
-                    You've reached your analysis limit. Upgrade for unlimited analyses and downloads.
+                    You've reached your analysis limit. Upgrade for more AI credits, reports, and exports.
                   </p>
                 )}
               </div>
@@ -568,7 +568,7 @@ export default function DownloadsPage() {
           }
         }}
         title="Upgrade to continue downloading"
-        description={`You've used ${creditsUsed} of your ${creditsLimit} free analyses. Upgrade to Pro for unlimited analyses and downloads.`}
+        description={`You've used ${creditsUsed} of your ${creditsLimit} free analyses. Upgrade to continue with more AI credits, reports, and exports.`}
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-background p-4">

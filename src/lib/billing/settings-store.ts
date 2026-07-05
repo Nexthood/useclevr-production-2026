@@ -97,6 +97,8 @@ function mergeSettings(input: Partial<BillingSettings>): BillingSettings {
       tier: defaultPlan.tier,
       price: defaultPlan.price,
       interval: defaultPlan.interval,
+      description: defaultPlan.description,
+      features: defaultPlan.features,
       stripePriceId: defaultPlan.stripePriceId,
       maxDatasets: defaultPlan.limits.maxDatasets,
       maxRowsPerFile: defaultPlan.limits.maxRowsPerDataset,

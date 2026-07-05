@@ -419,19 +419,19 @@ export default async function HomePage() {
                 <div className="h-16 w-16 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center">
                   <Database className="h-8 w-8 text-cyan-800 dark:text-cyan-100" />
                 </div>
-                <h3 className="text-2xl font-bold">Unlimited Datasets</h3>
-<p className="text-muted-foreground leading-relaxed">
-                   Upload and analyze as many CSV or Excel files as you need with our Pro plan. No limits on your data exploration.
-                 </p>
+                <h3 className="text-2xl font-bold">Retail Dashboard</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  See revenue, margin, low stock, and dead stock signals in a dashboard built for quick business decisions.
+                </p>
               </Card>
 
               <Card className="p-8 space-y-4 bg-card border-border/50">
                 <div className="h-16 w-16 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
-                  <Shield className="h-8 w-8 text-[#7C3AED]" />
+                  <FileText className="h-8 w-8 text-[#7C3AED]" />
                 </div>
-                <h3 className="text-2xl font-bold">Advanced Security</h3>
+                <h3 className="text-2xl font-bold">Reports & Exports</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Enterprise-grade security and compliance with on-premise or private deployment options for your sensitive data.
+                  Create PDF reports and Excel exports when your analysis is ready to share with your team or accountant.
                 </p>
               </Card>
 
@@ -439,9 +439,9 @@ export default async function HomePage() {
                 <div className="h-16 w-16 rounded-2xl bg-[#06B6D4]/10 flex items-center justify-center">
                   <BarChart3 className="h-8 w-8 text-cyan-800 dark:text-cyan-100" />
                 </div>
-                <h3 className="text-2xl font-bold">API Access</h3>
+                <h3 className="text-2xl font-bold">Accounting AI</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Integrate UseClevr into your workflow with API access. Build custom integrations tailored to your needs.
+                  Prepare invoices, receipts, and business context for cleaner accounting workflows on Business.
                 </p>
               </Card>
             </div>

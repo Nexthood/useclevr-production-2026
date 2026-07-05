@@ -526,8 +526,8 @@ export function CsvUpload() {
 
                 <div className="grid gap-3 text-sm sm:grid-cols-3">
                   <PlanSummaryCard title="Free" items={["2 datasets", "Basic AI"]} muted />
-                  <PlanSummaryCard title="Pro" items={["More datasets", "Advanced AI", "Faster analysis"]} />
-                  <PlanSummaryCard title="Business" items={["Unlimited datasets", "Team features", "Priority support"]} highlighted />
+                  <PlanSummaryCard title="Pro" items={["25 datasets", "Business analysis", "Reports"]} />
+                  <PlanSummaryCard title="Business" items={["5000 AI credits", "Accounting AI", "Dedicated support"]} highlighted />
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
