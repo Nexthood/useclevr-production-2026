@@ -3,6 +3,7 @@
 ### Changed
 
 - Use a single `6.svg` file as the browser tab favicon.
+- Show sidebar Analyst Credits from current dataset usage so Free accounts display the same used count as Dataset Overview.
 - Show completed sidebar badges for Business, Accountancy, and Retail from the latest saved Business Profile status.
 - Remove app zoom controls completely and simplify theme toggle to a single sun/moon button.
 - Add a global cookie consent banner with essential-only, accept-all, and preference-management choices for analytics and product-improvement cookies.

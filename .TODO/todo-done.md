@@ -49,6 +49,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-928. Show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion. (labels: ui, data, billing; commit: worktree)
 - T-927. Show the current UseClevr logo as the browser tab favicon from the single `6.svg` asset. (labels: ui, content; commit: worktree)
 - T-926. Show Business, Accountancy, and Retail completed sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves. (labels: ui, business, stability; commit: worktree)
 - T-925. Show a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, storing reusable consent choices under `useclevr_cookie_consent`. (labels: ui, security, accessibility; commit: worktree)

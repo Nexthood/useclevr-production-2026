@@ -2,6 +2,7 @@
 
 import { deleteDataset } from "@/app/actions/datasets"
 import { Button } from "@/components/ui/button"
+import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { useRouter } from "next/navigation"
 
 export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; label?: string }) {
@@ -13,6 +14,7 @@ export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; l
     const result = await deleteDataset(datasetId)
 
     if (result.success) {
+      window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
       router.refresh()
     } else {
       alert(result.error)

@@ -8,6 +8,7 @@ import { uploadCSV } from "@/app/actions/upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { useToast } from "@/hooks/use-toast"
 import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
@@ -668,10 +669,12 @@ export function ProfitabilityUpload() {
       const result = await uploadCSV(formData)
 
       if (result.success && result.profitabilityResult) {
+        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         setProfitabilityResult(result.profitabilityResult)
         setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
         toast({ title: "Analysis complete", description: "Your profitability analysis is ready" })
       } else if (result.success && result.redirectTo) {
+        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         setGenerateStatus("success")
         window.location.href = result.redirectTo
       } else {

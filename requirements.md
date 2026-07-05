@@ -169,6 +169,8 @@ Text rules for this file:
 - Apply the annual Pro discount at checkout.
 - Sync subscription status from the payment provider.
 - Give newly registered Free accounts exactly two included analyst credits.
+- Show sidebar Analyst Credits for limited accounts from the current dataset count and dataset
+  limit, with the progress bar full when the Free plan reaches 2 of 2 datasets.
 - Block upload, analysis, and report-download continuation for Free users after both included analyst credits are used, and show a Stripe upgrade path.
 - Let superadmin, admin, and built-in testing accounts use unlimited analyst credits without decrementing included credits or showing upgrade blocking.
 - Let Stripe webhook requests reach signature verification without requiring a browser session.
