@@ -1994,7 +1994,7 @@ export function PayloadAiActions() {
               >
                 Cancel
               </button>
-              <a href="/app/settings/billing" target="_parent" className="payload-button">
+              <a href="/app/settings/subscription?tab=billing" target="_parent" className="payload-button">
                 Configure Hybrid AI
               </a>
             </div>

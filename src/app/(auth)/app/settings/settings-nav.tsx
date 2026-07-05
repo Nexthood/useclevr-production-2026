@@ -4,7 +4,6 @@ import {
   Activity,
   Bot,
   CreditCard,
-  ReceiptText,
   ShieldCheck,
   SlidersHorizontal,
   User,
@@ -19,12 +18,10 @@ const items = [
   { href: "/app/settings/ai-activity", label: "AI Activity", icon: ShieldCheck },
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
   { href: "/app/settings/activity", label: "Activity", icon: Activity },
-  { href: "/app/settings/billing", label: "Billing", icon: ReceiptText },
 ];
 
 const adminItems = [
   { href: "/app/settings/payment", label: "Payment", icon: CreditCard },
-  { href: "/app/settings/credits", label: "Credit Rules", icon: ShieldCheck },
   { href: "/app/settings/total-activity", label: "Total Activity", icon: Activity },
 ];
 

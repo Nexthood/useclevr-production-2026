@@ -17,8 +17,6 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "profile", label: "Profile", icon: User },
   { id: "company", label: "Company", icon: Building2 },
   { id: "subscription", label: "Subscription", icon: CreditCard },
-  { id: "billing", label: "Billing", icon: FileText },
-  { id: "rules", label: "Rules", icon: ShieldCheck },
   { id: "ai", label: "AI Providers", icon: Bot },
   { id: "security", label: "Security", icon: LockKeyhole },
 ]

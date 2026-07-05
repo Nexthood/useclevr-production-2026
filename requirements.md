@@ -164,6 +164,8 @@ Text rules for this file:
 - Accept `plan=pro`, `plan=pro_monthly`, `plan=business`, and `plan=business_monthly` in checkout, show Pro and Business as switchable paid packages, and send the selected plan's configured Stripe price ID.
 - Resolve Stripe price IDs on the server with `STRIPE_PRICE_PRO_MONTHLY` for Pro monthly, `STRIPE_PRICE_PRO_ANNUAL` for Pro annual when an annual plan exists, and `STRIPE_PRICE_BUSINESS_MONTHLY` for Business monthly with `STRIPE_PRICE_ID_BUSINESS_MONTHLY` as a compatibility fallback.
 - Show paid checkout as available only after the server confirms the selected paid plan has an active Stripe price ID.
+- Use Subscription as the single customer-facing entry point for subscription management, with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs.
+- Redirect legacy Billing and Credit Rules settings routes to the matching Subscription Management tabs.
 - Show upgrade modals with the selected plan name, monthly price, and a visible secure-checkout button.
 - Start a Stripe Checkout session immediately when the user confirms the selected paid plan from an upgrade modal.
 - Redirect successful paid-plan checkout session creation to the Stripe-hosted checkout page.

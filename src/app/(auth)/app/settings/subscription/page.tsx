@@ -7,7 +7,7 @@ import { getDb } from "@/lib/db";
 import { datasets, profiles } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { count, eq, sum } from "drizzle-orm";
-import { ArrowUpRight, CreditCard, FileText, HardDrive, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 

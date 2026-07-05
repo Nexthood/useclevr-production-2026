@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   try {
     const portalSession = await createStripeBillingPortalSession({
       customerId: profile.stripeCustomerId,
-      returnUrl: new URL("/app/settings/billing", request.nextUrl.origin).toString(),
+      returnUrl: new URL("/app/settings/subscription?tab=billing", request.nextUrl.origin).toString(),
     })
 
     return NextResponse.json({ url: portalSession.url, status: "ready" })

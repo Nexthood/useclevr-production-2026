@@ -47,7 +47,7 @@ export function CreditPanel({ remainingCredits, totalCredits }: CreditPanelProps
                 Upgrade plan
               </Link>
               <Link
-                href="/app/settings/billing"
+                href="/app/settings/subscription?tab=billing"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted"
               >
