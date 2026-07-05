@@ -98,6 +98,7 @@ export default async function Topbar() {
               <TopbarPanelLink href="/app/admin/levels">Levels</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/discounts">Discounts</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/billing-settings">Billing</TopbarPanelLink>
+              <TopbarPanelLink href="/app/admin/ai-cost-optimizer">AI Cost Optimizer</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/ai-traces">AI Traces</TopbarPanelLink>
               <TopbarPanelLink href="/app/admin/ai-benchmarking">Benchmarking</TopbarPanelLink>
             </TopbarSection>
