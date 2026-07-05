@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans";
+import { billingPlans, formatPlanPrice, getBillingPlan, normalizeBillingPlanId } from "@/lib/billing/plans";
 
 type DiscountRule = {
   id: string;
@@ -27,7 +27,7 @@ function CheckoutClient() {
 
   // Read plan & discount ONCE on mount; sync back via state so they survive
   // URL changes between steps 1 → 2.
-  const planId = searchParams.get("plan") ?? "pro_monthly";
+  const planId = normalizeBillingPlanId(searchParams.get("plan"));
   const initialDiscount = searchParams.get("discount");
   const [discount, _setDiscount] = React.useState<boolean>(initialDiscount === "auto");
   const [plan, setPlan] = React.useState(getBillingPlan(planId));
@@ -41,6 +41,17 @@ function CheckoutClient() {
   React.useEffect(() => {
     setPlan(getBillingPlan(searchParams.get("plan")));
   }, [searchParams]);
+
+  const paidPlans = billingPlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
+
+  const selectPlan = (nextPlanId: string) => {
+    const normalized = normalizeBillingPlanId(nextPlanId);
+    setPlan(getBillingPlan(normalized));
+    setStep("review");
+    setTermsAccepted(false);
+    setCheckoutError(null);
+    router.push(`/app/settings/checkout?plan=${normalized}${discount ? "&discount=auto" : ""}`);
+  };
 
   // Fetch available discounts and filter by plan target
   React.useEffect(() => {
@@ -143,6 +154,39 @@ function CheckoutClient() {
         {step === "review" && (
           <div className="w-full space-y-6">
             <div className="rounded-lg border border-border bg-background p-5">
+              <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                {paidPlans.map((candidate) => {
+                  const isSelected = candidate.id === plan.id;
+                  return (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      onClick={() => selectPlan(candidate.id)}
+                      className={[
+                        "rounded-lg border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        isSelected
+                          ? "border-primary bg-primary/10 shadow-sm"
+                          : "border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5",
+                      ].join(" ")}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-foreground">{candidate.name}</span>
+                        <span
+                          className={[
+                            "h-4 w-4 rounded-full border",
+                            isSelected ? "border-primary bg-primary shadow-[inset_0_0_0_4px_hsl(var(--background))]" : "border-muted-foreground/50",
+                          ].join(" ")}
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span className="mt-1 block text-sm font-medium text-foreground">{formatPlanPrice(candidate)}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">{candidate.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">{plan.name}</h2>
                 <span className="text-xl font-semibold">{formatPlanPrice(plan)}</span>

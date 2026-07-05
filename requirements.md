@@ -158,15 +158,15 @@ Text rules for this file:
   enough width for plan details, terms, and action buttons.
 - Show selected-plan terms and payment confirmation in a compact two-column desktop layout with
   terms beside accept/payment actions.
-- Show Upgrade to Pro modals with the selected plan name, monthly or annual price, and a visible secure-checkout button.
-- Start a Stripe Checkout session immediately when the user confirms Upgrade to Pro from an upgrade modal.
-- Redirect successful Upgrade to Pro checkout session creation to the Stripe-hosted checkout page.
+- Accept `plan=pro`, `plan=pro_monthly`, `plan=business`, and `plan=business_monthly` in checkout, show Pro and Business as switchable paid packages, and send the selected plan's configured Stripe price ID.
+- Show upgrade modals with the selected plan name, monthly price, and a visible secure-checkout button.
+- Start a Stripe Checkout session immediately when the user confirms the selected paid plan from an upgrade modal.
+- Redirect successful paid-plan checkout session creation to the Stripe-hosted checkout page.
 - Show a visible checkout error in the upgrade modal when Stripe Checkout session creation fails.
 - Use a checkout review step before terms acceptance and payment.
 - Start the secure payment flow after terms acceptance.
 - Verify successful checkout sessions against the signed-in user.
 - Verify checkout redirects with signed, time-limited server tokens.
-- Apply the annual Pro discount at checkout.
 - Sync subscription status from the payment provider.
 - Give newly registered Free accounts exactly two included analyst credits.
 - Show sidebar Analyst Credits for limited accounts from the current dataset count and dataset

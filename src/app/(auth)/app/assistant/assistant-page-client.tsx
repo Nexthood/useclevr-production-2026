@@ -33,9 +33,14 @@ export function AssistantPageClient({
             <p className="mt-2 text-sm text-muted-foreground">
               The AI Assistant uses Hybrid AI provider routing, dataset context, and privacy controls. Upgrade to Pro or Business to start.
             </p>
-            <Link href="/app/settings/checkout?plan=pro_monthly" className="mt-5 inline-block">
-              <Button>Upgrade to Pro</Button>
-            </Link>
+            <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/app/settings/checkout?plan=pro_monthly">
+                <Button>Upgrade to Pro</Button>
+              </Link>
+              <Link href="/app/settings/checkout?plan=business_monthly">
+                <Button variant="outline" className="bg-transparent">Upgrade to Business</Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}

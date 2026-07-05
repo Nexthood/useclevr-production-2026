@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Support both Pro and Business plan selection in checkout so Business upgrade actions open the €420/month Business package and Stripe receives the Business price.
 - Use a single `6.svg` file as the browser tab favicon.
 - Show sidebar Analyst Credits from current dataset usage so Free accounts display the same used count as Dataset Overview.
 - Show completed sidebar badges for Business, Accountancy, and Retail from the latest saved Business Profile status.

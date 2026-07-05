@@ -2,6 +2,7 @@
 
 import { PRODUCTS, type ProductId } from "@/lib/business/products"
 import { auth } from "@/lib/auth/auth"
+import { getConfiguredBillingPlan } from "@/lib/billing/settings-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { issueCheckoutToken, redeemCheckoutToken } from "@/lib/stripe/checkout-token"
@@ -24,9 +25,10 @@ export async function createCheckoutSession(productId: ProductId, returnUrl?: st
     throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY environment variable.")
   }
 
-  const priceId = process.env.STRIPE_PRICE_PRO_MONTHLY
+  const plan = await getConfiguredBillingPlan(productId)
+  const priceId = plan.stripePriceId
   if (!priceId) {
-    throw new Error("Stripe price ID not configured. Set STRIPE_PRICE_PRO_MONTHLY.")
+    throw new Error(`Stripe price ID not configured for ${plan.name}.`)
   }
 
   const baseUrl = getBaseUrl()

@@ -1,4 +1,4 @@
-import { billingPlans, type BillingPlan } from "@/lib/billing/plans"
+import { billingPlans, normalizeBillingPlanId, type BillingPlan } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { appSettings } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -169,5 +169,5 @@ export async function saveBillingSettings(settings: BillingSettings): Promise<Bi
 
 export async function getConfiguredBillingPlan(planId: string | null | undefined) {
   const settings = await getBillingSettings()
-  return settings.plans.find((plan) => plan.id === planId) || settings.plans[1]
+  return settings.plans.find((plan) => plan.id === normalizeBillingPlanId(planId)) || settings.plans[1]
 }

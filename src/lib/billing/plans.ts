@@ -44,12 +44,19 @@ export const billingPlans: BillingPlan[] = [
     tier: "business",
     price: 420,
     interval: "month",
-    description: "Unlimited datasets, advanced security, and dedicated support.",
+    description: "Unlimited datasets, full Hybrid AI, teams, API access, and enterprise-grade support.",
     features: [
       "Unlimited datasets",
-      "Advanced security",
+      "Unlimited AI analyses",
+      "Full Hybrid AI",
+      "Team members",
+      "API & MCP access",
+      "Priority infrastructure",
+      "Advanced BI modules",
       "Private deployment options",
       "Dedicated support",
+      "White-label options",
+      "Enterprise billing",
     ],
     maxDatasets: Infinity,
     maxRowsPerFile: 300_000,
@@ -63,11 +70,17 @@ export const publicMonthlyPlanPrices = {
 } as const
 
 export function getBillingPlan(planId: string | null | undefined) {
-  return billingPlans.find((plan) => plan.id === planId) || billingPlans[1];
+  return billingPlans.find((plan) => plan.id === normalizeBillingPlanId(planId)) || billingPlans[1];
 }
 
 export function getBillingPlanByTier(tier: string | null | undefined) {
   return billingPlans.find((plan) => plan.tier === tier) || billingPlans[0];
+}
+
+export function normalizeBillingPlanId(planId: string | null | undefined): BillingPlanId {
+  if (planId === "business" || planId === "business_monthly") return "business_monthly"
+  if (planId === "free") return "free"
+  return "pro_monthly"
 }
 
 export function formatPlanPrice(plan: BillingPlan) {

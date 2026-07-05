@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-929. Support Pro and Business plan selection in checkout, route Business upgrade actions to the Business package, and send the selected paid plan's Stripe price ID. (labels: billing, payment, ui; commit: worktree)
 - T-923. Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces with shared monthly plan pricing as the canonical source. (labels: billing, ui, content; commit: worktree)
 
 ## Label: ui

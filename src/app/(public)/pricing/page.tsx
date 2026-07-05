@@ -444,14 +444,14 @@ export default function PricingPage() {
                   </p>
                 </div>
 
-                <a href="mailto:sales@useclevr.com" className="block">
+                <Link href="/app/settings/checkout?plan=business_monthly" className="block">
                   <Button
                     variant="outline"
                     className="w-full bg-transparent border-border/50 hover:bg-accent/5 text-sm"
                   >
-                    Contact Sales
+                    Review Business
                   </Button>
-                </a>
+                </Link>
               </Card>
             </div>
 
