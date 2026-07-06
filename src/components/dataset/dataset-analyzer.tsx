@@ -14,10 +14,6 @@ import {
     AlertTriangle, BarChart3, FileText, Lightbulb, Loader2, Sparkles, Table2, TrendingDown, TrendingUp, X
 } from "lucide-react"
 import * as React from "react"
-import {
-    Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis,
-    YAxis
-} from "recharts"
 
 // ============================================================================
 // Type Definitions
@@ -1418,17 +1414,8 @@ export function DatasetAnalyzer({
                     <CardTitle className="text-foreground text-base">World Revenue Map</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {/* Debug: Log the data */}
-                    <DebugRegionData 
-                      topRegions={analysis.business_analysis.kpis.topRegions} 
-                      breakdowns={analysis.business_analysis.breakdowns}
-                      rawData={data}
-                    />
-                    
-                    {/* Use World Map when geographic columns are detected, otherwise use bar chart */}
                     <WorldMapChart 
                       rawData={data} 
-                      fallbackData={analysis.business_analysis.kpis.topRegions.map(r => ({ name: r.name, revenue: r.revenue, orders: 0, profit: 0, margin: null, growth: null }))}
                       breakdowns={analysis.business_analysis.breakdowns}
                     />
                   </CardContent>
@@ -2253,170 +2240,9 @@ export function DatasetAnalyzer({
 // Helper Components for Overview Tab
 // ============================================================================
 
-interface BarChartRegionData {
-  name: string;
-  revenue: number;
-  percentage: number;
-}
-
 interface Breakdowns {
   revenueByRegion?: Record<string, number>;
   revenueByProduct?: Record<string, number>;
-}
-
-// Debug component - logs data to console
-function DebugRegionData({ 
-  topRegions, 
-  breakdowns, 
-  rawData 
-}: { 
-  topRegions: BarChartRegionData[]; 
-  breakdowns?: Breakdowns;
-  rawData?: any[];
-}) {
-  React.useEffect(() => {
-    debugLog('[Overview] topRegions (from kpis):', topRegions);
-    debugLog('[Overview] breakdowns.revenueByRegion:', breakdowns?.revenueByRegion);
-    debugLog('[Overview] raw data sample:', rawData?.slice(0, 3));
-    if (rawData && rawData.length > 0) {
-      debugLog('[Overview] raw data columns:', Object.keys(rawData[0]));
-    }
-  }, [topRegions, breakdowns, rawData]);
-  return null; // Render nothing
-}
-
-// Recharts BarChart component for revenue by region
-function RegionBarChart({ 
-  rawData, 
-  fallbackData,
-  breakdowns
-}: { 
-  rawData?: any[]; 
-  fallbackData: BarChartRegionData[];
-  breakdowns?: Breakdowns;
-}) {
-  // Aggregate data from raw dataset - show ALL regions, not just top 5
-  const chartData = React.useMemo(() => {
-    debugLog('[RegionBarChart] rawData length:', rawData?.length);
-    debugLog('[RegionBarChart] fallbackData length:', fallbackData?.length);
-    debugLog('[RegionBarChart] breakdowns.revenueByRegion:', breakdowns?.revenueByRegion);
-    
-    // FIRST: Use breakdowns.revenueByRegion if available - this has ALL regions computed correctly
-    if (breakdowns?.revenueByRegion && Object.keys(breakdowns.revenueByRegion).length > 0) {
-      const entries = Object.entries(breakdowns.revenueByRegion)
-        .map(([name, revenue]) => ({ name, revenue }))
-        .filter(item => item.revenue > 0)
-        .sort((a, b) => b.revenue - a.revenue);
-      
-      debugLog('[RegionBarChart] Using breakdowns - ALL regions:', entries.length);
-      return entries;
-    }
-    
-    // SECOND: Try to aggregate from rawData
-    if (rawData && rawData.length > 0) {
-      const columns = Object.keys(rawData[0] || {});
-      debugLog('[RegionBarChart] Available columns:', columns);
-      
-      // Find country/region column
-      const countryCol = columns.find(c => /country/i.test(c));
-      const regionCol = columns.find(c => /region|area|zone|market|territory/i.test(c));
-      
-      // Find revenue column - check all variations
-      const revenueCol = columns.find(c => 
-        /revenue|sales|amount|total|value/i.test(c) ||
-        c.toLowerCase().includes('net_revenue') ||
-        c.toLowerCase().includes('order_total')
-      );
-      
-      debugLog('[RegionBarChart] Detected columns:', { countryCol, regionCol, revenueCol });
-      
-      const groupCol = countryCol || regionCol;
-      
-      if (groupCol && revenueCol) {
-        // Aggregate ALL data from rawData - NO LIMIT
-        const agg: Record<string, number> = {};
-        rawData.forEach(r => {
-          const key = String(r[groupCol] || 'Unknown');
-          const val = parseFloat(String(r[revenueCol])) || 0;
-          if (val > 0) agg[key] = (agg[key] || 0) + val;
-        });
-        
-        const result = Object.entries(agg)
-          .map(([name, revenue]) => ({ name, revenue }))
-          .filter(item => item.revenue > 0)
-          .sort((a, b) => b.revenue - a.revenue)
-          .slice(0, 20); // Increased to 20 to show more regions
-        
-        debugLog('[RegionBarChart] Aggregated from rawData - ALL regions:', result);
-        debugLog('[RegionBarChart] Total unique regions:', result.length);
-        return result;
-      }
-    }
-    
-    // Fallback to topRegions only if rawData fails
-    debugLog('[RegionBarChart] Using fallback - rawData not available or columns not detected');
-    const result = fallbackData.map(item => ({
-      name: item.name,
-      revenue: item.revenue,
-    }));
-    debugLog('[RegionBarChart] Fallback result:', result);
-    return result;
-  }, [rawData, fallbackData, breakdowns]);
-  
-  debugLog('[RegionBarChart] FINAL chartData:', chartData);
-  debugLog('[RegionBarChart] Rendering', chartData.length, 'bars');
-  
-  debugLog('[RegionBarChart] Final chartData:', chartData);
-  
-  // Colors for bars
-	  const COLORS = ['#06b6d4', '#8b5cf6', '#0ea5e9', '#a855f7', '#14b8a6', '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#64748b'];
-  
-  if (chartData.length === 0) {
-    return <div className="text-muted-foreground">No region data available</div>;
-  }
-  
-  return (
-	    <div className="h-[320px] w-full overflow-x-auto">
-	       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-        <BarChart 
-          data={chartData} 
-          layout="vertical"
-	          margin={{ top: 5, right: 24, left: 72, bottom: 5 }}
-	        >
-	          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={true} vertical={false} />
-	          <XAxis 
-	            type="number" 
-	            stroke="hsl(var(--muted-foreground))" 
-	            fontSize={12}
-            tickFormatter={(value) => `${value >= 1000 ? `${(value/1000).toFixed(2)}K` : value}`}
-          />
-          <YAxis 
-            type="category" 
-            dataKey="name" 
-	            stroke="hsl(var(--muted-foreground))" 
-	            fontSize={12}
-	            width={75}
-	            tick={{ fill: 'hsl(var(--muted-foreground))' }}
-	          />
-	          <Tooltip 
-	            contentStyle={{ 
-	              backgroundColor: 'hsl(var(--popover))', 
-	              border: '1px solid hsl(var(--border))', 
-	              borderRadius: '8px',
-	              color: 'hsl(var(--popover-foreground))'
-	            }}
-	            formatter={(value) => [`${(value as number)?.toLocaleString() || 0}`, 'Revenue']}
-	            labelStyle={{ color: 'hsl(var(--popover-foreground))', fontWeight: 600 }}
-	          />
-          <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
 }
 
 // Geographic column detection
@@ -2450,29 +2276,16 @@ function detectProductColumn(columns: string[]): string | null {
 // World Map Chart component - shows interactive world map with revenue bubbles
 function WorldMapChart({ 
   rawData,
-  fallbackData,
   breakdowns
 }: { 
   rawData?: any[]; 
-  fallbackData: MapRegionData[];
   breakdowns?: Breakdowns;
 }) {
   const [selectedRegion, setSelectedRegion] = React.useState<MapRegionData | null>(null);
 
   const mapData: MapRegionData[] = React.useMemo(() => {
     debugLog('[WorldMapChart] Processing map data...');
-    
-    // If we have breakdowns with region data, use that
-    if (breakdowns?.revenueByRegion && Object.keys(breakdowns.revenueByRegion).length > 0) {
-      const entries: MapRegionData[] = Object.entries(breakdowns.revenueByRegion)
-        .map(([name, revenue]) => ({ name, revenue, orders: 0, profit: 0, margin: null, growth: null }))
-        .filter(item => item.revenue > 0)
-        .sort((a, b) => b.revenue - a.revenue);
-      debugLog('[WorldMapChart] Using breakdowns - regions:', entries.length);
-      return entries;
-    }
-    
-    // Otherwise, aggregate from rawData
+
     if (rawData && rawData.length > 0) {
       const columns = Object.keys(rawData[0] || {});
       const geoCol = detectGeographicColumns(columns);
@@ -2521,20 +2334,19 @@ function WorldMapChart({
           .slice(0, 30);
         
         debugLog('[WorldMapChart] Aggregated from rawData - regions:', result.length);
-        return result;
+        if (breakdowns?.revenueByRegion && Object.keys(breakdowns.revenueByRegion).length > 0) {
+          return result.map((item) => ({
+            ...item,
+            revenue: breakdowns.revenueByRegion?.[item.name] ?? item.revenue,
+          }))
+        }
+        return result
       }
     }
     
-    // Fallback
-    debugLog('[WorldMapChart] Using fallback data');
-    return fallbackData;
-  }, [rawData, fallbackData, breakdowns]);
-
-  const hasGeoData = mapData.length > 0 && mapData.some(d => d.name && (
-    d.latitude !== undefined || 
-    d.countryCode !== undefined ||
-    /europe|asia|america|africa|oceania|north|south|west|east|central/i.test(d.name)
-  ));
+    debugLog('[WorldMapChart] No geographic column detected');
+    return [];
+  }, [rawData, breakdowns]);
 
   const handleRegionClick = (region: MapRegionData) => {
     setSelectedRegion(region);

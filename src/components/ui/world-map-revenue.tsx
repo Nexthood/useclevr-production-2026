@@ -16,332 +16,388 @@ export type RegionData = {
   topCategory?: string
 }
 
+type ProjectedRegion = RegionData & {
+  x: number
+  y: number
+  code?: string
+}
+
 interface WorldMapRevenueProps {
   regions: RegionData[]
   onRegionClick?: (region: RegionData) => void
 }
 
-const COUNTRY_COORDS: Record<string, { lat: number; lng: number; code: string }> = {
+const LOCATION_COORDS: Record<string, { lat: number; lng: number; code: string }> = {
   "united states": { lat: 37.0902, lng: -95.7129, code: "US" },
-  "usa": { lat: 37.0902, lng: -95.7129, code: "US" },
-  "us": { lat: 37.0902, lng: -95.7129, code: "US" },
+  usa: { lat: 37.0902, lng: -95.7129, code: "US" },
+  us: { lat: 37.0902, lng: -95.7129, code: "US" },
+  "new york": { lat: 40.7128, lng: -74.006, code: "NYC" },
+  "los angeles": { lat: 34.0522, lng: -118.2437, code: "LA" },
+  chicago: { lat: 41.8781, lng: -87.6298, code: "CHI" },
+  canada: { lat: 56.1304, lng: -106.3468, code: "CA" },
+  mexico: { lat: 23.6345, lng: -102.5528, code: "MX" },
+  brazil: { lat: -14.235, lng: -51.9253, code: "BR" },
+  argentina: { lat: -38.4161, lng: -63.6167, code: "AR" },
+  chile: { lat: -35.6751, lng: -71.543, code: "CL" },
+  colombia: { lat: 4.5709, lng: -74.2973, code: "CO" },
   "united kingdom": { lat: 55.3781, lng: -3.436, code: "GB" },
-  "uk": { lat: 55.3781, lng: -3.436, code: "GB" },
-  "great britain": { lat: 55.3781, lng: -3.436, code: "GB" },
-  "germany": { lat: 51.1657, lng: 10.4515, code: "DE" },
-  "france": { lat: 46.2276, lng: 2.2137, code: "FR" },
-  "spain": { lat: 40.4637, lng: -3.7492, code: "ES" },
-  "italy": { lat: 41.8719, lng: 12.5674, code: "IT" },
-  "netherlands": { lat: 52.1326, lng: 5.2913, code: "NL" },
-  "belgium": { lat: 50.5039, lng: 4.4699, code: "BE" },
-  "switzerland": { lat: 46.8182, lng: 8.2275, code: "CH" },
-  "austria": { lat: 47.5162, lng: 14.5501, code: "AT" },
-  "poland": { lat: 51.9194, lng: 19.1451, code: "PL" },
-  "sweden": { lat: 60.1282, lng: 18.6435, code: "SE" },
-  "norway": { lat: 60.472, lng: 8.4689, code: "NO" },
-  "denmark": { lat: 56.2639, lng: 9.5018, code: "DK" },
-  "finland": { lat: 61.9241, lng: 25.7482, code: "FI" },
-  "ireland": { lat: 53.1424, lng: -7.6921, code: "IE" },
-  "portugal": { lat: 39.3999, lng: -8.2245, code: "PT" },
-  "greece": { lat: 39.0742, lng: 21.8243, code: "GR" },
-  "czech republic": { lat: 49.8175, lng: 15.473, code: "CZ" },
-  "hungary": { lat: 47.1625, lng: 19.5033, code: "HU" },
-  "romania": { lat: 45.9432, lng: 24.9668, code: "RO" },
-  "canada": { lat: 56.1304, lng: -106.3468, code: "CA" },
-  "mexico": { lat: 23.6345, lng: -102.5528, code: "MX" },
-  "brazil": { lat: -14.235, lng: -51.9253, code: "BR" },
-  "argentina": { lat: -38.4161, lng: -63.6167, code: "AR" },
-  "chile": { lat: -35.6751, lng: -71.543, code: "CL" },
-  "colombia": { lat: 4.5709, lng: -74.2973, code: "CO" },
-  "australia": { lat: -25.2744, lng: 133.7751, code: "AU" },
+  uk: { lat: 55.3781, lng: -3.436, code: "GB" },
+  london: { lat: 51.5074, lng: -0.1278, code: "LON" },
+  germany: { lat: 51.1657, lng: 10.4515, code: "DE" },
+  berlin: { lat: 52.52, lng: 13.405, code: "BER" },
+  france: { lat: 46.2276, lng: 2.2137, code: "FR" },
+  paris: { lat: 48.8566, lng: 2.3522, code: "PAR" },
+  spain: { lat: 40.4637, lng: -3.7492, code: "ES" },
+  madrid: { lat: 40.4168, lng: -3.7038, code: "MAD" },
+  italy: { lat: 41.8719, lng: 12.5674, code: "IT" },
+  netherlands: { lat: 52.1326, lng: 5.2913, code: "NL" },
+  amsterdam: { lat: 52.3676, lng: 4.9041, code: "AMS" },
+  belgium: { lat: 50.5039, lng: 4.4699, code: "BE" },
+  switzerland: { lat: 46.8182, lng: 8.2275, code: "CH" },
+  austria: { lat: 47.5162, lng: 14.5501, code: "AT" },
+  poland: { lat: 51.9194, lng: 19.1451, code: "PL" },
+  sweden: { lat: 60.1282, lng: 18.6435, code: "SE" },
+  norway: { lat: 60.472, lng: 8.4689, code: "NO" },
+  denmark: { lat: 56.2639, lng: 9.5018, code: "DK" },
+  finland: { lat: 61.9241, lng: 25.7482, code: "FI" },
+  ireland: { lat: 53.1424, lng: -7.6921, code: "IE" },
+  portugal: { lat: 39.3999, lng: -8.2245, code: "PT" },
+  greece: { lat: 39.0742, lng: 21.8243, code: "GR" },
+  hungary: { lat: 47.1625, lng: 19.5033, code: "HU" },
+  budapest: { lat: 47.4979, lng: 19.0402, code: "BUD" },
+  romania: { lat: 45.9432, lng: 24.9668, code: "RO" },
+  australia: { lat: -25.2744, lng: 133.7751, code: "AU" },
   "new zealand": { lat: -40.9006, lng: 174.886, code: "NZ" },
-  "japan": { lat: 36.2048, lng: 138.2529, code: "JP" },
-  "china": { lat: 35.8617, lng: 104.1954, code: "CN" },
-  "india": { lat: 20.5937, lng: 78.9629, code: "IN" },
+  japan: { lat: 36.2048, lng: 138.2529, code: "JP" },
+  tokyo: { lat: 35.6762, lng: 139.6503, code: "TYO" },
+  china: { lat: 35.8617, lng: 104.1954, code: "CN" },
+  india: { lat: 20.5937, lng: 78.9629, code: "IN" },
   "south korea": { lat: 35.9078, lng: 127.7669, code: "KR" },
-  "korea": { lat: 35.9078, lng: 127.7669, code: "KR" },
-  "singapore": { lat: 1.3521, lng: 103.8198, code: "SG" },
+  singapore: { lat: 1.3521, lng: 103.8198, code: "SG" },
   "hong kong": { lat: 22.3193, lng: 114.1694, code: "HK" },
-  "taiwan": { lat: 23.6978, lng: 120.9605, code: "TW" },
-  "thailand": { lat: 15.87, lng: 100.9925, code: "TH" },
-  "malaysia": { lat: 4.2105, lng: 101.9758, code: "MY" },
-  "indonesia": { lat: -0.7893, lng: 113.9213, code: "ID" },
-  "philippines": { lat: 12.8797, lng: 121.774, code: "PH" },
-  "vietnam": { lat: 14.0583, lng: 108.2772, code: "VN" },
-  "uae": { lat: 23.4241, lng: 53.8478, code: "AE" },
+  thailand: { lat: 15.87, lng: 100.9925, code: "TH" },
+  malaysia: { lat: 4.2105, lng: 101.9758, code: "MY" },
+  indonesia: { lat: -0.7893, lng: 113.9213, code: "ID" },
+  vietnam: { lat: 14.0583, lng: 108.2772, code: "VN" },
   "united arab emirates": { lat: 23.4241, lng: 53.8478, code: "AE" },
+  uae: { lat: 23.4241, lng: 53.8478, code: "AE" },
   "saudi arabia": { lat: 23.8859, lng: 45.0792, code: "SA" },
-  "israel": { lat: 31.0461, lng: 34.8516, code: "IL" },
-  "turkey": { lat: 38.9637, lng: 35.2433, code: "TR" },
-  "egypt": { lat: 26.8206, lng: 30.8025, code: "EG" },
+  turkey: { lat: 38.9637, lng: 35.2433, code: "TR" },
+  egypt: { lat: 26.8206, lng: 30.8025, code: "EG" },
   "south africa": { lat: -30.5595, lng: 22.9375, code: "ZA" },
-  "nigeria": { lat: 9.082, lng: 8.6753, code: "NG" },
-  "russia": { lat: 61.524, lng: 105.3188, code: "RU" },
-  "ukraine": { lat: 48.3794, lng: 31.1656, code: "UA" },
-  // Regions
-  "europe": { lat: 50, lng: 10, code: "EU" },
-  "asia": { lat: 30, lng: 100, code: "AS" },
+  nigeria: { lat: 9.082, lng: 8.6753, code: "NG" },
+  europe: { lat: 50, lng: 10, code: "EU" },
+  asia: { lat: 30, lng: 100, code: "AS" },
   "north america": { lat: 40, lng: -100, code: "NA" },
   "south america": { lat: -15, lng: -60, code: "SA" },
-  "africa": { lat: 0, lng: 20, code: "AF" },
-  "oceania": { lat: -25, lng: 135, code: "OC" },
+  africa: { lat: 0, lng: 20, code: "AF" },
+  oceania: { lat: -25, lng: 135, code: "OC" },
   "middle east": { lat: 25, lng: 45, code: "ME" },
-  "central america": { lat: 15, lng: -90, code: "CA" },
   "western europe": { lat: 48, lng: 5, code: "WE" },
   "eastern europe": { lat: 50, lng: 25, code: "EE" },
   "northern europe": { lat: 60, lng: 10, code: "NE" },
   "southern europe": { lat: 38, lng: 15, code: "SE" },
-  "western asia": { lat: 30, lng: 45, code: "WA" },
-  "eastern asia": { lat: 35, lng: 130, code: "EA" },
-  "southern asia": { lat: 20, lng: 78, code: "SA" },
   "southeast asia": { lat: 15, lng: 105, code: "SEA" },
-  "central asia": { lat: 42, lng: 65, code: "CA" },
-  "northwestern europe": { lat: 55, lng: -5, code: "NWE" },
-  "west europe": { lat: 48, lng: 2, code: "WE" },
-  "east asia": { lat: 35, lng: 130, code: "EA" },
 }
 
-function getRegionCoords(name: string): { lat: number; lng: number; code: string } | undefined {
+function findLocation(name: string) {
   const normalized = name.toLowerCase().trim()
-  
-  // Direct match
-  if (COUNTRY_COORDS[normalized]) {
-    return COUNTRY_COORDS[normalized]
+  if (LOCATION_COORDS[normalized]) return LOCATION_COORDS[normalized]
+
+  const cleanParts = normalized.split(/[,/|-]/).map((part) => part.trim()).filter(Boolean)
+  for (const part of cleanParts) {
+    if (LOCATION_COORDS[part]) return LOCATION_COORDS[part]
   }
-  
-  // Try matching parts
-  const parts = normalized.split(/[\s,-]+/)
-  for (const part of parts) {
-    if (COUNTRY_COORDS[part]) {
-      return COUNTRY_COORDS[part]
-    }
-  }
-  
-  // Try contains match
-  for (const [key, coords] of Object.entries(COUNTRY_COORDS)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return coords
-    }
-  }
-  
-  return undefined
+
+  return Object.entries(LOCATION_COORDS).find(([key]) => normalized.includes(key) || key.includes(normalized))?.[1]
 }
 
-function formatCurrency(value: number): string {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
+function formatCurrency(value: number) {
+  if (!Number.isFinite(value)) return "$0"
+  if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+  if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(1)}K`
   return `$${value.toFixed(0)}`
 }
 
-function getPerformanceColor(growth: number | null, margin: number | null): string {
-  if (growth === null && margin === null) return "#06b6d4"
-  
-  const effectiveGrowth = growth ?? 0
-  const effectiveMargin = margin ?? 0
-  
-  if (effectiveGrowth < -10 || effectiveMargin < 0) return "#ef4444"
-  if (effectiveGrowth < 10 || effectiveMargin < 15) return "#f59e0b"
-  return "#a855f7"
+function formatPercent(value: number | null) {
+  if (value === null || !Number.isFinite(value)) return "No margin"
+  return `${value.toFixed(1)}%`
 }
 
-function getBubbleSize(revenue: number, maxRevenue: number): number {
-  const minSize = 8
-  const maxSize = 35
-  const ratio = maxRevenue > 0 ? Math.min(revenue / maxRevenue, 1) : 0
-  return minSize + ratio * (maxSize - minSize)
+function project(lat: number, lng: number) {
+  const latClamped = Math.max(-58, Math.min(78, lat))
+  return {
+    x: ((lng + 180) / 360) * 100,
+    y: ((82 - latClamped) / 150) * 100,
+  }
 }
 
-function mercatorProjection(lat: number, lng: number): { x: number; y: number } {
-  const minLat = -60
-  const maxLat = 85
-  const latClamped = Math.max(minLat, Math.min(maxLat, lat))
-  
-  const x = ((lng + 180) / 360) * 100
-  const y = ((90 - latClamped) / 180) * 100
-  
-  return { x, y }
+function markerRadius(revenue: number, maxRevenue: number) {
+  const ratio = maxRevenue > 0 ? Math.sqrt(Math.max(revenue, 0) / maxRevenue) : 0
+  return 0.95 + ratio * 2.45
 }
 
-function WorldMapSVG() {
+function performanceColor(region: RegionData) {
+  if ((region.growth ?? 0) < -10 || (region.margin ?? 1) < 0) return "#fb7185"
+  if ((region.growth ?? 0) > 10 || (region.margin ?? 0) > 25) return "#c084fc"
+  return "#22d3ee"
+}
+
+function EmptyGeoState() {
   return (
-    <g fill="hsl(215, 20%, 18%)" stroke="hsl(215, 15%, 30%)" strokeWidth="0.3">
-      <path d="M 8,42 L 8,35 L 18,35 L 18,30 L 25,30 L 25,35 L 35,35 L 35,28 L 42,28 L 42,35 L 50,35 L 50,42 L 42,42 L 42,50 L 35,50 L 35,42 L 25,42 L 25,50 L 18,50 L 18,42 Z" />
-      <path d="M 55,35 L 62,35 L 62,28 L 70,28 L 70,22 L 78,22 L 78,28 L 85,28 L 85,35 L 92,35 L 92,42 L 85,42 L 85,50 L 78,50 L 78,42 L 70,42 L 70,50 L 62,50 L 62,42 L 55,42 Z" />
-      <path d="M 15,55 L 25,55 L 25,60 L 35,60 L 35,55 L 45,55 L 45,65 L 35,65 L 35,72 L 25,72 L 25,65 L 15,65 Z" />
-      <path d="M 50,55 L 58,55 L 58,48 L 65,48 L 65,55 L 75,55 L 75,62 L 65,62 L 65,70 L 58,70 L 58,62 L 50,62 Z" />
-      <path d="M 78,55 L 88,55 L 88,48 L 95,48 L 95,40 L 102,40 L 102,48 L 110,48 L 110,55 L 118,55 L 118,48 L 125,48 L 125,55 L 135,55 L 135,62 L 125,62 L 125,70 L 118,70 L 118,78 L 110,78 L 110,70 L 102,70 L 102,78 L 95,78 L 95,70 L 88,70 L 88,78 L 78,78 Z" />
-    </g>
+    <div className="rounded-lg border border-dashed border-cyan-300/20 bg-slate-950/40 p-8 text-center">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21s7-5.33 7-11a7 7 0 10-14 0c0 5.67 7 11 7 11z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10.5h.01" />
+        </svg>
+      </div>
+      <p className="text-sm font-semibold text-foreground">No geographic data detected.</p>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        Upload data with country, city, region, or location columns to generate a map.
+      </p>
+    </div>
   )
 }
 
 export function WorldMapRevenue({ regions, onRegionClick }: WorldMapRevenueProps) {
-  const [hoveredRegion, setHoveredRegion] = React.useState<RegionData | null>(null)
+  const [hoveredRegion, setHoveredRegion] = React.useState<ProjectedRegion | null>(null)
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 })
 
-  if (!regions || regions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-8 text-center">
-        <div className="mb-4 rounded-full bg-cyan-500/10 p-3">
-          <svg className="h-8 w-8 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <p className="text-sm font-medium text-foreground">No location data detected</p>
-        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-          Add a country, region, city, or market column to unlock map insights.
-        </p>
-      </div>
-    )
+  const projectedRegions = React.useMemo<ProjectedRegion[]>(() => {
+    return (regions || [])
+      .map((region): ProjectedRegion | null => {
+        const lookup = region.latitude !== undefined && region.longitude !== undefined
+          ? { lat: region.latitude, lng: region.longitude, code: region.countryCode || region.name.slice(0, 3).toUpperCase() }
+          : findLocation(region.name)
+
+        if (!lookup) return null
+        const point = project(lookup.lat, lookup.lng)
+
+        return {
+          ...region,
+          ...point,
+          code: lookup.code,
+        }
+      })
+      .filter((region): region is ProjectedRegion => Boolean(region))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 18)
+  }, [regions])
+
+  if (!regions || regions.length === 0 || projectedRegions.length === 0) {
+    return <EmptyGeoState />
   }
 
-  const maxRevenue = Math.max(...regions.map((r) => r.revenue), 1)
+  const maxRevenue = Math.max(...projectedRegions.map((region) => region.revenue), 1)
+  const totalRevenue = projectedRegions.reduce((sum, region) => sum + region.revenue, 0)
+  const totalOrders = projectedRegions.reduce((sum, region) => sum + (region.orders || 0), 0)
+  const topRegion = projectedRegions[0]
+  const flowOrigin = topRegion || { x: 50, y: 45 }
+  const visibleLabels = projectedRegions.slice(0, 4)
 
-  const handleMouseMove = (e: React.MouseEvent<SVGGElement>, region: RegionData) => {
-    const rect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
+  const handleMouseMove = (event: React.MouseEvent<SVGGElement>, region: ProjectedRegion) => {
+    const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect()
     if (!rect) return
     setTooltipPosition({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
     })
+    setHoveredRegion(region)
   }
 
   return (
-    <div className="relative w-full">
-      <svg
-        viewBox="0 0 100 60"
-        className="h-[280px] w-full rounded-lg bg-gradient-to-b from-slate-900 to-slate-950"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <radialGradient id="bubbleGradient" cx="30%" cy="30%">
-            <stop offset="0%" stopColor="white" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="1" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        
-        <WorldMapSVG />
-        
-        {regions.map((region) => {
-          // Use provided coordinates or try to look up by name
-          let lat = region.latitude
-          let lng = region.longitude
-          
-          // If no coordinates, try to get from region name
-          if ((lat === undefined || lng === undefined) && region.name) {
-            const coords = getRegionCoords(region.name)
-            if (coords) {
-              lat = coords.lat
-              lng = coords.lng
-            }
-          }
-          
-          // Skip if still no valid coordinates
-          if (lat === undefined || lng === undefined) {
-            return null
-          }
-          
-          const coords = mercatorProjection(lat, lng)
-          const size = getBubbleSize(region.revenue, maxRevenue)
-          const color = getPerformanceColor(region.growth, region.margin)
-          
-          return (
-            <g
-              key={region.name}
-              className="cursor-pointer transition-opacity hover:opacity-90"
-              onClick={() => onRegionClick?.(region)}
-              onMouseEnter={() => setHoveredRegion(region)}
-              onMouseLeave={() => setHoveredRegion(null)}
-              onMouseMove={(e) => handleMouseMove(e, region)}
-            >
-              <circle
-                cx={coords.x}
-                cy={coords.y}
-                r={size}
-                fill={color}
-                fillOpacity="0.7"
-                stroke={color}
-                strokeWidth="1"
-                filter="url(#glow)"
-              />
-              <circle
-                cx={coords.x}
-                cy={coords.y}
-                r={size * 0.4}
-                fill="url(#bubbleGradient)"
-              />
+    <div className="overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950 shadow-lg shadow-cyan-950/20">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="relative min-h-[360px] overflow-hidden bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.15),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.15),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Geographic performance</p>
+              <h3 className="mt-1 text-lg font-semibold text-white">Revenue distribution</h3>
+            </div>
+            <div className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
+              {projectedRegions.length} mapped location{projectedRegions.length === 1 ? "" : "s"}
+            </div>
+          </div>
+
+          <svg viewBox="0 0 100 58" className="h-[280px] w-full" role="img" aria-label="World revenue map">
+            <defs>
+              <linearGradient id="useclevrMapLand" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stopColor="#334155" stopOpacity="0.58" />
+                <stop offset="100%" stopColor="#0f172a" stopOpacity="0.38" />
+              </linearGradient>
+              <linearGradient id="useclevrFlow" x1="0" x2="1">
+                <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.05" />
+                <stop offset="55%" stopColor="#22d3ee" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#c084fc" stopOpacity="0.72" />
+              </linearGradient>
+              <filter id="useclevrPointGlow" x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur stdDeviation="1.8" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {[12, 24, 36, 48, 60, 72, 84].map((x) => (
+              <line key={`lng-${x}`} x1={x} x2={x} y1="4" y2="54" stroke="#94a3b8" strokeDasharray="0.5 2.5" strokeOpacity="0.14" />
+            ))}
+            {[12, 22, 32, 42, 52].map((y) => (
+              <line key={`lat-${y}`} x1="4" x2="96" y1={y} y2={y} stroke="#94a3b8" strokeDasharray="0.5 2.5" strokeOpacity="0.14" />
+            ))}
+
+            <g fill="url(#useclevrMapLand)" stroke="#67e8f9" strokeOpacity="0.14" strokeWidth="0.35">
+              <path d="M8 19c4-5 11-7 18-5 4 1 6 3 9 3 3 1 7-1 10 2 2 3-1 6-5 7-4 2-5 5-9 6-6 1-8-4-12-4-5 0-12-3-11-9z" />
+              <path d="M24 34c4 0 8 2 10 6 3 5 1 11-4 13-3-5-7-8-10-12-2-3-1-6 4-7z" />
+              <path d="M45 18c6-6 16-8 25-5 8 2 15 1 21 5 3 3 1 6-4 6-7 0-11 4-17 4-5 0-10-3-15-2-6 1-13-2-10-8z" />
+              <path d="M53 31c5-1 9 2 9 7 0 5-3 9-8 11-3-4-5-9-5-13 0-3 1-5 4-5z" />
+              <path d="M73 38c5-2 14-1 18 3 3 3 1 8-5 9-6 0-14-3-17-7-1-2 1-4 4-5z" />
             </g>
-          )
-        })}
-      </svg>
 
-      {hoveredRegion && (
-        <div
-          className="absolute z-50 pointer-events-none rounded-lg border border-border bg-slate-900/95 p-3 shadow-xl backdrop-blur-sm"
-          style={{
-            left: Math.min(tooltipPosition.x + 10, 340),
-            top: Math.min(tooltipPosition.y - 10, 220),
-          }}
-        >
-          <p className="font-semibold text-foreground">{hoveredRegion.name}</p>
-          <div className="mt-2 space-y-1 text-xs">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Revenue</span>
-              <span className="font-medium text-cyan-400">{formatCurrency(hoveredRegion.revenue)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Orders</span>
-              <span className="font-medium text-foreground">{hoveredRegion.orders.toLocaleString()}</span>
-            </div>
-            {hoveredRegion.margin !== null && (
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Margin</span>
-                <span className="font-medium text-foreground">{hoveredRegion.margin.toFixed(1)}%</span>
-              </div>
-            )}
-            {hoveredRegion.growth !== null && (
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Performance</span>
-                <span className={`font-medium ${hoveredRegion.growth >= 10 ? "text-purple-400" : hoveredRegion.growth >= 0 ? "text-amber-400" : "text-red-400"}`}>
-                  {hoveredRegion.growth >= 0 ? "+" : ""}{hoveredRegion.growth.toFixed(0)}%
-                </span>
-              </div>
-            )}
-            {hoveredRegion.topCategory && (
-              <div className="pt-1 border-t border-border/50 mt-1">
-                <span className="text-muted-foreground">Top: </span>
-                <span className="text-foreground">{hoveredRegion.topCategory}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            {projectedRegions.slice(1, 8).map((region) => {
+              const cx = (flowOrigin.x + region.x) / 2
+              const cy = Math.min(flowOrigin.y, region.y) - 8 - Math.abs(flowOrigin.x - region.x) * 0.03
+              return (
+                <path
+                  key={`flow-${region.name}`}
+                  d={`M ${flowOrigin.x} ${flowOrigin.y} Q ${cx} ${cy} ${region.x} ${region.y}`}
+                  fill="none"
+                  stroke="url(#useclevrFlow)"
+                  strokeWidth="0.45"
+                  strokeLinecap="round"
+                  opacity="0.56"
+                />
+              )
+            })}
 
-      <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-purple-500" />
-            <span>High</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-500" />
-            <span>Medium</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-red-500" />
-            <span>Low</span>
-          </div>
+            {projectedRegions.map((region) => {
+              const radius = markerRadius(region.revenue, maxRevenue)
+              const color = performanceColor(region)
+
+              return (
+                <g
+                  key={region.name}
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onRegionClick?.(region)}
+                  onMouseMove={(event) => handleMouseMove(event, region)}
+                  onMouseLeave={() => setHoveredRegion(null)}
+                  onFocus={() => setHoveredRegion(region)}
+                  onBlur={() => setHoveredRegion(null)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") onRegionClick?.(region)
+                  }}
+                >
+                  <circle cx={region.x} cy={region.y} r={radius + 1.7} fill={color} opacity="0.16" filter="url(#useclevrPointGlow)" />
+                  <circle cx={region.x} cy={region.y} r={radius} fill={color} opacity="0.88" stroke="#f8fafc" strokeOpacity="0.55" strokeWidth="0.25" />
+                  <circle cx={region.x - radius * 0.28} cy={region.y - radius * 0.28} r={Math.max(0.32, radius * 0.28)} fill="#fff" opacity="0.42" />
+                </g>
+              )
+            })}
+
+            {visibleLabels.map((region, index) => (
+              <g key={`label-${region.name}`} pointerEvents="none">
+                <rect
+                  x={Math.min(region.x + 2.3, 78)}
+                  y={Math.max(region.y - 3.6, 3)}
+                  width={Math.min(18 + region.name.length * 0.45, 25)}
+                  height="5.8"
+                  rx="1.6"
+                  fill="#020617"
+                  fillOpacity={index === 0 ? "0.78" : "0.56"}
+                  stroke={index === 0 ? "#22d3ee" : "#64748b"}
+                  strokeOpacity="0.24"
+                />
+                <text x={Math.min(region.x + 3.8, 79.5)} y={Math.max(region.y + 0.2, 6.8)} fill="#e2e8f0" fontSize="2.2" fontWeight="600">
+                  {region.name.slice(0, 18)}
+                </text>
+              </g>
+            ))}
+          </svg>
+
+          {hoveredRegion && (
+            <div
+              className="pointer-events-none absolute z-20 min-w-52 rounded-lg border border-cyan-300/20 bg-slate-950/95 p-3 text-xs shadow-2xl shadow-cyan-950/50 backdrop-blur"
+              style={{
+                left: `min(${tooltipPosition.x + 18}px, calc(100% - 240px))`,
+                top: `min(${tooltipPosition.y + 18}px, calc(100% - 132px))`,
+              }}
+            >
+              <p className="font-semibold text-white">{hoveredRegion.name}</p>
+              <div className="mt-2 space-y-1.5">
+                <MetricLine label="Revenue" value={formatCurrency(hoveredRegion.revenue)} accent="cyan" />
+                {hoveredRegion.orders > 0 && <MetricLine label="Orders" value={hoveredRegion.orders.toLocaleString()} />}
+                <MetricLine label="Margin" value={formatPercent(hoveredRegion.margin)} />
+                {hoveredRegion.growth !== null && (
+                  <MetricLine label="Growth" value={`${hoveredRegion.growth >= 0 ? "+" : ""}${hoveredRegion.growth.toFixed(1)}%`} accent={hoveredRegion.growth >= 0 ? "purple" : "rose"} />
+                )}
+              </div>
+              {(hoveredRegion.topCategory || hoveredRegion.topProduct) && (
+                <p className="mt-2 border-t border-white/10 pt-2 text-slate-300">
+                  Top: {hoveredRegion.topCategory || hoveredRegion.topProduct}
+                </p>
+              )}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-muted-foreground">Bubble size = Revenue</span>
-        </div>
+
+        <aside className="border-t border-cyan-300/10 bg-slate-900/70 p-4 lg:border-l lg:border-t-0">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+            <SummaryCard label="Total mapped revenue" value={formatCurrency(totalRevenue)} />
+            <SummaryCard label="Top location" value={topRegion?.name || "No data"} />
+            <SummaryCard label="Mapped orders" value={totalOrders > 0 ? totalOrders.toLocaleString() : "No data"} />
+          </div>
+
+          <div className="mt-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Top locations</p>
+            <div className="space-y-2">
+              {projectedRegions.slice(0, 6).map((region, index) => {
+                const share = totalRevenue > 0 ? (region.revenue / totalRevenue) * 100 : 0
+                return (
+                  <button
+                    key={region.name}
+                    type="button"
+                    onClick={() => onRegionClick?.(region)}
+                    className="group w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-300/35 hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 truncate text-sm font-medium text-slate-100">
+                        {index + 1}. {region.name}
+                      </span>
+                      <span className="shrink-0 text-xs font-semibold text-cyan-200">{formatCurrency(region.revenue)}</span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                      <span className="block h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" style={{ width: `${Math.max(5, share)}%` }} />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </aside>
       </div>
+    </div>
+  )
+}
+
+function MetricLine({ label, value, accent }: { label: string; value: string; accent?: "cyan" | "purple" | "rose" }) {
+  const accentClass = accent === "purple" ? "text-violet-300" : accent === "rose" ? "text-rose-300" : accent === "cyan" ? "text-cyan-200" : "text-slate-100"
+
+  return (
+    <div className="flex items-center justify-between gap-5">
+      <span className="text-slate-400">{label}</span>
+      <span className={`font-semibold ${accentClass}`}>{value}</span>
+    </div>
+  )
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
     </div>
   )
 }

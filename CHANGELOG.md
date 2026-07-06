@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show geographic dataset analysis through a professional BI-style world map with real location detection, restrained glowing nodes, flow lines, metric cards, hover tooltips, and a clean empty state when no geographic columns exist.
 - Keep the main Dashboard focused on general workspace overview while categorized uploads route Standard datasets to analysis, Profitability datasets to Accountancy, and Retail datasets to the Retail workspace.
 - Show a compact animated multilingual badge in the Usy header that cycles supported languages and explains same-language replies on hover or tap.
 - Keep Usy focused on UseClevr business-data workflows while answering supported-language questions in the detected language, including localized refusals for unrelated topics.

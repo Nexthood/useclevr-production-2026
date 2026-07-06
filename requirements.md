@@ -51,6 +51,10 @@ Text rules for this file:
 - Generate at least 10 contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, or generic data from the dataset columns.
 - Cache AI Assistant suggestions per selected dataset and show fallback suggestions when generation fails.
 - Keep AI answers within the uploaded dataset scope.
+- Show geographic dataset visualizations only when uploaded rows contain country, city, region, market, location, state, province, territory, area, or zone columns.
+- Show a professional dark BI world map with detected location nodes, restrained flow lines, compact metric cards, hover tooltips, and top-location summaries when geographic columns are available.
+- Show "No geographic data detected." and "Upload data with country, city, region, or location columns to generate a map." when no geographic columns are available.
+- Never render fake geographic locations for datasets that do not contain geographic columns.
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
