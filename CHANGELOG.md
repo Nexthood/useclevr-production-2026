@@ -2,7 +2,11 @@
 
 ### Changed
 
-- Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and quick prompts for languages, credits, upload blocks, plan choice, and data analysis.
+- Show geographic dataset analysis through a professional BI-style world map with real location detection, restrained glowing nodes, flow lines, metric cards, hover tooltips, and a clean empty state when no geographic columns exist.
+- Keep the main Dashboard focused on general workspace overview while categorized uploads route Standard datasets to analysis, Profitability datasets to Accountancy, and Retail datasets to the Retail workspace.
+- Show a compact animated multilingual badge in the Usy header that cycles supported languages and explains same-language replies on hover or tap.
+- Keep Usy focused on UseClevr business-data workflows while answering supported-language questions in the detected language, including localized refusals for unrelated topics.
+- Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and quick prompts for credits, upload blocks, plan choice, and data analysis.
 - Limit Demo mode to the Free plan's shared dataset, row, upload, AI-credit, and feature-access rules so demo access cannot exceed Free account capabilities.
 - Strengthen Business plan cards with 250 datasets, larger uploads, Accounting AI, document processing, dedicated support, and Upgrade to Business actions.
 - Consolidate Subscription, Billing, and Credit Rules into one Subscription Management page with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs.

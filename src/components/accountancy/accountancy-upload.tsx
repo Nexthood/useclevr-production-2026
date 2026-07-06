@@ -203,6 +203,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
       const formData = new FormData()
       formData.append("file", file)
       formData.append("type", selectedType)
+      formData.append("fileType", `accountancy_${selectedType}`)
 
       debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", file.name)
 

@@ -672,7 +672,10 @@ export function ProfitabilityUpload() {
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         setProfitabilityResult(result.profitabilityResult)
         setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
-        toast({ title: "Analysis complete", description: "Your profitability analysis is ready" })
+        toast({ title: "Analysis complete", description: "Opening Accountancy with your profitability analysis." })
+        if (result.redirectTo) {
+          window.location.href = result.redirectTo
+        }
       } else if (result.success && result.redirectTo) {
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         setGenerateStatus("success")

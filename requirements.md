@@ -32,6 +32,12 @@ Text rules for this file:
 - Show Pro and Business upgrade actions from the Free plan dataset-limit upload state.
 - Compare Free, Pro, and Business upload benefits in the dataset-limit upload state.
 - Show uploaded datasets in structured tables with row counts.
+- Store dataset category metadata for standard, retail, accountancy, and profitability uploads.
+- Route Standard Upload datasets to the generic dataset analysis route.
+- Route Profitability Upload datasets to the Accountancy workspace.
+- Route Retail uploads to the Retail workspace.
+- Keep the main Dashboard free of retail-specific report sections and retail-only KPIs.
+- Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
@@ -45,6 +51,10 @@ Text rules for this file:
 - Generate at least 10 contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, or generic data from the dataset columns.
 - Cache AI Assistant suggestions per selected dataset and show fallback suggestions when generation fails.
 - Keep AI answers within the uploaded dataset scope.
+- Show geographic dataset visualizations only when uploaded rows contain country, city, region, market, location, state, province, territory, area, or zone columns.
+- Show a professional dark BI world map with detected location nodes, restrained flow lines, compact metric cards, hover tooltips, and top-location summaries when geographic columns are available.
+- Show "No geographic data detected." and "Upload data with country, city, region, or location columns to generate a map." when no geographic columns are available.
+- Never render fake geographic locations for datasets that do not contain geographic columns.
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.
@@ -114,8 +124,10 @@ Text rules for this file:
 - Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
 - Route existing AI Assistant chat through the same Hybrid AI provider routing, dataset-aware context builder, fallback rules, Local only cloud blocking, and provider status display as Hybrid AI Chat.
 - Allow AI Assistant users to ask general questions without a selected dataset and use summarized dataset context automatically when a dataset is selected.
-- Let Usy answer spontaneous UseClevr questions in English, German, Dutch, Spanish, Hungarian, and Romanian when possible.
+- Let Usy answer spontaneous UseClevr questions in English, German, Dutch, Spanish, Hungarian, and Romanian, replying in the detected user language when possible.
+- Show a compact Usy header badge that cycles through supported languages and explains that Usy replies in the language the user writes.
 - Give Usy UseClevr-aware fallback answers for uploads, datasets, AI credits, plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscriptions, Business Profile, troubleshooting, and upgrade flow when no live AI provider answers.
+- Keep Usy focused on UseClevr business-data workflows and answer unrelated general-chat topics with a polite same-language redirect to UseClevr uploads, credits, reports, billing, and analytics.
 - Show an AI Privacy Status panel in the AI Assistant with the latest provider, local or cloud route, offline mode state, and fallback status.
 - Store metadata-only AI request audit entries for chat, dataset analysis, report generation, and recommendation requests, including provider, model, mode, local or cloud execution location, fallback use, success state, dataset ID when available, and safe failure reason.
 - Keep AI privacy audit logs free of raw prompts, model responses, API keys, and sensitive dataset content by default.

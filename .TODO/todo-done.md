@@ -56,6 +56,9 @@ moving work between states.
 
 ## Label: ui
 
+- T-940. Show geographic dataset analysis through a professional dark BI world map with real location detection, restrained nodes, flow lines, metric cards, hover tooltips, and a clean no-geography empty state. (labels: ui, data, dashboard; commit: worktree)
+- T-938. Show a compact animated multilingual badge in the Usy header with cycling supported languages and a tooltip explaining same-language replies. (labels: ui, ai, accessibility; commit: worktree)
+- T-937. Keep Usy replies in the detected supported language and restrict assistant answers to UseClevr business-data workflows with localized refusals for unrelated topics. (labels: ui, ai, content; commit: worktree)
 - T-936. Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and updated quick prompt chips. (labels: ui, ai, content; commit: worktree)
 - T-928. Show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion. (labels: ui, data, billing; commit: worktree)
 - T-927. Show the current UseClevr logo as the browser tab favicon from the single `6.svg` asset. (labels: ui, content; commit: worktree)
@@ -115,6 +118,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-939. Keep the main Dashboard free of retail-specific reports, route categorized uploads to their correct workspaces, and store dataset category metadata for standard, retail, accountancy, and profitability uploads. (labels: dashboard, upload, reporting; commit: worktree)
 - T-885. Apply global authenticated page spacing, visible-field Business Profile completion, and role-aware analyst credit limits across dashboard upload, analysis, and report workflows. (labels: dashboard, billing, business, ui; commit: worktree)
 - T-884. Fix dashboard report-header greeting clipping and Business Profile completion badges so visible completed fields show 100%. (labels: dashboard, business, ui; commit: worktree)
 - T-883. Fix Dashboard 2.0 TypeScript build blockers so the personalized business dashboard compiles and production builds complete. (labels: dashboard, ci-build, quality; commit: worktree)
