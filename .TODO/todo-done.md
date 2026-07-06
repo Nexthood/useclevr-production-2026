@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-938. Show a compact animated multilingual badge in the Usy header with cycling supported languages and a tooltip explaining same-language replies. (labels: ui, ai, accessibility; commit: worktree)
 - T-937. Keep Usy replies in the detected supported language and restrict assistant answers to UseClevr business-data workflows with localized refusals for unrelated topics. (labels: ui, ai, content; commit: worktree)
 - T-936. Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and updated quick prompt chips. (labels: ui, ai, content; commit: worktree)
 - T-928. Show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion. (labels: ui, data, billing; commit: worktree)

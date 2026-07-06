@@ -101,6 +101,15 @@ const platformBrainFollowUps = ["View customers", "Check AI traces", "Billing se
 
 const supportedLanguageList = "English, German, Dutch, Spanish, Hungarian, and Romanian"
 
+const usyLanguageBadges = [
+  { flag: "🇬🇧", label: "English" },
+  { flag: "🇩🇪", label: "Deutsch" },
+  { flag: "🇳🇱", label: "Nederlands" },
+  { flag: "🇪🇸", label: "Español" },
+  { flag: "🇭🇺", label: "Magyar" },
+  { flag: "🇷🇴", label: "Română" },
+] as const
+
 const usyDomainKeywords = [
   "useclevr",
   "csv",
@@ -809,6 +818,54 @@ function SuggestionChip({
   )
 }
 
+function UsyLanguageBadge({
+  language,
+  visible,
+  showHint,
+  onHintChange,
+}: {
+  language: (typeof usyLanguageBadges)[number]
+  visible: boolean
+  showHint: boolean
+  onHintChange: (show: boolean) => void
+}) {
+  return (
+    <div className="relative mt-2 inline-flex">
+      <button
+        type="button"
+        onClick={() => onHintChange(!showHint)}
+        onMouseEnter={() => onHintChange(true)}
+        onMouseLeave={() => onHintChange(false)}
+        onFocus={() => onHintChange(true)}
+        onBlur={() => onHintChange(false)}
+        className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-cyan-200/25 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-medium leading-none text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(34,211,238,0.08)] transition hover:border-cyan-100/55 hover:bg-cyan-100/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+        aria-label="Usy multilingual support"
+      >
+        <span aria-hidden="true">🌍</span>
+        <span>Multilingual</span>
+        <span className="text-cyan-200/70" aria-hidden="true">
+          •
+        </span>
+        <span
+          key={language.label}
+          className={[
+            "inline-flex min-w-[6.25rem] items-center gap-1 transition duration-300 ease-out motion-reduce:transition-none",
+            visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
+          ].join(" ")}
+        >
+          <span aria-hidden="true">{language.flag}</span>
+          <span>{language.label}</span>
+        </span>
+      </button>
+      {showHint && (
+        <div className="absolute left-0 top-[calc(100%+0.45rem)] z-20 w-56 rounded-2xl border border-cyan-100/20 bg-slate-950/95 px-3 py-2 text-xs leading-5 text-slate-100 shadow-[0_18px_48px_rgba(2,6,23,0.42),0_0_22px_rgba(34,211,238,0.12)] backdrop-blur-xl">
+          Usy automatically replies in the language you use.
+        </div>
+      )}
+    </div>
+  )
+}
+
 function buildUsySystemPrompt(context: UsyContext) {
   const moduleName = moduleNameFromPath(context.route)
   const usageText = context.usage?.unlimited
@@ -905,6 +962,9 @@ export function HelpChatbox({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isAsking, setIsAsking] = useState(false)
   const [usage, setUsage] = useState<UsyUsageContext | null>(null)
+  const [languageBadgeIndex, setLanguageBadgeIndex] = useState(0)
+  const [languageBadgeVisible, setLanguageBadgeVisible] = useState(true)
+  const [showLanguageHint, setShowLanguageHint] = useState(false)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -922,6 +982,27 @@ export function HelpChatbox({
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, isAsking])
+
+  useEffect(() => {
+    if (!open) {
+      setShowLanguageHint(false)
+      return
+    }
+
+    let fadeTimeout: number | null = null
+    const interval = window.setInterval(() => {
+      setLanguageBadgeVisible(false)
+      fadeTimeout = window.setTimeout(() => {
+        setLanguageBadgeIndex((current) => (current + 1) % usyLanguageBadges.length)
+        setLanguageBadgeVisible(true)
+      }, 220)
+    }, 2000)
+
+    return () => {
+      window.clearInterval(interval)
+      if (fadeTimeout !== null) window.clearTimeout(fadeTimeout)
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open || audience === "public") return
@@ -988,7 +1069,7 @@ export function HelpChatbox({
           className="usy-panel-open fixed inset-x-3 bottom-3 top-6 flex max-h-[calc(100vh-2.25rem)] flex-col overflow-hidden rounded-[30px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:right-0 sm:top-auto sm:inset-x-auto sm:h-auto sm:max-h-[calc(100vh-8rem)] sm:w-[min(calc(100vw-2rem),520px)]"
           aria-label="Usy chat assistant"
         >
-          <header className="relative shrink-0 overflow-hidden border-b border-cyan-200/18 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.24),transparent_34%),radial-gradient(circle_at_86%_0%,rgba(216,180,254,0.22),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.99),rgba(17,24,39,0.94))] px-5 py-4 sm:px-6">
+          <header className="relative shrink-0 overflow-visible border-b border-cyan-200/18 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.24),transparent_34%),radial-gradient(circle_at_86%_0%,rgba(216,180,254,0.22),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.99),rgba(17,24,39,0.94))] px-5 py-4 sm:px-6">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200 to-fuchsia-200/80" />
             <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="min-w-0">
@@ -1000,6 +1081,12 @@ export function HelpChatbox({
                   </span>
                 </div>
                 <p className="mt-0.5 truncate text-sm text-cyan-50/[0.82]">UseClevr AI Business Assistant</p>
+                <UsyLanguageBadge
+                  language={usyLanguageBadges[languageBadgeIndex]}
+                  visible={languageBadgeVisible}
+                  showHint={showLanguageHint}
+                  onHintChange={setShowLanguageHint}
+                />
               </div>
               <button
                 type="button"
