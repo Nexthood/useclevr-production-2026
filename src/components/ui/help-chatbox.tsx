@@ -37,6 +37,8 @@ type UsyContext = {
   usage?: UsyUsageContext | null
 }
 
+type SupportedUsyLanguage = "english" | "german" | "dutch" | "spanish" | "hungarian" | "romanian"
+
 type UsyIntent = {
   id: string
   label: string
@@ -48,14 +50,12 @@ type UsyIntent = {
 }
 
 const starterSuggestions = [
-  "Analyze my CSV",
-  "Explain my dashboard",
-  "Forecast my sales",
-  "Find business opportunities",
-  "Upgrade to Pro",
-  "AI Credits",
-  "Connect Snowflake",
-  "Business Profile",
+  "What can you do?",
+  "Do you speak other languages?",
+  "Explain AI credits",
+  "Why is my upload blocked?",
+  "Which plan do I need?",
+  "Help me analyze my data",
 ]
 
 const capabilities = [
@@ -100,11 +100,61 @@ const userFollowUps = {
 const platformBrainRoles: UsyRole[] = ["admin", "superadmin"]
 const platformBrainFollowUps = ["View customers", "Check AI traces", "Billing settings", "Customer levels", "Platform status"]
 
+const supportedLanguageList = "English, German, Dutch, Spanish, Hungarian, and Romanian"
+
 const usyIntents: UsyIntent[] = [
+  {
+    id: "languages",
+    label: "Languages",
+    keywords: [
+      "do you speak other languages",
+      "other languages",
+      "which languages",
+      "what languages",
+      "speak german",
+      "speak dutch",
+      "speak spanish",
+      "speak hungarian",
+      "speak romanian",
+      "sprichst du deutsch",
+      "andere sprachen",
+      "spreek je nederlands",
+      "hablas espanol",
+      "hablas español",
+      "beszelsz magyarul",
+      "beszélsz magyarul",
+      "vorbesti romana",
+      "vorbești română",
+    ],
+    followUps: ["What can you do?", "Explain AI credits", "Help me analyze my data", "Which plan do I need?"],
+    answer: () => `Yes. I can help in ${supportedLanguageList}.`,
+  },
+  {
+    id: "capabilities",
+    label: "Capabilities",
+    keywords: [
+      "what can you do",
+      "what do you do",
+      "how can you help",
+      "help me",
+      "your skills",
+      "capabilities",
+      "can you help",
+      "mit tudsz",
+      "was kannst du",
+      "wat kun je",
+      "que puedes hacer",
+      "ce poti face",
+      "ce poți face",
+    ],
+    followUps: ["Help me analyze my data", "Explain AI credits", "Why is my upload blocked?", "Which plan do I need?"],
+    answer: () =>
+      "I can help you upload CSV and Excel files, understand datasets, explain dashboards, analyze business performance, find risks and opportunities, explain AI credits, choose a plan, troubleshoot uploads, work with retail inventory, understand accountancy features, and prepare reports.",
+  },
   {
     id: "pro-pricing",
     label: "Pro pricing",
-    keywords: ["price pro", "pro price", "pricing pro", "pro pricing", "cost pro", "pro cost", "pro plan", "upgrade pro", "upgrade to pro", "how much pro"],
+    keywords: ["price pro", "pro price", "pricing pro", "pro pricing", "cost pro", "pro cost", "pro plan", "upgrade pro", "upgrade to pro", "how much pro", "pro"],
     minScore: 3,
     followUps: pricingFollowUps,
     answer: () =>
@@ -122,7 +172,7 @@ const usyIntents: UsyIntent[] = [
   {
     id: "pricing-general",
     label: "Pricing",
-    keywords: ["price", "pricing", "cost", "costs", "plans", "subscription", "upgrade", "compare free pro", "free vs pro"],
+    keywords: ["price", "pricing", "cost", "costs", "plans", "subscription", "upgrade", "compare free pro", "free vs pro", "which plan", "which plan do i need", "plan do i need", "business differ from pro", "business vs pro", "pro vs business", "compare pro business"],
     followUps: pricingFollowUps,
     answer: () =>
       `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with 50 AI credits and 2 datasets; Pro adds 500 AI credits, 25 datasets, business analysis, reports, exports, and priority support; Business adds everything in Pro, 5000 AI credits, 250 datasets, larger uploads, Accounting AI, document processing, and dedicated support.`,
@@ -138,7 +188,7 @@ const usyIntents: UsyIntent[] = [
   {
     id: "upload-trouble",
     label: "Upload troubleshooting",
-    keywords: ["upload not working", "upload failed", "can't upload", "cannot upload", "file failed", "csv failed", "excel failed", "upload error", "upload limit"],
+    keywords: ["upload not working", "upload failed", "can't upload", "cannot upload", "file failed", "csv failed", "excel failed", "upload error", "upload limit", "upload blocked", "why is my upload blocked", "blocked upload"],
     followUps: userFollowUps.upload,
     answer: (context) => {
       if (context.usage?.limitReached) {
@@ -197,7 +247,7 @@ const usyIntents: UsyIntent[] = [
   {
     id: "billing",
     label: "Billing",
-    keywords: ["billing", "invoice", "stripe", "subscription", "payment"],
+    keywords: ["billing", "invoice", "invoices", "stripe", "subscription", "payment", "card", "receipt", "receipts"],
     followUps: userFollowUps.billing,
     answer: () =>
       `Billing and invoices are managed through the secure Stripe flow in Settings. Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. You can review your plan, open checkout, manage payment details, and access billing actions from the account and billing areas.`,
@@ -221,7 +271,7 @@ const usyIntents: UsyIntent[] = [
   {
     id: "retail",
     label: "Retail Analytics",
-    keywords: ["retail", "inventory", "stock", "sku", "product"],
+    keywords: ["retail", "inventory", "stock", "sku", "product", "analyze retail inventory", "retail inventory"],
     followUps: ["Low stock risks", "Top products", "Inventory optimization", "Analyze my dataset"],
     answer: () =>
       "Retail Analytics helps identify low stock, dead stock, top-profit products, category performance, supplier patterns, and reorder priorities. Include SKU, product, stock, sales, cost, revenue, and date columns for stronger results.",
@@ -370,7 +420,136 @@ function detectIntent(question: string, role: UsyRole) {
     .sort((a, b) => b.score - a.score)[0]?.intent ?? null
 }
 
+function detectUsyLanguage(question: string): SupportedUsyLanguage {
+  const normalized = normalizeQuestion(question)
+
+  if (/\b(deutsch|sprichst|sprechen|kannst du|andere sprachen|hochladen|rechnung|gutschrift|datensatz)\b/.test(normalized)) {
+    return "german"
+  }
+  if (/\b(nederlands|spreek|talen|uploaden|factuur|gegevensset|tegoed|abonnement)\b/.test(normalized)) {
+    return "dutch"
+  }
+  if (/\b(espanol|español|hablas|idiomas|subir|factura|creditos|créditos|conjunto de datos|plan necesito)\b/.test(normalized)) {
+    return "spanish"
+  }
+  if (/[áéíóöőúüű]/i.test(question) || /\b(magyar|beszelsz|beszélsz|nyelv|feltoltes|feltöltés|szamla|számla|kredit|adatkeszlet|adatkészlet|melyik csomag)\b/.test(normalized)) {
+    return "hungarian"
+  }
+  if (/[ăâîșşțţ]/i.test(question) || /\b(romana|română|vorbesti|vorbești|limbi|incarcare|încărcare|factura|credite|set de date|abonament)\b/.test(normalized)) {
+    return "romanian"
+  }
+
+  return "english"
+}
+
+function formatDemoUsageText(context: UsyContext) {
+  if (context.usage?.unlimited) return context.usage.unlimitedLabel || "unlimited usage"
+  if (typeof context.usage?.analysisCount === "number" && typeof context.usage?.total === "number") {
+    return `${context.usage.analysisCount}/${context.usage.total}`
+  }
+  return null
+}
+
+function localizedFallbackAnswer(question: string, context: UsyContext, language: SupportedUsyLanguage) {
+  const normalized = normalizeQuestion(question)
+  const usageText = formatDemoUsageText(context)
+  const uploadBlocked =
+    context.usage?.limitReached ||
+    normalized.includes("upload blocked") ||
+    normalized.includes("upload limit") ||
+    normalized.includes("upload failed") ||
+    normalized.includes("upload not working")
+  const wantsLanguages =
+    normalized.includes("language") ||
+    normalized.includes("languages") ||
+    normalized.includes("speak") ||
+    normalized.includes("sprich") ||
+    normalized.includes("spreek") ||
+    normalized.includes("hablas") ||
+    normalized.includes("beszel") ||
+    normalized.includes("beszél") ||
+    normalized.includes("vorbest") ||
+    normalized.includes("vorbeș")
+  const wantsCapabilities =
+    normalized.includes("what can you do") ||
+    normalized.includes("how can you help") ||
+    normalized.includes("capabilities") ||
+    normalized.includes("mit tudsz") ||
+    normalized.includes("was kannst") ||
+    normalized.includes("wat kun") ||
+    normalized.includes("que puedes") ||
+    normalized.includes("ce poti") ||
+    normalized.includes("ce poți")
+  const wantsCredits = normalized.includes("credit") || normalized.includes("credits") || normalized.includes("kredit") || normalized.includes("credite")
+  const wantsPlan = normalized.includes("which plan") || normalized.includes("plan do i need") || normalized.includes("business differ") || normalized.includes("pro") || normalized.includes("business")
+  const wantsInvoices = normalized.includes("invoice") || normalized.includes("invoices") || normalized.includes("receipt") || normalized.includes("receipts") || normalized.includes("rechnung") || normalized.includes("factuur") || normalized.includes("factura") || normalized.includes("szamla") || normalized.includes("számla")
+  const wantsRetail = normalized.includes("retail") || normalized.includes("inventory") || normalized.includes("stock") || normalized.includes("sku")
+
+  const priceLine = `Pro: €${publicMonthlyPlanPrices.pro}/month. Business: €${publicMonthlyPlanPrices.business}/month.`
+
+  if (language === "german") {
+    if (wantsLanguages) return `Ja. Ich kann dir auf Englisch, Deutsch, Niederländisch, Spanisch, Ungarisch und Rumänisch helfen.`
+    if (wantsCapabilities) return "Ich helfe dir mit CSV- und Excel-Uploads, Datensätzen, Dashboards, KI-Credits, Planlimits, Retail-Analyse, Rechnungen, Belegen, Berichten, Abrechnung, Business Profile und Troubleshooting."
+    if (uploadBlocked) return `Dein Upload ist wahrscheinlich durch ein Planlimit blockiert. Free erlaubt bis zu 2 Datensätze. ${usageText ? `Aktuelle Nutzung: ${usageText}. ` : ""}Upgrade auf Pro oder lösche einen alten Datensatz, um weiterzumachen.`
+    if (wantsCredits) return `KI-Credits steuern, wie viele Analysen du nutzen kannst. Free enthält 50 KI-Credits und bis zu 2 Datensätze. ${priceLine}`
+    if (wantsPlan) return `Free eignet sich zum Testen. Pro passt für wachsende Unternehmen mit mehr Datensätzen und Analysekapazität. Business ist für Accounting AI, Rechnungs- und Belegverarbeitung sowie dedizierten Support. ${priceLine}`
+    if (wantsInvoices) return "Ja. Ich kann dir Invoice Processing, Receipt Processing, Billing und Abrechnungsfragen erklären. Business enthält Accounting AI sowie Rechnungs- und Belegverarbeitung."
+    if (wantsRetail) return "Ja. Ich kann Retail-Inventar analysieren: niedriger Bestand, Dead Stock, Top-Produkte, Margen, Umsatz und nächste Maßnahmen."
+    return "Ich kann auch allgemeine Fragen kurz beantworten, bin aber am besten für UseClevr-Datenanalyse, Uploads, Billing, Credits, Reports und Troubleshooting."
+  }
+
+  if (language === "dutch") {
+    if (wantsLanguages) return `Ja. Ik kan helpen in Engels, Duits, Nederlands, Spaans, Hongaars en Roemeens.`
+    if (wantsCapabilities) return "Ik help met CSV- en Excel-uploads, datasets, dashboards, AI-credits, uploadlimieten, Retail-analyse, facturen, bonnetjes, rapporten, abonnementen, Business Profile en troubleshooting."
+    if (uploadBlocked) return `Je upload is waarschijnlijk geblokkeerd door je planlimiet. Free staat maximaal 2 datasets toe. ${usageText ? `Huidig gebruik: ${usageText}. ` : ""}Upgrade naar Pro of verwijder een oude dataset om door te gaan.`
+    if (wantsCredits) return `AI-credits bepalen hoeveel analyse je kunt gebruiken. Free bevat 50 AI-credits en maximaal 2 datasets. ${priceLine}`
+    if (wantsPlan) return `Free is om te testen. Pro is voor groeiende bedrijven met meer datasets en analysecapaciteit. Business is voor Accounting AI, factuur- en bonverwerking en dedicated support. ${priceLine}`
+    if (wantsInvoices) return "Ja. Ik kan helpen met invoice processing, receipt processing, billing en abonnementsvragen. Business bevat Accounting AI, factuurverwerking en bonverwerking."
+    if (wantsRetail) return "Ja. Ik kan retailvoorraad analyseren: lage voorraad, dead stock, topproducten, marges, omzet en aanbevolen acties."
+    return "Ik kan ook algemene vragen kort beantwoorden, maar ik ben vooral geoptimaliseerd voor UseClevr-data-analyse, uploads, billing, credits, rapporten en troubleshooting."
+  }
+
+  if (language === "spanish") {
+    if (wantsLanguages) return `Sí. Puedo ayudarte en inglés, alemán, neerlandés, español, húngaro y rumano.`
+    if (wantsCapabilities) return "Puedo ayudarte con cargas CSV y Excel, datasets, paneles, créditos de IA, límites, análisis retail, facturas, recibos, informes, suscripción, Business Profile y resolución de problemas."
+    if (uploadBlocked) return `Tu carga probablemente está bloqueada por el límite de tu plan. Free permite hasta 2 datasets. ${usageText ? `Uso actual: ${usageText}. ` : ""}Actualiza a Pro o elimina un dataset antiguo para continuar.`
+    if (wantsCredits) return `Los créditos de IA controlan el uso incluido para análisis. Free incluye 50 créditos de IA y hasta 2 datasets. ${priceLine}`
+    if (wantsPlan) return `Free sirve para probar. Pro es para empresas en crecimiento con más datasets y capacidad de análisis. Business añade Accounting AI, procesamiento de facturas y recibos, y soporte dedicado. ${priceLine}`
+    if (wantsInvoices) return "Sí. Puedo ayudarte con procesamiento de facturas, recibos, billing y suscripción. Business incluye Accounting AI, invoice processing y receipt processing."
+    if (wantsRetail) return "Sí. Puedo analizar inventario retail: bajo stock, dead stock, productos principales, márgenes, ingresos y acciones recomendadas."
+    return "También puedo responder preguntas generales brevemente, pero estoy optimizada para análisis de datos, cargas, billing, créditos, informes y troubleshooting en UseClevr."
+  }
+
+  if (language === "hungarian") {
+    if (wantsLanguages) return `Igen. Tudok segíteni angolul, németül, hollandul, spanyolul, magyarul és románul.`
+    if (wantsCapabilities) return "Segítek CSV és Excel feltöltésekkel, adatállományokkal, dashboardokkal, AI kreditekkel, feltöltési limitekkel, retail elemzéssel, számlákkal, nyugtákkal, riportokkal, előfizetéssel, Business Profile beállítással és hibakereséssel."
+    if (uploadBlocked) return `A feltöltésed valószínűleg csomaglimit miatt blokkolt. A Free csomag legfeljebb 2 adatállományt enged. ${usageText ? `Jelenlegi használat: ${usageText}. ` : ""}Válts Pro csomagra, vagy törölj egy régi adatállományt a folytatáshoz.`
+    if (wantsCredits) return `Az AI kreditek határozzák meg a benne foglalt elemzési használatot. A Free 50 AI kreditet és legfeljebb 2 adatállományt tartalmaz. ${priceLine}`
+    if (wantsPlan) return `A Free tesztelésre jó. A Pro növekvő vállalkozásoknak való több adatállománnyal és erősebb elemzéssel. A Business Accounting AI-t, számla- és nyugtafeldolgozást, valamint dedikált támogatást ad. ${priceLine}`
+    if (wantsInvoices) return "Igen. Tudok segíteni számlafeldolgozásban, nyugtafeldolgozásban, billingben és előfizetési kérdésekben. A Business tartalmazza az Accounting AI-t, invoice processinget és receipt processinget."
+    if (wantsRetail) return "Igen. Tudok retail készletet elemezni: alacsony készlet, dead stock, legjobb termékek, margin, bevétel és javasolt következő lépések."
+    return "Általános kérdésekre is röviden tudok válaszolni, de leginkább UseClevr adatelemzésre, feltöltésekre, billingre, kreditekre, riportokra és hibakeresésre vagyok optimalizálva."
+  }
+
+  if (language === "romanian") {
+    if (wantsLanguages) return `Da. Te pot ajuta în engleză, germană, neerlandeză, spaniolă, maghiară și română.`
+    if (wantsCapabilities) return "Te pot ajuta cu încărcări CSV și Excel, seturi de date, dashboarduri, credite AI, limite de upload, analiză retail, facturi, chitanțe, rapoarte, abonamente, Business Profile și depanare."
+    if (uploadBlocked) return `Uploadul este probabil blocat de limita planului. Free permite maximum 2 seturi de date. ${usageText ? `Utilizare curentă: ${usageText}. ` : ""}Fă upgrade la Pro sau șterge un set de date vechi ca să continui.`
+    if (wantsCredits) return `Creditele AI controlează utilizarea inclusă pentru analiză. Free include 50 de credite AI și până la 2 seturi de date. ${priceLine}`
+    if (wantsPlan) return `Free este pentru testare. Pro este pentru afaceri în creștere, cu mai multe seturi de date și capacitate de analiză. Business adaugă Accounting AI, procesare de facturi și chitanțe, plus suport dedicat. ${priceLine}`
+    if (wantsInvoices) return "Da. Te pot ajuta cu procesarea facturilor, procesarea chitanțelor, billing și întrebări despre abonament. Business include Accounting AI, invoice processing și receipt processing."
+    if (wantsRetail) return "Da. Pot analiza inventarul retail: stoc scăzut, dead stock, produse performante, marje, venituri și acțiuni recomandate."
+    return "Pot răspunde pe scurt și la întrebări generale, dar sunt optimizată pentru analiza datelor UseClevr, uploaduri, billing, credite, rapoarte și troubleshooting."
+  }
+
+  return null
+}
+
 function buildFallbackAnswer(question: string, context: UsyContext) {
+  const language = detectUsyLanguage(question)
+  const localized = localizedFallbackAnswer(question, context, language)
+  if (localized) return localized
+
   const intent = detectIntent(question, context.role)
   if (intent) {
     return `${intent.answer(context)}\n\nNext step: ${nextStepForIntent(intent, context)}`
@@ -381,6 +560,14 @@ function buildFallbackAnswer(question: string, context: UsyContext) {
   }
 
   return "I can help with UseClevr uploads, datasets, dashboards, AI analysis, forecasting, reports, billing, credits, Business Profile setup, integrations, and troubleshooting. Tell me what you are trying to do, and I will point you to the clearest next step."
+}
+
+async function buildUsyAssistantResponse(question: string, context: UsyContext) {
+  try {
+    return { answer: await askUsyAi(question, context), source: "ai" as const }
+  } catch {
+    return { answer: buildFallbackAnswer(question, context), source: "knowledge" as const }
+  }
 }
 
 function nextStepForIntent(intent: UsyIntent, context: UsyContext) {
@@ -467,11 +654,16 @@ function buildUsySystemPrompt(context: UsyContext) {
     "You are Usy, the official AI Business Intelligence Assistant of UseClevr.",
     "Be warm, concise, professional, calm, trustworthy, and practical.",
     "Answer the user's actual message, including short or messy messages.",
+    `Detect the user's language and respond in that language when possible. Supported languages: ${supportedLanguageList}.`,
+    `If asked whether you speak other languages, answer clearly: "Yes. I can help in ${supportedLanguageList}."`,
     `Current route: ${context.route}. Current module: ${moduleName}. Current user role: ${context.role}. Current plan: ${context.plan || "unknown"}. ${usageText}`,
     `Current pricing: Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month.`,
     "Do not mention annual pricing unless UseClevr explicitly provides it in the current prompt.",
     "Normal users can receive help only with their own datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscription, and Business Profile.",
     "Admins and superadmins can use Usy as UseClevr Company Brain Lite for customers, plans, credits, uploads, errors, failed analyses, AI traces, billing settings, discount rules, MCP tokens, user issues, platform status, and usage monitoring.",
+    "UseClevr skills: CSV and Excel uploads, datasets, AI credits, upload limits, Free/Pro/Business plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscription, business profile, troubleshooting, and upgrade flow.",
+    "If upload is blocked by Free plan limits, explain that Free allows up to 2 datasets and suggest upgrading to Pro or deleting an old dataset.",
+    "If the question is outside UseClevr, answer briefly if safe, then guide back to UseClevr data analysis, uploads, billing, credits, reports, or troubleshooting.",
     "Never expose platform-brain or admin guidance to normal users. Never hallucinate private customer data, dataset values, secrets, API keys, or hidden account state.",
     "If exact private data is needed, tell the user where to check inside UseClevr instead of inventing it.",
     "Give a useful next step. Ask a clarifying question only when needed.",
@@ -606,16 +798,10 @@ export function HelpChatbox({
     setIsAsking(true)
 
     try {
-      const answer = await askUsyAi(trimmed, context)
+      const { answer, source } = await buildUsyAssistantResponse(trimmed, context)
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: answer, source: "ai", followUps: getFollowUpSuggestions(trimmed, answer, context) },
-      ])
-    } catch {
-      const answer = buildFallbackAnswer(trimmed, context)
-      setMessages((current) => [
-        ...current,
-        { role: "assistant", text: answer, source: "knowledge", followUps: getFollowUpSuggestions(trimmed, answer, context) },
+        { role: "assistant", text: answer, source, followUps: getFollowUpSuggestions(trimmed, answer, context) },
       ])
     } finally {
       setIsAsking(false)
@@ -778,7 +964,7 @@ export function HelpChatbox({
                     submitQuestion(query)
                   }
                 }}
-                placeholder="Ask Usy anything..."
+                placeholder="Ask Usy anything about your business..."
                 rows={1}
                 className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-5 text-white placeholder:text-slate-400 focus:outline-none"
               />
