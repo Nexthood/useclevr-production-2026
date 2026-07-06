@@ -56,6 +56,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-937. Keep Usy replies in the detected supported language and restrict assistant answers to UseClevr business-data workflows with localized refusals for unrelated topics. (labels: ui, ai, content; commit: worktree)
 - T-936. Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and updated quick prompt chips. (labels: ui, ai, content; commit: worktree)
 - T-928. Show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion. (labels: ui, data, billing; commit: worktree)
 - T-927. Show the current UseClevr logo as the browser tab favicon from the single `6.svg` asset. (labels: ui, content; commit: worktree)

@@ -114,8 +114,9 @@ Text rules for this file:
 - Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
 - Route existing AI Assistant chat through the same Hybrid AI provider routing, dataset-aware context builder, fallback rules, Local only cloud blocking, and provider status display as Hybrid AI Chat.
 - Allow AI Assistant users to ask general questions without a selected dataset and use summarized dataset context automatically when a dataset is selected.
-- Let Usy answer spontaneous UseClevr questions in English, German, Dutch, Spanish, Hungarian, and Romanian when possible.
+- Let Usy answer spontaneous UseClevr questions in English, German, Dutch, Spanish, Hungarian, and Romanian, replying in the detected user language when possible.
 - Give Usy UseClevr-aware fallback answers for uploads, datasets, AI credits, plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscriptions, Business Profile, troubleshooting, and upgrade flow when no live AI provider answers.
+- Keep Usy focused on UseClevr business-data workflows and answer unrelated general-chat topics with a polite same-language redirect to UseClevr uploads, credits, reports, billing, and analytics.
 - Show an AI Privacy Status panel in the AI Assistant with the latest provider, local or cloud route, offline mode state, and fallback status.
 - Store metadata-only AI request audit entries for chat, dataset analysis, report generation, and recommendation requests, including provider, model, mode, local or cloud execution location, fallback use, success state, dataset ID when available, and safe failure reason.
 - Keep AI privacy audit logs free of raw prompts, model responses, API keys, and sensitive dataset content by default.
