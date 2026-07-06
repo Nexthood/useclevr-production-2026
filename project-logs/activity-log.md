@@ -1,3 +1,4 @@
+- changed: keep the main Dashboard free of retail-specific reports, store dataset category metadata on upload, route Standard Upload to dataset analysis, route Profitability Upload to Accountancy, and keep Retail reports in the Retail workspace
 - changed: show a compact animated Usy multilingual badge beside the assistant header subtitle, cycling English, Deutsch, Nederlands, Español, Magyar, and Română every 2 seconds with a hover/tap tooltip about same-language replies
 - changed: keep Usy replies in the detected supported language for UseClevr questions, answer the German and Hungarian capability examples directly, remove the language quick prompt, and return localized UseClevr-focused refusals for unrelated general-chat topics
 - changed: make Usy answer spontaneous multilingual questions with supported-language detection, UseClevr-aware fallback guidance, broader intent matching, and quick prompts for credits, upload blocks, plan choice, and data analysis

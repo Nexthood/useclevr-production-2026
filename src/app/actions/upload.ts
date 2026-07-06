@@ -11,12 +11,13 @@ import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine"
+import { getDatasetCategoryFromUpload, getDatasetCategoryRedirect } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { formatRowLimitError } from "@/lib/usage/analyst-credits"
 import { getDatasetLimitInfo, getDatasetLimitError, type DatasetLimitInfo } from "@/lib/usage/dataset-limits"
 import { checkActionEnforcement, validateFileSize, validateRowCount } from "@/lib/billing/usage-enforcement"
-import { getRowLimitForTier, DEMO_PLAN_LIMITS } from "@/lib/billing/plans"
+import { getRowLimitForTier } from "@/lib/billing/plans"
 import { checkDemoAccess, consumeDemoCredit, getDemoLimits } from "@/lib/billing/demo-access"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -143,8 +144,10 @@ export async function uploadCSV(formData: FormData): Promise<{
     
     // Check if this is a profitability analysis upload (by checking for fileType)
     const fileType = formData.get('fileType') as string
+    const uploadCategory = getDatasetCategoryFromUpload(fileType)
     const isProfitabilityUpload = fileType?.startsWith('profitability_') || fileType?.includes('profitability')
     debugLog("[UPLOAD] fileType:", fileType)
+    debugLog("[UPLOAD] dataset category:", uploadCategory)
     debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)
     debugLog("[UPLOAD] file received:", formData.get("file") instanceof File)
     
@@ -407,6 +410,12 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Check if this is a profitability analysis (has profitability data)
     const isProfitabilityAnalysis = !!profitabilityData
+    const datasetCategory = isProfitabilityAnalysis ? "profitability" : getDatasetCategoryFromUpload(fileType)
+    const baseAnalysis = {
+      datasetCategory,
+      datasetType: datasetCategory,
+      uploadSource: fileType || datasetCategory,
+    }
     if (isProfitabilityAnalysis) {
       debugLog("[UPLOAD] profitability analysis started")
       debugLog("[UPLOAD] profitability metrics calculated:", {
@@ -447,7 +456,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         data: [],
         columnTypes: {},
         status: 'ready',
-        analysis: { profitability: profitabilityData },
+        analysis: { ...baseAnalysis, profitability: profitabilityData },
         precomputedMetrics: profitabilityData ? {
           totalRevenue: profitabilityData.totalRevenue,
           totalExpenses: profitabilityData.totalExpenses,
@@ -470,7 +479,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         data: previewRows, // Store only preview rows
         columnTypes: {},
         status: 'ready',
-        analysis: { streamingMode: true },
+        analysis: { ...baseAnalysis, streamingMode: true },
         precomputedMetrics: aggregatedMetrics,
         createdAt: now,
         updatedAt: now,
@@ -487,7 +496,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         data: allRows,
         columnTypes: {},
         status: 'ready',
-        analysis: {},
+        analysis: baseAnalysis,
         precomputedMetrics: aggregatedMetrics,
         createdAt: now,
         updatedAt: now,
@@ -610,6 +619,8 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     // Revalidate datasets page
     revalidatePath("/app/datasets")
+    revalidatePath("/app/retail")
+    revalidatePath("/app/accountancy")
 
     // Fire suggestion regeneration (best-effort, non-blocking)
     try {
@@ -640,7 +651,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     return {
       success: true,
       datasetId: datasetId,
-      redirectTo: `/app/datasets/${datasetId}/analyze`,
+      redirectTo: getDatasetCategoryRedirect(datasetCategory, datasetId),
       fileName: file.name,
       preview: {
         headers,

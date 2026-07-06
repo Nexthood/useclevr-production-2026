@@ -117,6 +117,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-939. Keep the main Dashboard free of retail-specific reports, route categorized uploads to their correct workspaces, and store dataset category metadata for standard, retail, accountancy, and profitability uploads. (labels: dashboard, upload, reporting; commit: worktree)
 - T-885. Apply global authenticated page spacing, visible-field Business Profile completion, and role-aware analyst credit limits across dashboard upload, analysis, and report workflows. (labels: dashboard, billing, business, ui; commit: worktree)
 - T-884. Fix dashboard report-header greeting clipping and Business Profile completion badges so visible completed fields show 100%. (labels: dashboard, business, ui; commit: worktree)
 - T-883. Fix Dashboard 2.0 TypeScript build blockers so the personalized business dashboard compiles and production builds complete. (labels: dashboard, ci-build, quality; commit: worktree)

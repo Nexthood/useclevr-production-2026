@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-06
-- **Goal**: Add a compact animated multilingual badge to the Usy assistant UI.
-- **Durable change**: The Usy header shows a dark glass multilingual badge that cycles English, Deutsch, Nederlands, Español, Magyar, and Română every 2 seconds while the panel is open and shows a hover, focus, or tap tooltip explaining same-language replies.
-- **Verification**: Focused ESLint and TypeScript pass.
+- **Goal**: Separate main Dashboard reporting from Retail, Accountancy, and Profitability upload routes.
+- **Durable change**: The main Dashboard renders only general workspace overview content, uploads store dataset category metadata, Standard Upload redirects to dataset analysis, Profitability Upload redirects to Accountancy, and Retail uploads target the Retail workspace.
+- **Verification**: TypeScript passes; focused ESLint passes with existing `any` warnings in broad upload files.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

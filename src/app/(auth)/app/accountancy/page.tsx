@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth/auth"
 import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
-import { count, eq } from "drizzle-orm"
+import { and, count, eq } from "drizzle-orm"
 import {
   ArrowRight,
   BookOpenCheck,
@@ -22,13 +22,29 @@ export const metadata = {
   title: "Accountancy - UseClevr",
 }
 
-export default async function AccountancyPage() {
+type AccountancyPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function AccountancyPage({ searchParams }: AccountancyPageProps) {
   const session = await auth()
   const userId = session?.user?.id
 
   let activeDatasets = 0
   let totalBusinesses = 0
+  let focusedDataset: {
+    id: string
+    name: string
+    fileName: string
+    rowCount: number
+    columnCount: number
+    analysis: unknown
+    precomputedMetrics: unknown
+  } | null = null
   const companySetup = userId ? await getCompanySetup(userId) : null
+  const resolvedSearchParams = await searchParams
+  const rawDatasetId = resolvedSearchParams?.datasetId
+  const focusedDatasetId = Array.isArray(rawDatasetId) ? rawDatasetId[0] : rawDatasetId
 
   if (userId) {
     const db = getDb()
@@ -43,6 +59,24 @@ export default async function AccountancyPage() {
           .select({ count: count() })
           .from(businesses)
           .where(eq(businesses.userId, userId))
+
+        if (focusedDatasetId) {
+          const datasetWhere = session?.user?.role === "superadmin"
+            ? eq(datasets.id, focusedDatasetId)
+            : and(eq(datasets.id, focusedDatasetId), eq(datasets.userId, userId))
+          focusedDataset = await db.query.datasets.findFirst({
+            where: datasetWhere,
+            columns: {
+              id: true,
+              name: true,
+              fileName: true,
+              rowCount: true,
+              columnCount: true,
+              analysis: true,
+              precomputedMetrics: true,
+            },
+          }) ?? null
+        }
 
         activeDatasets = (countResult?.count ?? 0) as number
         totalBusinesses = (businessCount?.count ?? 0) as number
@@ -230,6 +264,29 @@ export default async function AccountancyPage() {
 
           <AccountancyUpload />
 
+          {focusedDataset && (
+            <Card className="border-cyan-400/25 bg-cyan-400/5 p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-200">
+                    Routed accountancy dataset
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-foreground">{focusedDataset.name || focusedDataset.fileName}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    This upload is saved in Accountancy so profitability, invoice, receipt, and bookkeeping work stays separate from the main Dashboard.
+                  </p>
+                </div>
+                <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-80">
+                  <ProfileContextRow label="Rows" value={focusedDataset.rowCount.toLocaleString()} />
+                  <ProfileContextRow label="Columns" value={focusedDataset.columnCount.toLocaleString()} />
+                  <ProfileContextRow label="Category" value={getFocusedDatasetCategory(focusedDataset.analysis)} />
+                  <ProfileContextRow label="Status" value="Ready for accounting review" />
+                </div>
+              </div>
+              <ProfitabilityMetricGrid metrics={focusedDataset.precomputedMetrics} />
+            </Card>
+          )}
+
           <Card id="bookkeeping-package" className="border-border bg-card p-5">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground">Bookkeeping package</h2>
@@ -269,6 +326,52 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
       <span className="max-w-[12rem] text-right font-medium text-foreground">{value || "Not set"}</span>
     </div>
   )
+}
+
+function getFocusedDatasetCategory(analysis: unknown) {
+  if (!analysis || typeof analysis !== "object") return "Accountancy"
+
+  const category = (analysis as { datasetCategory?: unknown; datasetType?: unknown }).datasetCategory
+    || (analysis as { datasetCategory?: unknown; datasetType?: unknown }).datasetType
+
+  if (typeof category !== "string") return "Accountancy"
+
+  return category.charAt(0).toUpperCase() + category.slice(1)
+}
+
+function ProfitabilityMetricGrid({ metrics }: { metrics: unknown }) {
+  if (!metrics || typeof metrics !== "object") return null
+
+  const values = metrics as Record<string, unknown>
+  const metricCards = [
+    { label: "Revenue", value: formatAccountancyMoney(values.totalRevenue) },
+    { label: "Expenses", value: formatAccountancyMoney(values.totalExpenses) },
+    { label: "Profit", value: formatAccountancyMoney(values.profit) },
+    { label: "Margin", value: formatAccountancyPercent(values.margin) },
+  ].filter((metric) => metric.value !== "No data")
+
+  if (metricCards.length === 0) return null
+
+  return (
+    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {metricCards.map((metric) => (
+        <div key={metric.label} className="rounded-lg border border-border bg-background/80 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+          <p className="mt-2 text-xl font-semibold text-foreground">{metric.value}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function formatAccountancyMoney(value: unknown) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "No data"
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value)
+}
+
+function formatAccountancyPercent(value: unknown) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "No data"
+  return `${value.toFixed(1)}%`
 }
 
 function CloseStep({ label, complete, href }: { label: string; complete: boolean; href: string }) {

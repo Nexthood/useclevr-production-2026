@@ -1,17 +1,7 @@
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { db } from "@/lib/db"
-import { datasetRows, datasets, profiles } from "@/lib/db/schema"
-import {
-  buildRetailReport,
-  getDisplayName,
-  getGreeting,
-  type AbcItem,
-  type ProductPerformance,
-  type Recommendation,
-  type RetailGroup,
-  type RetailReport,
-} from "@/lib/reports/retail-report"
+import { datasets, profiles } from "@/lib/db/schema"
 import { count, desc, eq } from "drizzle-orm"
 import {
   Activity,
@@ -60,7 +50,6 @@ type DashboardStats = {
     columnCount: number
     columns: string[]
     createdAt: Date
-    rows: Record<string, unknown>[]
   } | null
 }
 
@@ -92,13 +81,6 @@ async function getStats(userId: string | null): Promise<DashboardStats> {
         },
       }),
     ])
-      const rows = latestDataset
-      ? await db.query.datasetRows.findMany({
-          where: eq(datasetRows.datasetId, latestDataset.id),
-          orderBy: (tbl, { asc }) => [asc(tbl.rowIndex)],
-          limit: 5000,
-        })
-      : []
 
     return {
       datasets: datasetCount[0]?.value || 0,
@@ -119,7 +101,6 @@ async function getStats(userId: string | null): Promise<DashboardStats> {
         ? {
             ...latestDataset,
             columns: Array.isArray(latestDataset.columns) ? latestDataset.columns : [],
-            rows: rows.map((row) => row.data as Record<string, unknown>),
           }
         : null,
     }
@@ -147,7 +128,7 @@ function getConfidenceScore(stats: DashboardStats) {
 function getDashboardState(stats: DashboardStats) {
   if (stats.datasets === 0) {
     return {
-      summary: "Upload a CSV or Excel file to turn this workspace into a live AI business report.",
+      summary: "Upload a dataset or open a report to get started.",
       attention: "First dataset needed",
       aiStatus: "Waiting for business data",
     }
@@ -172,13 +153,6 @@ export default async function AppDashboard() {
   const session = await auth()
   const userId = session?.user?.id ?? null
   const stats = await getStats(userId)
-  const displayName = getDisplayName({
-    profile: stats.profile,
-    sessionUser: session?.user,
-  })
-  const report = stats.latestDataset
-    ? buildRetailReport(stats.latestDataset.rows, stats.latestDataset.columns)
-    : null
   const healthScore = getHealthScore(stats)
   const confidenceScore = getConfidenceScore(stats)
   const dashboardState = getDashboardState(stats)
@@ -297,9 +271,9 @@ export default async function AppDashboard() {
       detail: "Create report-style summaries for owners, finance teams, and operators.",
     },
     {
-      title: "Inventory focus",
-      value: "Retail ready",
-      detail: "Use retail analysis for stock risk, top products, low stock, and dead stock review.",
+      title: "Data quality review",
+      value: stats.datasets > 0 ? "Ready" : "Needs data",
+      detail: "Check missing values, duplicates, and column structure before deeper analysis.",
     },
   ]
 
@@ -355,13 +329,6 @@ export default async function AppDashboard() {
   return (
     <div className="flex-1 bg-background">
       <div className="mx-auto w-full max-w-[1520px] space-y-10 px-5 pb-8 sm:px-6 lg:px-8 xl:px-10">
-        <RetailReportDashboard
-          displayName={displayName}
-          companyName={stats.profile?.companyName || stats.profile?.businessName || null}
-          dataset={stats.latestDataset}
-          report={report}
-        />
-
         <section className="relative overflow-hidden rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8 lg:p-10">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent" />
           <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 translate-x-1/3 rounded-full bg-cyan-400/10 blur-3xl" />
@@ -656,350 +623,6 @@ export default async function AppDashboard() {
       </div>
     </div>
   )
-}
-
-function RetailReportDashboard({
-  displayName,
-  companyName,
-  dataset,
-  report,
-}: {
-  displayName: string
-  companyName: string | null
-  dataset: DashboardStats["latestDataset"]
-  report: RetailReport | null
-}) {
-  const generatedAt = new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date())
-
-  if (!dataset || !report) {
-    return (
-      <section className="rounded-lg border border-dashed border-border bg-card p-6 sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
-          {getGreeting()}, {displayName}
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-          Retail Business Report
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Upload a retail CSV or Excel dataset to generate revenue, profit, inventory, category,
-          supplier, ABC, forecast, and recommendation sections.
-        </p>
-        <Link
-          href="/app/datasets"
-          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          Upload retail data
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </section>
-    )
-  }
-
-  const kpiCards = [
-    { label: "Total Revenue", value: money(report.kpis.totalRevenue), detail: "Detected sales value" },
-    { label: "Gross Profit", value: money(report.kpis.grossProfit), detail: "Revenue less detected costs" },
-    { label: "Profit Margin", value: percent(report.kpis.profitMargin), detail: "Estimated gross margin" },
-    { label: "Sales Rows", value: report.kpis.salesRows.toLocaleString(), detail: "Rows analyzed" },
-    { label: "Inventory Value", value: money(report.kpis.inventoryValue), detail: "Stock multiplied by price" },
-    { label: "Products / SKUs", value: report.kpis.productCount.toLocaleString(), detail: "Unique products detected" },
-    { label: "Low Stock Items", value: String(report.kpis.lowStockItems), detail: "At or below reorder level" },
-    { label: "Dead Stock Items", value: String(report.kpis.deadStockItems), detail: "Stock with no sales movement" },
-  ]
-
-  return (
-    <div className="space-y-8">
-      <section className="overflow-visible rounded-lg border border-border bg-card shadow-sm">
-        <div className="border-b border-border bg-gradient-to-r from-cyan-500/10 via-primary/10 to-pink-500/10 p-6 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="pt-1 text-sm font-semibold uppercase leading-6 tracking-[0.18em] text-cyan-700 dark:text-cyan-200">
-                {getGreeting()}, {displayName}
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                AI Retail Business Report
-              </h1>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
-                {companyName && <ReportBadge>{companyName}</ReportBadge>}
-                <ReportBadge>{dataset.name || dataset.fileName}</ReportBadge>
-                <ReportBadge>{generatedAt}</ReportBadge>
-                <ReportBadge>{report.confidenceScore}% confidence</ReportBadge>
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background/80 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Dataset quality</p>
-              <p className="mt-2 text-3xl font-semibold text-foreground">{report.confidenceScore}%</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {dataset.rowCount.toLocaleString()} rows, {dataset.columnCount.toLocaleString()} columns
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpiCards.map((kpi) => (
-            <Card key={kpi.label} className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{kpi.label}</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{kpi.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{kpi.detail}</p>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <ReportSection title="AI Executive Summary" description="Clear business signals generated from the uploaded retail data.">
-        <div className="grid gap-3 lg:grid-cols-2">
-          {report.executiveSummary.map((item) => (
-            <div key={item} className="rounded-lg border border-border bg-card p-4 text-sm leading-6 text-muted-foreground">
-              {item}
-            </div>
-          ))}
-        </div>
-      </ReportSection>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <ReportSection title="Revenue Analytics" description="Revenue trend, strongest products, and category concentration.">
-          <MiniBarChart data={report.revenueTrend.length ? report.revenueTrend : report.products.slice(0, 8)} valueKey="revenue" />
-          <ScrollableTable
-            columns={["Product", "Revenue", "Quantity", "Margin"]}
-            rows={report.products.map((product) => [
-              product.name,
-              money(product.revenue),
-              product.quantitySold.toLocaleString(),
-              percent(product.margin),
-            ])}
-          />
-        </ReportSection>
-
-        <ReportSection title="Profit Analytics" description="Profit trend, high-margin products, and margin warnings.">
-          <MiniBarChart data={report.profitTrend.length ? report.profitTrend : report.products.slice(0, 8)} valueKey="profit" />
-          <ScrollableTable
-            columns={["Product", "Profit", "Revenue", "Margin"]}
-            rows={[...report.products]
-              .sort((a, b) => b.profit - a.profit)
-              .map((product) => [product.name, money(product.profit), money(product.revenue), percent(product.margin)])}
-          />
-        </ReportSection>
-      </div>
-
-      <ReportSection title="Regional Revenue" description="Revenue by country/region with performance indicators.">
-        {report.regions && report.regions.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground mb-3">Interactive map coming soon.</p>
-            <div className="grid gap-2">
-              {report.regions.slice(0, 8).map((region) => (
-                <div key={region.name} className="flex items-center gap-3">
-                  <span className="w-24 truncate text-sm font-medium text-foreground">{region.name}</span>
-                  <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
-                      style={{ width: `${Math.min((region.revenue / (report.regions[0]?.revenue || 1)) * 100, 100)}%` }}
-                    />
-                  </div>
-                  <span className="w-20 text-right text-sm text-muted-foreground">{money(region.revenue)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No regional data available. Add a country, region, city, or market column to unlock regional insights.</p>
-        )}
-      </ReportSection>
-
-      <ReportSection title="Inventory Intelligence" description="Inventory health, reorder risk, overstock, and dead-stock signals.">
-        <div className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
-          <Card className="p-5">
-            <p className="text-sm text-muted-foreground">Inventory health score</p>
-            <p className="mt-2 text-5xl font-semibold text-foreground">{report.inventoryHealth.score}</p>
-            <div className="mt-5 grid gap-2 text-sm">
-              <InventoryLine label="Healthy stock" value={report.inventoryHealth.healthy} tone="emerald" />
-              <InventoryLine label="Low stock" value={report.inventoryHealth.lowStock} tone="amber" />
-              <InventoryLine label="Overstock" value={report.inventoryHealth.overstock} tone="purple" />
-              <InventoryLine label="Dead stock" value={report.inventoryHealth.deadStock} tone="red" />
-            </div>
-          </Card>
-          <ScrollableTable
-            columns={["Product", "SKU", "Stock", "Reorder", "Status", "Inventory Value"]}
-            rows={report.products.map((product) => [
-              product.name,
-              product.sku || "-",
-              product.stock === null ? "-" : product.stock.toLocaleString(),
-              product.reorderLevel === null ? "-" : product.reorderLevel.toLocaleString(),
-              product.status.replace("_", " "),
-              money(product.inventoryValue),
-            ])}
-          />
-        </div>
-      </ReportSection>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <ReportSection title="Supplier Insights" description="Supplier revenue, profit, and concentration risk when supplier data exists.">
-          {report.suppliers.length ? (
-            <GroupTable groups={report.suppliers} />
-          ) : (
-            <EmptyReportState message="No supplier column was detected in this dataset." />
-          )}
-        </ReportSection>
-        <ReportSection title="Category Analysis" description="Revenue, profit, and margin by category when category data exists.">
-          {report.categories.length ? (
-            <GroupTable groups={report.categories} />
-          ) : (
-            <EmptyReportState message="No category column was detected in this dataset." />
-          )}
-        </ReportSection>
-      </div>
-
-      <ReportSection title="ABC / Pareto Analysis" description="Products classified by revenue contribution so the top value drivers are obvious.">
-        <ScrollableTable
-          columns={["Class", "Product", "Revenue", "Contribution", "Cumulative"]}
-          rows={report.abc.map((item: AbcItem) => [
-            item.className,
-            item.name,
-            money(item.revenue),
-            `${item.contribution.toFixed(1)}%`,
-            `${item.cumulativeContribution.toFixed(1)}%`,
-          ])}
-        />
-        <p className="mt-3 text-sm text-muted-foreground">
-          A-products are the products that cumulatively contribute roughly the first 80% of detected value.
-        </p>
-      </ReportSection>
-
-      <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <ReportSection title="Forecast / Prediction" description="Simple next-period estimate and stock risk signal.">
-          <Card className="p-5 text-sm leading-6 text-muted-foreground">{report.forecast}</Card>
-        </ReportSection>
-        <ReportSection title="AI Recommendations" description="Prioritized actions for the business owner.">
-          <div className="grid gap-3">
-            {report.recommendations.map((recommendation: Recommendation) => (
-              <Card key={`${recommendation.priority}-${recommendation.title}`} className="p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={priorityClass(recommendation.priority)}>{recommendation.priority}</span>
-                  {recommendation.affected && <span className="text-xs text-muted-foreground">{recommendation.affected}</span>}
-                </div>
-                <h3 className="mt-3 font-semibold text-foreground">{recommendation.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{recommendation.explanation}</p>
-                {recommendation.impact && <p className="mt-2 text-sm font-medium text-cyan-700 dark:text-cyan-200">{recommendation.impact}</p>}
-              </Card>
-            ))}
-          </div>
-        </ReportSection>
-      </div>
-
-      <footer className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-        Created by UseClevr AI • {generatedAt} • Dataset: {dataset.name || dataset.fileName} • Rows analyzed: {report.kpis.salesRows.toLocaleString()} • Confidence: {report.confidenceScore}%
-      </footer>
-    </div>
-  )
-}
-
-function ReportSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function ReportBadge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full border border-border bg-background/80 px-3 py-1 text-muted-foreground">{children}</span>
-}
-
-function MiniBarChart({ data, valueKey }: { data: Array<RetailGroup | ProductPerformance>; valueKey: "revenue" | "profit" }) {
-  const max = Math.max(...data.map((item) => Math.abs(item[valueKey] || 0)), 1)
-  return (
-    <Card className="space-y-3 p-4">
-      {data.slice(0, 10).map((item) => {
-        const value = Math.abs(item[valueKey] || 0)
-        return (
-          <div key={item.name} className="grid grid-cols-[minmax(96px,180px)_1fr_auto] items-center gap-3 text-xs">
-            <span className="truncate text-muted-foreground">{item.name}</span>
-            <span className="h-2 overflow-hidden rounded-full bg-muted">
-              <span className="block h-full rounded-full bg-cyan-500" style={{ width: `${Math.max(4, (value / max) * 100)}%` }} />
-            </span>
-            <span className="font-medium text-foreground">{money(item[valueKey] || 0)}</span>
-          </div>
-        )
-      })}
-    </Card>
-  )
-}
-
-function ScrollableTable({ columns, rows }: { columns: string[]; rows: string[][] }) {
-  if (rows.length === 0) return <EmptyReportState message="No matching rows are available for this section." />
-  return (
-    <Card className="overflow-hidden">
-      <div className="max-h-96 overflow-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="sticky top-0 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>{columns.map((column) => <th key={column} className="whitespace-nowrap px-4 py-3 font-semibold">{column}</th>)}</tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((row, index) => (
-              <tr key={index} className="bg-card">
-                {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`} className="whitespace-nowrap px-4 py-3 text-muted-foreground">{cell}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
-
-function GroupTable({ groups }: { groups: RetailGroup[] }) {
-  return (
-    <ScrollableTable
-      columns={["Name", "Revenue", "Profit", "Margin", "Products"]}
-      rows={groups.map((group) => [
-        group.name,
-        money(group.revenue),
-        money(group.profit),
-        percent(group.margin),
-        group.products.toLocaleString(),
-      ])}
-    />
-  )
-}
-
-function InventoryLine({ label, value, tone }: { label: string; value: number; tone: "emerald" | "amber" | "purple" | "red" }) {
-  const toneClass = {
-    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
-    amber: "bg-amber-500/10 text-amber-700 dark:text-amber-200",
-    purple: "bg-purple-500/10 text-purple-700 dark:text-purple-200",
-    red: "bg-red-500/10 text-red-700 dark:text-red-200",
-  }[tone]
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass}`}>{value}</span>
-    </div>
-  )
-}
-
-function EmptyReportState({ message }: { message: string }) {
-  return <Card className="p-5 text-sm text-muted-foreground">{message}</Card>
-}
-
-function priorityClass(priority: Recommendation["priority"]) {
-  if (priority === "Critical") return "rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-700 dark:text-red-200"
-  if (priority === "Important") return "rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-200"
-  return "rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-200"
-}
-
-function money(value: number | null) {
-  if (value === null || Number.isNaN(value)) return "No data"
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value)
-}
-
-function percent(value: number | null) {
-  if (value === null || Number.isNaN(value)) return "No data"
-  return `${value.toFixed(1)}%`
 }
 
 function DashboardSection({

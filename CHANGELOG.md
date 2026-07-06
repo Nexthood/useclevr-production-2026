@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Keep the main Dashboard focused on general workspace overview while categorized uploads route Standard datasets to analysis, Profitability datasets to Accountancy, and Retail datasets to the Retail workspace.
 - Show a compact animated multilingual badge in the Usy header that cycles supported languages and explains same-language replies on hover or tap.
 - Keep Usy focused on UseClevr business-data workflows while answering supported-language questions in the detected language, including localized refusals for unrelated topics.
 - Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and quick prompts for credits, upload blocks, plan choice, and data analysis.

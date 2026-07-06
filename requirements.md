@@ -32,6 +32,12 @@ Text rules for this file:
 - Show Pro and Business upgrade actions from the Free plan dataset-limit upload state.
 - Compare Free, Pro, and Business upload benefits in the dataset-limit upload state.
 - Show uploaded datasets in structured tables with row counts.
+- Store dataset category metadata for standard, retail, accountancy, and profitability uploads.
+- Route Standard Upload datasets to the generic dataset analysis route.
+- Route Profitability Upload datasets to the Accountancy workspace.
+- Route Retail uploads to the Retail workspace.
+- Keep the main Dashboard free of retail-specific report sections and retail-only KPIs.
+- Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
