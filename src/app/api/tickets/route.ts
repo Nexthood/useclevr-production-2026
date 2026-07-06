@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users";
 import { createTicket, listTickets, updateTicket } from "@/lib/support/ticket-store";
 import { ticketCreateSchema, ticketUpdateSchema, validateOrError } from "@/lib/validation";
 import type { NextRequest } from "next/server";
@@ -13,11 +14,14 @@ function getUser(session: any) {
     return null
   }
 
+  const hasSuperAdminRole = session.user.role === "superadmin"
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(userEmail)
+
   return {
     id: userId,
     email: userEmail,
     name: userName,
-    isSuperAdmin: session.user.role === "superadmin",
+    isSuperAdmin: hasSuperAdminRole || isOfficialSuperAdmin,
   }
 }
 

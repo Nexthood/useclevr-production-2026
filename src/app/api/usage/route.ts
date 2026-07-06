@@ -19,7 +19,11 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    return Response.json(await getAnalystCreditUsage(session.user.id, session.user.role))
+    return Response.json(await getAnalystCreditUsage(
+      session.user.id,
+      session.user.role,
+      session.user.email
+    ))
   } catch (error) {
     debugError("[USAGE] Error fetching usage:", error)
     return Response.json({ error: "Failed to fetch usage" }, { status: 500 })

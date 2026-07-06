@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth"
+import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import type { Session } from "next-auth"
 import { NextResponse } from "next/server"
 
@@ -22,7 +23,12 @@ type SuperAdminResult = SessionResult | { success: false; error: NextResponse<{ 
 export async function requireSuperAdmin(): Promise<SuperAdminResult> {
   const result = await requireSession()
   if (!result.success) return result
-  if (result.session.user.role !== "superadmin") {
+
+  const userEmail = result.session.user.email
+  const hasSuperAdminRole = result.session.user.role === "superadmin"
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(userEmail)
+
+  if (!hasSuperAdminRole && !isOfficialSuperAdmin) {
     return {
       success: false,
       error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),

@@ -103,6 +103,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     const session = await auth()
     const sessionUserId = session?.user?.id
     const sessionRole = session?.user?.role
+    const sessionEmail = session?.user?.email
     const demoSessionToken = formData.get("demoSession") as string | null
 
     if (!sessionUserId && !demoSessionToken) {
@@ -247,7 +248,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "User ID not found. Please sign in again." }
     }
 
-    const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole)
+    const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole, sessionEmail)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
       return {
@@ -258,7 +259,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       }
     }
 
-    const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload")
+    const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload", sessionRole, sessionEmail)
     if (!enforcementCheck.allowed) {
       return {
         success: false,

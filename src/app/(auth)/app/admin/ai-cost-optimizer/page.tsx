@@ -5,6 +5,16 @@ import { Card } from "@/components/ui/card"
 import { AlertTriangle, BarChart3, CircleDollarSign, CreditCard, Sparkles, Users, Wallet } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
+interface ProviderStatus {
+  configured: boolean
+  providers: Array<{
+    name: string
+    type: string
+    configured: boolean
+  }>
+  hasAnyProvider: boolean
+}
+
 interface Snapshot {
   summary: {
     totalCostEur: number
@@ -53,6 +63,7 @@ interface Snapshot {
     title: string
     detail: string
   }>
+  providerStatus?: ProviderStatus
 }
 
 export default function AiCostOptimizerPage() {
@@ -66,9 +77,12 @@ export default function AiCostOptimizerPage() {
       setLoading(true)
       try {
         const res = await fetch("/api/admin/ai-cost-optimizer", { cache: "no-store" })
-        if (!res.ok) throw new Error("Failed to load optimizer data")
         const json = await res.json()
-        if (active) setSnapshot(json)
+        if (!res.ok) {
+          if (active) setError(json.error || json.message || "Failed to load optimizer data")
+        } else {
+          if (active) setSnapshot(json)
+        }
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Failed to load optimizer data")
       } finally {
@@ -117,9 +131,58 @@ export default function AiCostOptimizerPage() {
     >
       <div className="flex-1 overflow-y-auto space-y-6 px-5 py-5">
         {loading && <p className="text-sm text-muted-foreground">Loading optimizer data…</p>}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
 
-        {!loading && snapshot && (
+        {!loading && !error && snapshot && snapshot.summary.totalRequests === 0 && (
+          <div className="space-y-4">
+            {snapshot.providerStatus && !snapshot.providerStatus.hasAnyProvider && (
+              <Card className="border-amber-500/50 bg-amber-500/10 p-6">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-foreground">AI providers are not configured yet.</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Add OpenAI, Gemini, Anthropic, or local provider settings to start tracking usage and costs.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {snapshot.providerStatus.providers.map((provider) => (
+                        <span
+                          key={provider.type}
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            provider.configured
+                              ? "bg-green-500/20 text-green-400"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {provider.name}: {provider.configured ? "Configured" : "Not configured"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            <Card className="border-border bg-card p-6">
+              <div className="text-center">
+                <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <h3 className="mt-4 font-semibold text-foreground">No AI usage data available yet.</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Analytics will appear after AI requests are processed.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  AI analyses, chat messages, and other AI-powered features will generate usage logs here.
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {!loading && snapshot && (snapshot.summary.totalRequests > 0 || snapshot.providerStatus?.hasAnyProvider) && (
           <>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {summaryCards.map((card) => {

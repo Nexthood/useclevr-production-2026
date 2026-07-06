@@ -1,4 +1,4 @@
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import { FREE_PLAN_LIMITS, getDatasetLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
@@ -61,11 +61,11 @@ function getTrialStatus(createdAt: Date | null | undefined, subscriptionTier: st
 }
 
 function isAdminAccess(value?: string | null) {
-  return value === "superadmin" || value === "admin"
+  return value === "admin"
 }
 
 function getUnlimitedLabel(tier: string, role?: string | null, userId?: string | null) {
-  if (isSuperAdminUserId(userId) || tier === "superadmin" || role === "superadmin") {
+  if (isSuperAdminUserId(userId)) {
     return "Superadmin unlimited"
   }
 
@@ -80,8 +80,16 @@ function getUnlimitedLabel(tier: string, role?: string | null, userId?: string |
   return null
 }
 
-export async function getAnalystCreditUsage(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  if (isSuperAdminUserId(userId)) {
+export async function getAnalystCreditUsage(
+  userId?: string | null,
+  role?: string | null,
+  email?: string | null
+): Promise<AnalystCreditUsage> {
+  const isOfficialSuperadmin = isSuperAdminUserId(userId) ||
+    (role === "superadmin") ||
+    isOfficialSuperAdminEmail(email)
+
+  if (isOfficialSuperadmin) {
     return {
       analysisCount: 0,
       total: 0,
@@ -168,9 +176,11 @@ export async function getAnalystCreditUsage(userId?: string | null, role?: strin
   }
 }
 
-export async function consumeAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  if (!userId || isSuperAdminUserId(userId)) {
-    return getAnalystCreditUsage(userId, role)
+export async function consumeAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
+  const isOfficialSuperadmin = isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)
+
+  if (!userId || isOfficialSuperadmin) {
+    return getAnalystCreditUsage(userId, role, email)
   }
 
   const db = getDb()
@@ -178,7 +188,7 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
     return defaultUsage
   }
 
-  const usage = await getAnalystCreditUsage(userId, role)
+  const usage = await getAnalystCreditUsage(userId, role, email)
   if (usage.unlimited || ["pro", "business", "superadmin", "admin"].includes(usage.subscriptionTier)) {
     return usage
   }
@@ -207,8 +217,8 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
   }
 }
 
-export async function requireAnalystCredit(userId?: string | null, role?: string | null): Promise<AnalystCreditUsage> {
-  return getAnalystCreditUsage(userId, role)
+export async function requireAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
+  return getAnalystCreditUsage(userId, role, email)
 }
 
 export async function getRowLimitForUser(userId?: string | null, role?: string | null): Promise<number> {
@@ -216,8 +226,8 @@ export async function getRowLimitForUser(userId?: string | null, role?: string |
     return ROW_LIMITS.SUPERADMIN
   }
 
-  if (userId && (role === "superadmin" || role === "admin")) {
-    return role === "superadmin" ? ROW_LIMITS.SUPERADMIN : ROW_LIMITS.ADMIN
+  if (userId && role === "admin") {
+    return ROW_LIMITS.ADMIN
   }
 
   if (!userId) {
@@ -240,10 +250,10 @@ export async function getRowLimitForUser(userId?: string | null, role?: string |
 
     const tier = profile?.subscriptionTier || "free"
     const profileRole = profile?.role || null
-    const isAdmin = profileRole === "superadmin" || profileRole === "admin"
+    const isAdmin = profileRole === "admin"
 
-    if (isAdmin || tier === "superadmin") return ROW_LIMITS.SUPERADMIN
-    if (tier === "admin" || profileRole === "admin") return ROW_LIMITS.ADMIN
+    if (tier === "superadmin") return ROW_LIMITS.SUPERADMIN
+    if (isAdmin || tier === "admin") return ROW_LIMITS.ADMIN
     if (tier === "business") return ROW_LIMITS.BUSINESS
     if (tier === "pro") return ROW_LIMITS.PRO
     return ROW_LIMITS.FREE

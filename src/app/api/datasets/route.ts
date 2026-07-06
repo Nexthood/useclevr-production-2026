@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
     const { name, fileName, fileSize, columns, rows } = validation.data
 
-    const currentUsage = await requireAnalystCredit(session.user.id, session.user.role)
+    const currentUsage = await requireAnalystCredit(session.user.id, session.user.role, session.user.email)
     if (!currentUsage.canAnalyze) {
       return NextResponse.json({
         error: "Analyst credit limit reached",
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       }, { status: 402 })
     }
 
-    const limitInfo = await getDatasetLimitInfo(session.user.id, session.user.role)
+    const limitInfo = await getDatasetLimitInfo(session.user.id, session.user.role, session.user.email)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
       return NextResponse.json({
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const usage = await consumeAnalystCredit(session.user.id, session.user.role)
+    const usage = await consumeAnalystCredit(session.user.id, session.user.role, session.user.email)
     await recordActivity({
       userId: session.user.id,
       userEmail: session.user.email,

@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db"
-import { aiCostLogs, profiles } from "@/lib/db/schema"
-import { and, count, desc, eq, gte, lte, sql, sum } from "drizzle-orm"
+import { aiCostLogs, profiles, aiProviderConfigs } from "@/lib/db/schema"
+import { and, count, desc, eq, gte, lte, sql, sum, isNull } from "drizzle-orm"
 
 export interface AiCostOptimizerSnapshot {
   summary: {
@@ -52,29 +52,116 @@ export interface AiCostOptimizerSnapshot {
   }>
 }
 
+export interface ProviderConfigurationStatus {
+  configured: boolean
+  providers: Array<{
+    name: string
+    type: string
+    configured: boolean
+    model?: string
+  }>
+  hasAnyProvider: boolean
+}
+
+export async function getProviderConfigurationStatus(): Promise<ProviderConfigurationStatus> {
+  const db = getDb()
+
+  const providers = [
+    { name: "Google Gemini", type: "google-gemini", envKey: "GEMINI_API_KEY" },
+    { name: "OpenAI", type: "openai", envKey: "OPENAI_API_KEY" },
+    { name: "Anthropic", type: "anthropic", envKey: "ANTHROPIC_API_KEY" },
+    { name: "Local/Ollama", type: "ollama", envKey: null },
+  ]
+
+  const configuredProviders: Array<{
+    name: string
+    type: string
+    configured: boolean
+    model?: string
+  }> = []
+
+  for (const provider of providers) {
+    if (provider.envKey) {
+      const isConfigured = !!process.env[provider.envKey]
+      configuredProviders.push({
+        name: provider.name,
+        type: provider.type,
+        configured: isConfigured,
+      })
+    } else {
+      configuredProviders.push({
+        name: provider.name,
+        type: provider.type,
+        configured: false,
+      })
+    }
+  }
+
+  if (db) {
+    try {
+      const userConfigs = await db
+        .select({
+          providerType: aiProviderConfigs.providerType,
+          providerName: aiProviderConfigs.providerName,
+          isEnabled: aiProviderConfigs.isEnabled,
+        })
+        .from(aiProviderConfigs)
+        .where(eq(aiProviderConfigs.isEnabled, true))
+        .limit(10)
+
+      for (const config of userConfigs) {
+        const existing = configuredProviders.find((p) => p.type === config.providerType)
+        if (existing) {
+          existing.configured = true
+        }
+      }
+    } catch {
+    }
+  }
+
+  const hasAnyProvider = configuredProviders.some((p) => p.configured)
+
+  return {
+    configured: hasAnyProvider,
+    providers: configuredProviders,
+    hasAnyProvider,
+  }
+}
+
+function getEmptySnapshot(): AiCostOptimizerSnapshot {
+  return {
+    summary: {
+      totalCostEur: 0,
+      totalCreditsUsed: 0,
+      totalRequests: 0,
+      uniqueUsers: 0,
+      uniqueOrganizations: 0,
+      avgCostPerRequestEur: 0,
+      avgCreditsPerRequest: 0,
+      successRate: 0,
+    },
+    providerBreakdown: [],
+    planBreakdown: [],
+    organizationBreakdown: [],
+    topCustomers: [],
+    recommendations: [],
+  }
+}
+
 export async function getAiCostOptimizerSnapshot(params?: {
   fromDate?: string | null
   toDate?: string | null
 }): Promise<AiCostOptimizerSnapshot> {
   const db = getDb()
   if (!db) {
-    return {
-      summary: {
-        totalCostEur: 0,
-        totalCreditsUsed: 0,
-        totalRequests: 0,
-        uniqueUsers: 0,
-        uniqueOrganizations: 0,
-        avgCostPerRequestEur: 0,
-        avgCreditsPerRequest: 0,
-        successRate: 0,
-      },
-      providerBreakdown: [],
-      planBreakdown: [],
-      organizationBreakdown: [],
-      topCustomers: [],
-      recommendations: [],
-    }
+    return getEmptySnapshot()
+  }
+
+  try {
+    const logsExist = await db.select({ count: count() }).from(aiCostLogs).limit(1)
+  } catch (error) {
+    console.warn("[AI_COST_OPTIMIZER] Table might not exist yet:", error)
+    return getEmptySnapshot()
   }
 
   const conditions = []

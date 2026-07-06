@@ -9,6 +9,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
  */
 
 import { auth } from '@/lib/auth/auth'
+import { isOfficialSuperAdminEmail } from '@/lib/auth/builtin-users'
 import { getDb } from '@/lib/db'
 import { datasets } from '@/lib/db/schema'
 import type { Report } from '@/lib/reports/report-generator'
@@ -23,7 +24,9 @@ async function canDownloadReport(report: Report) {
 
   const session = await auth()
   if (!session?.user?.id) return false
-  if (session.user.role === 'superadmin') return true
+  const hasSuperAdminRole = session.user.role === 'superadmin'
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session.user.email)
+  if (hasSuperAdminRole || isOfficialSuperAdmin) return true
 
   const db = getDb()
   if (!db) return false

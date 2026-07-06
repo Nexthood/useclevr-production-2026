@@ -16,7 +16,11 @@ export default async function Topbar() {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  const usage = await getAnalystCreditUsage(userId, session?.user?.role);
+  const usage = await getAnalystCreditUsage(
+    userId,
+    session?.user?.role,
+    session?.user?.email ?? null
+  );
 
   const remainingCredits =
     usage.unlimited

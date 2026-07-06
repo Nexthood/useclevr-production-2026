@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth"
+import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import { listAllActivities, listUserActivities } from "@/lib/activity/activity-store"
 import { NextResponse } from "next/server"
 
@@ -11,7 +12,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const limit = Number(url.searchParams.get("limit") ?? "20")
   const scope = url.searchParams.get("scope")
-  const isSuperAdmin = session.user.role === "superadmin"
+  const hasSuperAdminRole = session.user.role === "superadmin"
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session.user.email)
+  const isSuperAdmin = hasSuperAdminRole || isOfficialSuperAdmin
 
   const activities =
     scope === "all" && isSuperAdmin

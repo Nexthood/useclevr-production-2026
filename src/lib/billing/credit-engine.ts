@@ -67,20 +67,7 @@ export function creditsToEuros(credits: number): number {
 async function hasUnlimitedCreditAccess(userId: string): Promise<boolean> {
   if (isSuperAdminUserId(userId)) return true
 
-  const db = getDb()
-  if (!db) return false
-
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-    columns: { role: true, subscriptionTier: true },
-  })
-
-  return (
-    profile?.role === "admin" ||
-    profile?.role === "superadmin" ||
-    profile?.subscriptionTier === "admin" ||
-    profile?.subscriptionTier === "superadmin"
-  )
+  return false
 }
 
 export async function initializeUserCredits(

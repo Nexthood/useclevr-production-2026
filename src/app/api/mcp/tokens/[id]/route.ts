@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth";
+import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
 import { mcpTokens } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,8 +9,13 @@ export const runtime = "nodejs";
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== "superadmin") {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const hasSuperAdminRole = session.user.role === "superadmin";
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session.user.email);
+  if (!hasSuperAdminRole && !isOfficialSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const db = getDb();

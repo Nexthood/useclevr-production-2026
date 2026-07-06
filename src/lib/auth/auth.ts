@@ -2,8 +2,11 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 import {
   BUILTIN_DEMO_USER,
+  BUILTIN_SUPER_ADMIN_USER,
+  OFFICIAL_SUPERADMIN_EMAIL,
   findBuiltinUserByCredentials,
   isBuiltinUserId,
+  isOfficialSuperAdminEmail,
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
@@ -216,13 +219,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * Pattern: Check if data exists, add it, then return session
      */
     async session({ session, token }) {
-      // Add user ID to session if available
       if (token.id && session.user) {
         const userId = token.id as string;
         session.user.id = userId;
         session.user.role = (token.role || "user") as BuiltinUserRole;
 
-        if (!isBuiltinUserId(userId)) {
+        const userEmail = session.user.email;
+
+        if (isBuiltinUserId(userId)) {
+          const builtinUser = userId === BUILTIN_SUPER_ADMIN_USER.id
+            ? BUILTIN_SUPER_ADMIN_USER
+            : userId === BUILTIN_DEMO_USER.id
+              ? BUILTIN_DEMO_USER
+              : null;
+
+          if (builtinUser) {
+            session.user.name = builtinUser.name;
+            session.user.email = builtinUser.email;
+          }
+        }
+
+        if (isOfficialSuperAdminEmail(userEmail)) {
+          session.user.role = "superadmin" as BuiltinUserRole;
+          session.user.name = OFFICIAL_SUPERADMIN_EMAIL.split("@")[0];
+        } else if (!isBuiltinUserId(userId)) {
           const dbClient = getDbClient();
 
           if (dbClient) {
@@ -256,7 +276,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
       }
-      // Always return session - even if no changes
       return session;
     },
     /**
@@ -354,10 +373,7 @@ function getAuthUrlFallback() {
 }
 
 function resolveCredentialsRole(email?: string | null): BuiltinUserRole {
-  const adminEmail = (process.env.ADMIN_AUTH_BYPASS_EMAIL || "superadmin@useclevr.com")
-    .trim()
-    .toLowerCase();
-  return email?.trim().toLowerCase() === adminEmail ? "superadmin" : "user";
+  return "user";
 }
 
 function logCredentialsAuthEvent(

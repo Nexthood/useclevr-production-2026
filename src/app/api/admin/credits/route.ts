@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth/auth"
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import { adjustCredits, getUserCreditInfo, getCreditLedger, initializeUserCredits } from "@/lib/billing/credit-engine"
 import { getUserCostAnalytics } from "@/lib/billing/usage-enforcement"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
+function checkSuperAdmin(sessionUserId?: string | null, sessionEmail?: string | null): boolean {
+  const hasSuperAdminRole = sessionUserId && isSuperAdminUserId(sessionUserId)
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(sessionEmail ?? undefined)
+  return hasSuperAdminRole || isOfficialSuperAdmin
+}
+
 export async function GET(request: Request) {
   const session = await auth()
   const userId = session?.user?.id
+  const userEmail = session?.user?.email
 
-  if (!userId || !isSuperAdminUserId(userId)) {
+  if (!userId || !checkSuperAdmin(userId, userEmail)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -47,8 +54,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await auth()
   const adminUserId = session?.user?.id
+  const adminEmail = session?.user?.email
 
-  if (!adminUserId || !isSuperAdminUserId(adminUserId)) {
+  if (!adminUserId || !checkSuperAdmin(adminUserId, adminEmail)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

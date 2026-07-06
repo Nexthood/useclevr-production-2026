@@ -18,7 +18,7 @@ export async function POST() {
 
     return Response.json({
       success: true,
-      ...(await consumeAnalystCredit(session.user.id, session.user.role)),
+      ...(await consumeAnalystCredit(session.user.id, session.user.role, session.user.email ?? null)),
     })
   } catch (error) {
     debugError("[USAGE INCREMENT] Error:", error)

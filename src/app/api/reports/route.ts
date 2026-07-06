@@ -4,6 +4,7 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 // Report generation and management API
 
 import { auth } from '@/lib/auth/auth';
+import { isOfficialSuperAdminEmail } from '@/lib/auth/builtin-users';
 import { getDb } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { deleteReport, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
@@ -16,8 +17,10 @@ async function getSession() {
   return session?.user?.id ? session : null;
 }
 
-async function canAccessDataset(userId: string, role: string | undefined, datasetId: string) {
-  if (role === 'superadmin') return true;
+async function canAccessDataset(userId: string, role: string | undefined, email: string | null | undefined, datasetId: string) {
+  const hasSuperAdminRole = role === 'superadmin'
+  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(email ?? undefined)
+  if (hasSuperAdminRole || isOfficialSuperAdmin) return true;
 
   const db = getDb();
   if (!db) return false;
@@ -64,7 +67,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!(await canAccessDataset(session.user.id, session.user.role, datasetId))) {
+    if (!(await canAccessDataset(session.user.id, session.user.role, session.user.email, datasetId))) {
       return forbidden();
     }
     
@@ -113,7 +116,7 @@ export async function GET(request: Request) {
       const reports = []
 
       for (const report of allReports) {
-        if (await canAccessDataset(session.user.id, session.user.role, report.datasetId)) {
+        if (await canAccessDataset(session.user.id, session.user.role, session.user.email, report.datasetId)) {
           reports.push(report)
         }
       }
@@ -127,7 +130,7 @@ export async function GET(request: Request) {
   }
   
   if (datasetId) {
-    if (!(await canAccessDataset(session.user.id, session.user.role, datasetId))) {
+    if (!(await canAccessDataset(session.user.id, session.user.role, session.user.email, datasetId))) {
       return forbidden();
     }
 
@@ -155,7 +158,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 })
     }
 
-    if (!(await canAccessDataset(session.user.id, session.user.role, report.datasetId))) {
+    if (!(await canAccessDataset(session.user.id, session.user.role, session.user.email, report.datasetId))) {
       return forbidden()
     }
 

@@ -7,7 +7,7 @@ import {
   profiles,
 } from "@/lib/db/schema"
 import { eq, and, gte, lte, sql, count, sum, desc } from "drizzle-orm"
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
 import { calculateTokenCost } from "./provider-pricing"
 import {
   getBillingPlanByTier,
@@ -188,9 +188,13 @@ export async function decrementConcurrentAnalyses(userId: string): Promise<void>
 
 export async function checkActionEnforcement(
   userId: string,
-  action: EnforcementAction
+  action: EnforcementAction,
+  role?: string | null,
+  email?: string | null
 ): Promise<EnforcementResult> {
-  if (isSuperAdminUserId(userId)) {
+  const isSuperadmin = isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)
+
+  if (isSuperadmin) {
     return { allowed: true }
   }
 
@@ -202,7 +206,7 @@ export async function checkActionEnforcement(
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
     return { allowed: true }
   }
 
@@ -423,7 +427,7 @@ export async function validateFileSize(userId: string, fileSizeMb: number): Prom
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
     return { allowed: true, limit: 1000 }
   }
 
@@ -456,7 +460,7 @@ export async function validateRowCount(userId: string, rowCount: number): Promis
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.role === "admin" || profile?.role === "superadmin" || profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
     return { allowed: true, limit: 500000 }
   }
 
