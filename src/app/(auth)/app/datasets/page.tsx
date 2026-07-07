@@ -28,6 +28,7 @@ export default async function DatasetsPage() {
       rowCount: datasets.rowCount,
       columnCount: datasets.columnCount,
       status: datasets.status,
+      datasetType: datasets.datasetType,
       createdAt: datasets.createdAt,
       columns: datasets.columns,
     })

@@ -289,6 +289,9 @@ export const datasets = pgTable(
     // AI Insights
     aiInsights: jsonb("aiInsights"),
 
+    // Module routing
+    datasetType: varchar("datasetType", { length: 50 }).default("standard"),
+
     // Legacy field - deprecated
     status: varchar("status", { length: 255 }).default("processing").notNull(),
     analysis: jsonb("analysis").default({}).notNull(),

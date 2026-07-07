@@ -5,10 +5,11 @@ import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { auth } from "@/lib/auth/auth"
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
+import { getDatasetCategoryRedirect, type DatasetCategory } from "@/lib/data/dataset-category"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { AlertTriangle, Sparkles, BriefcaseBusiness, LayoutDashboard, ExternalLink } from "lucide-react"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 // Type for analysis result (simplified for props)
 type DatasetAnalyzerInitialAnalysis = Parameters<typeof DatasetAnalyzer>[0]["initialAnalysis"]
@@ -58,6 +59,11 @@ export default async function AnalyzePage({
   const columns = getDatasetColumns(dataset.columns)
   // Use dataset.rowCount for total
   const rowCount = dataset.rowCount || data.length
+  const datasetType: DatasetCategory = ((dataset as { datasetType?: string | null }).datasetType || "standard") as DatasetCategory
+
+  if (datasetType !== "standard") {
+    redirect(getDatasetCategoryRedirect(datasetType, id))
+  }
 
   // Get column types from dataset record (stored during upload)
   const columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}

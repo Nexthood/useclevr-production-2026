@@ -224,6 +224,7 @@ export function CsvUpload() {
 
     const formData = new FormData()
     formData.append("file", file)
+    formData.append("fileType", "standard")
 
     try {
       debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)

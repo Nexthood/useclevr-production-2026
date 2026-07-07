@@ -457,6 +457,7 @@ export function RetailInventoryClient() {
 
       const formData = new FormData()
       formData.append("file", uploadFile)
+      formData.append("fileType", "retail")
 
       const response = await fetch("/api/upload", { method: "POST", body: formData })
       const result = await response.json()
