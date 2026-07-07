@@ -220,6 +220,8 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         setProcessingStep(5)
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
 
+        const result = await response.json().catch(() => ({}))
+
         const extractedData = await simulateExtraction(file, selectedType)
         const categorizedData = categorizeTransactions(extractedData)
 
@@ -243,11 +245,17 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           message: `${file.name}: ${categorizedData.length} transactions categorized`,
         })
 
-        setTimeout(() => {
-          setUploadStatus("idle")
-          setProcessingStep(0)
-          setUploadProgress(0)
-        }, 2000)
+        if (result.redirectTo) {
+          setTimeout(() => {
+            window.location.href = result.redirectTo
+          }, 500)
+        } else {
+          setTimeout(() => {
+            setUploadStatus("idle")
+            setProcessingStep(0)
+            setUploadProgress(0)
+          }, 2000)
+        }
       } else {
         const result = await response.json().catch(() => ({ error: "Upload failed" }))
         const uploadError = result.error || result.message || "Upload failed"

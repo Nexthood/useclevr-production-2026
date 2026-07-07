@@ -1,13 +1,15 @@
 import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { PageActionRow } from "@/components/ui/page-action-row"
 import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { datasetRows } from "@/lib/db/schema"
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
+import { getDatasetCategoryRedirect, type DatasetCategory } from "@/lib/data/dataset-category"
 import { eq } from "drizzle-orm"
-import { ChevronLeft, ChevronRight, Database, Sparkles } from "lucide-react"
+import { ChevronLeft, ChevronRight, Database, ExternalLink, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 
@@ -46,7 +48,7 @@ export default async function DatasetDetailPage({
     notFound()
   }
 
-  let accessResult
+  let accessResult: Awaited<ReturnType<typeof findAccessibleDataset>>
   try {
     accessResult = await findAccessibleDataset(id, userId, userRole)
   } catch {
@@ -66,6 +68,7 @@ export default async function DatasetDetailPage({
   const columns = getDatasetColumns(dataset.columns)
   const rowCount = dataset.rowCount || 0
   const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE))
+  const datasetType: DatasetCategory = ((dataset as { datasetType?: string | null }).datasetType || "standard") as DatasetCategory
 
   let data: Record<string, unknown>[] = []
   const db = getDb()
@@ -170,7 +173,46 @@ export default async function DatasetDetailPage({
           { label: (dataset as { name: string }).name },
         ]}
         icon={Database}
+        actions={
+          datasetType !== "standard" ? (
+            <Link href={getDatasetCategoryRedirect(datasetType, id)}>
+              <Button className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Open in {datasetType.charAt(0).toUpperCase() + datasetType.slice(1)}
+              </Button>
+            </Link>
+          ) : (
+            <Link href={`/app?datasetId=${id}`}>
+              <Button className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                View Dashboard
+              </Button>
+            </Link>
+          )
+        }
       />
+
+      {datasetType !== "standard" && (
+        <div className="mb-4 px-4 sm:px-6">
+          <Card className="border-cyan-400/30 bg-cyan-400/5 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-foreground">
+                  This is a {datasetType} dataset
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Open it in the {datasetType} module for specialized analysis and reporting.
+                </p>
+              </div>
+            <Link href={getDatasetCategoryRedirect(datasetType, id)}>
+                <Button size="sm" variant="outline" className="border-cyan-400/40">
+                  Open in {datasetType.charAt(0).toUpperCase() + datasetType.slice(1)}
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      )}
 
       <PageActionRow description="Review the uploaded rows and continue to analysis when the dataset is ready.">
         <Link href={`/app/datasets/${id}/analyze`} className="shrink-0">

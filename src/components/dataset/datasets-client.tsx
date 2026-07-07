@@ -16,6 +16,7 @@ export interface DatasetListItem {
   rowCount: number
   columnCount: number
   status: string | null
+  datasetType: string | null
   createdAt: Date | null
   columns: string[]
   industry?: string | null
@@ -57,50 +58,98 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   const averageRevenue = datasets.length > 0 ? totalRevenue / datasets.length : 0
   const readyCount = datasets.filter((d) => d.status === "ready").length
 
+  function getDatasetTypeLink(dataset: DatasetListItem): string {
+    const type = dataset.datasetType || "standard"
+    switch (type) {
+      case "retail":
+        return `/app/retail?datasetId=${dataset.id}`
+      case "profitability":
+        return `/app/profitability?datasetId=${dataset.id}`
+      case "accountancy":
+        return `/app/accountancy?datasetId=${dataset.id}`
+      case "prebookkeeping":
+        return `/app/prebookkeeping?datasetId=${dataset.id}`
+      default:
+        return `/app/datasets/${dataset.id}`
+    }
+  }
+
+  function getDatasetTypeBadge(type: string | null) {
+    const normalized = type || "standard"
+    const labels: Record<string, { label: string; className: string }> = {
+      standard: { label: "Standard Dataset", className: "bg-slate-500/20 text-slate-400" },
+      retail: { label: "Retail Analysis", className: "bg-cyan-500/20 text-cyan-400" },
+      profitability: { label: "Profitability Analysis", className: "bg-emerald-500/20 text-emerald-400" },
+      accountancy: { label: "Accountancy", className: "bg-purple-500/20 text-purple-400" },
+      prebookkeeping: { label: "Pre-bookkeeping", className: "bg-amber-500/20 text-amber-400" },
+    }
+    const config = labels[normalized] || labels.standard
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
+        {config.label}
+      </span>
+    )
+  }
+
   const datasetColumns: DataTableColumn<Record<string, unknown>>[] = [
     {
       key: "name",
       header: "Dataset",
-      render: (row) => (
-        <div>
-          <Link href={`/app/datasets/${row.id}`} className="font-medium text-foreground transition hover:text-primary">
-            {String(row.name)}
-          </Link>
+      render: (row) => {
+        const dataset = row as unknown as DatasetListItem
+        return (
           <div>
-            <Link href={`/app/datasets/${row.id}`} className="text-xs text-primary hover:underline">
-              Edit dataset
+            <Link href={getDatasetTypeLink(dataset)} className="font-medium text-foreground transition hover:text-primary">
+              {String(dataset.name)}
             </Link>
+            <div>
+              <Link href={getDatasetTypeLink(dataset)} className="text-xs text-primary hover:underline">
+                Open in module
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground">{String(dataset.fileName)}</p>
           </div>
-          <p className="text-xs text-muted-foreground">{String(row.fileName)}</p>
-        </div>
-      ),
+        )
+      },
+    },
+    {
+      key: "datasetType",
+      header: "Type",
+      render: (row) => getDatasetTypeBadge((row as unknown as DatasetListItem).datasetType),
     },
     {
       key: "status",
       header: "Status",
-      render: (row) => getStatusBadge(row.status as string),
+      render: (row) => getStatusBadge((row as unknown as DatasetListItem).status as string),
     },
     {
       key: "shape",
       header: "Rows / columns",
       render: (row) => (
-        <span className="text-muted-foreground">{Number(row.rowCount || 0).toLocaleString()} / {Number(row.columnCount || 0).toLocaleString()}</span>
+        <span className="text-muted-foreground">{Number((row as unknown as DatasetListItem).rowCount || 0).toLocaleString()} / {Number((row as unknown as DatasetListItem).columnCount || 0).toLocaleString()}</span>
       ),
     },
     {
       key: "viewTable",
       header: "Actions",
       align: "right",
-      render: (row) => (
-        <div className="flex justify-end gap-3">
-          <Link href={`/app/datasets/${row.id}/analyze`} className="text-xs font-medium text-primary hover:underline">
-            Analyze
-          </Link>
-          <Link href={`/app/datasets/${row.id}/analyze?panel=report`} className="text-xs font-medium text-primary hover:underline">
-            Report
-          </Link>
-        </div>
-      ),
+      render: (row) => {
+        const dataset = row as unknown as DatasetListItem
+        const type = dataset.datasetType || "standard"
+        const analyzeHref = type === "standard"
+          ? `/app/datasets/${dataset.id}/analyze`
+          : getDatasetTypeLink(dataset)
+        return (
+          <div className="flex justify-end gap-3">
+            <Link href={`/app/datasets/${dataset.id}`} className="text-xs font-medium text-primary hover:underline">
+              View rows
+            </Link>
+            <Link href={analyzeHref} className="text-xs font-medium text-primary hover:underline">
+              {type === "standard" ? "Analyze" : "Open module"}
+            </Link>
+          </div>
+        )
+      },
     },
   ]
 

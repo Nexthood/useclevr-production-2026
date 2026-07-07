@@ -18,6 +18,8 @@ import {
 import Link from "next/link"
 import type React from "react"
 
+import { resolveDatasetType } from "@/lib/data/dataset-category"
+
 export const metadata = {
   title: "Accountancy - UseClevr",
 }
@@ -74,6 +76,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
               columnCount: true,
               analysis: true,
               precomputedMetrics: true,
+              datasetType: true,
             },
           }) ?? null
         }
@@ -279,7 +282,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                 <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-80">
                   <ProfileContextRow label="Rows" value={focusedDataset.rowCount.toLocaleString()} />
                   <ProfileContextRow label="Columns" value={focusedDataset.columnCount.toLocaleString()} />
-                  <ProfileContextRow label="Category" value={getFocusedDatasetCategory(focusedDataset.analysis)} />
+                  <ProfileContextRow label="Category" value={getFocusedDatasetCategory(focusedDataset)} />
                   <ProfileContextRow label="Status" value="Ready for accounting review" />
                 </div>
               </div>
@@ -328,14 +331,8 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function getFocusedDatasetCategory(analysis: unknown) {
-  if (!analysis || typeof analysis !== "object") return "Accountancy"
-
-  const category = (analysis as { datasetCategory?: unknown; datasetType?: unknown }).datasetCategory
-    || (analysis as { datasetCategory?: unknown; datasetType?: unknown }).datasetType
-
-  if (typeof category !== "string") return "Accountancy"
-
+function getFocusedDatasetCategory(dataset: { datasetType?: string | null; analysis: unknown }) {
+  const category = resolveDatasetType(dataset.datasetType, dataset.analysis)
   return category.charAt(0).toUpperCase() + category.slice(1)
 }
 

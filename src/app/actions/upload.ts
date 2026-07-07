@@ -411,6 +411,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Check if this is a profitability analysis (has profitability data)
     const isProfitabilityAnalysis = !!profitabilityData
     const datasetCategory = isProfitabilityAnalysis ? "profitability" : getDatasetCategoryFromUpload(fileType)
+    const datasetType = datasetCategory
     const baseAnalysis = {
       datasetCategory,
       datasetType: datasetCategory,
@@ -455,6 +456,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         columns: headers,
         data: [],
         columnTypes: {},
+        datasetType,
         status: 'ready',
         analysis: { ...baseAnalysis, profitability: profitabilityData },
         precomputedMetrics: profitabilityData ? {
@@ -478,6 +480,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         columns: headers,
         data: previewRows, // Store only preview rows
         columnTypes: {},
+        datasetType,
         status: 'ready',
         analysis: { ...baseAnalysis, streamingMode: true },
         precomputedMetrics: aggregatedMetrics,
@@ -495,6 +498,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         columns: headers,
         data: allRows,
         columnTypes: {},
+        datasetType,
         status: 'ready',
         analysis: baseAnalysis,
         precomputedMetrics: aggregatedMetrics,
@@ -617,10 +621,12 @@ export async function uploadCSV(formData: FormData): Promise<{
       return { success: false, error: "Database error: " + (err instanceof Error ? err.message : "Failed to save dataset") }
     }
 
-    // Revalidate datasets page
+    // Revalidate datasets page and module pages
     revalidatePath("/app/datasets")
     revalidatePath("/app/retail")
     revalidatePath("/app/accountancy")
+    revalidatePath("/app/profitability")
+    revalidatePath("/app/prebookkeeping")
 
     // Fire suggestion regeneration (best-effort, non-blocking)
     try {
