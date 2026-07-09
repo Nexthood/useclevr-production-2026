@@ -14,10 +14,6 @@ import { generateBusinessIntelligence } from "@/lib/business/business-intelligen
 import { getDatasetCategoryFromUpload, getDatasetCategoryRedirect, getUploadCategoryCandidate } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
-import { formatRowLimitError } from "@/lib/usage/analyst-credits"
-import { getDatasetLimitInfo, getDatasetLimitError, type DatasetLimitInfo } from "@/lib/usage/dataset-limits"
-import { checkActionEnforcement, validateFileSize, validateRowCount } from "@/lib/billing/usage-enforcement"
-import { getRowLimitForTier } from "@/lib/billing/plans"
 import { checkDemoAccess, consumeDemoCredit, getDemoLimits } from "@/lib/billing/demo-access"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -37,7 +33,6 @@ type UploadCSVResult = {
   profitabilityResult?: any
   usage?: { limitReached?: boolean; analysisCount?: number; total?: number; subscriptionTier?: string }
   step?: string
-  limitInfo?: DatasetLimitInfo
   demoCreditsRemaining?: number
 }
 
@@ -50,7 +45,6 @@ const UPLOAD_STAGES = {
   ROWS_PROCESSED: "rows_processed",
   ANALYSIS_CREATED_OR_QUEUED: "analysis_created_or_queued",
   CREDITS_DEDUCTED: "credits_deducted",
-  USAGE_LIMIT_CHECK: "usage_limit_check",
   REQUEST_RECEIVED: "request_received",
 } as const
 
@@ -115,8 +109,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       )
     }
     const sessionUserId = session?.user?.id
-    const sessionRole = session?.user?.role
-    const sessionEmail = session?.user?.email
     const demoSessionToken = formData.get("demoSession") as string | null
 
     if (!sessionUserId && !demoSessionToken) {
@@ -246,21 +238,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       return fail(UPLOAD_STAGES.AUTH_CHECKED, "User ID not found. Please sign in again.")
     }
 
-    const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole, sessionEmail)
-    const limitError = getDatasetLimitError(limitInfo)
-    if (limitError) {
-      return fail(UPLOAD_STAGES.FORMDATA_VALIDATED, limitError, {
-        limitInfo,
-        usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
-      })
-    }
-
-    const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload", sessionRole, sessionEmail)
-    if (!enforcementCheck.allowed) {
-      return fail(UPLOAD_STAGES.USAGE_LIMIT_CHECK, `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`, {
-        limitInfo,
-        usage: { limitReached: true, analysisCount: enforcementCheck.currentUsage?.datasets ?? limitInfo.currentCount, total: enforcementCheck.currentUsage?.datasetLimit ?? limitInfo.limit, subscriptionTier: limitInfo.tier },
-      })
+    const uploadUsage = {
+      limitReached: false,
+      analysisCount: 0,
+      total: Number.MAX_SAFE_INTEGER,
+      subscriptionTier: "upload",
     }
 
     const file = formData.get("file") as File | null
@@ -284,11 +266,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       return fail(UPLOAD_STAGES.FILE_VALIDATED, "File size must be less than 50MB")
     }
 
-    const fileSizeValidation = await validateFileSize(effectiveUserId, file.size / (1024 * 1024))
-    if (!fileSizeValidation.allowed) {
-      return fail(UPLOAD_STAGES.FILE_VALIDATED, `FILE_SIZE_LIMIT|${fileSizeValidation.message || "File size exceeds your plan limit."}`)
-    }
-
     if (isDemoUser) {
       const demoLimits = getDemoLimits()
       if (file.size > demoLimits.maxFileSizeMb * 1024 * 1024) {
@@ -296,7 +273,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       }
     }
 
-    const rowLimit = getRowLimitForTier(limitInfo.tier)
+    const rowLimit = Number.MAX_SAFE_INTEGER
     debugLog("[UPLOAD] Row limit for user:", rowLimit)
 
     // Use streaming parser to handle large files efficiently
@@ -322,24 +299,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     debugLog("[UPLOAD] row count detected:", totalRowCount)
     debugLog("[UPLOAD] exceeds limit:", parseResult.exceedsLimit)
 
-    const rowValidation = await validateRowCount(effectiveUserId, totalRowCount)
-    if (!rowValidation.allowed) {
-      return fail(UPLOAD_STAGES.ROWS_PROCESSED, formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName), {
-        usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
-      })
-    }
-
     if (isDemoUser) {
       const demoLimits = getDemoLimits()
       if (totalRowCount > demoLimits.maxRowsPerDataset) {
         return fail(UPLOAD_STAGES.ROWS_PROCESSED, `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`)
       }
-    }
-
-    if (parseResult.exceedsLimit) {
-      return fail(UPLOAD_STAGES.ROWS_PROCESSED, formatRowLimitError(totalRowCount, rowLimit, limitInfo.planName), {
-        usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
-      })
     }
 
     // Determine storage mode:
@@ -610,12 +574,18 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         }
       } catch (analysisErr) {
         debugError("[UPLOAD] ANALYSIS STATUS UPDATE FAILED:", analysisErr)
-        return fail(
-          UPLOAD_STAGES.ANALYSIS_CREATED_OR_QUEUED,
-          isDatabaseConnectionError(analysisErr)
-            ? "DB_UNAVAILABLE|Database connection failed while queueing analysis. Please try again."
-            : "DATABASE_INSERT_ERROR|Could not queue dataset analysis. Please try again.",
-        )
+        await executeWithRetry(
+          () => (db as any)
+            .update(datasets)
+            .set({
+              analysisStatus: "pending",
+              analysisMessage: "Dataset uploaded. AI analysis pending.",
+              analysisError: analysisErr instanceof Error ? analysisErr.message.slice(0, 500) : "AI analysis pending.",
+              updatedAt: new Date(),
+            })
+            .where(eq(datasets.id, datasetId)),
+          "Save pending analysis status",
+        ).catch(() => {})
       }
     } catch (err) {
       debugError("[UPLOAD] Database error:", err)
@@ -652,8 +622,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       // Suggestion refresh is best-effort
     }
 
-    const usage = { limitReached: false, analysisCount: limitInfo.currentCount + 1, total: limitInfo.limit, subscriptionTier: limitInfo.tier }
-
     debugLog("[UPLOAD] Dataset created successfully:", datasetId)
 
     const previewRowsToReturn = useStreamingStorage ? previewRows : allRows.slice(0, 5)
@@ -674,7 +642,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         rows: previewRowsToReturn,
       },
       profitabilityResult: profitabilityData || undefined,
-      usage,
+      usage: uploadUsage,
       demoCreditsRemaining,
     }
   } catch (error) {
