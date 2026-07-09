@@ -458,6 +458,10 @@ export function RetailInventoryClient() {
       const formData = new FormData()
       formData.append("file", uploadFile)
       formData.append("fileType", "retail")
+      formData.append("dataset_type", "retail")
+      formData.append("uploadMode", "retail")
+      formData.append("analysisType", "retail")
+      formData.append("source", "retail_upload")
 
       const response = await fetch("/api/upload", { method: "POST", body: formData })
       const result = await response.json()

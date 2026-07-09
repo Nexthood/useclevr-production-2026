@@ -225,6 +225,10 @@ export function CsvUpload() {
     const formData = new FormData()
     formData.append("file", file)
     formData.append("fileType", "standard")
+    formData.append("dataset_type", "standard")
+    formData.append("uploadMode", "standard")
+    formData.append("analysisType", "standard")
+    formData.append("source", "standard_upload")
 
     try {
       debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)

@@ -1,4 +1,5 @@
 import { uploadCSV } from "@/app/actions/upload"
+import { allowedUploadDatasetCategories, getDatasetCategoryFromUpload, getUploadCategoryCandidate } from "@/lib/data/dataset-category"
 import { NextResponse } from "next/server"
 
 /**
@@ -10,6 +11,35 @@ import { NextResponse } from "next/server"
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
+    const receivedFields = Array.from(formData.keys())
+    const missingFields: string[] = []
+    const file = formData.get("file")
+    const uploadCategoryCandidate = getUploadCategoryCandidate(formData)
+    const uploadCategory = getDatasetCategoryFromUpload(uploadCategoryCandidate)
+
+    if (!(file instanceof File)) {
+      missingFields.push("file")
+    }
+    if (!uploadCategoryCandidate) {
+      missingFields.push("dataset_type")
+    }
+    if (!allowedUploadDatasetCategories.includes(uploadCategory as (typeof allowedUploadDatasetCategories)[number])) {
+      missingFields.push("dataset_type")
+    }
+
+    if (missingFields.length > 0) {
+      return NextResponse.json({
+        ok: false,
+        success: false,
+        stage: "validation",
+        step: "validation",
+        error: "Upload validation failed.",
+        missingFields: [...new Set(missingFields)],
+        receivedFields,
+        allowedDatasetTypes: allowedUploadDatasetCategories,
+      }, { status: 400 })
+    }
+
     const result = await uploadCSV(formData)
 
     if (!result.success) {
@@ -71,18 +101,24 @@ export async function POST(request: Request) {
                   : 400
 
       return NextResponse.json({
+        ok: false,
         error: stageMessage,
         code: errorCode || undefined,
+        stage,
         step: stage,
+        missingFields: [],
+        receivedFields,
         usage: result.usage,
         datasetLimit: limitReached ? result.limitInfo : undefined,
       }, { status })
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json({ ok: true, ...result })
   } catch (error: any) {
     console.error("[UPLOAD] Unexpected error:", error)
     return NextResponse.json({
+      ok: false,
+      stage: "upload",
       error: "Upload failed. Please try again.",
     }, { status: 500 })
   }

@@ -11,7 +11,7 @@ import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine"
-import { getDatasetCategoryFromUpload, getDatasetCategoryRedirect } from "@/lib/data/dataset-category"
+import { getDatasetCategoryFromUpload, getDatasetCategoryRedirect, getUploadCategoryCandidate } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { formatRowLimitError } from "@/lib/usage/analyst-credits"
@@ -127,10 +127,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     debugLog("[UPLOAD] sessionUserId:", sessionUserId)
     debugLog("[UPLOAD] ======================================")
     
-    // Check if this is a profitability analysis upload (by checking for fileType)
-    const fileType = formData.get('fileType') as string
+    const fileType = getUploadCategoryCandidate(formData)
     const uploadCategory = getDatasetCategoryFromUpload(fileType)
-    const isProfitabilityUpload = fileType?.startsWith('profitability_') || fileType?.includes('profitability')
+    const isProfitabilityUpload = uploadCategory === "profitability"
     debugLog("[UPLOAD] fileType:", fileType)
     debugLog("[UPLOAD] dataset category:", uploadCategory)
     debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)

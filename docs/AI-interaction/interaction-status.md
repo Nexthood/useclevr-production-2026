@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-09
-- **Goal**: Fix Standard Upload failure caused by a blocking database availability precheck.
-- **Durable change**: Standard Upload no longer stops at a separate database probe before the real upload path; shared upload errors now report actual stages such as file parsing, database insert, dataset creation, and analysis queueing.
-- **Verification**: TypeScript passes; CSV/XLSX parser smoke test passes; removed-string search passes; diff whitespace check passes.
+- **Goal**: Fix Standard Upload 400 Bad Request by aligning payload metadata and upload validation.
+- **Durable change**: Standard Upload sends explicit dataset metadata, `/api/upload` accepts category aliases, and upload validation returns structured missing-field and received-field details instead of an unexplained bad request.
+- **Verification**: TypeScript passes; structured missing-file route smoke test passes; category compatibility smoke test passes; diff whitespace check passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
