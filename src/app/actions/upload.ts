@@ -69,24 +69,9 @@ async function executeWithRetry<T>(
   throw new Error(`${operationName} failed after ${maxRetries} attempts`)
 }
 
-// Minimal DB availability probe to avoid broken downstream logic
-async function isDbAvailable(): Promise<boolean> {
-  const db = getDb()
-  if (!db) {
-    debugError("[UPLOAD] DB health check failed: database client is not configured")
-    return false
-  }
-
-  try {
-    // Perform a trivial query; any driver-level failure (e.g., Neon cold start/fetch failed)
-    // will throw here and we can fail early before demo-user/database operations.
-    await db.query.datasets.findFirst()
-    return true
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    debugError("[UPLOAD] DB health check failed:", msg)
-    return false
-  }
+function isDatabaseConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return /can't reach database|connection|connect|econnrefused|etimedout|timeout|fetch failed|socket|neon/i.test(message)
 }
 
 /**
@@ -225,12 +210,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     // Even in demo mode, standard uploads should create actual dataset records
     debugLog("[UPLOAD] Standard upload mode - proceeding with database insert")
     
-    // EARLY FAIL: If DB is unavailable, return a clean structured error and stop
-    const dbOk = await isDbAvailable()
-    if (!dbOk) {
-      return fail("database_check", "DB_UNAVAILABLE|Our database is waking up. Please retry in 15-60 seconds.")
-    }
-    
     let effectiveUserId = sessionUserId
     debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
 
@@ -308,11 +287,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       parseResult = await parseCSVStreaming(file, rowLimit)
     } catch (parseError) {
       debugError("[UPLOAD] File parsing failed:", parseError)
-      return fail("file_parsing", "FILE_PROCESSING_ERROR|Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row, then try again.")
+      return fail("file_parse", "FILE_PROCESSING_ERROR|Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row, then try again.")
     }
 
     if (parseResult.columns.length === 0) {
-      return fail("file_parsing", "File contains no data or has invalid format")
+      return fail("file_parse", "File contains no data or has invalid format")
     }
 
     const headers = parseResult.columns
@@ -589,13 +568,14 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         debugError("[UPLOAD] INSERT FAILED:", insertErr)
         debugError("[UPLOAD] INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
         // Return actual error instead of masking as success
-        return {
-          success: false,
-          step: "save_dataset",
-          error: isProfitabilityAnalysis
-            ? "Could not save profitability analysis. Please try again."
-            : "Could not save dataset. Please try again.",
-        }
+        return fail(
+          "database_insert",
+          isDatabaseConnectionError(insertErr)
+            ? "DB_UNAVAILABLE|Database connection failed while saving the dataset. Please try again."
+            : isProfitabilityAnalysis
+              ? "DATABASE_INSERT_ERROR|Could not save profitability analysis. Please try again."
+              : "DATABASE_INSERT_ERROR|Could not save dataset. Please try again.",
+        )
       }
     } catch (err) {
       debugError("[UPLOAD] Database error:", err)
@@ -603,7 +583,12 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       debugError("[UPLOAD] Error message:", err instanceof Error ? err.message : String(err))
       
       // Return sanitized error - never expose internal details
-      return fail("save_dataset", "Database error: " + (err instanceof Error ? err.message : "Failed to save dataset"))
+      return fail(
+        "dataset_create",
+        isDatabaseConnectionError(err)
+          ? "DB_UNAVAILABLE|Database connection failed while creating the dataset. Please try again."
+          : "DATASET_CREATE_ERROR|Could not create the dataset. Please try again.",
+      )
     }
 
     // Revalidate datasets page and module pages
@@ -674,7 +659,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       debugError("[UPLOAD] File processing error (internal):", errorMessage)
       return {
         success: false,
-        step: "file_parsing",
+        step: "file_parse",
         error: "FILE_PROCESSING_ERROR|Unable to process the uploaded file. Please try again with a different file format.",
       }
     }

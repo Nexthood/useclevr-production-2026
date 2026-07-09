@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-09
-- **Goal**: Fix production localhost API health checks, CSP font policy, and Standard Upload dependency on optional helper health.
-- **Durable change**: Production browser code uses same-origin `/health`, optional helper status reports unavailable without calling localhost, local runtime server defaults are guarded behind development or explicit configuration, and CSP allows the existing Google Fonts hosts without globally weakening inline-style policy.
-- **Verification**: TypeScript passes; changelog lint passes; secret scan passes; production-mode helper and app-health smoke checks pass.
+- **Goal**: Fix Standard Upload failure caused by a blocking database availability precheck.
+- **Durable change**: Standard Upload no longer stops at a separate database probe before the real upload path; shared upload errors now report actual stages such as file parsing, database insert, dataset creation, and analysis queueing.
+- **Verification**: TypeScript passes; CSV/XLSX parser smoke test passes; removed-string search passes; diff whitespace check passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       const rowLimitExceeded = errorCode === "ROW_LIMIT_EXCEEDED"
       const usageLimitReached = errorCode === "USAGE_LIMIT_REACHED"
       const fileProcessingError = errorCode === "FILE_PROCESSING_ERROR"
+      const databaseWriteError = errorCode === "DATABASE_INSERT_ERROR" || errorCode === "DATASET_CREATE_ERROR"
       const analystLimitReached = Boolean(result.usage?.limitReached)
 
       let userMessage = structuredMessage || result.error || "Upload failed"
@@ -42,15 +43,16 @@ export async function POST(request: Request) {
       const stageLabels: Record<string, string> = {
         authentication: "checking your session",
         database_configuration: "checking database configuration",
-        database_check: "checking database availability",
         database_connection: "connecting to the database",
         demo_limit_check: "checking demo limits",
         dataset_limit_check: "checking dataset limits",
         usage_limit_check: "checking plan limits",
         file_validation: "validating the file",
-        file_parsing: "parsing the file",
+        file_parse: "parsing the file",
         row_limit_check: "checking row limits",
-        save_dataset: "saving the dataset",
+        database_insert: "saving the dataset",
+        dataset_create: "creating the dataset",
+        analysis_queue: "queueing analysis",
         upload: "uploading the file",
       }
       const stageMessage = `Upload failed while ${stageLabels[stage] || stage.replaceAll("_", " ")}: ${userMessage}`
@@ -64,7 +66,9 @@ export async function POST(request: Request) {
               ? 403
               : fileProcessingError
                 ? 422
-                : 400
+                : databaseWriteError
+                  ? 500
+                  : 400
 
       return NextResponse.json({
         error: stageMessage,
