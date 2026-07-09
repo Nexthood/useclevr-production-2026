@@ -13,11 +13,16 @@ export async function POST(request: Request) {
     const result = await uploadCSV(formData)
 
     if (!result.success) {
-      const [errorCode, structuredMessage] = result.error?.split("|", 2) ?? []
+      const rawError = result.error || ""
+      const hasStructuredError = rawError.includes("|")
+      const [errorCode = "", ...messageParts] = hasStructuredError ? rawError.split("|") : []
+      const structuredMessage = messageParts.filter(Boolean).join(" ")
       const unauthorized = errorCode === "Unauthorized"
       const databaseUnavailable = errorCode === "DB_UNAVAILABLE"
       const limitReached = errorCode === "DATASET_LIMIT_REACHED"
       const rowLimitExceeded = errorCode === "ROW_LIMIT_EXCEEDED"
+      const usageLimitReached = errorCode === "USAGE_LIMIT_REACHED"
+      const fileProcessingError = errorCode === "FILE_PROCESSING_ERROR"
       const analystLimitReached = Boolean(result.usage?.limitReached)
 
       let userMessage = structuredMessage || result.error || "Upload failed"
@@ -33,11 +38,41 @@ export async function POST(request: Request) {
         userMessage = "You have used all included AI credits for your plan. Upgrade to continue."
       }
 
+      const stage = result.step || "upload"
+      const stageLabels: Record<string, string> = {
+        authentication: "checking your session",
+        database_configuration: "checking database configuration",
+        database_check: "checking database availability",
+        database_connection: "connecting to the database",
+        demo_limit_check: "checking demo limits",
+        dataset_limit_check: "checking dataset limits",
+        usage_limit_check: "checking plan limits",
+        file_validation: "validating the file",
+        file_parsing: "parsing the file",
+        row_limit_check: "checking row limits",
+        save_dataset: "saving the dataset",
+        upload: "uploading the file",
+      }
+      const stageMessage = `Upload failed while ${stageLabels[stage] || stage.replaceAll("_", " ")}: ${userMessage}`
+      const status = unauthorized
+        ? 401
+        : databaseUnavailable
+          ? 503
+          : analystLimitReached || rowLimitExceeded || usageLimitReached
+            ? 402
+            : limitReached
+              ? 403
+              : fileProcessingError
+                ? 422
+                : 400
+
       return NextResponse.json({
-        error: userMessage,
+        error: stageMessage,
+        code: errorCode || undefined,
+        step: stage,
         usage: result.usage,
         datasetLimit: limitReached ? result.limitInfo : undefined,
-      }, { status: unauthorized ? 401 : databaseUnavailable ? 503 : analystLimitReached || rowLimitExceeded ? 402 : limitReached ? 403 : 400 })
+      }, { status })
     }
 
     return NextResponse.json(result)

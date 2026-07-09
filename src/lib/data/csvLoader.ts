@@ -420,15 +420,19 @@ async function parseExcelStreaming(
   }
 
   const previewRows: any[] = []
+  const allRows: any[] = []
   const actualRowLimit = rowLimit > 0 ? Math.min(rowLimit, dataRows.length) : dataRows.length
 
-    for (let i = 0; i < dataRows.length; i++) {
+  for (let i = 0; i < dataRows.length; i++) {
     const row: any[] = dataRows[i]
+    let rowObj: Record<string, any> | null = null
+
     if (i < actualRowLimit) {
-      const rowObj: Record<string, any> = {}
+      rowObj = {}
       columns.forEach((col, idx) => {
-        rowObj[col] = row[idx]
+        rowObj![col] = row[idx]
       })
+      allRows.push(rowObj)
       if (previewRows.length < PREVIEW_ROW_COUNT) {
         previewRows.push(rowObj)
       }
@@ -479,7 +483,7 @@ async function parseExcelStreaming(
     columns,
     columnCount,
     rowCount: aggregatedMetrics.rowCount,
-    previewRows,
+    previewRows: allRows.length > 0 ? allRows : previewRows,
     aggregatedMetrics,
     exceedsLimit: rowLimit > 0 && aggregatedMetrics.rowCount > rowLimit,
     limit: rowLimit,
