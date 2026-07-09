@@ -8,6 +8,7 @@
 - fixed: show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion
 - changed: show the current UseClevr logo as the browser tab favicon from the single 6.svg asset
 - fixed: show completed Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves
+- fixed: prevent production browser and optional local-AI status paths from probing localhost by routing app health through same-origin `/health`, reporting helper status separately, and guarding local runtime defaults behind development or explicit server configuration
 - fixed: route Standard, Retail, and Profitability uploads through the shared upload pipeline with explicit dataset categories, full in-limit Excel row persistence, stage-based upload errors, and HTTP 503 reserved for real database unavailability
 - changed: add a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, plus reusable consent helpers for analytics and product-improvement cookie checks
 - changed: remove app zoom controls, reset saved zoom preferences, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button

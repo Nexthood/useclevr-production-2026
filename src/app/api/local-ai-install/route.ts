@@ -20,6 +20,10 @@ function getLocalAIBridgeBase() {
   return (process.env.LOCAL_AI_BRIDGE_BASE_URL || DEFAULT_LOCAL_AI_BRIDGE_BASE).replace(/\/$/, '');
 }
 
+function hasConfiguredLocalAIBridge() {
+  return Boolean(process.env.LOCAL_AI_BRIDGE_BASE_URL?.trim())
+}
+
 // Installation state
 let installationStatus: 'idle' | 'checking' | 'installing' | 'ready' | 'error' = 'idle';
 let installationProgress = '';
@@ -223,6 +227,10 @@ async function downloadModel(model: string): Promise<{ success: boolean; error?:
  * Check if Private AI service is running
  */
 async function checkServiceRunning(): Promise<{ running: boolean; pid?: number }> {
+  if (process.env.NODE_ENV === "production" && !hasConfiguredLocalAIBridge()) {
+    return { running: false };
+  }
+
   try {
     const response = await fetch(`${getLocalAIBridgeBase()}/health`, { 
       method: 'GET',

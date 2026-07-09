@@ -29,7 +29,7 @@ async function checkUseClevrHelper(): Promise<boolean> {
 async function checkCloudConnection(): Promise<{ok: boolean; latency?: number}> {
   const startTime = Date.now();
   try {
-    const response = await fetch('/api/health', {
+    const response = await fetch('/health', {
       method: 'GET',
       signal: AbortSignal.timeout(5000)
     });

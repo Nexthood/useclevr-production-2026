@@ -41,9 +41,9 @@ export default function proxy(request: NextRequest) {
   // Generate CSP Nonce
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
   const styleSources = pathname.startsWith("/admin")
-    ? "'self' 'unsafe-inline'"
-    : `'self' 'nonce-${nonce}'`
-  const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'unsafe-eval'; style-src ${styleSources}; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`.replace(/\s{2,}/g, " ").trim()
+    ? "'self' 'unsafe-inline' https://fonts.googleapis.com"
+    : `'self' 'nonce-${nonce}' https://fonts.googleapis.com`
+  const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'unsafe-eval'; style-src ${styleSources}; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`.replace(/\s{2,}/g, " ").trim()
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-nonce", nonce)

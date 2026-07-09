@@ -20,7 +20,18 @@ export async function GET() {
     })
   }
 
-  const agentBase = process.env.USECLEVR_AGENT_BASE?.trim() || DEFAULT_AGENT_BASE
+  const configuredAgentBase = process.env.USECLEVR_AGENT_BASE?.trim()
+  if (process.env.NODE_ENV === "production" && !configuredAgentBase) {
+    return NextResponse.json({
+      available: false,
+      status: "unavailable",
+      provider: "useclevr_hybrid",
+      reason: "local_runtime_not_configured",
+      localAIAvailable: false,
+    })
+  }
+
+  const agentBase = configuredAgentBase || DEFAULT_AGENT_BASE
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)

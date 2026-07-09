@@ -67,6 +67,7 @@
 
 ### Fixed
 
+- Prevent production upload pages from calling localhost helper health checks so standard dataset uploads continue when optional Hybrid AI is offline.
 - Fix Business checkout payment readiness so the €420/month Business plan uses the configured Stripe monthly price and no longer shows a missing-provider warning when Stripe is configured.
 - Prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes.
 - Fix dataset detail and forecast actions so dataset pages use the same signed-in access rules, analysis avoids broken dataset navigation, and forecast guidance names missing data requirements.

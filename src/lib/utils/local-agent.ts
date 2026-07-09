@@ -111,6 +111,10 @@ export class LocalAgentClient implements LocalAgentAPI {
   }
 
   async startRuntime(): Promise<Response> {
+    if (process.env.NODE_ENV === 'production') {
+      return Response.json({ success: false, state: 'unsupported', message: 'Local runtime start is unavailable from production.' }, { status: 428 })
+    }
+
     return fetch(`${this.baseUrl}/start-runtime`, { method: 'POST' })
   }
 

@@ -16,7 +16,12 @@ export async function POST() {
     if (!gate.success) return gate.error
   }
 
-  const agentBase = process.env.USECLEVR_AGENT_BASE?.trim() || DEFAULT_AGENT_BASE
+  const configuredAgentBase = process.env.USECLEVR_AGENT_BASE?.trim()
+  if (process.env.NODE_ENV === "production" && !configuredAgentBase) {
+    return NextResponse.json({ success: false, state: "agent_unavailable" })
+  }
+
+  const agentBase = configuredAgentBase || DEFAULT_AGENT_BASE
   const url = `${agentBase.replace(/\/$/, '')}${INSTALL_PATH}`
 
   const controller = new AbortController()
