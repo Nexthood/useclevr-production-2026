@@ -1,3 +1,4 @@
+- fixed: route Standard, Retail, and Profitability uploads through one shared same-origin upload client and `/api/upload` contract with required `file`, `uploadMode`, and `dataset_type` fields, category-specific redirects, staged backend failures, and CSV/XLSX parser verification
 - changed: show geographic dataset analysis through a professional dark BI world map with real location detection, restrained nodes, flow lines, metric cards, hover tooltips, and a clean no-geography empty state
 - changed: keep the main Dashboard free of retail-specific reports, store dataset category metadata on upload, route Standard Upload to dataset analysis, route Profitability Upload to Accountancy, and keep Retail reports in the Retail workspace
 - changed: show a compact animated Usy multilingual badge beside the assistant header subtitle, cycling English, Deutsch, Nederlands, Español, Magyar, and Română every 2 seconds with a hover/tap tooltip about same-language replies
