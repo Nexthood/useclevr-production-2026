@@ -27,6 +27,20 @@ interface CsvRow {
   [key: string]: string | number | boolean | null
 }
 
+type UploadCSVResult = {
+  success: boolean
+  error?: string
+  datasetId?: string
+  redirectTo?: string
+  fileName?: string
+  preview?: { headers: string[]; rows: CsvRow[] }
+  profitabilityResult?: any
+  usage?: { limitReached?: boolean; analysisCount?: number; total?: number; subscriptionTier?: string }
+  step?: string
+  limitInfo?: DatasetLimitInfo
+  demoCreditsRemaining?: number
+}
+
 async function executeWithRetry<T>(
   operation: () => Promise<T>,
   operationName: string,
@@ -78,26 +92,18 @@ async function isDbAvailable(): Promise<boolean> {
 /**
  * Upload CSV file and store in database
  */
-export async function uploadCSV(formData: FormData): Promise<{
-  success: boolean
-  error?: string
-  datasetId?: string
-  redirectTo?: string
-  fileName?: string
-  preview?: { headers: string[]; rows: CsvRow[] }
-  profitabilityResult?: any
-  usage?: { limitReached?: boolean; analysisCount?: number; total?: number; subscriptionTier?: string }
-  step?: string
-  limitInfo?: DatasetLimitInfo
-  demoCreditsRemaining?: number
-}> {
+export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
   try {
+    const fail = (step: string, error: string, extra: Partial<UploadCSVResult> = {}): UploadCSVResult => ({
+      success: false as const,
+      step,
+      error,
+      ...extra,
+    })
+
     const db = getDb()
     if (!db) {
-      return {
-        success: false,
-        error: "Database is not configured. Please set DATABASE_URL and try again.",
-      }
+      return fail("database_configuration", "DB_UNAVAILABLE|Database is not configured. Please set DATABASE_URL and try again.")
     }
 
     // Check authentication
@@ -108,19 +114,13 @@ export async function uploadCSV(formData: FormData): Promise<{
     const demoSessionToken = formData.get("demoSession") as string | null
 
     if (!sessionUserId && !demoSessionToken) {
-      return {
-        success: false,
-        error: "Unauthorized|Please sign in before uploading a dataset.",
-      }
+      return fail("authentication", "Unauthorized|Please sign in before uploading a dataset.")
     }
 
     if (!sessionUserId && demoSessionToken) {
       const demoCheck = await checkDemoAccess(demoSessionToken, "upload")
       if (!demoCheck.allowed) {
-        return {
-          success: false,
-          error: `DEMO_LIMIT|${demoCheck.reason}|${demoCheck.upgradeMessage || ""}`,
-        }
+        return fail("demo_limit_check", `DEMO_LIMIT|${demoCheck.reason}|${demoCheck.upgradeMessage || ""}`)
       }
 
       const limits = getDemoLimits()
@@ -228,11 +228,7 @@ export async function uploadCSV(formData: FormData): Promise<{
     // EARLY FAIL: If DB is unavailable, return a clean structured error and stop
     const dbOk = await isDbAvailable()
     if (!dbOk) {
-      return {
-        success: false,
-        // Structured error: machine-readable code | user-facing message
-        error: "DB_UNAVAILABLE|Our database is waking up. Please retry in 15–60 seconds.",
-      }
+      return fail("database_check", "DB_UNAVAILABLE|Our database is waking up. Please retry in 15-60 seconds.")
     }
     
     let effectiveUserId = sessionUserId
@@ -248,33 +244,29 @@ export async function uploadCSV(formData: FormData): Promise<{
     }
     
     if (!effectiveUserId) {
-      return { success: false, error: "User ID not found. Please sign in again." }
+      return fail("authentication", "User ID not found. Please sign in again.")
     }
 
     const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole, sessionEmail)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
-      return {
-        success: false,
-        error: limitError,
+      return fail("dataset_limit_check", limitError, {
         limitInfo,
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
-      }
+      })
     }
 
     const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload", sessionRole, sessionEmail)
     if (!enforcementCheck.allowed) {
-      return {
-        success: false,
-        error: `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`,
+      return fail("usage_limit_check", `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`, {
         limitInfo,
         usage: { limitReached: true, analysisCount: enforcementCheck.currentUsage?.datasets ?? limitInfo.currentCount, total: enforcementCheck.currentUsage?.datasetLimit ?? limitInfo.limit, subscriptionTier: limitInfo.tier },
-      }
+      })
     }
 
     const file = formData.get("file") as File | null
     if (!file) {
-      return { success: false, error: "No file provided" }
+      return fail("file_validation", "No file provided")
     }
 
     // Validate file type (CSV or Excel)
@@ -285,29 +277,23 @@ export async function uploadCSV(formData: FormData): Promise<{
                     file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
                     file.type === "application/vnd.ms-excel"
     if (!isCsv && !isExcel) {
-      return { success: false, error: "File must be a CSV or Excel file (.csv, .xlsx, .xls)" }
+      return fail("file_validation", "File must be a CSV or Excel file (.csv, .xlsx, .xls)")
     }
 
     const maxSize = 50 * 1024 * 1024 // 50MB
     if (file.size > maxSize) {
-      return { success: false, error: "File size must be less than 50MB" }
+      return fail("file_validation", "File size must be less than 50MB")
     }
 
     const fileSizeValidation = await validateFileSize(effectiveUserId, file.size / (1024 * 1024))
     if (!fileSizeValidation.allowed) {
-      return {
-        success: false,
-        error: `FILE_SIZE_LIMIT|${fileSizeValidation.message || "File size exceeds your plan limit."}`,
-      }
+      return fail("file_validation", `FILE_SIZE_LIMIT|${fileSizeValidation.message || "File size exceeds your plan limit."}`)
     }
 
     if (isDemoUser) {
       const demoLimits = getDemoLimits()
       if (file.size > demoLimits.maxFileSizeMb * 1024 * 1024) {
-        return {
-          success: false,
-          error: `DEMO_LIMIT|Demo file size limit is ${demoLimits.maxFileSizeMb}MB. Upgrade to continue with larger files.`,
-        }
+        return fail("demo_limit_check", `DEMO_LIMIT|Demo file size limit is ${demoLimits.maxFileSizeMb}MB. Upgrade to continue with larger files.`)
       }
     }
 
@@ -317,10 +303,16 @@ export async function uploadCSV(formData: FormData): Promise<{
     // Use streaming parser to handle large files efficiently
     // For small files within limit, we still get full data
     // For files exceeding limit, we get preview rows + aggregated metrics
-    const parseResult = await parseCSVStreaming(file, rowLimit)
+    let parseResult
+    try {
+      parseResult = await parseCSVStreaming(file, rowLimit)
+    } catch (parseError) {
+      debugError("[UPLOAD] File parsing failed:", parseError)
+      return fail("file_parsing", "FILE_PROCESSING_ERROR|Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row, then try again.")
+    }
 
     if (parseResult.columns.length === 0) {
-      return { success: false, error: "File contains no data or has invalid format" }
+      return fail("file_parsing", "File contains no data or has invalid format")
     }
 
     const headers = parseResult.columns
@@ -333,29 +325,22 @@ export async function uploadCSV(formData: FormData): Promise<{
 
     const rowValidation = await validateRowCount(effectiveUserId, totalRowCount)
     if (!rowValidation.allowed) {
-      return {
-        success: false,
-        error: formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName),
+      return fail("row_limit_check", formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName), {
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
-      }
+      })
     }
 
     if (isDemoUser) {
       const demoLimits = getDemoLimits()
       if (totalRowCount > demoLimits.maxRowsPerDataset) {
-        return {
-          success: false,
-          error: `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`,
-        }
+        return fail("demo_limit_check", `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`)
       }
     }
 
     if (parseResult.exceedsLimit) {
-      return {
-        success: false,
-        error: formatRowLimitError(totalRowCount, rowLimit, limitInfo.planName),
+      return fail("row_limit_check", formatRowLimitError(totalRowCount, rowLimit, limitInfo.planName), {
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
-      }
+      })
     }
 
     // Determine storage mode:
@@ -606,7 +591,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         // Return actual error instead of masking as success
         return {
           success: false,
-          step: "profitability_analysis",
+          step: "save_dataset",
           error: isProfitabilityAnalysis
             ? "Could not save profitability analysis. Please try again."
             : "Could not save dataset. Please try again.",
@@ -618,7 +603,7 @@ export async function uploadCSV(formData: FormData): Promise<{
       debugError("[UPLOAD] Error message:", err instanceof Error ? err.message : String(err))
       
       // Return sanitized error - never expose internal details
-      return { success: false, error: "Database error: " + (err instanceof Error ? err.message : "Failed to save dataset") }
+      return fail("save_dataset", "Database error: " + (err instanceof Error ? err.message : "Failed to save dataset"))
     }
 
     // Revalidate datasets page and module pages
@@ -678,6 +663,7 @@ export async function uploadCSV(formData: FormData): Promise<{
         errorMessage.includes("ECONNREFUSED")) {
       return {
         success: false,
+        step: "database_connection",
         error: "DB_UNAVAILABLE|Database connection failed. Please try again.",
       }
     }
@@ -688,12 +674,14 @@ export async function uploadCSV(formData: FormData): Promise<{
       debugError("[UPLOAD] File processing error (internal):", errorMessage)
       return {
         success: false,
+        step: "file_parsing",
         error: "FILE_PROCESSING_ERROR|Unable to process the uploaded file. Please try again with a different file format.",
       }
     }
 
     return {
       success: false,
+      step: "upload",
       error: "Upload failed. Please try again or contact support if the problem persists.",
     }
   }
