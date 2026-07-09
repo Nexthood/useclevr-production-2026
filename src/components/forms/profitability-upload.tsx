@@ -4,12 +4,12 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 
-import { uploadCSV } from "@/app/actions/upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { useToast } from "@/hooks/use-toast"
+import { uploadDatasetFile } from "@/lib/upload/upload-client"
 import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
 import * as React from "react"
@@ -629,8 +629,6 @@ export function ProfitabilityUpload() {
     setGenerateStatus("uploading")
 
     try {
-      const formData = new FormData()
-
       const primaryFile = revenueFile || expenseFile
       if (primaryFile) {
         const headers = primaryFile.columns || []
@@ -643,57 +641,61 @@ export function ProfitabilityUpload() {
 
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const file = new File([blob], primaryFile.name, { type: 'text/csv' })
-        formData.append('file', file)
-
-        formData.append('datasetName', `Profitability - ${new Date().toLocaleDateString()}`)
-        formData.append('fileType', revenueFile && expenseFile ? 'profitability_both' : revenueFile ? 'profitability_revenue' : 'profitability_expense')
+        const extraFields: Record<string, string> = {
+          datasetName: `Profitability - ${new Date().toLocaleDateString()}`,
+          fileType: revenueFile && expenseFile ? 'profitability_both' : revenueFile ? 'profitability_revenue' : 'profitability_expense',
+          profitabilityData: JSON.stringify({
+            ...stats,
+            revenueByProduct: stats.revenueByProduct,
+            revenueByRegion: stats.revenueByRegion,
+            revenueByMonth: stats.revenueByMonth
+          }),
+        }
 
         if (revenueFile) {
-          formData.append('revenueColumns', JSON.stringify(revenueFile.columns))
-          formData.append('revenueRowCount', String(revenueFile.rowCount || 0))
+          extraFields.revenueColumns = JSON.stringify(revenueFile.columns)
+          extraFields.revenueRowCount = String(revenueFile.rowCount || 0)
         }
         if (expenseFile) {
-          formData.append('expenseColumns', JSON.stringify(expenseFile.columns))
-          formData.append('expenseRowCount', String(expenseFile.rowCount || 0))
+          extraFields.expenseColumns = JSON.stringify(expenseFile.columns)
+          extraFields.expenseRowCount = String(expenseFile.rowCount || 0)
         }
 
-        formData.append('profitabilityData', JSON.stringify({
-          ...stats,
-          revenueByProduct: stats.revenueByProduct,
-          revenueByRegion: stats.revenueByRegion,
-          revenueByMonth: stats.revenueByMonth
-        }))
-      }
+        setGenerateStatus("analyzing")
+        const result = await uploadDatasetFile({
+          file,
+          uploadMode: "profitability",
+          source: "profitability_upload",
+          extraFields,
+        })
 
-      setGenerateStatus("analyzing")
-      const result = await uploadCSV(formData)
-
-      if (result.success && result.profitabilityResult) {
-        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
-        setProfitabilityResult(result.profitabilityResult)
-        setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
-        toast({ title: "Analysis complete", description: "Opening Accountancy with your profitability analysis." })
-        if (result.redirectTo) {
+        if (result.success && result.profitabilityResult) {
+          window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+          setProfitabilityResult(result.profitabilityResult)
+          setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
+          toast({ title: "Analysis complete", description: "Opening Profitability with your analysis." })
+          if (result.redirectTo) {
+            window.location.href = result.redirectTo
+          }
+        } else if (result.success && result.redirectTo) {
+          window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+          setGenerateStatus("success")
           window.location.href = result.redirectTo
-        }
-      } else if (result.success && result.redirectTo) {
-        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
-        setGenerateStatus("success")
-        window.location.href = result.redirectTo
-      } else {
-        setGenerateStatus("failure")
-        if (result.usage?.limitReached) {
+        } else {
+          setGenerateStatus("failure")
+          if (result.usage?.limitReached) {
+            toast({
+              title: "Analyst credit limit reached",
+              description: "Subscribe to Pro or top up to upload another dataset.",
+              variant: "default",
+            })
+          }
           toast({
-            title: "Analyst credit limit reached",
-            description: "Subscribe to Pro or top up to upload another dataset.",
-            variant: "default",
+            title: "Upload failed",
+            description: result.message || result.error || "Failed to create analysis",
+            variant: "destructive",
           })
         }
-        toast({
-          title: result.step === "profitability_analysis" ? "Upload failed" : "Error",
-          description: result.error || "Failed to create analysis",
-          variant: "destructive",
-        })
       }
     } catch (error) {
       debugError("Create error:", error)

@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-09
-- **Goal**: Investigate and fix UseClevr upload flow separation for Standard, Retail, and Profitability uploads.
-- **Durable change**: The shared upload pipeline keeps Standard, Retail, and Profitability dataset categories distinct, persists complete in-limit Excel rows for Standard uploads, and returns stage-based upload errors with HTTP 503 reserved for real database unavailability.
-- **Verification**: TypeScript passes; in-memory CSV and XLSX parser smoke test passes.
+- **Goal**: Build a production-ready shared upload pipeline for Standard, Retail, and Profitability uploads.
+- **Durable change**: Standard, Retail, and Profitability upload cards use one same-origin upload client and one `/api/upload` contract requiring `file`, `uploadMode`, and `dataset_type`; the backend returns structured validation and stage-based failures, saves the correct dataset category, and keeps optional analysis from blocking dataset creation.
+- **Verification**: TypeScript passes; structured validation route smokes pass; direct auth-stage route smoke returns detailed JSON; CSV and XLSX parser smoke passes; diff whitespace check passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

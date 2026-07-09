@@ -9,6 +9,7 @@ import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
+import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileSpreadsheet, Loader2, Sparkles, Wifi, WifiOff } from "lucide-react"
 import * as React from "react"
@@ -19,26 +20,7 @@ interface _CsvRow {
   [key: string]: string | number | boolean | null | undefined
 }
 
-type UploadResponse = {
-   success?: boolean
-   error?: string
-   message?: string
-   datasetId?: string
-   redirectTo?: string
-   fileName?: string
-   usage?: {
-     limitReached?: boolean
-     analysisCount?: number
-     total?: number
-     subscriptionTier?: string
-   }
-   datasetLimit?: {
-     limitReached: boolean
-     currentCount: number
-     limit: number
-     planName: string
-   }
- }
+type UploadResponse = UploadDatasetResponse
 
 export function CsvUpload() {
    const [uploading, setUploading] = React.useState(false)
@@ -222,22 +204,14 @@ export function CsvUpload() {
       }, 200)
     }
 
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("fileType", "standard")
-
     try {
       debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const result = (await response.json()) as UploadResponse
+      const result = await uploadDatasetFile({ file, uploadMode: "standard", source: "standard_upload" }) as UploadResponse
       debugLog('[CSV-UPLOAD] Result:', result)
       
       if (progressInterval) clearInterval(progressInterval)
 
-      if (response.ok && result.success) {
+      if (result.ok && result.success) {
         debugLog('[CSV-UPLOAD] Success! Redirecting to:', result.redirectTo)
         setUploadProgress(100)
         setUploadStatus("success")

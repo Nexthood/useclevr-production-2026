@@ -486,7 +486,8 @@ Text rules for this file:
 - Open the Hybrid AI popup from the dashboard topbar.
 - Show Pro and Business plan options to free users inside the Hybrid AI popup.
 - Show Windows, macOS, and Linux UseClevr Helper download cards with platform-specific installer names marked coming soon until signed binaries exist.
-- Use UseClevr Helper on localhost port 14567 for health, status, and private-analysis chat checks.
+- Use UseClevr Helper localhost health, status, and private-analysis chat checks only in local development sessions.
+- Keep production browser health checks same-origin and report UseClevr Helper as unavailable without calling localhost.
 - Expose Hybrid AI module feature flags from the UseClevr Helper status response.
 - Unlock Hybrid AI Lite and Hybrid AI MEGA modules in the web app from the authenticated subscription, using one shared helper installation.
 - Include Hybrid AI Modal, Private Chat, CSV/Excel Analysis, Dashboard Insights, AI Provider Management, Provider Health Checks, Auto Mode, Local Mode, Cloud Mode, AI Assistant integration, and Dataset-aware chat in Hybrid AI Lite.

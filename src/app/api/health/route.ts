@@ -1,90 +1,29 @@
-import { sql } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getAppHealth } from "@/lib/health/app-health"
+import { NextResponse } from "next/server"
 
 export async function GET() {
-  const db = getDb();
-
-  if (!db) {
-    return NextResponse.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      mode: 'cloud',
-      database: 'unavailable',
-    });
-  }
-
-  try {
-    await db.execute(sql`SELECT 1`);
-  } catch {
-    return NextResponse.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      mode: 'cloud',
-      database: 'degraded',
-    });
-  }
-
-  return NextResponse.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    mode: 'cloud',
-    database: 'ready',
-  });
+  return NextResponse.json(await getAppHealth())
 }
 
 export async function HEAD() {
-  const db = getDb();
-
-  if (!db) {
-    return new Response(null, { status: 200 });
-  }
-
-  try {
-    await db.execute(sql`SELECT 1`);
-  } catch {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'x-useclevr-database': 'degraded',
-      },
-    });
-  }
-
+  const health = await getAppHealth()
   return new Response(null, {
     status: 200,
     headers: {
-      'x-useclevr-database': 'ready',
+      "x-useclevr-app": health.app,
+      "x-useclevr-database": health.database,
+      "x-useclevr-helper": health.helper,
     },
-  });
+  })
 }
 
 export async function POST() {
-  const db = getDb();
+  const health = await getAppHealth()
+  const ready = health.database === "healthy"
 
-  if (!db) {
-    return NextResponse.json({
-      status: 'not-ready',
-      timestamp: new Date().toISOString(),
-      mode: 'cloud',
-      database: 'unavailable',
-    }, { status: 503 });
-  }
-
-  try {
-    await db.execute(sql`SELECT 1`);
-    return NextResponse.json({
-      status: 'ready',
-      timestamp: new Date().toISOString(),
-      mode: 'cloud',
-      database: 'ready',
-    });
-  } catch {
-    return NextResponse.json({
-      status: 'not-ready',
-      timestamp: new Date().toISOString(),
-      mode: 'cloud',
-      database: 'degraded',
-    }, { status: 503 });
-  }
+  return NextResponse.json({
+    ...health,
+    ok: ready,
+    status: ready ? "ready" : "not-ready",
+  }, { status: ready ? 200 : 503 })
 }

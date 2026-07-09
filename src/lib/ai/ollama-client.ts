@@ -22,7 +22,12 @@ export interface OllamaGenerateRequest {
 }
 
 export function getOllamaBaseUrl(): string {
-  return (process.env.OLLAMA_BASE_URL?.trim() || DEFAULT_OLLAMA_BASE).replace(/\/$/, "")
+  const configuredBaseUrl = process.env.OLLAMA_BASE_URL?.trim()
+  if (process.env.NODE_ENV === "production" && !configuredBaseUrl) {
+    throw new Error("Local AI runtime is unavailable in production without OLLAMA_BASE_URL.")
+  }
+
+  return (configuredBaseUrl || DEFAULT_OLLAMA_BASE).replace(/\/$/, "")
 }
 
 export async function fetchOllamaModels(options: { signal?: AbortSignal } = {}): Promise<OllamaModel[]> {

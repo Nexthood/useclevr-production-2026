@@ -12,6 +12,21 @@ const DEFAULT_HELPER_FEATURES = HYBRID_AI_MODULES.reduce((features, module) => {
   return features
 }, {} as UseClevrHelperFeatures)
 
+const OFFLINE_HELPER_STATUS: UseClevrHelperStatus = {
+  state: "offline",
+  message: "UseClevr Helper is not running",
+  connected: false,
+  privateEngineReady: false,
+  features: DEFAULT_HELPER_FEATURES,
+}
+
+function canCallLocalHelper() {
+  if (typeof window === "undefined") return process.env.NODE_ENV !== "production"
+  const hostname = window.location.hostname
+  const isLocalAppHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
+  return process.env.NODE_ENV !== "production" && isLocalAppHost
+}
+
 export type UseClevrHelperStatus =
   | {
       state: "connected"
@@ -47,6 +62,10 @@ function parseHelperFeatures(body: unknown): UseClevrHelperFeatures {
 }
 
 export async function getUseClevrHelperStatus(): Promise<UseClevrHelperStatus> {
+  if (!canCallLocalHelper()) {
+    return OFFLINE_HELPER_STATUS
+  }
+
   try {
     const health = await fetch(`${USECLEVR_HELPER_BASE_URL}/health`, {
       method: "GET",
@@ -82,17 +101,15 @@ export async function getUseClevrHelperStatus(): Promise<UseClevrHelperStatus> {
       features,
     }
   } catch {
-    return {
-      state: "offline",
-      message: "UseClevr Helper is not running",
-      connected: false,
-      privateEngineReady: false,
-      features: DEFAULT_HELPER_FEATURES,
-    }
+    return OFFLINE_HELPER_STATUS
   }
 }
 
 export async function askUseClevrHelper(message: string, datasetContext?: object) {
+  if (!canCallLocalHelper()) {
+    throw new Error("helper_unavailable_in_production")
+  }
+
   const response = await fetch(`${USECLEVR_HELPER_BASE_URL}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

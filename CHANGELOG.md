@@ -67,6 +67,10 @@
 
 ### Fixed
 
+- Route Standard, Retail, and Profitability uploads through one shared upload contract so CSV and Excel uploads save the correct dataset category, redirect to the right workspace, and show exact stage-based failures instead of vague bad-request or unavailable errors.
+- Show exact missing upload fields when dataset upload validation fails so Standard Upload no longer returns an unexplained bad request.
+- Let Standard Upload try the same dataset creation flow as Retail Upload instead of stopping at a separate database availability check.
+- Prevent production upload pages from calling localhost helper health checks so standard dataset uploads continue when optional Hybrid AI is offline.
 - Fix Business checkout payment readiness so the €420/month Business plan uses the configured Stripe monthly price and no longer shows a missing-provider warning when Stripe is configured.
 - Prevent Downloads upgrade prompts and cards from rendering before usage, plan, and role state resolves so admin and superadmin sessions do not see Free-plan upgrade flashes.
 - Fix dataset detail and forecast actions so dataset pages use the same signed-in access rules, analysis avoids broken dataset navigation, and forecast guidance names missing data requirements.

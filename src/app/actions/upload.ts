@@ -11,7 +11,7 @@ import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine"
-import { getDatasetCategoryFromUpload, getDatasetCategoryRedirect } from "@/lib/data/dataset-category"
+import { getDatasetCategoryFromUpload, getDatasetCategoryRedirect, getUploadCategoryCandidate } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { formatRowLimitError } from "@/lib/usage/analyst-credits"
@@ -41,6 +41,18 @@ type UploadCSVResult = {
   demoCreditsRemaining?: number
 }
 
+const UPLOAD_STAGES = {
+  AUTH_CHECKED: "auth_checked",
+  FORMDATA_VALIDATED: "formdata_validated",
+  FILE_VALIDATED: "file_validated",
+  FILE_PARSED: "file_parsed",
+  DATASET_CREATED: "dataset_created",
+  ROWS_PROCESSED: "rows_processed",
+  ANALYSIS_CREATED_OR_QUEUED: "analysis_created_or_queued",
+  CREDITS_DEDUCTED: "credits_deducted",
+  REQUEST_RECEIVED: "request_received",
+} as const
+
 async function executeWithRetry<T>(
   operation: () => Promise<T>,
   operationName: string,
@@ -69,24 +81,9 @@ async function executeWithRetry<T>(
   throw new Error(`${operationName} failed after ${maxRetries} attempts`)
 }
 
-// Minimal DB availability probe to avoid broken downstream logic
-async function isDbAvailable(): Promise<boolean> {
-  const db = getDb()
-  if (!db) {
-    debugError("[UPLOAD] DB health check failed: database client is not configured")
-    return false
-  }
-
-  try {
-    // Perform a trivial query; any driver-level failure (e.g., Neon cold start/fetch failed)
-    // will throw here and we can fail early before demo-user/database operations.
-    await db.query.datasets.findFirst()
-    return true
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    debugError("[UPLOAD] DB health check failed:", msg)
-    return false
-  }
+function isDatabaseConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return /can't reach database|connection|connect|econnrefused|etimedout|timeout|fetch failed|socket|neon/i.test(message)
 }
 
 /**
@@ -103,24 +100,32 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const db = getDb()
     if (!db) {
-      return fail("database_configuration", "DB_UNAVAILABLE|Database is not configured. Please set DATABASE_URL and try again.")
+      return fail(UPLOAD_STAGES.DATASET_CREATED, "DB_UNAVAILABLE|Database is not configured. Please set DATABASE_URL and try again.")
     }
 
     // Check authentication
-    const session = await auth()
+    let session
+    try {
+      session = await auth()
+    } catch (authError) {
+      return fail(
+        UPLOAD_STAGES.AUTH_CHECKED,
+        `AUTH_CHECK_FAILED|${authError instanceof Error ? authError.message : "Unable to check your session."}`,
+      )
+    }
     const sessionUserId = session?.user?.id
     const sessionRole = session?.user?.role
     const sessionEmail = session?.user?.email
     const demoSessionToken = formData.get("demoSession") as string | null
 
     if (!sessionUserId && !demoSessionToken) {
-      return fail("authentication", "Unauthorized|Please sign in before uploading a dataset.")
+      return fail(UPLOAD_STAGES.AUTH_CHECKED, "Unauthorized|Please sign in before uploading a dataset.")
     }
 
     if (!sessionUserId && demoSessionToken) {
       const demoCheck = await checkDemoAccess(demoSessionToken, "upload")
       if (!demoCheck.allowed) {
-        return fail("demo_limit_check", `DEMO_LIMIT|${demoCheck.reason}|${demoCheck.upgradeMessage || ""}`)
+        return fail(UPLOAD_STAGES.CREDITS_DEDUCTED, `DEMO_LIMIT|${demoCheck.reason}|${demoCheck.upgradeMessage || ""}`)
       }
 
       const limits = getDemoLimits()
@@ -142,10 +147,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     debugLog("[UPLOAD] sessionUserId:", sessionUserId)
     debugLog("[UPLOAD] ======================================")
     
-    // Check if this is a profitability analysis upload (by checking for fileType)
-    const fileType = formData.get('fileType') as string
+    const fileType = getUploadCategoryCandidate(formData)
     const uploadCategory = getDatasetCategoryFromUpload(fileType)
-    const isProfitabilityUpload = fileType?.startsWith('profitability_') || fileType?.includes('profitability')
+    const isProfitabilityUpload = uploadCategory === "profitability"
     debugLog("[UPLOAD] fileType:", fileType)
     debugLog("[UPLOAD] dataset category:", uploadCategory)
     debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload)
@@ -225,12 +229,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     // Even in demo mode, standard uploads should create actual dataset records
     debugLog("[UPLOAD] Standard upload mode - proceeding with database insert")
     
-    // EARLY FAIL: If DB is unavailable, return a clean structured error and stop
-    const dbOk = await isDbAvailable()
-    if (!dbOk) {
-      return fail("database_check", "DB_UNAVAILABLE|Our database is waking up. Please retry in 15-60 seconds.")
-    }
-    
     let effectiveUserId = sessionUserId
     debugLog("[UPLOAD] Authenticated user:", effectiveUserId)
 
@@ -244,13 +242,13 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     }
     
     if (!effectiveUserId) {
-      return fail("authentication", "User ID not found. Please sign in again.")
+      return fail(UPLOAD_STAGES.AUTH_CHECKED, "User ID not found. Please sign in again.")
     }
 
     const limitInfo = await getDatasetLimitInfo(effectiveUserId, sessionRole, sessionEmail)
     const limitError = getDatasetLimitError(limitInfo)
     if (limitError) {
-      return fail("dataset_limit_check", limitError, {
+      return fail(UPLOAD_STAGES.FORMDATA_VALIDATED, limitError, {
         limitInfo,
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
       })
@@ -258,7 +256,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload", sessionRole, sessionEmail)
     if (!enforcementCheck.allowed) {
-      return fail("usage_limit_check", `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`, {
+      return fail(UPLOAD_STAGES.CREDITS_DEDUCTED, `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`, {
         limitInfo,
         usage: { limitReached: true, analysisCount: enforcementCheck.currentUsage?.datasets ?? limitInfo.currentCount, total: enforcementCheck.currentUsage?.datasetLimit ?? limitInfo.limit, subscriptionTier: limitInfo.tier },
       })
@@ -266,7 +264,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const file = formData.get("file") as File | null
     if (!file) {
-      return fail("file_validation", "No file provided")
+      return fail(UPLOAD_STAGES.FILE_VALIDATED, "No file provided")
     }
 
     // Validate file type (CSV or Excel)
@@ -277,23 +275,23 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
                     file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
                     file.type === "application/vnd.ms-excel"
     if (!isCsv && !isExcel) {
-      return fail("file_validation", "File must be a CSV or Excel file (.csv, .xlsx, .xls)")
+      return fail(UPLOAD_STAGES.FILE_VALIDATED, "File must be a CSV or Excel file (.csv, .xlsx, .xls)")
     }
 
     const maxSize = 50 * 1024 * 1024 // 50MB
     if (file.size > maxSize) {
-      return fail("file_validation", "File size must be less than 50MB")
+      return fail(UPLOAD_STAGES.FILE_VALIDATED, "File size must be less than 50MB")
     }
 
     const fileSizeValidation = await validateFileSize(effectiveUserId, file.size / (1024 * 1024))
     if (!fileSizeValidation.allowed) {
-      return fail("file_validation", `FILE_SIZE_LIMIT|${fileSizeValidation.message || "File size exceeds your plan limit."}`)
+      return fail(UPLOAD_STAGES.FILE_VALIDATED, `FILE_SIZE_LIMIT|${fileSizeValidation.message || "File size exceeds your plan limit."}`)
     }
 
     if (isDemoUser) {
       const demoLimits = getDemoLimits()
       if (file.size > demoLimits.maxFileSizeMb * 1024 * 1024) {
-        return fail("demo_limit_check", `DEMO_LIMIT|Demo file size limit is ${demoLimits.maxFileSizeMb}MB. Upgrade to continue with larger files.`)
+        return fail(UPLOAD_STAGES.FILE_VALIDATED, `DEMO_LIMIT|Demo file size limit is ${demoLimits.maxFileSizeMb}MB. Upgrade to continue with larger files.`)
       }
     }
 
@@ -308,11 +306,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       parseResult = await parseCSVStreaming(file, rowLimit)
     } catch (parseError) {
       debugError("[UPLOAD] File parsing failed:", parseError)
-      return fail("file_parsing", "FILE_PROCESSING_ERROR|Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row, then try again.")
+      return fail(UPLOAD_STAGES.FILE_PARSED, "FILE_PROCESSING_ERROR|Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row, then try again.")
     }
 
     if (parseResult.columns.length === 0) {
-      return fail("file_parsing", "File contains no data or has invalid format")
+      return fail(UPLOAD_STAGES.FILE_PARSED, "File contains no data or has invalid format")
     }
 
     const headers = parseResult.columns
@@ -325,7 +323,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const rowValidation = await validateRowCount(effectiveUserId, totalRowCount)
     if (!rowValidation.allowed) {
-      return fail("row_limit_check", formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName), {
+      return fail(UPLOAD_STAGES.ROWS_PROCESSED, formatRowLimitError(totalRowCount, rowValidation.limit, limitInfo.planName), {
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
       })
     }
@@ -333,12 +331,12 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     if (isDemoUser) {
       const demoLimits = getDemoLimits()
       if (totalRowCount > demoLimits.maxRowsPerDataset) {
-        return fail("demo_limit_check", `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`)
+        return fail(UPLOAD_STAGES.ROWS_PROCESSED, `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`)
       }
     }
 
     if (parseResult.exceedsLimit) {
-      return fail("row_limit_check", formatRowLimitError(totalRowCount, rowLimit, limitInfo.planName), {
+      return fail(UPLOAD_STAGES.ROWS_PROCESSED, formatRowLimitError(totalRowCount, rowLimit, limitInfo.planName), {
         usage: { limitReached: true, analysisCount: limitInfo.currentCount, total: limitInfo.limit, subscriptionTier: limitInfo.tier },
       })
     }
@@ -511,9 +509,22 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         if (isProfitabilityAnalysis) {
           debugLog("[UPLOAD] result saved:", datasetId)
         }
+      } catch (insertErr) {
+        debugError("[UPLOAD] DATASET INSERT FAILED:", insertErr)
+        debugError("[UPLOAD] DATASET INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
+        return fail(
+          UPLOAD_STAGES.DATASET_CREATED,
+          isDatabaseConnectionError(insertErr)
+            ? "DB_UNAVAILABLE|Database connection failed while saving the dataset. Please try again."
+            : isProfitabilityAnalysis
+              ? "DATABASE_INSERT_ERROR|Could not save profitability analysis. Please try again."
+              : "DATABASE_INSERT_ERROR|Could not save dataset. Please try again.",
+        )
+      }
 
-        // Also write rows to datasetRows so the detail page can paginate them
-        // Skip this for streaming mode (preview rows stored in dataset.data) and profitability
+      // Also write rows to datasetRows so the detail page can paginate them
+      // Skip this for streaming mode (preview rows stored in dataset.data) and profitability
+      try {
         if (!isProfitabilityAnalysis && !useStreamingStorage && allRows.length > 0) {
           const BATCH_SIZE = 100
           for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
@@ -533,7 +544,18 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         } else if (useStreamingStorage) {
           debugLog("[UPLOAD] Streaming mode - preview rows stored in dataset.data, skipping datasetRows")
         }
+      } catch (rowErr) {
+        debugError("[UPLOAD] ROW INSERT FAILED:", rowErr)
+        debugError("[UPLOAD] ROW INSERT ERROR:", rowErr instanceof Error ? rowErr.message : String(rowErr))
+        return fail(
+          UPLOAD_STAGES.ROWS_PROCESSED,
+          isDatabaseConnectionError(rowErr)
+            ? "DB_UNAVAILABLE|Database connection failed while processing dataset rows. Please try again."
+            : "DATABASE_INSERT_ERROR|Could not process dataset rows. Please try again.",
+        )
+      }
 
+      try {
         const rowsForBusinessIntelligence = (isProfitabilityAnalysis ? previewRows : useStreamingStorage ? previewRows : allRows) as Record<string, unknown>[]
         if (rowsForBusinessIntelligence.length > 0) {
           try {
@@ -585,17 +607,14 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
             ).catch(() => {})
           }
         }
-      } catch (insertErr) {
-        debugError("[UPLOAD] INSERT FAILED:", insertErr)
-        debugError("[UPLOAD] INSERT ERROR:", insertErr instanceof Error ? insertErr.message : String(insertErr))
-        // Return actual error instead of masking as success
-        return {
-          success: false,
-          step: "save_dataset",
-          error: isProfitabilityAnalysis
-            ? "Could not save profitability analysis. Please try again."
-            : "Could not save dataset. Please try again.",
-        }
+      } catch (analysisErr) {
+        debugError("[UPLOAD] ANALYSIS STATUS UPDATE FAILED:", analysisErr)
+        return fail(
+          UPLOAD_STAGES.ANALYSIS_CREATED_OR_QUEUED,
+          isDatabaseConnectionError(analysisErr)
+            ? "DB_UNAVAILABLE|Database connection failed while queueing analysis. Please try again."
+            : "DATABASE_INSERT_ERROR|Could not queue dataset analysis. Please try again.",
+        )
       }
     } catch (err) {
       debugError("[UPLOAD] Database error:", err)
@@ -603,7 +622,12 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       debugError("[UPLOAD] Error message:", err instanceof Error ? err.message : String(err))
       
       // Return sanitized error - never expose internal details
-      return fail("save_dataset", "Database error: " + (err instanceof Error ? err.message : "Failed to save dataset"))
+      return fail(
+        UPLOAD_STAGES.DATASET_CREATED,
+        isDatabaseConnectionError(err)
+          ? "DB_UNAVAILABLE|Database connection failed while creating the dataset. Please try again."
+          : "DATASET_CREATE_ERROR|Could not create the dataset. Please try again.",
+      )
     }
 
     // Revalidate datasets page and module pages
@@ -663,7 +687,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         errorMessage.includes("ECONNREFUSED")) {
       return {
         success: false,
-        step: "database_connection",
+        step: UPLOAD_STAGES.DATASET_CREATED,
         error: "DB_UNAVAILABLE|Database connection failed. Please try again.",
       }
     }
@@ -674,15 +698,15 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       debugError("[UPLOAD] File processing error (internal):", errorMessage)
       return {
         success: false,
-        step: "file_parsing",
+        step: UPLOAD_STAGES.FILE_PARSED,
         error: "FILE_PROCESSING_ERROR|Unable to process the uploaded file. Please try again with a different file format.",
       }
     }
 
     return {
       success: false,
-      step: "upload",
-      error: "Upload failed. Please try again or contact support if the problem persists.",
+      step: UPLOAD_STAGES.REQUEST_RECEIVED,
+      error: `UNEXPECTED_UPLOAD_ERROR|${errorMessage}`,
     }
   }
 }

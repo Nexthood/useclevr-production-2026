@@ -1,5 +1,18 @@
 export type DatasetCategory = "standard" | "retail" | "accountancy" | "profitability" | "prebookkeeping"
 
+export const allowedUploadDatasetCategories = ["standard", "retail", "profitability", "accountancy", "prebookkeeping"] as const
+
+export function getUploadCategoryCandidate(formData: FormData): string {
+  const candidate =
+    formData.get("dataset_type") ||
+    formData.get("datasetType") ||
+    formData.get("uploadMode") ||
+    formData.get("analysisType") ||
+    formData.get("fileType")
+
+  return typeof candidate === "string" ? candidate : ""
+}
+
 export function getDatasetCategoryFromUpload(fileType?: string | null): DatasetCategory {
   const normalized = (fileType || "").toLowerCase()
 

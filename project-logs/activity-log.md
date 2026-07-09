@@ -1,3 +1,4 @@
+- fixed: route Standard, Retail, and Profitability uploads through one shared same-origin upload client and `/api/upload` contract with required `file`, `uploadMode`, and `dataset_type` fields, category-specific redirects, staged backend failures, and CSV/XLSX parser verification
 - changed: show geographic dataset analysis through a professional dark BI world map with real location detection, restrained nodes, flow lines, metric cards, hover tooltips, and a clean no-geography empty state
 - changed: keep the main Dashboard free of retail-specific reports, store dataset category metadata on upload, route Standard Upload to dataset analysis, route Profitability Upload to Accountancy, and keep Retail reports in the Retail workspace
 - changed: show a compact animated Usy multilingual badge beside the assistant header subtitle, cycling English, Deutsch, Nederlands, Español, Magyar, and Română every 2 seconds with a hover/tap tooltip about same-language replies
@@ -8,6 +9,9 @@
 - fixed: show sidebar Analyst Credits from current dataset usage for limited accounts and refresh the sidebar after dataset upload or deletion
 - changed: show the current UseClevr logo as the browser tab favicon from the single 6.svg asset
 - fixed: show completed Business, Accountancy, and Retail sidebar badges from the latest saved Business Profile status and refresh sidebar readiness after profile saves
+- fixed: add explicit Standard and Retail upload metadata, accept upload category aliases on `/api/upload`, and return structured validation JSON with missing and received fields for bad upload requests
+- fixed: remove the blocking Standard Upload database availability precheck so Standard, Retail, and Profitability uploads share the same dataset creation path and report actual parse, insert, create, or analysis stages
+- fixed: prevent production browser and optional local-AI status paths from probing localhost by routing app health through same-origin `/health`, reporting helper status separately, and guarding local runtime defaults behind development or explicit server configuration
 - fixed: route Standard, Retail, and Profitability uploads through the shared upload pipeline with explicit dataset categories, full in-limit Excel row persistence, stage-based upload errors, and HTTP 503 reserved for real database unavailability
 - changed: add a global dark glassmorphism cookie consent banner with Accept all, Essential only, and Manage preferences actions, plus reusable consent helpers for analytics and product-improvement cookie checks
 - changed: remove app zoom controls, reset saved zoom preferences, and keep the Usy assistant panel constrained inside the viewport with an always-visible close button

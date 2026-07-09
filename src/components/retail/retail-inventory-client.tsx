@@ -13,6 +13,7 @@ import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { StatCard } from "@/components/ui/stat-card"
 import { useToast } from "@/hooks/use-toast"
 import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
+import { uploadDatasetFile } from "@/lib/upload/upload-client"
 import { debugError } from "@/lib/utils/debug"
 
 type PageState = "idle" | "parsing" | "uploading" | "analyzing" | "complete" | "error"
@@ -455,18 +456,14 @@ export function RetailInventoryClient() {
         uploadFile = originalFile
       }
 
-      const formData = new FormData()
-      formData.append("file", uploadFile)
-      formData.append("fileType", "retail")
+      const result = await uploadDatasetFile({ file: uploadFile, uploadMode: "retail", source: "retail_upload" })
 
-      const response = await fetch("/api/upload", { method: "POST", body: formData })
-      const result = await response.json()
-
-      if (!response.ok || !result.success) {
-        debugError("Upload failed:", result.error)
+      if (!result.ok || !result.success) {
+        const uploadMessage = result.message || result.error || "Retail upload did not create a dataset."
+        debugError("Upload failed:", uploadMessage)
         toast({
           title: "Upload warning",
-          description: "Analysis will use in-memory data only",
+          description: uploadMessage,
           variant: "default",
         })
         startAnalysis(null, data)
@@ -474,7 +471,7 @@ export function RetailInventoryClient() {
       }
 
       setProcessingStep(4)
-      setTimeout(() => startAnalysis(result.datasetId, data), 300)
+      setTimeout(() => startAnalysis(result.datasetId || null, data), 300)
     } catch (err) {
       debugError("Upload error:", err)
       toast({
