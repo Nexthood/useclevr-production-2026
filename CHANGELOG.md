@@ -67,6 +67,7 @@
 
 ### Fixed
 
+- Keep Standard Upload independent from daily AI request counting so dataset creation continues when AI usage tracking is unavailable and upload errors no longer expose database query details.
 - Route Standard, Retail, and Profitability uploads through one shared upload contract so CSV and Excel uploads save the correct dataset category, redirect to the right workspace, and show exact stage-based failures instead of vague bad-request or unavailable errors.
 - Show exact missing upload fields when dataset upload validation fails so Standard Upload no longer returns an unexplained bad request.
 - Let Standard Upload try the same dataset creation flow as Retail Upload instead of stopping at a separate database availability check.

@@ -50,6 +50,7 @@ const UPLOAD_STAGES = {
   ROWS_PROCESSED: "rows_processed",
   ANALYSIS_CREATED_OR_QUEUED: "analysis_created_or_queued",
   CREDITS_DEDUCTED: "credits_deducted",
+  USAGE_LIMIT_CHECK: "usage_limit_check",
   REQUEST_RECEIVED: "request_received",
 } as const
 
@@ -256,7 +257,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const enforcementCheck = await checkActionEnforcement(effectiveUserId, "file_upload", sessionRole, sessionEmail)
     if (!enforcementCheck.allowed) {
-      return fail(UPLOAD_STAGES.CREDITS_DEDUCTED, `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`, {
+      return fail(UPLOAD_STAGES.USAGE_LIMIT_CHECK, `USAGE_LIMIT_REACHED|${enforcementCheck.upgradeMessage || enforcementCheck.reason || "Your plan has reached a usage limit."}`, {
         limitInfo,
         usage: { limitReached: true, analysisCount: enforcementCheck.currentUsage?.datasets ?? limitInfo.currentCount, total: enforcementCheck.currentUsage?.datasetLimit ?? limitInfo.limit, subscriptionTier: limitInfo.tier },
       })
@@ -706,7 +707,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     return {
       success: false,
       step: UPLOAD_STAGES.REQUEST_RECEIVED,
-      error: `UNEXPECTED_UPLOAD_ERROR|${errorMessage}`,
+      error: `UNEXPECTED_UPLOAD_ERROR|Unexpected upload failure. Check server logs for the detailed error.`,
     }
   }
 }

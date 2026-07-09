@@ -18,6 +18,7 @@ const stageLabels: Record<string, string> = {
   rows_processed: "processing dataset rows",
   analysis_created_or_queued: "queueing analysis",
   credits_deducted: "deducting credits",
+  usage_limit_check: "checking upload limits",
   response_sent: "sending the response",
 }
 
