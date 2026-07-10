@@ -9,7 +9,7 @@ import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
-import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
+import type { UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileSpreadsheet, Loader2, Sparkles, Wifi, WifiOff } from "lucide-react"
 import * as React from "react"
@@ -21,6 +21,30 @@ interface _CsvRow {
 }
 
 type UploadResponse = UploadDatasetResponse
+
+async function uploadStandardDatasetSimple(file: File): Promise<UploadResponse> {
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("dataset_type", "standard")
+
+  const response = await fetch("/api/upload/simple", {
+    method: "POST",
+    body: formData,
+  })
+
+  const result = (await response.json().catch(() => ({
+    ok: false,
+    success: false,
+    stage: "response_sent",
+    message: "Upload response could not be read.",
+  }))) as UploadResponse
+
+  return {
+    ...result,
+    ok: response.ok && (result.ok ?? result.success ?? false),
+    success: response.ok && (result.success ?? result.ok ?? false),
+  }
+}
 
 export function CsvUpload() {
    const [uploading, setUploading] = React.useState(false)
@@ -206,7 +230,7 @@ export function CsvUpload() {
 
     try {
       debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)
-      const result = await uploadDatasetFile({ file, uploadMode: "standard", source: "standard_upload" }) as UploadResponse
+      const result = await uploadStandardDatasetSimple(file)
       debugLog('[CSV-UPLOAD] Result:', result)
       
       if (progressInterval) clearInterval(progressInterval)
@@ -227,11 +251,17 @@ export function CsvUpload() {
           showNotice({
             type: "success",
             title: "Dataset uploaded successfully.",
-            message: "Dashboard updated with your latest insights.",
+            message: result.message || "Dataset uploaded successfully. AI analysis can be started separately.",
+          })
+        } else {
+          showNotice({
+            type: "success",
+            title: "Dataset uploaded successfully.",
+            message: result.message || "Dataset uploaded successfully. AI analysis can be started separately.",
           })
         }
         setTimeout(() => {
-          const redirectPath = result.redirectTo || `/app?datasetId=${result.datasetId}`
+          const redirectPath = result.redirectTo || "/app/datasets"
           debugLog('[CSV-UPLOAD] Navigating to:', redirectPath)
           window.location.href = redirectPath
         }, 2000)
