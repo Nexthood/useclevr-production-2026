@@ -18,6 +18,7 @@ const stageLabels: Record<string, string> = {
   rows_processed: "processing dataset rows",
   analysis_created_or_queued: "queueing analysis",
   credits_deducted: "deducting credits",
+  usage_limit_check: "checking upload limits",
   response_sent: "sending the response",
 }
 
@@ -136,6 +137,8 @@ export async function POST(request: Request) {
       let userMessage = structuredMessage || result.error || "Upload failed"
       if (unauthorized) {
         userMessage = structuredMessage || "Please sign in to upload files."
+      } else if (authCheckFailed) {
+        userMessage = "Unable to check your session. Please refresh and sign in again."
       } else if (databaseUnavailable) {
         userMessage = structuredMessage || "Database is temporarily unavailable. Please try again."
       } else if (rowLimitExceeded) {
@@ -176,21 +179,21 @@ export async function POST(request: Request) {
         missingFields: [],
         receivedFields,
         usage: result.usage,
-        datasetLimit: limitReached ? result.limitInfo : undefined,
       }, { status })
     }
 
     return NextResponse.json({ ok: true, stage: "response_sent", ...result })
   } catch (error) {
     console.error("[UPLOAD] Unexpected error:", error)
-    const message = error instanceof Error ? error.message : "Unexpected upload failure."
+    const details = process.env.NODE_ENV === "development" && error instanceof Error ? error.message : undefined
     return NextResponse.json({
       ok: false,
       success: false,
       stage: "request_received",
       step: "request_received",
-      error: `Upload failed while ${stageLabels.request_received}: ${message}`,
-      message: `Upload failed while ${stageLabels.request_received}: ${message}`,
+      error: `Upload failed while ${stageLabels.request_received}: Unexpected upload failure.`,
+      message: `Upload failed while ${stageLabels.request_received}: Unexpected upload failure.`,
+      details,
       retryable: false,
     }, { status: 500 })
   }

@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db"
+import { debugError } from "@/lib/utils/debug"
 import {
   aiCostLogs,
   dailyAiRequestCounts,
@@ -57,17 +58,22 @@ export async function getDailyRequestCount(userId: string): Promise<DailyRequest
     return { userId, date: today, requestCount: 0 }
   }
 
-  const existing = await db.query.dailyAiRequestCounts.findFirst({
-    where: and(
-      eq(dailyAiRequestCounts.userId, userId),
-      eq(dailyAiRequestCounts.date, today)
-    ),
-  })
+  try {
+    const existing = await db.query.dailyAiRequestCounts.findFirst({
+      where: and(
+        eq(dailyAiRequestCounts.userId, userId),
+        eq(dailyAiRequestCounts.date, today)
+      ),
+    })
 
-  return {
-    userId,
-    date: today,
-    requestCount: existing?.requestCount || 0,
+    return {
+      userId,
+      date: today,
+      requestCount: existing?.requestCount || 0,
+    }
+  } catch (error) {
+    debugError("[USAGE] Daily AI request count lookup failed:", error)
+    return { userId, date: today, requestCount: 0 }
   }
 }
 
@@ -81,30 +87,35 @@ export async function incrementDailyRequestCount(userId: string): Promise<number
     return 999999
   }
 
-  const existing = await db.query.dailyAiRequestCounts.findFirst({
-    where: and(
-      eq(dailyAiRequestCounts.userId, userId),
-      eq(dailyAiRequestCounts.date, today)
-    ),
-  })
+  try {
+    const existing = await db.query.dailyAiRequestCounts.findFirst({
+      where: and(
+        eq(dailyAiRequestCounts.userId, userId),
+        eq(dailyAiRequestCounts.date, today)
+      ),
+    })
 
-  if (existing) {
-    const newCount = existing.requestCount + 1
-    await db
-      .update(dailyAiRequestCounts)
-      .set({ requestCount: newCount, updatedAt: new Date() })
-      .where(eq(dailyAiRequestCounts.id, existing.id))
-    return newCount
+    if (existing) {
+      const newCount = existing.requestCount + 1
+      await db
+        .update(dailyAiRequestCounts)
+        .set({ requestCount: newCount, updatedAt: new Date() })
+        .where(eq(dailyAiRequestCounts.id, existing.id))
+      return newCount
+    }
+
+    const id = `drc_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
+    await db.insert(dailyAiRequestCounts).values({
+      id,
+      userId,
+      date: today,
+      requestCount: 1,
+    })
+    return 1
+  } catch (error) {
+    debugError("[USAGE] Daily AI request count increment failed:", error)
+    return 0
   }
-
-  const id = `drc_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
-  await db.insert(dailyAiRequestCounts).values({
-    id,
-    userId,
-    date: today,
-    requestCount: 1,
-  })
-  return 1
 }
 
 export async function getConcurrentAnalysisCount(userId: string): Promise<number> {
@@ -212,6 +223,42 @@ export async function checkActionEnforcement(
 
   const tier = profile?.subscriptionTier || "free"
 
+  if (action === "file_upload") {
+    const [{ count: datasetCount }] = await db
+      .select({ count: count() })
+      .from(datasets)
+      .where(eq(datasets.userId, userId))
+    const datasetLimit = getDatasetLimitForTier(tier)
+
+    if (datasetCount >= datasetLimit) {
+      return {
+        allowed: false,
+        reason: `Dataset limit reached (${datasetCount}/${datasetLimit})`,
+        upgradeMessage: `Upgrade to a higher plan for more datasets.`,
+        currentUsage: {
+          dailyRequests: 0,
+          dailyLimit: getAiRequestsLimitForTier(tier),
+          concurrentAnalyses: 0,
+          concurrentLimit: getConcurrentAnalysesLimitForTier(tier),
+          datasets: Number(datasetCount),
+          datasetLimit,
+        },
+      }
+    }
+
+    return {
+      allowed: true,
+      currentUsage: {
+        dailyRequests: 0,
+        dailyLimit: getAiRequestsLimitForTier(tier),
+        concurrentAnalyses: 0,
+        concurrentLimit: getConcurrentAnalysesLimitForTier(tier),
+        datasets: Number(datasetCount),
+        datasetLimit,
+      },
+    }
+  }
+
   const dailyInfo = await getDailyRequestCount(userId)
   const dailyLimit = getAiRequestsLimitForTier(tier)
 
@@ -252,7 +299,7 @@ export async function checkActionEnforcement(
     }
   }
 
-  if (action === "file_upload" || action === "dataset_analysis") {
+  if (action === "dataset_analysis") {
     const [{ count: datasetCount }] = await db
       .select({ count: count() })
       .from(datasets)

@@ -40,9 +40,6 @@ export function createUploadFormData(input: {
   formData.append("file", input.file)
   formData.append("uploadMode", input.uploadMode)
   formData.append("dataset_type", input.uploadMode)
-  formData.append("fileType", input.uploadMode)
-  formData.append("analysisType", input.uploadMode)
-  formData.append("source", input.source || `${input.uploadMode}_upload`)
 
   for (const [key, value] of Object.entries(input.extraFields || {})) {
     formData.append(key, value)
