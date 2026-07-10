@@ -28,6 +28,22 @@ function jsonError(
   }, { status })
 }
 
+function serializeDatasetCreateError(error: unknown) {
+  if (error instanceof Error) {
+    const cause = "cause" in error ? (error as Error & { cause?: unknown }).cause : undefined
+    return {
+      name: error.name,
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      cause: cause instanceof Error
+        ? { name: cause.name, message: cause.message }
+        : cause ? String(cause) : undefined,
+    }
+  }
+
+  return { message: String(error) }
+}
+
 function isCsvOrExcel(file: File) {
   const fileName = file.name.toLowerCase()
   return (
@@ -114,40 +130,44 @@ export async function POST(request: Request) {
   const now = new Date()
   const parsedRows = (parsed.previewRows as Record<string, unknown>[]).slice(0, SIMPLE_ROW_INSERT_LIMIT)
   const datasetName = uploadFile.name.replace(/\.(csv|xlsx|xls)$/i, "")
+  const datasetPayload = {
+    id: datasetId,
+    userId,
+    name: datasetName || uploadFile.name,
+    fileName: uploadFile.name,
+    fileSize: uploadFile.size,
+    rowCount: parsed.rowCount,
+    columnCount: parsed.columns.length,
+    columns: parsed.columns,
+    data: parsedRows.slice(0, 100),
+    columnTypes: {},
+    precomputedMetrics: parsed.aggregatedMetrics,
+    datasetType: "standard",
+    status: "ready",
+    analysis: {
+      datasetCategory: "standard",
+      datasetType: "standard",
+      uploadSource: "simple_standard_upload",
+    },
+    createdAt: now,
+    updatedAt: now,
+  }
 
   try {
-    await db.insert(datasets).values({
-      id: datasetId,
-      userId,
-      name: datasetName || uploadFile.name,
-      fileName: uploadFile.name,
-      fileSize: uploadFile.size,
-      mimeType: uploadFile.type || null,
-      rowCount: parsed.rowCount,
-      columnCount: parsed.columns.length,
-      columns: parsed.columns,
-      data: parsedRows.slice(0, 100),
-      columnTypes: {},
-      previewRowCount: parsedRows.length,
-      previewGenerated: true,
-      fullAnalysisCompleted: false,
-      analysisStatus: "pending",
-      analysisProgress: 0,
-      analysisMessage: "Dataset uploaded. AI analysis can be started separately.",
-      precomputedMetrics: parsed.aggregatedMetrics,
-      datasetType: "standard",
-      status: "ready",
-      analysis: {
-        datasetCategory: "standard",
-        datasetType: "standard",
-        uploadSource: "simple_standard_upload",
-      },
-      createdAt: now,
-      updatedAt: now,
-    })
+    await db.insert(datasets).values(datasetPayload)
   } catch (error) {
+    const serializedError = serializeDatasetCreateError(error)
+    console.error("[SIMPLE_UPLOAD] Dataset insert failed", {
+      model: "Dataset",
+      error,
+      payload: datasetPayload,
+    })
     debugError("[SIMPLE_UPLOAD] Dataset insert failed:", error)
-    return jsonError(500, "dataset_created", "Could not create the dataset. Please try again.", true)
+    return jsonError(500, "dataset_create", "Could not create the dataset. Please try again.", true, {
+      model: "Dataset",
+      error: process.env.NODE_ENV === "development" ? serializedError : "Dataset create failed.",
+      payload: process.env.NODE_ENV === "development" ? datasetPayload : undefined,
+    })
   }
 
   if (parsedRows.length > 0) {
