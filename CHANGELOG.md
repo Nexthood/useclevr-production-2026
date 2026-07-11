@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Add an Executive Daily Health Check that generates and caches one workspace brief per day with health scoring, AI confidence, executive summary, priorities, risks, anomalies, recommendations, forecast, impact, alerts, dashboard preview, and history browsing.
+- Show the main Dashboard as a launch-ready executive BI command center with real uploaded-data KPIs, trends, inventory, financials, world map, dataset analytics, AI activity, health scores, recommendations, and upload guidance when data is missing.
 - Show geographic dataset analysis through a professional BI-style world map with real location detection, restrained glowing nodes, flow lines, metric cards, hover tooltips, and a clean empty state when no geographic columns exist.
 - Keep the main Dashboard focused on general workspace overview while categorized uploads route Standard datasets to analysis, Profitability datasets to Accountancy, and Retail datasets to the Retail workspace.
 - Show a compact animated multilingual badge in the Usy header that cycles supported languages and explains same-language replies on hover or tap.
@@ -67,6 +69,7 @@
 
 ### Fixed
 
+- Create Standard Upload fallback datasets with the same minimal Dataset fields as Retail Upload and report exact development details when dataset creation fails.
 - Route Standard Upload through a minimal fallback endpoint that saves CSV and Excel datasets without AI, credit, helper, health, or daily request checks.
 - Make Standard Upload use the same minimal upload contract as Retail Upload so file upload creates datasets before any optional usage or AI analysis work runs.
 - Keep Standard Upload independent from daily AI request counting so dataset creation continues when AI usage tracking is unavailable and upload errors no longer expose database query details.
