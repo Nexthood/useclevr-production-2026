@@ -42,6 +42,7 @@ Text rules for this file:
 - Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
 - Show dataset library rows with dataset type, upload source, destination module, and analysis status.
 - Route dataset library clicks to the matching workspace for retail, profitability, accountancy, and pre-bookkeeping datasets.
+- Render Executive Dashboard Overview, Financial, Inventory, Geography, and AI & Activity tabs as in-place content panels under the tab bar without automatic scrolling, route navigation, page reloads, or duplicate stacked sections.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.

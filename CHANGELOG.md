@@ -71,6 +71,7 @@
 
 ### Fixed
 
+- Render Executive Dashboard detail tabs in-place so tab changes replace the content below the tab bar without route navigation, page jumps, or duplicate stacked sections.
 - Create Standard Upload fallback datasets with the same minimal Dataset fields as Retail Upload and report exact development details when dataset creation fails.
 - Route Standard Upload through a minimal fallback endpoint that saves CSV and Excel datasets without AI, credit, helper, health, or daily request checks.
 - Make Standard Upload use the same minimal upload contract as Retail Upload so file upload creates datasets before any optional usage or AI analysis work runs.

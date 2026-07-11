@@ -1,5 +1,6 @@
 import { WorldMapRevenue, type RegionData } from "@/components/ui/world-map-revenue"
 import { Card } from "@/components/ui/card"
+import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboard-tabs"
 import { auth } from "@/lib/auth/auth"
 import { loadDashboardDatasetAggregation, normalizeDashboardColumnName, type DashboardAggregatedDataset, type NormalizedDashboardData } from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
@@ -683,56 +684,59 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
           )}
         </DashboardSection>
 
-        <DashboardTabs active={tab} range={range} />
+        <ExecutiveDashboardTabs
+          initialActive={tab}
+          range={range}
+          panels={{
+            overview: (
+              <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
+                  <Card className="p-5">
+                    <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                    <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                      <SourceMix dashboardData={stats.dashboardData} />
+                      <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} />
+                    </div>
+                  </Card>
+                </DashboardSection>
 
-        {tab === "overview" && (
-          <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-            <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
-              <Card className="p-5">
-                <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
-                <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                  <SourceMix dashboardData={stats.dashboardData} />
-                  <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} />
-                </div>
-              </Card>
-            </DashboardSection>
-
-            <DashboardSection icon={CheckCircle2} title="Business Health" compact>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
-                <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
-                <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
-                <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
-              </div>
-            </DashboardSection>
-          </section>
-        )}
-
-        {tab === "financial" && <FinancialDetail metrics={metrics} />}
-        {tab === "inventory" && <InventoryDetail metrics={metrics} />}
-        {tab === "geography" && (
-          <DashboardSection icon={Globe2} title="World Map" compact>
-            <WorldMapRevenue regions={metrics.regions} />
-          </DashboardSection>
-        )}
-        {tab === "ai" && (
-          <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-            <DashboardSection icon={Activity} title="AI Activity" compact>
-              <Card className="p-5">
-                <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
-                <div className="mt-5 space-y-4">
-                  <ActivityList stats={stats} />
-                </div>
-              </Card>
-            </DashboardSection>
-            <DashboardSection icon={Bell} title="Executive Activity" compact>
-              <div className="grid gap-4">
-                <BottomPanel title="Recent Activity" items={recentActivity(stats, metrics)} />
-                <BottomPanel title="Notifications" items={notifications(stats, metrics)} />
-              </div>
-            </DashboardSection>
-          </section>
-        )}
+                <DashboardSection icon={CheckCircle2} title="Business Health" compact>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
+                    <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
+                    <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
+                    <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
+                  </div>
+                </DashboardSection>
+              </section>
+            ),
+            financial: <FinancialDetail metrics={metrics} />,
+            inventory: <InventoryDetail metrics={metrics} />,
+            geography: (
+              <DashboardSection icon={Globe2} title="World Map" compact>
+                <WorldMapRevenue regions={metrics.regions} />
+              </DashboardSection>
+            ),
+            ai: (
+              <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <DashboardSection icon={Activity} title="AI Activity" compact>
+                  <Card className="p-5">
+                    <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
+                    <div className="mt-5 space-y-4">
+                      <ActivityList stats={stats} />
+                    </div>
+                  </Card>
+                </DashboardSection>
+                <DashboardSection icon={Bell} title="Executive Activity" compact>
+                  <div className="grid gap-4">
+                    <BottomPanel title="Recent Activity" items={recentActivity(stats, metrics)} />
+                    <BottomPanel title="Notifications" items={notifications(stats, metrics)} />
+                  </div>
+                </DashboardSection>
+              </section>
+            ),
+          }}
+        />
 
         {!hasRows && (
           <EmptyState
@@ -915,35 +919,6 @@ function DashboardSection({ icon: Icon, title, children, action, compact = false
       </div>
       {children}
     </section>
-  )
-}
-
-function DashboardTabs({ active, range }: { active: DashboardTab; range: RangeKey }) {
-  const tabs: { key: DashboardTab; label: string }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "financial", label: "Financial" },
-    { key: "inventory", label: "Inventory" },
-    { key: "geography", label: "Geography" },
-    { key: "ai", label: "AI & Activity" },
-  ]
-
-  return (
-    <nav className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card/80 p-2" aria-label="Dashboard detail sections">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.key}
-          href={`/app?range=${range}&tab=${tab.key}`}
-          className={[
-            "whitespace-nowrap rounded-md px-3 py-2 text-sm font-semibold transition",
-            active === tab.key
-              ? "bg-cyan-300/10 text-cyan-700 dark:text-cyan-100"
-              : "text-muted-foreground hover:bg-background hover:text-foreground",
-          ].join(" ")}
-        >
-          {tab.label}
-        </Link>
-      ))}
-    </nav>
   )
 }
 

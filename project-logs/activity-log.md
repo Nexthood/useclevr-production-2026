@@ -1,3 +1,4 @@
+- fixed: render Executive Dashboard detail tabs in-place so Overview, Financial, Inventory, Geography, and AI & Activity replace the content below the tab bar without route navigation, reloads, automatic scrolling, or duplicate stacked sections
 - fixed: enforce dataset module separation so Standard opens generic analysis, Retail opens Retail, Profitability opens Profitability, Accountancy opens Accountancy, and Pre-bookkeeping opens Pre-bookkeeping, with dataset library rows showing type, upload source, destination, and analysis status
 - changed: make the Executive Dashboard use one normalized dataset summary for dataset counts, processed rows, file type counts, detected columns, Daily Health freshness, and compact tabbed analytics
 - changed: show persistent Standard Upload success actions with dataset summary metadata, dashboard navigation, dataset navigation, and upload-another reset behavior
