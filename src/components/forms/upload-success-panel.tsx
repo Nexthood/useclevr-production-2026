@@ -101,7 +101,7 @@ export function UploadSuccessPanel({ result, uploadMode, onUploadAnother }: Uplo
           )}
           <Button type="button" variant="outline" className="justify-start" onClick={onUploadAnother}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Upload Another File
+            {uploadMode === "standard" && !hasDatasetNavigation ? "Retry" : "Upload Another File"}
           </Button>
         </div>
       </div>

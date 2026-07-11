@@ -75,6 +75,7 @@ export function CsvUpload() {
   const isHybrid = connectionMode === 'hybrid'
   const _isOnline = connectionMode === 'online'
   const isPlanLimitReached = uploadStatus === "limit-reached"
+  const isUploadLocked = uploading || isPlanLimitReached || uploadStatus === "success"
 
   // Get connection status icon and color
   const getConnectionIcon = (mode: ConnectionMode) => {
@@ -121,7 +122,7 @@ export function CsvUpload() {
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (isPlanLimitReached) {
+    if (isPlanLimitReached || uploadStatus === "success") {
       setDragActive(false)
       return
     }
@@ -137,7 +138,7 @@ export function CsvUpload() {
     e.stopPropagation()
     setDragActive(false)
 
-    if (isPlanLimitReached) return
+    if (isPlanLimitReached || uploadStatus === "success") return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await uploadFile(e.dataTransfer.files[0])
@@ -239,7 +240,7 @@ export function CsvUpload() {
       if (progressInterval) clearInterval(progressInterval)
 
       if (result.ok && result.success) {
-        debugLog('[CSV-UPLOAD] Success! Redirecting to:', result.redirectTo)
+        debugLog('[CSV-UPLOAD] Success:', result)
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
@@ -423,9 +424,9 @@ export function CsvUpload() {
         onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
         className="hidden"
         id="file-upload"
-        disabled={uploading || isPlanLimitReached}
+        disabled={isUploadLocked}
       />
-      <label htmlFor="file-upload" className={`block p-5 sm:p-7 ${uploading || isPlanLimitReached ? "cursor-not-allowed" : "cursor-pointer"}`}>
+      <label htmlFor="file-upload" className={`block p-5 sm:p-7 ${isUploadLocked ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <div className="flex flex-col items-center gap-3">
           {/* Processing Flow Animation */}
           {uploading && processingStep > 0 && (
@@ -510,7 +511,9 @@ export function CsvUpload() {
                   {connectionMode === 'hybrid' ? 'Upload complete!' : 'Upload complete!'}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {connectionMode === 'hybrid' ? 'Using UseClevr Hybrid AI for private analysis' : 'Redirecting to your datasets...'}
+                  {connectionMode === 'hybrid'
+                    ? 'Using UseClevr Hybrid AI for private analysis'
+                    : 'Choose your next step below.'}
                 </p>
               </>
             ) : uploadStatus === "error" ? (

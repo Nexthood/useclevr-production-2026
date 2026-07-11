@@ -2,7 +2,7 @@
 
 ### Changed
 
-- Show a persistent upload success panel for Standard, Retail, and Profitability uploads with dataset summary, rows, columns, analysis status, dashboard navigation, dataset navigation, and upload-another actions.
+- Show a persistent Standard Upload success panel with dataset summary, rows, columns, analysis status, dashboard navigation, dataset navigation, and upload-another actions.
 - Add an Executive Daily Health Check that generates and caches one workspace brief per day with health scoring, AI confidence, executive summary, priorities, risks, anomalies, recommendations, forecast, impact, alerts, dashboard preview, and history browsing.
 - Show the main Dashboard as a launch-ready executive BI command center with real uploaded-data KPIs, trends, inventory, financials, world map, dataset analytics, AI activity, health scores, recommendations, and upload guidance when data is missing.
 - Show geographic dataset analysis through a professional BI-style world map with real location detection, restrained glowing nodes, flow lines, metric cards, hover tooltips, and a clean empty state when no geographic columns exist.
