@@ -934,6 +934,41 @@ export const dailyAiRequestCounts = pgTable(
   }),
 );
 
+export const executiveDailyHealthChecks = pgTable(
+  "ExecutiveDailyHealthCheck",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    workspaceId: text("workspaceId"),
+    workspaceKey: varchar("workspaceKey", { length: 255 }).notNull(),
+    date: varchar("date", { length: 10 }).notNull(),
+    score: integer("score").default(0).notNull(),
+    aiConfidence: integer("aiConfidence").default(0).notNull(),
+    brief: jsonb("brief").$type<Record<string, unknown>>().default({}).notNull(),
+    alerts: jsonb("alerts").$type<Record<string, unknown>[]>().default([]).notNull(),
+    sourceHash: varchar("sourceHash", { length: 64 }),
+    generatedBy: varchar("generatedBy", { length: 80 }).default("deterministic").notNull(),
+    modelName: varchar("modelName", { length: 160 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "ExecutiveDailyHealthCheck_userId_fkey",
+    }).onDelete("cascade"),
+    workspaceFk: foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspaces.id],
+      name: "ExecutiveDailyHealthCheck_workspaceId_fkey",
+    }).onDelete("cascade"),
+    workspaceDateIdx: uniqueIndex("ExecutiveDailyHealthCheck_workspaceKey_date_key").on(table.workspaceKey, table.date),
+    userIdIdx: index("ExecutiveDailyHealthCheck_userId_idx").on(table.userId),
+    dateIdx: index("ExecutiveDailyHealthCheck_date_idx").on(table.date),
+  }),
+);
+
 export const concurrentAnalysisCounts = pgTable(
   "ConcurrentAnalysisCount",
   {
