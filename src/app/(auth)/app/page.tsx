@@ -1,8 +1,9 @@
 import { WorldMapRevenue, type RegionData } from "@/components/ui/world-map-revenue"
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
+import { loadDashboardDatasetAggregation, normalizeDashboardColumnName, type DashboardAggregatedDataset, type NormalizedDashboardData } from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
-import { aiInteractionTraces, datasets, profiles } from "@/lib/db/schema"
+import { aiInteractionTraces, profiles } from "@/lib/db/schema"
 import { getOrCreateDailyHealthBrief, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
 import { listAllReports } from "@/lib/reports/report-generator"
 import { count, desc, eq } from "drizzle-orm"
@@ -20,7 +21,6 @@ import {
   Database,
   FileSpreadsheet,
   Globe2,
-  LineChart,
   Package,
   PieChart,
   Sparkles,
@@ -37,25 +37,10 @@ export const metadata = {
 
 type Tone = "cyan" | "violet" | "emerald" | "amber" | "rose" | "slate"
 type RangeKey = "7d" | "30d" | "90d" | "12m"
+type DashboardTab = "overview" | "financial" | "inventory" | "geography" | "ai"
 type DataRow = Record<string, unknown>
 
-type DashboardDataset = {
-  id: string
-  name: string
-  fileName: string
-  fileSize: number | null
-  rowCount: number
-  columnCount: number
-  columns: string[]
-  data: DataRow[]
-  datasetType: string | null
-  analysisStatus: string | null
-  createdAt: Date
-  analysis: unknown
-  aiInsights: unknown
-  precomputedMetrics: unknown
-  detectedColumns: unknown
-}
+type DashboardDataset = DashboardAggregatedDataset
 
 type ColumnMap = {
   revenue?: string
@@ -91,6 +76,7 @@ type DashboardStats = {
   analyses: number
   reports: number
   aiTraceCount: number
+  dashboardData: NormalizedDashboardData
   hasProfile: boolean
   hasBusiness: boolean
   profile: {
@@ -151,45 +137,24 @@ const RANGE_LABELS: Record<RangeKey, string> = {
 async function getStats(userId: string | null): Promise<DashboardStats> {
   if (!userId) return emptyStats()
 
+  const dashboardData = await loadDashboardDatasetAggregation(userId)
+
   try {
-    const [datasetCount, aiTraceCount, profile, rawDatasets, latestAiTraces] = await Promise.all([
-      db.select({ value: count() }).from(datasets).where(eq(datasets.userId, userId)),
-      db.select({ value: count() }).from(aiInteractionTraces).where(eq(aiInteractionTraces.userId, userId)),
+    const [aiTraceCount, profile, latestAiTraces] = await Promise.all([
+      db.select({ value: count() }).from(aiInteractionTraces).where(eq(aiInteractionTraces.userId, userId)).catch(() => [{ value: 0 }]),
       db.query.profiles.findFirst({
         where: eq(profiles.userId, userId),
         columns: { id: true, firstName: true, fullName: true, email: true, businessName: true, companyName: true },
-      }),
-      db.query.datasets.findMany({
-        where: eq(datasets.userId, userId),
-        orderBy: [desc(datasets.createdAt)],
-        limit: 24,
-        columns: {
-          id: true,
-          name: true,
-          fileName: true,
-          fileSize: true,
-          rowCount: true,
-          columnCount: true,
-          columns: true,
-          data: true,
-          datasetType: true,
-          analysisStatus: true,
-          createdAt: true,
-          analysis: true,
-          aiInsights: true,
-          precomputedMetrics: true,
-          detectedColumns: true,
-        },
-      }),
+      }).catch(() => null),
       db.query.aiInteractionTraces.findMany({
         where: eq(aiInteractionTraces.userId, userId),
         orderBy: [desc(aiInteractionTraces.createdAt)],
         limit: 6,
         columns: { id: true, prompt: true, response: true, providerName: true, createdAt: true },
-      }),
+      }).catch(() => []),
     ])
 
-    const allDatasets = rawDatasets.map(normalizeDataset)
+    const allDatasets = dashboardData.datasets
     const datasetIds = new Set(allDatasets.map((dataset) => dataset.id))
     const reportsList = listAllReports()
       .filter((report) => datasetIds.has(report.datasetId))
@@ -203,10 +168,11 @@ async function getStats(userId: string | null): Promise<DashboardStats> {
       }))
 
     return {
-      datasets: datasetCount[0]?.value || 0,
+      datasets: dashboardData.datasetCount,
       analyses: allDatasets.filter((dataset) => dataset.analysisStatus === "completed" || hasAnalysisSignals(dataset)).length,
       reports: reportsList.length,
-      aiTraceCount: aiTraceCount[0]?.value || 0,
+      aiTraceCount: Number(aiTraceCount[0]?.value || 0),
+      dashboardData,
       hasProfile: Boolean(profile),
       hasBusiness: Boolean(profile?.businessName || profile?.companyName),
       profile: profile
@@ -227,7 +193,13 @@ async function getStats(userId: string | null): Promise<DashboardStats> {
       })),
     }
   } catch {
-    return emptyStats()
+    return {
+      ...emptyStats(),
+      datasets: dashboardData.datasetCount,
+      dashboardData,
+      allDatasets: dashboardData.datasets,
+      latestDataset: dashboardData.latestUpload,
+    }
   }
 }
 
@@ -237,6 +209,16 @@ function emptyStats(): DashboardStats {
     analyses: 0,
     reports: 0,
     aiTraceCount: 0,
+    dashboardData: {
+      datasetCount: 0,
+      activeDatasetCount: 0,
+      totalRows: 0,
+      latestUpload: null,
+      fileTypeCounts: { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 },
+      detectedColumns: {},
+      allColumns: [],
+      datasets: [],
+    },
     hasProfile: false,
     hasBusiness: false,
     profile: null,
@@ -244,31 +226,6 @@ function emptyStats(): DashboardStats {
     latestDataset: null,
     reportsList: [],
     latestAiTraces: [],
-  }
-}
-
-function normalizeDataset(dataset: {
-  id: string
-  name: string
-  fileName: string
-  fileSize: number | null
-  rowCount: number
-  columnCount: number
-  columns: string[]
-  data: unknown
-  datasetType: string | null
-  analysisStatus: string | null
-  createdAt: Date | null
-  analysis: unknown
-  aiInsights: unknown
-  precomputedMetrics: unknown
-  detectedColumns: unknown
-}): DashboardDataset {
-  return {
-    ...dataset,
-    columns: Array.isArray(dataset.columns) ? dataset.columns : [],
-    data: Array.isArray(dataset.data) ? (dataset.data as DataRow[]).filter(isRecord) : [],
-    createdAt: dataset.createdAt || new Date(),
   }
 }
 
@@ -336,13 +293,13 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
 
   return {
     columns,
-    rowCount: stats.allDatasets.reduce((total, dataset) => total + dataset.rowCount, 0),
+    rowCount: stats.dashboardData.totalRows,
     loadedRowCount: rows.length,
     totalRevenue,
     totalProfit,
     totalCost,
     profitMargin,
-    activeDatasets: stats.datasets,
+    activeDatasets: stats.dashboardData.activeDatasetCount,
     products,
     inventoryValue,
     deadStock: columns.stock ? deadStockItems.length : null,
@@ -379,16 +336,16 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
   const fromDetected = (keys: string[]) => keys.map((key) => detected?.[key]).find((value): value is string => typeof value === "string")
 
   return {
-    revenue: fromDetected(["revenueColumn", "revenue"]) || findColumn(allColumns, [/revenue/, /^sales$/, /net sales/, /gross sales/, /amount/, /turnover/, /total/]),
-    profit: fromDetected(["profitColumn", "profit"]) || findColumn(allColumns, [/profit/, /gross margin/, /contribution/, /earnings/]),
-    cost: fromDetected(["costColumn", "cost"]) || findColumn(allColumns, [/cost/, /cogs/, /unit cost/, /purchase price/]),
-    expense: findColumn(allColumns, [/expense/, /opex/, /spend/]),
-    date: fromDetected(["dateColumn", "date"]) || findColumn(allColumns, [/date/, /month/, /period/, /created/, /ordered at/, /year/]),
-    product: fromDetected(["productColumn", "product"]) || findColumn(allColumns, [/product/, /item/, /title/, /name/]),
+    revenue: fromDetected(["revenueColumn", "revenue"]) || findColumn(allColumns, [/revenue/, /^sales$/, /sales_amount/, /net_sales/, /gross_sales/, /amount/, /turnover/, /total_revenue/]),
+    profit: fromDetected(["profitColumn", "profit"]) || findColumn(allColumns, [/profit/, /net_profit/, /gross_profit/, /operating_profit/, /gross_margin/, /contribution/, /earnings/]),
+    cost: fromDetected(["costColumn", "cost"]) || findColumn(allColumns, [/^cost$/, /costs/, /cogs/, /expense/, /operating_costs/, /unit_cost/, /purchase_price/]),
+    expense: findColumn(allColumns, [/expense/, /expenses/, /opex/, /spend/]),
+    date: fromDetected(["dateColumn", "date"]) || findColumn(allColumns, [/date/, /order_date/, /sale_date/, /transaction_date/, /month/, /period/, /created/, /year/]),
+    product: fromDetected(["productColumn", "product"]) || findColumn(allColumns, [/product/, /product_name/, /^sku$/, /^item$/, /item_name/, /title/, /name/]),
     sku: findColumn(allColumns, [/sku/, /barcode/, /variant/]),
     quantity: fromDetected(["quantityColumn", "quantity"]) || findColumn(allColumns, [/quantity/, /^qty$/, /units/, /sold/, /count/]),
-    stock: findColumn(allColumns, [/stock/, /inventory/, /on hand/, /available/, /qty available/]),
-    price: findColumn(allColumns, [/price/, /unit price/, /sale price/, /retail price/]),
+    stock: findColumn(allColumns, [/stock/, /inventory/, /inventory_level/, /quantity_on_hand/, /units_in_stock/, /on_hand/, /available/]),
+    price: findColumn(allColumns, [/price/, /unit_price/, /sale_price/, /retail_price/]),
     category: findColumn(allColumns, [/category/, /department/, /segment/, /type/]),
     region: fromDetected(["regionColumn", "fallbackRegionColumn", "region"]) || findColumn(allColumns, [/country/, /region/, /city/, /state/, /territory/, /market/, /location/]),
     customer: findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
@@ -398,7 +355,11 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
 }
 
 function findColumn(columns: string[], patterns: RegExp[]) {
-  return columns.find((column) => patterns.some((pattern) => pattern.test(column.toLowerCase())))
+  return columns.find((column) => {
+    const lower = column.toLowerCase().trim()
+    const normalized = normalizeDashboardColumnName(column)
+    return patterns.some((pattern) => pattern.test(lower) || pattern.test(normalized))
+  })
 }
 
 function filterRowsByRange(rows: { row: DataRow; dataset: DashboardDataset }[], dateColumn: string | undefined, range: RangeKey) {
@@ -637,6 +598,7 @@ type DashboardPageProps = {
 export default async function AppDashboard({ searchParams }: DashboardPageProps) {
   const params = (await searchParams) || {}
   const range = parseRange(params.range)
+  const tab = parseTab(params.tab)
   const session = await auth()
   const userId = session?.user?.id ?? null
   const [stats, dailyBrief] = await Promise.all([
@@ -654,13 +616,12 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     kpi("Active Datasets", metrics.activeDatasets, "number", metrics.uploadTrend, true, "Uploaded files", Database, "slate"),
     kpi("Products/SKUs", metrics.products, "number", metrics.topProducts.map((item) => ({ label: item.name, value: item.value })), metrics.products !== null, "Product or SKU column", Package, "amber"),
     kpi("Inventory Value", metrics.inventoryValue, "currency", metrics.inventoryTrend, metrics.inventoryValue !== null, "Stock and price/cost columns", Warehouse, "cyan"),
-    kpi("Dead Stock", metrics.deadStock, "number", metrics.deadStockItems.map((item) => ({ label: item.name, value: item.value })), metrics.deadStock !== null, "Stock and movement columns", Bell, "rose"),
-    kpi("AI Insights Generated", metrics.aiInsightsGenerated, "number", stats.latestAiTraces.map((trace, index) => ({ label: String(index + 1), value: index + 1 })), true, "Stored analysis and AI activity", Brain, "violet"),
   ] satisfies KpiDisplay[]
+  const topRecommendations = metrics.recommendations.slice(0, 3)
 
   return (
     <div className="flex-1 bg-background">
-      <div className="mx-auto w-full max-w-[1600px] space-y-8 px-4 pb-8 pt-2 sm:px-6 lg:px-8 xl:px-10">
+      <div className="mx-auto w-full max-w-[1600px] space-y-5 px-4 pb-8 pt-2 sm:px-6 lg:px-8 xl:px-10">
         <section className="relative overflow-hidden rounded-lg border border-border bg-card/95 p-5 shadow-sm sm:p-7">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
@@ -697,114 +658,79 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
 
         {dailyBrief && <ExecutiveDailyHealthSection brief={dailyBrief} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {kpis.map((item) => (
             <ExecutiveKpiCard key={item.label} item={item} />
           ))}
         </section>
 
-        <DashboardSection icon={LineChart} title="Business Overview" action={<DataCoverageNote metrics={metrics} />}>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <TrendPanel title="Revenue Trend" metricLabel="Revenue" data={metrics.revenueTrend} format="currency" emptyLabel="Upload data with revenue and date columns." />
-            <TrendPanel title="Profit Trend" metricLabel="Profit" data={metrics.profitTrend} format="currency" emptyLabel="Upload data with profit or revenue/cost columns." />
-            <TrendPanel title="Inventory Trend" metricLabel="Stock" data={metrics.inventoryTrend} format="number" emptyLabel="Upload data with stock and date columns." />
-            <TrendPanel title="Orders Trend" metricLabel="Orders" data={metrics.ordersTrend} format="number" emptyLabel="Upload data with order, quantity, or date columns." />
-          </div>
-        </DashboardSection>
+        <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <TrendPanel title="Revenue Trend" metricLabel="Revenue" data={metrics.revenueTrend} format="currency" emptyLabel="Missing revenue/date columns." />
+          <TrendPanel title="Profit Trend" metricLabel="Profit" data={metrics.profitTrend} format="currency" emptyLabel="Missing profit or revenue/cost columns." />
+        </section>
 
-        <DashboardSection icon={Brain} title="AI Executive Insights">
-          {metrics.recommendations.length > 0 ? (
-            <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
-              {metrics.recommendations.map((recommendation) => (
+        <DashboardSection icon={Brain} title="Top AI Recommendations" action={<DataCoverageNote metrics={metrics} />} compact>
+          {topRecommendations.length > 0 ? (
+            <div className="grid gap-3 lg:grid-cols-3">
+              {topRecommendations.map((recommendation) => (
                 <RecommendationCard key={`${recommendation.title}-${recommendation.source}`} recommendation={recommendation} />
               ))}
             </div>
           ) : (
-            <EmptyState title="No executive recommendations yet" detail="Run dataset analysis after upload to populate priority, confidence, impact, and action cards." href="/app/datasets" />
+            <CompactEmpty label="Recommendations appear when uploaded columns expose revenue, margin, inventory, product, or AI analysis signals." />
           )}
         </DashboardSection>
 
-        <DashboardSection icon={Warehouse} title="Inventory Analytics">
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="p-5">
-              <PanelHeader title="Product Performance" detail="Top and lowest product rankings from uploaded rows." />
-              <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                <RankedList title="Top Products" items={metrics.topProducts} format="currency" empty="Product and value columns not detected." />
-                <RankedList title="Worst Products" items={metrics.worstProducts} format="currency" empty="Product and value columns not detected." />
-              </div>
-            </Card>
-            <Card className="p-5">
-              <PanelHeader title="Stock Control" detail="Low stock, dead stock, overstock, turnover, ABC, and categories." />
-              <div className="mt-5 space-y-5">
-                <MiniList title="Low Stock" items={metrics.lowStock} empty="No stock column detected." />
-                <MiniList title="Dead Stock" items={metrics.deadStockItems} empty="No dead stock signal detected." />
-                <MiniList title="Overstock" items={metrics.overstock} empty="No stock column detected." />
-                <RankedList title="ABC / Category Distribution" items={metrics.categoryDistribution} format="currency" empty="Category data not detected." compact />
-              </div>
-            </Card>
-          </div>
-        </DashboardSection>
+        <DashboardTabs active={tab} range={range} />
 
-        <DashboardSection icon={CircleDollarSign} title="Financial Analytics">
-          <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-            <Card className="p-5">
-              <PanelHeader title="Revenue vs Costs" detail="Financial totals are calculated only from detected financial columns." />
-              <div className="mt-5 space-y-4">
-                <FinancialBar label="Revenue" value={metrics.totalRevenue} max={Math.max(metrics.totalRevenue || 0, metrics.totalCost || 0, 1)} tone="cyan" />
-                <FinancialBar label="Costs" value={metrics.totalCost} max={Math.max(metrics.totalRevenue || 0, metrics.totalCost || 0, 1)} tone="rose" />
-                <FinancialBar label="Profitability" value={metrics.totalProfit} max={Math.max(Math.abs(metrics.totalProfit || 0), metrics.totalRevenue || 0, 1)} tone="emerald" />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricTile label="Gross margin" value={formatNullable(metrics.profitMargin, "percent")} />
-                  <MetricTile label="Net margin" value={formatNullable(metrics.profitMargin, "percent")} />
+        {tab === "overview" && (
+          <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
+              <Card className="p-5">
+                <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                  <SourceMix dashboardData={stats.dashboardData} />
+                  <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} />
                 </div>
-              </div>
-            </Card>
-            <TrendPanel title="Monthly Comparison" metricLabel="Revenue" data={metrics.revenueTrend.length > 0 ? metrics.revenueTrend : metrics.uploadTrend} format={metrics.revenueTrend.length > 0 ? "currency" : "number"} emptyLabel="Monthly comparison appears when dated financial data is uploaded." />
-          </div>
-        </DashboardSection>
+              </Card>
+            </DashboardSection>
 
-        <DashboardSection icon={Globe2} title="World Map">
-          <WorldMapRevenue regions={metrics.regions} />
-        </DashboardSection>
-
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
-            <Card className="p-5">
-              <PanelHeader title="Upload History" detail={`${formatNumber(metrics.rowCount)} rows processed across ${formatNumber(stats.datasets)} dataset${stats.datasets === 1 ? "" : "s"}.`} />
-              <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                <SourceMix datasets={stats.allDatasets} />
-                <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} />
+            <DashboardSection icon={CheckCircle2} title="Business Health" compact>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
+                <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
+                <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
+                <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
               </div>
-            </Card>
+            </DashboardSection>
+          </section>
+        )}
+
+        {tab === "financial" && <FinancialDetail metrics={metrics} />}
+        {tab === "inventory" && <InventoryDetail metrics={metrics} />}
+        {tab === "geography" && (
+          <DashboardSection icon={Globe2} title="World Map" compact>
+            <WorldMapRevenue regions={metrics.regions} />
           </DashboardSection>
-
-          <DashboardSection icon={Activity} title="AI Activity" compact>
-            <Card className="p-5">
-              <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
-              <div className="mt-5 space-y-4">
-                <ActivityList stats={stats} />
+        )}
+        {tab === "ai" && (
+          <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <DashboardSection icon={Activity} title="AI Activity" compact>
+              <Card className="p-5">
+                <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
+                <div className="mt-5 space-y-4">
+                  <ActivityList stats={stats} />
+                </div>
+              </Card>
+            </DashboardSection>
+            <DashboardSection icon={Bell} title="Executive Activity" compact>
+              <div className="grid gap-4">
+                <BottomPanel title="Recent Activity" items={recentActivity(stats, metrics)} />
+                <BottomPanel title="Notifications" items={notifications(stats, metrics)} />
               </div>
-            </Card>
-          </DashboardSection>
-        </section>
-
-        <DashboardSection icon={CheckCircle2} title="Business Health">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
-            <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
-            <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
-            <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
-            <HealthCard label="Growth Score" value={metrics.businessHealth.growthScore} tone="slate" />
-          </div>
-        </DashboardSection>
-
-        <DashboardSection icon={Bell} title="Executive Activity">
-          <div className="grid gap-4 xl:grid-cols-3">
-            <BottomPanel title="Recent Activity" items={recentActivity(stats, metrics)} />
-            <BottomPanel title="Notifications" items={notifications(stats, metrics)} />
-            <BottomPanel title="AI Recommendations" items={metrics.recommendations.map((item) => ({ label: item.title, detail: item.action, href: "/app/datasets" })).slice(0, 5)} />
-          </div>
-        </DashboardSection>
+            </DashboardSection>
+          </section>
+        )}
 
         {!hasRows && (
           <EmptyState
@@ -990,12 +916,88 @@ function DashboardSection({ icon: Icon, title, children, action, compact = false
   )
 }
 
+function DashboardTabs({ active, range }: { active: DashboardTab; range: RangeKey }) {
+  const tabs: { key: DashboardTab; label: string }[] = [
+    { key: "overview", label: "Overview" },
+    { key: "financial", label: "Financial" },
+    { key: "inventory", label: "Inventory" },
+    { key: "geography", label: "Geography" },
+    { key: "ai", label: "AI & Activity" },
+  ]
+
+  return (
+    <nav className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card/80 p-2" aria-label="Dashboard detail sections">
+      {tabs.map((tab) => (
+        <Link
+          key={tab.key}
+          href={`/app?range=${range}&tab=${tab.key}`}
+          className={[
+            "whitespace-nowrap rounded-md px-3 py-2 text-sm font-semibold transition",
+            active === tab.key
+              ? "bg-cyan-300/10 text-cyan-700 dark:text-cyan-100"
+              : "text-muted-foreground hover:bg-background hover:text-foreground",
+          ].join(" ")}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+function FinancialDetail({ metrics }: { metrics: ExecutiveMetrics }) {
+  return (
+    <DashboardSection icon={CircleDollarSign} title="Financial Analytics" compact>
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <Card className="p-5">
+          <PanelHeader title="Revenue vs Costs" detail="Financial totals are calculated only from detected financial columns." />
+          <div className="mt-5 space-y-4">
+            <FinancialBar label="Revenue" value={metrics.totalRevenue} max={Math.max(metrics.totalRevenue || 0, metrics.totalCost || 0, 1)} tone="cyan" />
+            <FinancialBar label="Costs" value={metrics.totalCost} max={Math.max(metrics.totalRevenue || 0, metrics.totalCost || 0, 1)} tone="rose" />
+            <FinancialBar label="Profitability" value={metrics.totalProfit} max={Math.max(Math.abs(metrics.totalProfit || 0), metrics.totalRevenue || 0, 1)} tone="emerald" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MetricTile label="Gross margin" value={formatNullable(metrics.profitMargin, "percent")} />
+              <MetricTile label="Net margin" value={formatNullable(metrics.profitMargin, "percent")} />
+            </div>
+          </div>
+        </Card>
+        <TrendPanel title="Monthly Comparison" metricLabel="Revenue" data={metrics.revenueTrend.length > 0 ? metrics.revenueTrend : metrics.uploadTrend} format={metrics.revenueTrend.length > 0 ? "currency" : "number"} emptyLabel="Missing dated financial data." />
+      </div>
+    </DashboardSection>
+  )
+}
+
+function InventoryDetail({ metrics }: { metrics: ExecutiveMetrics }) {
+  return (
+    <DashboardSection icon={Warehouse} title="Inventory Analytics" compact>
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card className="p-5">
+          <PanelHeader title="Product Performance" detail="Top and lowest product rankings from uploaded rows." />
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <RankedList title="Top Products" items={metrics.topProducts} format="currency" empty="Missing product and value columns." />
+            <RankedList title="Worst Products" items={metrics.worstProducts} format="currency" empty="Missing product and value columns." />
+          </div>
+        </Card>
+        <Card className="p-5">
+          <PanelHeader title="Stock Control" detail="Low stock, dead stock, overstock, turnover, ABC, and categories." />
+          <div className="mt-5 space-y-5">
+            <MiniList title="Low Stock" items={metrics.lowStock} empty="Missing stock column." />
+            <MiniList title="Dead Stock" items={metrics.deadStockItems} empty="Missing stock and movement columns." />
+            <MiniList title="Overstock" items={metrics.overstock} empty="Missing stock column." />
+            <RankedList title="ABC / Category Distribution" items={metrics.categoryDistribution} format="currency" empty="Missing category data." compact />
+          </div>
+        </Card>
+      </div>
+    </DashboardSection>
+  )
+}
+
 function TrendPanel({ title, metricLabel, data, format, emptyLabel }: { title: string; metricLabel: string; data: SeriesPoint[]; format: "currency" | "number"; emptyLabel: string }) {
   const total = data.reduce((value, point) => value + point.value, 0)
   return (
     <Card className="p-5">
       <PanelHeader title={title} detail={data.length > 0 ? `${metricLabel}: ${formatNullable(total, format)}` : emptyLabel} />
-      <div className="mt-5 min-h-[260px]">
+      <div className={data.length > 0 ? "mt-5 min-h-[220px]" : "mt-4"}>
         {data.length > 0 ? <AreaChart data={data} format={format} /> : <CompactEmpty label={emptyLabel} />}
       </div>
     </Card>
@@ -1157,12 +1159,12 @@ function MetricTile({ label, value }: { label: string; value: string }) {
   )
 }
 
-function SourceMix({ datasets: datasetList }: { datasets: DashboardDataset[] }) {
+function SourceMix({ dashboardData }: { dashboardData: NormalizedDashboardData }) {
   const sourceCounts = [
-    { label: "CSV", value: datasetList.filter((dataset) => dataset.fileName.toLowerCase().endsWith(".csv")).length },
-    { label: "Excel", value: datasetList.filter((dataset) => /\.(xlsx|xls)$/i.test(dataset.fileName)).length },
-    { label: "Snowflake", value: datasetList.filter((dataset) => dataset.datasetType === "snowflake").length },
-    { label: "API", value: datasetList.filter((dataset) => dataset.datasetType === "api").length },
+    { label: "CSV", value: dashboardData.fileTypeCounts.csv },
+    { label: "Excel", value: dashboardData.fileTypeCounts.excel },
+    { label: "Snowflake", value: dashboardData.fileTypeCounts.snowflake },
+    { label: "API", value: dashboardData.fileTypeCounts.api },
   ]
   return (
     <div className="space-y-3">
@@ -1306,6 +1308,12 @@ function notifications(stats: DashboardStats, metrics: ExecutiveMetrics) {
 function parseRange(value: string | string[] | undefined): RangeKey {
   const range = Array.isArray(value) ? value[0] : value
   return range === "7d" || range === "90d" || range === "12m" ? range : "30d"
+}
+
+function parseTab(value: string | string[] | undefined): DashboardTab {
+  const tab = Array.isArray(value) ? value[0] : value
+  if (tab === "financial" || tab === "inventory" || tab === "geography" || tab === "ai") return tab
+  return "overview"
 }
 
 function getNumber(row: DataRow, column: string | undefined): number | null {

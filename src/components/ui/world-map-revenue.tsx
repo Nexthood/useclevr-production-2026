@@ -145,8 +145,8 @@ function performanceColor(region: RegionData) {
 
 function EmptyGeoState() {
   return (
-    <div className="rounded-lg border border-dashed border-cyan-300/20 bg-slate-950/40 p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+    <div className="rounded-lg border border-dashed border-cyan-300/20 bg-slate-950/40 p-5 text-center">
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21s7-5.33 7-11a7 7 0 10-14 0c0 5.67 7 11 7 11z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10.5h.01" />

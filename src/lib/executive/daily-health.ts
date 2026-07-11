@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from "node:crypto"
 
 import { generateServerAiText } from "@/lib/ai/server-ai-text"
+import { getDashboardDataFingerprint, loadDashboardDatasetAggregation, normalizeDashboardColumnName } from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
-import { datasets, executiveDailyHealthChecks, profiles } from "@/lib/db/schema"
+import { executiveDailyHealthChecks, profiles } from "@/lib/db/schema"
 import { debugWarn } from "@/lib/utils/debug"
 import { and, desc, eq } from "drizzle-orm"
 
@@ -123,15 +124,16 @@ export async function getOrCreateDailyHealthBrief(input: {
   const workspaceId = input.workspaceId ?? DEFAULT_WORKSPACE_ID
   const workspaceKey = getWorkspaceKey(input.userId, workspaceId)
   const date = getUtcDateKey(new Date())
+  const source = await loadDailyHealthSource(input.userId, workspaceId, workspaceKey, date)
+  const sourceHash = hashDailyHealthSource(source)
 
   if (!input.force) {
-    const existing = await readStoredBrief(workspaceKey, date)
+    const existing = await readStoredBrief(workspaceKey, date, sourceHash)
     if (existing) return existing
   }
 
-  const source = await loadDailyHealthSource(input.userId, workspaceId, workspaceKey, date)
   const generated = await generateDailyHealthBrief(source)
-  return storeDailyHealthBrief(generated)
+  return storeDailyHealthBrief(generated, sourceHash)
 }
 
 export async function listDailyHealthBriefs(input: {
@@ -156,7 +158,7 @@ export async function listDailyHealthBriefs(input: {
   }
 }
 
-async function readStoredBrief(workspaceKey: string, date: string) {
+async function readStoredBrief(workspaceKey: string, date: string, sourceHash: string) {
   try {
     const record = await db.query.executiveDailyHealthChecks.findFirst({
       where: and(
@@ -164,6 +166,7 @@ async function readStoredBrief(workspaceKey: string, date: string) {
         eq(executiveDailyHealthChecks.date, date),
       ),
     })
+    if (record && record.sourceHash !== sourceHash) return null
     return record ? recordToBrief(record) : null
   } catch (error) {
     debugWarn("[Daily Health] Stored brief lookup failed; generating uncached brief", error)
@@ -172,29 +175,12 @@ async function readStoredBrief(workspaceKey: string, date: string) {
 }
 
 async function loadDailyHealthSource(userId: string, workspaceId: string | null, workspaceKey: string, date: string): Promise<DailyHealthSource> {
-  const [profile, userDatasets] = await Promise.all([
+  const [profile, dashboardData] = await Promise.all([
     db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
       columns: { firstName: true, businessName: true, companyName: true, industry: true, location: true },
     }),
-    db.query.datasets.findMany({
-      where: eq(datasets.userId, userId),
-      orderBy: [desc(datasets.createdAt)],
-      limit: 40,
-      columns: {
-        id: true,
-        name: true,
-        rowCount: true,
-        columnCount: true,
-        columns: true,
-        data: true,
-        datasetType: true,
-        analysisStatus: true,
-        analysis: true,
-        aiInsights: true,
-        createdAt: true,
-      },
-    }),
+    loadDashboardDatasetAggregation(userId),
   ])
 
   return {
@@ -204,7 +190,7 @@ async function loadDailyHealthSource(userId: string, workspaceId: string | null,
     date,
     profileComplete: Boolean(profile?.firstName && (profile.businessName || profile.companyName)),
     hasBusinessProfile: Boolean(profile?.businessName || profile?.companyName || profile?.industry || profile?.location),
-    datasets: userDatasets.map((dataset) => ({
+    datasets: dashboardData.datasets.map((dataset) => ({
       id: dataset.id,
       name: dataset.name,
       datasetType: dataset.datasetType || "standard",
@@ -289,14 +275,7 @@ async function generateAiBrief(
   }
 }
 
-async function storeDailyHealthBrief(brief: ExecutiveDailyBrief): Promise<ExecutiveDailyBrief> {
-  const sourceHash = createHash("sha256").update(JSON.stringify({
-    score: brief.score,
-    summary: brief.executiveSummary,
-    alerts: brief.alerts,
-    actions: brief.recommendedActions,
-  })).digest("hex")
-
+async function storeDailyHealthBrief(brief: ExecutiveDailyBrief, sourceHash: string): Promise<ExecutiveDailyBrief> {
   try {
     const [record] = await db
       .insert(executiveDailyHealthChecks)
@@ -335,6 +314,31 @@ async function storeDailyHealthBrief(brief: ExecutiveDailyBrief): Promise<Execut
     debugWarn("[Daily Health] Failed to store daily brief; returning uncached brief", error)
     return brief
   }
+}
+
+function hashDailyHealthSource(source: DailyHealthSource) {
+  const dashboardFingerprint = getDashboardDataFingerprint({
+    datasetCount: source.datasets.length,
+    activeDatasetCount: source.datasets.filter((dataset) => dataset.rowCount >= 0).length,
+    totalRows: source.datasets.reduce((total, dataset) => total + dataset.rowCount, 0),
+    latestUpload: source.datasets[0]
+      ? {
+          ...source.datasets[0],
+          fileName: source.datasets[0].name,
+          fileSize: null,
+          data: source.datasets[0].rows,
+          status: "ready",
+          updatedAt: source.datasets[0].createdAt,
+          precomputedMetrics: null,
+          detectedColumns: null,
+        }
+      : null,
+    fileTypeCounts: { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 },
+    detectedColumns: {},
+    allColumns: Array.from(new Set(source.datasets.flatMap((dataset) => dataset.columns))),
+    datasets: [],
+  })
+  return createHash("sha256").update(dashboardFingerprint).digest("hex")
 }
 
 export const healthSignalProviders: HealthSignalProvider[] = [
@@ -545,14 +549,14 @@ function buildAnomalies(metrics: DailyHealthMetrics) {
 function detectColumns(columns: string[], rows: DataRow[]): ColumnMap {
   const allColumns = Array.from(new Set([...columns, ...rows.slice(0, 20).flatMap((row) => Object.keys(row))]))
   return {
-    revenue: findColumn(allColumns, [/revenue/, /^sales$/, /amount/, /turnover/, /total/]),
-    profit: findColumn(allColumns, [/profit/, /gross margin/, /earnings/, /contribution/]),
-    cost: findColumn(allColumns, [/cost/, /cogs/, /expense/, /spend/]),
-    date: findColumn(allColumns, [/date/, /month/, /period/, /created/, /year/]),
-    product: findColumn(allColumns, [/product/, /item/, /title/, /name/]),
+    revenue: findColumn(allColumns, [/revenue/, /^sales$/, /sales_amount/, /net_sales/, /turnover/, /total_revenue/, /amount/]),
+    profit: findColumn(allColumns, [/profit/, /net_profit/, /gross_profit/, /operating_profit/, /gross_margin/, /earnings/, /contribution/]),
+    cost: findColumn(allColumns, [/^cost$/, /costs/, /cogs/, /expense/, /operating_costs/, /spend/]),
+    date: findColumn(allColumns, [/date/, /order_date/, /sale_date/, /transaction_date/, /month/, /period/, /created/, /year/]),
+    product: findColumn(allColumns, [/product/, /product_name/, /^sku$/, /^item$/, /item_name/, /title/, /name/]),
     sku: findColumn(allColumns, [/sku/, /barcode/, /variant/]),
     quantity: findColumn(allColumns, [/quantity/, /^qty$/, /units/, /sold/, /count/]),
-    stock: findColumn(allColumns, [/stock/, /inventory/, /on hand/, /available/]),
+    stock: findColumn(allColumns, [/stock/, /inventory/, /inventory_level/, /quantity_on_hand/, /units_in_stock/, /on_hand/, /available/]),
     category: findColumn(allColumns, [/category/, /department/, /segment/, /type/]),
   }
 }
@@ -681,7 +685,11 @@ function isExecutiveAlert(value: unknown): value is ExecutiveDailyAlert {
 }
 
 function findColumn(columns: string[], patterns: RegExp[]) {
-  return columns.find((column) => patterns.some((pattern) => pattern.test(column.toLowerCase())))
+  return columns.find((column) => {
+    const lower = column.toLowerCase().trim()
+    const normalized = normalizeDashboardColumnName(column)
+    return patterns.some((pattern) => pattern.test(lower) || pattern.test(normalized))
+  })
 }
 
 function getNumber(row: DataRow, column: string | undefined): number | null {

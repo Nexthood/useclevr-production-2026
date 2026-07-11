@@ -1,3 +1,4 @@
+- changed: make the Executive Dashboard use one normalized dataset summary for dataset counts, processed rows, file type counts, detected columns, Daily Health freshness, and compact tabbed analytics
 - changed: show persistent Standard Upload success actions with dataset summary metadata, dashboard navigation, dataset navigation, and upload-another reset behavior
 - changed: add an Executive Daily Health Check with once-per-day workspace caching, AI-generated daily briefs, health scoring, critical alerts, dashboard preview, full brief page, and Today/Yesterday/Last 7 days/Last 30 days history
 - changed: show the main Dashboard as a launch-ready executive BI command center with real uploaded-data KPI cards, range-filtered trend panels, AI recommendations, inventory and financial analytics, the professional world map, dataset analytics, AI activity, health scores, and empty-state upload guidance
