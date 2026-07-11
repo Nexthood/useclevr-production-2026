@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-941. Enforce dataset module separation so uploads persist the correct standard, retail, profitability, accountancy, or pre-bookkeeping category and open only in the matching workspace. (labels: upload, data, dashboard; commit: worktree)
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
 
 ## Label: billing

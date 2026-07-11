@@ -267,7 +267,7 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
     ? buildCountSeries(activeRows, columns.date, columns.order, range)
     : buildSeries(activeRows, columns.date, columns.quantity, range)
   const uploadTrend = buildUploadSeries(stats.allDatasets, range)
-  const regions = buildRegions(activeRows.map((entry) => entry.row), columns)
+  const regions = buildRegions(activeRows, columns)
   const aiInsightsGenerated = countAiInsights(stats.allDatasets) + stats.aiTraceCount
   const recommendations = buildRecommendations({
     stats,
@@ -464,17 +464,18 @@ function buildDeadStock(rows: DataRow[], columns: ColumnMap): RankedItem[] {
     .slice(0, 6)
 }
 
-function buildRegions(rows: DataRow[], columns: ColumnMap): RegionData[] {
+function buildRegions(rows: { row: DataRow; dataset: DashboardDataset }[], columns: ColumnMap): RegionData[] {
   if (!columns.region) return []
-  const aggregate = new Map<string, { revenue: number; profit: number; orders: number; products: Map<string, number>; categories: Map<string, number> }>()
-  for (const row of rows) {
+  const aggregate = new Map<string, { revenue: number; profit: number; orders: number; datasets: Set<string>; products: Map<string, number>; categories: Map<string, number> }>()
+  for (const { row, dataset } of rows) {
     const name = String(row[columns.region] || "").trim()
     if (!name) continue
-    const current = aggregate.get(name) || { revenue: 0, profit: 0, orders: 0, products: new Map(), categories: new Map() }
+    const current = aggregate.get(name) || { revenue: 0, profit: 0, orders: 0, datasets: new Set(), products: new Map(), categories: new Map() }
     const revenue = getNumber(row, columns.revenue) || 0
     current.revenue += revenue
     current.profit += getNumber(row, columns.profit) || (columns.cost ? revenue - (getNumber(row, columns.cost) || 0) : 0)
     current.orders += columns.order ? (String(row[columns.order] || "").trim() ? 1 : 0) : getNumber(row, columns.quantity) || 0
+    current.datasets.add(dataset.id)
     addGroupedValue(current.products, String(row[columns.product || ""] || ""), revenue)
     addGroupedValue(current.categories, String(row[columns.category || ""] || ""), revenue)
     aggregate.set(name, current)
@@ -485,6 +486,7 @@ function buildRegions(rows: DataRow[], columns: ColumnMap): RegionData[] {
       revenue: value.revenue,
       profit: value.profit,
       orders: value.orders,
+      datasets: value.datasets.size,
       margin: value.revenue > 0 ? (value.profit / value.revenue) * 100 : null,
       growth: null,
       topProduct: topMapEntry(value.products),

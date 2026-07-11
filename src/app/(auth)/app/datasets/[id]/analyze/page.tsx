@@ -5,7 +5,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header"
 import { Button } from "@/components/ui/button"
 import { auth } from "@/lib/auth/auth"
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
-import { getDatasetCategoryRedirect, type DatasetCategory } from "@/lib/data/dataset-category"
+import { getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { AlertTriangle, Sparkles, BriefcaseBusiness, LayoutDashboard, ExternalLink } from "lucide-react"
 import Link from "next/link"
@@ -59,7 +59,7 @@ export default async function AnalyzePage({
   const columns = getDatasetColumns(dataset.columns)
   // Use dataset.rowCount for total
   const rowCount = dataset.rowCount || data.length
-  const datasetType: DatasetCategory = ((dataset as { datasetType?: string | null }).datasetType || "standard") as DatasetCategory
+  const datasetType = resolveDatasetType((dataset as { datasetType?: string | null }).datasetType, dataset.analysis)
 
   if (datasetType !== "standard") {
     redirect(getDatasetCategoryRedirect(datasetType, id))

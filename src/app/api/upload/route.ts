@@ -1,8 +1,8 @@
 import { uploadCSV } from "@/app/actions/upload"
-import { allowedUploadDatasetCategories, getDatasetCategoryFromUpload, getUploadCategoryCandidate } from "@/lib/data/dataset-category"
+import { allowedUploadDatasetCategories, getDatasetCategoryFromUpload, getUploadCategoryCandidate, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import { NextResponse } from "next/server"
 
-const supportedUploadModes = ["standard", "retail", "profitability"] as const
+const supportedUploadModes = allowedUploadDatasetCategories
 
 type SupportedUploadMode = (typeof supportedUploadModes)[number]
 
@@ -68,7 +68,9 @@ export async function POST(request: Request) {
     const uploadCategoryCandidate = getUploadCategoryCandidate(formData)
     const uploadCategory = getDatasetCategoryFromUpload(uploadCategoryCandidate)
     const isSupportedMode = (value: string): value is SupportedUploadMode =>
-      supportedUploadModes.includes(value as SupportedUploadMode)
+      normalizeDatasetCategory(value) !== null
+    const normalizedUploadMode = normalizeDatasetCategory(uploadMode)
+    const normalizedDatasetType = normalizeDatasetCategory(datasetType)
     const hasExplicitSharedUploadContract = Boolean(uploadMode || datasetType)
     const legacyCategoryAllowed = !hasExplicitSharedUploadContract && ["accountancy", "prebookkeeping"].includes(uploadCategory)
 
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
         invalidFields.push("dataset_type")
       }
 
-      if (uploadMode && datasetType && uploadMode !== datasetType) {
+      if (normalizedUploadMode && normalizedDatasetType && normalizedUploadMode !== normalizedDatasetType) {
         invalidFields.push("uploadMode", "dataset_type")
       }
     }
@@ -112,7 +114,7 @@ export async function POST(request: Request) {
         missingFields: uniqueMissingFields,
         invalidFields: uniqueInvalidFields,
         receivedFields,
-        allowedDatasetTypes: supportedUploadModes,
+        allowedDatasetTypes: [...supportedUploadModes],
       }, { status: 400 })
     }
 

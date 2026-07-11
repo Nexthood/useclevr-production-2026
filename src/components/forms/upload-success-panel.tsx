@@ -12,10 +12,22 @@ type UploadSuccessPanelProps = {
   onUploadAnother: () => void
 }
 
-function dashboardHref(uploadMode: UploadMode, result: UploadDatasetResponse) {
+function primaryResultHref(uploadMode: UploadMode, result: UploadDatasetResponse) {
+  if (result.redirectTo) return result.redirectTo
   if (uploadMode === "retail") return "/app/retail"
-  if (uploadMode === "profitability") return result.redirectTo || "/app/profitability"
-  return "/app/dashboard"
+  if (uploadMode === "profitability") return "/app/profitability"
+  if (uploadMode === "accountancy") return "/app/accountancy"
+  if (uploadMode === "prebookkeeping") return "/app/prebookkeeping"
+  return result.datasetId ? `/app/datasets/${result.datasetId}/analyze` : "/app/datasets"
+}
+
+function primaryResultLabel(uploadMode: UploadMode) {
+  if (uploadMode === "standard") return "Open Analysis"
+  if (uploadMode === "retail") return "Open Retail"
+  if (uploadMode === "profitability") return "Open Profitability"
+  if (uploadMode === "accountancy") return "Open Accountancy"
+  if (uploadMode === "prebookkeeping") return "Open Pre-bookkeeping"
+  return "Open Result"
 }
 
 function datasetTypeLabel(result: UploadDatasetResponse, uploadMode: UploadMode) {
@@ -76,11 +88,11 @@ export function UploadSuccessPanel({ result, uploadMode, onUploadAnother }: Uplo
 
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
           <Link
-            href={dashboardHref(uploadMode, result)}
+            href={primaryResultHref(uploadMode, result)}
             className="inline-flex h-10 items-center justify-start rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <BarChart3 className="mr-2 h-4 w-4" />
-            Go to Dashboard
+            {primaryResultLabel(uploadMode)}
           </Link>
           {hasDatasetNavigation ? (
             <Link

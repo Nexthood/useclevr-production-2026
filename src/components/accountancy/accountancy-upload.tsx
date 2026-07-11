@@ -14,6 +14,7 @@ import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileText, Loader2, R
 import * as React from "react"
 
 type UploadType = "csv" | "excel" | "pdf" | "receipt" | "bank"
+type AccountancyUploadDatasetType = "accountancy" | "prebookkeeping"
 
 interface UploadedFile {
   id: string
@@ -28,9 +29,11 @@ interface UploadedFile {
 export function AccountancyUpload({
   onFilesChange,
   packageReady,
+  datasetType = "prebookkeeping",
 }: {
   onFilesChange?: (files: UploadedFile[]) => void
   packageReady?: boolean
+  datasetType?: AccountancyUploadDatasetType
 }) {
   const [uploading, setUploading] = React.useState(false)
   const [dragActive, setDragActive] = React.useState(false)
@@ -203,9 +206,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
       const formData = new FormData()
       formData.append("file", file)
       formData.append("type", selectedType)
-      formData.append("fileType", `accountancy_${selectedType}`)
+      formData.append("uploadMode", datasetType)
+      formData.append("dataset_type", datasetType)
+      formData.append("fileType", `${datasetType}_${selectedType}`)
 
-      debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", file.name)
+      debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", { fileName: file.name, datasetType })
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -336,15 +341,24 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     }
   }
 
-  const fileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode; accept: string }[] = [
+  const allFileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode; accept: string }[] = [
     { type: "csv", label: "CSV", icon: <FileText className="h-4 w-4" />, accept: ".csv" },
     { type: "excel", label: "Excel", icon: <FileText className="h-4 w-4" />, accept: ".xlsx,.xls" },
     { type: "pdf", label: "PDF", icon: <FileText className="h-4 w-4" />, accept: ".pdf" },
     { type: "receipt", label: "Receipts/Invoices", icon: <Receipt className="h-4 w-4" />, accept: ".pdf,.jpg,.jpeg,.png,.webp" },
     { type: "bank", label: "Bank exports", icon: <FileText className="h-4 w-4" />, accept: ".csv,.xlsx,.xls,.ofx,.qif" },
   ]
+  const fileTypeOptions = datasetType === "accountancy"
+    ? allFileTypeOptions.filter((option) => option.type === "csv" || option.type === "excel")
+    : allFileTypeOptions
 
   const selectedOption = fileTypeOptions.find((opt) => opt.type === selectedType)
+
+  React.useEffect(() => {
+    if (!selectedOption) {
+      setSelectedType(fileTypeOptions[0]?.type || "csv")
+    }
+  }, [fileTypeOptions, selectedOption])
 
   return (
     <div className="space-y-4">

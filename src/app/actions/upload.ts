@@ -366,6 +366,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const datasetCategory = isProfitabilityAnalysis ? "profitability" : getDatasetCategoryFromUpload(fileType)
     const datasetType = datasetCategory
     const baseAnalysis = {
+      dataset_type: datasetCategory,
       datasetCategory,
       datasetType: datasetCategory,
       uploadSource: fileType || datasetCategory,

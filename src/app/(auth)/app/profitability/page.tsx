@@ -1,9 +1,10 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
+import { resolveDatasetType } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
-import { and, count, eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { BarChart3, DollarSign, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
@@ -25,6 +26,7 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
     columnCount: number
     analysis: unknown
     precomputedMetrics: unknown
+    datasetType: string | null
   } | null = null
 
   const resolvedSearchParams = await searchParams
@@ -35,10 +37,13 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
     const db = getDb()
     if (db) {
       try {
-        const [countResult] = await db
-          .select({ count: count() })
-          .from(datasets)
-          .where(eq(datasets.userId, userId))
+        const profitabilityDatasets = await db.query.datasets.findMany({
+          where: eq(datasets.userId, userId),
+          columns: {
+            datasetType: true,
+            analysis: true,
+          },
+        })
 
         if (focusedDatasetId) {
           const datasetWhere = session?.user?.role === "superadmin"
@@ -54,11 +59,17 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
               columnCount: true,
               analysis: true,
               precomputedMetrics: true,
+              datasetType: true,
             },
           }) ?? null
+          if (focusedDataset && resolveDatasetType(focusedDataset.datasetType, focusedDataset.analysis) !== "profitability") {
+            focusedDataset = null
+          }
         }
 
-        _activeDatasets = (countResult?.count ?? 0) as number
+        _activeDatasets = profitabilityDatasets.filter((dataset) =>
+          resolveDatasetType(dataset.datasetType, dataset.analysis) === "profitability"
+        ).length
       } catch {
         // Continue without stats
       }

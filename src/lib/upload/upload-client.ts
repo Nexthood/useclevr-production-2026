@@ -1,6 +1,6 @@
 "use client"
 
-export type UploadMode = "standard" | "retail" | "profitability"
+export type UploadMode = "standard" | "retail" | "profitability" | "accountancy" | "prebookkeeping"
 
 export type UploadDatasetResponse = {
   ok?: boolean
@@ -46,6 +46,7 @@ export function createUploadFormData(input: {
   formData.append("file", input.file)
   formData.append("uploadMode", input.uploadMode)
   formData.append("dataset_type", input.uploadMode)
+  if (input.source) formData.append("fileType", input.source)
 
   for (const [key, value] of Object.entries(input.extraFields || {})) {
     formData.append(key, value)
