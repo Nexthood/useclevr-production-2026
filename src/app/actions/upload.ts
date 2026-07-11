@@ -27,6 +27,11 @@ type UploadCSVResult = {
   success: boolean
   error?: string
   datasetId?: string
+  datasetName?: string
+  datasetType?: string
+  rowsProcessed?: number
+  columnsDetected?: number
+  analysisStatus?: string
   redirectTo?: string
   fileName?: string
   preview?: { headers: string[]; rows: CsvRow[] }
@@ -635,6 +640,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     return {
       success: true,
       datasetId: datasetId,
+      datasetName: datasetName || file.name,
+      datasetType: datasetCategory,
+      rowsProcessed: totalRowCount,
+      columnsDetected: headers.length,
+      analysisStatus: "ready",
       redirectTo: getDatasetCategoryRedirect(datasetCategory, datasetId),
       fileName: file.name,
       preview: {

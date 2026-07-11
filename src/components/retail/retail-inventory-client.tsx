@@ -11,9 +11,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { StatCard } from "@/components/ui/stat-card"
+import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import { useToast } from "@/hooks/use-toast"
 import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
-import { uploadDatasetFile } from "@/lib/upload/upload-client"
+import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError } from "@/lib/utils/debug"
 
 type PageState = "idle" | "parsing" | "uploading" | "analyzing" | "complete" | "error"
@@ -392,6 +393,7 @@ export function RetailInventoryClient() {
   const [errorMessage, setErrorMessage] = useState("")
   const [processingStep, setProcessingStep] = useState(0)
   const [showAllColumns, setShowAllColumns] = useState(false)
+  const [uploadResult, setUploadResult] = useState<UploadDatasetResponse | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
@@ -471,6 +473,15 @@ export function RetailInventoryClient() {
       }
 
       setProcessingStep(4)
+      setUploadResult({
+        ...result,
+        datasetName: result.datasetName || data.fileName,
+        datasetType: result.datasetType || result.dataset_type || "retail",
+        rowsProcessed: result.rowsProcessed ?? data.rowCount,
+        columnsDetected: result.columnsDetected ?? data.columnCount,
+        analysisStatus: result.analysisStatus || "processing",
+        redirectTo: result.redirectTo || "/app/retail",
+      })
       setTimeout(() => startAnalysis(result.datasetId || null, data), 300)
     } catch (err) {
       debugError("Upload error:", err)
@@ -583,6 +594,7 @@ export function RetailInventoryClient() {
     setErrorMessage("")
     setProcessingStep(0)
     setShowAllColumns(false)
+    setUploadResult(null)
   }, [])
 
   const formatCurrency = (val: number) =>
@@ -702,6 +714,14 @@ export function RetailInventoryClient() {
             </div>
           </CardContent>
         </Card>
+
+        {state === "complete" && uploadResult && (
+          <UploadSuccessPanel
+            result={uploadResult}
+            uploadMode="retail"
+            onUploadAnother={reset}
+          />
+        )}
 
         {/* File Summary */}
         {parsedData && state !== "idle" && state !== "error" && (

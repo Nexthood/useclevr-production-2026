@@ -6,6 +6,7 @@ import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { UpgradeModal } from "@/components/shared/upgrade-modal"
+import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
@@ -58,6 +59,7 @@ export function CsvUpload() {
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
    const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
+   const [uploadResult, setUploadResult] = React.useState<UploadResponse | null>(null)
    const { toast } = useToast()
    const { showNotice } = useNotice()
   
@@ -168,6 +170,7 @@ export function CsvUpload() {
     setUploadProgress(0)
     setErrorMessage("")
     setLimitReachedInfo(null)
+    setUploadResult(null)
 
     // Show appropriate message based on file size tier
     if (isLargeFile) {
@@ -240,6 +243,11 @@ export function CsvUpload() {
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
+        setUploadResult({
+          ...result,
+          datasetType: result.datasetType || result.dataset_type || "standard",
+          analysisStatus: result.analysisStatus || "pending",
+        })
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         if (result.usage?.limitReached) {
           showNotice({
@@ -260,11 +268,6 @@ export function CsvUpload() {
             message: result.message || "Dataset uploaded successfully. AI analysis can be started separately.",
           })
         }
-        setTimeout(() => {
-          const redirectPath = result.redirectTo || "/app/datasets"
-          debugLog('[CSV-UPLOAD] Navigating to:', redirectPath)
-          window.location.href = redirectPath
-        }, 2000)
       } else {
         const uploadError = result.error || result.message || "Upload failed"
 
@@ -380,6 +383,18 @@ export function CsvUpload() {
     } finally {
       setUploading(false)
     }
+  }
+
+  const resetUploader = () => {
+    setUploading(false)
+    setUploadStatus("idle")
+    setUploadProgress(0)
+    setErrorMessage("")
+    setCurrentFileName("")
+    setProcessingStep(0)
+    setLimitReachedInfo(null)
+    setUploadResult(null)
+    checkConnection()
   }
 
   return (
@@ -621,6 +636,14 @@ export function CsvUpload() {
         </div>
       </label>
       </Card>
+
+      {uploadStatus === "success" && uploadResult && (
+        <UploadSuccessPanel
+          result={uploadResult}
+          uploadMode="standard"
+          onUploadAnother={resetUploader}
+        />
+      )}
 
       <UpgradeModal
         open={showUpgradeModal}

@@ -5,11 +5,12 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 import { Button } from "@/components/ui/button"
+import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { useToast } from "@/hooks/use-toast"
-import { uploadDatasetFile } from "@/lib/upload/upload-client"
+import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
 import * as React from "react"
@@ -37,6 +38,7 @@ export function ProfitabilityUpload() {
   const [isUploading, setIsUploading] = React.useState(false)
   const [dragActive, setDragActive] = React.useState<"revenue" | "expense" | null>(null)
   const [profitabilityResult, setProfitabilityResult] = React.useState<any>(null)
+  const [uploadResult, setUploadResult] = React.useState<UploadDatasetResponse | null>(null)
   const [generateStatus, setGenerateStatus] = React.useState<"idle" | "parsing" | "uploading" | "analyzing" | "success" | "partial_success" | "failure">("idle")
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
   const [reportGenerated, setReportGenerated] = React.useState(false)
@@ -671,16 +673,29 @@ export function ProfitabilityUpload() {
 
         if (result.success && result.profitabilityResult) {
           window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+          setUploadResult({
+            ...result,
+            datasetName: result.datasetName || primaryFile.name,
+            datasetType: result.datasetType || result.dataset_type || "profitability",
+            rowsProcessed: result.rowsProcessed ?? primaryFile.rowCount ?? 0,
+            columnsDetected: result.columnsDetected ?? primaryFile.columns?.length ?? 0,
+            analysisStatus: result.analysisStatus || "ready",
+            redirectTo: result.redirectTo || "/app/profitability",
+          })
           setProfitabilityResult(result.profitabilityResult)
           setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
-          toast({ title: "Analysis complete", description: "Opening Profitability with your analysis." })
-          if (result.redirectTo) {
-            window.location.href = result.redirectTo
-          }
+          toast({ title: "Analysis complete", description: "Profitability analysis is ready." })
         } else if (result.success && result.redirectTo) {
           window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+          setUploadResult({
+            ...result,
+            datasetName: result.datasetName || primaryFile.name,
+            datasetType: result.datasetType || result.dataset_type || "profitability",
+            rowsProcessed: result.rowsProcessed ?? primaryFile.rowCount ?? 0,
+            columnsDetected: result.columnsDetected ?? primaryFile.columns?.length ?? 0,
+            analysisStatus: result.analysisStatus || "ready",
+          })
           setGenerateStatus("success")
-          window.location.href = result.redirectTo
         } else {
           setGenerateStatus("failure")
           if (result.usage?.limitReached) {
@@ -721,6 +736,15 @@ export function ProfitabilityUpload() {
       {step < 3 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
     </div>
   )
+
+  const resetUploadFlow = () => {
+    setRevenueFile(null)
+    setExpenseFile(null)
+    setProfitabilityResult(null)
+    setUploadResult(null)
+    setGenerateStatus("idle")
+    setActiveSection(null)
+  }
 
   const renderDropZone = (type: "revenue" | "expense", file: UploadedFile | null) => {
     const isActive = dragActive === type
@@ -1084,9 +1108,7 @@ export function ProfitabilityUpload() {
           <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <Button
               onClick={() => {
-                setRevenueFile(null)
-                setExpenseFile(null)
-                setProfitabilityResult(null)
+                resetUploadFlow()
               }}
               variant="outline"
               size="sm"
@@ -1111,6 +1133,14 @@ export function ProfitabilityUpload() {
             </Button>
           </div>
         </div>
+
+        {uploadResult && (
+          <UploadSuccessPanel
+            result={uploadResult}
+            uploadMode="profitability"
+            onUploadAnother={resetUploadFlow}
+          />
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
@@ -1662,6 +1692,14 @@ export function ProfitabilityUpload() {
             )}
           </Button>
         </Card>
+      )}
+
+      {uploadResult && !profitabilityResult && (
+        <UploadSuccessPanel
+          result={uploadResult}
+          uploadMode="profitability"
+          onUploadAnother={resetUploadFlow}
+        />
       )}
     </div>
   )

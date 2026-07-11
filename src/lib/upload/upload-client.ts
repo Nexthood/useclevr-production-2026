@@ -13,6 +13,12 @@ export type UploadDatasetResponse = {
   missingFields?: string[]
   receivedFields?: string[]
   datasetId?: string
+  datasetName?: string
+  datasetType?: UploadMode | string
+  dataset_type?: UploadMode | string
+  rowsProcessed?: number
+  columnsDetected?: number
+  analysisStatus?: string
   redirectTo?: string
   fileName?: string
   profitabilityResult?: Record<string, unknown>
