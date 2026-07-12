@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Fix Dataset Library deletion so confirmed single and bulk deletes remove authorized datasets, reset selection and confirmation states, keep failed items retryable, and show a centered accessible confirmation dialog.
 - Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, safe retrieval-document storage, bounded dataset-context ingestion, hybrid semantic and keyword search, superadmin diagnostics, and tenant-isolation validation.
 - Make the Executive Dashboard use one dataset summary for uploaded dataset counts, processed rows, file types, detected columns, Daily Health freshness, and compact tabbed analytics.
 - Show a persistent Standard Upload success panel with dataset summary, rows, columns, analysis status, dashboard navigation, dataset navigation, and upload-another actions.

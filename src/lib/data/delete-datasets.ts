@@ -1,16 +1,16 @@
 import { recordActivity } from "@/lib/activity/activity-store"
-import { deleteAccuracyDocumentsForDatasets } from "@/lib/accuracy/ingestion"
 import { canAccessAllDatasets } from "@/lib/data/dataset-access"
 import { deleteFile } from "@/lib/data/upload-handler"
 import { db } from "@/lib/db"
 import {
+  accuracyIngestionJobs,
   aiCostLogs,
   aiInteractionTraces,
   aiRequestAuditLogs,
-  creditLedger,
   datasetRows,
   datasets,
   mcpAuditLogs,
+  retrievalDocuments,
   userActivities,
 } from "@/lib/db/schema"
 import { deleteReportsForDatasets } from "@/lib/reports/report-generator"
@@ -26,6 +26,10 @@ export type DeleteDatasetsResult = {
   ok: boolean
   deletedIds: string[]
   failed: DeleteDatasetFailure[]
+  cleanup: {
+    accuracyDocuments: number
+    accuracyJobs: number
+  }
   deletedReports: string[]
   storage: {
     deleted: string[]
@@ -59,6 +63,7 @@ export async function deleteDatasetsForUser({
       ok: false,
       deletedIds: [],
       failed: [],
+      cleanup: { accuracyDocuments: 0, accuracyJobs: 0 },
       deletedReports: [],
       storage: { deleted: [], missingOrFailed: [] },
     }
@@ -94,32 +99,39 @@ export async function deleteDatasetsForUser({
       ok: false,
       deletedIds: [],
       failed,
+      cleanup: { accuracyDocuments: 0, accuracyJobs: 0 },
       deletedReports: [],
       storage: { deleted: [], missingOrFailed: [] },
     }
   }
 
+  const cleanup = { accuracyDocuments: 0, accuracyJobs: 0 }
   await db.transaction(async (tx) => {
-    await tx.delete(aiInteractionTraces).where(inArray(aiInteractionTraces.datasetId, accessibleIds))
-    await tx.delete(aiRequestAuditLogs).where(inArray(aiRequestAuditLogs.datasetId, accessibleIds))
-    await tx.delete(aiCostLogs).where(inArray(aiCostLogs.datasetId, accessibleIds))
-    await tx.delete(mcpAuditLogs).where(inArray(mcpAuditLogs.datasetId, accessibleIds))
-    await tx.delete(creditLedger).where(inArray(creditLedger.relatedDatasetId, accessibleIds))
-    for (const datasetId of accessibleIds) {
-      await tx.delete(userActivities).where(sql`
-        ${userActivities.metadata}->>'datasetId' = ${datasetId}
-        OR COALESCE(${userActivities.metadata}->'datasetIds', '[]'::jsonb) @> ${JSON.stringify([datasetId])}::jsonb
-      `)
+    const accuracyCleanup = await deleteAccuracyRecordsIfTablesExist(tx, accessibleIds)
+    cleanup.accuracyDocuments = accuracyCleanup.documents
+    cleanup.accuracyJobs = accuracyCleanup.jobs
+    if (await tableExists(tx, "AiInteractionTrace")) {
+      await tx.delete(aiInteractionTraces).where(inArray(aiInteractionTraces.datasetId, accessibleIds))
+    }
+    if (await tableExists(tx, "AiRequestAuditLog")) {
+      await tx.delete(aiRequestAuditLogs).where(inArray(aiRequestAuditLogs.datasetId, accessibleIds))
+    }
+    if (await tableExists(tx, "AICostLog")) {
+      await tx.delete(aiCostLogs).where(inArray(aiCostLogs.datasetId, accessibleIds))
+    }
+    if (await tableExists(tx, "MCPAuditLog")) {
+      await tx.delete(mcpAuditLogs).where(inArray(mcpAuditLogs.datasetId, accessibleIds))
+    }
+    if (await tableExists(tx, "UserActivity")) {
+      for (const datasetId of accessibleIds) {
+        await tx.delete(userActivities).where(sql`
+          ${userActivities.metadata}->>'datasetId' = ${datasetId}
+          OR COALESCE(${userActivities.metadata}->'datasetIds', '[]'::jsonb) @> ${JSON.stringify([datasetId])}::jsonb
+        `)
+      }
     }
     await tx.delete(datasetRows).where(inArray(datasetRows.datasetId, accessibleIds))
     await tx.delete(datasets).where(inArray(datasets.id, accessibleIds))
-  })
-
-  await deleteAccuracyDocumentsForDatasets(accessibleIds).catch((error) => {
-    debugError("[DATASETS DELETE] Accuracy retrieval cleanup failed:", {
-      datasetIds: accessibleIds,
-      error: error instanceof Error ? error.message : String(error),
-    })
   })
 
   const storage: DeleteDatasetsResult["storage"] = { deleted: [], missingOrFailed: [] }
@@ -170,6 +182,8 @@ export async function deleteDatasetsForUser({
       count: accessibleIds.length,
       datasetTypes: accessibleDatasets.map((dataset) => dataset.datasetType || "standard"),
       rowCount: accessibleDatasets.reduce((total, dataset) => total + (dataset.rowCount || 0), 0),
+      accuracyDocumentsDeleted: cleanup.accuracyDocuments,
+      accuracyJobsDeleted: cleanup.accuracyJobs,
       storageDeleted: storage.deleted.length,
       storageMissingOrFailed: storage.missingOrFailed.length,
       deletedReports: reportCleanup.deletedReportIds.length,
@@ -180,7 +194,49 @@ export async function deleteDatasetsForUser({
     ok: failed.length === 0,
     deletedIds: accessibleIds,
     failed,
+    cleanup,
     deletedReports: reportCleanup.deletedReportIds,
     storage,
   }
+}
+
+async function deleteAccuracyRecordsIfTablesExist(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  datasetIds: string[],
+) {
+  const documentsTableExists = await tableExists(tx, "RetrievalDocument")
+  const jobsTableExists = await tableExists(tx, "AccuracyIngestionJob")
+  let documents = 0
+  let jobs = 0
+
+  if (documentsTableExists) {
+    const deleted = await tx.delete(retrievalDocuments)
+      .where(inArray(retrievalDocuments.datasetId, datasetIds))
+      .returning()
+    documents = deleted.length
+  }
+
+  if (jobsTableExists) {
+    const deleted = await tx.delete(accuracyIngestionJobs)
+      .where(inArray(accuracyIngestionJobs.datasetId, datasetIds))
+      .returning()
+    jobs = deleted.length
+  }
+
+  return { documents, jobs }
+}
+
+async function tableExists(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], tableName: string) {
+  const result = await tx.execute(sql`
+    SELECT to_regclass(${`"${tableName}"`}) IS NOT NULL AS "exists"
+  `)
+  return extractRows(result).some((row) => row.exists === true || row.exists === "t")
+}
+
+function extractRows(result: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(result)) return result as Array<Record<string, unknown>>
+  if (result && typeof result === "object" && "rows" in result && Array.isArray((result as { rows: unknown }).rows)) {
+    return (result as { rows: Array<Record<string, unknown>> }).rows
+  }
+  return []
 }

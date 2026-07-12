@@ -196,7 +196,17 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       setDatasets((current) => current.filter((dataset) => !deletedIds.has(dataset.id)))
     }
 
-    setSelectedIds(failedIds)
+    if (failedIds.size > 0) {
+      setSelectedIds((current) => {
+        const next = new Set<string>()
+        for (const datasetId of current) {
+          if (failedIds.has(datasetId) && !deletedIds.has(datasetId)) next.add(datasetId)
+        }
+        return next
+      })
+    } else {
+      setSelectedIds(new Set())
+    }
   }
 
   const rightSidebar = (
@@ -271,6 +281,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
                 <BatchDeleteButton
                   datasetIds={Array.from(selectedIds)}
                   onDeleted={handleBulkDelete}
+                  onResetSelection={() => setSelectedIds(new Set())}
                 />
               )
             }

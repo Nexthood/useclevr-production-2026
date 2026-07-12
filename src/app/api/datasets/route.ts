@@ -198,6 +198,7 @@ export async function DELETE(request: Request) {
       deletedIds: result.deletedIds,
       failed: result.failed,
       deletedCount: result.deletedIds.length,
+      cleanup: result.cleanup,
       deletedReports: result.deletedReports,
       storage: result.storage,
       message: result.failed.length > 0
