@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-12
-- **Goal**: Apply and verify the Accuracy Engine migration on the temporary Neon branch only.
-- **Durable change**: No database mutation ran because the connected Neon endpoint exposes branch ID `br-crimson-sun-ai49oqj4` but does not expose the exact required branch name `accuracy-lakebase-test`.
-- **Verification**: Read-only catalog checks confirm database `neondb`, schema `public`, PostgreSQL 17.10, Lakebase mode off, requested extensions available but not installed, and retrieval tables absent.
+- **Goal**: Implement the production-grade UseClevr Credit Engine foundation.
+- **Durable change**: Existing credit storage now supports auditable reservations, finalized charges, released failures, refunds, idempotency, provider usage metadata, fixed-precision internal costs, real sidebar balances, and protected AI Assistant, dataset analysis, and report generation server paths.
+- **Verification**: `pnpm test:credit-engine` and `pnpm exec tsc --noEmit --pretty false --incremental false` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

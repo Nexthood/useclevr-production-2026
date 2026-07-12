@@ -10,6 +10,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { google } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
+import { normalizeProviderUsage, type ProviderUsage } from '@/lib/billing/provider-usage';
 import { normalizeDataset, generateAggregatedContext } from './sql-executor';
 import { formatAIResponse } from './explanation';
 import type { AppSearchResult } from '@/lib/search/app-search';
@@ -237,6 +238,7 @@ export async function handleRegularChat(
   providerName?: string;
   modelName?: string;
   providerStatus?: ChatProviderStatus;
+  usage?: ProviderUsage;
 }> {
   const { datasetInfo, rows } = await fetchDatasetForChat(datasetId);
 
@@ -258,6 +260,7 @@ export async function handleRegularChat(
           providerName: result.providerName,
           modelName: result.modelName,
           providerStatus: providerStatusFromAdapterResult(result.providerType, result.providerName, result.fallbackUsed, result.mode, result.route),
+          usage: result.usage,
         };
       }
     } catch (error) {
@@ -291,7 +294,7 @@ export async function handleRegularChat(
   }
 
   try {
-    const { text } = await generateText({
+    const { text, usage } = await generateText({
       model: google('gemini-2.5-flash'),
       messages: buildMessages(messages, systemContent) as any,
       temperature: 0.3,
@@ -303,6 +306,12 @@ export async function handleRegularChat(
       content: formatAIResponse(text),
       providerName: "gemini-cloud",
       modelName: "gemini-2.5-flash",
+      usage: normalizeProviderUsage({
+        provider: "google",
+        model: "gemini-2.5-flash",
+        usage: usage as Record<string, unknown> | undefined,
+        rawUsageReference: usage ? { source: "ai_sdk_usage" } : { source: "missing_provider_usage" },
+      }),
       providerStatus: {
         label: "Cloud fallback",
         state: "connection_healthy",

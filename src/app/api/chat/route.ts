@@ -6,7 +6,8 @@ import {
   generateExplanationPrompt
 } from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
-import { checkCredits, initializeUserCredits } from '@/lib/billing/credit-engine';
+import { finalizeCredits, initializeUserCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { emptyProviderUsage, estimateUsageFromText } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billing/usage-enforcement';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
@@ -288,20 +289,6 @@ export async function POST(request: Request) {
 
     await initializeUserCredits(userId, subscriptionTier);
 
-    const creditCheck = await checkCredits(userId, "ai_chat");
-    if (!creditCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Insufficient credits',
-          message: creditCheck.upgradeMessage || 'You do not have enough credits for this chat request.',
-          upgradeRequired: true,
-          remainingCredits: creditCheck.remainingCredits,
-        },
-        { status: 402 }
-      );
-    }
-
     const enforcementCheck = await checkActionEnforcement(
       userId,
       "ai_chat",
@@ -390,19 +377,73 @@ export async function POST(request: Request) {
       return handleAnalyticalQuery(datasetId, lastMessage, !!stream, userId);
     }
 
-    if (stream) {
-      const readable = await handleRegularChatStream(messages, datasetId, processedData, appSearchResults, userId);
-      return streamResponse(readable);
+    const operationId = `chat:${userId}:${crypto.randomUUID()}`;
+    const reservation = await reserveCredits({
+      userId,
+      operationId,
+      idempotencyKey: request.headers.get('idempotency-key') || operationId,
+      feature: 'ai_question',
+      source: 'api',
+      role: session?.user?.role ?? null,
+      email: session?.user?.email ?? null,
+      metadata: { datasetId: datasetId || null, stream: Boolean(stream) },
+    });
+    if (!reservation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Insufficient credits',
+          message: reservation.error || 'You do not have enough credits for this chat request.',
+          upgradeRequired: true,
+          remainingCredits: reservation.availableCredits,
+        },
+        { status: 402 }
+      );
     }
 
-    const result = await handleRegularChat(messages, datasetId, processedData, appSearchResults, userId);
+    if (stream) {
+      try {
+        const readable = await handleRegularChatStream(messages, datasetId, processedData, appSearchResults, userId);
+        await finalizeCredits({
+          operationId,
+          actualCredits: reservation.reservedCredits,
+          actualUsage: emptyProviderUsage('google', 'gemini-2.5-flash'),
+          metadata: { stream: true, usageSource: 'reserved_estimate' },
+        });
+        return streamResponse(readable);
+      } catch (streamError) {
+        await releaseCredits(operationId, 'chat_stream_failed');
+        throw streamError;
+      }
+    }
+
+    let result: Awaited<ReturnType<typeof handleRegularChat>>;
+    try {
+      result = await handleRegularChat(messages, datasetId, processedData, appSearchResults, userId);
+    } catch (chatError) {
+      await releaseCredits(operationId, 'chat_failed');
+      throw chatError;
+    }
 
     if (!result.success) {
+      await releaseCredits(operationId, 'chat_provider_failed');
       return NextResponse.json(
         { success: false, error: result.content },
         { status: 500 }
       );
     }
+
+    await finalizeCredits({
+      operationId,
+      actualCredits: reservation.reservedCredits,
+      actualUsage: result.usage ?? estimateUsageFromText({
+        provider: result.providerName || 'google',
+        model: result.modelName || 'gemini-2.5-flash',
+        prompt: lastMessage,
+        output: result.content,
+      }),
+      metadata: { datasetId: datasetId || null },
+    });
 
     logChatExecution('AI_CALL_COMPLETE', { datasetId, responseLength: result.content.length });
 

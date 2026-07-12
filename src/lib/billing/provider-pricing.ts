@@ -4,6 +4,7 @@ import { eq, and, isNull } from "drizzle-orm"
 import { cache } from "react"
 
 export type ProviderName = "openai" | "anthropic" | "google" | "ollama" | "local"
+export const PRICING_VERSION = "2026-07-12"
 
 export interface ModelPricing {
   id: string
@@ -177,6 +178,24 @@ export function calculateTokenCost(
   const inputCost = (inputTokens / 1_000_000) * pricing.inputCostPer1M
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPer1M
   return Math.round((inputCost + outputCost) * 100) / 100
+}
+
+export function calculateTokenCostMinor(
+  model: string,
+  usage: {
+    inputTokens?: number
+    outputTokens?: number
+    thinkingTokens?: number
+    cachedTokens?: number
+    embeddingTokens?: number
+  }
+): number {
+  const pricing = getModelPricing(model)
+  const billableInputTokens = Math.max(0, (usage.inputTokens ?? 0) - (usage.cachedTokens ?? 0))
+  const inputMinor = Math.ceil((billableInputTokens * pricing.inputCostPer1M) / 1_000_000)
+  const outputMinor = Math.ceil((((usage.outputTokens ?? 0) + (usage.thinkingTokens ?? 0)) * pricing.outputCostPer1M) / 1_000_000)
+  const embeddingMinor = Math.ceil(((usage.embeddingTokens ?? 0) * pricing.inputCostPer1M) / 1_000_000)
+  return Math.max(0, inputMinor + outputMinor + embeddingMinor)
 }
 
 export function getAllProviderModels(): Array<{ provider: ProviderName; model: string }> {

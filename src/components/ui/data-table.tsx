@@ -46,6 +46,26 @@ export function DataTable<T extends Record<string, unknown>>({
   const [localSelectedRows, setLocalSelectedRows] = React.useState<Set<string>>(new Set<string>())
   const activeSelectedRows = onSelectedRowsChange ? selectedRows : localSelectedRows
   const setActiveSelectedRows = onSelectedRowsChange || setLocalSelectedRows
+  const selectAllRef = React.useRef<HTMLInputElement | null>(null)
+  const rowIds = React.useMemo(
+    () => rows.map((row, rowIndex) => String(rowKey?.(row, rowIndex) || rowIndex)),
+    [rows, rowKey],
+  )
+  const visibleSelectedCount = rowIds.filter((id) => activeSelectedRows.has(id)).length
+
+  React.useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = visibleSelectedCount > 0 && visibleSelectedCount < rows.length
+    }
+  }, [rows.length, visibleSelectedCount])
+
+  React.useEffect(() => {
+    const visibleIds = new Set(rowIds)
+    const next = new Set(Array.from(activeSelectedRows).filter((id) => visibleIds.has(id)))
+    if (next.size !== activeSelectedRows.size) {
+      setActiveSelectedRows(next)
+    }
+  }, [activeSelectedRows, rowIds, setActiveSelectedRows])
 
   const toggleRow = (row: T, rowIndex: number) => {
     const id = String(rowKey?.(row, rowIndex) || rowIndex)
@@ -59,10 +79,10 @@ export function DataTable<T extends Record<string, unknown>>({
   }
 
   const toggleAll = () => {
-    if (activeSelectedRows.size === rows.length) {
+    if (rows.length > 0 && visibleSelectedCount === rows.length) {
       setActiveSelectedRows(new Set<string>())
     } else {
-      setActiveSelectedRows(new Set(rows.map((row, rowIndex) => String(rowKey?.(row, rowIndex) || rowIndex))))
+      setActiveSelectedRows(new Set(rowIds))
     }
   }
 
@@ -78,7 +98,7 @@ export function DataTable<T extends Record<string, unknown>>({
             <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
               {selectable && activeSelectedRows.size > 0 && (
                 <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
-                  <span className="whitespace-nowrap">{activeSelectedRows.size} selected</span>
+                  <span className="whitespace-nowrap">{visibleSelectedCount} selected</span>
                   {bulkActions}
                 </div>
               )}
@@ -94,9 +114,10 @@ export function DataTable<T extends Record<string, unknown>>({
               {selectable && (
                 <th className="px-4 py-3 text-center">
                   <input
+                    ref={selectAllRef}
                     type="checkbox"
                     aria-label="Select all rows"
-                    checked={rows.length > 0 && activeSelectedRows.size === rows.length}
+                    checked={rows.length > 0 && visibleSelectedCount === rows.length}
                     onChange={toggleAll}
                     className="h-4 w-4 rounded border-border accent-primary"
                   />

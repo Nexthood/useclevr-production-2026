@@ -50,7 +50,8 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
-import { checkCredits, deductCredits, getUserCreditInfo, initializeUserCredits } from "@/lib/billing/credit-engine";
+import { finalizeCredits, initializeUserCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { estimateUsageFromText } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
 
 type AiProviderStatus = {
@@ -195,6 +196,8 @@ export async function POST(request: Request) {
   let traceQuestion = ""
   let traceDatasetId: string | null = null
   let traceUserId: string | null = null
+  let creditOperationId: string | null = null
+  let reservedAnalysisCredits = 0
 
   try {
     let body;
@@ -326,8 +329,18 @@ export async function POST(request: Request) {
     if (!isDemoUser && effectiveUserId && !isSuperAdmin) {
       await initializeUserCredits(effectiveUserId, subscriptionTier)
 
-      const creditCheck = await checkCredits(effectiveUserId, "dataset_analysis")
-      if (!creditCheck.allowed) {
+      const operationId = `analysis:${effectiveUserId}:${crypto.randomUUID()}`
+      const reservation = await reserveCredits({
+        userId: effectiveUserId,
+        operationId,
+        idempotencyKey: request.headers.get("idempotency-key") || operationId,
+        feature: "standard_analysis",
+        source: "api",
+        role: session?.user?.role ?? null,
+        email: userEmail,
+        metadata: { datasetId: datasetId || null },
+      })
+      if (!reservation.success) {
         await logAiCost({
           userId: effectiveUserId,
           subscriptionPlan: subscriptionTier,
@@ -339,26 +352,29 @@ export async function POST(request: Request) {
           estimatedCostEur: 0,
           creditsCharged: 0,
           requestStatus: "blocked",
-          errorMessage: creditCheck.upgradeMessage,
+          errorMessage: reservation.error,
         })
         return Response.json({
           success: false,
           error: "Insufficient credits",
           answer: "You don't have enough AI credits for this analysis.",
           insight: "Credit limit reached",
-          explanation: creditCheck.upgradeMessage || "Upgrade your plan or purchase more credits.",
+          explanation: reservation.error || "Upgrade your plan or purchase more credits.",
           recommendation: "Visit the subscription page to upgrade.",
           data: [],
           chartType: "table",
           upgradeRequired: true,
-          remainingCredits: creditCheck.remainingCredits,
+          remainingCredits: reservation.availableCredits,
         }, { status: 402 })
       }
+      creditOperationId = operationId
+      reservedAnalysisCredits = reservation.reservedCredits
 
       const enforcementCheck = isSuperAdmin
         ? { allowed: true }
         : await checkActionEnforcement(effectiveUserId, "dataset_analysis", session?.user?.role ?? null, userEmail)
       if (!enforcementCheck.allowed) {
+        await releaseCredits(operationId, "usage_limit_blocked")
         await logAiCost({
           userId: effectiveUserId,
           subscriptionPlan: subscriptionTier,
@@ -703,6 +719,9 @@ try {
             }
           } catch (byoAiError) {
             if (isLocalAiUnavailableError(byoAiError)) {
+              if (creditOperationId) {
+                await releaseCredits(creditOperationId, "local_ai_unavailable")
+              }
               providerStatus = {
                 label: "Offline mode",
                 state: "local_unavailable",
@@ -877,10 +896,21 @@ try {
       })
       savedTraceId = trace?.id ?? null
 
-      // Deduct credits for successful analysis
-      if (!isSuperAdminAccess(traceUserId, userEmail)) {
-        const creditInfo = await getUserCreditInfo(traceUserId)
-        const deductionResult = await deductCredits(traceUserId, "dataset_analysis", traceDatasetId || undefined)
+      // Finalize credits only for successful AI-backed analysis; ordinary provider errors release reservations.
+      if (!isSuperAdminAccess(traceUserId, userEmail) && !llmError) {
+        const deductionResult = creditOperationId
+          ? await finalizeCredits({
+              operationId: creditOperationId,
+              actualCredits: reservedAnalysisCredits,
+              actualUsage: estimateUsageFromText({
+                provider: traceProvider.toLowerCase().includes("gemini") ? "google" : traceProvider.toLowerCase().includes("ollama") ? "ollama" : "openai",
+                model: traceModel,
+                prompt: question,
+                output: answer,
+              }),
+              metadata: { datasetId: traceDatasetId || null },
+            })
+          : { success: true, remainingCredits: 999999999, creditsDeducted: 0 }
 
         const latencyMs = Date.now() - requestStart
         await logAiCost({
@@ -897,6 +927,8 @@ try {
           datasetId: traceDatasetId || undefined,
           latencyMs,
         })
+      } else if (creditOperationId && llmError) {
+        await releaseCredits(creditOperationId, "ai_provider_failed")
       }
     }
 
@@ -931,6 +963,9 @@ try {
 
   } catch (error: any) {
     traceError = error?.message || "Unknown error"
+    if (creditOperationId) {
+      await releaseCredits(creditOperationId, "analysis_request_failed")
+    }
 
     debugError('[ANALYZE] FATAL ERROR:', error);
     debugError('[ANALYZE] Stack:', error?.stack);

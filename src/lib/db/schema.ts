@@ -903,6 +903,7 @@ export const userCredits = pgTable(
     planId: text("planId").notNull(),
     totalCredits: integer("totalCredits").notNull(),
     usedCredits: integer("usedCredits").default(0).notNull(),
+    reservedCredits: integer("reservedCredits").default(0).notNull(),
     remainingCredits: integer("remainingCredits").notNull(),
     creditsResetAt: timestamp("creditsResetAt").notNull(),
     lastResetAt: timestamp("lastResetAt"),
@@ -927,24 +928,64 @@ export const userCredits = pgTable(
   }),
 );
 
-export const creditLedgerTypes = ["credit_grant", "credit_used", "credit_refund", "credit_adjustment", "monthly_reset", "subscription_upgrade", "subscription_downgrade"] as const;
+export const creditLedgerTypes = [
+  "grant",
+  "purchase",
+  "subscription_reset",
+  "reservation",
+  "charge",
+  "release",
+  "refund",
+  "adjustment",
+  "expiry",
+  "credit_grant",
+  "credit_used",
+  "credit_refund",
+  "credit_adjustment",
+  "monthly_reset",
+  "subscription_upgrade",
+  "subscription_downgrade",
+] as const;
 export type CreditLedgerType = (typeof creditLedgerTypes)[number];
+
+export const creditLedgerStatuses = ["pending", "finalized", "released", "refunded", "failed"] as const;
+export type CreditLedgerStatus = (typeof creditLedgerStatuses)[number];
 
 export const creditLedger = pgTable(
   "CreditLedger",
   {
     id: text("id").primaryKey(),
+    workspaceId: text("workspaceId"),
     userId: text("userId").notNull(),
     type: varchar("type", { length: 30 }).notNull().$type<CreditLedgerType>(),
+    transactionType: varchar("transactionType", { length: 30 }).$type<CreditLedgerType>(),
+    status: varchar("status", { length: 30 }).default("finalized").notNull().$type<CreditLedgerStatus>(),
+    operationId: text("operationId"),
+    idempotencyKey: text("idempotencyKey"),
     amount: integer("amount").notNull(),
+    credits: integer("credits").default(0).notNull(),
     balanceBefore: integer("balanceBefore").notNull(),
     balanceAfter: integer("balanceAfter").notNull(),
+    source: varchar("source", { length: 50 }),
+    feature: varchar("feature", { length: 100 }),
+    provider: varchar("provider", { length: 50 }),
+    model: varchar("model", { length: 100 }),
+    inputTokens: integer("inputTokens").default(0).notNull(),
+    outputTokens: integer("outputTokens").default(0).notNull(),
+    thinkingTokens: integer("thinkingTokens").default(0).notNull(),
+    cachedTokens: integer("cachedTokens").default(0).notNull(),
+    embeddingTokens: integer("embeddingTokens").default(0).notNull(),
+    estimatedProviderCost: integer("estimatedProviderCost").default(0).notNull(),
+    currency: varchar("currency", { length: 3 }).default("EUR").notNull(),
+    pricingVersion: varchar("pricingVersion", { length: 40 }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
     action: varchar("action", { length: 100 }).notNull(),
     description: text("description"),
     relatedDatasetId: text("relatedDatasetId"),
     relatedPlanId: text("relatedPlanId"),
     adminUserId: text("adminUserId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    finalizedAt: timestamp("finalizedAt"),
   },
   (table) => ({
     userIdFk: foreignKey({
@@ -953,6 +994,10 @@ export const creditLedger = pgTable(
       name: "CreditLedger_userId_fkey",
     }).onDelete("cascade"),
     userIdIdx: index("CreditLedger_userId_idx").on(table.userId),
+    workspaceIdIdx: index("CreditLedger_workspaceId_idx").on(table.workspaceId),
+    operationIdIdx: index("CreditLedger_operationId_idx").on(table.operationId),
+    idempotencyKeyIdx: uniqueIndex("CreditLedger_idempotencyKey_key").on(table.idempotencyKey),
+    featureStatusIdx: index("CreditLedger_feature_status_idx").on(table.feature, table.status),
     typeIdx: index("CreditLedger_type_idx").on(table.type),
     createdAtIdx: index("CreditLedger_createdAt_idx").on(table.createdAt),
   }),
