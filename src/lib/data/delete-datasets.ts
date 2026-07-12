@@ -1,4 +1,5 @@
 import { recordActivity } from "@/lib/activity/activity-store"
+import { deleteAccuracyDocumentsForDatasets } from "@/lib/accuracy/ingestion"
 import { canAccessAllDatasets } from "@/lib/data/dataset-access"
 import { deleteFile } from "@/lib/data/upload-handler"
 import { db } from "@/lib/db"
@@ -112,6 +113,13 @@ export async function deleteDatasetsForUser({
     }
     await tx.delete(datasetRows).where(inArray(datasetRows.datasetId, accessibleIds))
     await tx.delete(datasets).where(inArray(datasets.id, accessibleIds))
+  })
+
+  await deleteAccuracyDocumentsForDatasets(accessibleIds).catch((error) => {
+    debugError("[DATASETS DELETE] Accuracy retrieval cleanup failed:", {
+      datasetIds: accessibleIds,
+      error: error instanceof Error ? error.message : String(error),
+    })
   })
 
   const storage: DeleteDatasetsResult["storage"] = { deleted: [], missingOrFailed: [] }

@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   foreignKey,
   index,
   integer,
@@ -9,8 +10,30 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+const vectorJson = customType<{ data: number[] | null; driverData: number[] | null }>({
+  dataType() {
+    return "jsonb";
+  },
+  toDriver(value) {
+    return value;
+  },
+  fromDriver(value) {
+    return Array.isArray(value) ? value : null;
+  },
+});
+
+export const accuracyDatasetTypes = [
+  "standard",
+  "retail",
+  "profitability",
+  "accountancy",
+  "prebookkeeping",
+] as const;
+export type AccuracyDatasetType = (typeof accuracyDatasetTypes)[number];
 
 // User table - NextAuth compatible
 export const users = pgTable(
@@ -263,7 +286,7 @@ export const datasets = pgTable(
     rowCount: integer("rowCount").default(0).notNull(),
     columnCount: integer("columnCount").default(0).notNull(),
     columns: jsonb("columns").$type<string[]>().default([]).notNull(),
-    data: jsonb("data").$type<Record<string, any>[]>().default([]).notNull(),
+    data: jsonb("data").$type<Record<string, unknown>[]>().default([]).notNull(),
     columnTypes: jsonb("columnTypes").$type<Record<string, string>>(),
 
     // Pipeline-specific fields
@@ -326,6 +349,99 @@ export const datasetRows = pgTable(
     }).onDelete("cascade"),
     datasetIdIdx: index("DatasetRow_datasetId_idx").on(table.datasetId),
     rowIndexIdx: index("DatasetRow_datasetId_rowIndex_idx").on(table.datasetId, table.rowIndex),
+  }),
+);
+
+export const retrievalDocumentSourceTypes = [
+  "dataset_summary",
+  "column_description",
+  "product_identity",
+  "supplier_identity",
+  "invoice_text",
+  "receipt_text",
+  "report_explanation",
+  "controlled_summary",
+  "document_chunk",
+] as const;
+export type RetrievalDocumentSourceType = (typeof retrievalDocumentSourceTypes)[number];
+
+export const retrievalDocuments = pgTable(
+  "RetrievalDocument",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("userId").notNull(),
+    datasetId: text("datasetId").notNull(),
+    datasetType: varchar("datasetType", { length: 50 }).notNull().$type<AccuracyDatasetType>(),
+    sourceType: varchar("sourceType", { length: 80 }).notNull().$type<RetrievalDocumentSourceType>(),
+    sourceRecordId: text("sourceRecordId").notNull(),
+    content: text("content").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+    embedding: vectorJson("embedding"),
+    embeddingModel: varchar("embeddingModel", { length: 160 }),
+    embeddingDimensions: integer("embeddingDimensions"),
+    contentHash: varchar("contentHash", { length: 64 }).notNull(),
+    language: varchar("language", { length: 16 }).default("und").notNull(),
+    ingestionStatus: varchar("ingestionStatus", { length: 30 }).default("ready").notNull(),
+    ingestionError: text("ingestionError"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "RetrievalDocument_userId_fkey",
+    }).onDelete("cascade"),
+    datasetIdFk: foreignKey({
+      columns: [table.datasetId],
+      foreignColumns: [datasets.id],
+      name: "RetrievalDocument_datasetId_fkey",
+    }).onDelete("cascade"),
+    userDatasetIdx: index("RetrievalDocument_userId_datasetId_idx").on(table.userId, table.datasetId),
+    datasetTypeIdx: index("RetrievalDocument_datasetType_idx").on(table.datasetType),
+    contentHashIdx: index("RetrievalDocument_contentHash_idx").on(table.contentHash),
+    sourceUniqueIdx: uniqueIndex("RetrievalDocument_source_unique_idx").on(
+      table.userId,
+      table.datasetId,
+      table.sourceType,
+      table.sourceRecordId,
+    ),
+  }),
+);
+
+export const accuracyIngestionStatuses = ["pending", "running", "completed", "failed"] as const;
+export type AccuracyIngestionStatus = (typeof accuracyIngestionStatuses)[number];
+
+export const accuracyIngestionJobs = pgTable(
+  "AccuracyIngestionJob",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    datasetId: text("datasetId").notNull(),
+    datasetType: varchar("datasetType", { length: 50 }).notNull().$type<AccuracyDatasetType>(),
+    status: varchar("status", { length: 30 }).default("pending").notNull().$type<AccuracyIngestionStatus>(),
+    documentCount: integer("documentCount").default(0).notNull(),
+    embeddedCount: integer("embeddedCount").default(0).notNull(),
+    skippedCount: integer("skippedCount").default(0).notNull(),
+    errorMessage: text("errorMessage"),
+    startedAt: timestamp("startedAt"),
+    completedAt: timestamp("completedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "AccuracyIngestionJob_userId_fkey",
+    }).onDelete("cascade"),
+    datasetIdFk: foreignKey({
+      columns: [table.datasetId],
+      foreignColumns: [datasets.id],
+      name: "AccuracyIngestionJob_datasetId_fkey",
+    }).onDelete("cascade"),
+    datasetIdIdx: index("AccuracyIngestionJob_datasetId_idx").on(table.datasetId),
+    userIdStatusIdx: index("AccuracyIngestionJob_userId_status_idx").on(table.userId, table.status),
   }),
 );
 
