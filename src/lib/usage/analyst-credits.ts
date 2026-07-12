@@ -1,5 +1,6 @@
 import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
-import { FREE_PLAN_LIMITS, getDatasetLimitForTier } from "@/lib/billing/plans"
+import { getUserCreditInfo, initializeUserCredits } from "@/lib/billing/credit-engine"
+import { FREE_PLAN_LIMITS, getCreditsLimitForTier, getDatasetLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
@@ -19,6 +20,11 @@ export const ROW_LIMITS = {
 export type AnalystCreditUsage = {
   analysisCount: number
   total: number
+  availableCredits: number
+  reservedCredits: number
+  usedCredits: number
+  remainingCredits: number
+  nextResetAt: string | null
   subscriptionTier: string
   canAnalyze: boolean
   limitReached: boolean
@@ -33,6 +39,11 @@ export type AnalystCreditUsage = {
 const defaultUsage: AnalystCreditUsage = {
   analysisCount: 0,
   total: FREE_ANALYST_CREDITS,
+  availableCredits: FREE_ANALYST_CREDITS,
+  reservedCredits: 0,
+  usedCredits: 0,
+  remainingCredits: FREE_ANALYST_CREDITS,
+  nextResetAt: null,
   subscriptionTier: "free",
   canAnalyze: true,
   limitReached: false,
@@ -73,10 +84,6 @@ function getUnlimitedLabel(tier: string, role?: string | null, userId?: string |
     return "Admin unlimited"
   }
 
-  if (tier === "pro" || tier === "business") {
-    return "Unlimited"
-  }
-
   return null
 }
 
@@ -93,6 +100,11 @@ export async function getAnalystCreditUsage(
     return {
       analysisCount: 0,
       total: 0,
+      availableCredits: 999999999,
+      reservedCredits: 0,
+      usedCredits: 0,
+      remainingCredits: 999999999,
+      nextResetAt: null,
       subscriptionTier: "superadmin",
       canAnalyze: true,
       limitReached: false,
@@ -110,6 +122,11 @@ export async function getAnalystCreditUsage(
     return {
       analysisCount: 0,
       total: 0,
+      availableCredits: 999999999,
+      reservedCredits: 0,
+      usedCredits: 0,
+      remainingCredits: 999999999,
+      nextResetAt: null,
       subscriptionTier,
       canAnalyze: true,
       limitReached: false,
@@ -148,7 +165,7 @@ export async function getAnalystCreditUsage(
     const subscriptionTier = adminAccess && storedTier === "free" ? profileRole || storedTier : storedTier
     const isPaid = subscriptionTier === "pro" || subscriptionTier === "business"
     const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
-    const hasUnlimitedAccess = isPaid || adminAccess
+    const hasUnlimitedAccess = adminAccess
     const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId) : null
     const [{ count: datasetTotal }] = await db
       .select({ count: count() })
@@ -156,15 +173,24 @@ export async function getAnalystCreditUsage(
       .where(eq(datasets.userId, userId))
     const datasetCount = Number(datasetTotal ?? 0)
     const limitedDatasetTotal = getDatasetLimitForTier(subscriptionTier)
-    const usageTotal = hasUnlimitedAccess ? 0 : limitedDatasetTotal
-    const analysisCount = hasUnlimitedAccess ? 0 : Math.min(datasetCount, usageTotal)
+    const creditInfo = await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
+    const usageTotal = hasUnlimitedAccess ? 0 : creditInfo?.totalCredits ?? getCreditsLimitForTier(subscriptionTier)
+    const usedCredits = hasUnlimitedAccess ? 0 : creditInfo?.usedCredits ?? 0
+    const availableCredits = hasUnlimitedAccess ? 999999999 : creditInfo?.availableCredits ?? usageTotal
+    const remainingCredits = hasUnlimitedAccess ? 999999999 : creditInfo?.remainingCredits ?? usageTotal
+    const reservedCredits = hasUnlimitedAccess ? 0 : creditInfo?.reservedCredits ?? 0
 
     return {
-      analysisCount,
+      analysisCount: usedCredits,
       total: usageTotal,
+      availableCredits,
+      reservedCredits,
+      usedCredits,
+      remainingCredits,
+      nextResetAt: creditInfo?.creditsResetAt?.toISOString() ?? null,
       subscriptionTier,
-      canAnalyze: hasUnlimitedAccess || datasetCount < limitedDatasetTotal,
-      limitReached: !hasUnlimitedAccess && datasetCount >= limitedDatasetTotal,
+      canAnalyze: hasUnlimitedAccess || availableCredits > 0,
+      limitReached: !hasUnlimitedAccess && availableCredits <= 0,
       unlimited: hasUnlimitedAccess,
       unlimitedLabel,
       datasetCount,

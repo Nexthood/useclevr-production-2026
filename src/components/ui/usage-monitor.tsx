@@ -11,9 +11,11 @@ interface UsageMonitorProps {
   total?: number
   isPro?: boolean
   unlimitedLabel?: string | null
+  available?: number
+  reserved?: number
 }
 
-export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }: UsageMonitorProps) {
+export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, available, reserved = 0 }: UsageMonitorProps) {
   const percent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
 
   // For pro users, show unlimited
@@ -65,8 +67,11 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
         Included Credits
       </h4>
       <p className="text-sm font-medium text-foreground">
-        {used} / {total} used
+        {available ?? Math.max(0, total - used)} available
       </p>
+      {reserved > 0 && (
+        <p className="mt-1 text-xs text-muted-foreground">{reserved} reserved</p>
+      )}
       <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
         <div
           className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-purple-500"
@@ -84,6 +89,8 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel }:
 export function useUsage() {
   const [usage, setUsage] = React.useState(0)
   const [total, setTotal] = React.useState(2)
+  const [available, setAvailable] = React.useState(2)
+  const [reserved, setReserved] = React.useState(0)
   const [isPro, setIsPro] = React.useState(false)
   const [unlimitedLabel, setUnlimitedLabel] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -112,9 +119,11 @@ export function useUsage() {
         const data = await res.json()
         const hasUnlimitedAccess =
           Boolean(data.unlimited) ||
-          ["pro", "business", "superadmin", "admin"].includes(data.subscriptionTier)
-        setUsage(data.analysisCount || 0)
+          ["superadmin", "admin"].includes(data.subscriptionTier)
+        setUsage(data.usedCredits ?? data.analysisCount ?? 0)
         setTotal(data.total ?? 2)
+        setAvailable(data.availableCredits ?? Math.max(0, (data.total ?? 2) - (data.usedCredits ?? data.analysisCount ?? 0)))
+        setReserved(data.reservedCredits ?? 0)
         setIsPro(hasUnlimitedAccess)
         setUnlimitedLabel(data.unlimitedLabel || null)
         setLimitReached(Boolean(data.limitReached))
@@ -141,5 +150,5 @@ export function useUsage() {
     return () => window.removeEventListener(USAGE_REFRESH_EVENT, handleRefresh)
   }, [refreshUsage])
 
-  return { usage, total, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
+  return { usage, total, available, reserved, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
 }

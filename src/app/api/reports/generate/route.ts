@@ -5,7 +5,8 @@ import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { checkCredits, deductCredits, initializeUserCredits } from '@/lib/billing/credit-engine';
+import { finalizeCredits, initializeUserCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { emptyProviderUsage } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
 import fs from 'fs';
 import { NextResponse } from 'next/server';
@@ -264,8 +265,18 @@ export async function POST(request: Request) {
     const subscriptionTier = profile.subscriptionTier || 'free';
     await initializeUserCredits(userId, subscriptionTier);
 
-    const creditCheck = await checkCredits(userId, 'report_generation');
-    if (!creditCheck.allowed) {
+    const operationId = `report:${userId}:${crypto.randomUUID()}`;
+    const reservation = await reserveCredits({
+      userId,
+      operationId,
+      idempotencyKey: request.headers.get('idempotency-key') || operationId,
+      feature: 'report_generation',
+      source: 'api',
+      role: (session?.user as { role?: string })?.role ?? null,
+      email: session?.user?.email ?? null,
+      metadata: { format },
+    });
+    if (!reservation.success) {
       await logAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
@@ -277,10 +288,10 @@ export async function POST(request: Request) {
         estimatedCostEur: 0,
         creditsCharged: 0,
         requestStatus: 'blocked',
-        errorMessage: creditCheck.upgradeMessage,
+        errorMessage: reservation.error,
       });
       return NextResponse.json(
-        { success: false, error: creditCheck.upgradeMessage || 'No credits remaining. Please upgrade to generate reports.' },
+        { success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' },
         { status: 402 }
       );
     }
@@ -292,6 +303,7 @@ export async function POST(request: Request) {
       session?.user?.email ?? null
     );
     if (!enforcementCheck.allowed) {
+      await releaseCredits(operationId, 'usage_limit_blocked');
       await logAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
@@ -316,11 +328,23 @@ export async function POST(request: Request) {
     const fileName = `report_${userId}_${timestamp}.${format}`;
 
     // 7. Generate report file
-    const fileUrl = await generateReportFile(format, reportData, fileName);
+    let fileUrl: string
+    try {
+      fileUrl = await generateReportFile(format, reportData, fileName);
+    } catch (generationError) {
+      await releaseCredits(operationId, 'report_generation_failed');
+      throw generationError;
+    }
 
-    const deduction = await deductCredits(userId, 'report_generation');
+    const deduction = await finalizeCredits({
+      operationId,
+      actualCredits: reservation.reservedCredits,
+      actualUsage: emptyProviderUsage('system', 'report-generator'),
+      metadata: { format, fileName },
+    });
     if (!deduction.success) {
-      return NextResponse.json({ success: false, error: deduction.error || 'Unable to deduct report credits.' }, { status: 402 });
+      await releaseCredits(operationId, 'report_charge_failed');
+      return NextResponse.json({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 });
     }
 
     debugLog(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${deduction.remainingCredits}`);

@@ -21,6 +21,7 @@ import {
 } from "@/lib/hybrid-ai/feature-gate";
 import type { HybridAiFeatureId } from "@/lib/hybrid-ai/features";
 import { debugLog, debugWarn } from "@/lib/utils/debug";
+import { normalizeProviderUsage, type ProviderUsage } from "@/lib/billing/provider-usage";
 
 export interface ServerAiTextResult {
   text: string;
@@ -29,6 +30,7 @@ export interface ServerAiTextResult {
   fallbackUsed: boolean;
   source: "user-provider" | "default-cloud";
   statusMessage?: string;
+  usage?: ProviderUsage;
 }
 
 export async function generateServerAiText(
@@ -79,6 +81,7 @@ export async function generateServerAiText(
           modelName: result.modelName,
           fallbackUsed: result.fallbackUsed,
           source: "user-provider",
+          usage: result.usage,
         };
       }
 
@@ -113,7 +116,7 @@ export async function generateServerAiText(
   }
 
   try {
-    const { text } = await generateText({
+    const { text, usage } = await generateText({
       model: google("gemini-2.5-flash"),
       prompt,
     });
@@ -142,6 +145,12 @@ export async function generateServerAiText(
       modelName: "gemini-2.5-flash",
       fallbackUsed: Boolean(options.userId),
       source: "default-cloud",
+      usage: normalizeProviderUsage({
+        provider: "google",
+        model: "gemini-2.5-flash",
+        usage: usage as Record<string, unknown> | undefined,
+        rawUsageReference: usage ? { source: "ai_sdk_usage" } : { source: "missing_provider_usage" },
+      }),
     };
   } catch (error) {
     if (options.userId) {

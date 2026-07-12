@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { aiProviderConfigs, appSettings } from "@/lib/db/schema";
 import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
+import { normalizeProviderUsage, type ProviderUsage } from "@/lib/billing/provider-usage";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 export type AiProviderType =
@@ -62,11 +63,13 @@ type ChatCompletionResponse = {
     };
     text?: unknown;
   }>;
+  usage?: Record<string, unknown>;
   error?: unknown;
 };
 
 type AnthropicMessageResponse = {
   content?: Array<{ type?: string; text?: unknown }>;
+  usage?: Record<string, unknown>;
   error?: { message?: unknown; type?: unknown };
 };
 
@@ -76,6 +79,7 @@ type GeminiGenerateResponse = {
       parts?: Array<{ text?: unknown }>;
     };
   }>;
+  usageMetadata?: Record<string, unknown>;
   error?: { message?: unknown; status?: unknown };
 };
 
@@ -120,6 +124,12 @@ export type UniversalAiGenerateResult = {
   fallbackUsed: boolean;
   mode: AiMode;
   route: "local" | "cloud";
+  usage?: ProviderUsage;
+};
+
+type ProviderChatResult = {
+  text: string;
+  usage?: ProviderUsage;
 };
 
 export class LocalAiUnavailableError extends Error {
@@ -432,7 +442,7 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
           error: statusError instanceof Error ? statusError.message : String(statusError),
         });
       });
-      const text = await callProviderChat(provider, prompt, 900);
+      const chatResult = await callProviderChat(provider, prompt, 900);
       if (index > 0) {
         debugWarn("[AI_PROVIDER] Fallback provider used after primary provider failed", {
           userId,
@@ -444,13 +454,14 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
       }
 
       return {
-        text,
+        text: chatResult.text,
         providerName: provider.providerName,
         providerType: provider.providerType,
         modelName: provider.modelName,
         fallbackUsed: index > 0,
         mode,
         route: isLocalProvider(provider.providerType) ? "local" : "cloud",
+        usage: chatResult.usage,
       } satisfies UniversalAiGenerateResult;
     } catch (error) {
       lastError = error;
@@ -585,7 +596,7 @@ async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<A
     latencyMs: Date.now() - startedAt,
     availableModels,
     modelConfirmed: true,
-    sample: answer.slice(0, 120),
+    sample: answer.text.slice(0, 120),
     checkedAt: new Date().toISOString(),
   };
 }
@@ -730,7 +741,7 @@ function requiresApiKey(providerType: AiProviderType) {
   return ["openai", "anthropic", "google-gemini", "azure-openai"].includes(providerType);
 }
 
-async function callProviderChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
+async function callProviderChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number): Promise<ProviderChatResult> {
   switch (provider.providerType) {
     case "anthropic":
       return callAnthropicChat(provider, prompt, maxTokens);
@@ -768,7 +779,15 @@ async function callOpenAICompatibleChat(provider: PrivateAiProviderConfig, promp
     throw new Error("Provider returned an empty response.");
   }
 
-  return content.trim();
+  return {
+    text: content.trim(),
+    usage: normalizeProviderUsage({
+      provider: normalizeBillingProvider(provider.providerType),
+      model: provider.modelName,
+      usage: body.usage,
+      rawUsageReference: body.usage ? { source: "openai_compatible_usage" } : { source: "missing_provider_usage" },
+    }),
+  };
 }
 
 async function callAnthropicChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
@@ -793,7 +812,15 @@ async function callAnthropicChat(provider: PrivateAiProviderConfig, prompt: stri
     throw new Error("Provider returned an empty response.");
   }
 
-  return content.trim();
+  return {
+    text: content.trim(),
+    usage: normalizeProviderUsage({
+      provider: "anthropic",
+      model: provider.modelName,
+      usage: body.usage,
+      rawUsageReference: body.usage ? { source: "anthropic_usage" } : { source: "missing_provider_usage" },
+    }),
+  };
 }
 
 async function callGeminiChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
@@ -813,7 +840,15 @@ async function callGeminiChat(provider: PrivateAiProviderConfig, prompt: string,
     throw new Error("Provider returned an empty response.");
   }
 
-  return content.trim();
+  return {
+    text: content.trim(),
+    usage: normalizeProviderUsage({
+      provider: "google",
+      model: provider.modelName,
+      usage: body.usageMetadata,
+      rawUsageReference: body.usageMetadata ? { source: "gemini_usage_metadata" } : { source: "missing_provider_usage" },
+    }),
+  };
 }
 
 async function callAzureOpenAiChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number) {
@@ -838,7 +873,15 @@ async function callAzureOpenAiChat(provider: PrivateAiProviderConfig, prompt: st
     throw new Error("Provider returned an empty response.");
   }
 
-  return content.trim();
+  return {
+    text: content.trim(),
+    usage: normalizeProviderUsage({
+      provider: "openai",
+      model: provider.modelName,
+      usage: body.usage,
+      rawUsageReference: body.usage ? { source: "azure_openai_usage" } : { source: "missing_provider_usage" },
+    }),
+  };
 }
 
 async function listAvailableModels(provider: PrivateAiProviderConfig) {
@@ -1023,5 +1066,14 @@ export function logUniversalAiResponse(result: UniversalAiGenerateResult) {
     fallbackUsed: result.fallbackUsed,
     mode: result.mode,
     route: result.route,
+    usageCaptured: Boolean(result.usage),
   });
+}
+
+function normalizeBillingProvider(providerType: AiProviderType) {
+  if (providerType === "anthropic") return "anthropic"
+  if (providerType === "google-gemini") return "google"
+  if (providerType === "ollama") return "ollama"
+  if (providerType === "lm-studio") return "local"
+  return "openai"
 }
