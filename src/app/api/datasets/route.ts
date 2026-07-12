@@ -4,12 +4,13 @@ import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
+import { deleteDatasetsForUser, MAX_DELETE_BATCH_SIZE, sanitizeDatasetIds } from "@/lib/data/delete-datasets"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
 import { getDatasetLimitInfo, getDatasetLimitError } from "@/lib/usage/dataset-limits"
-import { and, eq, inArray } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
@@ -152,54 +153,57 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { datasetIds } = body
+    const body = await request.json().catch(() => null)
+    const rawDatasetIds = (body as { datasetIds?: unknown } | null)?.datasetIds
+    const datasetIds = sanitizeDatasetIds(rawDatasetIds)
     
-    if (!Array.isArray(datasetIds) || datasetIds.length === 0) {
-      return NextResponse.json({ error: "Dataset IDs array is required" }, { status: 400 })
+    if (!Array.isArray(rawDatasetIds) || datasetIds.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        error: "Dataset IDs array is required.",
+        deletedIds: [],
+        failed: [],
+      }, { status: 400 })
     }
 
-    // Verify all datasets belong to the user before deleting
-    const datasetsToDelete = await db
-      .select({ id: datasets.id })
-      .from(datasets)
-      .where(
-        and(
-          eq(datasets.userId, session.user.id),
-          inArray(datasets.id, datasetIds)
-        )
-      )
-
-    if (datasetsToDelete.length === 0) {
-      return NextResponse.json({ error: "No datasets found or access denied" }, { status: 404 })
+    if (rawDatasetIds.length > MAX_DELETE_BATCH_SIZE) {
+      return NextResponse.json({
+        ok: false,
+        error: `Delete up to ${MAX_DELETE_BATCH_SIZE} datasets at a time.`,
+        deletedIds: [],
+        failed: [],
+      }, { status: 400 })
     }
 
-    // Delete datasets (rows will be deleted due to cascade)
-    await db.delete(datasets).where(
-      and(
-        eq(datasets.userId, session.user.id),
-        inArray(datasets.id, datasetIds)
-      )
-    )
-
-    // Record activity for bulk deletion
-    await recordActivity({
+    const result = await deleteDatasetsForUser({
+      datasetIds,
       userId: session.user.id,
       userEmail: session.user.email,
-      type: "dataset_deleted",
-      feature: "datasets",
-      title: "Bulk dataset deletion",
-      description: `${datasetsToDelete.length} datasets were removed.`,
-      metadata: {
-        datasetIds: datasetsToDelete.map(d => d.id),
-        count: datasetsToDelete.length,
-      },
+      role: session.user.role,
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      deletedCount: datasetsToDelete.length 
-    })
+    if (result.deletedIds.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        error: "No matching datasets found or access denied.",
+        message: "No selected datasets could be deleted.",
+        deletedIds: result.deletedIds,
+        failed: result.failed,
+      }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      ok: result.failed.length === 0,
+      success: result.failed.length === 0,
+      deletedIds: result.deletedIds,
+      failed: result.failed,
+      deletedCount: result.deletedIds.length,
+      deletedReports: result.deletedReports,
+      storage: result.storage,
+      message: result.failed.length > 0
+        ? `${result.deletedIds.length} dataset${result.deletedIds.length === 1 ? "" : "s"} deleted. ${result.failed.length} could not be deleted.`
+        : `${result.deletedIds.length} dataset${result.deletedIds.length === 1 ? "" : "s"} deleted successfully.`,
+    }, { status: result.failed.length > 0 ? 207 : 200 })
   } catch (error) {
     debugError("Error bulk deleting datasets:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

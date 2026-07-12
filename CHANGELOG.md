@@ -71,6 +71,7 @@
 
 ### Fixed
 
+- Delete selected Dataset Library rows through a confirmation flow that removes authorized datasets, cleans related records, refreshes usage counters, and keeps failed rows selected with clear partial-failure feedback.
 - Render Executive Dashboard detail tabs in-place so tab changes replace the content below the tab bar without route navigation, page jumps, or duplicate stacked sections.
 - Create Standard Upload fallback datasets with the same minimal Dataset fields as Retail Upload and report exact development details when dataset creation fails.
 - Route Standard Upload through a minimal fallback endpoint that saves CSV and Excel datasets without AI, credit, helper, health, or daily request checks.

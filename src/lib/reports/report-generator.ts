@@ -282,6 +282,43 @@ export function deleteReport(reportId: string): boolean {
 }
 
 /**
+ * Delete every stored report linked to the given datasets.
+ * Missing PDF files are treated as already clean and do not block report removal.
+ */
+export async function deleteReportsForDatasets(datasetIds: string[]): Promise<{ deletedReportIds: string[]; failed: { reportId: string; reason: string }[] }> {
+  const datasetIdSet = new Set(datasetIds);
+  const reports = getReports();
+  const deletedReportIds: string[] = [];
+  const failed: { reportId: string; reason: string }[] = [];
+
+  for (const report of Array.from(reports.values())) {
+    if (!datasetIdSet.has(report.datasetId)) continue;
+
+    if (report.pdfPath) {
+      try {
+        if (fs.existsSync(report.pdfPath)) {
+          fs.unlinkSync(report.pdfPath);
+        }
+      } catch (error) {
+        failed.push({
+          reportId: report.id,
+          reason: error instanceof Error ? error.message : "PDF cleanup failed",
+        });
+      }
+    }
+
+    reports.delete(report.id);
+    deletedReportIds.push(report.id);
+  }
+
+  if (deletedReportIds.length > 0) {
+    setReports(reports);
+  }
+
+  return { deletedReportIds, failed };
+}
+
+/**
  * Update report visibility
  */
 export function updateReportVisibility(

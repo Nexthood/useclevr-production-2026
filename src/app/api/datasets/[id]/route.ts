@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth/auth"
-import { recordActivity } from "@/lib/activity/activity-store"
+import { deleteDatasetsForUser } from "@/lib/data/delete-datasets"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import { and, eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
@@ -87,42 +88,34 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const dataset = await db.query.datasets.findFirst({
-      where: and(
-        eq(datasets.id, id),
-        eq(datasets.userId, session.user.id)
-      ),
-      columns: {
-        name: true,
-        rowCount: true,
-      },
+    const result = await deleteDatasetsForUser({
+      datasetIds: [id],
+      userId: session.user.id,
+      userEmail: session.user.email,
+      role: session.user.role,
     })
 
-    // Delete dataset (rows will be deleted due to cascade)
-    await db.delete(datasets).where(
-      and(
-        eq(datasets.id, id),
-        eq(datasets.userId, session.user.id)
-      )
-    )
-
-    if (dataset) {
-      await recordActivity({
-        userId: session.user.id,
-        userEmail: session.user.email,
-        type: "dataset_deleted",
-        feature: "datasets",
-        title: "Dataset deleted",
-        description: `${dataset.name} was removed.`,
-        metadata: {
-          datasetId: id,
-          rowCount: dataset.rowCount,
-        },
-      })
+    if (result.deletedIds.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        error: "Dataset not found or access denied.",
+        deletedIds: [],
+        failed: result.failed,
+      }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true })
-  } catch {
+    return NextResponse.json({
+      ok: true,
+      success: true,
+      deletedIds: result.deletedIds,
+      failed: result.failed,
+      deletedCount: result.deletedIds.length,
+      deletedReports: result.deletedReports,
+      storage: result.storage,
+      message: "Dataset deleted successfully.",
+    })
+  } catch (error) {
+    debugError("Error deleting dataset:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

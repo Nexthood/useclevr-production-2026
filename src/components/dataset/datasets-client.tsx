@@ -1,7 +1,7 @@
 "use client"
 
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
-import { BatchDeleteButton } from "@/components/dataset/batch-delete-button"
+import { BatchDeleteButton, type BatchDeleteResult } from "@/components/dataset/batch-delete-button"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
@@ -32,8 +32,16 @@ interface DatasetsClientProps {
 }
 
 export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
-  const [datasets] = React.useState<DatasetListItem[]>(initialDatasets)
+  const [datasets, setDatasets] = React.useState<DatasetListItem[]>(initialDatasets)
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
+
+  React.useEffect(() => {
+    setDatasets(initialDatasets)
+    setSelectedIds((current) => {
+      const availableIds = new Set(initialDatasets.map((dataset) => dataset.id))
+      return new Set(Array.from(current).filter((datasetId) => availableIds.has(datasetId)))
+    })
+  }, [initialDatasets])
 
   const getStatusBadge = (status: string | null) => {
     if (status === "ready") {
@@ -180,8 +188,15 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
     },
   ]
 
-  const handleBulkDelete = () => {
-    setSelectedIds(new Set())
+  const handleBulkDelete = (result: BatchDeleteResult) => {
+    const deletedIds = new Set(result.deletedIds)
+    const failedIds = new Set(result.failed.map((failure) => failure.datasetId))
+
+    if (deletedIds.size > 0) {
+      setDatasets((current) => current.filter((dataset) => !deletedIds.has(dataset.id)))
+    }
+
+    setSelectedIds(failedIds)
   }
 
   const rightSidebar = (

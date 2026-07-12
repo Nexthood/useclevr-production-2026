@@ -1,3 +1,4 @@
+- fixed: delete selected Dataset Library rows through confirmed single and bulk deletion with scoped authorization, related-record cleanup, storage cleanup logging, partial-failure feedback, immediate table updates, and usage refreshes
 - fixed: render Executive Dashboard detail tabs in-place so Overview, Financial, Inventory, Geography, and AI & Activity replace the content below the tab bar without route navigation, reloads, automatic scrolling, or duplicate stacked sections
 - fixed: enforce dataset module separation so Standard opens generic analysis, Retail opens Retail, Profitability opens Profitability, Accountancy opens Accountancy, and Pre-bookkeeping opens Pre-bookkeeping, with dataset library rows showing type, upload source, destination, and analysis status
 - changed: make the Executive Dashboard use one normalized dataset summary for dataset counts, processed rows, file type counts, detected columns, Daily Health freshness, and compact tabbed analytics

@@ -5,6 +5,7 @@ import { debugError } from "@/lib/utils/debug"
 
 
 import { requireAuthResult } from "@/lib/auth/require-auth"
+import { deleteDatasetsForUser } from "@/lib/data/delete-datasets"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { failure, type Result, success } from "@/lib/result"
@@ -19,16 +20,17 @@ export async function deleteDataset(datasetId: string): Promise<Result<true>> {
   const session = authResult.data
 
   try {
-    const [deleted] = await db.delete(datasets).where(
-      and(
-        eq(datasets.id, datasetId),
-        eq(datasets.userId, session.user.id)
-      )
-    ).returning()
-    if (!deleted) {
-      return failure("Dataset not found")
+    const result = await deleteDatasetsForUser({
+      datasetIds: [datasetId],
+      userId: session.user.id,
+      userEmail: session.user.email,
+      role: session.user.role,
+    })
+    if (result.deletedIds.length === 0) {
+      return failure(result.failed[0]?.reason || "Dataset not found")
     }
     revalidatePath("/app/datasets")
+    revalidatePath(`/app/datasets/${datasetId}`)
     return success(true)
   } catch (error) {
     debugError("Error deleting dataset:", error)
