@@ -6,6 +6,7 @@ import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { UpgradeModal } from "@/components/shared/upgrade-modal"
+import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
@@ -58,6 +59,7 @@ export function CsvUpload() {
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
    const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
+   const [uploadResult, setUploadResult] = React.useState<UploadResponse | null>(null)
    const { toast } = useToast()
    const { showNotice } = useNotice()
   
@@ -73,6 +75,7 @@ export function CsvUpload() {
   const isHybrid = connectionMode === 'hybrid'
   const _isOnline = connectionMode === 'online'
   const isPlanLimitReached = uploadStatus === "limit-reached"
+  const isUploadLocked = uploading || isPlanLimitReached || uploadStatus === "success"
 
   // Get connection status icon and color
   const getConnectionIcon = (mode: ConnectionMode) => {
@@ -119,7 +122,7 @@ export function CsvUpload() {
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (isPlanLimitReached) {
+    if (isPlanLimitReached || uploadStatus === "success") {
       setDragActive(false)
       return
     }
@@ -135,7 +138,7 @@ export function CsvUpload() {
     e.stopPropagation()
     setDragActive(false)
 
-    if (isPlanLimitReached) return
+    if (isPlanLimitReached || uploadStatus === "success") return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await uploadFile(e.dataTransfer.files[0])
@@ -168,6 +171,7 @@ export function CsvUpload() {
     setUploadProgress(0)
     setErrorMessage("")
     setLimitReachedInfo(null)
+    setUploadResult(null)
 
     // Show appropriate message based on file size tier
     if (isLargeFile) {
@@ -236,10 +240,15 @@ export function CsvUpload() {
       if (progressInterval) clearInterval(progressInterval)
 
       if (result.ok && result.success) {
-        debugLog('[CSV-UPLOAD] Success! Redirecting to:', result.redirectTo)
+        debugLog('[CSV-UPLOAD] Success:', result)
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
+        setUploadResult({
+          ...result,
+          datasetType: result.datasetType || result.dataset_type || "standard",
+          analysisStatus: result.analysisStatus || "pending",
+        })
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         if (result.usage?.limitReached) {
           showNotice({
@@ -260,11 +269,6 @@ export function CsvUpload() {
             message: result.message || "Dataset uploaded successfully. AI analysis can be started separately.",
           })
         }
-        setTimeout(() => {
-          const redirectPath = result.redirectTo || "/app/datasets"
-          debugLog('[CSV-UPLOAD] Navigating to:', redirectPath)
-          window.location.href = redirectPath
-        }, 2000)
       } else {
         const uploadError = result.error || result.message || "Upload failed"
 
@@ -382,6 +386,18 @@ export function CsvUpload() {
     }
   }
 
+  const resetUploader = () => {
+    setUploading(false)
+    setUploadStatus("idle")
+    setUploadProgress(0)
+    setErrorMessage("")
+    setCurrentFileName("")
+    setProcessingStep(0)
+    setLimitReachedInfo(null)
+    setUploadResult(null)
+    checkConnection()
+  }
+
   return (
     <>
       <Card
@@ -408,9 +424,9 @@ export function CsvUpload() {
         onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
         className="hidden"
         id="file-upload"
-        disabled={uploading || isPlanLimitReached}
+        disabled={isUploadLocked}
       />
-      <label htmlFor="file-upload" className={`block p-5 sm:p-7 ${uploading || isPlanLimitReached ? "cursor-not-allowed" : "cursor-pointer"}`}>
+      <label htmlFor="file-upload" className={`block p-5 sm:p-7 ${isUploadLocked ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <div className="flex flex-col items-center gap-3">
           {/* Processing Flow Animation */}
           {uploading && processingStep > 0 && (
@@ -495,7 +511,9 @@ export function CsvUpload() {
                   {connectionMode === 'hybrid' ? 'Upload complete!' : 'Upload complete!'}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {connectionMode === 'hybrid' ? 'Using UseClevr Hybrid AI for private analysis' : 'Redirecting to your datasets...'}
+                  {connectionMode === 'hybrid'
+                    ? 'Using UseClevr Hybrid AI for private analysis'
+                    : 'Choose your next step below.'}
                 </p>
               </>
             ) : uploadStatus === "error" ? (
@@ -621,6 +639,14 @@ export function CsvUpload() {
         </div>
       </label>
       </Card>
+
+      {uploadStatus === "success" && uploadResult && (
+        <UploadSuccessPanel
+          result={uploadResult}
+          uploadMode="standard"
+          onUploadAnother={resetUploader}
+        />
+      )}
 
       <UpgradeModal
         open={showUpgradeModal}

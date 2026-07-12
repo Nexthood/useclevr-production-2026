@@ -1,10 +1,11 @@
 "use client"
 
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
-import { BatchDeleteButton } from "@/components/dataset/batch-delete-button"
+import { BatchDeleteButton, type BatchDeleteResult } from "@/components/dataset/batch-delete-button"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { getDatasetCategoryDestinationLabel, getDatasetCategoryLabel, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -16,7 +17,10 @@ export interface DatasetListItem {
   rowCount: number
   columnCount: number
   status: string | null
+  analysisStatus?: string | null
   datasetType: string | null
+  uploadSource?: string | null
+  destinationModule?: string | null
   createdAt: Date | null
   columns: string[]
   industry?: string | null
@@ -28,8 +32,16 @@ interface DatasetsClientProps {
 }
 
 export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
-  const [datasets] = React.useState<DatasetListItem[]>(initialDatasets)
+  const [datasets, setDatasets] = React.useState<DatasetListItem[]>(initialDatasets)
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
+
+  React.useEffect(() => {
+    setDatasets(initialDatasets)
+    setSelectedIds((current) => {
+      const availableIds = new Set(initialDatasets.map((dataset) => dataset.id))
+      return new Set(Array.from(current).filter((datasetId) => availableIds.has(datasetId)))
+    })
+  }, [initialDatasets])
 
   const getStatusBadge = (status: string | null) => {
     if (status === "ready") {
@@ -59,7 +71,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   const readyCount = datasets.filter((d) => d.status === "ready").length
 
   function getDatasetTypeLink(dataset: DatasetListItem): string {
-    const type = dataset.datasetType || "standard"
+    const type = normalizeDatasetCategory(dataset.datasetType) || "standard"
     switch (type) {
       case "retail":
         return `/app/retail?datasetId=${dataset.id}`
@@ -75,13 +87,13 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
   }
 
   function getDatasetTypeBadge(type: string | null) {
-    const normalized = type || "standard"
+    const normalized = normalizeDatasetCategory(type) || "standard"
     const labels: Record<string, { label: string; className: string }> = {
-      standard: { label: "Standard Dataset", className: "bg-slate-500/20 text-slate-400" },
-      retail: { label: "Retail Analysis", className: "bg-cyan-500/20 text-cyan-400" },
-      profitability: { label: "Profitability Analysis", className: "bg-emerald-500/20 text-emerald-400" },
-      accountancy: { label: "Accountancy", className: "bg-purple-500/20 text-purple-400" },
-      prebookkeeping: { label: "Pre-bookkeeping", className: "bg-amber-500/20 text-amber-400" },
+      standard: { label: getDatasetCategoryLabel("standard"), className: "bg-slate-500/20 text-slate-400" },
+      retail: { label: getDatasetCategoryLabel("retail"), className: "bg-cyan-500/20 text-cyan-400" },
+      profitability: { label: getDatasetCategoryLabel("profitability"), className: "bg-emerald-500/20 text-emerald-400" },
+      accountancy: { label: getDatasetCategoryLabel("accountancy"), className: "bg-purple-500/20 text-purple-400" },
+      prebookkeeping: { label: getDatasetCategoryLabel("prebookkeeping"), className: "bg-amber-500/20 text-amber-400" },
     }
     const config = labels[normalized] || labels.standard
     return (
@@ -118,9 +130,32 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       render: (row) => getDatasetTypeBadge((row as unknown as DatasetListItem).datasetType),
     },
     {
+      key: "uploadSource",
+      header: "Upload source",
+      render: (row) => {
+        const source = (row as unknown as DatasetListItem).uploadSource || "standard"
+        return <span className="text-sm text-muted-foreground">{source.replaceAll("_", " ")}</span>
+      },
+    },
+    {
+      key: "destinationModule",
+      header: "Destination",
+      render: (row) => {
+        const dataset = row as unknown as DatasetListItem
+        return (
+          <Link href={getDatasetTypeLink(dataset)} className="text-sm font-medium text-primary hover:underline">
+            {dataset.destinationModule || getDatasetCategoryDestinationLabel(dataset.datasetType)}
+          </Link>
+        )
+      },
+    },
+    {
       key: "status",
-      header: "Status",
-      render: (row) => getStatusBadge((row as unknown as DatasetListItem).status as string),
+      header: "Analysis status",
+      render: (row) => {
+        const dataset = row as unknown as DatasetListItem
+        return getStatusBadge((dataset.analysisStatus || dataset.status) as string)
+      },
     },
     {
       key: "shape",
@@ -135,7 +170,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       align: "right",
       render: (row) => {
         const dataset = row as unknown as DatasetListItem
-        const type = dataset.datasetType || "standard"
+        const type = normalizeDatasetCategory(dataset.datasetType) || "standard"
         const analyzeHref = type === "standard"
           ? `/app/datasets/${dataset.id}/analyze`
           : getDatasetTypeLink(dataset)
@@ -153,8 +188,15 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
     },
   ]
 
-  const handleBulkDelete = () => {
-    setSelectedIds(new Set())
+  const handleBulkDelete = (result: BatchDeleteResult) => {
+    const deletedIds = new Set(result.deletedIds)
+    const failedIds = new Set(result.failed.map((failure) => failure.datasetId))
+
+    if (deletedIds.size > 0) {
+      setDatasets((current) => current.filter((dataset) => !deletedIds.has(dataset.id)))
+    }
+
+    setSelectedIds(failedIds)
   }
 
   const rightSidebar = (
@@ -220,7 +262,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
             rows={datasets as unknown as Record<string, unknown>[]}
             columns={datasetColumns}
             rowKey={(row) => String(row.id)}
-            minWidth="min-w-[800px]"
+            minWidth="min-w-[980px]"
             selectable
             selectedRows={selectedIds}
             onSelectedRowsChange={setSelectedIds}

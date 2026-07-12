@@ -18,7 +18,7 @@ import {
 import Link from "next/link"
 import type React from "react"
 
-import { resolveDatasetType } from "@/lib/data/dataset-category"
+import { getDatasetCategoryLabel, resolveDatasetType } from "@/lib/data/dataset-category"
 
 export const metadata = {
   title: "Accountancy - UseClevr",
@@ -42,6 +42,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     columnCount: number
     analysis: unknown
     precomputedMetrics: unknown
+    datasetType: string | null
   } | null = null
   const companySetup = userId ? await getCompanySetup(userId) : null
   const resolvedSearchParams = await searchParams
@@ -52,10 +53,13 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     const db = getDb()
     if (db) {
       try {
-        const [countResult] = await db
-          .select({ count: count() })
-          .from(datasets)
-          .where(eq(datasets.userId, userId))
+        const accountancyDatasets = await db.query.datasets.findMany({
+          where: eq(datasets.userId, userId),
+          columns: {
+            datasetType: true,
+            analysis: true,
+          },
+        })
 
         const [businessCount] = await db
           .select({ count: count() })
@@ -79,9 +83,14 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
               datasetType: true,
             },
           }) ?? null
+          if (focusedDataset && resolveDatasetType(focusedDataset.datasetType, focusedDataset.analysis) !== "accountancy") {
+            focusedDataset = null
+          }
         }
 
-        activeDatasets = (countResult?.count ?? 0) as number
+        activeDatasets = accountancyDatasets.filter((dataset) =>
+          resolveDatasetType(dataset.datasetType, dataset.analysis) === "accountancy"
+        ).length
         totalBusinesses = (businessCount?.count ?? 0) as number
       } catch {
         // Continue without counts; the Pre-Bookkeeping Center remains usable without DB stats.
@@ -154,7 +163,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
             </div>
             <div className="space-y-3">
               <CloseStep label="Business profile" complete={totalBusinesses > 0} href="/app/business" />
-              <CloseStep label="Financial dataset" complete={activeDatasets > 0} href="/app/upload" />
+              <CloseStep label="Financial dataset" complete={activeDatasets > 0} href="/app/accountancy" />
               <CloseStep label="Tax context" complete={totalBusinesses > 0} href="/app/accountancy/tax" />
             </div>
           </Card>
@@ -181,13 +190,13 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
             <h2 className="text-sm font-semibold text-foreground mb-3">Quick actions</h2>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Upload receipts, invoices, bank exports, or accounting documents for pre-bookkeeping insights.
+                Upload financial CSV or Excel files here, or send invoices and receipts to Pre-bookkeeping.
               </p>
               <Link
-                href="/app/upload"
+                href="/app/prebookkeeping"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
               >
-                Upload document
+                Open Pre-bookkeeping
               </Link>
             </div>
           </Card>
@@ -205,10 +214,10 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
       rightSidebar={rightSidebar}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/upload">
+          <Link href="/app/accountancy">
             <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
               <Upload className="h-4 w-4" />
-              Upload document
+              Upload financial data
             </span>
           </Link>
           <Link href="/app/accountancy/compliance">
@@ -228,10 +237,10 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                 <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <BookOpenCheck className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-semibold text-foreground">Pre-bookkeeping center</h2>
+                <h2 className="text-2xl font-semibold text-foreground">Accountancy workspace</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Upload receipts, invoices, bank exports, PDFs, Excel, or CSV files. We extract, categorize, and generate a
-                  bookkeeping summary ready for your accountant.
+                  Upload accounting CSV or Excel files for bookkeeping review, tax checks, and monthly reporting.
+                  Invoices, receipts, and bank exports stay in the dedicated Pre-bookkeeping workflow.
                 </p>
                 {!profileComplete && (
                   <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
@@ -265,7 +274,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
             )}
           </Card>
 
-          <AccountancyUpload />
+          <AccountancyUpload datasetType="accountancy" />
 
           {focusedDataset && (
             <Card className="border-cyan-400/25 bg-cyan-400/5 p-5">
@@ -276,7 +285,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-foreground">{focusedDataset.name || focusedDataset.fileName}</h2>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    This upload is saved in Accountancy so profitability, invoice, receipt, and bookkeeping work stays separate from the main Dashboard.
+                    This upload is saved in Accountancy so financial review stays separate from Profitability, Retail, Pre-bookkeeping, and the main Dashboard.
                   </p>
                 </div>
                 <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-80">
@@ -333,7 +342,7 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
 
 function getFocusedDatasetCategory(dataset: { datasetType?: string | null; analysis: unknown }) {
   const category = resolveDatasetType(dataset.datasetType, dataset.analysis)
-  return category.charAt(0).toUpperCase() + category.slice(1)
+  return getDatasetCategoryLabel(category)
 }
 
 function ProfitabilityMetricGrid({ metrics }: { metrics: unknown }) {

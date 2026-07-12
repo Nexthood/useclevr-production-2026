@@ -2,10 +2,13 @@
 
 ### Changed
 
+- Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, safe retrieval-document storage, bounded dataset-context ingestion, hybrid semantic and keyword search, superadmin diagnostics, and tenant-isolation validation.
+- Make the Executive Dashboard use one dataset summary for uploaded dataset counts, processed rows, file types, detected columns, Daily Health freshness, and compact tabbed analytics.
+- Show a persistent Standard Upload success panel with dataset summary, rows, columns, analysis status, dashboard navigation, dataset navigation, and upload-another actions.
 - Add an Executive Daily Health Check that generates and caches one workspace brief per day with health scoring, AI confidence, executive summary, priorities, risks, anomalies, recommendations, forecast, impact, alerts, dashboard preview, and history browsing.
 - Show the main Dashboard as a launch-ready executive BI command center with real uploaded-data KPIs, trends, inventory, financials, world map, dataset analytics, AI activity, health scores, recommendations, and upload guidance when data is missing.
 - Show geographic dataset analysis through a professional BI-style world map with real location detection, restrained glowing nodes, flow lines, metric cards, hover tooltips, and a clean empty state when no geographic columns exist.
-- Keep the main Dashboard focused on general workspace overview while categorized uploads route Standard datasets to analysis, Profitability datasets to Accountancy, and Retail datasets to the Retail workspace.
+- Keep the main Dashboard focused on general workspace overview while categorized uploads route Standard datasets to analysis, Retail datasets to Retail, Profitability datasets to Profitability, Accountancy datasets to Accountancy, and Pre-bookkeeping datasets to Pre-bookkeeping.
 - Show a compact animated multilingual badge in the Usy header that cycles supported languages and explains same-language replies on hover or tap.
 - Keep Usy focused on UseClevr business-data workflows while answering supported-language questions in the detected language, including localized refusals for unrelated topics.
 - Make Usy answer spontaneous multilingual questions with language detection, UseClevr-aware fallback guidance, and quick prompts for credits, upload blocks, plan choice, and data analysis.
@@ -69,11 +72,14 @@
 
 ### Fixed
 
+- Delete selected Dataset Library rows through a confirmation flow that removes authorized datasets, cleans related records, refreshes usage counters, and keeps failed rows selected with clear partial-failure feedback.
+- Render Executive Dashboard detail tabs in-place so tab changes replace the content below the tab bar without route navigation, page jumps, or duplicate stacked sections.
 - Create Standard Upload fallback datasets with the same minimal Dataset fields as Retail Upload and report exact development details when dataset creation fails.
 - Route Standard Upload through a minimal fallback endpoint that saves CSV and Excel datasets without AI, credit, helper, health, or daily request checks.
 - Make Standard Upload use the same minimal upload contract as Retail Upload so file upload creates datasets before any optional usage or AI analysis work runs.
 - Keep Standard Upload independent from daily AI request counting so dataset creation continues when AI usage tracking is unavailable and upload errors no longer expose database query details.
 - Route Standard, Retail, and Profitability uploads through one shared upload contract so CSV and Excel uploads save the correct dataset category, redirect to the right workspace, and show exact stage-based failures instead of vague bad-request or unavailable errors.
+- Enforce dataset module separation across upload, dataset library, detail, analysis, Accountancy, Profitability, and Pre-bookkeeping routes so each dataset opens only in its matching workspace.
 - Show exact missing upload fields when dataset upload validation fails so Standard Upload no longer returns an unexplained bad request.
 - Let Standard Upload try the same dataset creation flow as Retail Upload instead of stopping at a separate database availability check.
 - Prevent production upload pages from calling localhost helper health checks so standard dataset uploads continue when optional Hybrid AI is offline.

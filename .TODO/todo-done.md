@@ -41,6 +41,8 @@ moving work between states.
 
 ## Label: upload
 
+- T-943. Delete selected Dataset Library rows through confirmed single or bulk actions with scoped authorization, related-record cleanup, storage cleanup logging, partial-failure reporting, immediate table updates, and refreshed usage counters. (labels: upload, data, security; commit: worktree)
+- T-941. Enforce dataset module separation so uploads persist the correct standard, retail, profitability, accountancy, or pre-bookkeeping category and open only in the matching workspace. (labels: upload, data, dashboard; commit: worktree)
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
 
 ## Label: billing
@@ -93,6 +95,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-944. Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, retrieval document storage, bounded dataset ingestion, hybrid retrieval, superadmin diagnostics, and tenant-isolation validation. (labels: ai, data, security, testing; commit: worktree)
 - T-906. Add Business Intelligence Engine Phase 1 with automatic post-upload profiling, KPI detection, health scoring, risk detection, opportunity detection, summaries, prioritized actions, and deterministic tests. (labels: ai, data, business, testing; commit: worktree)
 - T-905. Complete Hybrid AI feature gates for current Lite and MEGA features with backend enforcement and automated entitlement tests. (labels: ai, billing, security, testing; commit: worktree)
 - T-904. Apply simplified Hybrid AI MVP feature gates across frontend, backend routes, provider settings, audit activity, helper roadmap actions, blocked-attempt logs, and user-facing upgrade paths. (labels: ai, billing, security, ui; commit: worktree)
@@ -118,6 +121,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-942. Render Executive Dashboard tab content in-place without route navigation, page reloads, anchor scrolling, or automatic viewport jumps. (labels: dashboard, ui, stability; commit: worktree)
 - T-939. Keep the main Dashboard free of retail-specific reports, route categorized uploads to their correct workspaces, and store dataset category metadata for standard, retail, accountancy, and profitability uploads. (labels: dashboard, upload, reporting; commit: worktree)
 - T-885. Apply global authenticated page spacing, visible-field Business Profile completion, and role-aware analyst credit limits across dashboard upload, analysis, and report workflows. (labels: dashboard, billing, business, ui; commit: worktree)
 - T-884. Fix dashboard report-header greeting clipping and Business Profile completion badges so visible completed fields show 100%. (labels: dashboard, business, ui; commit: worktree)

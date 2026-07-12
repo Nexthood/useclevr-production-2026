@@ -32,12 +32,23 @@ Text rules for this file:
 - Show Pro and Business upgrade actions from the Free plan dataset-limit upload state.
 - Compare Free, Pro, and Business upload benefits in the dataset-limit upload state.
 - Show uploaded datasets in structured tables with row counts.
-- Store dataset category metadata for standard, retail, accountancy, and profitability uploads.
+- Store dataset category metadata for standard, retail, profitability, accountancy, and pre-bookkeeping uploads.
 - Route Standard Upload datasets to the generic dataset analysis route.
-- Route Profitability Upload datasets to the Accountancy workspace.
+- Route Profitability Upload datasets to the Profitability workspace.
+- Route Accountancy Upload datasets to the Accountancy workspace.
+- Route Invoice, Receipt, Bank Export, and Pre-bookkeeping Upload datasets to the Pre-bookkeeping workspace.
 - Route Retail uploads to the Retail workspace.
 - Keep the main Dashboard free of retail-specific report sections and retail-only KPIs.
 - Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
+- Show dataset library rows with dataset type, upload source, destination module, and analysis status.
+- Route dataset library clicks to the matching workspace for retail, profitability, accountancy, and pre-bookkeeping datasets.
+- Delete selected Dataset Library rows only after user confirmation.
+- Delete only datasets the signed-in user owns or an admin/superadmin is allowed to manage.
+- Delete selected datasets together with dataset rows, AI request metadata, cost and audit references, activity references, generated reports, and stored upload files where available.
+- Keep storage cleanup non-blocking and log missing or failed storage object cleanup server-side.
+- Show deleted Dataset Library rows, overview counters, selected IDs, and sidebar usage from the latest successful delete result.
+- Keep failed Dataset Library delete selections visible and selected when a bulk delete partially succeeds.
+- Render Executive Dashboard Overview, Financial, Inventory, Geography, and AI & Activity tabs as in-place content panels under the tab bar without automatic scrolling, route navigation, page reloads, or duplicate stacked sections.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
@@ -83,6 +94,13 @@ Text rules for this file:
 - Detect business risks including declining revenue, falling margins, low stock, customer concentration, seasonal or trend anomalies, and outliers.
 - Detect business opportunities including high-performing products, growth opportunities, upselling opportunities, inventory optimization, and cost savings.
 - Show a concise executive summary and prioritized High, Medium, and Low recommended actions with reason, expected business impact, and confidence.
+- Store Accuracy Engine retrieval documents by authenticated dataset owner, dataset ID, dataset type, source type, source record ID, content, metadata, embedding metadata, content hash, language, and ingestion timestamps.
+- Detect Accuracy Engine database retrieval mode as `lakebase_hybrid`, `pgvector_fts`, or `fts_only` without crashing when Lakebase or pgvector extensions are unavailable.
+- Keep Accuracy Engine retrieval separate from deterministic KPI calculations; SQL calculates exact KPI values and retrieval supplies context for explanation.
+- Ingest only retrieval-relevant dataset summaries, column descriptions, product identities, supplier identities, invoice or receipt text, report explanations, controlled summaries, and document chunks.
+- Require authenticated dataset ownership or admin/superadmin access before Accuracy Engine ingestion or retrieval runs.
+- Require dataset ID and tenant-scoped filtering for every Accuracy Engine dataset-context search.
+- Combine semantic and keyword Accuracy Engine results with Reciprocal Rank Fusion, deduplicate by retrieval document ID, and return bounded context only.
 - Route Business Intelligence Engine narrative generation through the Universal AI Adapter while keeping deterministic calculations in the backend.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.

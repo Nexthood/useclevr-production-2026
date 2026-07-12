@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { datasetRows } from "@/lib/db/schema"
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
-import { getDatasetCategoryRedirect, type DatasetCategory } from "@/lib/data/dataset-category"
+import { getDatasetCategoryDestinationLabel, getDatasetCategoryLabel, getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category"
 import { eq } from "drizzle-orm"
 import { ChevronLeft, ChevronRight, Database, ExternalLink, Sparkles } from "lucide-react"
 import Link from "next/link"
@@ -68,7 +68,7 @@ export default async function DatasetDetailPage({
   const columns = getDatasetColumns(dataset.columns)
   const rowCount = dataset.rowCount || 0
   const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE))
-  const datasetType: DatasetCategory = ((dataset as { datasetType?: string | null }).datasetType || "standard") as DatasetCategory
+  const datasetType = resolveDatasetType((dataset as { datasetType?: string | null }).datasetType, dataset.analysis)
 
   let data: Record<string, unknown>[] = []
   const db = getDb()
@@ -178,14 +178,14 @@ export default async function DatasetDetailPage({
             <Link href={getDatasetCategoryRedirect(datasetType, id)}>
               <Button className="gap-2">
                 <ExternalLink className="h-4 w-4" />
-                Open in {datasetType.charAt(0).toUpperCase() + datasetType.slice(1)}
+                Open in {getDatasetCategoryDestinationLabel(datasetType)}
               </Button>
             </Link>
           ) : (
-            <Link href={`/app?datasetId=${id}`}>
+            <Link href={`/app/datasets/${id}/analyze`}>
               <Button className="gap-2">
                 <Sparkles className="h-4 w-4" />
-                View Dashboard
+                Analyze Dataset
               </Button>
             </Link>
           )
@@ -198,15 +198,15 @@ export default async function DatasetDetailPage({
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-foreground">
-                  This is a {datasetType} dataset
+                  This is a {getDatasetCategoryLabel(datasetType)} dataset
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Open it in the {datasetType} module for specialized analysis and reporting.
+                  Open it in the {getDatasetCategoryDestinationLabel(datasetType)} module for specialized analysis and reporting.
                 </p>
               </div>
             <Link href={getDatasetCategoryRedirect(datasetType, id)}>
                 <Button size="sm" variant="outline" className="border-cyan-400/40">
-                  Open in {datasetType.charAt(0).toUpperCase() + datasetType.slice(1)}
+                  Open in {getDatasetCategoryDestinationLabel(datasetType)}
                 </Button>
               </Link>
             </div>

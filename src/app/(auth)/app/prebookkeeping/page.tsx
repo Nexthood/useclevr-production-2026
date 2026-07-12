@@ -1,9 +1,11 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
+import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
+import { resolveDatasetType } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
-import { and, count, eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { FileText, Upload } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
@@ -25,6 +27,7 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
     columnCount: number
     analysis: unknown
     precomputedMetrics: unknown
+    datasetType: string | null
   } | null = null
 
   const resolvedSearchParams = await searchParams
@@ -35,10 +38,13 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
     const db = getDb()
     if (db) {
       try {
-        const [countResult] = await db
-          .select({ count: count() })
-          .from(datasets)
-          .where(eq(datasets.userId, userId))
+        const prebookkeepingDatasets = await db.query.datasets.findMany({
+          where: eq(datasets.userId, userId),
+          columns: {
+            datasetType: true,
+            analysis: true,
+          },
+        })
 
         if (focusedDatasetId) {
           const datasetWhere = session?.user?.role === "superadmin"
@@ -54,11 +60,17 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
               columnCount: true,
               analysis: true,
               precomputedMetrics: true,
+              datasetType: true,
             },
           }) ?? null
+          if (focusedDataset && resolveDatasetType(focusedDataset.datasetType, focusedDataset.analysis) !== "prebookkeeping") {
+            focusedDataset = null
+          }
         }
 
-        _activeDatasets = (countResult?.count ?? 0) as number
+        _activeDatasets = prebookkeepingDatasets.filter((dataset) =>
+          resolveDatasetType(dataset.datasetType, dataset.analysis) === "prebookkeeping"
+        ).length
       } catch {
         // Continue without stats
       }
@@ -73,7 +85,7 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
       icon={FileText}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/upload">
+          <Link href="/app/prebookkeeping">
             <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
               <Upload className="h-4 w-4" />
               Upload document
@@ -84,6 +96,10 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
     >
       <div className="flex-1 overflow-y-auto px-5 pb-5 pt-6">
         <div className="max-w-6xl mx-auto space-y-5">
+          <div id="prebookkeeping-upload">
+            <AccountancyUpload datasetType="prebookkeeping" />
+          </div>
+
           {focusedDataset && (
             <Card className="border-cyan-400/25 bg-cyan-400/5 p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -119,7 +135,7 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
                   </p>
                 </div>
                 <Link
-                  href="/app/upload"
+                  href="/app/prebookkeeping"
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
                 >
                   <Upload className="h-4 w-4" />

@@ -27,6 +27,11 @@ type UploadCSVResult = {
   success: boolean
   error?: string
   datasetId?: string
+  datasetName?: string
+  datasetType?: string
+  rowsProcessed?: number
+  columnsDetected?: number
+  analysisStatus?: string
   redirectTo?: string
   fileName?: string
   preview?: { headers: string[]; rows: CsvRow[] }
@@ -361,6 +366,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const datasetCategory = isProfitabilityAnalysis ? "profitability" : getDatasetCategoryFromUpload(fileType)
     const datasetType = datasetCategory
     const baseAnalysis = {
+      dataset_type: datasetCategory,
       datasetCategory,
       datasetType: datasetCategory,
       uploadSource: fileType || datasetCategory,
@@ -635,6 +641,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     return {
       success: true,
       datasetId: datasetId,
+      datasetName: datasetName || file.name,
+      datasetType: datasetCategory,
+      rowsProcessed: totalRowCount,
+      columnsDetected: headers.length,
+      analysisStatus: "ready",
       redirectTo: getDatasetCategoryRedirect(datasetCategory, datasetId),
       fileName: file.name,
       preview: {
