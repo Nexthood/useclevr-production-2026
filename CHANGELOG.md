@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, safe retrieval-document storage, bounded dataset-context ingestion, hybrid semantic and keyword search, superadmin diagnostics, and tenant-isolation validation.
 - Make the Executive Dashboard use one dataset summary for uploaded dataset counts, processed rows, file types, detected columns, Daily Health freshness, and compact tabbed analytics.
 - Show a persistent Standard Upload success panel with dataset summary, rows, columns, analysis status, dashboard navigation, dataset navigation, and upload-another actions.
 - Add an Executive Daily Health Check that generates and caches one workspace brief per day with health scoring, AI confidence, executive summary, priorities, risks, anomalies, recommendations, forecast, impact, alerts, dashboard preview, and history browsing.

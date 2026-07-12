@@ -94,6 +94,13 @@ Text rules for this file:
 - Detect business risks including declining revenue, falling margins, low stock, customer concentration, seasonal or trend anomalies, and outliers.
 - Detect business opportunities including high-performing products, growth opportunities, upselling opportunities, inventory optimization, and cost savings.
 - Show a concise executive summary and prioritized High, Medium, and Low recommended actions with reason, expected business impact, and confidence.
+- Store Accuracy Engine retrieval documents by authenticated dataset owner, dataset ID, dataset type, source type, source record ID, content, metadata, embedding metadata, content hash, language, and ingestion timestamps.
+- Detect Accuracy Engine database retrieval mode as `lakebase_hybrid`, `pgvector_fts`, or `fts_only` without crashing when Lakebase or pgvector extensions are unavailable.
+- Keep Accuracy Engine retrieval separate from deterministic KPI calculations; SQL calculates exact KPI values and retrieval supplies context for explanation.
+- Ingest only retrieval-relevant dataset summaries, column descriptions, product identities, supplier identities, invoice or receipt text, report explanations, controlled summaries, and document chunks.
+- Require authenticated dataset ownership or admin/superadmin access before Accuracy Engine ingestion or retrieval runs.
+- Require dataset ID and tenant-scoped filtering for every Accuracy Engine dataset-context search.
+- Combine semantic and keyword Accuracy Engine results with Reciprocal Rank Fusion, deduplicate by retrieval document ID, and return bounded context only.
 - Route Business Intelligence Engine narrative generation through the Universal AI Adapter while keeping deterministic calculations in the backend.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.

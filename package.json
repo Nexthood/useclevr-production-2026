@@ -50,6 +50,7 @@
     "test:csv-analyzer": "node -r tsx/esm scripts/analysis/test-csv-analyzer.ts",
     "test:csv-edge-cases": "node -r tsx/esm scripts/analysis/test-csv-edge-cases.ts",
     "test:business-intelligence": "node -r tsx/esm scripts/analysis/test-business-intelligence-engine.ts",
+    "test:accuracy-tenant-isolation": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/accuracy/test-tenant-isolation.ts",
     "test:hybrid-ai-gates": "node -r tsx/esm scripts/hybrid-ai/test-feature-gates.ts",
     "test:dashboard-crud": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dashboard-crud.ts",
     "test:mcp-dashboard": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-payload-mcp-dashboard.ts",
