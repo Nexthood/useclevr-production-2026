@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-12
-- **Goal**: Apply and verify the Accuracy Engine migration on the temporary Neon branch only.
-- **Durable change**: No database mutation ran because Neon MCP is not available as a callable server or installable connector in this Codex session.
-- **Verification**: Tool discovery exposes GitHub and Sites tools only for this request; installable connectors do not include Neon, so the required Neon MCP project, branch, parent, and database identity check cannot run.
+- **Goal**: Fix Dataset Library single and bulk deletion completely.
+- **Durable change**: Dataset deletion now checks optional related tables before cleanup, preserves tenant authorization, avoids Credit Ledger mutation, removes Accuracy retrieval records when present, resets selection and confirmation state, prevents double submission, and uses a portal-backed accessible confirmation dialog.
+- **Verification**: TypeScript, focused ESLint, package lint, diff whitespace check, synthetic database deletion test, and synthetic leftover query pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
