@@ -114,3 +114,4 @@
 - blocked: run Accuracy tenant-isolation test with process-only direct Neon test URL settings, but the branch is missing relation `"RetrievalDocument"` and cleanup verification reports zero synthetic `acc_test_` users or datasets remaining
 - blocked: run Accuracy tenant-isolation test with process-only direct Neon test URL settings, but the direct host returns PostgreSQL authentication failure before synthetic fixture creation
 - fixed: move uploaded datasets through explicit processing and ready states, keep analysis refreshes on the same status model, and show a pending-analysis message instead of crashing while preparation is incomplete
+- fixed: render the World Map from bundled local topology, preserve public map assets in Railway dist output, resize the statistics column, and move the dashboard chat launcher away from the map statistics panel
