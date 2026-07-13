@@ -77,7 +77,8 @@ export const CREDIT_COSTS: Record<string, number> = {
   forecast_analysis: estimateFeatureCredits("profitability_analysis"),
   multi_dataset_analysis: estimateFeatureCredits("standard_analysis"),
   data_insight: estimateFeatureCredits("standard_analysis"),
-  file_upload: 0,
+  dataset_upload: estimateFeatureCredits("dataset_upload"),
+  file_upload: estimateFeatureCredits("dataset_upload"),
   mcp_tool_invocation: estimateFeatureCredits("hybrid_retrieval"),
 }
 
@@ -102,7 +103,7 @@ function rowsFromResult<T = Record<string, unknown>>(result: unknown): T[] {
 }
 
 async function hasUnlimitedCreditAccess(userId: string, role?: string | null, email?: string | null): Promise<boolean> {
-  if (isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)) return true
+  if (isSuperAdminUserId(userId) || isOfficialSuperAdminEmail(email)) return true
 
   const db = getDb()
   if (!db) return false
@@ -112,8 +113,11 @@ async function hasUnlimitedCreditAccess(userId: string, role?: string | null, em
     columns: { role: true, subscriptionTier: true },
   })
 
-  return profile?.role === "admin" || profile?.role === "superadmin" ||
-    profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin"
+  return (
+    profile?.role === "superadmin" ||
+    profile?.subscriptionTier === "superadmin" ||
+    (role === "superadmin" && profile?.role === "superadmin")
+  )
 }
 
 export function getActionCreditCost(actionType: string, input: FeatureCostInput = {}): number {

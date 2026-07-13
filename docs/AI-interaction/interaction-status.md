@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-13
-- **Goal**: Fix the World Map so it renders real country geography, visible borders, valid bubbles, and non-overlapping dashboard controls.
-- **Durable change**: The map imports bundled local topology, validates geography before rendering, uses visible Mercator country paths, preserves nested public map assets in Railway dist output, and moves the dashboard chat launcher away from the statistics panel.
-- **Verification**: `pnpm prod:build`, `node scripts/package-dist/create-dist.cjs`, local dist `GET /maps/world-110m.json`, headless Chrome component rendering, `pnpm exec tsc --noEmit --pretty false`, and `git diff --check` pass.
+- **Goal**: Fix included-credit source of truth and enforce credit reservation before billable upload and dataset-analysis work.
+- **Durable change**: Free plans use 2 shared billing credits, dataset uploads reserve and finalize one Credit Engine credit before dataset creation completes, manual dataset-analysis refreshes reserve and finalize before returning refreshed analysis, failed persistence or analysis releases reservations, no-credit responses use a structured `INSUFFICIENT_CREDITS` contract, usage endpoints and UI credit displays read the same authoritative summary, and superadmin unlimited access no longer trusts session role alone.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` and `pnpm test:credit-engine` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -15,6 +15,10 @@ type UpgradeModalProps = {
   title?: string
   description?: string
   usageLabel?: string
+  primaryActionLabel?: string
+  primaryActionHref?: string
+  secondaryActionLabel?: string
+  secondaryActionHref?: string
 }
 
 export function UpgradeModal({
@@ -26,6 +30,10 @@ export function UpgradeModal({
   title = "Dataset Limit Reached",
   description = `Your current plan allows up to ${limit} datasets. You currently have ${currentCount} datasets.`,
   usageLabel = "datasets used",
+  primaryActionLabel = "Upgrade to Pro",
+  primaryActionHref = "/app/settings/checkout?plan=pro_monthly&discount=auto",
+  secondaryActionLabel = "Cancel",
+  secondaryActionHref,
 }: UpgradeModalProps) {
   const proPlan = billingPlans.find((plan) => plan.id === "pro_monthly")
   const businessPlan = billingPlans.find((plan) => plan.id === "business_monthly")
@@ -56,10 +64,10 @@ export function UpgradeModal({
             <p className="text-xs text-muted-foreground mb-3">
               {proPlan?.description || "AI-powered analytics for growing businesses."}
             </p>
-            <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto" className="block">
+            <Link href={primaryActionHref} className="block">
               <Button size="sm" className="w-full" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />
-                Upgrade to Pro
+                {primaryActionLabel}
               </Button>
             </Link>
           </div>
@@ -82,9 +90,17 @@ export function UpgradeModal({
         </div>
 
         <div className="flex justify-end">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          {secondaryActionHref ? (
+            <Link href={secondaryActionHref}>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                {secondaryActionLabel}
+              </Button>
+            </Link>
+          ) : (
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              {secondaryActionLabel}
+            </Button>
+          )}
         </div>
       </div>
     </Modal>

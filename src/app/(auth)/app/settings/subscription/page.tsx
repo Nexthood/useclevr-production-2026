@@ -61,9 +61,13 @@ export default async function SubscriptionSettingsPage({
   const params = await searchParams;
   const activeTab = normalizeTab(params?.tab);
   const session = await auth();
-  const usage = await getAnalystCreditUsage(session?.user?.id, session?.user?.role);
+  const usage = await getAnalystCreditUsage(
+    session?.user?.id,
+    session?.user?.role,
+    session?.user?.email ?? null,
+  );
   const billingSettings = await getBillingSettings();
-  const remaining = Math.max(0, usage.total - usage.analysisCount);
+  const remaining = Math.max(0, usage.availableCredits);
   const isUnlimited = usage.unlimited;
   const db = getDb();
 
@@ -158,7 +162,7 @@ export default async function SubscriptionSettingsPage({
               <MetricCard
                 label="AI Credits Summary"
                 value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount} / ${usage.total} used`}
-                detail={isUnlimited ? "No monthly credit limit applies." : `${remaining} credits remaining.`}
+                detail={isUnlimited ? "No monthly credit limit applies." : `${remaining} credits available.`}
               />
               <MetricCard label="Dataset Usage" value={`${datasetCount} / ${datasetLimit}`} detail="Uploaded datasets in this workspace" />
               <MetricCard label="Storage Usage" value={bytesToDisplay(storageBytes)} detail="Based on uploaded dataset file sizes" />
@@ -298,7 +302,8 @@ export default async function SubscriptionSettingsPage({
             <div className="grid gap-3 md:grid-cols-3">
               <MetricCard label="Monthly Credits" value={isUnlimited ? "Unlimited" : String(usage.total)} />
               <MetricCard label="Credits Used" value={isUnlimited ? "0" : String(usage.analysisCount)} />
-              <MetricCard label="Credits Remaining" value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : String(remaining)} />
+              <MetricCard label="Credits Reserved" value={isUnlimited ? "0" : String(usage.reservedCredits)} />
+              <MetricCard label="Credits Available" value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : String(remaining)} />
               <MetricCard label="Token Usage" value="Calculated per AI request" />
               <MetricCard label="Estimated AI Cost" value="Tracked by provider usage" />
               <MetricCard label="Monthly Reset Date" value="Monthly billing reset" />

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
-import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
+import { USAGE_REFRESH_EVENT, useUsage } from "@/components/ui/usage-monitor"
 import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
@@ -58,10 +58,11 @@ export function CsvUpload() {
    const [processingStep, setProcessingStep] = React.useState(0)
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
-   const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
+   const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string, primaryActionLabel?: string, primaryActionHref?: string, secondaryActionLabel?: string, secondaryActionHref?: string}>({})
    const [uploadResult, setUploadResult] = React.useState<UploadResponse | null>(null)
    const { toast } = useToast()
    const { showNotice } = useNotice()
+   const creditUsage = useUsage()
   
   // Cloud-first connection detection
   const connectionStatus = useConnectionStatus()
@@ -75,7 +76,35 @@ export function CsvUpload() {
   const isHybrid = connectionMode === 'hybrid'
   const _isOnline = connectionMode === 'online'
   const isPlanLimitReached = uploadStatus === "limit-reached"
-  const isUploadLocked = uploading || isPlanLimitReached || uploadStatus === "success"
+  const isCreditLimitReached = !creditUsage.isLoading && !creditUsage.isPro && creditUsage.available <= 0
+  const isUploadLocked = uploading || isPlanLimitReached || uploadStatus === "success" || isCreditLimitReached || creditUsage.isLoading
+
+  const showCreditLimitModal = React.useCallback((usage?: UploadResponse["usage"]) => {
+    const currentCount = usage?.usedCredits ?? usage?.analysisCount ?? creditUsage.usage
+    const limit = usage?.total ?? creditUsage.total
+    const planName = usage?.subscriptionTier || "Free"
+    const modalData = { currentCount, limit, planName }
+
+    setUploadStatus("limit-reached")
+    setLimitReachedInfo(modalData)
+    setUpgradeModalData(modalData)
+    setUpgradeModalCopy({
+      title: "No credits remaining",
+      description: "You have used all included credits in your Free plan.",
+      usageLabel: "included credits used",
+      primaryActionLabel: "Upgrade plan",
+      primaryActionHref: "/app/settings/checkout?plan=pro_monthly&discount=auto",
+      secondaryActionLabel: "View usage",
+      secondaryActionHref: "/app/settings/subscription?tab=usage",
+    })
+    setShowUpgradeModal(true)
+    setProcessingStep(0)
+    showNotice({
+      type: "info",
+      title: "No credits remaining",
+      message: "You have used all included credits in your Free plan.",
+    })
+  }, [creditUsage.total, creditUsage.usage, showNotice])
 
   // Get connection status icon and color
   const getConnectionIcon = (mode: ConnectionMode) => {
@@ -122,7 +151,7 @@ export function CsvUpload() {
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (isPlanLimitReached || uploadStatus === "success") {
+    if (isPlanLimitReached || isCreditLimitReached || creditUsage.isLoading || uploadStatus === "success") {
       setDragActive(false)
       return
     }
@@ -138,6 +167,11 @@ export function CsvUpload() {
     e.stopPropagation()
     setDragActive(false)
 
+    if (creditUsage.isLoading) return
+    if (isCreditLimitReached) {
+      showCreditLimitModal()
+      return
+    }
     if (isPlanLimitReached || uploadStatus === "success") return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -152,6 +186,15 @@ export function CsvUpload() {
     
     if (!isCsv && !isExcel) {
       setErrorMessage("Please upload a CSV or Excel file (.csv, .xlsx, .xls)")
+      return
+    }
+
+    if (creditUsage.isLoading) {
+      return
+    }
+
+    if (isCreditLimitReached) {
+      showCreditLimitModal()
       return
     }
 
@@ -271,6 +314,16 @@ export function CsvUpload() {
         }
       } else {
         const uploadError = result.error || result.message || "Upload failed"
+        const isInsufficientCredits =
+          result.code === "INSUFFICIENT_CREDITS" ||
+          uploadError.startsWith("INSUFFICIENT_CREDITS|") ||
+          Boolean(result.usage?.limitReached)
+
+        if (isInsufficientCredits) {
+          window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+          showCreditLimitModal(result.usage)
+          return
+        }
 
         // Plan limits are an upgrade state, not an upload failure.
         if (result.datasetLimit?.limitReached) {
@@ -341,24 +394,6 @@ export function CsvUpload() {
           setUploadStatus("error")
           setErrorMessage(uploadError)
           setProcessingStep(0)
-          if (result.usage?.limitReached) {
-            setUpgradeModalData({
-              currentCount: result.usage.analysisCount || 2,
-              limit: result.usage.total || 2,
-              planName: "Free",
-            })
-            setUpgradeModalCopy({
-              title: "Included credits used",
-              description: "You have used your included AI credits for this plan. Upgrade to continue uploading, analyzing, and generating reports.",
-              usageLabel: "included credits used",
-            })
-            setShowUpgradeModal(true)
-            showNotice({
-              type: "info",
-              title: "Included credits used.",
-              message: "You have used all included AI credits for your plan. Upgrade to continue uploading another dataset.",
-            })
-          }
         }
       }
     } catch (error) {
@@ -538,12 +573,11 @@ export function CsvUpload() {
             ) : uploadStatus === "limit-reached" ? (
               <div className="mx-auto max-w-2xl space-y-5 text-left">
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-foreground">Free plan limit reached</h3>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {upgradeModalCopy.title || "Free plan limit reached"}
+                  </h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    You have reached the maximum number of datasets included in your Free plan.
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Continue analyzing your business by upgrading your account.
+                    {upgradeModalCopy.description || "You have reached the maximum number of datasets included in your Free plan."}
                   </p>
                 </div>
 
@@ -563,7 +597,7 @@ export function CsvUpload() {
                     }}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Upgrade to Pro
+                    {upgradeModalCopy.primaryActionLabel || "Upgrade to Pro"}
                   </Button>
                   <Button
                     type="button"
@@ -575,13 +609,13 @@ export function CsvUpload() {
                     }}
                   >
                     <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                    Upgrade to Business
+                    {upgradeModalCopy.secondaryActionLabel || "Upgrade to Business"}
                   </Button>
                 </div>
 
                 {limitReachedInfo && (
                   <p className="text-center text-xs text-muted-foreground">
-                    Current usage: {limitReachedInfo.currentCount} of {limitReachedInfo.limit} datasets included in {limitReachedInfo.planName}.
+                    Current usage: {limitReachedInfo.currentCount} of {limitReachedInfo.limit} {upgradeModalCopy.usageLabel || "datasets included"} in {limitReachedInfo.planName}.
                   </p>
                 )}
               </div>
@@ -657,6 +691,10 @@ export function CsvUpload() {
         title={upgradeModalCopy.title}
         description={upgradeModalCopy.description}
         usageLabel={upgradeModalCopy.usageLabel}
+        primaryActionLabel={upgradeModalCopy.primaryActionLabel}
+        primaryActionHref={upgradeModalCopy.primaryActionHref}
+        secondaryActionLabel={upgradeModalCopy.secondaryActionLabel}
+        secondaryActionHref={upgradeModalCopy.secondaryActionHref}
       />
     </>
   )

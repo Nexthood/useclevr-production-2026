@@ -55,7 +55,7 @@ export default async function ProfileSettingsPage() {
   const fullName = isSuperAdmin ? OFFICIAL_SUPERADMIN_NAME : (profile?.fullName || user?.name || "")
   const email = isSuperAdmin ? (userEmail || "") : (profile?.email || user?.email || "")
   const setupStatus = user?.id ? await getSetupStatus(user.id) : null
-  const usage = await getAnalystCreditUsage(user?.id, user?.role)
+  const usage = await getAnalystCreditUsage(user?.id, user?.role, user?.email ?? null)
   const profileComplete = Boolean(fullName && email)
   const companyComplete = (setupStatus?.setupAccuracy ?? 0) >= 100
   const subscriptionComplete = usage.subscriptionTier !== "free" || usage.unlimited
@@ -184,7 +184,7 @@ export default async function ProfileSettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <MetricLine label="Plan" value={planLabel} />
-                  <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount}/${usage.total} used`} />
+                  <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount}/${usage.total} used, ${usage.availableCredits} available`} />
                   <Link href="/app/settings/subscription" className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                     Manage subscription
                   </Link>

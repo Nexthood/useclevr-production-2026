@@ -1,6 +1,7 @@
 import { getBillingPlanByTier, type BillingPlan } from "@/lib/billing/plans"
 
 export const CREDIT_ENGINE_FEATURES = [
+  "dataset_upload",
   "ai_question",
   "standard_analysis",
   "retail_analysis",
@@ -43,6 +44,14 @@ export const FEATURE_COST_REGISTRY: Record<CreditFeature, FeatureCostRule> = {
     maxReservationCredits: 12,
     allowedPlans: ["free", "demo", "pro", "business", "admin", "superadmin"],
     variableCredits: (input) => onePer(input.estimatedTokens, 8_000),
+  },
+  dataset_upload: {
+    feature: "dataset_upload",
+    label: "Dataset upload",
+    baseCredits: 1,
+    maxReservationCredits: 1,
+    allowedPlans: ["free", "demo", "pro", "business", "admin", "superadmin"],
+    variableCredits: () => 0,
   },
   standard_analysis: {
     feature: "standard_analysis",
@@ -138,7 +147,8 @@ export function normalizeCreditFeature(actionType: string): CreditFeature {
   if (actionType === "multi_dataset_analysis") return "standard_analysis"
   if (actionType === "forecast_analysis") return "profitability_analysis"
   if (actionType === "mcp_tool_invocation") return "hybrid_retrieval"
-  if (actionType === "file_upload") return "document_extraction"
+  if (actionType === "file_upload") return "dataset_upload"
+  if (actionType === "dataset_upload") return "dataset_upload"
 
   return "standard_analysis"
 }

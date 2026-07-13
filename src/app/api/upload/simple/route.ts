@@ -1,7 +1,9 @@
 import { auth } from "@/lib/auth/auth";
+import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { debugError } from "@/lib/utils/debug";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
@@ -62,6 +64,20 @@ function isCsvOrExcel(file: File) {
     file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
     file.type === "application/vnd.ms-excel"
   );
+}
+
+async function getUsagePayload(userId: string, role?: string | null, email?: string | null) {
+  const usage = await getAnalystCreditUsage(userId, role, email ?? null);
+  return {
+    limitReached: usage.limitReached,
+    analysisCount: usage.usedCredits,
+    total: usage.total,
+    availableCredits: usage.availableCredits,
+    reservedCredits: usage.reservedCredits,
+    usedCredits: usage.usedCredits,
+    remainingCredits: usage.remainingCredits,
+    subscriptionTier: usage.subscriptionTier,
+  };
 }
 
 export async function POST(request: Request) {
@@ -154,6 +170,9 @@ export async function POST(request: Request) {
   }
 
   const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
+  const requestKey = request.headers.get("idempotency-key") || datasetId;
+  const operationId = `upload:${userId}:${requestKey}`;
+  let creditReserved = false;
   const now = new Date();
   const parsedRows = (parsed.previewRows as Record<string, unknown>[]).slice(
     0,
@@ -187,9 +206,46 @@ export async function POST(request: Request) {
     updatedAt: now,
   };
 
+  const reservation = await reserveCredits({
+    userId,
+    operationId,
+    idempotencyKey: operationId,
+    estimatedCredits: 1,
+    feature: "dataset_upload",
+    source: "upload",
+    role: session?.user?.role ?? null,
+    email: session?.user?.email ?? null,
+    metadata: {
+      datasetId,
+      fileName: uploadFile.name,
+      rowCount: parsed.rowCount,
+      datasetType: "standard",
+    },
+  });
+
+  if (!reservation.success) {
+    return jsonError(
+      402,
+      "credits_deducted",
+      "You have used all included credits in your Free plan.",
+      false,
+      {
+        code: "INSUFFICIENT_CREDITS",
+        title: "No credits remaining",
+        upgradeRequired: true,
+        usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+      },
+    );
+  }
+
+  creditReserved = true;
+
   try {
     await db.insert(datasets).values(datasetPayload);
   } catch (error) {
+    if (creditReserved) {
+      await releaseCredits(operationId, "dataset_insert_failed");
+    }
     const serializedError = serializeDatasetCreateError(error);
     console.error("[SIMPLE_UPLOAD] Dataset insert failed", {
       model: "Dataset",
@@ -220,9 +276,28 @@ export async function POST(request: Request) {
       }));
       await db.insert(datasetRows).values(rowValues);
     } catch (error) {
+      if (creditReserved) {
+        await releaseCredits(operationId, "dataset_row_insert_failed");
+      }
       debugError("[SIMPLE_UPLOAD] Row insert failed:", error);
+      return jsonError(
+        500,
+        "rows_processed",
+        "Could not process dataset rows. Please try again.",
+        true,
+      );
     }
   }
+
+  await finalizeCredits({
+    operationId,
+    actualCredits: 1,
+    metadata: {
+      datasetId,
+      rowCount: parsed.rowCount,
+      datasetType: "standard",
+    },
+  });
 
   return NextResponse.json({
     ok: true,
@@ -242,5 +317,6 @@ export async function POST(request: Request) {
       headers: parsed.columns,
       rows: parsedRows.slice(0, 5),
     },
+    usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
   });
 }

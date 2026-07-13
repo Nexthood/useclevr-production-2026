@@ -22,6 +22,12 @@ import {
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { checkDemoAccess, consumeDemoCredit, getDemoLimits } from "@/lib/billing/demo-access";
+import {
+  finalizeCredits,
+  releaseCredits,
+  reserveCredits,
+} from "@/lib/billing/credit-engine";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
@@ -47,6 +53,10 @@ type UploadCSVResult = {
     limitReached?: boolean;
     analysisCount?: number;
     total?: number;
+    availableCredits?: number;
+    reservedCredits?: number;
+    usedCredits?: number;
+    remainingCredits?: number;
     subscriptionTier?: string;
   };
   step?: string;
@@ -280,12 +290,11 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       return fail(UPLOAD_STAGES.AUTH_CHECKED, "User ID not found. Please sign in again.");
     }
 
-    const uploadUsage = {
-      limitReached: false,
-      analysisCount: 0,
-      total: Number.MAX_SAFE_INTEGER,
-      subscriptionTier: "upload",
-    };
+    let uploadUsage = await getAnalystCreditUsage(
+      effectiveUserId,
+      session?.user?.role,
+      session?.user?.email ?? null,
+    );
 
     const file = formData.get("file") as File | null;
     if (!file) {
@@ -395,6 +404,58 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     // Generate dataset ID
     const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
     const datasetName = file.name.replace(/\.csv$/i, "");
+    let uploadCreditOperationId: string | null = null;
+
+    if (!isDemoUser) {
+      const operationId = `upload:${effectiveUserId}:${datasetId}`;
+      const reservation = await reserveCredits({
+        userId: effectiveUserId,
+        operationId,
+        idempotencyKey: `upload:${effectiveUserId}:${datasetId}`,
+        estimatedCredits: 1,
+        feature: "dataset_upload",
+        source: "upload",
+        role: session?.user?.role ?? null,
+        email: session?.user?.email ?? null,
+        metadata: {
+          datasetId,
+          fileName: file.name,
+          rowCount: totalRowCount,
+          datasetType: uploadCategory,
+        },
+      });
+
+      if (!reservation.success) {
+        uploadUsage = await getAnalystCreditUsage(
+          effectiveUserId,
+          session?.user?.role,
+          session?.user?.email ?? null,
+        );
+        return fail(
+          UPLOAD_STAGES.CREDITS_DEDUCTED,
+          "INSUFFICIENT_CREDITS|No credits remaining|You have used all included credits in your Free plan.",
+          {
+            usage: {
+              limitReached: true,
+              analysisCount: uploadUsage.usedCredits,
+              total: uploadUsage.total,
+              availableCredits: uploadUsage.availableCredits,
+              reservedCredits: uploadUsage.reservedCredits,
+              usedCredits: uploadUsage.usedCredits,
+              remainingCredits: uploadUsage.remainingCredits,
+              subscriptionTier: uploadUsage.subscriptionTier,
+            },
+          },
+        );
+      }
+
+      uploadCreditOperationId = operationId;
+      uploadUsage = await getAnalystCreditUsage(
+        effectiveUserId,
+        session?.user?.role,
+        session?.user?.email ?? null,
+      );
+    }
 
     debugLog("[UPLOAD] Creating dataset:", datasetId, "for user:", effectiveUserId);
     debugLog("[UPLOAD] Total rows:", totalRowCount);
@@ -559,6 +620,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
           debugLog("[UPLOAD] result saved:", datasetId);
         }
       } catch (insertErr) {
+        if (uploadCreditOperationId) {
+          await releaseCredits(uploadCreditOperationId, "dataset_insert_failed");
+        }
         debugError("[UPLOAD] DATASET INSERT FAILED:", insertErr);
         debugError(
           "[UPLOAD] DATASET INSERT ERROR:",
@@ -599,6 +663,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
           );
         }
       } catch (rowErr) {
+        if (uploadCreditOperationId) {
+          await releaseCredits(uploadCreditOperationId, "dataset_row_insert_failed");
+        }
         debugError("[UPLOAD] ROW INSERT FAILED:", rowErr);
         debugError(
           "[UPLOAD] ROW INSERT ERROR:",
@@ -711,6 +778,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         ).catch(() => {});
       }
     } catch (err) {
+      if (typeof uploadCreditOperationId === "string") {
+        await releaseCredits(uploadCreditOperationId, "dataset_create_failed");
+      }
       debugError("[UPLOAD] Database error:", err);
       debugError("[UPLOAD] Error stack:", err instanceof Error ? err.stack : "No stack");
       debugError("[UPLOAD] Error message:", err instanceof Error ? err.message : String(err));
@@ -758,6 +828,19 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       demoCreditsRemaining = consumeResult.remainingCredits;
     }
 
+    if (uploadCreditOperationId) {
+      await finalizeCredits({
+        operationId: uploadCreditOperationId,
+        actualCredits: 1,
+        metadata: { datasetId, rowCount: totalRowCount, datasetType: datasetCategory },
+      });
+      uploadUsage = await getAnalystCreditUsage(
+        effectiveUserId,
+        session?.user?.role,
+        session?.user?.email ?? null,
+      );
+    }
+
     return {
       success: true,
       datasetId: datasetId,
@@ -773,7 +856,16 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         rows: previewRowsToReturn,
       },
       profitabilityResult: profitabilityData || undefined,
-      usage: uploadUsage,
+      usage: {
+        limitReached: uploadUsage.limitReached,
+        analysisCount: uploadUsage.usedCredits,
+        total: uploadUsage.total,
+        availableCredits: uploadUsage.availableCredits,
+        reservedCredits: uploadUsage.reservedCredits,
+        usedCredits: uploadUsage.usedCredits,
+        remainingCredits: uploadUsage.remainingCredits,
+        subscriptionTier: uploadUsage.subscriptionTier,
+      },
       demoCreditsRemaining,
     };
   } catch (error) {

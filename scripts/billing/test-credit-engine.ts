@@ -7,6 +7,7 @@ import {
   estimateFeatureCredits,
   normalizeCreditFeature,
 } from "@/lib/billing/feature-costs"
+import { FREE_PLAN_LIMITS, getCreditsLimitForTier } from "@/lib/billing/plans"
 import { emptyProviderUsage, normalizeProviderUsage } from "@/lib/billing/provider-usage"
 
 type TestCase = {
@@ -24,7 +25,25 @@ const tests: TestCase[] = [
       )
       assert.equal(normalizeCreditFeature("ai_chat"), "ai_question")
       assert.equal(normalizeCreditFeature("dataset_analysis"), "standard_analysis")
+      assert.equal(normalizeCreditFeature("file_upload"), "dataset_upload")
+      assert.equal(normalizeCreditFeature("dataset_upload"), "dataset_upload")
       assert.equal(normalizeCreditFeature("report_generation"), "report_generation")
+    },
+  },
+  {
+    name: "free plan exposes two included credits",
+    run() {
+      assert.equal(FREE_PLAN_LIMITS.monthlyCredits, 2)
+      assert.equal(getCreditsLimitForTier("free"), 2)
+    },
+  },
+  {
+    name: "dataset upload reserves one credit on free plans",
+    run() {
+      assert.equal(estimateFeatureCredits("dataset_upload"), 1)
+      assert.equal(estimateFeatureCredits("file_upload"), 1)
+      assert.equal(canPlanUseFeature("free", "dataset_upload"), true)
+      assert.equal(FEATURE_COST_REGISTRY.dataset_upload.maxReservationCredits, 1)
     },
   },
   {

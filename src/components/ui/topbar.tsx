@@ -25,7 +25,7 @@ export default async function Topbar() {
   const remainingCredits =
     usage.unlimited
       ? "Unlimited"
-      : Math.max(0, usage.total - usage.analysisCount).toString();
+      : Math.max(0, usage.availableCredits).toString();
 
   const levelLabel =
     usage.subscriptionTier === "superadmin"

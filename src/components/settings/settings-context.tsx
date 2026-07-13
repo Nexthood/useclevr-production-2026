@@ -10,6 +10,10 @@ export type SettingsContextValue = {
     trialDaysRemaining: number
     analysisCount: number
     total: number
+    availableCredits: number
+    reservedCredits: number
+    usedCredits: number
+    remainingCredits: number
     limitReached: boolean
     canAnalyze: boolean
     unlimited: boolean
