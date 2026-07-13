@@ -40,25 +40,25 @@ const ANALYZE_TIMEOUT_MS = 60000; // 60 seconds
 function checkAnalyzeLoop(datasetId: string): { allowed: boolean; message?: string } {
   const now = Date.now();
   const existing = analyzeLog.get(datasetId);
-  
+
   if (existing) {
     if (now - existing.lastTime > ANALYZE_TIMEOUT_MS) {
       analyzeLog.set(datasetId, { count: 1, lastTime: now });
       return { allowed: true };
     }
-    
+
     if (existing.count >= MAX_ANALYZE_COUNT) {
-      return { 
-        allowed: false, 
-        message: `Analysis blocked: Dataset ${datasetId} analyzed ${MAX_ANALYZE_COUNT}+ times recently. Please wait before re-analyzing.` 
+      return {
+        allowed: false,
+        message: `Analysis blocked: Dataset ${datasetId} analyzed ${MAX_ANALYZE_COUNT}+ times recently. Please wait before re-analyzing.`,
       };
     }
-    
+
     analyzeLog.set(datasetId, { count: existing.count + 1, lastTime: now });
   } else {
     analyzeLog.set(datasetId, { count: 1, lastTime: now });
   }
-  
+
   return { allowed: true };
 }
 
@@ -66,10 +66,13 @@ function checkAnalyzeLoop(datasetId: string): { allowed: boolean; message?: stri
  * Log analysis execution
  */
 function logAnalyzeExecution(action: string, details: Record<string, any>) {
-  debugLog(`[ANALYZE] ${action}:`, JSON.stringify({
-    ...details,
-    timestamp: new Date().toISOString()
-  }));
+  debugLog(
+    `[ANALYZE] ${action}:`,
+    JSON.stringify({
+      ...details,
+      timestamp: new Date().toISOString(),
+    }),
+  );
 }
 
 // ============================================================================
@@ -96,18 +99,15 @@ interface AnalysisRequestBody {
 
 export async function POST(
   request: Request,
-  { params }: RouteParams
+  { params }: RouteParams,
 ): Promise<NextResponse<CSVAnalysisResult | ErrorResponse>> {
   try {
     const { id }: { id: string } = await params;
 
-    debugLog('[ANALYZE] Received dataset ID:', id);
+    debugLog("[ANALYZE] Received dataset ID:", id);
 
     if (!id || typeof id !== "string" || id.trim() === "") {
-      return NextResponse.json<ErrorResponse>(
-        { error: "Invalid dataset ID" },
-        { status: 400 }
-      );
+      return NextResponse.json<ErrorResponse>({ error: "Invalid dataset ID" }, { status: 400 });
     }
 
     // ============================================================================
@@ -115,39 +115,58 @@ export async function POST(
     // ============================================================================
     const loopCheck = checkAnalyzeLoop(id);
     if (!loopCheck.allowed) {
-      logAnalyzeExecution('LOOP_DETECTED', { datasetId: id });
+      logAnalyzeExecution("LOOP_DETECTED", { datasetId: id });
       return NextResponse.json<ErrorResponse>(
-        { error: loopCheck.message ?? 'Analysis temporarily limited. Please retry shortly.' },
-        { status: 429 }
+        { error: loopCheck.message ?? "Analysis temporarily limited. Please retry shortly." },
+        { status: 429 },
       );
     }
 
     // ============================================================================
     // ANALYSIS INITIATED - Log execution
     // ============================================================================
-    logAnalyzeExecution('ANALYSIS_INITIATED', { datasetId: id });
+    logAnalyzeExecution("ANALYSIS_INITIATED", { datasetId: id });
 
     // Accept any valid ID format (UUID, ds_xxx format, etc.)
-    debugLog('[ANALYZE] Processing dataset ID:', id);
+    debugLog("[ANALYZE] Processing dataset ID:", id);
 
     const session = await auth();
     const userId = session?.user?.id;
     if (!userId) {
-      return NextResponse.json<ErrorResponse>(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json<ErrorResponse>({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const updateAnalysisStatus = async (
+      status: "processing" | "ready",
+      message: string,
+      progress: number,
+      error: string | null = null,
+    ) => {
+      try {
+        await db
+          .update(datasets)
+          .set({
+            analysisStatus: status,
+            analysisProgress: progress,
+            analysisMessage: message,
+            analysisError: error,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(datasets.id, id), eq(datasets.userId, userId)));
+      } catch (statusError) {
+        debugError("[ANALYZE] Failed to update analysis status:", statusError);
+      }
+    };
 
     let body: AnalysisRequestBody = {};
     const contentType: string | null = request.headers.get("content-type");
     if (contentType?.includes("application/json")) {
       try {
-        body = await request.json() as AnalysisRequestBody;
+        body = (await request.json()) as AnalysisRequestBody;
       } catch {
         return NextResponse.json<ErrorResponse>(
           { error: "Invalid JSON in request body" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -160,10 +179,7 @@ export async function POST(
     });
 
     if (!dataset) {
-      return NextResponse.json<ErrorResponse>(
-        { error: "Dataset not found" },
-        { status: 404 }
-      );
+      return NextResponse.json<ErrorResponse>({ error: "Dataset not found" }, { status: 404 });
     }
 
     const datasetData = dataset as {
@@ -178,21 +194,28 @@ export async function POST(
       data: DatasetRecord[];
     };
 
-    debugLog('[ANALYZE] Dataset found:', {
+    debugLog("[ANALYZE] Dataset found:", {
       id: datasetData.id,
       name: datasetData.name,
       status: datasetData.status,
       rowCount: datasetData.rowCount,
       columnCount: datasetData.columnCount,
-      columnTypes: datasetData.columnTypes
+      columnTypes: datasetData.columnTypes,
     });
 
     // Accept analysis on processing, ready, or completed datasets
-    if (datasetData.status !== "completed" && datasetData.status !== "processing" && datasetData.status !== "ready") {
-      debugLog('[ANALYZE] Invalid status:', datasetData.status);
+    if (
+      datasetData.status !== "completed" &&
+      datasetData.status !== "processing" &&
+      datasetData.status !== "ready"
+    ) {
+      debugLog("[ANALYZE] Invalid status:", datasetData.status);
       return NextResponse.json<ErrorResponse>(
-        { error: "Dataset is not ready for analysis", details: `Current status: ${datasetData.status}` },
-        { status: 422 }
+        {
+          error: "Dataset is not ready for analysis",
+          details: `Current status: ${datasetData.status}`,
+        },
+        { status: 422 },
       );
     }
 
@@ -208,51 +231,56 @@ export async function POST(
       allData = rows.map((row) => row.data as DatasetRecord);
     }
     const data: DatasetRecord[] = limit > 0 ? allData.slice(0, limit) : allData;
-    
+
     // DEBUG: Log detailed query info
-    debugLog('[DEBUG] Query params id:', id);
-    debugLog('[DEBUG] Dataset ID from DB:', datasetData.id);
-    debugLog('[DEBUG] IDs match:', id === datasetData.id);
-    debugLog('[DEBUG] Rows found:', data.length, 'out of', datasetData.rowCount, 'expected');
-    debugLog('[DEBUG] First row sample:', data.length > 0 ? JSON.stringify(data[0]) : 'none');
+    debugLog("[DEBUG] Query params id:", id);
+    debugLog("[DEBUG] Dataset ID from DB:", datasetData.id);
+    debugLog("[DEBUG] IDs match:", id === datasetData.id);
+    debugLog("[DEBUG] Rows found:", data.length, "out of", datasetData.rowCount, "expected");
+    debugLog("[DEBUG] First row sample:", data.length > 0 ? JSON.stringify(data[0]) : "none");
 
     // If we have rowCount but no actual rows, log error
     if (data.length === 0 && datasetData.rowCount > 0) {
-      debugError('[DEBUG] FATAL: Dataset has rowCount=%d but 0 rows in data!', datasetData.rowCount);
+      debugError(
+        "[DEBUG] FATAL: Dataset has rowCount=%d but 0 rows in data!",
+        datasetData.rowCount,
+      );
       return NextResponse.json<ErrorResponse & { _debug?: any }>(
-        { 
+        {
           error: "Data inconsistency: Dataset shows rows but data column is empty",
           details: `Expected ${datasetData.rowCount} rows but found 0`,
           _debug: {
             requestedId: id,
             actualId: datasetData.id,
-            idsMatch: id === datasetData.id
-          }
+            idsMatch: id === datasetData.id,
+          },
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     if (data.length === 0 && datasetData.rowCount === 0) {
-      debugLog('[ANALYZE] No data available yet - dataset still processing');
+      debugLog("[ANALYZE] No data available yet - dataset still processing");
       return NextResponse.json<ErrorResponse>(
         { error: "Dataset is still processing", details: "No data rows have been uploaded yet" },
-        { status: 422 }
+        { status: 422 },
       );
     }
+
+    await updateAnalysisStatus("processing", "Analysis is still being prepared...", 50);
 
     // Use the comprehensive CSV analyzer (async for FX rate fetching)
     const analysis: CSVAnalysisResult = await analyzeCSV(data);
 
     // NEW: Run Executive KPI Engine
     const executiveAnalysis: DatasetAnalysis = analyzeDataset(data);
-    debugLog('[ANALYZE] Executive KPI Engine completed:', {
+    debugLog("[ANALYZE] Executive KPI Engine completed:", {
       totalRows: executiveAnalysis.totalRows,
       totalColumns: executiveAnalysis.totalColumns,
       revenueColumn: executiveAnalysis.revenueColumn,
       totalRevenue: executiveAnalysis.totalRevenue,
       topCategory: executiveAnalysis.topCategory,
-      growthPercentage: executiveAnalysis.growthPercentage
+      growthPercentage: executiveAnalysis.growthPercentage,
     });
 
     // Compute metrics directly from data (single source of truth)
@@ -268,27 +296,29 @@ export async function POST(
       const cols = Object.keys(data[0]);
       for (const col of cols) {
         // Check for numeric
-        const hasNumeric = data.some(r => {
+        const hasNumeric = data.some((r) => {
           const val = r[col];
-          return typeof val === 'number' || 
-            (typeof val === 'string' && !isNaN(parseFloat(val)) && isFinite(parseFloat(val)));
+          return (
+            typeof val === "number" ||
+            (typeof val === "string" && !isNaN(parseFloat(val)) && isFinite(parseFloat(val)))
+          );
         });
         if (hasNumeric) {
           numericCols.push(col);
-          colTypes[col] = 'numeric';
+          colTypes[col] = "numeric";
         }
-        
+
         // Check for date (only if not already detected as numeric)
         if (!hasNumeric) {
-          const hasDate = data.some(r => {
+          const hasDate = data.some((r) => {
             const val = r[col];
-            return typeof val === 'string' && !isNaN(Date.parse(val));
+            return typeof val === "string" && !isNaN(Date.parse(val));
           });
           if (hasDate) {
             dateCols.push(col);
-            colTypes[col] = 'date';
+            colTypes[col] = "date";
           } else {
-            colTypes[col] = 'text';
+            colTypes[col] = "text";
           }
         }
       }
@@ -299,13 +329,22 @@ export async function POST(
     analysis.column_types = colTypes;
 
     // Compute duplicates
-    const duplicateCount = data.length - new Set(data.map(r => JSON.stringify(r))).size;
+    const duplicateCount = data.length - new Set(data.map((r) => JSON.stringify(r))).size;
     if (!analysis.data_quality) {
       analysis.data_quality = { missing_counts: {}, duplicates: 0, warnings: [] };
     }
     analysis.data_quality.duplicates = duplicateCount;
 
-    debugLog('[ANALYZE] Computed from data - rows:', analysis.total_rows, 'cols:', analysis.total_columns, 'numeric:', numericCols.length, 'dates:', dateCols.length);
+    debugLog(
+      "[ANALYZE] Computed from data - rows:",
+      analysis.total_rows,
+      "cols:",
+      analysis.total_columns,
+      "numeric:",
+      numericCols.length,
+      "dates:",
+      dateCols.length,
+    );
 
     // Add executive KPI analysis to the result
     (analysis as any).executive_analysis = executiveAnalysis;
@@ -316,19 +355,19 @@ export async function POST(
       growthPercentage: executiveAnalysis.growthPercentage,
       growthTrend: executiveAnalysis.growthTrend,
       revenueColumn: executiveAnalysis.revenueColumn,
-      dateRange: executiveAnalysis.dateRange
+      dateRange: executiveAnalysis.dateRange,
     };
 
     // NEW: Run Business Column Detection & KPI Engine
-    debugLog('[ANALYZE] Running Business Column Detection...');
+    debugLog("[ANALYZE] Running Business Column Detection...");
     const detectedColumns = detectBusinessColumns(data);
-    debugLog('[ANALYZE] Detected columns:', {
+    debugLog("[ANALYZE] Detected columns:", {
       revenueColumn: detectedColumns.revenueColumn,
       profitColumn: detectedColumns.profitColumn,
       costColumn: detectedColumns.costColumn,
       dateColumn: detectedColumns.dateColumn,
       productColumn: detectedColumns.productColumn,
-      regionColumn: detectedColumns.regionColumn
+      regionColumn: detectedColumns.regionColumn,
     });
 
     // Run Business KPI Analysis
@@ -339,7 +378,8 @@ export async function POST(
     const datasetCosts =
       typeof businessKpisWithCosts.totalCost === "number"
         ? businessKpisWithCosts.totalCost
-        : typeof businessAnalysis.kpis.totalRevenue === "number" && typeof businessAnalysis.kpis.totalProfit === "number"
+        : typeof businessAnalysis.kpis.totalRevenue === "number" &&
+            typeof businessAnalysis.kpis.totalProfit === "number"
           ? businessAnalysis.kpis.totalRevenue - businessAnalysis.kpis.totalProfit
           : null;
     const businessProfile = await getCompanySetup(userId);
@@ -349,7 +389,7 @@ export async function POST(
       revenue: businessAnalysis.kpis.totalRevenue,
       datasetCosts,
     });
-    debugLog('[ANALYZE] Business analysis complete:', {
+    debugLog("[ANALYZE] Business analysis complete:", {
       totalRevenue: businessAnalysis.kpis.totalRevenue,
       totalProfit: businessAnalysis.kpis.totalProfit,
       profitMargin: businessAnalysis.kpis.profitMargin,
@@ -359,7 +399,7 @@ export async function POST(
       topRegions: businessAnalysis.kpis.topRegions.length,
       topProducts: businessAnalysis.kpis.topProducts.length,
       growthValid: businessAnalysis.kpis.growthValid,
-      growthMessage: businessAnalysis.kpis.growthMessage
+      growthMessage: businessAnalysis.kpis.growthMessage,
     });
 
     // Add business analysis to result
@@ -382,7 +422,8 @@ export async function POST(
         ...businessProfileContext.conflicts.map((action) => ({
           action,
           reason: "Uploaded data conflicts with Business Profile context.",
-          expectedImpact: "Ask the user to confirm which value should be used before relying on final outputs.",
+          expectedImpact:
+            "Ask the user to confirm which value should be used before relying on final outputs.",
         })),
       ],
       detectedColumns,
@@ -400,13 +441,13 @@ export async function POST(
         topRegions: businessAnalysis.kpis.topRegions,
         detectedColumns: detectedColumns,
         growthValid: businessAnalysis.kpis.growthValid,
-        growthPercentage: businessAnalysis.kpis.growthPercentage
+        growthPercentage: businessAnalysis.kpis.growthPercentage,
       };
       const aiSummary = await generateAIExecutiveSummary(enrichedAnalysis, userId);
       (analysis as any).ai_summary = aiSummary;
-      debugLog('[ANALYZE] AI Executive Summary generated');
+      debugLog("[ANALYZE] AI Executive Summary generated");
     } catch (aiError) {
-      debugError('[ANALYZE] Failed to generate AI summary:', aiError);
+      debugError("[ANALYZE] Failed to generate AI summary:", aiError);
       (analysis as any).ai_summary = null;
     }
 
@@ -419,28 +460,30 @@ export async function POST(
         userId,
       });
       (analysis as any).business_intelligence = businessIntelligence;
-      debugLog('[ANALYZE] Business Intelligence Engine completed:', {
+      debugLog("[ANALYZE] Business Intelligence Engine completed:", {
         healthScore: businessIntelligence.healthScore.overall,
         risks: businessIntelligence.risks.length,
         opportunities: businessIntelligence.opportunities.length,
       });
     } catch (biError) {
-      debugError('[ANALYZE] Business Intelligence Engine failed:', biError);
+      debugError("[ANALYZE] Business Intelligence Engine failed:", biError);
     }
 
     // Save analysis result to database for persistence
     try {
-      await db.update(datasets)
-        .set({ 
+      await db
+        .update(datasets)
+        .set({
           analysis: analysis as any,
           aiInsights: (analysis as any).business_intelligence || null,
-          analysisStatus: "completed",
+          analysisStatus: "ready",
           analysisProgress: 100,
-          analysisMessage: "Analysis completed.",
-          updatedAt: new Date()
+          analysisMessage: "Analysis is ready.",
+          analysisError: null,
+          updatedAt: new Date(),
         })
         .where(and(eq(datasets.id, id), eq(datasets.userId, userId)));
-      debugLog('[ANALYZE] Analysis saved to database for dataset:', id);
+      debugLog("[ANALYZE] Analysis saved to database for dataset:", id);
       if (userId) {
         await recordActivity({
           userId,
@@ -456,7 +499,7 @@ export async function POST(
         });
       }
     } catch (saveError) {
-      debugError('[ANALYZE] Failed to save analysis to database:', saveError);
+      debugError("[ANALYZE] Failed to save analysis to database:", saveError);
       // Continue anyway - we still want to return the analysis result
     }
 
@@ -466,28 +509,22 @@ export async function POST(
 
     if (error instanceof Error) {
       if (error.message.includes("P2025")) {
-        return NextResponse.json<ErrorResponse>(
-          { error: "Dataset not found" },
-          { status: 404 }
-        );
+        return NextResponse.json<ErrorResponse>({ error: "Dataset not found" }, { status: 404 });
       }
       if (error.message.includes("P2002")) {
         return NextResponse.json<ErrorResponse>(
           { error: "Duplicate record error" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (error.message.includes("P2003")) {
         return NextResponse.json<ErrorResponse>(
           { error: "Foreign key constraint error" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
 
-    return NextResponse.json<ErrorResponse>(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }
 }
