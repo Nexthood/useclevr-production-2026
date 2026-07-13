@@ -16,16 +16,16 @@ export async function GET() {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
+      return Response.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } })
     }
 
     return Response.json(await getAnalystCreditUsage(
       session.user.id,
       session.user.role,
       session.user.email
-    ))
+    ), { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
     debugError("[USAGE] Error fetching usage:", error)
-    return Response.json({ error: "Failed to fetch usage" }, { status: 500 })
+    return Response.json({ error: "Failed to fetch usage" }, { status: 500, headers: { "Cache-Control": "no-store" } })
   }
 }

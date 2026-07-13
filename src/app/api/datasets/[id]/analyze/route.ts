@@ -2,6 +2,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 
 import { recordActivity } from "@/lib/activity/activity-store";
 import { auth } from "@/lib/auth/auth";
+import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
@@ -12,6 +13,7 @@ import type { DatasetAnalysis } from "@/lib/data/dataset-analyzer";
 import { analyzeDataset, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -86,11 +88,38 @@ interface RouteParams {
 interface ErrorResponse {
   error: string;
   details?: string;
+  code?: string;
+  title?: string;
+  upgradeRequired?: boolean;
+  usage?: {
+    limitReached?: boolean;
+    analysisCount?: number;
+    total?: number;
+    availableCredits?: number;
+    reservedCredits?: number;
+    usedCredits?: number;
+    remainingCredits?: number;
+    subscriptionTier?: string;
+  };
 }
 
 interface AnalysisRequestBody {
   limit?: number;
   includeSample?: boolean;
+}
+
+async function getUsagePayload(userId: string, role?: string | null, email?: string | null) {
+  const usage = await getAnalystCreditUsage(userId, role, email ?? null);
+  return {
+    limitReached: usage.limitReached,
+    analysisCount: usage.usedCredits,
+    total: usage.total,
+    availableCredits: usage.availableCredits,
+    reservedCredits: usage.reservedCredits,
+    usedCredits: usage.usedCredits,
+    remainingCredits: usage.remainingCredits,
+    subscriptionTier: usage.subscriptionTier,
+  };
 }
 
 // ============================================================================
@@ -101,6 +130,7 @@ export async function POST(
   request: Request,
   { params }: RouteParams,
 ): Promise<NextResponse<CSVAnalysisResult | ErrorResponse>> {
+  let creditOperationId: string | null = null;
   try {
     const { id }: { id: string } = await params;
 
@@ -264,6 +294,36 @@ export async function POST(
       return NextResponse.json<ErrorResponse>(
         { error: "Dataset is still processing", details: "No data rows have been uploaded yet" },
         { status: 422 },
+      );
+    }
+
+    creditOperationId = `dataset-analysis:${userId}:${id}:${request.headers.get("idempotency-key") || crypto.randomUUID()}`;
+    const reservation = await reserveCredits({
+      userId,
+      operationId: creditOperationId,
+      idempotencyKey: creditOperationId,
+      estimatedCredits: 1,
+      feature: "standard_analysis",
+      source: "dataset_analysis",
+      role: session?.user?.role ?? null,
+      email: session?.user?.email ?? null,
+      metadata: {
+        datasetId: id,
+        datasetName: datasetData.name,
+        rowCount: datasetData.rowCount,
+      },
+    });
+
+    if (!reservation.success) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          error: "You have used all included credits in your Free plan.",
+          code: "INSUFFICIENT_CREDITS",
+          title: "No credits remaining",
+          upgradeRequired: true,
+          usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+        },
+        { status: 402 },
       );
     }
 
@@ -503,8 +563,23 @@ export async function POST(
       // Continue anyway - we still want to return the analysis result
     }
 
+    if (creditOperationId) {
+      await finalizeCredits({
+        operationId: creditOperationId,
+        actualCredits: 1,
+        metadata: {
+          datasetId: id,
+          rowCount: datasetData.rowCount,
+          datasetType: "standard",
+        },
+      });
+    }
+
     return NextResponse.json<CSVAnalysisResult>(analysis);
   } catch (error) {
+    if (creditOperationId) {
+      await releaseCredits(creditOperationId, "dataset_analysis_failed");
+    }
     debugError("Dataset analysis error:", error);
 
     if (error instanceof Error) {

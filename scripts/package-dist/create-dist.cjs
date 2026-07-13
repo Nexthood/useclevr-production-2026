@@ -116,13 +116,19 @@ copyDir(runtimeScriptsDir, path.join(distDir, "scripts", "runtime"));
 // Copy assets to dist root
 copyDir(srcAssetsDir, path.join(distDir, "assets"));
 
-// Copy public folder if it has files
+// Copy public assets for the standalone Next server. Keep a root-level compatibility copy for
+// existing deployment assets, but preserve the public/ directory because Next serves from there.
 if (fs.existsSync(publicDir)) {
+  copyDir(publicDir, path.join(distDir, "public"));
+
   const publicItems = fs.readdirSync(publicDir);
   for (const item of publicItems) {
     const src = path.join(publicDir, item);
-    if (fs.statSync(src).isFile()) {
-      fs.cpSync(src, path.join(distDir, item));
+    const dest = path.join(distDir, item);
+    if (fs.statSync(src).isDirectory()) {
+      copyDir(src, dest);
+    } else {
+      fs.cpSync(src, dest);
     }
   }
 }
@@ -338,8 +344,16 @@ function ensureSharpMuslPackages(distNmDir) {
   if (!fs.existsSync(pnpmDir)) return;
 
   const muslPackages = [
-    { entry: "@img+sharp-linuxmusl-x64@0.34.5", npmName: "@img/sharp-linuxmusl-x64", version: "0.34.5" },
-    { entry: "@img+sharp-libvips-linuxmusl-x64@1.2.4", npmName: "@img/sharp-libvips-linuxmusl-x64", version: "1.2.4" },
+    {
+      entry: "@img+sharp-linuxmusl-x64@0.34.5",
+      npmName: "@img/sharp-linuxmusl-x64",
+      version: "0.34.5",
+    },
+    {
+      entry: "@img+sharp-libvips-linuxmusl-x64@1.2.4",
+      npmName: "@img/sharp-libvips-linuxmusl-x64",
+      version: "1.2.4",
+    },
   ];
 
   for (const pkg of muslPackages) {
@@ -381,7 +395,15 @@ function ensureSharpMuslPackages(distNmDir) {
     if (!fs.existsSync(libvipsSymlinkPath)) {
       // From: @img+sharp-linuxmusl-x64@0.34.5/node_modules/@img/
       // To:   ../../../@img+sharp-libvips-linuxmusl-x64@1.2.4/node_modules/@img/sharp-libvips-linuxmusl-x64
-      const target = path.join("..", "..", "..", "@img+sharp-libvips-linuxmusl-x64@1.2.4", "node_modules", "@img", "sharp-libvips-linuxmusl-x64");
+      const target = path.join(
+        "..",
+        "..",
+        "..",
+        "@img+sharp-libvips-linuxmusl-x64@1.2.4",
+        "node_modules",
+        "@img",
+        "sharp-libvips-linuxmusl-x64",
+      );
       fs.symlinkSync(target, libvipsSymlinkPath, "junction");
       console.log(`  Created libvips symlink in sharp-linuxmusl pnpm entry -> ${target}`);
     }
@@ -459,7 +481,11 @@ function restoreNextBuildDir() {
   if (fs.existsSync(path.join(flat, "package.json"))) {
     // Resolve through possible symlink to check if we already handled it
     const realNext = fs.realpathSync(flat);
-    const alreadyDone = found > 0 && fs.realpathSync(path.join(distNm, ".pnpm")).startsWith(path.dirname(path.dirname(path.dirname(path.dirname(path.dirname(realNext))))));
+    const alreadyDone =
+      found > 0 &&
+      fs
+        .realpathSync(path.join(distNm, ".pnpm"))
+        .startsWith(path.dirname(path.dirname(path.dirname(path.dirname(path.dirname(realNext))))));
     // Simplified: check if flat resolves to a pnpm entry we already processed
     const isPnpmEntry = realNext.includes(path.sep + ".pnpm" + path.sep + "next@");
     if (!isPnpmEntry || found === 0) {

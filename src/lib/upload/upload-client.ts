@@ -8,6 +8,8 @@ export type UploadDatasetResponse = {
   stage?: string
   step?: string
   error?: string
+  code?: string
+  title?: string
   message?: string
   retryable?: boolean
   missingFields?: string[]
@@ -26,6 +28,10 @@ export type UploadDatasetResponse = {
     limitReached?: boolean
     analysisCount?: number
     total?: number
+    availableCredits?: number
+    reservedCredits?: number
+    usedCredits?: number
+    remainingCredits?: number
     subscriptionTier?: string
   }
   datasetLimit?: {

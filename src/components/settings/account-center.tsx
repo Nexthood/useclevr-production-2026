@@ -34,6 +34,10 @@ type AccountCenterProps = {
     trialDaysRemaining: number
     analysisCount: number
     total: number
+    availableCredits: number
+    reservedCredits: number
+    usedCredits: number
+    remainingCredits: number
     limitReached: boolean
     canAnalyze: boolean
     unlimited: boolean
@@ -308,13 +312,13 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                 <p className="text-sm text-muted-foreground">
                   {isUnlimited
                     ? usage?.unlimitedLabel || "Included AI credits"
-                    : `${usage?.analysisCount || 0} / ${usage?.total || 0} included credits used`}
+                    : `${usage?.usedCredits || usage?.analysisCount || 0} / ${usage?.total || 0} included credits used`}
                 </p>
                 {!isUnlimited && usage && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {usage.limitReached
                       ? "Included credits are used. Upgrade to a higher plan to continue analysis."
-                      : `${Math.max(0, (usage.total || 0) - (usage.analysisCount || 0))} included credits remaining.`}
+                      : `${Math.max(0, usage.availableCredits ?? 0)} included credits available.`}
                   </p>
                 )}
               </div>

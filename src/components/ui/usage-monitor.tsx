@@ -16,6 +16,7 @@ interface UsageMonitorProps {
 }
 
 export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, available, reserved = 0 }: UsageMonitorProps) {
+  const availableCredits = Math.max(0, available ?? total - used - reserved)
   const percent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
 
   // For pro users, show unlimited
@@ -39,7 +40,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
   }
 
   // Limit reached - show premium upgrade state
-  if (used >= total) {
+  if (availableCredits <= 0) {
     return (
       <div className="usage-box rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-sm dark:bg-amber-950/10">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
@@ -67,7 +68,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
         Included Credits
       </h4>
       <p className="text-sm font-medium text-foreground">
-        {available ?? Math.max(0, total - used)} available
+        {availableCredits} available
       </p>
       {reserved > 0 && (
         <p className="mt-1 text-xs text-muted-foreground">{reserved} reserved</p>
@@ -114,7 +115,7 @@ export function useUsage() {
 
   const refreshUsage = React.useCallback(async () => {
     try {
-      const res = await fetch("/api/usage")
+      const res = await fetch("/api/usage", { cache: "no-store" })
       if (res.ok) {
         const data = await res.json()
         const hasUnlimitedAccess =
@@ -122,7 +123,7 @@ export function useUsage() {
           ["superadmin", "admin"].includes(data.subscriptionTier)
         setUsage(data.usedCredits ?? data.analysisCount ?? 0)
         setTotal(data.total ?? 2)
-        setAvailable(data.availableCredits ?? Math.max(0, (data.total ?? 2) - (data.usedCredits ?? data.analysisCount ?? 0)))
+        setAvailable(Math.max(0, data.availableCredits ?? (data.total ?? 2) - (data.usedCredits ?? data.analysisCount ?? 0) - (data.reservedCredits ?? 0)))
         setReserved(data.reservedCredits ?? 0)
         setIsPro(hasUnlimitedAccess)
         setUnlimitedLabel(data.unlimitedLabel || null)

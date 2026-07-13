@@ -74,6 +74,8 @@
 
 ### Fixed
 
+- Enforce included credits before uploads so Free accounts with no available credits see the same zero balance in sidebar, profile, subscription, upload, and API responses.
+- Render the World Map with bundled country shapes, visible borders, mapped bubbles, non-overlapping statistics, and Railway-safe geography assets.
 - Show uploaded datasets as ready after preparation completes and display a pending-analysis message while analysis preparation runs.
 - Delete selected Dataset Library rows through a confirmation flow that removes authorized datasets, cleans related records, refreshes usage counters, and keeps failed rows selected with clear partial-failure feedback.
 - Render Executive Dashboard detail tabs in-place so tab changes replace the content below the tab bar without route navigation, page jumps, or duplicate stacked sections.

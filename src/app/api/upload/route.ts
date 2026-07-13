@@ -130,6 +130,7 @@ export async function POST(request: Request) {
       const databaseUnavailable = errorCode === "DB_UNAVAILABLE"
       const limitReached = errorCode === "DATASET_LIMIT_REACHED"
       const rowLimitExceeded = errorCode === "ROW_LIMIT_EXCEEDED"
+      const insufficientCredits = errorCode === "INSUFFICIENT_CREDITS"
       const usageLimitReached = errorCode === "USAGE_LIMIT_REACHED"
       const fileProcessingError = errorCode === "FILE_PROCESSING_ERROR"
       const databaseWriteError = errorCode === "DATABASE_INSERT_ERROR" || errorCode === "DATASET_CREATE_ERROR"
@@ -147,19 +148,21 @@ export async function POST(request: Request) {
         userMessage = structuredMessage || "Your file exceeds the row limit for your plan."
       } else if (limitReached) {
         userMessage = structuredMessage || "You have reached the dataset limit for your plan."
-      } else if (analystLimitReached) {
-        userMessage = "You have used all included AI credits for your plan. Upgrade to continue."
+      } else if (insufficientCredits || analystLimitReached) {
+        userMessage = "You have used all included credits in your Free plan."
       }
 
       const stage = normalizeStage(result.step)
-      const stageMessage = `Upload failed while ${stageLabels[stage] || stage.replaceAll("_", " ")}: ${userMessage}`
+      const stageMessage = insufficientCredits
+        ? userMessage
+        : `Upload failed while ${stageLabels[stage] || stage.replaceAll("_", " ")}: ${userMessage}`
       const status = unauthorized
         ? 401
         : authCheckFailed || unexpectedUploadError
           ? 500
           : databaseUnavailable
           ? 503
-          : analystLimitReached || rowLimitExceeded || usageLimitReached
+          : insufficientCredits || analystLimitReached || rowLimitExceeded || usageLimitReached
             ? 402
             : limitReached
               ? 403
@@ -175,6 +178,8 @@ export async function POST(request: Request) {
         error: stageMessage,
         message: stageMessage,
         code: errorCode || undefined,
+        title: insufficientCredits ? "No credits remaining" : undefined,
+        upgradeRequired: insufficientCredits || undefined,
         stage,
         step: stage,
         retryable: errorCode ? retryableCodes.has(errorCode) : false,

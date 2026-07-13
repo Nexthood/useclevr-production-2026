@@ -66,7 +66,7 @@ export function logMissingStripePriceId(plan: BillingPlan, context: string) {
 }
 
 export const FREE_PLAN_LIMITS: PlanLimits = {
-  monthlyCredits: 50,
+  monthlyCredits: 2,
   maxDatasets: 2,
   maxFileSizeMb: 10,
   maxRowsPerDataset: 5000,
@@ -120,7 +120,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Try UseClevr with essential AI insights.",
     features: [
       "CSV & Excel Upload",
-      "50 AI Credits / Month",
+      "2 AI Credits / Month",
       "Up to 2 Datasets",
       "Basic AI Insights",
       "Retail Dashboard",
