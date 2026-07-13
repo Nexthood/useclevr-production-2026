@@ -74,6 +74,7 @@
 
 ### Fixed
 
+- Show uploaded datasets as ready after preparation completes and display a pending-analysis message while analysis preparation runs.
 - Delete selected Dataset Library rows through a confirmation flow that removes authorized datasets, cleans related records, refreshes usage counters, and keeps failed rows selected with clear partial-failure feedback.
 - Render Executive Dashboard detail tabs in-place so tab changes replace the content below the tab bar without route navigation, page jumps, or duplicate stacked sections.
 - Create Standard Upload fallback datasets with the same minimal Dataset fields as Retail Upload and report exact development details when dataset creation fails.

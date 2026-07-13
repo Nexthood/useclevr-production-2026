@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-12
-- **Goal**: Run end-to-end Accuracy Engine and Credit Engine verification on the Neon test branch.
-- **Durable change**: Verification stopped before database mutation because the connected database exposes branch ID `br-crimson-sun-ai49oqj4` but not exact branch name `accuracy-lakebase-test`, and no Neon MCP or Neon API key is available to verify the branch identity.
-- **Verification**: Read-only SQL confirms database `neondb`, user `neondb_owner`, PostgreSQL 17.10, project `withered-star-79790747`, branch ID `br-crimson-sun-ai49oqj4`, endpoint `ep-odd-shape-ai0cc8ej`, and Lakebase mode `off`; no migrations, fixtures, or mutation tests ran.
+- **Date**: 2026-07-13
+- **Goal**: Fix uploaded datasets that remain stuck in uploading status and crash when opened before analysis preparation finishes.
+- **Durable change**: Uploads now write explicit processing and ready analysis states, manual analysis refreshes use the same status model, and dataset pages show the pending-analysis message while preparation is incomplete.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, `pnpm test:business-intelligence`, and `git diff --check` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

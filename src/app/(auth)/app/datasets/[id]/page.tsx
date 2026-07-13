@@ -1,30 +1,36 @@
-import { AppPageHeader } from "@/components/layout/app-page-header"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { PageActionRow } from "@/components/ui/page-action-row"
-import { auth } from "@/lib/auth/auth"
-import { getDb } from "@/lib/db"
-import { datasetRows } from "@/lib/db/schema"
-import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
-import { getDatasetCategoryDestinationLabel, getDatasetCategoryLabel, getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category"
-import { eq } from "drizzle-orm"
-import { ChevronLeft, ChevronRight, Database, ExternalLink, Sparkles } from "lucide-react"
-import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { AppPageHeader } from "@/components/layout/app-page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { PageActionRow } from "@/components/ui/page-action-row";
+import { auth } from "@/lib/auth/auth";
+import { getDb } from "@/lib/db";
+import { datasetRows } from "@/lib/db/schema";
+import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access";
+import {
+  getDatasetCategoryDestinationLabel,
+  getDatasetCategoryLabel,
+  getDatasetCategoryRedirect,
+  resolveDatasetType,
+} from "@/lib/data/dataset-category";
+import { eq } from "drizzle-orm";
+import { ChevronLeft, ChevronRight, Database, ExternalLink, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 
-const PAGE_SIZE = 100
+const PAGE_SIZE = 100;
+const pendingAnalysisStatuses = new Set(["uploading", "processing", "pending"]);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const session = await auth()
-  if (!session?.user?.id) return { title: "Dataset" }
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user?.id) return { title: "Dataset" };
 
   try {
-    const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role)
-    return { title: dataset?.name ?? "Dataset" }
+    const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role);
+    return { title: dataset?.name ?? "Dataset" };
   } catch {
-    return { title: "Dataset" }
+    return { title: "Dataset" };
   }
 }
 
@@ -32,48 +38,52 @@ export default async function DatasetDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string }>
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const { id } = await params
-  const { page: pageStr } = await searchParams
-  const currentPage = Math.max(1, parseInt(pageStr ?? "1", 10) || 1)
-  const offset = (currentPage - 1) * PAGE_SIZE
+  const { id } = await params;
+  const { page: pageStr } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
+  const offset = (currentPage - 1) * PAGE_SIZE;
 
-  const session = await auth()
-  const userId = (session?.user as { id?: string })?.id
-  const userRole = session?.user?.role
+  const session = await auth();
+  const userId = (session?.user as { id?: string })?.id;
+  const userRole = session?.user?.role;
 
   if (!userId) {
-    notFound()
+    notFound();
   }
 
-  let accessResult: Awaited<ReturnType<typeof findAccessibleDataset>>
+  let accessResult: Awaited<ReturnType<typeof findAccessibleDataset>>;
   try {
-    accessResult = await findAccessibleDataset(id, userId, userRole)
+    accessResult = await findAccessibleDataset(id, userId, userRole);
   } catch {
-    redirect(`/app/datasets/${id}/analyze`)
+    redirect(`/app/datasets/${id}/analyze`);
   }
 
-  const { dataset, dbUnavailable } = accessResult
+  const { dataset, dbUnavailable } = accessResult;
 
   if (dbUnavailable) {
-    redirect(`/app/datasets/${id}/analyze`)
+    redirect(`/app/datasets/${id}/analyze`);
   }
 
   if (!dataset) {
-    notFound()
+    notFound();
   }
 
-  const columns = getDatasetColumns(dataset.columns)
-  const rowCount = dataset.rowCount || 0
-  const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE))
-  const datasetType = resolveDatasetType((dataset as { datasetType?: string | null }).datasetType, dataset.analysis)
+  const columns = getDatasetColumns(dataset.columns);
+  const rowCount = dataset.rowCount || 0;
+  const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
+  const datasetType = resolveDatasetType(
+    (dataset as { datasetType?: string | null }).datasetType,
+    dataset.analysis,
+  );
 
-  let data: Record<string, unknown>[] = []
-  const db = getDb()
+  let data: Record<string, unknown>[] = [];
+  let dataLoadError = false;
+  const db = getDb();
   if (!db) {
-    redirect(`/app/datasets/${id}/analyze`)
+    redirect(`/app/datasets/${id}/analyze`);
   }
 
   try {
@@ -82,40 +92,47 @@ export default async function DatasetDetailPage({
       orderBy: (tbl, { asc }) => [asc(tbl.rowIndex)],
       offset,
       limit: PAGE_SIZE,
-    })
-    data = resultRows.map((r) => r.data) as Record<string, unknown>[]
+    });
+    data = resultRows.map((r) => r.data) as Record<string, unknown>[];
     if (data.length === 0) {
-      const storedData = await loadDatasetData(id, dataset)
-      data = storedData.slice(offset, offset + PAGE_SIZE)
+      const storedData = await loadDatasetData(id, dataset);
+      data = storedData.slice(offset, offset + PAGE_SIZE);
     }
   } catch {
     try {
-      const storedData = await loadDatasetData(id, dataset)
-      data = storedData.slice(offset, offset + PAGE_SIZE)
+      const storedData = await loadDatasetData(id, dataset);
+      data = storedData.slice(offset, offset + PAGE_SIZE);
     } catch {
-      redirect(`/app/datasets/${id}/analyze`)
+      dataLoadError = true;
     }
   }
 
-  const previewColumns: DataTableColumn<Record<string, unknown>>[] = columns.map((column: string) => ({
-    key: column,
-    header: column,
-    render: (row: Record<string, unknown>) => {
-      const value = row[column]
-      return (
-        <span className="whitespace-nowrap">
-          {value !== null && value !== undefined && value !== "" ? String(value) : "-"}
-        </span>
-      )
-    },
-  }))
+  const analysisStatus = String(
+    (dataset as { analysisStatus?: string | null }).analysisStatus || "",
+  );
+  const isAnalysisPending = dataLoadError || pendingAnalysisStatuses.has(analysisStatus);
+
+  const previewColumns: DataTableColumn<Record<string, unknown>>[] = columns.map(
+    (column: string) => ({
+      key: column,
+      header: column,
+      render: (row: Record<string, unknown>) => {
+        const value = row[column];
+        return (
+          <span className="whitespace-nowrap">
+            {value !== null && value !== undefined && value !== "" ? String(value) : "-"}
+          </span>
+        );
+      },
+    }),
+  );
 
   function Pagination() {
-    if (totalPages <= 1) return null
+    if (totalPages <= 1) return null;
 
-    const pages: React.ReactNode[] = []
-    const startPage = Math.max(1, currentPage - 2)
-    const endPage = Math.min(totalPages, currentPage + 2)
+    const pages: React.ReactNode[] = [];
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
 
     if (currentPage > 1) {
       pages.push(
@@ -126,8 +143,8 @@ export default async function DatasetDetailPage({
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Previous
-        </Link>
-      )
+        </Link>,
+      );
     }
 
     for (let i = startPage; i <= endPage; i++) {
@@ -142,8 +159,8 @@ export default async function DatasetDetailPage({
           }`}
         >
           {i}
-        </Link>
-      )
+        </Link>,
+      );
     }
 
     if (currentPage < totalPages) {
@@ -155,11 +172,11 @@ export default async function DatasetDetailPage({
         >
           Next
           <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      )
+        </Link>,
+      );
     }
 
-    return <div className="flex items-center justify-center gap-1.5 mt-4">{pages}</div>
+    return <div className="flex items-center justify-center gap-1.5 mt-4">{pages}</div>;
   }
 
   return (
@@ -201,10 +218,11 @@ export default async function DatasetDetailPage({
                   This is a {getDatasetCategoryLabel(datasetType)} dataset
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Open it in the {getDatasetCategoryDestinationLabel(datasetType)} module for specialized analysis and reporting.
+                  Open it in the {getDatasetCategoryDestinationLabel(datasetType)} module for
+                  specialized analysis and reporting.
                 </p>
               </div>
-            <Link href={getDatasetCategoryRedirect(datasetType, id)}>
+              <Link href={getDatasetCategoryRedirect(datasetType, id)}>
                 <Button size="sm" variant="outline" className="border-cyan-400/40">
                   Open in {getDatasetCategoryDestinationLabel(datasetType)}
                 </Button>
@@ -225,6 +243,17 @@ export default async function DatasetDetailPage({
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto w-full max-w-full min-w-0">
+          {isAnalysisPending && (
+            <Card className="mb-6 border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="font-semibold text-amber-950 dark:text-amber-100">
+                Analysis is still being prepared...
+              </p>
+              <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                The uploaded dataset is saved. Row preview and analysis appear once preparation
+                finishes.
+              </p>
+            </Card>
+          )}
           <DataTable
             title="Dataset rows"
             description={`Page ${currentPage} of ${totalPages} — ${rowCount.toLocaleString()} total rows`}
@@ -238,9 +267,11 @@ export default async function DatasetDetailPage({
         </div>
       </main>
     </div>
-  )
+  );
 }
 
 function getDatasetColumns(value: unknown) {
-  return Array.isArray(value) ? value.filter((column): column is string => typeof column === "string") : []
+  return Array.isArray(value)
+    ? value.filter((column): column is string => typeof column === "string")
+    : [];
 }

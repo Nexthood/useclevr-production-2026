@@ -1,93 +1,125 @@
-import { debugLog } from "@/lib/utils/debug"
+import { debugLog } from "@/lib/utils/debug";
 
-import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer"
-import { AppPageHeader } from "@/components/layout/app-page-header"
-import { Button } from "@/components/ui/button"
-import { auth } from "@/lib/auth/auth"
-import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access"
-import { getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category"
-import { getSetupStatus } from "@/lib/business/company-setup-store"
-import { AlertTriangle, Sparkles, BriefcaseBusiness, LayoutDashboard, ExternalLink } from "lucide-react"
-import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { DatasetAnalyzer } from "@/components/dataset/dataset-analyzer";
+import { AppPageHeader } from "@/components/layout/app-page-header";
+import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth/auth";
+import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access";
+import { getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category";
+import { getSetupStatus } from "@/lib/business/company-setup-store";
+import {
+  AlertTriangle,
+  Sparkles,
+  BriefcaseBusiness,
+  LayoutDashboard,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 
 // Type for analysis result (simplified for props)
-type DatasetAnalyzerInitialAnalysis = Parameters<typeof DatasetAnalyzer>[0]["initialAnalysis"]
+type DatasetAnalyzerInitialAnalysis = Parameters<typeof DatasetAnalyzer>[0]["initialAnalysis"];
+
+const realAnalysisKeys = [
+  "business_analysis",
+  "business_intelligence",
+  "executive_analysis",
+  "kpi_summary",
+  "ai_summary",
+  "total_rows",
+  "total_columns",
+];
+
+const pendingAnalysisStatuses = new Set(["uploading", "processing", "pending"]);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const session = await auth()
-  if (!session?.user?.id) return { title: "Dataset Details" }
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user?.id) return { title: "Dataset Details" };
 
   try {
-    const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role)
-    return { title: dataset ? `Dataset: ${dataset.name}` : "Dataset Details" }
+    const { dataset } = await findAccessibleDataset(id, session.user.id, session.user.role);
+    return { title: dataset ? `Dataset: ${dataset.name}` : "Dataset Details" };
   } catch {
-    return { title: "Dataset Details" }
+    return { title: "Dataset Details" };
   }
 }
 
-export default async function AnalyzePage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
+export default async function AnalyzePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
-  const session = await auth()
-  const userId = (session?.user as { id?: string })?.id
-  const userRole = session?.user?.role
+  const session = await auth();
+  const userId = (session?.user as { id?: string })?.id;
+  const userRole = session?.user?.role;
 
   if (!userId) {
-    notFound()
+    notFound();
   }
 
   // Get business profile status
-  const setupStatus = await getSetupStatus(userId)
-  const profileCompletion = setupStatus?.setupAccuracy ?? 0
-  const hasIncompleteProfile = profileCompletion < 80
+  const setupStatus = await getSetupStatus(userId);
+  const profileCompletion = setupStatus?.setupAccuracy ?? 0;
+  const hasIncompleteProfile = profileCompletion < 80;
 
   // Get dataset using Drizzle - read data directly from dataset.data column
-  const { dataset } = await findAccessibleDataset(id, userId, userRole)
+  const { dataset } = await findAccessibleDataset(id, userId, userRole);
 
   if (!dataset) {
-    notFound()
+    notFound();
   }
 
   // Read rows from the data column in Dataset table (full dataset)
-  const data = await loadDatasetData(id, dataset)
-  const columns = getDatasetColumns(dataset.columns)
+  let data: Record<string, unknown>[] = [];
+  let dataLoadError = false;
+  try {
+    data = await loadDatasetData(id, dataset);
+  } catch (error) {
+    dataLoadError = true;
+    debugLog("[DEBUG-PAGE] Dataset rows are not available yet:", {
+      id: dataset.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+  const columns = getDatasetColumns(dataset.columns);
   // Use dataset.rowCount for total
-  const rowCount = dataset.rowCount || data.length
-  const datasetType = resolveDatasetType((dataset as { datasetType?: string | null }).datasetType, dataset.analysis)
+  const rowCount = dataset.rowCount || data.length;
+  const datasetType = resolveDatasetType(
+    (dataset as { datasetType?: string | null }).datasetType,
+    dataset.analysis,
+  );
 
   if (datasetType !== "standard") {
-    redirect(getDatasetCategoryRedirect(datasetType, id))
+    redirect(getDatasetCategoryRedirect(datasetType, id));
   }
 
   // Get column types from dataset record (stored during upload)
-  const columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {}
-  
+  const columnTypes = (dataset as { columnTypes?: Record<string, string> }).columnTypes || {};
+
   // Log for debugging
-  debugLog('[DEBUG-PAGE] Dataset from DB:', { 
-    id: dataset.id, 
+  debugLog("[DEBUG-PAGE] Dataset from DB:", {
+    id: dataset.id,
     name: dataset.name,
     totalRowCount: rowCount,
-    columnCount: columns.length
-  })
-  debugLog('[DEBUG-PAGE] Column types from database:', JSON.stringify(columnTypes))
+    columnCount: columns.length,
+  });
+  debugLog("[DEBUG-PAGE] Column types from database:", JSON.stringify(columnTypes));
 
   // Check if dataset already has analysis results (for state persistence)
-  const hasAnalysis: boolean = Boolean(
-    dataset.analysis && typeof dataset.analysis === 'object' && Object.keys(dataset.analysis as object).length > 0
-  )
-  const initialAnalysis = hasAnalysis ? (dataset.analysis as DatasetAnalyzerInitialAnalysis) : undefined
-  
-  debugLog('[DEBUG-PAGE] Dataset analysis status:', { 
-    id: dataset.id, 
+  const hasAnalysis = hasRealAnalysis(dataset.analysis);
+  const initialAnalysis = hasAnalysis
+    ? (dataset.analysis as DatasetAnalyzerInitialAnalysis)
+    : undefined;
+  const analysisStatus = String(
+    (dataset as { analysisStatus?: string | null }).analysisStatus || "",
+  );
+  const isAnalysisPending =
+    dataLoadError || (!hasAnalysis && pendingAnalysisStatuses.has(analysisStatus));
+
+  debugLog("[DEBUG-PAGE] Dataset analysis status:", {
+    id: dataset.id,
     name: dataset.name,
-    hasAnalysis 
-  })
+    hasAnalysis,
+  });
 
   return (
     <div className="flex flex-col flex-1">
@@ -138,6 +170,17 @@ export default async function AnalyzePage({
       )}
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        {isAnalysisPending && (
+          <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+            <p className="font-semibold text-amber-950 dark:text-amber-100">
+              Analysis is still being prepared...
+            </p>
+            <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+              The dataset is saved. This page updates once preparation finishes.
+            </p>
+          </div>
+        )}
+
         <div className="rounded-lg border border-border bg-card p-6 mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Dataset Overview</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -151,15 +194,19 @@ export default async function AnalyzePage({
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Uploaded</p>
-              <p className="text-lg font-medium text-foreground">{dataset.createdAt ? new Date(dataset.createdAt).toLocaleDateString() : 'N/A'}</p>
+              <p className="text-lg font-medium text-foreground">
+                {dataset.createdAt ? new Date(dataset.createdAt).toLocaleDateString() : "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <p className="text-lg font-medium text-emerald-500">{hasAnalysis ? 'Analyzed' : 'Pending'}</p>
+              <p className="text-lg font-medium text-emerald-500">
+                {hasAnalysis ? "Analyzed" : "Pending"}
+              </p>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground mb-2">Columns: {columns.join(', ')}</p>
+            <p className="text-sm text-muted-foreground mb-2">Columns: {columns.join(", ")}</p>
           </div>
           <div className="mt-4 flex gap-2">
             <Link href={`/app?datasetId=${id}`}>
@@ -185,9 +232,20 @@ export default async function AnalyzePage({
         />
       </main>
     </div>
-  )
+  );
 }
 
 function getDatasetColumns(value: unknown) {
-  return Array.isArray(value) ? value.filter((column): column is string => typeof column === "string") : []
+  return Array.isArray(value)
+    ? value.filter((column): column is string => typeof column === "string")
+    : [];
+}
+
+function hasRealAnalysis(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const analysis = value as Record<string, unknown>;
+  return realAnalysisKeys.some((key) => analysis[key] !== undefined && analysis[key] !== null);
 }
