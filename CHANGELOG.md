@@ -74,6 +74,7 @@
 
 ### Fixed
 
+- Return structured JSON for every Standard Upload failure, preserve request IDs, clean up failed persistence, and prevent duplicate upload submissions from creating duplicate datasets or charges.
 - Keep the Usy assistant launcher fixed in the bottom-right viewport corner so it does not cover the sidebar, navigation, credits card, or dashboard content.
 - Enforce included credits before uploads so Free accounts with no available credits see the same zero balance in sidebar, profile, subscription, upload, and API responses.
 - Render the World Map with bundled country shapes, visible borders, mapped bubbles, non-overlapping statistics, and Railway-safe geography assets.

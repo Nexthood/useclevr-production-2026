@@ -10,6 +10,7 @@ export type UploadDatasetResponse = {
   error?: string
   code?: string
   title?: string
+  requestId?: string
   message?: string
   retryable?: boolean
   missingFields?: string[]
