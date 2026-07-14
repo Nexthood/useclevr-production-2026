@@ -27,9 +27,9 @@ export async function GET() {
         ...usage,
         plan: usage.subscriptionTier,
         credits: {
-          total: usage.total,
-          used: usage.usedCredits,
-          reserved: usage.reservedCredits,
+          total: usage.unlimited ? null : usage.total,
+          used: usage.unlimited ? null : usage.usedCredits,
+          reserved: usage.unlimited ? null : usage.reservedCredits,
           remaining: usage.unlimited ? null : usage.remainingCredits,
           available: usage.unlimited ? null : usage.availableCredits,
           resetAt: usage.nextResetAt,

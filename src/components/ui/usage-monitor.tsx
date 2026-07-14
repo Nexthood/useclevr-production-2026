@@ -121,10 +121,12 @@ export function useUsage() {
         const hasUnlimitedAccess =
           Boolean(data.unlimited) ||
           ["superadmin", "admin"].includes(data.subscriptionTier)
-        setUsage(data.usedCredits ?? data.analysisCount ?? 0)
-        setTotal(data.total ?? 2)
-        setAvailable(Math.max(0, data.availableCredits ?? (data.total ?? 2) - (data.usedCredits ?? data.analysisCount ?? 0) - (data.reservedCredits ?? 0)))
-        setReserved(data.reservedCredits ?? 0)
+        const usedCredits = data.usedCredits ?? data.analysisCount ?? 0
+        const totalCredits = hasUnlimitedAccess ? 0 : data.total ?? 2
+        setUsage(hasUnlimitedAccess ? 0 : usedCredits)
+        setTotal(totalCredits)
+        setAvailable(hasUnlimitedAccess ? 0 : Math.max(0, data.availableCredits ?? totalCredits - usedCredits - (data.reservedCredits ?? 0)))
+        setReserved(hasUnlimitedAccess ? 0 : data.reservedCredits ?? 0)
         setIsPro(hasUnlimitedAccess)
         setUnlimitedLabel(data.unlimitedLabel || null)
         setLimitReached(Boolean(data.limitReached))

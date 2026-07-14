@@ -18,12 +18,12 @@ export const ROW_LIMITS = {
 } as const
 
 export type AnalystCreditUsage = {
-  analysisCount: number
-  total: number
-  availableCredits: number
-  reservedCredits: number
-  usedCredits: number
-  remainingCredits: number
+  analysisCount: number | null
+  total: number | null
+  availableCredits: number | null
+  reservedCredits: number | null
+  usedCredits: number | null
+  remainingCredits: number | null
   nextResetAt: string | null
   subscriptionTier: string
   canAnalyze: boolean
@@ -95,12 +95,12 @@ function unlimitedUsage(
 ): AnalystCreditUsage {
   const subscriptionTier = labelRole === "admin" ? "admin" : "superadmin"
   return {
-    analysisCount: 0,
-    total: 0,
-    availableCredits: 0,
-    reservedCredits: 0,
-    usedCredits: 0,
-    remainingCredits: 0,
+    analysisCount: null,
+    total: null,
+    availableCredits: null,
+    reservedCredits: null,
+    usedCredits: null,
+    remainingCredits: null,
     nextResetAt: null,
     subscriptionTier,
     canAnalyze: true,
@@ -205,7 +205,7 @@ export async function consumeAnalystCredit(userId?: string | null, role?: string
     return usage
   }
 
-  const analysisCount = Math.min(usage.analysisCount + 1, FREE_ANALYST_CREDITS)
+  const analysisCount = Math.min((usage.analysisCount ?? 0) + 1, FREE_ANALYST_CREDITS)
 
   try {
     await db.update(profiles)

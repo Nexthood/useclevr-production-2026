@@ -262,10 +262,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 },
               });
 
-              if (user) {
-                session.user.name = profile?.fullName || user.name;
-                session.user.email = profile?.email || user.email || session.user.email;
-                session.user.image = profile?.avatarUrl || user.image;
+              if (user || profile) {
+                session.user.name = profile?.fullName || user?.name || session.user.name;
+                session.user.email = profile?.email || user?.email || session.user.email;
+                session.user.image = profile?.avatarUrl || user?.image;
                 session.user.role = (profile?.role || token.role || "user") as BuiltinUserRole;
               }
             } catch (error) {

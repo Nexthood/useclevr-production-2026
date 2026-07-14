@@ -5,6 +5,10 @@ import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
 import { findBuiltinUserById } from "./builtin-users"
 
+function builtinSubscriptionTier(role: string) {
+  return role === "superadmin" ? "superadmin" : "free"
+}
+
 export async function ensureBuiltinUserRecord(userId?: string | null): Promise<boolean> {
   const builtinUser = findBuiltinUserById(userId)
   if (!builtinUser) return true
@@ -43,11 +47,21 @@ export async function ensureBuiltinUserRecord(userId?: string | null): Promise<b
       userId: builtinUser.id,
       email: builtinUser.email,
       fullName: builtinUser.name,
-      subscriptionTier: builtinUser.role === "superadmin" ? "business" : "free",
+      role: builtinUser.role,
+      subscriptionTier: builtinSubscriptionTier(builtinUser.role),
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    .onConflictDoNothing({ target: profiles.userId })
+    .onConflictDoUpdate({
+      target: profiles.userId,
+      set: {
+        email: builtinUser.email,
+        fullName: builtinUser.name,
+        role: builtinUser.role,
+        subscriptionTier: builtinSubscriptionTier(builtinUser.role),
+        updatedAt: new Date(),
+      },
+    })
 
   return true
 }

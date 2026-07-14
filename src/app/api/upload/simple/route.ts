@@ -104,6 +104,8 @@ async function getUsagePayload(userId: string, role?: string | null, email?: str
     usedCredits: usage.usedCredits,
     remainingCredits: usage.remainingCredits,
     subscriptionTier: usage.subscriptionTier,
+    unlimited: usage.unlimited,
+    unlimitedLabel: usage.unlimitedLabel,
   };
 }
 
@@ -295,7 +297,8 @@ export async function POST(request: Request) {
           columnsDetected: existingDataset.columnCount,
           status: existingDataset.status,
           analysisStatus: existingDataset.analysisStatus || "processing",
-          redirectTo: "/app/datasets",
+          redirectUrl: `/app/datasets/${datasetId}`,
+          redirectTo: `/app/datasets/${datasetId}`,
           message: "Dataset upload request was already completed.",
           fileName: existingDataset.fileName,
           preview: {
@@ -342,69 +345,88 @@ export async function POST(request: Request) {
       updatedAt: now,
     };
 
+    let usage = await getUsagePayload(userId, session?.user?.role, session?.user?.email).catch(
+      (error) => {
+        logStageError(requestId, "credit_summary_failed", error);
+        return null;
+      },
+    );
+    const hasUnlimitedCredits = Boolean(usage?.unlimited);
+
     try {
-      const usage = await getUsagePayload(userId, session?.user?.role, session?.user?.email);
       logStage(requestId, "credit_summary_resolved", {
-        plan: usage.subscriptionTier,
-        total: usage.total,
-        used: usage.usedCredits,
-        reserved: usage.reservedCredits,
-        available: usage.availableCredits,
+        plan: usage?.subscriptionTier ?? "unknown",
+        total: usage?.total ?? null,
+        used: usage?.usedCredits ?? null,
+        reserved: usage?.reservedCredits ?? null,
+        available: usage?.availableCredits ?? null,
+        unlimited: hasUnlimitedCredits,
       });
     } catch (error) {
       logStageError(requestId, "credit_summary_failed", error);
     }
 
     let reservation;
-    try {
-      logStage(requestId, "credit_reservation_started", { operationId, datasetId });
-      reservation = await reserveCredits({
-        userId,
+    if (hasUnlimitedCredits) {
+      logStage(requestId, "credit_reservation_bypassed", {
+        reason: "unlimited_role",
         operationId,
-        idempotencyKey: operationId,
-        estimatedCredits: 1,
-        feature: "dataset_upload",
-        source: "upload",
-        role: session?.user?.role ?? null,
-        email: session?.user?.email ?? null,
-        metadata: {
-          datasetId,
-          fileName: uploadFile.name,
-          rowCount: parsed.rowCount,
-          datasetType: "standard",
-        },
+        datasetId,
       });
-      logStage(requestId, "credit_reservation_completed", {
-        success: reservation.success,
-        operationId: reservation.operationId,
-        reservedCredits: reservation.reservedCredits,
-        availableCredits: reservation.availableCredits,
-      });
-    } catch (error) {
-      logStageError(requestId, "credit_reservation_failed", error, { operationId });
-      return jsonError(500, "credits_deducted", "The dataset could not be processed.", true, {
-        code: "UPLOAD_CREDIT_RESERVATION_FAILED",
-        requestId,
-      });
-    }
-
-    if (!reservation.success) {
-      return jsonError(
-        402,
-        "credits_deducted",
-        "You have used all included credits in your Free plan.",
-        false,
-        {
+    } else {
+      try {
+        logStage(requestId, "credit_reservation_started", { operationId, datasetId });
+        reservation = await reserveCredits({
+          userId,
+          operationId,
+          idempotencyKey: operationId,
+          estimatedCredits: 1,
+          feature: "dataset_upload",
+          source: "upload",
+          role: session?.user?.role ?? null,
+          email: session?.user?.email ?? null,
+          metadata: {
+            datasetId,
+            fileName: uploadFile.name,
+            rowCount: parsed.rowCount,
+            datasetType: "standard",
+          },
+        });
+        logStage(requestId, "credit_reservation_completed", {
+          success: reservation.success,
+          operationId: reservation.operationId,
+          reservedCredits: reservation.reservedCredits,
+          availableCredits: reservation.availableCredits,
+        });
+      } catch (error) {
+        logStageError(requestId, "credit_reservation_failed", error, { operationId });
+        return jsonError(402, "credits_deducted", "You have used all included credits in your Free plan.", false, {
           code: "INSUFFICIENT_CREDITS",
           title: "No credits remaining",
           requestId,
           upgradeRequired: true,
-          usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
-        },
-      );
-    }
+          usage,
+        });
+      }
 
-    creditReserved = true;
+      if (!reservation.success) {
+        return jsonError(
+          402,
+          "credits_deducted",
+          "You have used all included credits in your Free plan.",
+          false,
+          {
+            code: "INSUFFICIENT_CREDITS",
+            title: "No credits remaining",
+            requestId,
+            upgradeRequired: true,
+            usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+          },
+        );
+      }
+
+      creditReserved = true;
+    }
 
     const uploadDatasetId = datasetId;
 
@@ -464,7 +486,8 @@ export async function POST(request: Request) {
             columnsDetected: replayDataset.columnCount,
             status: replayDataset.status,
             analysisStatus: replayDataset.analysisStatus || "processing",
-            redirectTo: "/app/datasets",
+            redirectUrl: `/app/datasets/${datasetId}`,
+            redirectTo: `/app/datasets/${datasetId}`,
             message: "Dataset upload request was already completed.",
             fileName: replayDataset.fileName,
             preview: {
@@ -503,36 +526,46 @@ export async function POST(request: Request) {
     }
 
     try {
-      logStage(requestId, "credit_settlement_started", { operationId });
-      const settlement = await finalizeCredits({
-        operationId,
-        actualCredits: 1,
-        metadata: {
+      if (!hasUnlimitedCredits) {
+        logStage(requestId, "credit_settlement_started", { operationId });
+        const settlement = await finalizeCredits({
+          operationId,
+          actualCredits: 1,
+          metadata: {
+            datasetId,
+            rowCount: parsed.rowCount,
+            datasetType: "standard",
+          },
+        });
+        logStage(requestId, "credit_settlement_completed", {
+          success: settlement.success,
+          creditsDeducted: settlement.creditsDeducted,
+          remainingCredits: settlement.remainingCredits,
+        });
+        if (!settlement.success) {
+          await cleanupDataset(db, datasetId, requestId);
+          datasetCreated = false;
+          await releaseCredits(operationId, "credit_settlement_failed");
+          return jsonError(500, "credits_deducted", "The dataset could not be processed.", true, {
+            code: "UPLOAD_CREDIT_SETTLEMENT_FAILED",
+            requestId,
+          });
+        }
+        creditFinalized = true;
+      } else {
+        logStage(requestId, "credit_settlement_bypassed", {
+          reason: "unlimited_role",
+          operationId,
           datasetId,
-          rowCount: parsed.rowCount,
-          datasetType: "standard",
-        },
-      });
-      logStage(requestId, "credit_settlement_completed", {
-        success: settlement.success,
-        creditsDeducted: settlement.creditsDeducted,
-        remainingCredits: settlement.remainingCredits,
-      });
-      if (!settlement.success) {
-        await cleanupDataset(db, datasetId, requestId);
-        datasetCreated = false;
-        await releaseCredits(operationId, "credit_settlement_failed");
-        return jsonError(500, "credits_deducted", "The dataset could not be processed.", true, {
-          code: "UPLOAD_CREDIT_SETTLEMENT_FAILED",
-          requestId,
         });
       }
-      creditFinalized = true;
     } catch (error) {
       logStageError(requestId, "credit_settlement_failed", error, { operationId, datasetId });
       await cleanupDataset(db, datasetId, requestId);
       datasetCreated = false;
-      await releaseCredits(operationId, "credit_settlement_exception");
+      if (!hasUnlimitedCredits) {
+        await releaseCredits(operationId, "credit_settlement_exception");
+      }
       return jsonError(500, "credits_deducted", "The dataset could not be processed.", true, {
         code: "UPLOAD_CREDIT_SETTLEMENT_FAILED",
         requestId,
@@ -560,7 +593,8 @@ export async function POST(request: Request) {
         columnsDetected: parsed.columns.length,
         status: "ready",
         analysisStatus: "ready",
-        redirectTo: "/app/datasets",
+        redirectUrl: `/app/datasets/${datasetId}`,
+        redirectTo: `/app/datasets/${datasetId}`,
         message: "Dataset uploaded successfully. Analysis is ready.",
         fileName: uploadFile.name,
         preview: {

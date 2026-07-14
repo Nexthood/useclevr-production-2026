@@ -22,18 +22,21 @@ export type UploadDatasetResponse = {
   rowsProcessed?: number
   columnsDetected?: number
   analysisStatus?: string
+  redirectUrl?: string
   redirectTo?: string
   fileName?: string
   profitabilityResult?: Record<string, unknown>
   usage?: {
     limitReached?: boolean
-    analysisCount?: number
-    total?: number
-    availableCredits?: number
-    reservedCredits?: number
-    usedCredits?: number
-    remainingCredits?: number
+    analysisCount?: number | null
+    total?: number | null
+    availableCredits?: number | null
+    reservedCredits?: number | null
+    usedCredits?: number | null
+    remainingCredits?: number | null
     subscriptionTier?: string
+    unlimited?: boolean
+    unlimitedLabel?: string | null
   }
   datasetLimit?: {
     limitReached: boolean

@@ -25,13 +25,13 @@ export default async function Topbar() {
   const remainingCredits =
     usage.unlimited
       ? "Unlimited"
-      : Math.max(0, usage.availableCredits).toString();
+      : Math.max(0, usage.availableCredits ?? 0).toString();
 
   const levelLabel =
     usage.subscriptionTier === "superadmin"
-      ? "Superadmin"
+      ? "Unlimited Superadmin"
       : usage.subscriptionTier === "admin"
-        ? "Admin"
+        ? "Unlimited Admin"
         : usage.subscriptionTier === "builtin"
           ? "Demo"
           : usage.subscriptionTier || "Free";
@@ -91,7 +91,7 @@ export default async function Topbar() {
             <span className="hidden min-w-0 lg:block">
               <span className="block truncate text-xs font-semibold leading-4 whitespace-nowrap">Subscription</span>
               <span className="block truncate text-[11px] leading-4 whitespace-nowrap text-muted-foreground">
-                {remainingCredits} {levelLabel}
+                {usage.unlimited ? levelLabel : `${remainingCredits} ${levelLabel}`}
               </span>
             </span>
           </Link>
