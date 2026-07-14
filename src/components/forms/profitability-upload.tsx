@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
+import { useRouter } from "next/navigation"
 import * as React from "react"
 import {
     Bar,
@@ -33,6 +34,7 @@ interface UploadedFile {
 }
 
 export function ProfitabilityUpload() {
+  const router = useRouter()
   const [revenueFile, setRevenueFile] = React.useState<UploadedFile | null>(null)
   const [expenseFile, setExpenseFile] = React.useState<UploadedFile | null>(null)
   const [isUploading, setIsUploading] = React.useState(false)
@@ -672,6 +674,7 @@ export function ProfitabilityUpload() {
         })
 
         if (result.success && result.profitabilityResult) {
+          const redirectTo = result.redirectTo || (result.datasetId ? `/app/profitability?datasetId=${result.datasetId}` : "/app/profitability")
           window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
           setUploadResult({
             ...result,
@@ -680,11 +683,12 @@ export function ProfitabilityUpload() {
             rowsProcessed: result.rowsProcessed ?? primaryFile.rowCount ?? 0,
             columnsDetected: result.columnsDetected ?? primaryFile.columns?.length ?? 0,
             analysisStatus: result.analysisStatus || "ready",
-            redirectTo: result.redirectTo || "/app/profitability",
+            redirectTo,
           })
           setProfitabilityResult(result.profitabilityResult)
           setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
           toast({ title: "Analysis complete", description: "Profitability analysis is ready." })
+          router.push(redirectTo)
         } else if (result.success && result.redirectTo) {
           window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
           setUploadResult({
@@ -696,6 +700,7 @@ export function ProfitabilityUpload() {
             analysisStatus: result.analysisStatus || "ready",
           })
           setGenerateStatus("success")
+          router.push(result.redirectTo)
         } else {
           setGenerateStatus("failure")
           if (result.usage?.limitReached) {

@@ -8,7 +8,8 @@ import {
   profiles,
 } from "@/lib/db/schema"
 import { eq, and, gte, lte, sql, count, sum, desc } from "drizzle-orm"
-import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
 import { calculateTokenCost } from "./provider-pricing"
 import {
   getBillingPlanByTier,
@@ -201,9 +202,9 @@ export async function checkActionEnforcement(
   userId: string,
   action: EnforcementAction,
   role?: string | null,
-  email?: string | null
+  _email?: string | null
 ): Promise<EnforcementResult> {
-  const isSuperadmin = isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)
+  const isSuperadmin = isSuperAdminUserId(userId) || isUnlimitedCreditRole(role)
 
   if (isSuperadmin) {
     return { allowed: true }
@@ -217,7 +218,7 @@ export async function checkActionEnforcement(
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
   })
-  if (profile?.subscriptionTier === "admin" || profile?.subscriptionTier === "superadmin") {
+  if (isUnlimitedCreditRole(profile?.role) || isUnlimitedCreditRole(profile?.subscriptionTier)) {
     return { allowed: true }
   }
 

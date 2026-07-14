@@ -45,19 +45,22 @@ type UploadCSVResult = {
   rowsProcessed?: number;
   columnsDetected?: number;
   analysisStatus?: string;
+  redirectUrl?: string;
   redirectTo?: string;
   fileName?: string;
   preview?: { headers: string[]; rows: CsvRow[] };
   profitabilityResult?: any;
   usage?: {
     limitReached?: boolean;
-    analysisCount?: number;
-    total?: number;
-    availableCredits?: number;
-    reservedCredits?: number;
-    usedCredits?: number;
-    remainingCredits?: number;
+    analysisCount?: number | null;
+    total?: number | null;
+    availableCredits?: number | null;
+    reservedCredits?: number | null;
+    usedCredits?: number | null;
+    remainingCredits?: number | null;
     subscriptionTier?: string;
+    unlimited?: boolean;
+    unlimitedLabel?: string | null;
   };
   step?: string;
   demoCreditsRemaining?: number;
@@ -406,7 +409,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const datasetName = file.name.replace(/\.csv$/i, "");
     let uploadCreditOperationId: string | null = null;
 
-    if (!isDemoUser) {
+    if (!isDemoUser && uploadUsage.unlimited) {
+      debugLog("[UPLOAD] Credit reservation bypassed for unlimited role");
+    } else if (!isDemoUser) {
       const operationId = `upload:${effectiveUserId}:${datasetId}`;
       const reservation = await reserveCredits({
         userId: effectiveUserId,
@@ -444,6 +449,8 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
               usedCredits: uploadUsage.usedCredits,
               remainingCredits: uploadUsage.remainingCredits,
               subscriptionTier: uploadUsage.subscriptionTier,
+              unlimited: uploadUsage.unlimited,
+              unlimitedLabel: uploadUsage.unlimitedLabel,
             },
           },
         );
@@ -549,8 +556,18 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
               ? {
                   totalRevenue: profitabilityData.totalRevenue,
                   totalExpenses: profitabilityData.totalExpenses,
+                  grossProfit: profitabilityData.grossProfit ?? profitabilityData.profit,
+                  netProfit: profitabilityData.netProfit ?? profitabilityData.profit,
                   profit: profitabilityData.profit,
                   margin: profitabilityData.margin,
+                  grossMargin: profitabilityData.grossMargin ?? profitabilityData.margin,
+                  netMargin: profitabilityData.netMargin ?? profitabilityData.margin,
+                  expenseCategories: profitabilityData.expenseCategories,
+                  topCostCategories: profitabilityData.expenseCategories,
+                  revenueByProduct: profitabilityData.revenueByProduct,
+                  revenueByRegion: profitabilityData.revenueByRegion,
+                  revenueByMonth: profitabilityData.revenueByMonth,
+                  periodComparison: profitabilityData.periodComparison,
                   hasBothFiles: profitabilityData.hasBothFiles,
                 }
               : null,
@@ -849,6 +866,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       rowsProcessed: totalRowCount,
       columnsDetected: headers.length,
       analysisStatus: "ready",
+      redirectUrl: getDatasetCategoryRedirect(datasetCategory, datasetId),
       redirectTo: getDatasetCategoryRedirect(datasetCategory, datasetId),
       fileName: file.name,
       preview: {
@@ -865,6 +883,8 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         usedCredits: uploadUsage.usedCredits,
         remainingCredits: uploadUsage.remainingCredits,
         subscriptionTier: uploadUsage.subscriptionTier,
+        unlimited: uploadUsage.unlimited,
+        unlimitedLabel: uploadUsage.unlimitedLabel,
       },
       demoCreditsRemaining,
     };

@@ -93,13 +93,15 @@ interface ErrorResponse {
   upgradeRequired?: boolean;
   usage?: {
     limitReached?: boolean;
-    analysisCount?: number;
-    total?: number;
-    availableCredits?: number;
-    reservedCredits?: number;
-    usedCredits?: number;
-    remainingCredits?: number;
+    analysisCount?: number | null;
+    total?: number | null;
+    availableCredits?: number | null;
+    reservedCredits?: number | null;
+    usedCredits?: number | null;
+    remainingCredits?: number | null;
     subscriptionTier?: string;
+    unlimited?: boolean;
+    unlimitedLabel?: string | null;
   };
 }
 
@@ -119,6 +121,8 @@ async function getUsagePayload(userId: string, role?: string | null, email?: str
     usedCredits: usage.usedCredits,
     remainingCredits: usage.remainingCredits,
     subscriptionTier: usage.subscriptionTier,
+    unlimited: usage.unlimited,
+    unlimitedLabel: usage.unlimitedLabel,
   };
 }
 

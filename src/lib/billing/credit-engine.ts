@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db"
 import { creditLedger, profiles, userCredits } from "@/lib/db/schema"
-import { isOfficialSuperAdminEmail, isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { and, desc, eq, lt, sql } from "drizzle-orm"
 import {
   canPlanUseFeature,
@@ -102,8 +102,12 @@ function rowsFromResult<T = Record<string, unknown>>(result: unknown): T[] {
   return []
 }
 
-async function hasUnlimitedCreditAccess(userId: string, role?: string | null, email?: string | null): Promise<boolean> {
-  if (isSuperAdminUserId(userId) || isOfficialSuperAdminEmail(email)) return true
+export function isUnlimitedCreditRole(role?: string | null): boolean {
+  return role === "superadmin" || role === "admin"
+}
+
+async function hasUnlimitedCreditAccess(userId: string, role?: string | null): Promise<boolean> {
+  if (isSuperAdminUserId(userId) || isUnlimitedCreditRole(role)) return true
 
   const db = getDb()
   if (!db) return false
@@ -114,9 +118,10 @@ async function hasUnlimitedCreditAccess(userId: string, role?: string | null, em
   })
 
   return (
+    profile?.role === "admin" ||
     profile?.role === "superadmin" ||
-    profile?.subscriptionTier === "superadmin" ||
-    (role === "superadmin" && profile?.role === "superadmin")
+    profile?.subscriptionTier === "admin" ||
+    profile?.subscriptionTier === "superadmin"
   )
 }
 
@@ -161,21 +166,7 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
   const db = getDb()
   if (!db) return null
 
-  if (await hasUnlimitedCreditAccess(userId)) {
-    return {
-      userId,
-      planId: "superadmin",
-      totalCredits: 999999999,
-      usedCredits: 0,
-      reservedCredits: 0,
-      remainingCredits: 999999999,
-      availableCredits: 999999999,
-      creditsResetAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      lastResetAt: null,
-      lifetimeCreditsEarned: 0,
-      lifetimeCreditsUsed: 0,
-    }
-  }
+  if (await hasUnlimitedCreditAccess(userId)) return null
 
   const existing = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
   if (existing) return toCreditInfo(existing)
@@ -232,21 +223,7 @@ export async function getUserCreditInfo(userId: string): Promise<UserCreditInfo 
   const db = getDb()
   if (!db) return null
 
-  if (await hasUnlimitedCreditAccess(userId)) {
-    return {
-      userId,
-      planId: "superadmin",
-      totalCredits: 999999999,
-      usedCredits: 0,
-      reservedCredits: 0,
-      remainingCredits: 999999999,
-      availableCredits: 999999999,
-      creditsResetAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      lastResetAt: null,
-      lifetimeCreditsEarned: 0,
-      lifetimeCreditsUsed: 0,
-    }
-  }
+  if (await hasUnlimitedCreditAccess(userId)) return null
 
   const creditInfo = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
   if (!creditInfo) {
@@ -265,7 +242,7 @@ export async function getUserCreditInfo(userId: string): Promise<UserCreditInfo 
 export async function checkCredits(userId: string, actionType: string): Promise<CreditCheckResult> {
   const requiredCredits = getActionCreditCost(actionType)
   if (await hasUnlimitedCreditAccess(userId)) {
-    return { allowed: true, remainingCredits: 999999999, requiredCredits, currentPlan: "unlimited" }
+    return { allowed: true, remainingCredits: 0, requiredCredits, currentPlan: "unlimited" }
   }
 
   const creditInfo = await getUserCreditInfo(userId)
@@ -323,7 +300,7 @@ export async function reserveCredits(input: {
   const estimatedCredits = Math.max(0, Math.ceil(input.estimatedCredits ?? estimateFeatureCredits(feature)))
   const operationId = input.operationId || `op_${crypto.randomUUID()}`
   const idempotencyKey = input.idempotencyKey || `reserve:${workspaceId}:${operationId}:${feature}`
-  const unlimited = await hasUnlimitedCreditAccess(input.userId, input.role, input.email)
+  const unlimited = await hasUnlimitedCreditAccess(input.userId, input.role)
 
   const existing = await db.query.creditLedger.findFirst({
     where: eq(creditLedger.idempotencyKey, idempotencyKey),
@@ -334,9 +311,9 @@ export async function reserveCredits(input: {
       success: existing.status !== "failed",
       operationId: existing.operationId || operationId,
       idempotencyKey,
-      reservedCredits: existing.credits || Math.abs(existing.amount),
-      remainingCredits: info?.remainingCredits ?? existing.balanceAfter,
-      availableCredits: info?.availableCredits ?? existing.balanceAfter,
+      reservedCredits: unlimited ? 0 : existing.credits || Math.abs(existing.amount),
+      remainingCredits: unlimited ? 0 : info?.remainingCredits ?? existing.balanceAfter,
+      availableCredits: unlimited ? 0 : info?.availableCredits ?? existing.balanceAfter,
       unlimited,
       ledgerEntryId: existing.id,
       error: existing.status === "failed" ? existing.description || "Reservation failed" : undefined,
@@ -361,12 +338,10 @@ export async function reserveCredits(input: {
     }
   }
 
-  await initializeUserCredits(input.userId, tier)
   const now = new Date()
   const ledgerEntryId = ledgerId()
 
   if (unlimited) {
-    const info = await getUserCreditInfo(input.userId)
     await db.insert(creditLedger).values({
       id: ledgerEntryId,
       workspaceId,
@@ -377,9 +352,9 @@ export async function reserveCredits(input: {
       operationId,
       idempotencyKey,
       amount: 0,
-      credits: estimatedCredits,
-      balanceBefore: info?.remainingCredits ?? 999999999,
-      balanceAfter: info?.remainingCredits ?? 999999999,
+      credits: 0,
+      balanceBefore: 0,
+      balanceAfter: 0,
       source: input.source || "application",
       feature,
       action: feature,
@@ -391,13 +366,15 @@ export async function reserveCredits(input: {
       success: true,
       operationId,
       idempotencyKey,
-      reservedCredits: estimatedCredits,
-      remainingCredits: info?.remainingCredits ?? 999999999,
-      availableCredits: info?.availableCredits ?? 999999999,
+      reservedCredits: 0,
+      remainingCredits: 0,
+      availableCredits: 0,
       unlimited: true,
       ledgerEntryId,
     }
   }
+
+  await initializeUserCredits(input.userId, tier)
 
   const result = await db.transaction(async (tx) => {
     const updated = await tx.execute(sql`

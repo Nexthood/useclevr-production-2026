@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users";
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users";
 import { getDb } from "@/lib/db";
 import { mcpTokens } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -12,9 +12,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const hasSuperAdminRole = session.user.role === "superadmin";
-  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session.user.email);
-  if (!hasSuperAdminRole && !isOfficialSuperAdmin) {
+  const role = String(session.user.role ?? "");
+  const hasSuperAdminRole = role === "superadmin" || role === "admin" || isSuperAdminUserId(session.user.id);
+  if (!hasSuperAdminRole) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

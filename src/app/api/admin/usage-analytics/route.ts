@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth/auth"
-import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
 import { aiCostLogs, userCredits, profiles, datasets } from "@/lib/db/schema"
 import { eq, gte, lte, sql, count, sum, desc } from "drizzle-orm"
@@ -8,12 +8,11 @@ import { eq, gte, lte, sql, count, sum, desc } from "drizzle-orm"
 export async function GET(request: Request) {
   const session = await auth()
   const adminUserId = session?.user?.id
-  const adminEmail = session?.user?.email
 
-  const hasSuperAdminRole = adminUserId && isSuperAdminUserId(adminUserId)
-  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(adminEmail)
+  const role = String(session?.user?.role ?? "")
+  const hasSuperAdminRole = Boolean(adminUserId && isSuperAdminUserId(adminUserId)) || role === "superadmin" || role === "admin"
 
-  if (!adminUserId || (!hasSuperAdminRole && !isOfficialSuperAdmin)) {
+  if (!adminUserId || !hasSuperAdminRole) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

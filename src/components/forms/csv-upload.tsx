@@ -23,25 +23,73 @@ interface _CsvRow {
 
 type UploadResponse = UploadDatasetResponse
 
-async function uploadStandardDatasetSimple(file: File): Promise<UploadResponse> {
+function createUploadRequestId() {
+  return `upl_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
+}
+
+async function parseUploadResponse(response: Response, requestId: string): Promise<UploadResponse> {
+  const contentType = response.headers.get("content-type") || ""
+  const responseRequestId = response.headers.get("x-request-id") || requestId
+  const text = await response.text().catch(() => "")
+
+  if (!text.trim()) {
+    return {
+      ok: false,
+      success: false,
+      code: "UPLOAD_EMPTY_RESPONSE",
+      requestId: responseRequestId,
+      stage: "response_sent",
+      message: `Upload failed with an empty server response (${response.status}).`,
+      error: `Upload failed with an empty server response (${response.status}).`,
+    }
+  }
+
+  if (!contentType.includes("application/json")) {
+    return {
+      ok: false,
+      success: false,
+      code: "UPLOAD_NON_JSON_RESPONSE",
+      requestId: responseRequestId,
+      stage: "response_sent",
+      message: `Upload failed with a non-JSON server response (${response.status}). Request ID: ${responseRequestId}`,
+      error: `Upload failed with a non-JSON server response (${response.status}). Request ID: ${responseRequestId}`,
+    }
+  }
+
+  try {
+    return JSON.parse(text) as UploadResponse
+  } catch {
+    return {
+      ok: false,
+      success: false,
+      code: "UPLOAD_INVALID_JSON_RESPONSE",
+      requestId: responseRequestId,
+      stage: "response_sent",
+      message: `Upload failed because the server response could not be parsed (${response.status}). Request ID: ${responseRequestId}`,
+      error: `Upload failed because the server response could not be parsed (${response.status}). Request ID: ${responseRequestId}`,
+    }
+  }
+}
+
+async function uploadStandardDatasetSimple(file: File, requestId: string, idempotencyKey: string): Promise<UploadResponse> {
   const formData = new FormData()
   formData.append("file", file)
   formData.append("dataset_type", "standard")
 
   const response = await fetch("/api/upload/simple", {
     method: "POST",
+    headers: {
+      "x-request-id": requestId,
+      "idempotency-key": idempotencyKey,
+    },
     body: formData,
   })
 
-  const result = (await response.json().catch(() => ({
-    ok: false,
-    success: false,
-    stage: "response_sent",
-    message: "Upload response could not be read.",
-  }))) as UploadResponse
+  const result = await parseUploadResponse(response, requestId)
 
   return {
     ...result,
+    requestId: result.requestId || requestId,
     ok: response.ok && (result.ok ?? result.success ?? false),
     success: response.ok && (result.success ?? result.ok ?? false),
   }
@@ -60,6 +108,8 @@ export function CsvUpload() {
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
    const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string, primaryActionLabel?: string, primaryActionHref?: string, secondaryActionLabel?: string, secondaryActionHref?: string}>({})
    const [uploadResult, setUploadResult] = React.useState<UploadResponse | null>(null)
+   const activeUploadRef = React.useRef(false)
+   const activeUploadIdempotencyKeyRef = React.useRef<string | null>(null)
    const { toast } = useToast()
    const { showNotice } = useNotice()
    const creditUsage = useUsage()
@@ -180,6 +230,7 @@ export function CsvUpload() {
   }
 
   const uploadFile = async (file: File) => {
+    if (activeUploadRef.current) return
     const fileName = file.name.toLowerCase()
     const isCsv = fileName.endsWith(".csv")
     const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls")
@@ -209,6 +260,10 @@ export function CsvUpload() {
     }
 
     setCurrentFileName(file.name)
+    activeUploadRef.current = true
+    const requestId = createUploadRequestId()
+    const idempotencyKey = activeUploadIdempotencyKeyRef.current || createUploadRequestId()
+    activeUploadIdempotencyKeyRef.current = idempotencyKey
     setUploading(true)
     setUploadStatus("uploading")
     setUploadProgress(0)
@@ -277,7 +332,7 @@ export function CsvUpload() {
 
     try {
       debugLog('[CSV-UPLOAD] Starting upload for file:', file.name)
-      const result = await uploadStandardDatasetSimple(file)
+      const result = await uploadStandardDatasetSimple(file, requestId, idempotencyKey)
       debugLog('[CSV-UPLOAD] Result:', result)
       
       if (progressInterval) clearInterval(progressInterval)
@@ -313,7 +368,8 @@ export function CsvUpload() {
           })
         }
       } else {
-        const uploadError = result.error || result.message || "Upload failed"
+        const requestSuffix = result.requestId ? ` Request ID: ${result.requestId}` : ""
+        const uploadError = result.message || result.error || "Upload failed"
         const isInsufficientCredits =
           result.code === "INSUFFICIENT_CREDITS" ||
           uploadError.startsWith("INSUFFICIENT_CREDITS|") ||
@@ -392,7 +448,7 @@ export function CsvUpload() {
           })
         } else {
           setUploadStatus("error")
-          setErrorMessage(uploadError)
+          setErrorMessage(`${result.code ? `${result.code}: ` : ""}${uploadError}${requestSuffix}`)
           setProcessingStep(0)
         }
       }
@@ -418,6 +474,10 @@ export function CsvUpload() {
       }
     } finally {
       setUploading(false)
+      activeUploadRef.current = false
+      if (uploadStatus !== "offline") {
+        activeUploadIdempotencyKeyRef.current = null
+      }
     }
   }
 
@@ -430,6 +490,7 @@ export function CsvUpload() {
     setProcessingStep(0)
     setLimitReachedInfo(null)
     setUploadResult(null)
+    activeUploadIdempotencyKeyRef.current = null
     checkConnection()
   }
 

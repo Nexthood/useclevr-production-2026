@@ -152,23 +152,73 @@ function renderProfitabilityMetrics(metrics: unknown): React.ReactNode {
   if (!metrics || typeof metrics !== "object") return null
 
   const values = metrics as Record<string, unknown>
+  const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
+  const currencyValue = (value: unknown) => typeof value === "number" ? currency.format(value) : "No data"
+  const percentValue = (value: unknown) => typeof value === "number" ? `${value.toFixed(1)}%` : "No data"
   const metricCards = [
-    { label: "Revenue", value: typeof values.totalRevenue === "number" ? new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.totalRevenue) : "No data" },
-    { label: "Expenses", value: typeof values.totalExpenses === "number" ? new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.totalExpenses) : "No data" },
-    { label: "Profit", value: typeof values.profit === "number" ? new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.profit) : "No data" },
-    { label: "Margin", value: typeof values.margin === "number" ? `${values.margin.toFixed(1)}%` : "No data" },
+    { label: "Revenue", value: currencyValue(values.totalRevenue) },
+    { label: "Expenses", value: currencyValue(values.totalExpenses) },
+    { label: "Gross Profit", value: currencyValue(values.grossProfit ?? values.profit) },
+    { label: "Net Profit", value: currencyValue(values.netProfit ?? values.profit) },
+    { label: "Gross Margin", value: percentValue(values.grossMargin ?? values.margin) },
+    { label: "Net Margin", value: percentValue(values.netMargin ?? values.margin) },
   ].filter((metric) => metric.value !== "No data")
+  const rawCostCategories = Array.isArray(values.topCostCategories)
+    ? values.topCostCategories
+    : Array.isArray(values.expenseCategories)
+      ? values.expenseCategories
+      : []
+  const topCostCategories = rawCostCategories
+    .map((item) => {
+      if (Array.isArray(item)) return { label: String(item[0] ?? "Other"), value: Number(item[1] ?? 0) }
+      if (item && typeof item === "object") {
+        const entry = item as Record<string, unknown>
+        return {
+          label: String(entry.category ?? entry.label ?? entry.name ?? "Other"),
+          value: Number(entry.value ?? entry.amount ?? entry.total ?? 0),
+        }
+      }
+      return null
+    })
+    .filter((item): item is { label: string; value: number } => Boolean(item && Number.isFinite(item.value)))
+    .slice(0, 5)
+  const trendData = Array.isArray(values.revenueByMonth) ? values.revenueByMonth.slice(0, 6) : []
 
   if (metricCards.length === 0) return null
 
   return (
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {metricCards.map((metric) => (
-        <div key={metric.label} className="rounded-lg border border-border bg-background/80 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{metric.label}</p>
-          <p className="mt-2 text-xl font-semibold text-foreground">{metric.value}</p>
+    <div className="mt-5 space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {metricCards.map((metric) => (
+          <div key={metric.label} className="rounded-lg border border-border bg-background/80 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+            <p className="mt-2 text-xl font-semibold text-foreground">{metric.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {topCostCategories.length > 0 && (
+        <div className="rounded-lg border border-border bg-background/80 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Top cost categories</p>
+          <div className="mt-3 space-y-2">
+            {topCostCategories.map((category) => (
+              <div key={category.label} className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate text-muted-foreground">{category.label}</span>
+                <span className="font-medium text-foreground">{currency.format(category.value)}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
+
+      {trendData.length > 0 && (
+        <div className="rounded-lg border border-border bg-background/80 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trend / period comparison</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {trendData.length} period{trendData.length === 1 ? "" : "s"} available for revenue comparison.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

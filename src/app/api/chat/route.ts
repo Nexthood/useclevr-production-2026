@@ -1,12 +1,12 @@
 import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
-import { datasets, profiles } from '@/lib/db/schema';
+import { datasets } from '@/lib/db/schema';
 import {
   EXPLANATION_SYSTEM_PROMPT,
   generateExplanationPrompt
 } from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
-import { finalizeCredits, initializeUserCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { finalizeCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
 import { emptyProviderUsage, estimateUsageFromText } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billing/usage-enforcement';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
@@ -280,14 +280,6 @@ export async function POST(request: Request) {
 
     const gate = await requireHybridAiFeature("aiAssistantIntegration");
     if (!gate.success) return gate.error;
-
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-      columns: { subscriptionTier: true },
-    });
-    const subscriptionTier = profile?.subscriptionTier || "free";
-
-    await initializeUserCredits(userId, subscriptionTier);
 
     const enforcementCheck = await checkActionEnforcement(
       userId,

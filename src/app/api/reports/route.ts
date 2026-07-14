@@ -4,7 +4,7 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 // Report generation and management API
 
 import { auth } from '@/lib/auth/auth';
-import { isOfficialSuperAdminEmail } from '@/lib/auth/builtin-users';
+import { isSuperAdminUserId } from '@/lib/auth/builtin-users';
 import { getDb } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { deleteReport, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
@@ -17,10 +17,9 @@ async function getSession() {
   return session?.user?.id ? session : null;
 }
 
-async function canAccessDataset(userId: string, role: string | undefined, email: string | null | undefined, datasetId: string) {
-  const hasSuperAdminRole = role === 'superadmin'
-  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(email ?? undefined)
-  if (hasSuperAdminRole || isOfficialSuperAdmin) return true;
+async function canAccessDataset(userId: string, role: string | undefined, _email: string | null | undefined, datasetId: string) {
+  const hasSuperAdminRole = role === 'superadmin' || role === 'admin' || isSuperAdminUserId(userId)
+  if (hasSuperAdminRole) return true;
 
   const db = getDb();
   if (!db) return false;

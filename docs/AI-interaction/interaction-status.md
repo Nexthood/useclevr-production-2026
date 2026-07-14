@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-13
-- **Goal**: Fix included-credit source of truth and enforce credit reservation before billable upload and dataset-analysis work.
-- **Durable change**: Free plans use 2 shared billing credits, dataset uploads reserve and finalize one Credit Engine credit before dataset creation completes, manual dataset-analysis refreshes reserve and finalize before returning refreshed analysis, failed persistence or analysis releases reservations, no-credit responses use a structured `INSUFFICIENT_CREDITS` contract, usage endpoints and UI credit displays read the same authoritative summary, and superadmin unlimited access no longer trusts session role alone.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false` and `pnpm test:credit-engine` pass.
+- **Date**: 2026-07-14
+- **Goal**: Fix role-based credits, Standard Upload, and Profitability Upload consistency.
+- **Durable change**: Built-in superadmin profile sync now writes the authoritative role and superadmin tier, unlimited credit summaries keep null credit totals instead of Free-plan fallbacks, Standard Upload bypasses reservation for unlimited users and returns dataset-specific redirects, and Profitability Upload persists KPI/report data before routing to the profitability report.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` and `pnpm test:credit-engine` pass before project-record validation.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -67,8 +67,8 @@ export default async function SubscriptionSettingsPage({
     session?.user?.email ?? null,
   );
   const billingSettings = await getBillingSettings();
-  const remaining = Math.max(0, usage.availableCredits);
   const isUnlimited = usage.unlimited;
+  const remaining = isUnlimited ? 0 : Math.max(0, usage.availableCredits ?? 0);
   const db = getDb();
 
   const [profile, datasetStats] = await Promise.all([

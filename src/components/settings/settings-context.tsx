@@ -8,12 +8,12 @@ export type SettingsContextValue = {
     subscriptionTier: string
     trialActive: boolean
     trialDaysRemaining: number
-    analysisCount: number
-    total: number
-    availableCredits: number
-    reservedCredits: number
-    usedCredits: number
-    remainingCredits: number
+    analysisCount: number | null
+    total: number | null
+    availableCredits: number | null
+    reservedCredits: number | null
+    usedCredits: number | null
+    remainingCredits: number | null
     limitReached: boolean
     canAnalyze: boolean
     unlimited: boolean
