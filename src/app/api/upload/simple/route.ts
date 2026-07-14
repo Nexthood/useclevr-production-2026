@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { resolveBusinessModel } from "@/lib/data/business-model";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
@@ -274,6 +275,13 @@ export async function POST(request: Request) {
       SIMPLE_ROW_INSERT_LIMIT,
     );
     const datasetName = uploadFile.name.replace(/\.(csv|xlsx|xls)$/i, "");
+    const businessModel = resolveBusinessModel({
+      explicit: typeof formData.get("business_model") === "string" ? String(formData.get("business_model")) : null,
+      uploadSource: "simple_standard_upload",
+      datasetType: "standard",
+      columns: parsed.columns,
+      datasetName,
+    });
 
     const existingDataset = await db.query.datasets.findFirst({
       where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
@@ -293,6 +301,8 @@ export async function POST(request: Request) {
           datasetName: existingDataset.name,
           datasetType: existingDataset.datasetType || "standard",
           dataset_type: existingDataset.datasetType || "standard",
+          businessModel: existingDataset.businessModel || "generic",
+          business_model: existingDataset.businessModel || "generic",
           rowsProcessed: existingDataset.rowCount,
           columnsDetected: existingDataset.columnCount,
           status: existingDataset.status,
@@ -329,6 +339,7 @@ export async function POST(request: Request) {
       columnTypes: {},
       precomputedMetrics: parsed.aggregatedMetrics,
       datasetType: "standard",
+      businessModel,
       status: "processing",
       analysisStatus: "processing",
       analysisProgress: 10,
@@ -337,6 +348,8 @@ export async function POST(request: Request) {
       analysis: {
         datasetCategory: "standard",
         datasetType: "standard",
+        businessModel,
+        business_model: businessModel,
         uploadSource: "simple_standard_upload",
         uploadRequestId: requestId,
         uploadIdempotencyKey: requestKey,
@@ -390,6 +403,7 @@ export async function POST(request: Request) {
             fileName: uploadFile.name,
             rowCount: parsed.rowCount,
             datasetType: "standard",
+            businessModel,
           },
         });
         logStage(requestId, "credit_reservation_completed", {
@@ -482,6 +496,8 @@ export async function POST(request: Request) {
             datasetName: replayDataset.name,
             datasetType: replayDataset.datasetType || "standard",
             dataset_type: replayDataset.datasetType || "standard",
+            businessModel: replayDataset.businessModel || "generic",
+            business_model: replayDataset.businessModel || "generic",
             rowsProcessed: replayDataset.rowCount,
             columnsDetected: replayDataset.columnCount,
             status: replayDataset.status,
@@ -535,6 +551,7 @@ export async function POST(request: Request) {
             datasetId,
             rowCount: parsed.rowCount,
             datasetType: "standard",
+            businessModel,
           },
         });
         logStage(requestId, "credit_settlement_completed", {
@@ -589,6 +606,8 @@ export async function POST(request: Request) {
         datasetName: datasetName || uploadFile.name,
         datasetType: "standard",
         dataset_type: "standard",
+        businessModel,
+        business_model: businessModel,
         rowsProcessed: parsed.rowCount,
         columnsDetected: parsed.columns.length,
         status: "ready",

@@ -16,9 +16,9 @@ import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine";
 import {
   getDatasetCategoryFromUpload,
-  getDatasetCategoryRedirect,
   getUploadCategoryCandidate,
 } from "@/lib/data/dataset-category";
+import { getBusinessModelRedirect, resolveBusinessModel } from "@/lib/data/business-model";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { checkDemoAccess, consumeDemoCredit, getDemoLimits } from "@/lib/billing/demo-access";
@@ -42,6 +42,7 @@ type UploadCSVResult = {
   datasetId?: string;
   datasetName?: string;
   datasetType?: string;
+  businessModel?: string;
   rowsProcessed?: number;
   columnsDetected?: number;
   analysisStatus?: string;
@@ -427,6 +428,13 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
           fileName: file.name,
           rowCount: totalRowCount,
           datasetType: uploadCategory,
+          businessModel: resolveBusinessModel({
+            explicit: formData.get("business_model") as string | null,
+            uploadSource: fileType || uploadCategory,
+            datasetType: uploadCategory,
+            columns: headers,
+            datasetName,
+          }),
         },
       });
 
@@ -487,10 +495,19 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       ? "profitability"
       : getDatasetCategoryFromUpload(fileType);
     const datasetType = datasetCategory;
+    const businessModel = resolveBusinessModel({
+      explicit: formData.get("business_model") as string | null,
+      uploadSource: fileType || datasetCategory,
+      datasetType: datasetCategory,
+      columns: headers,
+      datasetName,
+    });
     const baseAnalysis = {
       dataset_type: datasetCategory,
       datasetCategory,
       datasetType: datasetCategory,
+      business_model: businessModel,
+      businessModel,
       uploadSource: fileType || datasetCategory,
     };
     if (isProfitabilityAnalysis) {
@@ -549,6 +566,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
             data: [],
             columnTypes: {},
             datasetType,
+            businessModel,
             status: "ready",
             ...initialAnalysisStatus,
             analysis: { ...baseAnalysis, profitability: profitabilityData },
@@ -588,6 +606,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
               data: previewRows, // Store only preview rows
               columnTypes: {},
               datasetType,
+              businessModel,
               status: "ready",
               ...initialAnalysisStatus,
               analysis: { ...baseAnalysis, streamingMode: true },
@@ -608,6 +627,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
               data: allRows,
               columnTypes: {},
               datasetType,
+              businessModel,
               status: "ready",
               ...initialAnalysisStatus,
               analysis: baseAnalysis,
@@ -849,7 +869,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       await finalizeCredits({
         operationId: uploadCreditOperationId,
         actualCredits: 1,
-        metadata: { datasetId, rowCount: totalRowCount, datasetType: datasetCategory },
+        metadata: { datasetId, rowCount: totalRowCount, datasetType: datasetCategory, businessModel },
       });
       uploadUsage = await getAnalystCreditUsage(
         effectiveUserId,
@@ -863,11 +883,12 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       datasetId: datasetId,
       datasetName: datasetName || file.name,
       datasetType: datasetCategory,
+      businessModel,
       rowsProcessed: totalRowCount,
       columnsDetected: headers.length,
       analysisStatus: "ready",
-      redirectUrl: getDatasetCategoryRedirect(datasetCategory, datasetId),
-      redirectTo: getDatasetCategoryRedirect(datasetCategory, datasetId),
+      redirectUrl: getBusinessModelRedirect({ datasetType: datasetCategory, businessModel, datasetId }),
+      redirectTo: getBusinessModelRedirect({ datasetType: datasetCategory, businessModel, datasetId }),
       fileName: file.name,
       preview: {
         headers,

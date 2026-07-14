@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
+import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { desc, eq } from "drizzle-orm"
 
 export type DashboardDataRow = Record<string, unknown>
@@ -14,6 +15,7 @@ export type DashboardAggregatedDataset = {
   columns: string[]
   data: DashboardDataRow[]
   datasetType: string
+  businessModel: BusinessModel
   analysisStatus: string | null
   status: string
   createdAt: Date
@@ -45,6 +47,8 @@ export type NormalizedDashboardData = {
     date?: string
     region?: string
   }
+  businessModelCounts: Record<BusinessModel, number>
+  dominantBusinessModel: BusinessModel
   allColumns: string[]
   datasets: DashboardAggregatedDataset[]
 }
@@ -76,6 +80,7 @@ export async function loadDashboardDatasetAggregation(userId: string | null): Pr
       columns: true,
       data: true,
       datasetType: true,
+      businessModel: true,
       analysisStatus: true,
       status: true,
       createdAt: true,
@@ -87,25 +92,37 @@ export async function loadDashboardDatasetAggregation(userId: string | null): Pr
     },
   })
 
-  const normalizedDatasets = rows.map((dataset) => ({
-    id: dataset.id,
-    name: dataset.name,
-    fileName: dataset.fileName,
-    fileSize: dataset.fileSize,
-    rowCount: dataset.rowCount || 0,
-    columnCount: dataset.columnCount || 0,
-    columns: Array.isArray(dataset.columns) ? dataset.columns : [],
-    data: Array.isArray(dataset.data) ? (dataset.data as DashboardDataRow[]).filter(isRecord) : [],
-    datasetType: dataset.datasetType || "standard",
-    analysisStatus: dataset.analysisStatus,
-    status: dataset.status || "ready",
-    createdAt: dataset.createdAt || new Date(),
-    updatedAt: dataset.updatedAt || dataset.createdAt || new Date(),
-    analysis: dataset.analysis,
-    aiInsights: dataset.aiInsights,
-    precomputedMetrics: dataset.precomputedMetrics,
-    detectedColumns: dataset.detectedColumns,
-  }))
+  const normalizedDatasets = rows.map((dataset) => {
+    const columns = Array.isArray(dataset.columns) ? dataset.columns : []
+    const analysis = dataset.analysis
+    return {
+      id: dataset.id,
+      name: dataset.name,
+      fileName: dataset.fileName,
+      fileSize: dataset.fileSize,
+      rowCount: dataset.rowCount || 0,
+      columnCount: dataset.columnCount || 0,
+      columns,
+      data: Array.isArray(dataset.data) ? (dataset.data as DashboardDataRow[]).filter(isRecord) : [],
+      datasetType: dataset.datasetType || "standard",
+      businessModel: resolveBusinessModel({
+        explicit: dataset.businessModel,
+        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : "",
+        datasetType: dataset.datasetType,
+        columns,
+        datasetName: dataset.name,
+        analysis,
+      }),
+      analysisStatus: dataset.analysisStatus,
+      status: dataset.status || "ready",
+      createdAt: dataset.createdAt || new Date(),
+      updatedAt: dataset.updatedAt || dataset.createdAt || new Date(),
+      analysis,
+      aiInsights: dataset.aiInsights,
+      precomputedMetrics: dataset.precomputedMetrics,
+      detectedColumns: dataset.detectedColumns,
+    }
+  })
 
   const allColumns = unique([
     ...normalizedDatasets.flatMap((dataset) => dataset.columns),
@@ -128,6 +145,8 @@ export async function loadDashboardDatasetAggregation(userId: string | null): Pr
     latestUpload: normalizedDatasets[0] || null,
     fileTypeCounts,
     detectedColumns: detectColumnAliases(allColumns),
+    businessModelCounts: countBusinessModels(normalizedDatasets),
+    dominantBusinessModel: findDominantBusinessModel(normalizedDatasets),
     allColumns,
     datasets: normalizedDatasets,
   }
@@ -176,6 +195,16 @@ function emptyDashboardData(): NormalizedDashboardData {
     latestUpload: null,
     fileTypeCounts: { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 },
     detectedColumns: {},
+    businessModelCounts: {
+      local_retail: 0,
+      ecommerce: 0,
+      saas: 0,
+      startup: 0,
+      investor: 0,
+      marketplace: 0,
+      generic: 0,
+    },
+    dominantBusinessModel: "generic",
     allColumns: [],
     datasets: [],
   }
@@ -187,4 +216,32 @@ function unique(values: string[]) {
 
 function isRecord(value: unknown): value is DashboardDataRow {
   return Boolean(value && typeof value === "object" && !Array.isArray(value))
+}
+
+function countBusinessModels(datasetList: DashboardAggregatedDataset[]) {
+  return datasetList.reduce<Record<BusinessModel, number>>(
+    (counts, dataset) => {
+      counts[dataset.businessModel] += 1
+      return counts
+    },
+    {
+      local_retail: 0,
+      ecommerce: 0,
+      saas: 0,
+      startup: 0,
+      investor: 0,
+      marketplace: 0,
+      generic: 0,
+    },
+  )
+}
+
+function findDominantBusinessModel(datasetList: DashboardAggregatedDataset[]): BusinessModel {
+  if (datasetList.length === 0) return "generic"
+  const counts = countBusinessModels(datasetList)
+  const latest = datasetList[0]?.businessModel || "generic"
+  const dominant = Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])[0]?.[0] as BusinessModel | undefined
+  return dominant || latest
 }

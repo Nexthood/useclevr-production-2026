@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Separate dataset processing type from business model so local retail, ecommerce, SaaS, startup, investor, marketplace, and generic datasets receive model-specific routing, dashboard KPIs, map eligibility, suggestions, and AI context.
 - Add a production-grade Credit Engine foundation with auditable reservations, finalized charges, released failures, real sidebar balances, provider usage capture, and metered AI analysis, AI Assistant, and report generation paths.
 - Fix Dataset Library deletion so confirmed single and bulk deletes remove authorized datasets, reset selection and confirmation states, keep failed items retryable, and show a centered accessible confirmation dialog.
 - Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, safe retrieval-document storage, bounded dataset-context ingestion, hybrid semantic and keyword search, superadmin diagnostics, and tenant-isolation validation.

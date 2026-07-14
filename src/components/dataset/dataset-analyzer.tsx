@@ -9,6 +9,7 @@ import { WorldMapRevenue, type RegionData as MapRegionData } from "@/components/
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { shouldRenderWorldMapForBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { formatCurrencyCompact, formatCurrencyForKPI, formatPercentage, formatPercentSimple } from "@/lib/utils/formatting"
 import {
     AlertTriangle, BarChart3, FileText, Lightbulb, Loader2, Sparkles, Table2, TrendingDown, TrendingUp, X
@@ -132,6 +133,7 @@ interface DatasetAnalyzerProps {
   columns: string[]
   data: any[]
   rowCount: number
+  businessModel?: BusinessModel
   isAnalyzed?: boolean
   initialIsAnalyzed?: boolean
   initialAnalysis?: CSVAnalysisResult
@@ -147,6 +149,7 @@ export function DatasetAnalyzer({
   columns,
   data,
   rowCount,
+  businessModel = "generic",
   isAnalyzed: initialAnalyzedProp = false,
   initialIsAnalyzed = false,
   initialAnalysis
@@ -1417,6 +1420,7 @@ export function DatasetAnalyzer({
                     <WorldMapChart 
                       rawData={data} 
                       breakdowns={analysis.business_analysis.breakdowns}
+                      businessModel={businessModel}
                     />
                   </CardContent>
                 </Card>
@@ -2276,10 +2280,12 @@ function detectProductColumn(columns: string[]): string | null {
 // World Map Chart component - shows interactive world map with revenue bubbles
 function WorldMapChart({ 
   rawData,
-  breakdowns
+  breakdowns,
+  businessModel,
 }: { 
   rawData?: any[]; 
   breakdowns?: Breakdowns;
+  businessModel: BusinessModel;
 }) {
   const [selectedRegion, setSelectedRegion] = React.useState<MapRegionData | null>(null);
 
@@ -2351,6 +2357,19 @@ function WorldMapChart({
   const handleRegionClick = (region: MapRegionData) => {
     setSelectedRegion(region);
   };
+
+  const canRenderMap = shouldRenderWorldMapForBusinessModel({
+    businessModel,
+    mappedLocations: mapData,
+  });
+
+  if (!canRenderMap) {
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-background/40 p-4 text-sm text-muted-foreground">
+        This dataset does not expose valid mapped locations for a world map.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

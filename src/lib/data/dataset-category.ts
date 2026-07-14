@@ -113,7 +113,7 @@ export function getDatasetCategoryDestinationLabel(category: DatasetCategory | s
   return datasetCategoryDestinations[normalized]
 }
 
-export function getDatasetCategoryRedirect(category: DatasetCategory, datasetId: string) {
+export function getDatasetCategoryRedirect(category: DatasetCategory, datasetId: string, businessModel?: string | null) {
   switch (category) {
     case "retail":
       return `/app/retail?datasetId=${datasetId}`
@@ -124,6 +124,6 @@ export function getDatasetCategoryRedirect(category: DatasetCategory, datasetId:
     case "prebookkeeping":
       return `/app/prebookkeeping?datasetId=${datasetId}`
     default:
-      return `/app/datasets/${datasetId}/analyze`
+      return businessModel ? `/app/datasets/${datasetId}/analyze?businessModel=${businessModel}` : `/app/datasets/${datasetId}/analyze`
   }
 }
