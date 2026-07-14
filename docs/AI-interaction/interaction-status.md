@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-14
-- **Goal**: Fix role-based credits, Standard Upload, and Profitability Upload consistency.
-- **Durable change**: Built-in superadmin profile sync now writes the authoritative role and superadmin tier, unlimited credit summaries keep null credit totals instead of Free-plan fallbacks, Standard Upload bypasses reservation for unlimited users and returns dataset-specific redirects, and Profitability Upload persists KPI/report data before routing to the profitability report.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false` and `pnpm test:credit-engine` pass before project-record validation.
+- **Goal**: Remove remaining superadmin upgrade gating and Free-plan fallback behavior.
+- **Durable change**: Credentials login now mints the JWT with the authoritative profile role, Hybrid AI access normalizes admin and superadmin roles to unlimited tiers, AI Assistant chat, report generation, and dataset analysis bypass credit reservation for unlimited roles, and sidebar/profile setup gates no longer redirect or show incomplete setup for unlimited admin sessions.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, `pnpm test:credit-engine`, and focused ESLint pass before project-record validation.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

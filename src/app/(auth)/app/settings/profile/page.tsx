@@ -56,12 +56,13 @@ export default async function ProfileSettingsPage() {
   const email = isSuperAdmin ? (userEmail || "") : (profile?.email || user?.email || "")
   const setupStatus = user?.id ? await getSetupStatus(user.id) : null
   const usage = await getAnalystCreditUsage(user?.id, user?.role, user?.email ?? null)
+  const hasUnlimitedAdminAccess = usage.unlimited
   const profileComplete = Boolean(fullName && email)
-  const companyComplete = (setupStatus?.setupAccuracy ?? 0) >= 100
+  const companyComplete = hasUnlimitedAdminAccess || (setupStatus?.setupAccuracy ?? 0) >= 100
   const subscriptionComplete = usage.subscriptionTier !== "free" || usage.unlimited
   const securityComplete = Boolean(email)
   const completionItems = [
-    { label: "Profile", complete: profileComplete },
+    { label: "Profile", complete: hasUnlimitedAdminAccess || profileComplete },
     { label: "Company", complete: companyComplete },
     { label: "Subscription", complete: subscriptionComplete },
     { label: "Security", complete: securityComplete },

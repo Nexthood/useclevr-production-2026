@@ -74,6 +74,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
   const { usage, total, available, reserved, isPro, isLoading, unlimitedLabel } = useUsage();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const hasUnlimitedAdminAccess = user.role === "superadmin" || user.role === "admin";
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -150,7 +151,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
 
         {remainingNavigationItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const href = item.status && !isStatusComplete(item.status) ? item.status.hrefWhenIncomplete : item.href
+          const href = !hasUnlimitedAdminAccess && item.status && !isStatusComplete(item.status) ? item.status.hrefWhenIncomplete : item.href
           return (
             <SidebarLink
               key={item.name}
@@ -158,6 +159,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
               href={href}
               isActive={isActive}
               isCollapsed={isCollapsed}
+              forceComplete={hasUnlimitedAdminAccess}
             />
           );
         })}
@@ -232,14 +234,16 @@ function SidebarLink({
   href,
   isActive,
   isCollapsed,
+  forceComplete = false,
 }: {
   item: NavigationItem
   href: string
   isActive: boolean
   isCollapsed: boolean
+  forceComplete?: boolean
 }) {
   const status = item.status
-  const isComplete = status ? isStatusComplete(status) : false
+  const isComplete = forceComplete || (status ? isStatusComplete(status) : false)
   const title = isCollapsed
     ? status
       ? `${item.name}: ${isComplete ? "complete" : status.requiredLabel}`
@@ -266,10 +270,10 @@ function SidebarLink({
       {!isCollapsed && (
         <>
           <span className="min-w-0 flex-1 truncate">{item.name}</span>
-          {status && <SidebarStatusBadge status={status} />}
+          {status && <SidebarStatusBadge status={status} forceComplete={forceComplete} />}
         </>
       )}
-      {isCollapsed && status && <CollapsedStatusDot status={status} />}
+      {isCollapsed && status && <CollapsedStatusDot status={status} forceComplete={forceComplete} />}
     </Link>
   )
 }
@@ -278,8 +282,8 @@ function isStatusComplete(status: SidebarStatus) {
   return status.complete || status.completion >= 100
 }
 
-function SidebarStatusBadge({ status }: { status: SidebarStatus }) {
-  if (isStatusComplete(status)) {
+function SidebarStatusBadge({ status, forceComplete = false }: { status: SidebarStatus; forceComplete?: boolean }) {
+  if (forceComplete || isStatusComplete(status)) {
     return (
       <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">
         ✓
@@ -302,12 +306,13 @@ function SidebarStatusBadge({ status }: { status: SidebarStatus }) {
   )
 }
 
-function CollapsedStatusDot({ status }: { status: SidebarStatus }) {
+function CollapsedStatusDot({ status, forceComplete = false }: { status: SidebarStatus; forceComplete?: boolean }) {
+  const isComplete = forceComplete || isStatusComplete(status)
   return (
     <span
       className={[
         "absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-sidebar",
-        isStatusComplete(status) ? "bg-emerald-500" : status.requiredLabel === "Required" ? "bg-red-500" : "bg-amber-500",
+        isComplete ? "bg-emerald-500" : status.requiredLabel === "Required" ? "bg-red-500" : "bg-amber-500",
       ].join(" ")}
     />
   )

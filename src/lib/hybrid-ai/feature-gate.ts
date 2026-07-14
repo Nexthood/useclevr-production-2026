@@ -42,7 +42,8 @@ export async function getHybridAiFeatureAccess(userId: string, sessionRole?: str
     : null
 
   const role = profile?.role || sessionRole || "user"
-  const subscriptionTier = profile?.subscriptionTier || "free"
+  const roleHasUnlimitedAccess = role === "superadmin" || role === "admin"
+  const subscriptionTier = roleHasUnlimitedAccess ? role : profile?.subscriptionTier || "free"
   const entitlement = getHybridAiEntitlement(subscriptionTier, role)
 
   return {

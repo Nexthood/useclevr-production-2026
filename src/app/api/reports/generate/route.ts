@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { finalizeCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
 import { emptyProviderUsage } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
 import fs from 'fs';
@@ -262,20 +262,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const subscriptionTier = profile.subscriptionTier || 'free';
+    const role = (session?.user as { role?: string })?.role ?? null;
+    const isUnlimited = isUnlimitedCreditRole(role);
+    const subscriptionTier = isUnlimited ? role || 'superadmin' : profile.subscriptionTier || 'free';
 
     const operationId = `report:${userId}:${crypto.randomUUID()}`;
-    const reservation = await reserveCredits({
-      userId,
-      operationId,
-      idempotencyKey: request.headers.get('idempotency-key') || operationId,
-      feature: 'report_generation',
-      source: 'api',
-      role: (session?.user as { role?: string })?.role ?? null,
-      email: session?.user?.email ?? null,
-      metadata: { format },
-    });
-    if (!reservation.success) {
+    const reservation = isUnlimited
+      ? null
+      : await reserveCredits({
+          userId,
+          operationId,
+          idempotencyKey: request.headers.get('idempotency-key') || operationId,
+          feature: 'report_generation',
+          source: 'api',
+          role,
+          email: session?.user?.email ?? null,
+          metadata: { format },
+        });
+    if (reservation && !reservation.success) {
       await logAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
@@ -298,11 +302,11 @@ export async function POST(request: Request) {
     const enforcementCheck = await checkActionEnforcement(
       userId,
       'report_generation',
-      (session?.user as { role?: string })?.role ?? null,
+      role,
       session?.user?.email ?? null
     );
     if (!enforcementCheck.allowed) {
-      await releaseCredits(operationId, 'usage_limit_blocked');
+      if (reservation) await releaseCredits(operationId, 'usage_limit_blocked');
       await logAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
@@ -331,27 +335,31 @@ export async function POST(request: Request) {
     try {
       fileUrl = await generateReportFile(format, reportData, fileName);
     } catch (generationError) {
-      await releaseCredits(operationId, 'report_generation_failed');
+      if (reservation) await releaseCredits(operationId, 'report_generation_failed');
       throw generationError;
     }
 
-    const deduction = await finalizeCredits({
-      operationId,
-      actualCredits: reservation.reservedCredits,
-      actualUsage: emptyProviderUsage('system', 'report-generator'),
-      metadata: { format, fileName },
-    });
-    if (!deduction.success) {
-      await releaseCredits(operationId, 'report_charge_failed');
-      return NextResponse.json({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 });
+    let creditsRemaining: number | null = null;
+    if (reservation) {
+      const deduction = await finalizeCredits({
+        operationId,
+        actualCredits: reservation.reservedCredits,
+        actualUsage: emptyProviderUsage('system', 'report-generator'),
+        metadata: { format, fileName },
+      });
+      if (!deduction.success) {
+        await releaseCredits(operationId, 'report_charge_failed');
+        return NextResponse.json({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 });
+      }
+      creditsRemaining = deduction.remainingCredits;
     }
 
-    debugLog(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${deduction.remainingCredits}`);
+    debugLog(`[REPORT] Generated ${format} report for user ${userId}, credits remaining: ${creditsRemaining ?? 'unlimited'}`);
 
     return NextResponse.json({
       success: true,
       fileUrl,
-      creditsRemaining: deduction.remainingCredits,
+      creditsRemaining,
     });
 
   } catch (error) {
