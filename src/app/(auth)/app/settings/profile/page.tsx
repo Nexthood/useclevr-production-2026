@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
-import { isBuiltinUserId, isOfficialSuperAdminEmail, OFFICIAL_SUPERADMIN_NAME } from "@/lib/auth/builtin-users"
+import { isBuiltinUserId, isSuperAdminUserId, OFFICIAL_SUPERADMIN_NAME } from "@/lib/auth/builtin-users"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
@@ -19,7 +19,7 @@ export default async function ProfileSettingsPage() {
   const session = await auth()
   const user = session?.user
   const userEmail = user?.email
-  const isSuperAdmin = isOfficialSuperAdminEmail(userEmail)
+  const isSuperAdmin = Boolean(user?.id && isSuperAdminUserId(user.id)) || user?.role === "superadmin"
   const db = getDb()
   let loadError: string | null = null
   let profile: {
@@ -52,7 +52,7 @@ export default async function ProfileSettingsPage() {
     }
   }
 
-  const fullName = isSuperAdmin ? OFFICIAL_SUPERADMIN_NAME : (profile?.fullName || user?.name || "")
+  const fullName = user?.id && isSuperAdminUserId(user.id) ? OFFICIAL_SUPERADMIN_NAME : (profile?.fullName || user?.name || "")
   const email = isSuperAdmin ? (userEmail || "") : (profile?.email || user?.email || "")
   const setupStatus = user?.id ? await getSetupStatus(user.id) : null
   const usage = await getAnalystCreditUsage(user?.id, user?.role, user?.email ?? null)

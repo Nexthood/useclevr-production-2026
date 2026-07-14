@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { finalizeCredits, initializeUserCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { finalizeCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
 import { emptyProviderUsage } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
 import fs from 'fs';
@@ -263,7 +263,6 @@ export async function POST(request: Request) {
     }
 
     const subscriptionTier = profile.subscriptionTier || 'free';
-    await initializeUserCredits(userId, subscriptionTier);
 
     const operationId = `report:${userId}:${crypto.randomUUID()}`;
     const reservation = await reserveCredits({

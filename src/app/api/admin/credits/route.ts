@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth/auth"
-import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { adjustCredits, getUserCreditInfo, getCreditLedger, initializeUserCredits } from "@/lib/billing/credit-engine"
 import { getUserCostAnalytics } from "@/lib/billing/usage-enforcement"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
-function checkSuperAdmin(sessionUserId?: string | null, sessionEmail?: string | null): boolean {
-  const hasSuperAdminRole = sessionUserId && isSuperAdminUserId(sessionUserId)
-  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(sessionEmail ?? undefined)
-  return hasSuperAdminRole || isOfficialSuperAdmin
+function checkSuperAdmin(sessionUserId?: string | null, sessionRole?: string | null): boolean {
+  return Boolean(sessionUserId && isSuperAdminUserId(sessionUserId)) || sessionRole === "superadmin" || sessionRole === "admin"
 }
 
 export async function GET(request: Request) {
   const session = await auth()
   const userId = session?.user?.id
-  const userEmail = session?.user?.email
+  const userRole = session?.user?.role ?? null
 
-  if (!userId || !checkSuperAdmin(userId, userEmail)) {
+  if (!userId || !checkSuperAdmin(userId, userRole)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

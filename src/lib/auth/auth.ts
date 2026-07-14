@@ -3,10 +3,8 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import {
   BUILTIN_DEMO_USER,
   BUILTIN_SUPER_ADMIN_USER,
-  OFFICIAL_SUPERADMIN_EMAIL,
   findBuiltinUserByCredentials,
   isBuiltinUserId,
-  isOfficialSuperAdminEmail,
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
@@ -224,8 +222,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = userId;
         session.user.role = (token.role || "user") as BuiltinUserRole;
 
-        const userEmail = session.user.email;
-
         if (isBuiltinUserId(userId)) {
           const builtinUser = userId === BUILTIN_SUPER_ADMIN_USER.id
             ? BUILTIN_SUPER_ADMIN_USER
@@ -239,9 +235,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
 
-        if (isOfficialSuperAdminEmail(userEmail)) {
+        if (userId === BUILTIN_SUPER_ADMIN_USER.id) {
           session.user.role = "superadmin" as BuiltinUserRole;
-          session.user.name = OFFICIAL_SUPERADMIN_EMAIL.split("@")[0];
+          session.user.name = BUILTIN_SUPER_ADMIN_USER.name;
         } else if (!isBuiltinUserId(userId)) {
           const dbClient = getDbClient();
 
@@ -262,6 +258,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   fullName: true,
                   email: true,
                   avatarUrl: true,
+                  role: true,
                 },
               });
 
@@ -269,6 +266,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.name = profile?.fullName || user.name;
                 session.user.email = profile?.email || user.email || session.user.email;
                 session.user.image = profile?.avatarUrl || user.image;
+                session.user.role = (profile?.role || token.role || "user") as BuiltinUserRole;
               }
             } catch (error) {
               debugWarn("[Auth] Session refresh from database failed:", error);
@@ -372,7 +370,7 @@ function getAuthUrlFallback() {
   return `http://localhost:${process.env.PORT || "8080"}`;
 }
 
-function resolveCredentialsRole(email?: string | null): BuiltinUserRole {
+function resolveCredentialsRole(_email?: string | null): BuiltinUserRole {
   return "user";
 }
 

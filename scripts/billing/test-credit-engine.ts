@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
 
 import {
+  BUILTIN_SUPER_ADMIN_USER,
+  OFFICIAL_SUPERADMIN_EMAIL,
+  isSuperAdminAccess,
+  isSuperAdminUserId,
+} from "@/lib/auth/builtin-users"
+import {
   CREDIT_ENGINE_FEATURES,
   FEATURE_COST_REGISTRY,
   canPlanUseFeature,
@@ -9,6 +15,7 @@ import {
 } from "@/lib/billing/feature-costs"
 import { FREE_PLAN_LIMITS, getCreditsLimitForTier } from "@/lib/billing/plans"
 import { emptyProviderUsage, normalizeProviderUsage } from "@/lib/billing/provider-usage"
+import { isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
 
 type TestCase = {
   name: string
@@ -35,6 +42,27 @@ const tests: TestCase[] = [
     run() {
       assert.equal(FREE_PLAN_LIMITS.monthlyCredits, 2)
       assert.equal(getCreditsLimitForTier("free"), 2)
+    },
+  },
+  {
+    name: "unlimited credit access requires explicit admin role",
+    run() {
+      assert.equal(isUnlimitedCreditRole("superadmin"), true)
+      assert.equal(isUnlimitedCreditRole("admin"), true)
+      assert.equal(isUnlimitedCreditRole("user"), false)
+      assert.equal(isUnlimitedCreditRole("free"), false)
+      assert.equal(isUnlimitedCreditRole("pro"), false)
+      assert.equal(isUnlimitedCreditRole("business"), false)
+      assert.equal(isUnlimitedCreditRole(null), false)
+      assert.equal(isUnlimitedCreditRole(undefined), false)
+    },
+  },
+  {
+    name: "superadmin access helper does not infer access from email",
+    run() {
+      assert.equal(isSuperAdminUserId(BUILTIN_SUPER_ADMIN_USER.id), true)
+      assert.equal(isSuperAdminAccess(BUILTIN_SUPER_ADMIN_USER.id, null), true)
+      assert.equal(isSuperAdminAccess("normal-user-id", OFFICIAL_SUPERADMIN_EMAIL), false)
     },
   },
   {

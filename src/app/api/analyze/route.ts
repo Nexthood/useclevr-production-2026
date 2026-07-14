@@ -27,7 +27,7 @@ import {
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { generateAnalysisPrompt } from "@/lib/ai/llmAdapter";
 import { auth } from "@/lib/auth/auth";
-import { isSuperAdminUserId, isOfficialSuperAdminEmail, isSuperAdminAccess } from "@/lib/auth/builtin-users";
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
 import { buildBusinessProfileContext } from "@/lib/business/company-setup";
@@ -50,7 +50,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
-import { finalizeCredits, initializeUserCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
 import { estimateUsageFromText } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
 
@@ -244,11 +244,12 @@ export async function POST(request: Request) {
     const session = await auth();
     const userId = session?.user?.id;
     const userEmail = session?.user?.email;
+    const userRole = session?.user?.role ?? null;
     const demoSessionToken = request.headers.get("x-demo-session");
     traceUserId = userId || null
 
     const isDemoUser = !userId && !!demoSessionToken;
-    const isSuperAdmin = (userId && isSuperAdminUserId(userId)) || isOfficialSuperAdminEmail(userEmail);
+    const hasUnlimitedCredits = Boolean(userId && (isSuperAdminUserId(userId) || isUnlimitedCreditRole(userRole)));
 
     if (!userId && !demoSessionToken) {
       return Response.json({
@@ -326,9 +327,7 @@ export async function POST(request: Request) {
 
     const effectiveUserId = userId || null
 
-    if (!isDemoUser && effectiveUserId && !isSuperAdmin) {
-      await initializeUserCredits(effectiveUserId, subscriptionTier)
-
+    if (!isDemoUser && effectiveUserId && !hasUnlimitedCredits) {
       const operationId = `analysis:${effectiveUserId}:${crypto.randomUUID()}`
       const reservation = await reserveCredits({
         userId: effectiveUserId,
@@ -336,7 +335,7 @@ export async function POST(request: Request) {
         idempotencyKey: request.headers.get("idempotency-key") || operationId,
         feature: "standard_analysis",
         source: "api",
-        role: session?.user?.role ?? null,
+        role: userRole,
         email: userEmail,
         metadata: { datasetId: datasetId || null },
       })
@@ -370,9 +369,9 @@ export async function POST(request: Request) {
       creditOperationId = operationId
       reservedAnalysisCredits = reservation.reservedCredits
 
-      const enforcementCheck = isSuperAdmin
+      const enforcementCheck = hasUnlimitedCredits
         ? { allowed: true }
-        : await checkActionEnforcement(effectiveUserId, "dataset_analysis", session?.user?.role ?? null, userEmail)
+        : await checkActionEnforcement(effectiveUserId, "dataset_analysis", userRole, userEmail)
       if (!enforcementCheck.allowed) {
         await releaseCredits(operationId, "usage_limit_blocked")
         await logAiCost({
@@ -897,7 +896,7 @@ try {
       savedTraceId = trace?.id ?? null
 
       // Finalize credits only for successful AI-backed analysis; ordinary provider errors release reservations.
-      if (!isSuperAdminAccess(traceUserId, userEmail) && !llmError) {
+      if (!hasUnlimitedCredits && !llmError) {
         const deductionResult = creditOperationId
           ? await finalizeCredits({
               operationId: creditOperationId,
@@ -910,7 +909,7 @@ try {
               }),
               metadata: { datasetId: traceDatasetId || null },
             })
-          : { success: true, remainingCredits: 999999999, creditsDeducted: 0 }
+          : { success: true, remainingCredits: 0, creditsDeducted: 0 }
 
         const latencyMs = Date.now() - requestStart
         await logAiCost({

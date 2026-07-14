@@ -74,6 +74,7 @@
 
 ### Fixed
 
+- Keep unlimited analyst credits strictly tied to authenticated admin and superadmin roles so normal Free accounts cannot inherit the bypass and unlimited accounts do not show fake credit balances.
 - Return structured JSON for every Standard Upload failure, preserve request IDs, clean up failed persistence, and prevent duplicate upload submissions from creating duplicate datasets or charges.
 - Keep the Usy assistant launcher fixed in the bottom-right viewport corner so it does not cover the sidebar, navigation, credits card, or dashboard content.
 - Enforce included credits before uploads so Free accounts with no available credits see the same zero balance in sidebar, profile, subscription, upload, and API responses.

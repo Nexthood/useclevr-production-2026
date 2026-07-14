@@ -1,6 +1,6 @@
-import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
-import { getUserCreditInfo, initializeUserCredits } from "@/lib/billing/credit-engine"
-import { FREE_PLAN_LIMITS, getCreditsLimitForTier, getDatasetLimitForTier } from "@/lib/billing/plans"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { getUserCreditInfo, initializeUserCredits, isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
+import { FREE_PLAN_LIMITS, getCreditsLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
@@ -71,16 +71,12 @@ function getTrialStatus(createdAt: Date | null | undefined, subscriptionTier: st
   }
 }
 
-function isAdminAccess(value?: string | null) {
-  return value === "admin"
-}
-
-function isSuperadminAccess(value?: string | null) {
-  return value === "superadmin"
-}
-
 function getUnlimitedLabel(tier: string, role?: string | null, userId?: string | null) {
   if (isSuperAdminUserId(userId)) {
+    return "Superadmin unlimited"
+  }
+
+  if (tier === "superadmin" || role === "superadmin") {
     return "Superadmin unlimited"
   }
 
@@ -88,35 +84,43 @@ function getUnlimitedLabel(tier: string, role?: string | null, userId?: string |
     return "Admin unlimited"
   }
 
-  return null
+  return "Unlimited"
+}
+
+function unlimitedUsage(
+  userId: string | null | undefined,
+  role: string | null | undefined,
+  labelRole = role,
+  datasetCount = 0,
+): AnalystCreditUsage {
+  const subscriptionTier = labelRole === "admin" ? "admin" : "superadmin"
+  return {
+    analysisCount: 0,
+    total: 0,
+    availableCredits: 0,
+    reservedCredits: 0,
+    usedCredits: 0,
+    remainingCredits: 0,
+    nextResetAt: null,
+    subscriptionTier,
+    canAnalyze: true,
+    limitReached: false,
+    unlimited: true,
+    unlimitedLabel: getUnlimitedLabel(subscriptionTier, labelRole, userId),
+    trialActive: false,
+    trialEndsAt: null,
+    trialDaysRemaining: 0,
+    datasetCount,
+  }
 }
 
 export async function getAnalystCreditUsage(
   userId?: string | null,
   role?: string | null,
-  email?: string | null
+  _email?: string | null
 ): Promise<AnalystCreditUsage> {
-  const isOfficialSuperadmin = isSuperAdminUserId(userId) || isOfficialSuperAdminEmail(email)
-
-  if (isOfficialSuperadmin) {
-    return {
-      analysisCount: 0,
-      total: 0,
-      availableCredits: 999999999,
-      reservedCredits: 0,
-      usedCredits: 0,
-      remainingCredits: 999999999,
-      nextResetAt: null,
-      subscriptionTier: "superadmin",
-      canAnalyze: true,
-      limitReached: false,
-      unlimited: true,
-      unlimitedLabel: getUnlimitedLabel("superadmin", role, userId),
-      trialActive: false,
-      trialEndsAt: null,
-      trialDaysRemaining: 0,
-      datasetCount: 0,
-    }
+  if (userId && (isSuperAdminUserId(userId) || isUnlimitedCreditRole(role))) {
+    return unlimitedUsage(userId, role || "superadmin")
   }
 
   if (!userId) {
@@ -141,11 +145,10 @@ export async function getAnalystCreditUsage(
 
     const profileRole = profile?.role || null
     const storedTier = profile?.subscriptionTier || "free"
-    const hasUnlimitedAccess =
-      isSuperadminAccess(storedTier) ||
-      isSuperadminAccess(profileRole)
-    const subscriptionTier = hasUnlimitedAccess ? "superadmin" : storedTier
-    const isPaid = subscriptionTier === "pro" || subscriptionTier === "business"
+    const hasUnlimitedAccess = isUnlimitedCreditRole(profileRole) || isUnlimitedCreditRole(storedTier)
+    const subscriptionTier = hasUnlimitedAccess
+      ? profileRole === "admin" || storedTier === "admin" ? "admin" : "superadmin"
+      : storedTier
     const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
     const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId) : null
     const [{ count: datasetTotal }] = await db
@@ -153,13 +156,15 @@ export async function getAnalystCreditUsage(
       .from(datasets)
       .where(eq(datasets.userId, userId))
     const datasetCount = Number(datasetTotal ?? 0)
-    const limitedDatasetTotal = getDatasetLimitForTier(subscriptionTier)
+    if (hasUnlimitedAccess) {
+      return unlimitedUsage(userId, profileRole || subscriptionTier, subscriptionTier, datasetCount)
+    }
     const creditInfo = await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
-    const usageTotal = hasUnlimitedAccess ? 0 : creditInfo?.totalCredits ?? getCreditsLimitForTier(subscriptionTier)
-    const usedCredits = hasUnlimitedAccess ? 0 : creditInfo?.usedCredits ?? 0
-    const reservedCredits = hasUnlimitedAccess ? 0 : creditInfo?.reservedCredits ?? 0
-    const remainingCredits = hasUnlimitedAccess ? 999999999 : creditInfo?.remainingCredits ?? Math.max(0, usageTotal - usedCredits)
-    const availableCredits = hasUnlimitedAccess ? 999999999 : Math.max(0, creditInfo?.availableCredits ?? remainingCredits - reservedCredits)
+    const usageTotal = creditInfo?.totalCredits ?? getCreditsLimitForTier(subscriptionTier)
+    const usedCredits = creditInfo?.usedCredits ?? 0
+    const reservedCredits = creditInfo?.reservedCredits ?? 0
+    const remainingCredits = creditInfo?.remainingCredits ?? Math.max(0, usageTotal - usedCredits)
+    const availableCredits = Math.max(0, creditInfo?.availableCredits ?? remainingCredits - reservedCredits)
 
     return {
       analysisCount: usedCredits,
@@ -170,9 +175,9 @@ export async function getAnalystCreditUsage(
       remainingCredits,
       nextResetAt: creditInfo?.creditsResetAt?.toISOString() ?? null,
       subscriptionTier,
-      canAnalyze: hasUnlimitedAccess || availableCredits > 0,
-      limitReached: !hasUnlimitedAccess && availableCredits <= 0,
-      unlimited: hasUnlimitedAccess,
+      canAnalyze: availableCredits > 0,
+      limitReached: availableCredits <= 0,
+      unlimited: false,
       unlimitedLabel,
       datasetCount,
       ...trial,
@@ -184,7 +189,7 @@ export async function getAnalystCreditUsage(
 }
 
 export async function consumeAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
-  const isOfficialSuperadmin = isSuperAdminUserId(userId) || isOfficialSuperAdminEmail(email)
+  const isOfficialSuperadmin = isSuperAdminUserId(userId) || isUnlimitedCreditRole(role)
 
   if (!userId || isOfficialSuperadmin) {
     return getAnalystCreditUsage(userId, role, email)

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth"
-import { isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { debugError } from "@/lib/utils/debug"
 import { handleSubscriptionEvent } from "@/services/stripe/webhook"
 import { NextResponse } from "next/server"
@@ -9,9 +9,9 @@ export const runtime = "nodejs"
 
 export async function POST(request: Request) {
   const session = await auth()
-  const hasSuperAdminRole = session?.user?.role === "superadmin"
-  const isOfficialSuperAdmin = isOfficialSuperAdminEmail(session?.user?.email)
-  if (!hasSuperAdminRole && !isOfficialSuperAdmin) {
+  const role = String(session?.user?.role ?? "")
+  const hasSuperAdminRole = role === "superadmin" || role === "admin" || Boolean(session?.user?.id && isSuperAdminUserId(session.user.id))
+  if (!hasSuperAdminRole) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

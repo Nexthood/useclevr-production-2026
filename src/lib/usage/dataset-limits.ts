@@ -2,7 +2,8 @@ import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
 import { eq, count } from "drizzle-orm"
 import { getBillingPlanByTier } from "@/lib/billing/plans"
-import { isSuperAdminUserId, isOfficialSuperAdminEmail } from "@/lib/auth/builtin-users"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
+import { isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
 
 export interface DatasetLimitInfo {
   limit: number
@@ -12,8 +13,8 @@ export interface DatasetLimitInfo {
   tier: string
 }
 
-export async function getDatasetLimitInfo(userId: string, role?: string | null, email?: string | null): Promise<DatasetLimitInfo> {
-  const isSuperadmin = isSuperAdminUserId(userId) || role === "superadmin" || isOfficialSuperAdminEmail(email)
+export async function getDatasetLimitInfo(userId: string, role?: string | null, _email?: string | null): Promise<DatasetLimitInfo> {
+  const isSuperadmin = isSuperAdminUserId(userId) || isUnlimitedCreditRole(role)
 
   if (isSuperadmin) {
     return {
@@ -32,6 +33,17 @@ export async function getDatasetLimitInfo(userId: string, role?: string | null, 
         columns: { subscriptionTier: true, role: true },
       })
     : null
+
+  const isAdmin = isUnlimitedCreditRole(profile?.role) || isUnlimitedCreditRole(profile?.subscriptionTier)
+  if (isAdmin) {
+    return {
+      limit: Infinity,
+      currentCount: 0,
+      canCreate: true,
+      planName: profile?.role === "admin" || profile?.subscriptionTier === "admin" ? "Admin" : "Superadmin",
+      tier: profile?.role === "admin" || profile?.subscriptionTier === "admin" ? "admin" : "superadmin",
+    }
+  }
 
   const tier = profile?.subscriptionTier || "free"
   const plan = getBillingPlanByTier(tier)

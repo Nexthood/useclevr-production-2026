@@ -29,7 +29,7 @@ export const BUILTIN_SUPER_ADMIN_USER = {
 
 export const BUILTIN_USERS = [BUILTIN_BASE_USER, BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER] as const
 
-export type BuiltinUserRole = (typeof BUILTIN_USERS)[number]["role"] | "user"
+export type BuiltinUserRole = (typeof BUILTIN_USERS)[number]["role"] | "admin" | "user"
 
 export function findBuiltinUserByCredentials(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase()
@@ -56,5 +56,6 @@ export function isOfficialSuperAdminEmail(email?: string | null): boolean {
 }
 
 export function isSuperAdminAccess(userId?: string | null, email?: string | null): boolean {
-  return isSuperAdminUserId(userId) || isOfficialSuperAdminEmail(email)
+  void email
+  return isSuperAdminUserId(userId)
 }
