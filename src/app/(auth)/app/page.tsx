@@ -1,17 +1,26 @@
 import { WorldMapRevenue, type RegionData } from "@/components/ui/world-map-revenue"
 import { Card } from "@/components/ui/card"
 import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboard-tabs"
+import { GenerateReportAction } from "@/components/dashboard/generate-report-action"
 import { auth } from "@/lib/auth/auth"
+import { resolveDashboardAnalysisScope } from "@/lib/data/analysis-scope"
 import {
   getBusinessModelKpiNames,
   getBusinessModelLabel,
   shouldRenderWorldMapForBusinessModel,
   type BusinessModel,
 } from "@/lib/data/business-model"
-import { loadDashboardDatasetAggregation, normalizeDashboardColumnName, type DashboardAggregatedDataset, type NormalizedDashboardData } from "@/lib/data/dashboard-dataset-aggregation"
+import {
+  listDashboardDatasetChoices,
+  loadDashboardDatasetAggregation,
+  normalizeDashboardColumnName,
+  type DashboardAggregatedDataset,
+  type DashboardDatasetChoice,
+  type NormalizedDashboardData,
+} from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
 import { aiInteractionTraces, profiles } from "@/lib/db/schema"
-import { getOrCreateDailyHealthBrief, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
+import { type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
 import { listAllReports } from "@/lib/reports/report-generator"
 import { count, desc, eq } from "drizzle-orm"
 import {
@@ -147,6 +156,7 @@ const RANGE_LABELS: Record<RangeKey, string> = {
 
 async function getStats(userId: string | null, selectedDatasetId?: string | null): Promise<DashboardStats> {
   if (!userId) return emptyStats()
+  if (!selectedDatasetId) return emptyStats()
 
   const dashboardData = await loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId })
 
@@ -706,16 +716,23 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const params = (await searchParams) || {}
   const range = parseRange(params.range)
   const tab = parseTab(params.tab)
-  const selectedDatasetId = parseDatasetId(params.datasetId)
+  const analysisScope = resolveDashboardAnalysisScope({
+    datasetId: parseDatasetId(params.datasetId),
+    groupId: parseDatasetId(params.groupId),
+    portfolioId: parseDatasetId(params.portfolioId),
+  })
+  const selectedDatasetId = analysisScope?.scope === "single_dataset" ? analysisScope.datasetId || null : null
   const session = await auth()
   const userId = session?.user?.id ?? null
-  const [stats, dailyBrief] = await Promise.all([
+  const [stats, datasetChoices, dailyBrief] = await Promise.all([
     getStats(userId, selectedDatasetId),
-    userId && !selectedDatasetId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
+    selectedDatasetId ? Promise.resolve([]) : listDashboardDatasetChoices(userId),
+    Promise.resolve(null),
   ])
   const selected = selectDashboardDataset(stats, selectedDatasetId)
   const dashboardStats = selected.stats
   const metrics = buildExecutiveMetrics(dashboardStats, range)
+  const hasSelectedDataset = Boolean(selected.selectedDataset)
   const companyName = dashboardStats.profile?.businessName || dashboardStats.profile?.companyName || "UseClevr"
   const hasRows = metrics.loadedRowCount > 0
   const canRenderWorldMap = shouldRenderWorldMapForBusinessModel({
@@ -735,7 +752,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
             <div className="max-w-4xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-100">
                 <Sparkles className="h-3.5 w-3.5" />
-                {getBusinessModelLabel(metrics.businessModel)} command center
+                {hasSelectedDataset ? getBusinessModelLabel(metrics.businessModel) : "Dataset"} command center
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 {companyName} Dashboard
@@ -743,7 +760,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
                 {selected.selectedDataset
                   ? `Live ${getBusinessModelLabel(metrics.businessModel).toLowerCase()} analytics for ${selected.selectedDataset.name}.`
-                  : "Live " + getBusinessModelLabel(metrics.businessModel).toLowerCase() + " analytics, dataset activity, and AI outputs from uploaded business data."}
+                  : "Select one dataset to load isolated KPIs, charts, geography, reports, and recommendations."}
               </p>
               {selected.missing && (
                 <p className="mt-3 max-w-3xl rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-100">
@@ -752,6 +769,17 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {selectedDatasetId && (
+                <>
+                  <Link
+                    href={`/app/datasets/${encodeURIComponent(selectedDatasetId)}/rows`}
+                    className="rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-medium text-muted-foreground transition hover:border-primary/35 hover:text-foreground"
+                  >
+                    View rows
+                  </Link>
+                  <GenerateReportAction datasetId={selectedDatasetId} />
+                </>
+              )}
               {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
                 <Link
                   key={key}
@@ -770,90 +798,96 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
           </div>
         </section>
 
-        {dailyBrief && <ExecutiveDailyHealthSection brief={dailyBrief} />}
+        {!hasSelectedDataset ? (
+          <DatasetSelectionPanel datasets={datasetChoices} />
+        ) : (
+          <>
+            {dailyBrief && <ExecutiveDailyHealthSection brief={dailyBrief} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          {kpis.map((item) => (
-            <ExecutiveKpiCard key={item.label} item={item} />
-          ))}
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-          <TrendPanel title="Revenue Trend" metricLabel="Revenue" data={metrics.revenueTrend} format="currency" emptyLabel="Missing revenue/date columns." />
-          <TrendPanel title="Profit Trend" metricLabel="Profit" data={metrics.profitTrend} format="currency" emptyLabel="Missing profit or revenue/cost columns." />
-        </section>
-
-        <DashboardSection icon={Brain} title="Top AI Recommendations" action={<DataCoverageNote metrics={metrics} />} compact>
-          {topRecommendations.length > 0 ? (
-            <div className="grid gap-3 lg:grid-cols-3">
-              {topRecommendations.map((recommendation) => (
-                <RecommendationCard key={`${recommendation.title}-${recommendation.source}`} recommendation={recommendation} />
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+              {kpis.map((item) => (
+                <ExecutiveKpiCard key={item.label} item={item} />
               ))}
-            </div>
-          ) : (
-            <CompactEmpty label="Recommendations appear when uploaded columns expose revenue, margin, inventory, product, or AI analysis signals." />
-          )}
-        </DashboardSection>
+            </section>
 
-        <ExecutiveDashboardTabs
-          initialActive={tab}
-          range={range}
-          panels={{
-            overview: (
-              <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
-                  <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
-                    <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={dashboardStats.dashboardData} />
-                      <LatestDatasets datasets={dashboardStats.allDatasets.slice(0, 6)} />
-                    </div>
-                  </Card>
-                </DashboardSection>
+            <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+              <TrendPanel title="Revenue Trend" metricLabel="Revenue" data={metrics.revenueTrend} format="currency" emptyLabel="Missing revenue/date columns." />
+              <TrendPanel title="Profit Trend" metricLabel="Profit" data={metrics.profitTrend} format="currency" emptyLabel="Missing profit or revenue/cost columns." />
+            </section>
 
-                <DashboardSection icon={CheckCircle2} title="Business Health" compact>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
-                    <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
-                    <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
-                    <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
-                  </div>
-                </DashboardSection>
-              </section>
-            ),
-            financial: <FinancialDetail metrics={metrics} />,
-            inventory: <InventoryDetail metrics={metrics} />,
-            geography: (
-              <DashboardSection icon={Globe2} title="World Map" compact>
-                {canRenderWorldMap ? (
-                  <WorldMapRevenue regions={metrics.regions} />
-                ) : (
-                  <CompactEmpty label={`${getBusinessModelLabel(metrics.businessModel)} data does not expose valid mapped locations for a world map.`} />
-                )}
-              </DashboardSection>
-            ),
-            ai: (
-              <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <DashboardSection icon={Activity} title="AI Activity" compact>
-                  <Card className="p-5">
-                    <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
-                    <div className="mt-5 space-y-4">
-                      <ActivityList stats={dashboardStats} />
-                    </div>
-                  </Card>
-                </DashboardSection>
-                <DashboardSection icon={Bell} title="Executive Activity" compact>
-                  <div className="grid gap-4">
-                    <BottomPanel title="Recent Activity" items={recentActivity(dashboardStats, metrics)} />
-                    <BottomPanel title="Notifications" items={notifications(dashboardStats, metrics)} />
-                  </div>
-                </DashboardSection>
-              </section>
-            ),
-          }}
-        />
+            <DashboardSection icon={Brain} title="Top AI Recommendations" action={<DataCoverageNote metrics={metrics} />} compact>
+              {topRecommendations.length > 0 ? (
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {topRecommendations.map((recommendation) => (
+                    <RecommendationCard key={`${recommendation.title}-${recommendation.source}`} recommendation={recommendation} />
+                  ))}
+                </div>
+              ) : (
+                <CompactEmpty label="Recommendations appear when uploaded columns expose revenue, margin, inventory, product, or AI analysis signals." />
+              )}
+            </DashboardSection>
 
-        {!hasRows && (
+            <ExecutiveDashboardTabs
+              initialActive={tab}
+              range={range}
+              panels={{
+                overview: (
+                  <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                    <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
+                      <Card className="p-5">
+                        <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                        <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                          <SourceMix dashboardData={dashboardStats.dashboardData} />
+                          <LatestDatasets datasets={dashboardStats.allDatasets.slice(0, 6)} />
+                        </div>
+                      </Card>
+                    </DashboardSection>
+
+                    <DashboardSection icon={CheckCircle2} title="Business Health" compact>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
+                        <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
+                        <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
+                        <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
+                      </div>
+                    </DashboardSection>
+                  </section>
+                ),
+                financial: <FinancialDetail metrics={metrics} />,
+                inventory: <InventoryDetail metrics={metrics} />,
+                geography: (
+                  <DashboardSection icon={Globe2} title="World Map" compact>
+                    {canRenderWorldMap ? (
+                      <WorldMapRevenue regions={metrics.regions} />
+                    ) : (
+                      <CompactEmpty label={`${getBusinessModelLabel(metrics.businessModel)} data does not expose valid mapped locations for a world map.`} />
+                    )}
+                  </DashboardSection>
+                ),
+                ai: (
+                  <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                    <DashboardSection icon={Activity} title="AI Activity" compact>
+                      <Card className="p-5">
+                        <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
+                        <div className="mt-5 space-y-4">
+                          <ActivityList stats={dashboardStats} />
+                        </div>
+                      </Card>
+                    </DashboardSection>
+                    <DashboardSection icon={Bell} title="Executive Activity" compact>
+                      <div className="grid gap-4">
+                        <BottomPanel title="Recent Activity" items={recentActivity(dashboardStats, metrics)} />
+                        <BottomPanel title="Notifications" items={notifications(dashboardStats, metrics)} />
+                      </div>
+                    </DashboardSection>
+                  </section>
+                ),
+              }}
+            />
+          </>
+        )}
+
+        {hasSelectedDataset && !hasRows && (
           <EmptyState
             title="Upload business data to activate the full executive dashboard"
             detail="CSV and Excel uploads with revenue, profit, inventory, product, date, or region columns unlock the KPI cards, charts, map, and recommendations."
@@ -874,6 +908,47 @@ type KpiDisplay = {
   detail: string
   icon: React.ComponentType<{ className?: string }>
   tone: Tone
+}
+
+function DatasetSelectionPanel({ datasets: datasetChoices }: { datasets: DashboardDatasetChoice[] }) {
+  return (
+    <DashboardSection icon={Database} title="Select Dataset" compact>
+      <Card className="p-5">
+        <PanelHeader
+          title="Choose one dataset"
+          detail="Dashboard KPIs, charts, geography, recommendations, and report context load for one selected dataset at a time."
+        />
+        {datasetChoices.length > 0 ? (
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {datasetChoices.map((dataset) => (
+              <Link
+                key={dataset.id}
+                href={`/app/dashboard?datasetId=${encodeURIComponent(dataset.id)}`}
+                className="group rounded-lg border border-border bg-background/70 p-4 transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{dataset.name}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{dataset.fileName}</p>
+                  </div>
+                  <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <span>{formatNumber(dataset.rowCount)} rows</span>
+                  <span>{formatNumber(dataset.columnCount)} columns</span>
+                  <span>{getBusinessModelLabel(dataset.businessModel)}</span>
+                  <span>{dataset.analysisStatus || dataset.status}</span>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">Uploaded {formatDate(dataset.createdAt)}</p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <CompactEmpty label="Upload a dataset to activate isolated dashboard analytics." />
+        )}
+      </Card>
+    </DashboardSection>
+  )
 }
 
 function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {

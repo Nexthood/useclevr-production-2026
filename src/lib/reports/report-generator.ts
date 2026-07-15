@@ -107,6 +107,10 @@ export interface Report {
   datasetId: string;
   datasetName: string;
   createdAt: string;
+  status?: 'pending' | 'processing' | 'ready' | 'failed';
+  reportType?: string;
+  businessModel?: string;
+  idempotencyKey?: string;
   
   // Timezone metadata
   timezone: string;
@@ -156,6 +160,10 @@ export async function generateReport(
     alerts?: { type: string; message: string; severity: string }[];
     rowCount: number;
     columns: string[];
+    status?: Report['status'];
+    reportType?: string;
+    businessModel?: string;
+    idempotencyKey?: string;
   }
 ): Promise<Report> {
   // Generate unique report ID
@@ -211,7 +219,11 @@ export async function generateReport(
     
     // Metadata
     rowCount: analysisData.rowCount,
-    columnCount: analysisData.columns.length
+    columnCount: analysisData.columns.length,
+    status: analysisData.status || 'ready',
+    reportType: analysisData.reportType,
+    businessModel: analysisData.businessModel,
+    idempotencyKey: analysisData.idempotencyKey,
   };
   
   // Generate PDF report
