@@ -145,10 +145,10 @@ const RANGE_LABELS: Record<RangeKey, string> = {
   "12m": "12 months",
 }
 
-async function getStats(userId: string | null): Promise<DashboardStats> {
+async function getStats(userId: string | null, selectedDatasetId?: string | null): Promise<DashboardStats> {
   if (!userId) return emptyStats()
 
-  const dashboardData = await loadDashboardDatasetAggregation(userId)
+  const dashboardData = await loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId })
 
   try {
     const [aiTraceCount, profile, latestAiTraces] = await Promise.all([
@@ -627,6 +627,77 @@ function hasAnalysisSignals(dataset: DashboardDataset) {
   return extractInsightCount(dataset.analysis) > 0 || extractInsightCount(dataset.aiInsights) > 0
 }
 
+function selectDashboardDataset(stats: DashboardStats, datasetId: string | null): { stats: DashboardStats; selectedDataset: DashboardDataset | null; missing: boolean } {
+  if (!datasetId) return { stats, selectedDataset: null, missing: false }
+
+  const selectedDataset = stats.allDatasets.find((dataset) => dataset.id === datasetId) || null
+  if (!selectedDataset) return { stats, selectedDataset: null, missing: true }
+
+  const allColumns = unique([
+    ...selectedDataset.columns,
+    ...selectedDataset.data.slice(0, 20).flatMap((row) => Object.keys(row)),
+  ])
+  const fileTypeCounts: NormalizedDashboardData["fileTypeCounts"] = {
+    csv: 0,
+    excel: 0,
+    snowflake: 0,
+    api: 0,
+    other: 0,
+  }
+  const fileName = selectedDataset.fileName.toLowerCase()
+  if (fileName.endsWith(".csv")) fileTypeCounts.csv = 1
+  else if (/\.(xlsx|xls)$/i.test(fileName)) fileTypeCounts.excel = 1
+  else if (selectedDataset.datasetType === "snowflake") fileTypeCounts.snowflake = 1
+  else if (selectedDataset.datasetType === "api") fileTypeCounts.api = 1
+  else fileTypeCounts.other = 1
+
+  const detected = detectColumns([selectedDataset], selectedDataset.data)
+  const businessModelCounts = {
+    local_retail: 0,
+    ecommerce: 0,
+    saas: 0,
+    startup: 0,
+    investor: 0,
+    marketplace: 0,
+    generic: 0,
+  } satisfies Record<BusinessModel, number>
+  businessModelCounts[selectedDataset.businessModel] = 1
+
+  const dashboardData: NormalizedDashboardData = {
+    datasetCount: 1,
+    activeDatasetCount: selectedDataset.status === "deleted" ? 0 : 1,
+    totalRows: selectedDataset.rowCount,
+    latestUpload: selectedDataset,
+    fileTypeCounts,
+    detectedColumns: {
+      revenue: detected.revenue,
+      profit: detected.profit,
+      cost: detected.cost || detected.expense,
+      product: detected.product || detected.sku,
+      stock: detected.stock,
+      date: detected.date,
+      region: detected.region,
+    },
+    businessModelCounts,
+    dominantBusinessModel: selectedDataset.businessModel,
+    allColumns,
+    datasets: [selectedDataset],
+  }
+
+  const scopedStats: DashboardStats = {
+    ...stats,
+    datasets: 1,
+    analyses: hasAnalysisSignals(selectedDataset) || selectedDataset.analysisStatus === "completed" || selectedDataset.analysisStatus === "ready" ? 1 : 0,
+    reports: stats.reportsList.filter((report) => report.datasetId === selectedDataset.id).length,
+    dashboardData,
+    allDatasets: [selectedDataset],
+    latestDataset: selectedDataset,
+    reportsList: stats.reportsList.filter((report) => report.datasetId === selectedDataset.id),
+  }
+
+  return { stats: scopedStats, selectedDataset, missing: false }
+}
+
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
@@ -635,14 +706,17 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const params = (await searchParams) || {}
   const range = parseRange(params.range)
   const tab = parseTab(params.tab)
+  const selectedDatasetId = parseDatasetId(params.datasetId)
   const session = await auth()
   const userId = session?.user?.id ?? null
   const [stats, dailyBrief] = await Promise.all([
-    getStats(userId),
-    userId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
+    getStats(userId, selectedDatasetId),
+    userId && !selectedDatasetId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
   ])
-  const metrics = buildExecutiveMetrics(stats, range)
-  const companyName = stats.profile?.businessName || stats.profile?.companyName || "UseClevr"
+  const selected = selectDashboardDataset(stats, selectedDatasetId)
+  const dashboardStats = selected.stats
+  const metrics = buildExecutiveMetrics(dashboardStats, range)
+  const companyName = dashboardStats.profile?.businessName || dashboardStats.profile?.companyName || "UseClevr"
   const hasRows = metrics.loadedRowCount > 0
   const canRenderWorldMap = shouldRenderWorldMapForBusinessModel({
     businessModel: metrics.businessModel,
@@ -667,14 +741,21 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                 {companyName} Dashboard
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Live {getBusinessModelLabel(metrics.businessModel).toLowerCase()} analytics, dataset activity, and AI outputs from uploaded business data.
+                {selected.selectedDataset
+                  ? `Live ${getBusinessModelLabel(metrics.businessModel).toLowerCase()} analytics for ${selected.selectedDataset.name}.`
+                  : "Live " + getBusinessModelLabel(metrics.businessModel).toLowerCase() + " analytics, dataset activity, and AI outputs from uploaded business data."}
               </p>
+              {selected.missing && (
+                <p className="mt-3 max-w-3xl rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-100">
+                  The selected dataset is unavailable or you do not have access to it.
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
                 <Link
                   key={key}
-                  href={`/app?range=${key}`}
+                  href={buildDashboardHref({ range: key, datasetId: selectedDatasetId })}
                   className={[
                     "rounded-lg border px-3 py-2 text-sm font-medium transition",
                     range === key
@@ -722,10 +803,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
                   <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
                     <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={stats.dashboardData} />
-                      <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} />
+                      <SourceMix dashboardData={dashboardStats.dashboardData} />
+                      <LatestDatasets datasets={dashboardStats.allDatasets.slice(0, 6)} />
                     </div>
                   </Card>
                 </DashboardSection>
@@ -757,14 +838,14 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                   <Card className="p-5">
                     <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
                     <div className="mt-5 space-y-4">
-                      <ActivityList stats={stats} />
+                      <ActivityList stats={dashboardStats} />
                     </div>
                   </Card>
                 </DashboardSection>
                 <DashboardSection icon={Bell} title="Executive Activity" compact>
                   <div className="grid gap-4">
-                    <BottomPanel title="Recent Activity" items={recentActivity(stats, metrics)} />
-                    <BottomPanel title="Notifications" items={notifications(stats, metrics)} />
+                    <BottomPanel title="Recent Activity" items={recentActivity(dashboardStats, metrics)} />
+                    <BottomPanel title="Notifications" items={notifications(dashboardStats, metrics)} />
                   </div>
                 </DashboardSection>
               </section>
@@ -1371,7 +1452,7 @@ function DataCoverageNote({ metrics }: { metrics: ExecutiveMetrics }) {
 
 function recentActivity(stats: DashboardStats, metrics: ExecutiveMetrics) {
   return [
-    ...stats.allDatasets.slice(0, 3).map((dataset) => ({ label: dataset.name, detail: `${formatNumber(dataset.rowCount)} rows uploaded ${formatDate(dataset.createdAt)}`, href: `/app/datasets/${dataset.id}` })),
+    ...stats.allDatasets.slice(0, 3).map((dataset) => ({ label: dataset.name, detail: `${formatNumber(dataset.rowCount)} rows uploaded ${formatDate(dataset.createdAt)}`, href: `/app/dashboard?datasetId=${encodeURIComponent(dataset.id)}` })),
     ...(metrics.recommendations[0] ? [{ label: metrics.recommendations[0].title, detail: metrics.recommendations[0].impact, href: "/app/datasets" }] : []),
   ]
 }
@@ -1394,6 +1475,17 @@ function parseTab(value: string | string[] | undefined): DashboardTab {
   const tab = Array.isArray(value) ? value[0] : value
   if (tab === "financial" || tab === "inventory" || tab === "geography" || tab === "ai") return tab
   return "overview"
+}
+
+function parseDatasetId(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null
+}
+
+function buildDashboardHref(input: { range: RangeKey; datasetId: string | null }) {
+  const query = new URLSearchParams({ range: input.range })
+  if (input.datasetId) query.set("datasetId", input.datasetId)
+  return `/app?${query.toString()}`
 }
 
 function getNumber(row: DataRow, column: string | undefined): number | null {

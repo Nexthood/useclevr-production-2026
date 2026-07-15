@@ -82,6 +82,10 @@ function createDatasetId(userId: string, requestKey: string) {
   return `ds_${hash}`;
 }
 
+function getStandardDashboardRedirect(datasetId: string) {
+  return `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}`;
+}
+
 function logStage(requestId: string, stage: string, details: Record<string, unknown> = {}) {
   debugLog("[SIMPLE_UPLOAD]", { requestId, stage, ...details });
 }
@@ -355,8 +359,8 @@ export async function POST(request: Request) {
           columnsDetected: existingDataset.columnCount,
           status: existingDataset.status,
           analysisStatus: existingDataset.analysisStatus || "processing",
-          redirectUrl: `/app/datasets/${datasetId}`,
-          redirectTo: `/app/datasets/${datasetId}`,
+          redirectUrl: getStandardDashboardRedirect(datasetId),
+          redirectTo: getStandardDashboardRedirect(datasetId),
           message: "Dataset upload request was already completed.",
           fileName: existingDataset.fileName,
           preview: {
@@ -554,8 +558,8 @@ export async function POST(request: Request) {
             columnsDetected: replayDataset.columnCount,
             status: replayDataset.status,
             analysisStatus: replayDataset.analysisStatus || "processing",
-            redirectUrl: `/app/datasets/${datasetId}`,
-            redirectTo: `/app/datasets/${datasetId}`,
+            redirectUrl: getStandardDashboardRedirect(datasetId),
+            redirectTo: getStandardDashboardRedirect(datasetId),
             message: "Dataset upload request was already completed.",
             fileName: replayDataset.fileName,
             preview: {
@@ -666,8 +670,8 @@ export async function POST(request: Request) {
         columnsDetected: parsed.columns.length,
         status: "ready",
         analysisStatus: "ready",
-        redirectUrl: `/app/datasets/${datasetId}`,
-        redirectTo: `/app/datasets/${datasetId}`,
+        redirectUrl: getStandardDashboardRedirect(datasetId),
+        redirectTo: getStandardDashboardRedirect(datasetId),
         message: "Dataset uploaded successfully. Analysis is ready.",
         fileName: uploadFile.name,
         preview: {

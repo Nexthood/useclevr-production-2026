@@ -18,11 +18,11 @@ function primaryResultHref(uploadMode: UploadMode, result: UploadDatasetResponse
   if (uploadMode === "profitability") return "/app/profitability"
   if (uploadMode === "accountancy") return "/app/accountancy"
   if (uploadMode === "prebookkeeping") return "/app/prebookkeeping"
-  return result.datasetId ? `/app/datasets/${result.datasetId}/analyze` : "/app/datasets"
+  return result.datasetId ? `/app/dashboard?datasetId=${encodeURIComponent(result.datasetId)}` : "/app/dashboard"
 }
 
 function primaryResultLabel(uploadMode: UploadMode) {
-  if (uploadMode === "standard") return "Open Analysis"
+  if (uploadMode === "standard") return "Open in Dashboard"
   if (uploadMode === "retail") return "Open Retail"
   if (uploadMode === "profitability") return "Open Profitability"
   if (uploadMode === "accountancy") return "Open Accountancy"

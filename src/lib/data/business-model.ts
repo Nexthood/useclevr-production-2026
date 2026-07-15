@@ -136,7 +136,7 @@ export function getBusinessModelRedirect(input: BusinessModelRouteInput) {
     case "prebookkeeping":
       return `/app/prebookkeeping?datasetId=${input.datasetId}`
     default:
-      return `/app/datasets/${input.datasetId}/analyze?businessModel=${input.businessModel}`
+      return `/app/dashboard?datasetId=${input.datasetId}`
   }
 }
 

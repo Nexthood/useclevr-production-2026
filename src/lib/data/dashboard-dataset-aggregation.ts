@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
-import { desc, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 
 export type DashboardDataRow = Record<string, unknown>
 
@@ -63,13 +63,18 @@ const COLUMN_ALIASES = {
   region: ["country", "city", "region", "market", "location", "state", "territory"],
 } satisfies Record<string, string[]>
 
-export async function loadDashboardDatasetAggregation(userId: string | null): Promise<NormalizedDashboardData> {
+export async function loadDashboardDatasetAggregation(
+  userId: string | null,
+  options: { datasetId?: string | null } = {},
+): Promise<NormalizedDashboardData> {
   if (!userId) return emptyDashboardData()
 
   const rows = await db.query.datasets.findMany({
-    where: eq(datasets.userId, userId),
+    where: options.datasetId
+      ? and(eq(datasets.userId, userId), eq(datasets.id, options.datasetId))
+      : eq(datasets.userId, userId),
     orderBy: [desc(datasets.createdAt)],
-    limit: 500,
+    limit: options.datasetId ? 1 : 500,
     columns: {
       id: true,
       name: true,

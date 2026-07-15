@@ -12,7 +12,7 @@ const datasetCategoryLabels: Record<DatasetCategory, string> = {
 }
 
 const datasetCategoryDestinations: Record<DatasetCategory, string> = {
-  standard: "Generic dataset analysis",
+  standard: "Dashboard",
   retail: "Retail",
   profitability: "Profitability",
   accountancy: "Accountancy",
@@ -124,6 +124,6 @@ export function getDatasetCategoryRedirect(category: DatasetCategory, datasetId:
     case "prebookkeeping":
       return `/app/prebookkeeping?datasetId=${datasetId}`
     default:
-      return businessModel ? `/app/datasets/${datasetId}/analyze?businessModel=${businessModel}` : `/app/datasets/${datasetId}/analyze`
+      return `/app/dashboard?datasetId=${datasetId}`
   }
 }
