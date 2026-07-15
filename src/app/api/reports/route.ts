@@ -84,6 +84,7 @@ export async function POST(request: Request) {
           reportId: existing.id,
           status: existing.status || 'ready',
           shareableLink: `/report/${existing.id}`,
+          redirectUrl: `/app/reports/${existing.id}`,
           downloadUrl: `/api/reports/download?id=${existing.id}&format=pdf`,
           downloadsUrl: '/app/downloads',
           previewUrl: `/report/${existing.id}`,
@@ -176,6 +177,8 @@ export async function POST(request: Request) {
           ...reportInput,
           status: 'ready',
           idempotencyKey: idempotencyKey || undefined,
+          userId: session.user.id,
+          workspaceId: null,
         }
       );
     } catch (generationError) {
@@ -203,6 +206,7 @@ export async function POST(request: Request) {
       reportId: report.id,
       status: report.status || 'ready',
       shareableLink: `/report/${report.id}`,
+      redirectUrl: `/app/reports/${report.id}`,
       previewUrl: `/report/${report.id}`,
       downloadUrl: `/api/reports/download?id=${report.id}&format=pdf`,
       excelDownloadUrl: `/api/reports/download?id=${report.id}&format=csv`,
