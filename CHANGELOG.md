@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Separate dataset processing type from business model so local retail, ecommerce, SaaS, startup, investor, marketplace, and generic datasets receive model-specific routing, dashboard KPIs, map eligibility, suggestions, and AI context.
 - Add a production-grade Credit Engine foundation with auditable reservations, finalized charges, released failures, real sidebar balances, provider usage capture, and metered AI analysis, AI Assistant, and report generation paths.
 - Fix Dataset Library deletion so confirmed single and bulk deletes remove authorized datasets, reset selection and confirmation states, keep failed items retryable, and show a centered accessible confirmation dialog.
 - Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, safe retrieval-document storage, bounded dataset-context ingestion, hybrid semantic and keyword search, superadmin diagnostics, and tenant-isolation validation.
@@ -74,6 +75,7 @@
 
 ### Fixed
 
+- Preserve admin and superadmin authorization from the first authenticated request so credit, Hybrid AI, setup, report, assistant, and dataset-analysis gates do not show upgrade prompts.
 - Show admin and superadmin accounts as unlimited across subscription, header, sidebar, and upload flows while Standard and Profitability uploads route successful results to the correct analysis pages.
 - Keep unlimited analyst credits strictly tied to authenticated admin and superadmin roles so normal Free accounts cannot inherit the bypass and unlimited accounts do not show fake credit balances.
 - Return structured JSON for every Standard Upload failure, preserve request IDs, clean up failed persistence, and prevent duplicate upload submissions from creating duplicate datasets or charges.

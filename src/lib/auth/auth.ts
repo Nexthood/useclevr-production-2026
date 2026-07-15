@@ -173,13 +173,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
+          const profile = await dbClient.query.profiles.findFirst({
+            where: eq(profiles.userId, user.id),
+            columns: { role: true },
+          })
+          const role = (profile?.role || "user") as BuiltinUserRole
+
           logCredentialsAuthEvent("authorized", { email: user.email, verificationPurpose });
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             image: user.image,
-            role: resolveCredentialsRole(user.email),
+            role,
           };
         } catch (error) {
           logCredentialsAuthError("authorize_exception", error);
@@ -368,10 +374,6 @@ function getAuthUrlFallback() {
   if (process.env.RAILWAY_ENVIRONMENT_ID) return "https://test.useclevr.com";
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return `http://localhost:${process.env.PORT || "8080"}`;
-}
-
-function resolveCredentialsRole(_email?: string | null): BuiltinUserRole {
-  return "user";
 }
 
 function logCredentialsAuthEvent(

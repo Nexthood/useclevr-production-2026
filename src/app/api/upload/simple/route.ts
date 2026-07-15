@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
@@ -12,6 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const SIMPLE_PARSE_ROW_LIMIT = 1000;
 const SIMPLE_ROW_INSERT_LIMIT = 1000;
+type UploadStage = "AUTH" | "CREDIT" | "PARSE" | "BUSINESS_MODEL" | "DATASET_INSERT" | "ANALYSIS" | "RESPONSE";
 
 function jsonError(
   status: number,
@@ -80,6 +82,10 @@ function createDatasetId(userId: string, requestKey: string) {
   return `ds_${hash}`;
 }
 
+function getStandardDashboardRedirect(datasetId: string) {
+  return `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}`;
+}
+
 function logStage(requestId: string, stage: string, details: Record<string, unknown> = {}) {
   debugLog("[SIMPLE_UPLOAD]", { requestId, stage, ...details });
 }
@@ -90,6 +96,36 @@ function logStageError(requestId: string, stage: string, error: unknown, details
     stage,
     error: error instanceof Error ? { name: error.name, message: error.message } : String(error),
     ...details,
+  });
+}
+
+function logUploadFailed(
+  requestId: string,
+  stage: UploadStage,
+  error: unknown,
+  details: {
+    userId?: string | null;
+    resolvedRole?: string | null;
+    datasetType?: string | null;
+    businessModel?: string | null;
+    datasetId?: string | null;
+    operationId?: string | null;
+  } = {},
+) {
+  const errorName = error instanceof Error ? error.name : "NonError";
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  debugError("[UPLOAD_FAILED]", {
+    requestId,
+    stage,
+    error: `${errorName}: ${errorMessage}`,
+    errorName,
+    errorMessage,
+    authenticatedUserId: details.userId ?? null,
+    resolvedRole: details.resolvedRole ?? null,
+    datasetType: details.datasetType ?? null,
+    businessModel: details.businessModel ?? null,
+    datasetId: details.datasetId ?? null,
+    operationId: details.operationId ?? null,
   });
 }
 
@@ -131,6 +167,11 @@ export async function POST(request: Request) {
   let datasetCreated = false;
   let creditFinalized = false;
   let db: ReturnType<typeof getDb> = null;
+  let currentStage: UploadStage = "AUTH";
+  let userId: string | null = null;
+  let resolvedRole: string | null = null;
+  let datasetType: string | null = null;
+  let businessModel: BusinessModel | null = null;
 
   logStage(requestId, "request_received", {
     contentType: request.headers.get("content-type")?.split(";")[0] || "unknown",
@@ -150,7 +191,7 @@ export async function POST(request: Request) {
     const receivedFields = Array.from(formData.keys());
     const file = formData.get("file");
     const datasetTypeValue = formData.get("dataset_type");
-    const datasetType =
+    datasetType =
       typeof datasetTypeValue === "string" ? datasetTypeValue.trim().toLowerCase() : "";
     const missingFields: string[] = [];
 
@@ -196,6 +237,7 @@ export async function POST(request: Request) {
 
     let session;
     try {
+      currentStage = "AUTH";
       session = await auth();
     } catch (error) {
       logStageError(requestId, "auth_checked", error);
@@ -205,16 +247,18 @@ export async function POST(request: Request) {
       });
     }
 
-    const userId = session?.user?.id;
+    userId = session?.user?.id || null;
     if (!userId) {
       return jsonError(401, "auth_checked", "Please sign in before uploading a dataset.", true, {
         code: "UPLOAD_AUTH_REQUIRED",
         requestId,
       });
     }
+    resolvedRole = session?.user?.role ?? "user";
+    const authenticatedUserId = userId;
     logStage(requestId, "authenticated_user_resolved", {
-      userId,
-      role: session?.user?.role ?? "user",
+      userId: authenticatedUserId,
+      role: resolvedRole,
     });
 
     if (!isCsvOrExcel(uploadFile)) {
@@ -229,6 +273,7 @@ export async function POST(request: Request) {
 
     let parsed;
     try {
+      currentStage = "PARSE";
       logStage(requestId, "parser_started", { fileName: uploadFile.name });
       parsed = await parseCSVStreaming(uploadFile, SIMPLE_PARSE_ROW_LIMIT);
       logStage(requestId, "parser_completed", {
@@ -266,17 +311,32 @@ export async function POST(request: Request) {
     }
 
     const requestKey = request.headers.get("idempotency-key") || uuidv4();
-    datasetId = createDatasetId(userId, requestKey);
-    operationId = `upload:${userId}:${requestKey}`;
+    datasetId = createDatasetId(authenticatedUserId, requestKey);
+    operationId = `upload:${authenticatedUserId}:${requestKey}`;
     const now = new Date();
     const parsedRows = (parsed.previewRows as Record<string, unknown>[]).slice(
       0,
       SIMPLE_ROW_INSERT_LIMIT,
     );
     const datasetName = uploadFile.name.replace(/\.(csv|xlsx|xls)$/i, "");
+    try {
+      currentStage = "BUSINESS_MODEL";
+      businessModel = resolveBusinessModel({
+        explicit: typeof formData.get("business_model") === "string" ? String(formData.get("business_model")) : null,
+        uploadSource: "simple_standard_upload",
+        datasetType: "standard",
+        columns: parsed.columns,
+        datasetName,
+      });
+      logStage(requestId, "business_model_resolved", { datasetType: "standard", businessModel });
+    } catch (error) {
+      logUploadFailed(requestId, currentStage, error, { userId, resolvedRole, datasetType, businessModel, datasetId, operationId });
+      throw error;
+    }
 
+    currentStage = "DATASET_INSERT";
     const existingDataset = await db.query.datasets.findFirst({
-      where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, authenticatedUserId)),
     });
     if (existingDataset) {
       logStage(requestId, "idempotent_replay_completed", {
@@ -293,12 +353,14 @@ export async function POST(request: Request) {
           datasetName: existingDataset.name,
           datasetType: existingDataset.datasetType || "standard",
           dataset_type: existingDataset.datasetType || "standard",
+          businessModel: existingDataset.businessModel || "generic",
+          business_model: existingDataset.businessModel || "generic",
           rowsProcessed: existingDataset.rowCount,
           columnsDetected: existingDataset.columnCount,
           status: existingDataset.status,
           analysisStatus: existingDataset.analysisStatus || "processing",
-          redirectUrl: `/app/datasets/${datasetId}`,
-          redirectTo: `/app/datasets/${datasetId}`,
+          redirectUrl: getStandardDashboardRedirect(datasetId),
+          redirectTo: getStandardDashboardRedirect(datasetId),
           message: "Dataset upload request was already completed.",
           fileName: existingDataset.fileName,
           preview: {
@@ -329,6 +391,7 @@ export async function POST(request: Request) {
       columnTypes: {},
       precomputedMetrics: parsed.aggregatedMetrics,
       datasetType: "standard",
+      businessModel,
       status: "processing",
       analysisStatus: "processing",
       analysisProgress: 10,
@@ -337,6 +400,8 @@ export async function POST(request: Request) {
       analysis: {
         datasetCategory: "standard",
         datasetType: "standard",
+        businessModel,
+        business_model: businessModel,
         uploadSource: "simple_standard_upload",
         uploadRequestId: requestId,
         uploadIdempotencyKey: requestKey,
@@ -345,7 +410,8 @@ export async function POST(request: Request) {
       updatedAt: now,
     };
 
-    let usage = await getUsagePayload(userId, session?.user?.role, session?.user?.email).catch(
+    currentStage = "CREDIT";
+    let usage = await getUsagePayload(userId, resolvedRole, session?.user?.email).catch(
       (error) => {
         logStageError(requestId, "credit_summary_failed", error);
         return null;
@@ -390,6 +456,7 @@ export async function POST(request: Request) {
             fileName: uploadFile.name,
             rowCount: parsed.rowCount,
             datasetType: "standard",
+            businessModel,
           },
         });
         logStage(requestId, "credit_reservation_completed", {
@@ -431,6 +498,7 @@ export async function POST(request: Request) {
     const uploadDatasetId = datasetId;
 
     try {
+      currentStage = "DATASET_INSERT";
       logStage(requestId, "dataset_insert_started", { datasetId: uploadDatasetId });
       await db.transaction(async (tx) => {
         await tx.insert(datasets).values(datasetPayload);
@@ -443,6 +511,8 @@ export async function POST(request: Request) {
           }));
           await tx.insert(datasetRows).values(rowValues);
         }
+        currentStage = "ANALYSIS";
+        logStage(requestId, "analysis_status_update_started", { datasetId: uploadDatasetId });
         await tx
           .update(datasets)
           .set({
@@ -453,7 +523,7 @@ export async function POST(request: Request) {
             analysisError: null,
             updatedAt: new Date(),
           })
-          .where(and(eq(datasets.id, uploadDatasetId), eq(datasets.userId, userId)));
+          .where(and(eq(datasets.id, uploadDatasetId), eq(datasets.userId, authenticatedUserId)));
       });
       logStage(requestId, "dataset_insert_completed", {
         datasetId: uploadDatasetId,
@@ -464,7 +534,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const replayDataset = await db.query.datasets
         .findFirst({
-          where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
+          where: and(eq(datasets.id, datasetId), eq(datasets.userId, authenticatedUserId)),
         })
         .catch(() => null);
       if (replayDataset) {
@@ -482,12 +552,14 @@ export async function POST(request: Request) {
             datasetName: replayDataset.name,
             datasetType: replayDataset.datasetType || "standard",
             dataset_type: replayDataset.datasetType || "standard",
+            businessModel: replayDataset.businessModel || "generic",
+            business_model: replayDataset.businessModel || "generic",
             rowsProcessed: replayDataset.rowCount,
             columnsDetected: replayDataset.columnCount,
             status: replayDataset.status,
             analysisStatus: replayDataset.analysisStatus || "processing",
-            redirectUrl: `/app/datasets/${datasetId}`,
-            redirectTo: `/app/datasets/${datasetId}`,
+            redirectUrl: getStandardDashboardRedirect(datasetId),
+            redirectTo: getStandardDashboardRedirect(datasetId),
             message: "Dataset upload request was already completed.",
             fileName: replayDataset.fileName,
             preview: {
@@ -526,6 +598,7 @@ export async function POST(request: Request) {
     }
 
     try {
+      currentStage = "CREDIT";
       if (!hasUnlimitedCredits) {
         logStage(requestId, "credit_settlement_started", { operationId });
         const settlement = await finalizeCredits({
@@ -535,6 +608,7 @@ export async function POST(request: Request) {
             datasetId,
             rowCount: parsed.rowCount,
             datasetType: "standard",
+            businessModel,
           },
         });
         logStage(requestId, "credit_settlement_completed", {
@@ -572,8 +646,9 @@ export async function POST(request: Request) {
       });
     }
 
+    currentStage = "RESPONSE";
     logStage(requestId, "final_response_started", { datasetId });
-    const finalUsage = await getUsagePayload(userId, session?.user?.role, session?.user?.email).catch(
+    const finalUsage = await getUsagePayload(userId, resolvedRole, session?.user?.email).catch(
       (error) => {
         logStageError(requestId, "final_usage_summary_failed", error, { datasetId });
         return null;
@@ -589,12 +664,14 @@ export async function POST(request: Request) {
         datasetName: datasetName || uploadFile.name,
         datasetType: "standard",
         dataset_type: "standard",
+        businessModel,
+        business_model: businessModel,
         rowsProcessed: parsed.rowCount,
         columnsDetected: parsed.columns.length,
         status: "ready",
         analysisStatus: "ready",
-        redirectUrl: `/app/datasets/${datasetId}`,
-        redirectTo: `/app/datasets/${datasetId}`,
+        redirectUrl: getStandardDashboardRedirect(datasetId),
+        redirectTo: getStandardDashboardRedirect(datasetId),
         message: "Dataset uploaded successfully. Analysis is ready.",
         fileName: uploadFile.name,
         preview: {
@@ -606,6 +683,14 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store", "X-Request-Id": requestId } },
     );
   } catch (error) {
+    logUploadFailed(requestId, currentStage, error, {
+      userId,
+      resolvedRole,
+      datasetType,
+      businessModel,
+      datasetId,
+      operationId,
+    });
     logStageError(requestId, "unexpected_upload_failure", error, {
       datasetId: datasetId ?? undefined,
       operationId: operationId ?? undefined,

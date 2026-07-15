@@ -6,7 +6,7 @@ import {
   generateExplanationPrompt
 } from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
-import { finalizeCredits, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
 import { emptyProviderUsage, estimateUsageFromText } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billing/usage-enforcement';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
@@ -370,17 +370,20 @@ export async function POST(request: Request) {
     }
 
     const operationId = `chat:${userId}:${crypto.randomUUID()}`;
-    const reservation = await reserveCredits({
-      userId,
-      operationId,
-      idempotencyKey: request.headers.get('idempotency-key') || operationId,
-      feature: 'ai_question',
-      source: 'api',
-      role: session?.user?.role ?? null,
-      email: session?.user?.email ?? null,
-      metadata: { datasetId: datasetId || null, stream: Boolean(stream) },
-    });
-    if (!reservation.success) {
+    const hasUnlimitedCredits = isUnlimitedCreditRole(session?.user?.role ?? null)
+    const reservation = hasUnlimitedCredits
+      ? null
+      : await reserveCredits({
+          userId,
+          operationId,
+          idempotencyKey: request.headers.get('idempotency-key') || operationId,
+          feature: 'ai_question',
+          source: 'api',
+          role: session?.user?.role ?? null,
+          email: session?.user?.email ?? null,
+          metadata: { datasetId: datasetId || null, stream: Boolean(stream) },
+        });
+    if (reservation && !reservation.success) {
       return NextResponse.json(
         {
           success: false,
@@ -396,15 +399,17 @@ export async function POST(request: Request) {
     if (stream) {
       try {
         const readable = await handleRegularChatStream(messages, datasetId, processedData, appSearchResults, userId);
-        await finalizeCredits({
-          operationId,
-          actualCredits: reservation.reservedCredits,
-          actualUsage: emptyProviderUsage('google', 'gemini-2.5-flash'),
-          metadata: { stream: true, usageSource: 'reserved_estimate' },
-        });
+        if (reservation) {
+          await finalizeCredits({
+            operationId,
+            actualCredits: reservation.reservedCredits,
+            actualUsage: emptyProviderUsage('google', 'gemini-2.5-flash'),
+            metadata: { stream: true, usageSource: 'reserved_estimate' },
+          });
+        }
         return streamResponse(readable);
       } catch (streamError) {
-        await releaseCredits(operationId, 'chat_stream_failed');
+        if (reservation) await releaseCredits(operationId, 'chat_stream_failed');
         throw streamError;
       }
     }
@@ -413,29 +418,31 @@ export async function POST(request: Request) {
     try {
       result = await handleRegularChat(messages, datasetId, processedData, appSearchResults, userId);
     } catch (chatError) {
-      await releaseCredits(operationId, 'chat_failed');
+      if (reservation) await releaseCredits(operationId, 'chat_failed');
       throw chatError;
     }
 
     if (!result.success) {
-      await releaseCredits(operationId, 'chat_provider_failed');
+      if (reservation) await releaseCredits(operationId, 'chat_provider_failed');
       return NextResponse.json(
         { success: false, error: result.content },
         { status: 500 }
       );
     }
 
-    await finalizeCredits({
-      operationId,
-      actualCredits: reservation.reservedCredits,
-      actualUsage: result.usage ?? estimateUsageFromText({
-        provider: result.providerName || 'google',
-        model: result.modelName || 'gemini-2.5-flash',
-        prompt: lastMessage,
-        output: result.content,
-      }),
-      metadata: { datasetId: datasetId || null },
-    });
+    if (reservation) {
+      await finalizeCredits({
+        operationId,
+        actualCredits: reservation.reservedCredits,
+        actualUsage: result.usage ?? estimateUsageFromText({
+          provider: result.providerName || 'google',
+          model: result.modelName || 'gemini-2.5-flash',
+          prompt: lastMessage,
+          output: result.content,
+        }),
+        metadata: { datasetId: datasetId || null },
+      });
+    }
 
     logChatExecution('AI_CALL_COMPLETE', { datasetId, responseLength: result.content.length });
 

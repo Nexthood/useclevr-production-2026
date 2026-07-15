@@ -226,6 +226,97 @@ export function fallbackSuggestionsForDatasetType(kind: DatasetKind): string[] {
   return questionListForDatasetType(kind).slice(0, 12);
 }
 
+export function fallbackSuggestionsForBusinessModel(model: string): string[] {
+  const suggestions: Record<string, string[]> = {
+    local_retail: [
+      'What were daily, weekly, and monthly store revenue trends?',
+      'Which store or branch performs best?',
+      'Which SKUs are low stock?',
+      'Which products are dead stock?',
+      'Which products create reorder risk?',
+      'What is the sell-through rate by product?',
+      'Which categories generate the most revenue?',
+      'Which slow-moving products should be discounted or bundled?',
+      'What is current inventory value?',
+      'Which products have the highest margin?',
+      'Which branches need stock rebalancing?',
+      'What local store actions should happen next?',
+    ],
+    ecommerce: [
+      'What is revenue by country?',
+      'What are orders by region?',
+      'What is average order value?',
+      'Which channels perform best?',
+      'What is the return or refund rate?',
+      'Which countries have the highest shipping cost?',
+      'Which customers are repeat customers?',
+      'Which products sell best online?',
+      'Where is ecommerce revenue concentrated?',
+      'Which regions underperform?',
+      'What changed in online sales over time?',
+      'Which ecommerce actions should happen next?',
+    ],
+    saas: [
+      'What is current MRR or ARR?',
+      'What is churn by period?',
+      'Which plans generate the most recurring revenue?',
+      'What is CAC compared with LTV?',
+      'How many active users or accounts are represented?',
+      'Which cohorts retain best?',
+      'What is the subscription growth trend?',
+      'Which accounts are at risk?',
+      'What is expansion revenue potential?',
+      'What runway risk appears in this data?',
+      'Which SaaS metric needs the fastest action?',
+      'What should improve recurring revenue?',
+    ],
+    startup: [
+      'What is the runway based on burn rate?',
+      'What is monthly burn?',
+      'How does revenue growth compare with costs?',
+      'What is CAC compared with LTV?',
+      'What active-user trend appears?',
+      'Which growth metric is strongest?',
+      'Which operating cost is increasing fastest?',
+      'What funding or runway risk appears?',
+      'Which segment drives growth?',
+      'What should the startup prioritize next?',
+      'Where is unit economics pressure highest?',
+      'What milestone looks most at risk?',
+    ],
+    investor: [
+      'Which portfolio companies have the highest valuation?',
+      'What is invested capital by sector?',
+      'What is ownership by company?',
+      'Which stages dominate the portfolio?',
+      'Where is portfolio performance strongest?',
+      'Which companies create concentration risk?',
+      'What geography is relevant to the portfolio?',
+      'Which sectors underperform?',
+      'What is valuation change over time?',
+      'Which investment needs review first?',
+      'What portfolio actions should happen next?',
+      'Where is follow-on capital most justified?',
+    ],
+    marketplace: [
+      'What is GMV by period?',
+      'What is take rate or commission revenue?',
+      'Which sellers perform best?',
+      'Which buyers or customer groups are most active?',
+      'Which listings generate the most value?',
+      'What marketplace liquidity risk appears?',
+      'Which categories have the highest GMV?',
+      'What is repeat buyer behavior?',
+      'Which vendors underperform?',
+      'Where is marketplace revenue concentrated?',
+      'What operational action should happen next?',
+      'Which side of the marketplace needs growth?',
+    ],
+  };
+
+  return (suggestions[model] || questionListForDatasetType('Generic')).slice(0, 12);
+}
+
 /**
  * Generate suggested questions based on dataset intelligence
  */

@@ -33,6 +33,7 @@ import { buildProfileCalculationLayer } from "@/lib/business/company-calculation
 import { buildBusinessProfileContext } from "@/lib/business/company-setup";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { skillEngine } from "@/lib/business/skill-engine";
+import { getBusinessModelPromptContext, resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
 import { runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";
 import { datasetRows, datasets, profiles } from "@/lib/db/schema";
@@ -439,6 +440,7 @@ export async function POST(request: Request) {
 
     let requestDataset: Record<string, unknown>[] = [];
     let requestColumns: string[] = [];
+    let requestBusinessModel: BusinessModel = "generic";
 
     // Persisted dataset IDs always load owner-scoped server data.
     if (datasetId) {
@@ -482,6 +484,17 @@ export async function POST(request: Request) {
         }
 
         requestColumns = (storedDataset.columns as string[]) || Object.keys(requestDataset[0] || {});
+        requestBusinessModel = resolveBusinessModel({
+          explicit: storedDataset.businessModel,
+          uploadSource:
+            precomputedAnalysis && typeof precomputedAnalysis === "object"
+              ? String((precomputedAnalysis as Record<string, unknown>).uploadSource || "")
+              : "",
+          datasetType: storedDataset.datasetType,
+          columns: requestColumns,
+          datasetName: storedDataset.name,
+          analysis: precomputedAnalysis,
+        });
 
         if (precomputedAnalysis && precomputedMetrics) {
           try {
@@ -509,6 +522,14 @@ export async function POST(request: Request) {
       try {
         requestDataset = data;
         requestColumns = columns || Object.keys(data[0] || {});
+        requestBusinessModel = resolveBusinessModel({
+          explicit:
+            precomputedAnalysis && typeof precomputedAnalysis === "object"
+              ? String((precomputedAnalysis as Record<string, unknown>).businessModel || (precomputedAnalysis as Record<string, unknown>).business_model || "")
+              : "",
+          columns: requestColumns,
+          analysis: precomputedAnalysis,
+        });
       } catch (loadError) {
         debugError('[ANALYZE] Failed to load data:', loadError);
         return Response.json({
@@ -696,7 +717,8 @@ try {
          debugWarn('[ANALYZE] Business profile context skipped:', businessProfileError);
        }
 
-       const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessProfilePrompt + mcpToolsPrompt;
+       const businessModelPrompt = `\n\nSTRICT BUSINESS MODEL CONTEXT\n${getBusinessModelPromptContext(requestBusinessModel)}\nThe assistant must not return KPIs from another business model unless the current dataset columns explicitly support them.\n`;
+       const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessModelPrompt + businessProfilePrompt + mcpToolsPrompt;
 
       try {
         let text: string | null = null;

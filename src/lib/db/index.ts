@@ -16,15 +16,6 @@ function isServerlessUrl(url: string) {
   return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('neon://')
 }
 
-function isPoolerUrl(url: string) {
-  try {
-    const hostname = new URL(url).hostname
-    return hostname.includes('pooler')
-  } catch {
-    return false
-  }
-}
-
 function shouldUseServerless(): boolean {
   return process.env.NEON_USE_SERVERLESS === 'true'
 }
@@ -44,7 +35,7 @@ function createDbClient() {
   }
 
   const useServerless = shouldUseServerless() || isServerlessUrl(connectionUrl)
-  const useWsPool = shouldUseWsPool() || isPoolerUrl(connectionUrl)
+  const useWsPool = shouldUseWsPool()
 
   let probe: QueryProbe
   const db = useWsPool

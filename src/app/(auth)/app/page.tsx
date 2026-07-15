@@ -2,6 +2,12 @@ import { WorldMapRevenue, type RegionData } from "@/components/ui/world-map-reve
 import { Card } from "@/components/ui/card"
 import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboard-tabs"
 import { auth } from "@/lib/auth/auth"
+import {
+  getBusinessModelKpiNames,
+  getBusinessModelLabel,
+  shouldRenderWorldMapForBusinessModel,
+  type BusinessModel,
+} from "@/lib/data/business-model"
 import { loadDashboardDatasetAggregation, normalizeDashboardColumnName, type DashboardAggregatedDataset, type NormalizedDashboardData } from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
 import { aiInteractionTraces, profiles } from "@/lib/db/schema"
@@ -59,6 +65,8 @@ type ColumnMap = {
   customer?: string
   order?: string
   supplier?: string
+  latitude?: string
+  longitude?: string
 }
 
 type SeriesPoint = { label: string; value: number }
@@ -119,6 +127,8 @@ type ExecutiveMetrics = {
   categoryDistribution: RankedItem[]
   regions: RegionData[]
   recommendations: ExecutiveRecommendation[]
+  businessModel: BusinessModel
+  supportedKpis: string[]
   businessHealth: {
     health: number
     aiConfidence: number
@@ -135,10 +145,10 @@ const RANGE_LABELS: Record<RangeKey, string> = {
   "12m": "12 months",
 }
 
-async function getStats(userId: string | null): Promise<DashboardStats> {
+async function getStats(userId: string | null, selectedDatasetId?: string | null): Promise<DashboardStats> {
   if (!userId) return emptyStats()
 
-  const dashboardData = await loadDashboardDatasetAggregation(userId)
+  const dashboardData = await loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId })
 
   try {
     const [aiTraceCount, profile, latestAiTraces] = await Promise.all([
@@ -217,6 +227,16 @@ function emptyStats(): DashboardStats {
       latestUpload: null,
       fileTypeCounts: { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 },
       detectedColumns: {},
+      businessModelCounts: {
+        local_retail: 0,
+        ecommerce: 0,
+        saas: 0,
+        startup: 0,
+        investor: 0,
+        marketplace: 0,
+        generic: 0,
+      },
+      dominantBusinessModel: "generic",
       allColumns: [],
       datasets: [],
     },
@@ -231,6 +251,7 @@ function emptyStats(): DashboardStats {
 }
 
 function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): ExecutiveMetrics {
+  const businessModel = stats.dashboardData.dominantBusinessModel
   const rows = stats.allDatasets.flatMap((dataset) =>
     dataset.data.map((row) => ({
       row,
@@ -318,6 +339,8 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
     categoryDistribution,
     regions,
     recommendations,
+    businessModel,
+    supportedKpis: getBusinessModelKpiNames(businessModel),
     businessHealth: {
       health: Math.round((readiness + aiConfidence + forecastConfidence + growthScore) / 4),
       aiConfidence,
@@ -352,6 +375,8 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
     customer: findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
     order: findColumn(allColumns, [/order id/, /^order$/, /invoice/, /transaction/]),
     supplier: findColumn(allColumns, [/supplier/, /vendor/, /brand/]),
+    latitude: findColumn(allColumns, [/^lat$/, /latitude/]),
+    longitude: findColumn(allColumns, [/^lon$/, /^lng$/, /longitude/]),
   }
 }
 
@@ -467,16 +492,22 @@ function buildDeadStock(rows: DataRow[], columns: ColumnMap): RankedItem[] {
 
 function buildRegions(rows: { row: DataRow; dataset: DashboardDataset }[], columns: ColumnMap): RegionData[] {
   if (!columns.region) return []
-  const aggregate = new Map<string, { revenue: number; profit: number; orders: number; datasets: Set<string>; products: Map<string, number>; categories: Map<string, number> }>()
+  const aggregate = new Map<string, { revenue: number; profit: number; orders: number; datasets: Set<string>; products: Map<string, number>; categories: Map<string, number>; latitude: number | null; longitude: number | null }>()
   for (const { row, dataset } of rows) {
     const name = String(row[columns.region] || "").trim()
     if (!name) continue
-    const current = aggregate.get(name) || { revenue: 0, profit: 0, orders: 0, datasets: new Set(), products: new Map(), categories: new Map() }
+    const current = aggregate.get(name) || { revenue: 0, profit: 0, orders: 0, datasets: new Set(), products: new Map(), categories: new Map(), latitude: null, longitude: null }
     const revenue = getNumber(row, columns.revenue) || 0
     current.revenue += revenue
     current.profit += getNumber(row, columns.profit) || (columns.cost ? revenue - (getNumber(row, columns.cost) || 0) : 0)
     current.orders += columns.order ? (String(row[columns.order] || "").trim() ? 1 : 0) : getNumber(row, columns.quantity) || 0
     current.datasets.add(dataset.id)
+    const latitude = getNumber(row, columns.latitude)
+    const longitude = getNumber(row, columns.longitude)
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      current.latitude = latitude
+      current.longitude = longitude
+    }
     addGroupedValue(current.products, String(row[columns.product || ""] || ""), revenue)
     addGroupedValue(current.categories, String(row[columns.category || ""] || ""), revenue)
     aggregate.set(name, current)
@@ -484,6 +515,8 @@ function buildRegions(rows: { row: DataRow; dataset: DashboardDataset }[], colum
   return Array.from(aggregate.entries())
     .map(([name, value]) => ({
       name,
+      latitude: value.latitude ?? undefined,
+      longitude: value.longitude ?? undefined,
       revenue: value.revenue,
       profit: value.profit,
       orders: value.orders,
@@ -594,6 +627,77 @@ function hasAnalysisSignals(dataset: DashboardDataset) {
   return extractInsightCount(dataset.analysis) > 0 || extractInsightCount(dataset.aiInsights) > 0
 }
 
+function selectDashboardDataset(stats: DashboardStats, datasetId: string | null): { stats: DashboardStats; selectedDataset: DashboardDataset | null; missing: boolean } {
+  if (!datasetId) return { stats, selectedDataset: null, missing: false }
+
+  const selectedDataset = stats.allDatasets.find((dataset) => dataset.id === datasetId) || null
+  if (!selectedDataset) return { stats, selectedDataset: null, missing: true }
+
+  const allColumns = unique([
+    ...selectedDataset.columns,
+    ...selectedDataset.data.slice(0, 20).flatMap((row) => Object.keys(row)),
+  ])
+  const fileTypeCounts: NormalizedDashboardData["fileTypeCounts"] = {
+    csv: 0,
+    excel: 0,
+    snowflake: 0,
+    api: 0,
+    other: 0,
+  }
+  const fileName = selectedDataset.fileName.toLowerCase()
+  if (fileName.endsWith(".csv")) fileTypeCounts.csv = 1
+  else if (/\.(xlsx|xls)$/i.test(fileName)) fileTypeCounts.excel = 1
+  else if (selectedDataset.datasetType === "snowflake") fileTypeCounts.snowflake = 1
+  else if (selectedDataset.datasetType === "api") fileTypeCounts.api = 1
+  else fileTypeCounts.other = 1
+
+  const detected = detectColumns([selectedDataset], selectedDataset.data)
+  const businessModelCounts = {
+    local_retail: 0,
+    ecommerce: 0,
+    saas: 0,
+    startup: 0,
+    investor: 0,
+    marketplace: 0,
+    generic: 0,
+  } satisfies Record<BusinessModel, number>
+  businessModelCounts[selectedDataset.businessModel] = 1
+
+  const dashboardData: NormalizedDashboardData = {
+    datasetCount: 1,
+    activeDatasetCount: selectedDataset.status === "deleted" ? 0 : 1,
+    totalRows: selectedDataset.rowCount,
+    latestUpload: selectedDataset,
+    fileTypeCounts,
+    detectedColumns: {
+      revenue: detected.revenue,
+      profit: detected.profit,
+      cost: detected.cost || detected.expense,
+      product: detected.product || detected.sku,
+      stock: detected.stock,
+      date: detected.date,
+      region: detected.region,
+    },
+    businessModelCounts,
+    dominantBusinessModel: selectedDataset.businessModel,
+    allColumns,
+    datasets: [selectedDataset],
+  }
+
+  const scopedStats: DashboardStats = {
+    ...stats,
+    datasets: 1,
+    analyses: hasAnalysisSignals(selectedDataset) || selectedDataset.analysisStatus === "completed" || selectedDataset.analysisStatus === "ready" ? 1 : 0,
+    reports: stats.reportsList.filter((report) => report.datasetId === selectedDataset.id).length,
+    dashboardData,
+    allDatasets: [selectedDataset],
+    latestDataset: selectedDataset,
+    reportsList: stats.reportsList.filter((report) => report.datasetId === selectedDataset.id),
+  }
+
+  return { stats: scopedStats, selectedDataset, missing: false }
+}
+
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
@@ -602,24 +706,24 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const params = (await searchParams) || {}
   const range = parseRange(params.range)
   const tab = parseTab(params.tab)
+  const selectedDatasetId = parseDatasetId(params.datasetId)
   const session = await auth()
   const userId = session?.user?.id ?? null
   const [stats, dailyBrief] = await Promise.all([
-    getStats(userId),
-    userId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
+    getStats(userId, selectedDatasetId),
+    userId && !selectedDatasetId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
   ])
-  const metrics = buildExecutiveMetrics(stats, range)
-  const companyName = stats.profile?.businessName || stats.profile?.companyName || "UseClevr"
+  const selected = selectDashboardDataset(stats, selectedDatasetId)
+  const dashboardStats = selected.stats
+  const metrics = buildExecutiveMetrics(dashboardStats, range)
+  const companyName = dashboardStats.profile?.businessName || dashboardStats.profile?.companyName || "UseClevr"
   const hasRows = metrics.loadedRowCount > 0
+  const canRenderWorldMap = shouldRenderWorldMapForBusinessModel({
+    businessModel: metrics.businessModel,
+    mappedLocations: metrics.regions,
+  })
 
-  const kpis = [
-    kpi("Revenue", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.columns.revenue, "Revenue column", CircleDollarSign, "cyan"),
-    kpi("Profit", metrics.totalProfit, "currency", metrics.profitTrend, metrics.columns.profit || (metrics.columns.revenue && metrics.columns.cost), "Profit or revenue/cost columns", TrendingUp, "emerald"),
-    kpi("Profit Margin", metrics.profitMargin, "percent", metrics.profitTrend, metrics.profitMargin !== null, "Revenue and profit columns", PieChart, "violet"),
-    kpi("Active Datasets", metrics.activeDatasets, "number", metrics.uploadTrend, true, "Uploaded files", Database, "slate"),
-    kpi("Products/SKUs", metrics.products, "number", metrics.topProducts.map((item) => ({ label: item.name, value: item.value })), metrics.products !== null, "Product or SKU column", Package, "amber"),
-    kpi("Inventory Value", metrics.inventoryValue, "currency", metrics.inventoryTrend, metrics.inventoryValue !== null, "Stock and price/cost columns", Warehouse, "cyan"),
-  ] satisfies KpiDisplay[]
+  const kpis = buildBusinessModelKpis(metrics)
   const topRecommendations = metrics.recommendations.slice(0, 3)
 
   return (
@@ -631,20 +735,27 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
             <div className="max-w-4xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-100">
                 <Sparkles className="h-3.5 w-3.5" />
-                Executive BI command center
+                {getBusinessModelLabel(metrics.businessModel)} command center
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 {companyName} Dashboard
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Live performance, inventory, dataset, and AI activity from uploaded business data.
+                {selected.selectedDataset
+                  ? `Live ${getBusinessModelLabel(metrics.businessModel).toLowerCase()} analytics for ${selected.selectedDataset.name}.`
+                  : "Live " + getBusinessModelLabel(metrics.businessModel).toLowerCase() + " analytics, dataset activity, and AI outputs from uploaded business data."}
               </p>
+              {selected.missing && (
+                <p className="mt-3 max-w-3xl rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-100">
+                  The selected dataset is unavailable or you do not have access to it.
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
                 <Link
                   key={key}
-                  href={`/app?range=${key}`}
+                  href={buildDashboardHref({ range: key, datasetId: selectedDatasetId })}
                   className={[
                     "rounded-lg border px-3 py-2 text-sm font-medium transition",
                     range === key
@@ -692,10 +803,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
                   <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
                     <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={stats.dashboardData} />
-                      <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} />
+                      <SourceMix dashboardData={dashboardStats.dashboardData} />
+                      <LatestDatasets datasets={dashboardStats.allDatasets.slice(0, 6)} />
                     </div>
                   </Card>
                 </DashboardSection>
@@ -714,7 +825,11 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
             inventory: <InventoryDetail metrics={metrics} />,
             geography: (
               <DashboardSection icon={Globe2} title="World Map" compact>
-                <WorldMapRevenue regions={metrics.regions} />
+                {canRenderWorldMap ? (
+                  <WorldMapRevenue regions={metrics.regions} />
+                ) : (
+                  <CompactEmpty label={`${getBusinessModelLabel(metrics.businessModel)} data does not expose valid mapped locations for a world map.`} />
+                )}
               </DashboardSection>
             ),
             ai: (
@@ -723,14 +838,14 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                   <Card className="p-5">
                     <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
                     <div className="mt-5 space-y-4">
-                      <ActivityList stats={stats} />
+                      <ActivityList stats={dashboardStats} />
                     </div>
                   </Card>
                 </DashboardSection>
                 <DashboardSection icon={Bell} title="Executive Activity" compact>
                   <div className="grid gap-4">
-                    <BottomPanel title="Recent Activity" items={recentActivity(stats, metrics)} />
-                    <BottomPanel title="Notifications" items={notifications(stats, metrics)} />
+                    <BottomPanel title="Recent Activity" items={recentActivity(dashboardStats, metrics)} />
+                    <BottomPanel title="Notifications" items={notifications(dashboardStats, metrics)} />
                   </div>
                 </DashboardSection>
               </section>
@@ -759,6 +874,75 @@ type KpiDisplay = {
   detail: string
   icon: React.ComponentType<{ className?: string }>
   tone: Tone
+}
+
+function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
+  const common = [
+    kpi("Revenue", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.columns.revenue, "Revenue column", CircleDollarSign, "cyan"),
+    kpi("Active Datasets", metrics.activeDatasets, "number", metrics.uploadTrend, true, "Uploaded files", Database, "slate"),
+  ]
+
+  switch (metrics.businessModel) {
+    case "local_retail":
+      return [
+        common[0],
+        kpi("Store Performance", metrics.regions.length, "number", metrics.ordersTrend, metrics.regions.length > 0, "Store or branch locations", Warehouse, "emerald"),
+        kpi("Inventory Value", metrics.inventoryValue, "currency", metrics.inventoryTrend, metrics.inventoryValue !== null, "Stock and price/cost columns", Warehouse, "cyan"),
+        kpi("Low Stock", metrics.lowStock.length, "number", metrics.lowStock.map((item) => ({ label: item.name, value: item.value })), metrics.lowStock.length > 0, "Stock columns", AlertTriangle, "rose"),
+        kpi("Dead Stock", metrics.deadStock, "number", metrics.deadStockItems.map((item) => ({ label: item.name, value: item.value })), metrics.deadStock !== null, "Stock and movement columns", Package, "amber"),
+        kpi("Products/SKUs", metrics.products, "number", metrics.topProducts.map((item) => ({ label: item.name, value: item.value })), metrics.products !== null, "Product or SKU column", Package, "violet"),
+      ]
+    case "ecommerce":
+      return [
+        common[0],
+        kpi("Orders", sum(metrics.ordersTrend.map((item) => item.value)), "number", metrics.ordersTrend, metrics.ordersTrend.length > 0, "Order or quantity columns", Package, "emerald"),
+        kpi("Average Order Value", averageOrderValue(metrics.totalRevenue, metrics.ordersTrend), "currency", metrics.revenueTrend, metrics.totalRevenue !== null && metrics.ordersTrend.length > 0, "Revenue and order columns", CircleDollarSign, "violet"),
+        kpi("Customers", null, "number", [], Boolean(metrics.columns.customer), "Customer column", Database, "slate"),
+        kpi("Channels", metrics.categoryDistribution.length, "number", metrics.categoryDistribution.map((item) => ({ label: item.name, value: item.value })), metrics.categoryDistribution.length > 0, "Channel or category columns", PieChart, "amber"),
+        common[1],
+      ]
+    case "saas":
+      return [
+        kpi("MRR/ARR", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.columns.revenue, "Recurring revenue columns", CircleDollarSign, "cyan"),
+        kpi("Churn", null, "percent", [], false, "Churn column", TrendingUp, "rose"),
+        kpi("CAC", metrics.totalCost, "currency", metrics.profitTrend, metrics.totalCost !== null, "Acquisition cost columns", PieChart, "amber"),
+        kpi("LTV", metrics.totalProfit, "currency", metrics.profitTrend, metrics.totalProfit !== null, "Revenue and profit columns", TrendingUp, "emerald"),
+        kpi("Active Users", null, "number", [], Boolean(metrics.columns.customer), "User or account column", Database, "violet"),
+        common[1],
+      ]
+    case "startup":
+      return [
+        common[0],
+        kpi("Burn Rate", metrics.totalCost, "currency", metrics.profitTrend, metrics.totalCost !== null, "Cost or expense columns", TrendingUp, "rose"),
+        kpi("Runway Inputs", metrics.totalProfit, "currency", metrics.profitTrend, metrics.totalProfit !== null, "Revenue and cost columns", CircleDollarSign, "amber"),
+        kpi("Active Users", null, "number", [], Boolean(metrics.columns.customer), "User or customer column", Database, "violet"),
+        kpi("Growth Score", metrics.businessHealth.growthScore, "number", metrics.revenueTrend, metrics.revenueTrend.length > 1, "Trend columns", ArrowUpRight, "emerald"),
+        common[1],
+      ]
+    case "investor":
+      return [
+        kpi("Portfolio Companies", metrics.products, "number", metrics.topProducts.map((item) => ({ label: item.name, value: item.value })), metrics.products !== null, "Company or portfolio column", Database, "cyan"),
+        kpi("Invested Capital", metrics.totalCost ?? metrics.totalRevenue, "currency", metrics.profitTrend, metrics.totalCost !== null || metrics.totalRevenue !== null, "Investment or valuation columns", CircleDollarSign, "emerald"),
+        kpi("Valuation", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.totalRevenue !== null, "Valuation columns", TrendingUp, "violet"),
+        kpi("Sectors", metrics.categoryDistribution.length, "number", metrics.categoryDistribution.map((item) => ({ label: item.name, value: item.value })), metrics.categoryDistribution.length > 0, "Sector column", PieChart, "amber"),
+        common[1],
+      ]
+    case "marketplace":
+      return [
+        kpi("GMV", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.columns.revenue, "GMV or revenue columns", CircleDollarSign, "cyan"),
+        kpi("Orders", sum(metrics.ordersTrend.map((item) => item.value)), "number", metrics.ordersTrend, metrics.ordersTrend.length > 0, "Order or transaction columns", Package, "emerald"),
+        kpi("Take Rate Inputs", metrics.totalProfit, "currency", metrics.profitTrend, metrics.totalProfit !== null, "Commission or profit columns", PieChart, "violet"),
+        kpi("Sellers/Buyers", null, "number", [], Boolean(metrics.columns.customer), "Seller or buyer columns", Database, "amber"),
+        common[1],
+      ]
+    default:
+      return [
+        common[0],
+        kpi("Profit", metrics.totalProfit, "currency", metrics.profitTrend, metrics.columns.profit || (metrics.columns.revenue && metrics.columns.cost), "Profit or revenue/cost columns", TrendingUp, "emerald"),
+        kpi("Profit Margin", metrics.profitMargin, "percent", metrics.profitTrend, metrics.profitMargin !== null, "Revenue and profit columns", PieChart, "violet"),
+        common[1],
+      ]
+  }
 }
 
 function ExecutiveDailyHealthSection({ brief }: { brief: ExecutiveDailyBrief }) {
@@ -1263,12 +1447,12 @@ function CompactEmpty({ label }: { label: string }) {
 
 function DataCoverageNote({ metrics }: { metrics: ExecutiveMetrics }) {
   const detected = Object.entries(metrics.columns).filter(([, value]) => Boolean(value)).length
-  return <span className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs font-medium text-muted-foreground">{detected} detected business columns · {formatNumber(metrics.loadedRowCount)} preview rows</span>
+  return <span className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs font-medium text-muted-foreground">{getBusinessModelLabel(metrics.businessModel)} · {detected} detected business columns · {formatNumber(metrics.loadedRowCount)} preview rows</span>
 }
 
 function recentActivity(stats: DashboardStats, metrics: ExecutiveMetrics) {
   return [
-    ...stats.allDatasets.slice(0, 3).map((dataset) => ({ label: dataset.name, detail: `${formatNumber(dataset.rowCount)} rows uploaded ${formatDate(dataset.createdAt)}`, href: `/app/datasets/${dataset.id}` })),
+    ...stats.allDatasets.slice(0, 3).map((dataset) => ({ label: dataset.name, detail: `${formatNumber(dataset.rowCount)} rows uploaded ${formatDate(dataset.createdAt)}`, href: `/app/dashboard?datasetId=${encodeURIComponent(dataset.id)}` })),
     ...(metrics.recommendations[0] ? [{ label: metrics.recommendations[0].title, detail: metrics.recommendations[0].impact, href: "/app/datasets" }] : []),
   ]
 }
@@ -1291,6 +1475,17 @@ function parseTab(value: string | string[] | undefined): DashboardTab {
   const tab = Array.isArray(value) ? value[0] : value
   if (tab === "financial" || tab === "inventory" || tab === "geography" || tab === "ai") return tab
   return "overview"
+}
+
+function parseDatasetId(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null
+}
+
+function buildDashboardHref(input: { range: RangeKey; datasetId: string | null }) {
+  const query = new URLSearchParams({ range: input.range })
+  if (input.datasetId) query.set("datasetId", input.datasetId)
+  return `/app?${query.toString()}`
 }
 
 function getNumber(row: DataRow, column: string | undefined): number | null {
@@ -1349,6 +1544,12 @@ function formatDate(date: Date) {
 
 function sum(values: (number | null)[]) {
   return values.reduce<number>((total, value) => total + (value || 0), 0)
+}
+
+function averageOrderValue(totalRevenue: number | null, ordersTrend: SeriesPoint[]) {
+  const orderCount = sum(ordersTrend.map((item) => item.value))
+  if (!totalRevenue || orderCount <= 0) return null
+  return totalRevenue / orderCount
 }
 
 function unique(values: string[]) {

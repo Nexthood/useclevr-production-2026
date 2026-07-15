@@ -2,7 +2,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 
 import { recordActivity } from "@/lib/activity/activity-store";
 import { auth } from "@/lib/auth/auth";
-import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
@@ -301,34 +301,36 @@ export async function POST(
       );
     }
 
-    creditOperationId = `dataset-analysis:${userId}:${id}:${request.headers.get("idempotency-key") || crypto.randomUUID()}`;
-    const reservation = await reserveCredits({
-      userId,
-      operationId: creditOperationId,
-      idempotencyKey: creditOperationId,
-      estimatedCredits: 1,
-      feature: "standard_analysis",
-      source: "dataset_analysis",
-      role: session?.user?.role ?? null,
-      email: session?.user?.email ?? null,
-      metadata: {
-        datasetId: id,
-        datasetName: datasetData.name,
-        rowCount: datasetData.rowCount,
-      },
-    });
-
-    if (!reservation.success) {
-      return NextResponse.json<ErrorResponse>(
-        {
-          error: "You have used all included credits in your Free plan.",
-          code: "INSUFFICIENT_CREDITS",
-          title: "No credits remaining",
-          upgradeRequired: true,
-          usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+    if (!isUnlimitedCreditRole(session?.user?.role ?? null)) {
+      creditOperationId = `dataset-analysis:${userId}:${id}:${request.headers.get("idempotency-key") || crypto.randomUUID()}`;
+      const reservation = await reserveCredits({
+        userId,
+        operationId: creditOperationId,
+        idempotencyKey: creditOperationId,
+        estimatedCredits: 1,
+        feature: "standard_analysis",
+        source: "dataset_analysis",
+        role: session?.user?.role ?? null,
+        email: session?.user?.email ?? null,
+        metadata: {
+          datasetId: id,
+          datasetName: datasetData.name,
+          rowCount: datasetData.rowCount,
         },
-        { status: 402 },
-      );
+      });
+
+      if (!reservation.success) {
+        return NextResponse.json<ErrorResponse>(
+          {
+            error: "You have used all included credits in your Free plan.",
+            code: "INSUFFICIENT_CREDITS",
+            title: "No credits remaining",
+            upgradeRequired: true,
+            usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+          },
+          { status: 402 },
+        );
+      }
     }
 
     await updateAnalysisStatus("processing", "Analysis is still being prepared...", 50);

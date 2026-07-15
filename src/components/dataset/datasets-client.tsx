@@ -82,7 +82,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       case "prebookkeeping":
         return `/app/prebookkeeping?datasetId=${dataset.id}`
       default:
-        return `/app/datasets/${dataset.id}`
+        return `/app/dashboard?datasetId=${encodeURIComponent(dataset.id)}`
     }
   }
 
@@ -172,7 +172,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
         const dataset = row as unknown as DatasetListItem
         const type = normalizeDatasetCategory(dataset.datasetType) || "standard"
         const analyzeHref = type === "standard"
-          ? `/app/datasets/${dataset.id}/analyze`
+          ? `/app/dashboard?datasetId=${encodeURIComponent(dataset.id)}`
           : getDatasetTypeLink(dataset)
         return (
           <div className="flex justify-end gap-3">
@@ -180,7 +180,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
               View rows
             </Link>
             <Link href={analyzeHref} className="text-xs font-medium text-primary hover:underline">
-              {type === "standard" ? "Analyze" : "Open module"}
+              {type === "standard" ? "Open dashboard" : "Open module"}
             </Link>
           </div>
         )

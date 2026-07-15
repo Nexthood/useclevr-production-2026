@@ -5,6 +5,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/auth";
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access";
+import { resolveBusinessModel } from "@/lib/data/business-model";
 import { getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category";
 import { getSetupStatus } from "@/lib/business/company-setup-store";
 import {
@@ -87,9 +88,20 @@ export default async function AnalyzePage({ params }: { params: Promise<{ id: st
     (dataset as { datasetType?: string | null }).datasetType,
     dataset.analysis,
   );
+  const businessModel = resolveBusinessModel({
+    explicit: (dataset as { businessModel?: string | null }).businessModel,
+    uploadSource:
+      dataset.analysis && typeof dataset.analysis === "object"
+        ? String((dataset.analysis as Record<string, unknown>).uploadSource || "")
+        : "",
+    datasetType,
+    columns,
+    datasetName: dataset.name,
+    analysis: dataset.analysis,
+  });
 
   if (datasetType !== "standard") {
-    redirect(getDatasetCategoryRedirect(datasetType, id));
+    redirect(getDatasetCategoryRedirect(datasetType, id, businessModel));
   }
 
   // Get column types from dataset record (stored during upload)
@@ -227,6 +239,7 @@ export default async function AnalyzePage({ params }: { params: Promise<{ id: st
           columns={columns}
           data={data}
           rowCount={rowCount}
+          businessModel={businessModel}
           isAnalyzed={hasAnalysis}
           initialAnalysis={initialAnalysis}
         />

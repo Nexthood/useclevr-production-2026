@@ -8,9 +8,11 @@ import type { DatasetRecord } from '@/lib/data/dataset-intelligence';
 import {
   buildDatasetIntelligence,
   detectDatasetTypeFromColumns,
+  fallbackSuggestionsForBusinessModel,
   fallbackSuggestionsForDatasetType,
   generateSuggestions,
 } from '@/lib/data/dataset-intelligence';
+import { resolveBusinessModel } from '@/lib/data/business-model';
 import { db } from '@/lib/db';
 import { datasetRows, datasets } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
@@ -53,13 +55,26 @@ export async function GET(
     
     const columns = Array.isArray(dataset.columns) ? dataset.columns : [];
     const datasetType = detectDatasetTypeFromColumns(columns, dataset.name);
+    const businessModel = resolveBusinessModel({
+      explicit: dataset.businessModel,
+      uploadSource:
+        dataset.analysis && typeof dataset.analysis === "object"
+          ? String((dataset.analysis as Record<string, unknown>).uploadSource || "")
+          : "",
+      datasetType: dataset.datasetType,
+      columns,
+      datasetName: dataset.name,
+      analysis: dataset.analysis,
+    });
+    const businessModelFallback = fallbackSuggestionsForBusinessModel(businessModel);
 
     if (data.length === 0) {
       return NextResponse.json({
-        suggestions: fallbackSuggestionsForDatasetType(datasetType),
+        suggestions: businessModelFallback,
         datasetId: id,
         datasetName: dataset.name,
         datasetType,
+        businessModel,
         fallback: true,
       });
     }
@@ -71,7 +86,7 @@ export async function GET(
     const suggestions = generateSuggestions(intelligence, dataset.name);
     const safeSuggestions = suggestions.length >= 10
       ? suggestions
-      : [...new Set([...suggestions, ...fallbackSuggestionsForDatasetType(datasetType)])].slice(0, 12);
+      : [...new Set([...suggestions, ...businessModelFallback, ...fallbackSuggestionsForDatasetType(datasetType)])].slice(0, 12);
 
     debugLog('[SUGGESTIONS] Generated', safeSuggestions.length, 'suggestions');
 
@@ -80,6 +95,7 @@ export async function GET(
       datasetId: id,
       datasetName: dataset.name,
       datasetType,
+      businessModel,
     });
 
   } catch (error: any) {

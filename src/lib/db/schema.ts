@@ -35,6 +35,17 @@ export const accuracyDatasetTypes = [
 ] as const;
 export type AccuracyDatasetType = (typeof accuracyDatasetTypes)[number];
 
+export const datasetBusinessModels = [
+  "local_retail",
+  "ecommerce",
+  "saas",
+  "startup",
+  "investor",
+  "marketplace",
+  "generic",
+] as const;
+export type DatasetBusinessModel = (typeof datasetBusinessModels)[number];
+
 // User table - NextAuth compatible
 export const users = pgTable(
   "User",
@@ -314,6 +325,7 @@ export const datasets = pgTable(
 
     // Module routing
     datasetType: varchar("datasetType", { length: 50 }).default("standard"),
+    businessModel: varchar("businessModel", { length: 50 }).default("generic").$type<DatasetBusinessModel>(),
 
     // Legacy field - deprecated
     status: varchar("status", { length: 255 }).default("processing").notNull(),
@@ -328,6 +340,7 @@ export const datasets = pgTable(
       foreignColumns: [users.id],
       name: "Dataset_userId_fkey",
     }).onDelete("cascade"),
+    businessModelIdx: index("Dataset_userId_businessModel_idx").on(table.userId, table.businessModel),
   }),
 );
 
