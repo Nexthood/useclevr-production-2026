@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-14
-- **Goal**: Separate dataset processing type from business model for local retail, ecommerce, SaaS, startup, investor, marketplace, and generic datasets.
-- **Durable change**: Datasets now carry a persisted business model, uploads resolve business model deterministically from explicit input, upload module, schema, and generic fallback, dashboards select model-specific KPIs and map eligibility, dataset suggestions use business-model questions, and AI analysis prompts include strict business-model context.
-- **Verification**: `pnpm test:business-models` and `pnpm exec tsc --noEmit --pretty false` pass before project-record validation.
+- **Date**: 2026-07-15
+- **Goal**: Restore Dataset Library row preview navigation and dashboard report generation for uploaded datasets.
+- **Durable change**: Dataset Library row preview opens the selected dataset route, dashboard report generation posts the selected dataset ID, generated reports keep ownership metadata, and successful generation redirects to the saved report preview.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes; deployed authenticated browser verification is blocked from this shell.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -26,6 +26,19 @@ export type DashboardAggregatedDataset = {
   detectedColumns: unknown
 }
 
+export type DashboardDatasetChoice = {
+  id: string
+  name: string
+  fileName: string
+  rowCount: number
+  columnCount: number
+  datasetType: string
+  businessModel: BusinessModel
+  analysisStatus: string | null
+  status: string
+  createdAt: Date
+}
+
 export type NormalizedDashboardData = {
   datasetCount: number
   activeDatasetCount: number
@@ -63,11 +76,60 @@ const COLUMN_ALIASES = {
   region: ["country", "city", "region", "market", "location", "state", "territory"],
 } satisfies Record<string, string[]>
 
+export async function listDashboardDatasetChoices(userId: string | null): Promise<DashboardDatasetChoice[]> {
+  if (!userId) return []
+
+  const rows = await db.query.datasets.findMany({
+    where: eq(datasets.userId, userId),
+    orderBy: [desc(datasets.createdAt)],
+    limit: 100,
+    columns: {
+      id: true,
+      name: true,
+      fileName: true,
+      rowCount: true,
+      columnCount: true,
+      columns: true,
+      datasetType: true,
+      businessModel: true,
+      analysisStatus: true,
+      status: true,
+      createdAt: true,
+      analysis: true,
+    },
+  })
+
+  return rows.map((dataset) => {
+    const columns = Array.isArray(dataset.columns) ? dataset.columns : []
+    const analysis = dataset.analysis
+    return {
+      id: dataset.id,
+      name: dataset.name,
+      fileName: dataset.fileName,
+      rowCount: dataset.rowCount || 0,
+      columnCount: dataset.columnCount || 0,
+      datasetType: dataset.datasetType || "standard",
+      businessModel: resolveBusinessModel({
+        explicit: dataset.businessModel,
+        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : "",
+        datasetType: dataset.datasetType,
+        columns,
+        datasetName: dataset.name,
+        analysis,
+      }),
+      analysisStatus: dataset.analysisStatus,
+      status: dataset.status || "ready",
+      createdAt: dataset.createdAt || new Date(),
+    }
+  })
+}
+
 export async function loadDashboardDatasetAggregation(
   userId: string | null,
   options: { datasetId?: string | null } = {},
 ): Promise<NormalizedDashboardData> {
   if (!userId) return emptyDashboardData()
+  if (!options.datasetId) return emptyDashboardData()
 
   const rows = await db.query.datasets.findMany({
     where: options.datasetId

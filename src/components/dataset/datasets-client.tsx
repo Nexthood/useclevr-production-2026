@@ -176,7 +176,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           : getDatasetTypeLink(dataset)
         return (
           <div className="flex justify-end gap-3">
-            <Link href={`/app/datasets/${dataset.id}`} className="text-xs font-medium text-primary hover:underline">
+            <Link href={`/app/datasets/${dataset.id}/rows`} className="text-xs font-medium text-primary hover:underline">
               View rows
             </Link>
             <Link href={analyzeHref} className="text-xs font-medium text-primary hover:underline">
