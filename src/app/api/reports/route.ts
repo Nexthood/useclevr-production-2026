@@ -5,13 +5,8 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 import { auth } from '@/lib/auth/auth';
 import { isSuperAdminUserId } from '@/lib/auth/builtin-users';
-import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
-import { emptyProviderUsage } from '@/lib/billing/provider-usage';
-import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
-import { findAccessibleDataset } from '@/lib/data/dataset-access';
 import { getDb } from '@/lib/db';
-import { profiles, datasets } from '@/lib/db/schema';
-import { buildDatasetReportInput } from '@/lib/reports/dataset-report-builder';
+import { datasets } from '@/lib/db/schema';
 import { deleteReport, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
 import { and, eq } from 'drizzle-orm';
 import * as fs from 'fs';
@@ -51,9 +46,9 @@ export async function POST(request: Request) {
     if (!session) return unauthorized();
 
     const body = await request.json();
-    const {
+    const { 
       datasetId, 
-      datasetName,
+      datasetName, 
       visibility = 'private',
       includePredictions = true,
       includeAlerts = true,
@@ -64,9 +59,9 @@ export async function POST(request: Request) {
     
     debugLog('[REPORTS POST] Received request:', { datasetId, datasetName, visibility });
     
-    if (!datasetId) {
+    if (!datasetId || !datasetName) {
       return NextResponse.json(
-        { error: 'datasetId is required' },
+        { error: 'datasetId and datasetName are required' },
         { status: 400 }
       );
     }
@@ -74,143 +69,20 @@ export async function POST(request: Request) {
     if (!(await canAccessDataset(session.user.id, session.user.role, session.user.email, datasetId))) {
       return forbidden();
     }
-
-    const idempotencyKey = request.headers.get('idempotency-key') || (typeof body.idempotencyKey === 'string' ? body.idempotencyKey : null);
-    if (idempotencyKey) {
-      const existing = listReports(datasetId).find((report) => report.idempotencyKey === idempotencyKey);
-      if (existing) {
-        return NextResponse.json({
-          success: true,
-          reportId: existing.id,
-          status: existing.status || 'ready',
-          shareableLink: `/report/${existing.id}`,
-          redirectUrl: `/app/reports/${existing.id}`,
-          downloadUrl: `/api/reports/download?id=${existing.id}&format=pdf`,
-          downloadsUrl: '/app/downloads',
-          previewUrl: `/report/${existing.id}`,
-          idempotent: true,
-        });
-      }
-    }
-
-    const role = session.user.role ?? null;
-    const isUnlimited = isUnlimitedCreditRole(role);
-    const operationId = `report:${session.user.id}:${idempotencyKey || crypto.randomUUID()}`;
-    const profile = await getDb()?.query.profiles.findFirst({
-      where: eq(profiles.userId, session.user.id),
-      columns: { subscriptionTier: true },
-    }).catch(() => null);
-    const subscriptionTier = isUnlimited ? role || 'superadmin' : profile?.subscriptionTier || 'free';
-    const reservation = isUnlimited
-      ? null
-      : await reserveCredits({
-          userId: session.user.id,
-          operationId,
-          idempotencyKey: operationId,
-          estimatedCredits: 1,
-          feature: 'report_generation',
-          source: 'api',
-          role,
-          email: session.user.email ?? null,
-          metadata: { datasetId },
-        });
-
-    if (reservation && !reservation.success) {
-      await logAiCost({
-        userId: session.user.id,
-        subscriptionPlan: subscriptionTier,
-        provider: 'system',
-        model: 'report-generator',
-        actionType: 'report_generation',
-        inputTokens: 0,
-        outputTokens: 0,
-        estimatedCostEur: 0,
-        creditsCharged: 0,
-        requestStatus: 'blocked',
-        errorMessage: reservation.error,
-      });
-      return NextResponse.json({ success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' }, { status: 402 });
-    }
-
-    const enforcementCheck = await checkActionEnforcement(session.user.id, 'report_generation', role, session.user.email ?? null);
-    if (!enforcementCheck.allowed) {
-      if (reservation) await releaseCredits(operationId, 'usage_limit_blocked');
-      await logAiCost({
-        userId: session.user.id,
-        subscriptionPlan: subscriptionTier,
-        provider: 'system',
-        model: 'report-generator',
-        actionType: 'report_generation',
-        inputTokens: 0,
-        outputTokens: 0,
-        estimatedCostEur: 0,
-        creditsCharged: 0,
-        requestStatus: 'blocked',
-        errorMessage: enforcementCheck.reason,
-      });
-      return NextResponse.json({ success: false, error: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit.' }, { status: 402 });
-    }
-
-    let report;
-    try {
-      let reportInput = analysisData;
-      let resolvedDatasetName = datasetName;
-      if (!resolvedDatasetName || !analysisData.rowCount || !Array.isArray(analysisData.columns)) {
-        const access = await findAccessibleDataset(datasetId, session.user.id, session.user.role);
-        if (access.dbUnavailable) {
-          if (reservation) await releaseCredits(operationId, 'database_unavailable');
-          return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
-        }
-        if (!access.dataset) {
-          if (reservation) await releaseCredits(operationId, 'dataset_not_found');
-          return NextResponse.json({ success: false, error: 'Dataset not found' }, { status: 404 });
-        }
-        resolvedDatasetName = access.dataset.name;
-        reportInput = await buildDatasetReportInput(access.dataset);
-      }
-
-      report = await generateReport(
-        datasetId,
-        resolvedDatasetName,
-        { visibility, includePredictions, includeAlerts, timezone, timezoneOffset },
-        {
-          ...reportInput,
-          status: 'ready',
-          idempotencyKey: idempotencyKey || undefined,
-          userId: session.user.id,
-          workspaceId: null,
-        }
-      );
-    } catch (generationError) {
-      if (reservation) await releaseCredits(operationId, 'report_generation_failed');
-      throw generationError;
-    }
-
-    if (reservation) {
-      const settlement = await finalizeCredits({
-        operationId,
-        actualCredits: 1,
-        actualUsage: emptyProviderUsage('system', 'report-generator'),
-        metadata: { datasetId, reportId: report.id },
-      });
-      if (!settlement.success) {
-        await releaseCredits(operationId, 'report_charge_failed');
-        return NextResponse.json({ success: false, error: settlement.error || 'Unable to finalize report credits.' }, { status: 402 });
-      }
-    }
+    
+    const report = await generateReport(
+      datasetId,
+      datasetName,
+      { visibility, includePredictions, includeAlerts, timezone, timezoneOffset },
+      analysisData
+    );
     
     debugLog('[REPORTS POST] Generated report:', report.id);
     
     return NextResponse.json({
       success: true,
       reportId: report.id,
-      status: report.status || 'ready',
       shareableLink: `/report/${report.id}`,
-      redirectUrl: `/app/reports/${report.id}`,
-      previewUrl: `/report/${report.id}`,
-      downloadUrl: `/api/reports/download?id=${report.id}&format=pdf`,
-      excelDownloadUrl: `/api/reports/download?id=${report.id}&format=csv`,
-      downloadsUrl: '/app/downloads',
       visibility: report.visibility,
       createdAt: report.createdAt,
       localTime: report.localTime,

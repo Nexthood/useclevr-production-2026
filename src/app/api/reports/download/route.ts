@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const reportId = searchParams.get('id')
-    const format = searchParams.get('format') || 'pdf'
+    const _format = searchParams.get('format') || 'pdf'
 
     if (!reportId) {
       return NextResponse.json(
@@ -68,18 +68,6 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Forbidden' },
         { status: 403 }
       )
-    }
-
-    if (format === 'csv' || format === 'xlsx') {
-      const csvContent = generateReportCSV(report)
-      const filename = `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.csv`
-
-      return new NextResponse(csvContent, {
-        headers: {
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-      })
     }
 
 // Check if PDF exists

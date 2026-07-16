@@ -75,7 +75,7 @@
 
 ### Fixed
 
-- Open dataset row previews from Dataset Library with the selected dataset and route generated dashboard reports directly to a saved preview.
+- Restore stable dataset navigation by reverting the row-preview and dashboard report-generation routing changes.
 - Preserve admin and superadmin authorization from the first authenticated request so credit, Hybrid AI, setup, report, assistant, and dataset-analysis gates do not show upgrade prompts.
 - Show admin and superadmin accounts as unlimited across subscription, header, sidebar, and upload flows while Standard and Profitability uploads route successful results to the correct analysis pages.
 - Keep unlimited analyst credits strictly tied to authenticated admin and superadmin roles so normal Free accounts cannot inherit the bypass and unlimited accounts do not show fake credit balances.

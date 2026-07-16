@@ -1,0 +1,6 @@
+client_id,project_id,industry,project_start,project_end,billable_hours,hourly_rate,revenue,consultant_cost,gross_margin,status
+cli_001,proj_1001,Retail,2026-01-05,2026-02-14,180,160,28800,13200,15600,completed
+cli_002,proj_1002,SaaS,2026-02-01,2026-03-30,240,185,44400,21000,23400,completed
+cli_003,proj_1003,Manufacturing,2026-03-15,2026-05-15,310,150,46500,27900,18600,active
+cli_004,proj_1004,Healthcare,2026-04-01,2026-06-10,140,175,24500,11200,13300,active
+cli_005,proj_1005,Finance,2026-05-01,2026-06-20,96,210,20160,9600,10560,paused

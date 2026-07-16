@@ -1,0 +1,6 @@
+company_id,company_name,sector,stage,country,invested_amount,ownership_percent,latest_valuation,revenue,growth_rate,runway_months
+co_001,Northwind AI,Software,Series A,Netherlands,750000,8.5,9200000,1100000,0.42,18
+co_002,GreenGrid Energy,Climate,Seed,Germany,420000,6.0,4800000,320000,0.31,14
+co_003,MedFlow Health,Healthcare,Series B,United Kingdom,1250000,4.2,28000000,4300000,0.24,22
+co_004,LedgerLoop,Fintech,Seed,France,300000,7.5,3600000,180000,0.55,11
+co_005,RouteWorks,Logistics,Series A,United States,900000,5.1,15000000,2600000,0.28,16

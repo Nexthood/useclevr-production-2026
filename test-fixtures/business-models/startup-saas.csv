@@ -1,0 +1,6 @@
+date,customer_id,plan,mrr,arr,churned,new_customer,cac,ltv,burn,runway_months,country
+2026-01-31,cus_1001,Pro,1200,14400,false,true,450,6200,18000,14,Netherlands
+2026-02-28,cus_1002,Team,2400,28800,false,true,520,9100,19000,13,Germany
+2026-03-31,cus_1003,Starter,300,3600,true,false,180,1200,17500,12,United Kingdom
+2026-04-30,cus_1004,Enterprise,8000,96000,false,true,2100,42000,22000,15,United States
+2026-05-31,cus_1005,Pro,1500,18000,false,true,480,6800,20500,14,France
