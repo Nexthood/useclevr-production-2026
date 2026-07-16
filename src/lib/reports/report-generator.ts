@@ -106,8 +106,6 @@ export interface Report {
   id: string;
   datasetId: string;
   datasetName: string;
-  userId?: string | null;
-  workspaceId?: string | null;
   createdAt: string;
   status?: 'pending' | 'processing' | 'ready' | 'failed';
   reportType?: string;
@@ -166,8 +164,6 @@ export async function generateReport(
     reportType?: string;
     businessModel?: string;
     idempotencyKey?: string;
-    userId?: string | null;
-    workspaceId?: string | null;
   }
 ): Promise<Report> {
   // Generate unique report ID
@@ -203,8 +199,6 @@ export async function generateReport(
     id: reportId,
     datasetId,
     datasetName,
-    userId: analysisData.userId ?? null,
-    workspaceId: analysisData.workspaceId ?? null,
     createdAt: utcTimestamp,
     
     // Timezone metadata - stored internally

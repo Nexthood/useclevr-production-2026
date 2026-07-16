@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Download, FileText, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 type GenerateReportActionProps = {
@@ -13,7 +12,6 @@ type GenerateReportActionProps = {
 type ReportResult = {
   reportId: string
   status: string
-  redirectUrl: string
   previewUrl: string
   downloadUrl: string
   excelDownloadUrl?: string
@@ -21,7 +19,6 @@ type ReportResult = {
 }
 
 export function GenerateReportAction({ datasetId }: GenerateReportActionProps) {
-  const router = useRouter()
   const [isGenerating, setIsGenerating] = useState(false)
   const [result, setResult] = useState<ReportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -45,18 +42,14 @@ export function GenerateReportAction({ datasetId }: GenerateReportActionProps) {
       if (!response.ok || !body.success) {
         throw new Error(body.error || "Report generation failed.")
       }
-      const redirectUrl = body.redirectUrl || body.previewUrl || `/report/${body.reportId}`
       setResult({
         reportId: body.reportId,
         status: body.status || "ready",
-        redirectUrl,
         previewUrl: body.previewUrl || `/report/${body.reportId}`,
         downloadUrl: body.downloadUrl || `/api/reports/download?id=${body.reportId}&format=pdf`,
         excelDownloadUrl: body.excelDownloadUrl,
         downloadsUrl: body.downloadsUrl || "/app/downloads",
       })
-      router.push(redirectUrl)
-      router.refresh()
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "Report generation failed.")
     } finally {
@@ -72,7 +65,7 @@ export function GenerateReportAction({ datasetId }: GenerateReportActionProps) {
       </Button>
       {result && (
         <>
-          <Link href={result.redirectUrl}>
+          <Link href={result.previewUrl}>
             <Button type="button" variant="outline" className="gap-2">
               <FileText className="h-4 w-4" />
               Report preview
