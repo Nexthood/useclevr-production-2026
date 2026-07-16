@@ -110,6 +110,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   const gate = await requireHybridAiFeature("datasetAwareChat");
   if (!gate.success) return gate.error;
   const userId = gate.session?.user?.id;
@@ -232,6 +233,9 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({
         success: false,
+        code: "AI_PROVIDER_ERROR",
+        message,
+        requestId,
         error: message,
         answer: message,
         content: message,
@@ -281,6 +285,9 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
+      code: "AI_PROVIDER_ERROR",
+      message,
+      requestId,
       error: message,
       answer: message,
       content: message,
@@ -358,6 +365,9 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
+      code: "AI_PROVIDER_ERROR",
+      message,
+      requestId,
       error: message,
       datasetContext: contextForClient(context),
       privacyWarning: null,

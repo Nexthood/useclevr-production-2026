@@ -75,6 +75,7 @@
 
 ### Fixed
 
+- Parse AI Assistant responses from one raw response body so failed JSON parsing no longer triggers consumed-body errors.
 - Restore stable dataset navigation by reverting the row-preview and dashboard report-generation routing changes.
 - Preserve admin and superadmin authorization from the first authenticated request so credit, Hybrid AI, setup, report, assistant, and dataset-analysis gates do not show upgrade prompts.
 - Show admin and superadmin accounts as unlimited across subscription, header, sidebar, and upload flows while Standard and Profitability uploads route successful results to the correct analysis pages.

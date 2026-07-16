@@ -90,6 +90,22 @@ function responseText(data: Record<string, unknown>) {
   return "I could not generate an answer for that question."
 }
 
+async function readAssistantResponse(response: Response): Promise<Record<string, unknown>> {
+  const rawBody = await response.text()
+  if (!rawBody) return {}
+
+  try {
+    const parsed = JSON.parse(rawBody)
+    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {}
+  } catch {
+    debugError("[AI_ASSISTANT] Failed to parse response as JSON", {
+      status: response.status,
+      text: rawBody.slice(0, 500),
+    })
+    throw new Error("I received an incomplete AI response. Please try again.")
+  }
+}
+
 type SavedSuggestion = {
   id: string
   text: string
@@ -237,17 +253,7 @@ export function AiAssistantWorkspace() {
         }),
       })
       
-      let body: Record<string, unknown>
-      try {
-        body = await response.json()
-      } catch {
-        const responseText = await response.text()
-        debugError("[AI_ASSISTANT] Failed to parse response as JSON", { 
-          status: response.status, 
-          text: responseText.slice(0, 500) 
-        })
-        throw new Error("I received an incomplete AI response. Please try again.")
-      }
+      const body = await readAssistantResponse(response)
 
       if (!response.ok || body.success === false) {
         const errorMessage = String(body.message || body.error || "The assistant could not answer that question.")
