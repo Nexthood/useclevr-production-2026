@@ -107,6 +107,12 @@ export interface Report {
   datasetId: string;
   datasetName: string;
   createdAt: string;
+  status?: 'pending' | 'processing' | 'ready' | 'failed';
+  reportType?: string;
+  businessModel?: string;
+  userId?: string | null;
+  workspaceId?: string | null;
+  idempotencyKey?: string | null;
   
   // Timezone metadata
   timezone: string;
@@ -145,6 +151,12 @@ export async function generateReport(
     includeAlerts?: boolean;
     timezone?: string;
     timezoneOffset?: number;
+    status?: 'pending' | 'processing' | 'ready' | 'failed';
+    reportType?: string;
+    businessModel?: string;
+    userId?: string | null;
+    workspaceId?: string | null;
+    idempotencyKey?: string | null;
   },
   analysisData: {
     summary?: string;
@@ -154,6 +166,8 @@ export async function generateReport(
     aiInsights?: string[];
     predictions?: string[];
     alerts?: { type: string; message: string; severity: string }[];
+    reportType?: string;
+    businessModel?: string;
     rowCount: number;
     columns: string[];
   }
@@ -192,6 +206,12 @@ export async function generateReport(
     datasetId,
     datasetName,
     createdAt: utcTimestamp,
+    status: options.status || 'ready',
+    reportType: options.reportType || analysisData.reportType,
+    businessModel: options.businessModel || analysisData.businessModel,
+    userId: options.userId || null,
+    workspaceId: options.workspaceId || options.userId || null,
+    idempotencyKey: options.idempotencyKey || null,
     
     // Timezone metadata - stored internally
     timezone,
@@ -268,6 +288,14 @@ export function listReports(datasetId: string): Report[] {
   return Array.from(getReports().values())
     .filter(r => r.datasetId === datasetId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+/**
+ * Find an existing report generated for the same dataset operation.
+ */
+export function findReportByIdempotencyKey(datasetId: string, idempotencyKey: string): Report | null {
+  return Array.from(getReports().values())
+    .find((report) => report.datasetId === datasetId && report.idempotencyKey === idempotencyKey) || null;
 }
 
 /**

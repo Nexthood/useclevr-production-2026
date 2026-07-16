@@ -1,6 +1,7 @@
 import { WorldMapRevenue, type RegionData } from "@/components/ui/world-map-revenue"
 import { Card } from "@/components/ui/card"
 import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboard-tabs"
+import { GenerateReportAction } from "@/components/dashboard/generate-report-action"
 import { auth } from "@/lib/auth/auth"
 import {
   getBusinessModelKpiNames,
@@ -725,6 +726,12 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
 
   const kpis = buildBusinessModelKpis(metrics)
   const topRecommendations = metrics.recommendations.slice(0, 3)
+  const selectedAnalysisStatus = selected.selectedDataset?.analysisStatus || ""
+  const selectedDatasetReady = Boolean(
+    selected.selectedDataset &&
+    selected.selectedDataset.status !== "deleted" &&
+    (!selectedAnalysisStatus || new Set(["ready", "completed", "processed"]).has(selectedAnalysisStatus)),
+  )
 
   return (
     <div className="flex-1 bg-background">
@@ -751,21 +758,26 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                 </p>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
-                <Link
-                  key={key}
-                  href={buildDashboardHref({ range: key, datasetId: selectedDatasetId })}
-                  className={[
-                    "rounded-lg border px-3 py-2 text-sm font-medium transition",
-                    range === key
-                      ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-700 dark:text-cyan-100"
-                      : "border-border bg-background/60 text-muted-foreground hover:border-primary/35 hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {RANGE_LABELS[key]}
-                </Link>
-              ))}
+            <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
+              <div className="flex flex-wrap items-center gap-2">
+                {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
+                  <Link
+                    key={key}
+                    href={buildDashboardHref({ range: key, datasetId: selectedDatasetId })}
+                    className={[
+                      "rounded-lg border px-3 py-2 text-sm font-medium transition",
+                      range === key
+                        ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-700 dark:text-cyan-100"
+                        : "border-border bg-background/60 text-muted-foreground hover:border-primary/35 hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {RANGE_LABELS[key]}
+                  </Link>
+                ))}
+              </div>
+              {selected.selectedDataset && (
+                <GenerateReportAction datasetId={selected.selectedDataset.id} disabled={!selectedDatasetReady} />
+              )}
             </div>
           </div>
         </section>
