@@ -1,0 +1,6 @@
+order_id,order_date,customer_id,country,region,product,quantity,revenue,shipping_cost,return_status,channel
+ord_9001,2026-06-01,cus_201,Netherlands,North Holland,Smart Lamp,2,158,8,kept,Shopify
+ord_9002,2026-06-01,cus_202,Germany,Bavaria,Desk Mat,1,45,6,returned,Amazon
+ord_9003,2026-06-02,cus_203,France,Ile-de-France,Smart Lamp,1,79,7,kept,Shopify
+ord_9004,2026-06-03,cus_201,Netherlands,North Holland,Cable Kit,3,72,5,kept,Email
+ord_9005,2026-06-04,cus_204,United Kingdom,England,Desk Mat,2,90,9,kept,Google Shopping
