@@ -31,8 +31,6 @@ interface DownloadItem {
 interface ReportListItem {
   id: string
   datasetName?: string | null
-  reportType?: string | null
-  status?: "pending" | "processing" | "ready" | "failed" | null
   localTime?: string | null
   createdAt: string
   timezone?: string | null
@@ -136,8 +134,8 @@ export default function DownloadsPage() {
           name: report.datasetName || "Analysis Report",
           type: "pdf", // PDF reports are now generated
           date: report.localTime || new Date(report.createdAt).toISOString().split('T')[0],
-          source: `${report.datasetName || "Dataset"}${report.reportType ? ` · ${report.reportType.replaceAll("_", " ")}` : ""}`,
-          status: report.status === "failed" ? "failed" : report.status === "pending" || report.status === "processing" ? "generating" : "ready",
+          source: report.datasetName || "Dataset",
+          status: "ready", // Reports are generated synchronously
           url: `/api/reports/download?id=${report.id}&format=pdf`,
           timezone: report.timezone || null,
           createdAt: report.createdAt,
