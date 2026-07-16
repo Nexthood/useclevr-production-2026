@@ -1,3 +1,4 @@
+- changed: add Business Balanced Scorecard reporting to selected dashboards and generated reports with deterministic perspective scores, model-specific KPIs, confidence notes, and report/download persistence
 - fixed: connect selected Dashboard datasets to Reports & Downloads with a visible Generate Report action, dataset-scoped report creation, persisted report metadata, Downloads redirect, selected report highlighting, and PDF/CSV download actions
 - fixed: parse AI Assistant and configured-provider responses from a single raw body owner so JSON parse failures and non-JSON provider errors do not consume a response body twice
 - fixed: restore the stable dataset baseline by reverting the row-preview and dashboard report-generation routing changes while keeping Standard Upload, superadmin unlimited access, dashboard dataset routing, business-model routing, and World Map behavior intact

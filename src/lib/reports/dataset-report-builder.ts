@@ -1,3 +1,4 @@
+import { calculateBusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
@@ -65,17 +66,19 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   const kpis = buildKpis(reportModel, rows, columnMap)
   const charts = buildCharts(reportModel, rows, columnMap)
   const findings = buildFindings(reportModel, rows, columnMap, kpis)
+  const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
 
   return {
     businessModel,
     reportType: reportModel,
-    summary: `${reportModelLabel(reportModel)} report for ${dataset.name}. This report uses only the selected dataset (${dataset.id}) and does not combine other uploads.`,
+    summary: `${reportModelLabel(reportModel)} report for ${dataset.name}. This report includes a Business Balanced Scorecard (also known as Balanced Scorecard or BSC) and uses only the selected dataset (${dataset.id}).`,
     findings,
     kpis,
     charts,
     aiInsights: extractInsights(dataset.analysis),
     predictions: [],
     alerts: buildAlerts(reportModel, rows, columnMap),
+    bbsc,
     rowCount: dataset.rowCount || rows.length,
     columns,
   }

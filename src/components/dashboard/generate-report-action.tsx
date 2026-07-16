@@ -9,9 +9,11 @@ import { useRef, useState } from "react"
 export function GenerateReportAction({
   datasetId,
   disabled = false,
+  label = "Generate Report",
 }: {
   datasetId: string
   disabled?: boolean
+  label?: string
 }) {
   const router = useRouter()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -81,7 +83,7 @@ export function GenerateReportAction({
         ) : (
           <FileText className="mr-2 h-4 w-4" />
         )}
-        {isGenerating ? "Generating..." : "Generate Report"}
+        {isGenerating ? "Generating..." : label}
       </Button>
       {error && (
         <p className="max-w-xs text-right text-xs text-red-500">{error}</p>
