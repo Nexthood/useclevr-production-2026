@@ -1,7 +1,9 @@
 import { WorldMapRevenue, type RegionData } from "@/components/ui/world-map-revenue"
 import { Card } from "@/components/ui/card"
 import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboard-tabs"
+import { GenerateReportAction } from "@/components/dashboard/generate-report-action"
 import { auth } from "@/lib/auth/auth"
+import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
 import {
   getBusinessModelKpiNames,
   getBusinessModelLabel,
@@ -725,6 +727,19 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
 
   const kpis = buildBusinessModelKpis(metrics)
   const topRecommendations = metrics.recommendations.slice(0, 3)
+  const selectedAnalysisStatus = selected.selectedDataset?.analysisStatus || ""
+  const selectedDatasetReady = Boolean(
+    selected.selectedDataset &&
+    selected.selectedDataset.status !== "deleted" &&
+    (!selectedAnalysisStatus || new Set(["ready", "completed", "processed"]).has(selectedAnalysisStatus)),
+  )
+  const bbscPreview = selected.selectedDataset
+    ? calculateBusinessBalancedScorecard({
+        rows: selected.selectedDataset.data,
+        columns: selected.selectedDataset.columns,
+        businessModel: selected.selectedDataset.businessModel,
+      })
+    : null
 
   return (
     <div className="flex-1 bg-background">
@@ -751,21 +766,26 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                 </p>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
-                <Link
-                  key={key}
-                  href={buildDashboardHref({ range: key, datasetId: selectedDatasetId })}
-                  className={[
-                    "rounded-lg border px-3 py-2 text-sm font-medium transition",
-                    range === key
-                      ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-700 dark:text-cyan-100"
-                      : "border-border bg-background/60 text-muted-foreground hover:border-primary/35 hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {RANGE_LABELS[key]}
-                </Link>
-              ))}
+            <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
+              <div className="flex flex-wrap items-center gap-2">
+                {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
+                  <Link
+                    key={key}
+                    href={buildDashboardHref({ range: key, datasetId: selectedDatasetId })}
+                    className={[
+                      "rounded-lg border px-3 py-2 text-sm font-medium transition",
+                      range === key
+                        ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-700 dark:text-cyan-100"
+                        : "border-border bg-background/60 text-muted-foreground hover:border-primary/35 hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {RANGE_LABELS[key]}
+                  </Link>
+                ))}
+              </div>
+              {selected.selectedDataset && (
+                <GenerateReportAction datasetId={selected.selectedDataset.id} disabled={!selectedDatasetReady} />
+              )}
             </div>
           </div>
         </section>
@@ -777,6 +797,14 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
             <ExecutiveKpiCard key={item.label} item={item} />
           ))}
         </section>
+
+        {selected.selectedDataset && bbscPreview && (
+          <BusinessBalancedScorecardPreview
+            scorecard={bbscPreview}
+            datasetId={selected.selectedDataset.id}
+            disabled={!selectedDatasetReady}
+          />
+        )}
 
         <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
           <TrendPanel title="Revenue Trend" metricLabel="Revenue" data={metrics.revenueTrend} format="currency" emptyLabel="Missing revenue/date columns." />
@@ -1396,6 +1424,63 @@ function HealthCard({ label, value, tone }: { label: string; value: number; tone
         </div>
       </div>
     </Card>
+  )
+}
+
+function BusinessBalancedScorecardPreview({
+  scorecard,
+  datasetId,
+  disabled,
+}: {
+  scorecard: BusinessBalancedScorecard
+  datasetId: string
+  disabled: boolean
+}) {
+  const perspectiveRows = [
+    scorecard.perspectives.financial,
+    scorecard.perspectives.customer,
+    scorecard.perspectives.processes,
+    scorecard.perspectives.growth,
+  ]
+
+  return (
+    <DashboardSection
+      icon={CheckCircle2}
+      title="Business Balanced Scorecard"
+      action={<GenerateReportAction datasetId={datasetId} disabled={disabled} label="View full BBSC report" />}
+      compact
+    >
+      <Card className="p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Also known as Balanced Scorecard (BSC)</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{scorecard.confidenceNote}</p>
+          </div>
+          <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-left lg:text-right">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-100">Overall</p>
+            <p className="mt-1 text-3xl font-semibold text-foreground">{scorecard.overallScore === null ? "No score" : scorecard.overallScore}</p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {perspectiveRows.map((perspective) => (
+            <div key={perspective.key} className="rounded-lg border border-border bg-background/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{perspective.shortTitle}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{perspective.trend === "unknown" ? "Trend unavailable" : `${perspective.trend} trend`}</p>
+                </div>
+                <p className="shrink-0 text-2xl font-semibold text-foreground">{perspective.score === null ? "N/A" : perspective.score}</p>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                {perspective.status === "available"
+                  ? `${perspective.dataConfidence}% data confidence`
+                  : `Needs ${perspective.requiredFields.slice(0, 2).join(", ")}`}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </DashboardSection>
   )
 }
 

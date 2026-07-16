@@ -929,12 +929,11 @@ async function fetchJsonWithTimeout<T>(url: string, init: RequestInit) {
       redirect: "error",
       signal: controller.signal,
     });
-    const body = (await response.json().catch(() => ({}))) as T & {
-      error?: unknown;
-    };
+    const normalized = await readProviderResponse(response);
+    const body = (normalized.data ?? {}) as T & { error?: unknown };
 
     if (!response.ok) {
-      throw new Error(getProviderErrorMessage(response.status, body));
+      throw new Error(normalized.errorMessage || getProviderErrorMessage(response.status, body, normalized.rawText));
     }
 
     return body;
@@ -948,7 +947,37 @@ async function fetchJsonWithTimeout<T>(url: string, init: RequestInit) {
   }
 }
 
-function getProviderErrorMessage(status: number, body: { error?: unknown }) {
+async function readProviderResponse(response: Response): Promise<{
+  ok: boolean;
+  status: number;
+  data?: unknown;
+  rawText: string;
+  errorCode?: string;
+  errorMessage?: string;
+}> {
+  const rawText = await response.text();
+  let data: unknown;
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = undefined;
+    }
+  }
+
+  const body = data && typeof data === "object" ? data as { error?: unknown } : {};
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data,
+    rawText,
+    errorCode: response.ok ? undefined : `HTTP_${response.status}`,
+    errorMessage: response.ok ? undefined : getProviderErrorMessage(response.status, body, rawText),
+  };
+}
+
+function getProviderErrorMessage(status: number, body: { error?: unknown }, rawText?: string) {
   if (body.error && typeof body.error === "object") {
     const error = body.error as { message?: unknown; type?: unknown; code?: unknown; status?: unknown };
     const parts = [error.message, error.type, error.code, error.status].filter(Boolean).map(String);
@@ -956,6 +985,7 @@ function getProviderErrorMessage(status: number, body: { error?: unknown }) {
   }
 
   if (typeof body.error === "string") return `Provider returned ${status}: ${body.error}`;
+  if (rawText?.trim()) return `Provider returned ${status}: ${rawText.trim().slice(0, 300)}`;
 
   return `Provider returned HTTP ${status}.`;
 }

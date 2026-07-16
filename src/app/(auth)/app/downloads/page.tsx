@@ -26,6 +26,8 @@ interface DownloadItem {
   error?: string
   timezone?: string | null
   createdAt?: string
+  reportType?: string | null
+  businessModel?: string | null
 }
 
 interface ReportListItem {
@@ -34,6 +36,9 @@ interface ReportListItem {
   localTime?: string | null
   createdAt: string
   timezone?: string | null
+  status?: "pending" | "processing" | "ready" | "failed" | null
+  reportType?: string | null
+  businessModel?: string | null
 }
 
 type UsageResponse = {
@@ -47,6 +52,7 @@ type UsageResponse = {
 }
 
 export default function DownloadsPage() {
+  const [highlightedReportId, setHighlightedReportId] = useState<string | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [downloads, setDownloads] = useState<DownloadItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -135,10 +141,12 @@ export default function DownloadsPage() {
           type: "pdf", // PDF reports are now generated
           date: report.localTime || new Date(report.createdAt).toISOString().split('T')[0],
           source: report.datasetName || "Dataset",
-          status: "ready", // Reports are generated synchronously
+          status: normalizeReportStatus(report.status),
           url: `/api/reports/download?id=${report.id}&format=pdf`,
           timezone: report.timezone || null,
           createdAt: report.createdAt,
+          reportType: report.reportType || null,
+          businessModel: report.businessModel || null,
         }))
         setDownloads(items)
       } else {
@@ -156,8 +164,19 @@ export default function DownloadsPage() {
     fetchData()
   }, [fetchData])
 
+  useEffect(() => {
+    setHighlightedReportId(new URLSearchParams(window.location.search).get("reportId"))
+  }, [])
+
+  useEffect(() => {
+    const generatedReportId = highlightedReportId || sessionStorage.getItem("lastGeneratedReportId")
+    if (!generatedReportId) return
+    setSelectedIds(new Set([generatedReportId]))
+    sessionStorage.removeItem("lastGeneratedReportId")
+  }, [highlightedReportId])
+
   // Handle download button click
-  const handleDownload = async (item: DownloadItem) => {
+  const handleDownload = async (item: DownloadItem, format: "pdf" | "csv" = "pdf") => {
     if (item.status !== "ready") {
       return // Don't download if not ready
     }
@@ -178,7 +197,7 @@ export default function DownloadsPage() {
       // For reports, use the GET endpoint with report ID
       if (item.type === "pdf" || item.type === "csv") {
         // Use the format from the item type
-        const downloadFormat = item.type === "pdf" ? "pdf" : "csv"
+        const downloadFormat = format
         const downloadUrl = `/api/reports/download?id=${item.id}&format=${downloadFormat}`
         
         const response = await fetch(downloadUrl, {
@@ -327,7 +346,18 @@ export default function DownloadsPage() {
     {
       key: "source",
       header: "Source",
-      render: (row) => <span className="text-muted-foreground">{String(row.source)}</span>,
+      render: (row) => {
+        const item = row as unknown as DownloadItem
+
+        return (
+          <div className="min-w-0">
+            <span className="block truncate text-muted-foreground">{item.source}</span>
+            <span className="mt-1 block truncate text-xs text-muted-foreground">
+              {[formatReportMeta(item.businessModel), formatReportMeta(item.reportType)].filter(Boolean).join(" / ") || "Dataset report"}
+            </span>
+          </div>
+        )
+      },
     },
     {
       key: "date",
@@ -360,15 +390,26 @@ export default function DownloadsPage() {
         const isDownloading = downloadingId === item.id
 
         return (
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 whitespace-nowrap border-border"
-            disabled={item.status !== "ready" || isDownloading}
-            onClick={() => handleDownload(item)}
-          >
-            {isDownloading ? "Downloading..." : "Download"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 whitespace-nowrap border-border"
+              disabled={item.status !== "ready" || isDownloading}
+              onClick={() => handleDownload(item, "pdf")}
+            >
+              {isDownloading ? "Downloading..." : "PDF"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 whitespace-nowrap border-border"
+              disabled={item.status !== "ready" || isDownloading}
+              onClick={() => handleDownload(item, "csv")}
+            >
+              CSV
+            </Button>
+          </div>
         )
       },
     },
@@ -657,4 +698,17 @@ function sanitizeFilename(value: string) {
     .slice(0, 120)
 
   return safe || "analysis-report"
+}
+
+function normalizeReportStatus(status: ReportListItem["status"]): DownloadItem["status"] {
+  if (status === "pending" || status === "processing") return "generating"
+  if (status === "failed") return "failed"
+  return "ready"
+}
+
+function formatReportMeta(value?: string | null) {
+  if (!value) return ""
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }

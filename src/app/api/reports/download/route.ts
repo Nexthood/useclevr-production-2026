@@ -179,6 +179,35 @@ function generateReportCSV(report: Report): string {
     }
     lines.push('')
   }
+
+  if (report.bbsc) {
+    lines.push('# BUSINESS BALANCED SCORECARD')
+    lines.push('# Also known as Balanced Scorecard (BSC)')
+    lines.push(`Overall Business Score: ${report.bbsc.overallScore === null ? 'Insufficient data' : `${report.bbsc.overallScore}/100`}`)
+    lines.push(`Strongest Perspective: ${report.bbsc.strongestPerspective?.title || 'Insufficient data'}`)
+    lines.push(`Weakest Perspective: ${report.bbsc.weakestPerspective?.title || 'Insufficient data'}`)
+    lines.push(`Confidence Note: ${escapeCSV(report.bbsc.confidenceNote)}`)
+    lines.push('')
+    lines.push('Perspective,Score,Trend,Data Confidence,Status,Required Fields')
+    for (const perspective of Object.values(report.bbsc.perspectives)) {
+      lines.push([
+        escapeCSV(perspective.title),
+        perspective.score === null ? 'Insufficient data' : `${perspective.score}/100`,
+        perspective.trend,
+        `${perspective.dataConfidence}%`,
+        perspective.status,
+        escapeCSV(perspective.requiredFields.join('; ')),
+      ].join(','))
+    }
+    lines.push('')
+    if (report.bbsc.topPriorities.length > 0) {
+      lines.push('# TOP BBSC PRIORITIES')
+      for (let index = 0; index < report.bbsc.topPriorities.length; index++) {
+        lines.push(`${index + 1}. ${escapeCSV(report.bbsc.topPriorities[index])}`)
+      }
+      lines.push('')
+    }
+  }
   
   // Findings / Recommendations
   if (report.findings && report.findings.length > 0) {

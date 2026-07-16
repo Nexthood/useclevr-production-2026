@@ -276,6 +276,99 @@ export async function generatePdfReport(report: Report): Promise<string> {
     
     addSpacing(kpiHeight + 14); // More space after KPI section
   }
+
+  // ===== BUSINESS BALANCED SCORECARD SECTION =====
+  if (report.bbsc) {
+    if (needNewPage(86)) {
+      addPage();
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(...colors.primary);
+    doc.text('Business Balanced Scorecard', margin, y);
+    addSpacing(6);
+
+    doc.setFontSize(8);
+    doc.setTextColor(...colors.muted);
+    doc.text('Also known as Balanced Scorecard (BSC)', margin, y);
+    addSpacing(8);
+
+    const overallLabel = report.bbsc.overallScore === null ? 'Insufficient data' : `${report.bbsc.overallScore}/100`;
+    doc.setFillColor(...colors.cardBg);
+    doc.roundedRect(margin, y, contentWidth, 18, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.muted);
+    doc.text('Overall Business Score', margin + 6, y + 7);
+    doc.setFontSize(16);
+    doc.setTextColor(...colors.primary);
+    doc.text(overallLabel, pageWidth - margin - 6, y + 12, { align: 'right' });
+    addSpacing(24);
+
+    const perspectiveValues = Object.values(report.bbsc.perspectives);
+    const cardGap = 4;
+    const cardWidth = (contentWidth - cardGap) / 2;
+    const cardHeight = 28;
+
+    for (let i = 0; i < perspectiveValues.length; i++) {
+      const perspective = perspectiveValues[i];
+      const col = i % 2;
+      if (i > 0 && col === 0) addSpacing(cardHeight + 5);
+      if (needNewPage(cardHeight + 14)) addPage();
+
+      const x = margin + col * (cardWidth + cardGap);
+      const scoreLabel = perspective.score === null ? 'Insufficient data' : `${perspective.score}/100`;
+
+      doc.setFillColor(...colors.lightBg);
+      doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
+      doc.setFontSize(8);
+      doc.setTextColor(...colors.muted);
+      doc.text(perspective.title, x + 4, y + 6);
+      doc.setFontSize(14);
+      doc.setTextColor(...colors.primary);
+      doc.text(scoreLabel, x + 4, y + 15);
+      doc.setFontSize(7);
+      doc.setTextColor(...colors.muted);
+      const confidence = perspective.status === 'available' ? `${perspective.dataConfidence}% data confidence` : `Requires: ${perspective.requiredFields.slice(0, 2).join(', ')}`;
+      doc.text(wrapText(confidence, cardWidth - 8).slice(0, 2), x + 4, y + 22);
+    }
+
+    addSpacing(cardHeight + 12);
+
+    if (needNewPage(34)) addPage();
+    doc.setFontSize(11);
+    doc.setTextColor(...colors.primary);
+    doc.text('BBSC Executive Summary', margin, y);
+    addSpacing(7);
+
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.muted);
+    const bbscSummary = [
+      report.bbsc.scoreExplanation,
+      report.bbsc.strongestPerspective ? `Strongest perspective: ${report.bbsc.strongestPerspective.title}.` : '',
+      report.bbsc.weakestPerspective ? `Weakest perspective: ${report.bbsc.weakestPerspective.title}.` : '',
+      report.bbsc.confidenceNote,
+    ].filter(Boolean).join(' ');
+    const bbscLines = wrapText(bbscSummary, contentWidth).slice(0, 7);
+    doc.text(bbscLines, margin, y);
+    addSpacing(bbscLines.length * 4.5 + 8);
+
+    const priorities = report.bbsc.topPriorities.length > 0 ? report.bbsc.topPriorities : report.bbsc.recommendedNextActions;
+    if (priorities.length > 0) {
+      if (needNewPage(24)) addPage();
+      doc.setFontSize(11);
+      doc.setTextColor(...colors.primary);
+      doc.text('Top BBSC Priorities', margin, y);
+      addSpacing(7);
+      doc.setFontSize(9);
+      doc.setTextColor(...colors.success);
+      for (const [index, priority] of priorities.slice(0, 3).entries()) {
+        const lines = wrapText(`${index + 1}. ${priority}`, contentWidth);
+        doc.text(lines, margin, y);
+        addSpacing(lines.length * 4.5 + 3);
+      }
+      addSpacing(4);
+    }
+  }
   
   // ===== DETAILED ANALYSIS SECTIONS =====
   // Process each chart with interpretation

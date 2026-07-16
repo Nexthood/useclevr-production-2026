@@ -11,6 +11,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import type { BusinessBalancedScorecard } from '@/lib/business/balanced-scorecard';
 import { generatePdfReport } from './pdf-report-generator';
 
 // File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
@@ -107,6 +108,12 @@ export interface Report {
   datasetId: string;
   datasetName: string;
   createdAt: string;
+  status?: 'pending' | 'processing' | 'ready' | 'failed';
+  reportType?: string;
+  businessModel?: string;
+  userId?: string | null;
+  workspaceId?: string | null;
+  idempotencyKey?: string | null;
   
   // Timezone metadata
   timezone: string;
@@ -121,6 +128,7 @@ export interface Report {
   
   // Report sections
   summary: string;
+  bbsc?: BusinessBalancedScorecard;
   findings: string[];
   kpis: { title: string; value: string }[];
   charts: ReportChart[];
@@ -145,6 +153,12 @@ export async function generateReport(
     includeAlerts?: boolean;
     timezone?: string;
     timezoneOffset?: number;
+    status?: 'pending' | 'processing' | 'ready' | 'failed';
+    reportType?: string;
+    businessModel?: string;
+    userId?: string | null;
+    workspaceId?: string | null;
+    idempotencyKey?: string | null;
   },
   analysisData: {
     summary?: string;
@@ -154,6 +168,9 @@ export async function generateReport(
     aiInsights?: string[];
     predictions?: string[];
     alerts?: { type: string; message: string; severity: string }[];
+    reportType?: string;
+    businessModel?: string;
+    bbsc?: BusinessBalancedScorecard;
     rowCount: number;
     columns: string[];
   }
@@ -192,6 +209,12 @@ export async function generateReport(
     datasetId,
     datasetName,
     createdAt: utcTimestamp,
+    status: options.status || 'ready',
+    reportType: options.reportType || analysisData.reportType,
+    businessModel: options.businessModel || analysisData.businessModel,
+    userId: options.userId || null,
+    workspaceId: options.workspaceId || options.userId || null,
+    idempotencyKey: options.idempotencyKey || null,
     
     // Timezone metadata - stored internally
     timezone,
@@ -202,6 +225,7 @@ export async function generateReport(
     
     // Report content
     summary: analysisData.summary || 'Analysis report for ' + datasetName,
+    bbsc: analysisData.bbsc,
     findings: analysisData.findings || [],
     kpis: formattedKPIs,
     charts: analysisData.charts || [],
@@ -268,6 +292,14 @@ export function listReports(datasetId: string): Report[] {
   return Array.from(getReports().values())
     .filter(r => r.datasetId === datasetId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+/**
+ * Find an existing report generated for the same dataset operation.
+ */
+export function findReportByIdempotencyKey(datasetId: string, idempotencyKey: string): Report | null {
+  return Array.from(getReports().values())
+    .find((report) => report.datasetId === datasetId && report.idempotencyKey === idempotencyKey) || null;
 }
 
 /**

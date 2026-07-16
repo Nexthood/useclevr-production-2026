@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add Business Balanced Scorecard reporting to generated reports and selected dashboards with deterministic perspective scores, confidence notes, and model-specific metrics.
 - Separate dataset processing type from business model so local retail, ecommerce, SaaS, startup, investor, marketplace, and generic datasets receive model-specific routing, dashboard KPIs, map eligibility, suggestions, and AI context.
 - Add a production-grade Credit Engine foundation with auditable reservations, finalized charges, released failures, real sidebar balances, provider usage capture, and metered AI analysis, AI Assistant, and report generation paths.
 - Fix Dataset Library deletion so confirmed single and bulk deletes remove authorized datasets, reset selection and confirmation states, keep failed items retryable, and show a centered accessible confirmation dialog.
@@ -75,6 +76,8 @@
 
 ### Fixed
 
+- Show Generate Report on selected dashboards and save the finished report into Reports & Downloads with PDF and CSV actions.
+- Parse AI Assistant responses from one raw response body so failed JSON parsing no longer triggers consumed-body errors.
 - Restore stable dataset navigation by reverting the row-preview and dashboard report-generation routing changes.
 - Preserve admin and superadmin authorization from the first authenticated request so credit, Hybrid AI, setup, report, assistant, and dataset-analysis gates do not show upgrade prompts.
 - Show admin and superadmin accounts as unlimited across subscription, header, sidebar, and upload flows while Standard and Profitability uploads route successful results to the correct analysis pages.

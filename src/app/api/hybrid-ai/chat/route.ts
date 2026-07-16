@@ -35,6 +35,7 @@ const hybridChatSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   const gate = await requireHybridAiFeature("privateChat");
   if (!gate.success) return gate.error;
   const userId = gate.session?.user?.id;
@@ -109,6 +110,9 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({
         success: false,
+        code: "AI_PROVIDER_ERROR",
+        message,
+        requestId,
         error: message,
         answer: message,
         content: message,
@@ -154,6 +158,9 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
+      code: "AI_PROVIDER_ERROR",
+      message,
+      requestId,
       error: message,
       answer: message,
       content: message,
@@ -224,6 +231,9 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
+      code: "AI_PROVIDER_ERROR",
+      message,
+      requestId,
       error: message,
       providerStatus: {
         label: "Hybrid AI",

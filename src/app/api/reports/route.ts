@@ -5,10 +5,15 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 
 import { auth } from '@/lib/auth/auth';
 import { isSuperAdminUserId } from '@/lib/auth/builtin-users';
+import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { emptyProviderUsage } from '@/lib/billing/provider-usage';
+import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
+import { findAccessibleDataset } from '@/lib/data/dataset-access';
 import { getDb } from '@/lib/db';
-import { datasets } from '@/lib/db/schema';
-import { deleteReport, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
-import { and, eq } from 'drizzle-orm';
+import { profiles } from '@/lib/db/schema';
+import { buildDatasetReportInput } from '@/lib/reports/dataset-report-builder';
+import { deleteReport, findReportByIdempotencyKey, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
+import { eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import { NextResponse } from 'next/server';
 
@@ -21,15 +26,8 @@ async function canAccessDataset(userId: string, role: string | undefined, _email
   const hasSuperAdminRole = role === 'superadmin' || role === 'admin' || isSuperAdminUserId(userId)
   if (hasSuperAdminRole) return true;
 
-  const db = getDb();
-  if (!db) return false;
-
-  const dataset = await db.query.datasets.findFirst({
-    where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
-    columns: { id: true },
-  });
-
-  return Boolean(dataset);
+  const result = await findAccessibleDataset(datasetId, userId, role);
+  return Boolean(result.dataset);
 }
 
 function unauthorized() {
@@ -41,6 +39,9 @@ function forbidden() {
 }
 
 export async function POST(request: Request) {
+  let operationId: string | null = null;
+  let reservationCreated = false;
+
   try {
     const session = await getSession();
     if (!session) return unauthorized();
@@ -54,45 +55,218 @@ export async function POST(request: Request) {
       includeAlerts = true,
       timezone,
       timezoneOffset,
+      idempotencyKey: bodyIdempotencyKey,
       ...analysisData 
     } = body;
+    const userId = session.user.id;
+    const headerIdempotencyKey = request.headers.get('idempotency-key') || request.headers.get('x-idempotency-key');
+    const idempotencyKey = String(bodyIdempotencyKey || headerIdempotencyKey || `report:${datasetId || 'missing'}:${crypto.randomUUID()}`);
     
     debugLog('[REPORTS POST] Received request:', { datasetId, datasetName, visibility });
     
-    if (!datasetId || !datasetName) {
+    if (!datasetId) {
       return NextResponse.json(
-        { error: 'datasetId and datasetName are required' },
+        { success: false, error: 'datasetId is required' },
         { status: 400 }
       );
     }
 
-    if (!(await canAccessDataset(session.user.id, session.user.role, session.user.email, datasetId))) {
+    const db = getDb();
+    if (!db) {
+      return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+    }
+
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: { role: true, subscriptionTier: true },
+    });
+    const resolvedRole = session.user.role || profile?.role || (isSuperAdminUserId(userId) ? 'superadmin' : undefined);
+    const subscriptionTier = isUnlimitedCreditRole(resolvedRole) ? resolvedRole : profile?.subscriptionTier || 'free';
+    const access = await findAccessibleDataset(datasetId, userId, resolvedRole);
+
+    if (access.dbUnavailable) {
+      return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+    }
+
+    if (!access.dataset) {
       return forbidden();
     }
+
+    const existingReport = findReportByIdempotencyKey(datasetId, idempotencyKey);
+    if (existingReport) {
+      return NextResponse.json({
+        success: true,
+        reportId: existingReport.id,
+        status: existingReport.status || 'ready',
+        datasetId: existingReport.datasetId,
+        datasetName: existingReport.datasetName,
+        reportType: existingReport.reportType,
+        businessModel: existingReport.businessModel,
+        redirectUrl: `/app/downloads?reportId=${existingReport.id}`,
+        downloadUrl: `/api/reports/download?id=${existingReport.id}&format=pdf`,
+        excelDownloadUrl: `/api/reports/download?id=${existingReport.id}&format=csv`,
+        shareableLink: `/report/${existingReport.id}`,
+        visibility: existingReport.visibility,
+        createdAt: existingReport.createdAt,
+        localTime: existingReport.localTime,
+        timezone: existingReport.timezone,
+        idempotent: true,
+      });
+    }
+
+    operationId = `report:${userId}:${idempotencyKey}`;
+    const isUnlimited = isUnlimitedCreditRole(resolvedRole) || isSuperAdminUserId(userId);
+    const reservation = isUnlimited
+      ? null
+      : await reserveCredits({
+          userId,
+          operationId,
+          idempotencyKey,
+          feature: 'report_generation',
+          source: 'dashboard',
+          role: resolvedRole,
+          email: session.user.email ?? null,
+          metadata: { datasetId },
+        });
+
+    if (reservation && !reservation.success) {
+      await logAiCost({
+        userId,
+        subscriptionPlan: subscriptionTier,
+        provider: 'system',
+        model: 'report-generator',
+        actionType: 'report_generation',
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCostEur: 0,
+        creditsCharged: 0,
+        requestStatus: 'blocked',
+        errorMessage: reservation.error,
+        datasetId,
+      });
+      return NextResponse.json(
+        { success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' },
+        { status: 402 }
+      );
+    }
+    reservationCreated = Boolean(reservation);
+
+    const enforcementCheck = await checkActionEnforcement(userId, 'report_generation', resolvedRole, session.user.email ?? null);
+    if (!enforcementCheck.allowed) {
+      if (reservationCreated && operationId) await releaseCredits(operationId, 'usage_limit_blocked');
+      await logAiCost({
+        userId,
+        subscriptionPlan: subscriptionTier,
+        provider: 'system',
+        model: 'report-generator',
+        actionType: 'report_generation',
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCostEur: 0,
+        creditsCharged: 0,
+        requestStatus: 'blocked',
+        errorMessage: enforcementCheck.reason,
+        datasetId,
+      });
+      return NextResponse.json(
+        { success: false, error: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit.' },
+        { status: 402 }
+      );
+    }
+
+    const reportInput = datasetName
+      ? {
+          ...analysisData,
+          rowCount: typeof analysisData.rowCount === 'number' ? analysisData.rowCount : access.dataset.rowCount || 0,
+          columns: Array.isArray(analysisData.columns) ? analysisData.columns : (Array.isArray(access.dataset.columns) ? access.dataset.columns : []),
+        }
+      : await buildDatasetReportInput(access.dataset);
     
     const report = await generateReport(
       datasetId,
-      datasetName,
-      { visibility, includePredictions, includeAlerts, timezone, timezoneOffset },
-      analysisData
+      datasetName || access.dataset.name,
+      {
+        visibility,
+        includePredictions,
+        includeAlerts,
+        timezone,
+        timezoneOffset,
+        status: 'ready',
+        reportType: reportInput.reportType,
+        businessModel: reportInput.businessModel,
+        userId,
+        workspaceId: userId,
+        idempotencyKey,
+      },
+      reportInput
     );
+
+    let creditsRemaining: number | null = null;
+    if (reservationCreated && operationId) {
+      const deduction = await finalizeCredits({
+        operationId,
+        actualCredits: reservation?.reservedCredits,
+        actualUsage: emptyProviderUsage('system', 'report-generator'),
+        metadata: {
+          datasetId,
+          reportId: report.id,
+          reportType: report.reportType,
+          businessModel: report.businessModel,
+        },
+      });
+
+      if (!deduction.success) {
+        await releaseCredits(operationId, 'report_charge_failed');
+        deleteReport(report.id);
+        return NextResponse.json({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 });
+      }
+
+      creditsRemaining = deduction.remainingCredits;
+    }
+
+    await logAiCost({
+      userId,
+      subscriptionPlan: subscriptionTier,
+      provider: 'system',
+      model: 'report-generator',
+      actionType: 'report_generation',
+      inputTokens: 0,
+      outputTokens: 0,
+      estimatedCostEur: 0,
+      creditsCharged: reservation?.reservedCredits || 0,
+      requestStatus: 'success',
+      datasetId,
+      metadata: { reportId: report.id, businessModel: report.businessModel, reportType: report.reportType },
+    });
     
     debugLog('[REPORTS POST] Generated report:', report.id);
     
     return NextResponse.json({
       success: true,
       reportId: report.id,
+      status: report.status || 'ready',
+      datasetId: report.datasetId,
+      datasetName: report.datasetName,
+      reportType: report.reportType,
+      businessModel: report.businessModel,
+      redirectUrl: `/app/downloads?reportId=${report.id}`,
+      downloadUrl: `/api/reports/download?id=${report.id}&format=pdf`,
+      excelDownloadUrl: `/api/reports/download?id=${report.id}&format=csv`,
       shareableLink: `/report/${report.id}`,
       visibility: report.visibility,
       createdAt: report.createdAt,
       localTime: report.localTime,
-      timezone: report.timezone
+      timezone: report.timezone,
+      creditsRemaining,
     });
     
   } catch (error: any) {
+    if (reservationCreated && operationId) {
+      await releaseCredits(operationId, 'report_generation_failed');
+    }
     debugError('[REPORTS POST] Error:', error.message, error.stack);
     return NextResponse.json(
-      { error: error.message },
+      { success: false, error: error.message || 'Failed to generate report' },
       { status: 500 }
     );
   }
