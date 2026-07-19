@@ -1379,9 +1379,9 @@ export function HelpChatbox({
   }
 
   const containerClassName =
-    "fixed bottom-4 right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6";
+    "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:right-6";
   const panelClassName = [
-    "usy-panel-open fixed inset-x-3 bottom-3 top-6 flex max-h-[calc(100vh-2.25rem)] flex-col overflow-hidden rounded-[30px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:top-auto sm:inset-x-auto sm:h-auto sm:max-h-[calc(100vh-8rem)] sm:w-[min(calc(100vw-2rem),520px)]",
+    "usy-panel-open fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] top-6 flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-[30px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:top-auto sm:inset-x-auto sm:h-auto sm:max-h-[calc(100vh-8rem)] sm:w-[min(calc(100vw-2rem),520px)]",
     "sm:right-0",
   ].join(" ");
 
