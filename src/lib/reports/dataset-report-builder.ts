@@ -62,6 +62,10 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     analysis: dataset.analysis,
   })
   const reportModel = resolveReportModel(datasetType, businessModel, columns, dataset.name)
+  if (reportModel === "profitability") {
+    const profitabilityReport = buildProfitabilityReportInput(dataset, rows, columns, businessModel)
+    if (profitabilityReport) return profitabilityReport
+  }
   const columnMap = detectColumns(columns)
   const kpis = buildKpis(reportModel, rows, columnMap)
   const charts = buildCharts(reportModel, rows, columnMap)
@@ -82,6 +86,117 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     rowCount: dataset.rowCount || rows.length,
     columns,
   }
+}
+
+function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], columns: string[], businessModel: BusinessModel) {
+  const metrics = isRecord(dataset.precomputedMetrics) ? dataset.precomputedMetrics : null
+  if (!metrics) return null
+  const numeric = (key: string) => typeof metrics[key] === "number" ? metrics[key] as number : null
+  const totalRevenue = numeric("totalRevenue")
+  const cogs = numeric("cogs")
+  const operatingExpenses = numeric("operatingExpenses")
+  const interestExpense = numeric("interestExpense")
+  const taxExpense = numeric("taxExpense")
+  const grossProfit = numeric("grossProfit")
+  const operatingProfit = numeric("operatingProfit")
+  const netProfit = numeric("netProfit")
+  const grossMargin = numeric("grossMargin")
+  const operatingMargin = numeric("operatingMargin")
+  const netMargin = numeric("netMargin")
+  const kpis: ReportKpi[] = []
+  addKpi(kpis, "Revenue", totalRevenue, "currency")
+  addKpi(kpis, "COGS", cogs, "currency")
+  addKpi(kpis, "Gross Profit", grossProfit, "currency")
+  addKpi(kpis, "Operating Expenses", operatingExpenses, "currency")
+  addKpi(kpis, "Operating Profit", operatingProfit, "currency")
+  addKpi(kpis, "Interest", interestExpense, "currency")
+  addKpi(kpis, "Taxes", taxExpense, "currency")
+  addKpi(kpis, "Net Profit", netProfit, "currency")
+  addKpi(kpis, "Gross Margin", grossMargin, "percent")
+  addKpi(kpis, "Operating Margin", operatingMargin, "percent")
+  addKpi(kpis, "Net Margin", netMargin, "percent")
+
+  const charts: ReportChart[] = []
+  const topCostCategories = tupleChart(metrics.topCostCategories || metrics.expenseCategories, "Top cost categories")
+  const revenueSources = tupleChart(metrics.revenueByProduct || metrics.revenueByRegion, "Revenue sources")
+  if (topCostCategories) charts.push(topCostCategories)
+  if (revenueSources) charts.push(revenueSources)
+
+  const findings = [
+    `Generated from paired profitability analysis ${String(metrics.profitabilityAnalysisId || metrics.profitability_analysis_id || dataset.id)}.`,
+    `Revenue and expenses are isolated to the selected profitability analysis and dataset ${dataset.id}.`,
+  ]
+  if (typeof metrics.statusLabel === "string") findings.push(metrics.statusLabel)
+  if (Array.isArray(metrics.dataQualityNotes)) findings.push(...metrics.dataQualityNotes.filter((note): note is string => typeof note === "string"))
+  if (Array.isArray(metrics.missingColumns) && metrics.missingColumns.length > 0) {
+    findings.push(`Missing source fields: ${metrics.missingColumns.map(String).join(", ")}.`)
+  }
+
+  const bbscRows = profitabilityRowsFromMetrics(metrics)
+  const bbsc = calculateBusinessBalancedScorecard({
+    rows: bbscRows,
+    columns: Object.keys(bbscRows[0] || {}),
+    businessModel: "profitability",
+  })
+
+  return {
+    businessModel,
+    reportType: "profitability" as const,
+    summary: `Profitability report for ${dataset.name}. This combined report uses the paired Revenue and Expenses files in profitability analysis ${String(metrics.profitabilityAnalysisId || metrics.profitability_analysis_id || dataset.id)} and includes a Business Balanced Scorecard (also known as Balanced Scorecard or BSC).`,
+    findings,
+    kpis,
+    charts,
+    aiInsights: extractInsights(dataset.analysis),
+    predictions: [],
+    alerts: buildProfitabilityAlerts(netMargin, metrics),
+    bbsc,
+    rowCount: dataset.rowCount || rows.length,
+    columns,
+  }
+}
+
+function tupleChart(value: unknown, title: string): ReportChart | null {
+  if (!Array.isArray(value)) return null
+  const data = value
+    .map((item) => {
+      if (!Array.isArray(item)) return null
+      const name = String(item[0] || "Other")
+      const amount = typeof item[1] === "number" ? item[1] : Number(item[1])
+      return Number.isFinite(amount) ? { name, value: amount } : null
+    })
+    .filter((item): item is { name: string; value: number } => Boolean(item))
+    .slice(0, 8)
+  return data.length > 0 ? { type: "bar", title, data } : null
+}
+
+function profitabilityRowsFromMetrics(metrics: Record<string, unknown>) {
+  return [{
+    revenue: metrics.totalRevenue,
+    cost: metrics.totalExpenses,
+    cogs: metrics.cogs,
+    operating_expenses: metrics.operatingExpenses,
+    interest_expense: metrics.interestExpense,
+    tax_expense: metrics.taxExpense,
+    gross_profit: metrics.grossProfit,
+    operating_profit: metrics.operatingProfit,
+    net_profit: metrics.netProfit,
+    gross_margin: metrics.grossMargin,
+    operating_margin: metrics.operatingMargin,
+    net_margin: metrics.netMargin,
+    customer_id: metrics.customerCount,
+    quantity: metrics.salesVolume,
+  }]
+}
+
+function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<string, unknown>) {
+  const alerts: { type: string; message: string; severity: string }[] = []
+  if (netMargin !== null && netMargin < 0) {
+    alerts.push({ type: "profitability", message: "Net margin is negative.", severity: "high" })
+  }
+  if (Array.isArray(metrics.missingColumns) && metrics.missingColumns.length > 0) {
+    alerts.push({ type: "data_quality", message: `Some profitability metrics are unavailable because fields are missing: ${metrics.missingColumns.map(String).join(", ")}.`, severity: "medium" })
+  }
+  return alerts
 }
 
 function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {

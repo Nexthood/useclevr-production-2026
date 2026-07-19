@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { useToast } from "@/hooks/use-toast"
+import { calculateProfitabilityAnalysis, type ProfitabilityFileRole } from "@/lib/profitability/two-file-analysis"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
@@ -45,13 +46,15 @@ export function ProfitabilityUpload() {
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
   const [reportGenerated, setReportGenerated] = React.useState(false)
   const [activeSection, setActiveSection] = React.useState<string | null>(null)
+  const [profitabilityAnalysisId, setProfitabilityAnalysisId] = React.useState(() => `pa_${crypto.randomUUID()}`)
   const { toast } = useToast()
 
   // Handle generate report action
   const handleGenerateReport = async () => {
-    if (!profitabilityResult) {
+    const persistedDatasetId = uploadResult?.datasetId
+    if (!profitabilityResult || !persistedDatasetId) {
       debugError('[REPORT] No profitability result available')
-      toast({ title: "Error", description: "No analysis data available", variant: "destructive" })
+      toast({ title: "Error", description: "No saved profitability analysis available", variant: "destructive" })
       return
     }
 
@@ -61,135 +64,22 @@ export function ProfitabilityUpload() {
     try {
       debugLog('[REPORT] Generating report for profitability analysis')
 
-      const kpis = {
-        totalRevenue: profitabilityResult.totalRevenue || 0,
-        totalExpenses: profitabilityResult.totalExpenses || 0,
-        profit: profitabilityResult.profit || 0,
-        margin: profitabilityResult.margin || 0,
-      }
-
-      // Get user's timezone
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
       const timezoneOffset = new Date().getTimezoneOffset()
 
-      // Format KPIs for report
-      const reportKPIs = [
-        { title: 'Total Revenue', value: kpis.totalRevenue, format: 'currency' },
-        { title: 'Total Expenses', value: kpis.totalExpenses, format: 'currency' },
-        { title: 'Net Profit', value: kpis.profit, format: 'currency' },
-        { title: 'Profit Margin', value: kpis.margin, format: 'percentage' },
-      ].filter(k => k.value !== null && k.value !== 0)
-
-      // Format charts data
-      const charts: { type: 'bar' | 'line' | 'pie'; title: string; data: { name: string; value: number }[] }[] = []
-
-      // Expense distribution chart
-      if (profitabilityResult.expenseCategories) {
-        const expenseData = profitabilityResult.expenseCategories
-          .map(([name, value]: [string, number]) => ({ name, value }))
-          .sort((a: { value: number }, b: { value: number }) => b.value - a.value)
-          .slice(0, 8)
-        if (expenseData.length > 0) {
-          charts.push({
-            type: 'bar' as const,
-            title: 'Expense Distribution',
-            data: expenseData
-          })
-        }
-      }
-
-      // Revenue by product chart
-      if (profitabilityResult.revenueByProduct) {
-        const productData = profitabilityResult.revenueByProduct
-          .map(([name, value]: [string, number]) => ({ name, value }))
-          .sort((a: { value: number }, b: { value: number }) => b.value - a.value)
-          .slice(0, 8)
-        if (productData.length > 0) {
-          charts.push({
-            type: 'bar' as const,
-            title: 'Revenue by Product',
-            data: productData
-          })
-        }
-      }
-
-      // Revenue by region chart
-      if (profitabilityResult.revenueByRegion) {
-        const regionData = profitabilityResult.revenueByRegion
-          .map(([name, value]: [string, number]) => ({ name, value }))
-          .sort((a: { value: number }, b: { value: number }) => b.value - a.value)
-          .slice(0, 8)
-        if (regionData.length > 0) {
-          charts.push({
-            type: 'bar' as const,
-            title: 'Revenue by Region',
-            data: regionData
-          })
-        }
-      }
-
-      // Build insights and recommendations
-      const insights: string[] = []
-      const recommendations: string[] = []
-
-      if (kpis.totalRevenue > 0) {
-        insights.push(`Total revenue: ${formatCurrencyForKPI(kpis.totalRevenue)}`)
-      }
-      if (kpis.totalExpenses > 0) {
-        insights.push(`Total expenses: ${formatCurrencyForKPI(kpis.totalExpenses)}`)
-      }
-      if (kpis.profit !== 0) {
-        const profitLabel = kpis.profit >= 0 ? 'profit' : 'loss'
-        insights.push(`Net ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.profit))}`)
-      }
-      if (kpis.margin !== 0) {
-        insights.push(`Profit margin: ${formatPercentSimple(kpis.margin)}`)
-      }
-
-      if (profitabilityResult.expenseCategories?.[0]) {
-        const topCat = profitabilityResult.expenseCategories[0]
-        const totalExpenses = profitabilityResult.expenseCategories.reduce((sum: number, [_, val]: [string, number]) => sum + val, 0)
-        const pct = ((topCat[1] as number) / totalExpenses * 100).toFixed(1)
-        insights.push(`Top expense: ${topCat[0]} at ${formatCurrencyForKPI(topCat[1] as number)} (${pct}%)`)
-      }
-
-      // Generate recommendations based on margin
-      if (kpis.margin < 0) {
-        recommendations.push('Review cost structure immediately - negative margin indicates unsustainable operations')
-      } else if (kpis.margin < 10) {
-        recommendations.push('Analyze cost reduction opportunities - low margin leaves little room for error')
-      } else if (kpis.margin > 30) {
-        recommendations.push('Consider strategic reinvestment - strong margin enables growth investments')
-      }
-
-      if (profitabilityResult.expenseCategories && profitabilityResult.expenseCategories.length > 3) {
-        recommendations.push('Focus on top 3 expense categories - they represent the majority of costs')
-      }
-
-      const datasetName = 'Profitability Analysis'
-      const datasetId = 'profitability-demo'
-
-      debugLog('[REPORT] Sending report request with:', { datasetId, datasetName, kpis, charts: charts.length })
+      debugLog('[REPORT] Sending report request with:', { datasetId: persistedDatasetId, profitabilityAnalysisId })
 
       const response = await fetch('/api/reports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // Dataset-scoped idempotency prevents duplicate report creation and duplicate charging.
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': `profitability:${profitabilityAnalysisId}:report`,
+        },
         body: JSON.stringify({
-          datasetId,
-          datasetName,
+          datasetId: persistedDatasetId,
           timezone: userTimezone,
           timezoneOffset,
-          summary: kpis.profit >= 0
-            ? `Profitability analysis showing ${formatCurrencyForKPI(kpis.totalRevenue)} revenue, ${formatCurrencyForKPI(kpis.totalExpenses)} expenses, ${formatCurrencyForKPI(kpis.profit)} net profit (${formatPercentSimple(kpis.margin)} margin)`
-            : `Profitability analysis showing ${formatCurrencyForKPI(kpis.totalRevenue)} revenue, ${formatCurrencyForKPI(kpis.totalExpenses)} expenses, ${formatCurrencyForKPI(Math.abs(kpis.profit))} net loss`,
-          findings: recommendations,
-          kpis: reportKPIs,
-          charts,
-          aiInsights: insights,
-          predictions: [],
-          alerts: [],
-          rowCount: (revenueFile?.rowCount || 0) + (expenseFile?.rowCount || 0),
-          columns: (revenueFile?.columns?.length || 0) + (expenseFile?.columns?.length || 0)
         })
       })
 
@@ -206,7 +96,7 @@ export function ProfitabilityUpload() {
 
         // Navigate to downloads after a short delay
         setTimeout(() => {
-          window.location.href = '/app/downloads'
+          window.location.href = result.redirectUrl || `/app/downloads?reportId=${result.reportId}`
         }, 1500)
       } else {
         const errorText = await response.text()
@@ -368,250 +258,27 @@ export function ProfitabilityUpload() {
     return { data, meta: { fields: headers } }
   }
 
-  // Smart column detection for common real-world business file formats
-  // Supports: Stripe, Shopify, QuickBooks, Xero, Wave, Excel exports, manual trackers
-
-  const detectAmountColumn = (columns: string[]): { column: string | null; confidence: number } => {
-    // Priority patterns for different file types
-    const patterns = {
-      // Revenue/income patterns (highest priority for revenue files)
-      revenue: [
-        'amount', 'revenue', 'sales', 'total', 'income', 'subtotal', 'gross',
-        'net_amount', 'order_total', 'total_usd', 'amount_usd', 'price',
-        'gross_revenue', 'net_revenue', 'processed_amount'
-      ],
-      // Expense/cost patterns
-      expense: [
-        'amount', 'cost', 'expense', 'total', 'debit', 'outflow',
-        'amount_usd', 'total_usd', 'price', 'unit_cost', 'cost_of_goods'
-      ]
-    }
-
-    const isExpense = expenseFile !== null
-    const searchPatterns = isExpense ? patterns.expense : patterns.revenue
-
-    // First, look for exact or close matches
-    for (const pattern of searchPatterns) {
-      for (const col of columns) {
-        const lower = col.toLowerCase().replace(/[^a-z0-9]/g, '')
-        const patternNorm = pattern.toLowerCase().replace(/[^a-z0-9]/g, '')
-
-        // Exact match
-        if (lower === patternNorm) {
-          return { column: col, confidence: 1.0 }
+  const calculateTotals = () => calculateProfitabilityAnalysis({
+    analysisId: profitabilityAnalysisId,
+    revenueFile: revenueFile
+      ? {
+          role: "revenue",
+          name: revenueFile.name,
+          columns: revenueFile.columns || [],
+          rows: revenueFile.data || [],
+          rowCount: revenueFile.rowCount,
         }
-        // Contains match
-        if (lower.includes(patternNorm) || patternNorm.includes(lower)) {
-          return { column: col, confidence: 0.8 }
+      : null,
+    expensesFile: expenseFile
+      ? {
+          role: "expenses",
+          name: expenseFile.name,
+          columns: expenseFile.columns || [],
+          rows: expenseFile.data || [],
+          rowCount: expenseFile.rowCount,
         }
-      }
-    }
-
-    // Second, look for any amount-like column (numeric with decimal)
-    const amountPatterns = ['amount', 'total', 'sum', 'value', 'price', 'cost', 'revenue', 'income', 'expense']
-    for (const col of columns) {
-      const lower = col.toLowerCase()
-      if (amountPatterns.some(p => lower.includes(p))) {
-        return { column: col, confidence: 0.6 }
-      }
-    }
-
-    // Fallback: return first column if none found
-    return { column: columns[0] || null, confidence: 0.3 }
-  }
-
-  const detectDateColumn = (columns: string[]): string | null => {
-    // Common date column names across platforms
-    const datePatterns = [
-      'date', 'created', 'transaction_date', 'posted_date', 'order_date',
-      'invoice_date', 'due_date', 'period', 'month', 'year',
-      'transaction_date_utc', 'created_at', 'updated_at'
-    ]
-
-    for (const col of columns) {
-      const lower = col.toLowerCase().replace(/[^a-z]/g, '')
-      for (const pattern of datePatterns) {
-        if (lower.includes(pattern) || pattern.includes(lower)) {
-          return col
-        }
-      }
-    }
-
-    // Check for date-like format in column names
-    const dateLike = ['date', 'time', 'day', 'month', 'year'].filter(p =>
-      columns.some(c => c.toLowerCase().includes(p))
-    )
-    if (dateLike.length > 0) {
-      return columns.find(c => c.toLowerCase().includes(dateLike[0])) || null
-    }
-
-    return null
-  }
-
-  // Detect common business category columns
-  const detectCategoryColumn = (columns: string[]): string | null => {
-    const categoryPatterns = [
-      'category', 'type', 'department', 'description', 'item', 'product_name',
-      'sku', 'service', 'vendor', 'merchant', 'account', 'tag', 'label',
-      'income_type', 'expense_type', 'cost_center', 'business_type'
-    ]
-
-    for (const col of columns) {
-      const lower = col.toLowerCase().replace(/[^a-z]/g, '')
-      for (const pattern of categoryPatterns) {
-        if (lower.includes(pattern)) {
-          return col
-        }
-      }
-    }
-
-    return null
-  }
-
-  // Detect region/customer columns
-  const detectRegionColumn = (columns: string[]): string | null => {
-    const regionPatterns = [
-      'region', 'country', 'city', 'state', 'location', 'territory',
-      'area', 'market', 'zone', 'customer_region', 'billing_country',
-      'customer', 'client', 'company', 'account_name'
-    ]
-
-    for (const col of columns) {
-      const lower = col.toLowerCase().replace(/[^a-z]/g, '')
-      for (const pattern of regionPatterns) {
-        if (lower.includes(pattern)) {
-          return col
-        }
-      }
-    }
-
-    return null
-  }
-
-  const calculateTotals = () => {
-    let totalRevenue = 0
-    let totalExpenses = 0
-    let revenueDateCol: string | null = null
-    let expenseDateCol: string | null = null
-    const expenseCategories: Record<string, number> = {}
-    const revenueByProduct: Record<string, number> = {}
-    const revenueByRegion: Record<string, number> = {}
-    const revenueByMonth: Record<string, number> = {}
-    const normalizeAmount = (value: unknown) => {
-      if (value === undefined || value === null || value === '') return null
-
-      const raw = String(value)
-      const isParenthesized = raw.includes('(') && raw.includes(')')
-      const normalized = raw.replace(/[^0-9.-]/g, '')
-      if (!normalized) return null
-
-      const parsed = parseFloat(isParenthesized ? `-${normalized}` : normalized)
-      return Number.isFinite(parsed) ? parsed : null
-    }
-
-    // Process revenue file
-    if (revenueFile?.data) {
-      const amountInfo = detectAmountColumn(revenueFile.columns || [])
-      const amountCol = amountInfo.column
-      revenueDateCol = detectDateColumn(revenueFile.columns || [])
-      const categoryCol = detectCategoryColumn(revenueFile.columns || [])
-      const regionCol = detectRegionColumn(revenueFile.columns || [])
-
-      for (const row of revenueFile.data) {
-        // Parse amount - handle currency symbols, negative values in parentheses
-        const rawVal = row[amountCol || '']
-        const val = normalizeAmount(rawVal)
-        if (val !== null && val > 0) {
-          totalRevenue += val
-
-          // Group by product/category
-          if (categoryCol && row[categoryCol]) {
-            const cat = String(row[categoryCol]).slice(0, 30)
-            revenueByProduct[cat] = (revenueByProduct[cat] || 0) + val
-          }
-
-          // Group by region
-          if (regionCol && row[regionCol]) {
-            const reg = String(row[regionCol]).slice(0, 30)
-            revenueByRegion[reg] = (revenueByRegion[reg] || 0) + val
-          }
-
-          // Group by month if date available
-          if (revenueDateCol && row[revenueDateCol]) {
-            const dateStr = String(row[revenueDateCol])
-            const monthMatch = dateStr.match(/(\d{4})-(\d{2})/)
-            if (monthMatch) {
-              const monthKey = `${monthMatch[1]}-${monthMatch[2]}`
-              revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + val
-            }
-          }
-        }
-      }
-    }
-
-    // Process expense file
-    if (expenseFile?.data) {
-      const amountInfo = detectAmountColumn(expenseFile.columns || [])
-      const amountCol = amountInfo.column
-      expenseDateCol = detectDateColumn(expenseFile.columns || [])
-      const categoryCol = detectCategoryColumn(expenseFile.columns || [])
-
-      for (const row of expenseFile.data) {
-        // Parse amount - handle currency symbols, negative values
-        const rawVal = row[amountCol || '']
-        const val = normalizeAmount(rawVal)
-        // For expenses, we want the absolute value for category totals
-        const absVal = val === null ? 0 : Math.abs(val)
-        if (absVal > 0) {
-          totalExpenses += absVal
-
-          // Group by category
-          if (categoryCol && row[categoryCol]) {
-            const cat = String(row[categoryCol]).slice(0, 30)
-            expenseCategories[cat] = (expenseCategories[cat] || 0) + absVal
-          }
-        }
-      }
-    }
-
-    // Calculate derived metrics
-    const hasRevenue = !!revenueFile
-    const hasExpenses = !!expenseFile
-    const profit = hasRevenue && hasExpenses ? totalRevenue - totalExpenses : 0
-    const margin = hasRevenue && hasExpenses && totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0
-
-    // Sort and limit results
-    const sortedExpenses = Object.entries(expenseCategories)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-
-    const sortedRevenueByProduct = Object.entries(revenueByProduct)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-
-    const sortedRevenueByRegion = Object.entries(revenueByRegion)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-
-    return {
-      totalRevenue,
-      totalExpenses,
-      profit,
-      margin,
-      hasRevenue,
-      hasExpenses,
-      reason: hasRevenue && !hasExpenses ? "missing cost/profit columns" : undefined,
-      unavailableMetrics: hasRevenue && !hasExpenses ? ["grossProfit", "netProfit", "profitMargin"] : [],
-      revenueDateCol,
-      expenseDateCol,
-      expenseCategories: sortedExpenses,
-      revenueByProduct: sortedRevenueByProduct,
-      revenueByRegion: sortedRevenueByRegion,
-      revenueByMonth,
-      canMatchPeriods: !!(revenueDateCol && expenseDateCol),
-      hasDateData: !!(revenueDateCol || expenseDateCol)
-    }
-  }
+      : null,
+  })
 
   const stats = calculateTotals()
 
@@ -633,21 +300,29 @@ export function ProfitabilityUpload() {
     setGenerateStatus("uploading")
 
     try {
-      const primaryFile = revenueFile || expenseFile
-      if (primaryFile) {
-        const headers = primaryFile.columns || []
+      const filesToUpload = [
+        revenueFile ? { role: "revenue" as const, file: revenueFile } : null,
+        expenseFile ? { role: "expenses" as const, file: expenseFile } : null,
+      ].filter((entry): entry is { role: ProfitabilityFileRole; file: UploadedFile } => Boolean(entry))
+      let latestResult: UploadDatasetResponse | null = null
+
+      for (const entry of filesToUpload) {
+        const headers = entry.file.columns || []
         const csvContent = [
           headers.join(','),
-          ...(primaryFile.data || []).map(row =>
+          ...(entry.file.data || []).map(row =>
             headers.map(h => row[h] || '').join(',')
           )
         ].join('\n')
 
         const blob = new Blob([csvContent], { type: 'text/csv' })
-        const file = new File([blob], primaryFile.name, { type: 'text/csv' })
+        const file = new File([blob], entry.file.name, { type: 'text/csv' })
         const extraFields: Record<string, string> = {
           datasetName: `Profitability - ${new Date().toLocaleDateString()}`,
-          fileType: revenueFile && expenseFile ? 'profitability_both' : revenueFile ? 'profitability_revenue' : 'profitability_expense',
+          profitability_analysis_id: profitabilityAnalysisId,
+          profitability_file_role: entry.role,
+          profitabilityFileRole: entry.role,
+          fileType: entry.role === "revenue" ? 'profitability_revenue' : 'profitability_expenses',
           profitabilityData: JSON.stringify({
             ...stats,
             revenueByProduct: stats.revenueByProduct,
@@ -673,35 +348,7 @@ export function ProfitabilityUpload() {
           extraFields,
         })
 
-        if (result.success && result.profitabilityResult) {
-          const redirectTo = result.redirectTo || (result.datasetId ? `/app/profitability?datasetId=${result.datasetId}` : "/app/profitability")
-          window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
-          setUploadResult({
-            ...result,
-            datasetName: result.datasetName || primaryFile.name,
-            datasetType: result.datasetType || result.dataset_type || "profitability",
-            rowsProcessed: result.rowsProcessed ?? primaryFile.rowCount ?? 0,
-            columnsDetected: result.columnsDetected ?? primaryFile.columns?.length ?? 0,
-            analysisStatus: result.analysisStatus || "ready",
-            redirectTo,
-          })
-          setProfitabilityResult(result.profitabilityResult)
-          setGenerateStatus(result.profitabilityResult.reason ? "partial_success" : "success")
-          toast({ title: "Analysis complete", description: "Profitability analysis is ready." })
-          router.push(redirectTo)
-        } else if (result.success && result.redirectTo) {
-          window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
-          setUploadResult({
-            ...result,
-            datasetName: result.datasetName || primaryFile.name,
-            datasetType: result.datasetType || result.dataset_type || "profitability",
-            rowsProcessed: result.rowsProcessed ?? primaryFile.rowCount ?? 0,
-            columnsDetected: result.columnsDetected ?? primaryFile.columns?.length ?? 0,
-            analysisStatus: result.analysisStatus || "ready",
-          })
-          setGenerateStatus("success")
-          router.push(result.redirectTo)
-        } else {
+        if (!result.success) {
           setGenerateStatus("failure")
           if (result.usage?.limitReached) {
             toast({
@@ -715,7 +362,27 @@ export function ProfitabilityUpload() {
             description: result.message || result.error || "Failed to create analysis",
             variant: "destructive",
           })
+          return
         }
+        latestResult = result
+      }
+
+      if (latestResult) {
+        const redirectTo = latestResult.redirectTo || latestResult.redirectUrl || (latestResult.datasetId ? `/app/profitability?datasetId=${latestResult.datasetId}&analysisId=${profitabilityAnalysisId}` : "/app/profitability")
+        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+        setUploadResult({
+          ...latestResult,
+          datasetName: latestResult.datasetName || `Profitability - ${new Date().toLocaleDateString()}`,
+          datasetType: latestResult.datasetType || latestResult.dataset_type || "profitability",
+          rowsProcessed: (revenueFile?.rowCount || 0) + (expenseFile?.rowCount || 0),
+          columnsDetected: (revenueFile?.columns?.length || 0) + (expenseFile?.columns?.length || 0),
+          analysisStatus: stats.status === "ready" ? "ready" : "processing",
+          redirectTo,
+        })
+        setProfitabilityResult(latestResult.profitabilityResult || stats)
+        setGenerateStatus(stats.status === "ready" ? "success" : "partial_success")
+        toast({ title: stats.statusLabel, description: stats.status === "ready" ? "Profitability analysis is ready." : "The uploaded file is saved and waiting for its matching pair." })
+        if (stats.status === "ready") router.push(redirectTo)
       }
     } catch (error) {
       debugError("Create error:", error)
@@ -749,6 +416,8 @@ export function ProfitabilityUpload() {
     setUploadResult(null)
     setGenerateStatus("idle")
     setActiveSection(null)
+    setReportGenerated(false)
+    setProfitabilityAnalysisId(`pa_${crypto.randomUUID()}`)
   }
 
   const renderDropZone = (type: "revenue" | "expense", file: UploadedFile | null) => {
@@ -838,19 +507,25 @@ export function ProfitabilityUpload() {
     // MODE B: FULL ANALYZE-STYLE DASHBOARD
     // ============================================================================
     const kpis = {
-      totalRevenue: profitabilityResult.totalRevenue || 0,
-      totalExpenses: profitabilityResult.totalExpenses || 0,
-      profit: profitabilityResult.profit || 0,
-      margin: profitabilityResult.margin || 0,
+      totalRevenue: typeof profitabilityResult.totalRevenue === "number" ? profitabilityResult.totalRevenue : null,
+      totalExpenses: typeof profitabilityResult.totalExpenses === "number" ? profitabilityResult.totalExpenses : null,
+      grossProfit: typeof profitabilityResult.grossProfit === "number" ? profitabilityResult.grossProfit : null,
+      operatingProfit: typeof profitabilityResult.operatingProfit === "number" ? profitabilityResult.operatingProfit : null,
+      netProfit: typeof profitabilityResult.netProfit === "number" ? profitabilityResult.netProfit : null,
+      grossMargin: typeof profitabilityResult.grossMargin === "number" ? profitabilityResult.grossMargin : null,
+      operatingMargin: typeof profitabilityResult.operatingMargin === "number" ? profitabilityResult.operatingMargin : null,
+      netMargin: typeof profitabilityResult.netMargin === "number" ? profitabilityResult.netMargin : null,
       hasRevenue: profitabilityResult.hasRevenue !== false,
       hasExpenses: profitabilityResult.hasExpenses !== false,
     }
     const hasFullProfitability = kpis.hasRevenue && kpis.hasExpenses
+    const displayCurrency = (value: number | null) => value === null ? "Not available" : formatCurrencyForKPI(value)
+    const displayPercent = (value: number | null) => value === null ? "Not available" : formatPercentSimple(value)
 
     // Build insights from profitability data
     const insights: { message: string; type: string; evidence: string; reliability: 'verified' | 'estimated' }[] = []
 
-    if (kpis.totalRevenue > 0) {
+    if (kpis.totalRevenue !== null && kpis.totalRevenue > 0) {
       insights.push({
         message: `Total revenue is ${formatCurrencyForKPI(kpis.totalRevenue)}`,
         type: 'revenue',
@@ -859,7 +534,7 @@ export function ProfitabilityUpload() {
       })
     }
 
-    if (kpis.totalExpenses > 0) {
+    if (kpis.totalExpenses !== null && kpis.totalExpenses > 0) {
       insights.push({
         message: `Total expenses amount to ${formatCurrencyForKPI(kpis.totalExpenses)}`,
         type: 'expense',
@@ -868,21 +543,21 @@ export function ProfitabilityUpload() {
       })
     }
 
-    if (kpis.profit !== 0) {
-      const profitLabel = kpis.profit >= 0 ? 'profit' : 'loss'
+    if (kpis.netProfit !== null && kpis.netProfit !== 0) {
+      const profitLabel = kpis.netProfit >= 0 ? 'profit' : 'loss'
       insights.push({
-        message: `Net ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.profit))}`,
+        message: `Net ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.netProfit))}`,
         type: 'profit',
-        evidence: `Profit: ${formatCurrencyForKPI(kpis.profit)}`,
+        evidence: `Net profit: ${formatCurrencyForKPI(kpis.netProfit)}`,
         reliability: 'verified'
       })
     }
 
-    if (kpis.margin !== 0) {
+    if (kpis.netMargin !== null && kpis.netMargin !== 0) {
       insights.push({
-        message: `Profit margin: ${formatPercentSimple(kpis.margin)}`,
+        message: `Net margin: ${formatPercentSimple(kpis.netMargin)}`,
         type: 'margin',
-        evidence: `Margin: ${formatPercentSimple(kpis.margin)}`,
+        evidence: `Net margin: ${formatPercentSimple(kpis.netMargin)}`,
         reliability: 'verified'
       })
     }
@@ -947,16 +622,16 @@ export function ProfitabilityUpload() {
     }
 
     // Margin quality insight
-    if (hasFullProfitability && kpis.margin > 0 && kpis.margin < 20) {
+    if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin > 0 && kpis.netMargin < 20) {
       insights.push({
-        message: `Positive but thin margin (${formatPercentSimple(kpis.margin)}) - vulnerable to cost increases`,
+        message: `Positive but thin net margin (${formatPercentSimple(kpis.netMargin)}) - vulnerable to cost increases`,
         type: 'risk',
         evidence: `Margin between 0-20%`,
         reliability: 'verified'
       })
-    } else if (hasFullProfitability && kpis.margin >= 20) {
+    } else if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin >= 20) {
       insights.push({
-        message: `Strong margin of ${formatPercentSimple(kpis.margin)} indicates healthy profitability`,
+        message: `Strong net margin of ${formatPercentSimple(kpis.netMargin)} indicates healthy profitability`,
         type: 'profit',
         evidence: `Margin above 20%`,
         reliability: 'verified'
@@ -997,7 +672,7 @@ export function ProfitabilityUpload() {
     }
 
     // Revenue/Expense ratio insight
-    if (kpis.totalExpenses > 0) {
+    if (kpis.totalRevenue !== null && kpis.totalExpenses !== null && kpis.totalExpenses > 0) {
       const ratio = kpis.totalRevenue / kpis.totalExpenses
       if (ratio > 2) {
         insights.push({
@@ -1020,17 +695,17 @@ export function ProfitabilityUpload() {
     const recommendations: { action: string; reason: string }[] = []
 
     // Priority 1: Critical warnings for negative/low margin
-    if (hasFullProfitability && kpis.margin < 0) {
+    if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin < 0) {
       recommendations.push({
         action: 'URGENT: Review cost structure immediately',
         reason: 'Negative profit margin indicates unsustainable operations - immediate action required'
       })
-    } else if (hasFullProfitability && kpis.margin < 5) {
+    } else if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin < 5) {
       recommendations.push({
         action: 'Critical: Analyze cost reduction opportunities',
         reason: 'Margin below 5% leaves virtually no buffer for unexpected expenses'
       })
-    } else if (hasFullProfitability && kpis.margin < 15) {
+    } else if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin < 15) {
       recommendations.push({
         action: 'Prioritize efficiency improvements',
         reason: 'Low margin requires careful cost management and operational optimization'
@@ -1056,17 +731,17 @@ export function ProfitabilityUpload() {
     }
 
     // Priority 3: Growth/profitability opportunities
-    if (kpis.margin > 20) {
+    if (kpis.netMargin !== null && kpis.netMargin > 20) {
       recommendations.push({
         action: 'Consider strategic reinvestment',
         reason: 'Strong margin enables growth investments, R&D, or market expansion'
       })
     }
 
-    if (kpis.profit > 0) {
+    if (kpis.netProfit !== null && kpis.netProfit > 0) {
       recommendations.push({
         action: 'Evaluate profit allocation strategy',
-        reason: `Available ${formatCurrencyForKPI(kpis.profit)} net profit - consider reserves vs growth`
+        reason: `Available ${formatCurrencyForKPI(kpis.netProfit)} net profit - consider reserves vs growth`
       })
     }
 
@@ -1124,7 +799,7 @@ export function ProfitabilityUpload() {
             <Button
               className="shrink-0 whitespace-nowrap bg-gradient-primary hover:opacity-90"
               size="sm"
-              disabled={isGeneratingReport}
+              disabled={isGeneratingReport || !hasFullProfitability}
               onClick={handleGenerateReport}
             >
               {isGeneratingReport ? (
@@ -1134,7 +809,7 @@ export function ProfitabilityUpload() {
               ) : (
                 <FileText className="mr-2 h-4 w-4" />
               )}
-              {isGeneratingReport ? 'Generating...' : reportGenerated ? 'Generated!' : 'Generate Report'}
+              {isGeneratingReport ? 'Generating...' : reportGenerated ? 'Generated!' : hasFullProfitability ? 'Generate / Regenerate Report' : profitabilityResult.statusLabel || 'Waiting for matching file'}
             </Button>
           </div>
         </div>
@@ -1163,7 +838,7 @@ export function ProfitabilityUpload() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6 mt-0">
             {/* KPI Cards - Premium Executive Grid - Interactive */}
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
               {/* Total Revenue - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'revenue' ? null : 'revenue')}
@@ -1175,7 +850,7 @@ export function ProfitabilityUpload() {
               >
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-cyan-400 transition-colors">Total Revenue</span>
                 <div className="text-xl font-bold text-foreground text-center leading-tight group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                  {formatCurrencyForKPI(kpis.totalRevenue)}
+                  {displayCurrency(kpis.totalRevenue)}
                 </div>
               </button>
 
@@ -1190,7 +865,35 @@ export function ProfitabilityUpload() {
               >
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-purple-400 transition-colors">Total Expenses</span>
                 <div className="text-xl font-bold text-purple-400 text-center leading-tight group-hover:text-purple-300 transition-colors">
-                  {formatCurrencyForKPI(kpis.totalExpenses)}
+                  {displayCurrency(kpis.totalExpenses)}
+                </div>
+              </button>
+
+              <button
+                onClick={() => setActiveSection(activeSection === 'gross' ? null : 'gross')}
+                className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
+                  activeSection === 'gross'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-gradient-to-br dark:from-emerald-900/30 dark:to-neutral-800'
+                    : 'border-border hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-gradient-to-br dark:hover:from-emerald-900/20'
+                }`}
+              >
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-emerald-400 transition-colors">Gross Profit</span>
+                <div className={`text-xl font-bold text-center leading-tight ${(kpis.grossProfit ?? 0) >= 0 ? 'text-emerald-400' : 'text-purple-400'} group-hover:text-emerald-300 transition-colors`}>
+                  {displayCurrency(kpis.grossProfit)}
+                </div>
+              </button>
+
+              <button
+                onClick={() => setActiveSection(activeSection === 'operating' ? null : 'operating')}
+                className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
+                  activeSection === 'operating'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-900/30 dark:to-neutral-800'
+                    : 'border-border hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-gradient-to-br dark:hover:from-blue-900/20'
+                }`}
+              >
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Operating Profit</span>
+                <div className={`text-xl font-bold text-center leading-tight ${(kpis.operatingProfit ?? 0) >= 0 ? 'text-blue-400' : 'text-purple-400'} group-hover:text-blue-300 transition-colors`}>
+                  {displayCurrency(kpis.operatingProfit)}
                 </div>
               </button>
 
@@ -1204,23 +907,23 @@ export function ProfitabilityUpload() {
                 }`}
               >
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-emerald-400 transition-colors">Net Profit</span>
-                <div className={`text-xl font-bold text-center leading-tight ${kpis.profit >= 0 ? 'text-emerald-400' : 'text-purple-400'} group-hover:text-emerald-300 transition-colors`}>
-                  {hasFullProfitability ? formatCurrencyForKPI(kpis.profit) : "—"}
+                <div className={`text-xl font-bold text-center leading-tight ${(kpis.netProfit ?? 0) >= 0 ? 'text-emerald-400' : 'text-purple-400'} group-hover:text-emerald-300 transition-colors`}>
+                  {displayCurrency(kpis.netProfit)}
                 </div>
               </button>
 
-              {/* Profit Margin - Clickable */}
+              {/* Net Margin - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'margin' ? null : 'margin')}
                 className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
                   activeSection === 'margin'
                     ? 'border-blue-500 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-900/30 dark:to-neutral-800'
                     : 'border-border hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-gradient-to-br dark:hover:from-blue-900/20'
-                }`}
+                  }`}
               >
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Margin</span>
-                <div className={`text-xl font-bold text-center leading-tight ${kpis.margin >= 0 ? 'text-blue-400' : 'text-purple-400'} group-hover:text-blue-300 transition-colors`}>
-                  {hasFullProfitability ? formatPercentSimple(kpis.margin) : "—"}
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Net Margin</span>
+                <div className={`text-xl font-bold text-center leading-tight ${(kpis.netMargin ?? 0) >= 0 ? 'text-blue-400' : 'text-purple-400'} group-hover:text-blue-300 transition-colors`}>
+                  {displayPercent(kpis.netMargin)}
                 </div>
               </button>
 
@@ -1266,7 +969,7 @@ export function ProfitabilityUpload() {
                 })()}
 
                 {/* Revenue-to-Expense Ratio */}
-                {kpis.totalExpenses > 0 && (
+                {kpis.totalRevenue !== null && kpis.totalExpenses !== null && kpis.totalExpenses > 0 && (
                   <div className="bg-card rounded-lg p-3 border border-border">
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Revenue/Expense</span>
                     <div className="text-lg font-bold text-foreground mt-1">
@@ -1314,10 +1017,10 @@ export function ProfitabilityUpload() {
               <CardContent>
                 <p className="text-sm text-foreground leading-relaxed">
                   {!hasFullProfitability
-                    ? `Your business generated ${formatCurrencyForKPI(kpis.totalRevenue)} in revenue. Gross profit, net profit, and margin are unavailable because cost/profit columns are missing.`
-                    : kpis.profit >= 0
-                    ? `Your business generated ${formatCurrencyForKPI(kpis.totalRevenue)} in revenue with ${formatCurrencyForKPI(kpis.totalExpenses)} in expenses, resulting in a net ${formatCurrencyForKPI(kpis.profit)} (${formatPercentSimple(kpis.margin)} margin). ${profitabilityResult.expenseCategories?.[0] ? `The largest expense category is ${profitabilityResult.expenseCategories[0][0]} at ${formatCurrencyForKPI(profitabilityResult.expenseCategories[0][1] as number)}.` : ''}`
-                    : `Your business generated ${formatCurrencyForKPI(kpis.totalRevenue)} in revenue but incurred ${formatCurrencyForKPI(kpis.totalExpenses)} in expenses, resulting in a net loss of ${formatCurrencyForKPI(Math.abs(kpis.profit))}. Immediate cost reduction strategies are recommended.`
+                    ? profitabilityResult.statusLabel || `Profitability is waiting for the matching file. Unavailable metrics list the missing source columns.`
+                    : (kpis.netProfit ?? 0) >= 0
+                    ? `Your business generated ${displayCurrency(kpis.totalRevenue)} in revenue with ${displayCurrency(kpis.totalExpenses)} in expenses, resulting in gross profit of ${displayCurrency(kpis.grossProfit)}, operating profit of ${displayCurrency(kpis.operatingProfit)}, and net profit of ${displayCurrency(kpis.netProfit)} (${displayPercent(kpis.netMargin)} net margin). ${profitabilityResult.expenseCategories?.[0] ? `The largest expense category is ${profitabilityResult.expenseCategories[0][0]} at ${formatCurrencyForKPI(profitabilityResult.expenseCategories[0][1] as number)}.` : ''}`
+                    : `Your business generated ${displayCurrency(kpis.totalRevenue)} in revenue but incurred ${displayCurrency(kpis.totalExpenses)} in expenses, resulting in a net loss of ${formatCurrencyForKPI(Math.abs(kpis.netProfit ?? 0))}. Immediate cost reduction strategies are recommended.`
                   }
                 </p>
               </CardContent>
@@ -1597,29 +1300,29 @@ export function ProfitabilityUpload() {
             <div className="bg-muted rounded-lg p-3">
               <p className="text-xs text-muted-foreground uppercase">Total Revenue</p>
               <p className={`text-lg font-bold ${stats.hasRevenue ? 'text-cyan-400' : 'text-muted-foreground'}`}>
-                {stats.hasRevenue ? formatCurrency(stats.totalRevenue) : "—"}
+                {stats.totalRevenue !== null ? formatCurrency(stats.totalRevenue) : "—"}
               </p>
             </div>
             <div className="bg-muted rounded-lg p-3">
               <p className="text-xs text-muted-foreground uppercase">Total Expenses</p>
               <p className={`text-lg font-bold ${stats.hasExpenses ? 'text-purple-400' : 'text-muted-foreground'}`}>
-                {stats.hasExpenses ? formatCurrency(stats.totalExpenses) : "—"}
+                {stats.totalExpenses !== null ? formatCurrency(stats.totalExpenses) : "—"}
               </p>
             </div>
             <div className="bg-muted rounded-lg p-3">
-              <p className="text-xs text-muted-foreground uppercase">Estimated Profit</p>
+              <p className="text-xs text-muted-foreground uppercase">Net Profit</p>
               <p className={`text-lg font-bold ${
-                !stats.hasRevenue || !stats.hasExpenses ? 'text-muted-foreground' : stats.profit >= 0 ? 'text-cyan-400' : 'text-purple-400'
+                stats.netProfit === null ? 'text-muted-foreground' : stats.netProfit >= 0 ? 'text-cyan-400' : 'text-purple-400'
               }`}>
-                {stats.hasRevenue && stats.hasExpenses ? formatCurrency(stats.profit) : "—"}
+                {stats.netProfit !== null ? formatCurrency(stats.netProfit) : "—"}
               </p>
             </div>
             <div className="bg-muted rounded-lg p-3">
-              <p className="text-xs text-muted-foreground uppercase">Profit Margin</p>
+              <p className="text-xs text-muted-foreground uppercase">Net Margin</p>
               <p className={`text-lg font-bold ${
-                !stats.hasRevenue || !stats.hasExpenses ? 'text-muted-foreground' : stats.margin >= 0 ? 'text-cyan-400' : 'text-purple-400'
+                stats.netMargin === null ? 'text-muted-foreground' : stats.netMargin >= 0 ? 'text-cyan-400' : 'text-purple-400'
               }`}>
-                {stats.hasRevenue && stats.hasExpenses ? `${stats.margin.toFixed(1)}%` : "—"}
+                {stats.netMargin !== null ? `${stats.netMargin.toFixed(1)}%` : "—"}
               </p>
             </div>
           </div>
@@ -1627,12 +1330,12 @@ export function ProfitabilityUpload() {
           {/* Status Note */}
           <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5 mb-4">
             {!stats.hasRevenue && !stats.hasExpenses && "Upload files above to see your profitability analysis."}
-            {stats.hasRevenue && !stats.hasExpenses && "⚠️ Add expense data for full profit analysis."}
-            {!stats.hasRevenue && stats.hasExpenses && "⚠️ Add revenue data for full profit analysis."}
-            {stats.hasRevenue && stats.hasExpenses && !stats.canMatchPeriods &&
-              "ℹ️ Based on totals. Add date columns to enable period comparison."}
-            {stats.hasRevenue && stats.hasExpenses && stats.canMatchPeriods &&
-              "✓ Period-aligned analysis available."}
+            {stats.hasRevenue && !stats.hasExpenses && "Waiting for Expenses file."}
+            {!stats.hasRevenue && stats.hasExpenses && "Waiting for Revenue file."}
+            {stats.hasRevenue && stats.hasExpenses && !stats.matchKey &&
+              "Based on totals. Add shared period + department, company_id, or cost_center columns for matched comparison."}
+            {stats.hasRevenue && stats.hasExpenses && stats.matchKey &&
+              `Matched analysis available using ${stats.matchKey.replaceAll("_", " + ")}.`}
           </div>
 
           {/* Top Expense Categories */}

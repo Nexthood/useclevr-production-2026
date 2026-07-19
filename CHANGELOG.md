@@ -76,6 +76,7 @@
 
 ### Fixed
 
+- Pair Revenue and Expenses profitability uploads into one isolated profitability analysis with distinct gross, operating, and net profit calculations plus report/download actions.
 - Show Generate Report on selected dashboards and save the finished report into Reports & Downloads with PDF and CSV actions.
 - Parse AI Assistant responses from one raw response body so failed JSON parsing no longer triggers consumed-body errors.
 - Restore stable dataset navigation by reverting the row-preview and dashboard report-generation routing changes.

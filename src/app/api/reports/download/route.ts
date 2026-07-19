@@ -13,7 +13,7 @@ import { isSuperAdminUserId } from '@/lib/auth/builtin-users'
 import { getDb } from '@/lib/db'
 import { datasets } from '@/lib/db/schema'
 import type { Report } from '@/lib/reports/report-generator'
-import { getReport } from '@/lib/reports/report-generator'
+import { getReport, listReports } from '@/lib/reports/report-generator'
 import { and, eq } from 'drizzle-orm'
 import * as fs from 'fs'
 import type { NextRequest } from 'next/server'
@@ -44,17 +44,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const reportId = searchParams.get('id')
+    const datasetId = searchParams.get('datasetId')
     const _format = searchParams.get('format') || 'pdf'
 
-    if (!reportId) {
+    if (!reportId && !datasetId) {
       return NextResponse.json(
-        { success: false, error: 'Report ID is required' },
+        { success: false, error: 'Report ID or dataset ID is required' },
         { status: 400 }
       )
     }
 
     // Fetch the report from storage
-    const report = getReport(reportId)
+    const report = reportId
+      ? getReport(reportId)
+      : listReports(datasetId || "").sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
     
     if (!report) {
       return NextResponse.json(
@@ -68,6 +71,18 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Forbidden' },
         { status: 403 }
       )
+    }
+
+    if (_format === 'csv' || _format === 'excel' || _format === 'xlsx') {
+      const csvContent = generateReportCSV(report)
+      const filename = `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.csv`
+
+      return new NextResponse(csvContent, {
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+        },
+      })
     }
 
 // Check if PDF exists

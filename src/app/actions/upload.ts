@@ -502,6 +502,16 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       columns: headers,
       datasetName,
     });
+    const profitabilityAnalysisId = String(
+      formData.get("profitability_analysis_id") ||
+      formData.get("profitabilityAnalysisId") ||
+      "",
+    ).trim();
+    const profitabilityFileRole = String(
+      formData.get("profitability_file_role") ||
+      formData.get("profitabilityFileRole") ||
+      "",
+    ).trim();
     const baseAnalysis = {
       dataset_type: datasetCategory,
       datasetCategory,
@@ -509,6 +519,14 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       business_model: businessModel,
       businessModel,
       uploadSource: fileType || datasetCategory,
+      ...(isProfitabilityAnalysis
+        ? {
+            profitability_analysis_id: profitabilityAnalysisId || datasetId,
+            profitabilityAnalysisId: profitabilityAnalysisId || datasetId,
+            profitability_file_role: profitabilityFileRole || "combined",
+            profitabilityFileRole: profitabilityFileRole || "combined",
+          }
+        : {}),
     };
     if (isProfitabilityAnalysis) {
       debugLog("[UPLOAD] profitability analysis started");
@@ -574,21 +592,48 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
               ? {
                   totalRevenue: profitabilityData.totalRevenue,
                   totalExpenses: profitabilityData.totalExpenses,
-                  grossProfit: profitabilityData.grossProfit ?? profitabilityData.profit,
-                  netProfit: profitabilityData.netProfit ?? profitabilityData.profit,
-                  profit: profitabilityData.profit,
-                  margin: profitabilityData.margin,
-                  grossMargin: profitabilityData.grossMargin ?? profitabilityData.margin,
-                  netMargin: profitabilityData.netMargin ?? profitabilityData.margin,
+                  cogs: profitabilityData.cogs,
+                  operatingExpenses: profitabilityData.operatingExpenses,
+                  interestExpense: profitabilityData.interestExpense,
+                  taxExpense: profitabilityData.taxExpense,
+                  grossProfit: profitabilityData.grossProfit,
+                  operatingProfit: profitabilityData.operatingProfit,
+                  netProfit: profitabilityData.netProfit,
+                  profit: profitabilityData.netProfit,
+                  grossMargin: profitabilityData.grossMargin,
+                  operatingMargin: profitabilityData.operatingMargin,
+                  netMargin: profitabilityData.netMargin,
+                  margin: profitabilityData.netMargin,
                   expenseCategories: profitabilityData.expenseCategories,
                   topCostCategories: profitabilityData.expenseCategories,
                   revenueByProduct: profitabilityData.revenueByProduct,
                   revenueByRegion: profitabilityData.revenueByRegion,
                   revenueByMonth: profitabilityData.revenueByMonth,
+                  periodTrends: profitabilityData.periodTrends,
+                  departmentComparison: profitabilityData.departmentComparison,
+                  matchKey: profitabilityData.matchKey,
+                  dataConfidence: profitabilityData.dataConfidence,
+                  dataQualityNotes: profitabilityData.dataQualityNotes,
+                  missingColumns: profitabilityData.missingColumns,
+                  unavailableMetrics: profitabilityData.unavailableMetrics,
                   periodComparison: profitabilityData.periodComparison,
                   hasBothFiles: profitabilityData.hasBothFiles,
+                  hasRevenue: profitabilityData.hasRevenue,
+                  hasExpenses: profitabilityData.hasExpenses,
+                  status: profitabilityData.status,
+                  statusLabel: profitabilityData.statusLabel,
+                  profitabilityAnalysisId: profitabilityData.profitabilityAnalysisId || profitabilityAnalysisId || datasetId,
+                  profitability_analysis_id: profitabilityData.profitabilityAnalysisId || profitabilityAnalysisId || datasetId,
+                  profitabilityFileRole: profitabilityFileRole || profitabilityData.fileRole || "combined",
+                  profitability_file_role: profitabilityFileRole || profitabilityData.fileRole || "combined",
+                  sourceFiles: profitabilityData.sourceFiles,
                 }
               : null,
+            columnMapping: {
+              profitabilityAnalysisId: profitabilityData?.profitabilityAnalysisId || profitabilityAnalysisId || datasetId,
+              profitabilityFileRole: profitabilityFileRole || profitabilityData?.fileRole || "combined",
+              sourceFiles: profitabilityData?.sourceFiles,
+            },
             createdAt: now,
             updatedAt: now,
           }

@@ -1,11 +1,12 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
+import { GenerateReportAction } from "@/components/dashboard/generate-report-action"
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { resolveDatasetType } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
-import { BarChart3, DollarSign, TrendingUp } from "lucide-react"
+import { BarChart3, DollarSign, Download, FileText, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
@@ -95,7 +96,7 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
         </div>
       }
     >
-      <div className="flex-1 overflow-y-auto px-5 pb-5 pt-6">
+      <div className="flex-1 overflow-y-auto px-5 pb-32 pt-6 sm:pb-24">
         <div className="max-w-6xl mx-auto space-y-5">
           {focusedDataset && (
             <Card className="border-cyan-400/25 bg-cyan-400/5 p-5">
@@ -118,6 +119,32 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
                   <ProfileContextRow label="Status" value={metricsContent ? "Analyzed" : "Ready for review"} />
                 </div>
               </div>
+              {metricsContent && (
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <GenerateReportAction datasetId={focusedDataset.id} label="Generate / Regenerate Report" />
+                  <Link
+                    href="/app/downloads"
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Open Profitability Report
+                  </Link>
+                  <Link
+                    href={`/api/reports/download?datasetId=${focusedDataset.id}&format=pdf`}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download PDF
+                  </Link>
+                  <Link
+                    href={`/api/reports/download?datasetId=${focusedDataset.id}&format=csv`}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Excel
+                  </Link>
+                </div>
+              )}
               {metricsContent}
             </Card>
           )}
@@ -157,11 +184,16 @@ function renderProfitabilityMetrics(metrics: unknown): React.ReactNode {
   const percentValue = (value: unknown) => typeof value === "number" ? `${value.toFixed(1)}%` : "No data"
   const metricCards = [
     { label: "Revenue", value: currencyValue(values.totalRevenue) },
-    { label: "Expenses", value: currencyValue(values.totalExpenses) },
-    { label: "Gross Profit", value: currencyValue(values.grossProfit ?? values.profit) },
-    { label: "Net Profit", value: currencyValue(values.netProfit ?? values.profit) },
-    { label: "Gross Margin", value: percentValue(values.grossMargin ?? values.margin) },
-    { label: "Net Margin", value: percentValue(values.netMargin ?? values.margin) },
+    { label: "COGS", value: currencyValue(values.cogs) },
+    { label: "Gross Profit", value: currencyValue(values.grossProfit) },
+    { label: "Operating Expenses", value: currencyValue(values.operatingExpenses) },
+    { label: "Operating Profit", value: currencyValue(values.operatingProfit) },
+    { label: "Interest", value: currencyValue(values.interestExpense) },
+    { label: "Taxes", value: currencyValue(values.taxExpense) },
+    { label: "Net Profit", value: currencyValue(values.netProfit) },
+    { label: "Gross Margin", value: percentValue(values.grossMargin) },
+    { label: "Operating Margin", value: percentValue(values.operatingMargin) },
+    { label: "Net Margin", value: percentValue(values.netMargin) },
   ].filter((metric) => metric.value !== "No data")
   const rawCostCategories = Array.isArray(values.topCostCategories)
     ? values.topCostCategories
@@ -188,6 +220,11 @@ function renderProfitabilityMetrics(metrics: unknown): React.ReactNode {
 
   return (
     <div className="mt-5 space-y-4">
+      {typeof values.statusLabel === "string" && (
+        <div className="rounded-lg border border-border bg-background/80 p-4 text-sm text-muted-foreground">
+          {values.statusLabel}
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {metricCards.map((metric) => (
           <div key={metric.label} className="rounded-lg border border-border bg-background/80 p-4">
