@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Align the app top navigation toolbar so search, subscription, action icons, and logout share consistent sizing, spacing, and vertical centering.
 - Hide Mentoring and Book Demo entry points while returning disabled Mentoring pages as unavailable until the feature returns.
 - Replace the broken Demo account CTA with a Start Free flow that sends guests to registration and signed-in users to the dashboard.
 - Redesign generated PDF reports with dashboard-matched executive styling, five-page structure, deterministic profitability calculations, professional number formatting, and customer-safe report language.

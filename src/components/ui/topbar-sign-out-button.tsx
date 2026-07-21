@@ -12,7 +12,7 @@ export function TopbarSignOutButton() {
       aria-label="Log out"
     >
       <LogOut className="h-4 w-4" />
-      <span className="hidden sm:inline">Log out</span>
+      <span className="hidden xl:inline">Log out</span>
     </button>
   )
 }

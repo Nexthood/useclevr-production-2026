@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-21
-- **Goal**: Temporarily disable the Mentoring feature until a future release.
-- **Durable change**: Mentoring and Book demo navigation links are hidden, the public and app Mentoring pages return unavailable states while their implementation remains intact, Mentoring APIs return 404 JSON while disabled, and Mentoring paths send explicit noindex headers.
-- **Verification**: Local HTTP checks confirm `/mentoring` returns 404 with `X-Robots-Tag: noindex, nofollow`, guest `/app/mentoring` redirects to `/login` with noindex, authenticated-looking `/api/mentoring/experts` returns 404 JSON with noindex, and source search finds no remaining Mentoring or Book demo navigation links.
+- **Goal**: Polish the authenticated top navigation toolbar alignment.
+- **Durable change**: Topbar actions use consistent 44px containers, 16px spacing, centered separators, aligned subscription text, and tablet-safe icon-only labels while preserving the existing search, subscription, theme, notices, profile, hybrid AI, and logout actions.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false`, focused ESLint, local desktop and 125% zoom screenshots, static tablet responsive review, project-record, changelog, secret, TODO, package, and diff whitespace checks pass; the local tablet screenshot attempt is blocked by an unrelated dashboard database out-of-memory response.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
