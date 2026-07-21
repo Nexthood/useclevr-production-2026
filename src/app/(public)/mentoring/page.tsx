@@ -3,7 +3,21 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicPageHeader } from "@/components/layout/public-page-header"
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Award, Calendar, ChartLine, Lightbulb, Star, Target, Users } from "lucide-react"
+import type { Metadata } from "next"
 import Link from "next/link"
+import { notFound } from "next/navigation"
+
+export const metadata: Metadata = {
+  title: "Business Mentoring",
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
+
+function isMentoringEnabled() {
+  return false
+}
 
 const sessionTypes = [
   {
@@ -39,6 +53,10 @@ const sessionTypes = [
 ]
 
 export default function MentoringPage() {
+  if (!isMentoringEnabled()) {
+    notFound()
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <PublicHeader />

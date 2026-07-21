@@ -2,13 +2,26 @@ import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-la
 import { auth } from "@/lib/auth/auth"
 import { GraduationCap } from "lucide-react"
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { MentoringClient } from "./mentoring-client"
 
 export const metadata: Metadata = {
   title: "Business Mentoring",
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
+
+function isMentoringEnabled() {
+  return false
 }
 
 export default async function MentoringPage() {
+  if (!isMentoringEnabled()) {
+    notFound()
+  }
+
   const _session = await auth()
 
   const rightSidebar = (

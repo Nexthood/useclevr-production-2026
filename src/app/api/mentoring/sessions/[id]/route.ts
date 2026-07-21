@@ -1,17 +1,26 @@
 import { auth } from "@/lib/auth/auth"
 import { updateMentoringSession } from "@/lib/mentoring/mentoring-store"
 import { mentoringSessionUpdateSchema, validateOrError } from "@/lib/validation"
+import type { Session } from "next-auth"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
-function getUser(session: any) {
+function getUser(session: Session | null) {
   const userId = session?.user?.id
   const userEmail = session?.user?.email || ""
   if (!userId || !userEmail) return null
   return { id: userId, email: userEmail }
 }
 
+function isMentoringEnabled() {
+  return false
+}
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!isMentoringEnabled()) {
+    return NextResponse.json({ error: "Mentoring is unavailable." }, { status: 404 })
+  }
+
   const user = getUser(await auth())
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -8,7 +8,7 @@ import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { getSetupStatus } from "@/lib/business/company-setup-store";
-import { BriefcaseBusiness, CreditCard, GraduationCap, HelpCircle, Shield, UserCircle } from "lucide-react";
+import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react";
 import Link from "next/link";
 import pkg from "../../../package.json";
 
@@ -70,15 +70,6 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/business">Business</TopbarPanelLink>
             <TopbarPanelLink href="/app/business/profile">Profile</TopbarPanelLink>
             <TopbarPanelLink href="/app/business/review">Review</TopbarPanelLink>
-          </TopbarSection>
-
-          <TopbarSection
-            icon={<GraduationCap className="h-4 w-4" />}
-            label="Mentoring"
-            iconOnly
-          >
-            <TopbarPanelLink href="/app/mentoring">My sessions</TopbarPanelLink>
-            <TopbarPanelLink href="/mentoring">Public page</TopbarPanelLink>
           </TopbarSection>
 
           <Link
