@@ -3,7 +3,7 @@ import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-mo
 import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
 import type { datasets } from "@/lib/db/schema"
-import type { ReportChart } from "@/lib/reports/report-generator"
+import type { ReportChart, ReportFinancials, ReportRecommendation } from "@/lib/reports/report-generator"
 
 type DatasetRecord = typeof datasets.$inferSelect
 type DataRow = Record<string, unknown>
@@ -75,7 +75,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   return {
     businessModel,
     reportType: reportModel,
-    summary: `${reportModelLabel(reportModel)} report for ${dataset.name}. This report includes a Business Balanced Scorecard (also known as Balanced Scorecard or BSC) and uses only the selected dataset (${dataset.id}).`,
+    summary: `${reportModelLabel(reportModel)} report for ${dataset.name}. This report uses only the selected dataset and includes a Business Balanced Scorecard when enough source fields are available.`,
     findings,
     kpis,
     charts,
@@ -97,12 +97,27 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   const operatingExpenses = numeric("operatingExpenses")
   const interestExpense = numeric("interestExpense")
   const taxExpense = numeric("taxExpense")
-  const grossProfit = numeric("grossProfit")
-  const operatingProfit = numeric("operatingProfit")
-  const netProfit = numeric("netProfit")
-  const grossMargin = numeric("grossMargin")
-  const operatingMargin = numeric("operatingMargin")
-  const netMargin = numeric("netMargin")
+  const grossProfit = totalRevenue !== null && cogs !== null ? round(totalRevenue - cogs) : null
+  const operatingProfit = grossProfit !== null && operatingExpenses !== null ? round(grossProfit - operatingExpenses) : null
+  const netProfit = operatingProfit !== null && interestExpense !== null && taxExpense !== null
+    ? round(operatingProfit - interestExpense - taxExpense)
+    : null
+  const grossMargin = totalRevenue && grossProfit !== null ? round((grossProfit / totalRevenue) * 100) : null
+  const operatingMargin = totalRevenue && operatingProfit !== null ? round((operatingProfit / totalRevenue) * 100) : null
+  const netMargin = totalRevenue && netProfit !== null ? round((netProfit / totalRevenue) * 100) : null
+  const missingFields = missingProfitabilityFields({
+    totalRevenue,
+    cogs,
+    grossProfit,
+    operatingExpenses,
+    operatingProfit,
+    interestExpense,
+    taxExpense,
+    netProfit,
+    grossMargin,
+    operatingMargin,
+    netMargin,
+  }, metrics)
   const kpis: ReportKpi[] = []
   addKpi(kpis, "Revenue", totalRevenue, "currency")
   addKpi(kpis, "COGS", cogs, "currency")
@@ -123,8 +138,8 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   if (revenueSources) charts.push(revenueSources)
 
   const findings = [
-    `Generated from paired profitability analysis ${String(metrics.profitabilityAnalysisId || metrics.profitability_analysis_id || dataset.id)}.`,
-    `Revenue and expenses are isolated to the selected profitability analysis and dataset ${dataset.id}.`,
+    "This report combines the selected Revenue and Expenses datasets.",
+    "Revenue and expense totals are isolated to the selected profitability analysis pair.",
   ]
   if (typeof metrics.statusLabel === "string") findings.push(metrics.statusLabel)
   if (Array.isArray(metrics.dataQualityNotes)) findings.push(...metrics.dataQualityNotes.filter((note): note is string => typeof note === "string"))
@@ -138,21 +153,176 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     columns: Object.keys(bbscRows[0] || {}),
     businessModel: "profitability",
   })
+  const financials: ReportFinancials = {
+    reportingPeriod: reportingPeriodFromMetrics(metrics),
+    dataConfidence: typeof metrics.dataConfidence === "number" ? metrics.dataConfidence : null,
+    revenue: totalRevenue,
+    cogs,
+    grossProfit,
+    operatingExpenses,
+    operatingProfit,
+    interestExpense,
+    taxExpense,
+    netProfit,
+    grossMargin,
+    operatingMargin,
+    netMargin,
+    revenueGrowth: revenueGrowthFromMetrics(metrics),
+    expenseRatio: totalRevenue && numeric("totalExpenses") !== null ? round((numeric("totalExpenses")! / totalRevenue) * 100) : null,
+    missingFields,
+    topCostCategories: topCostCategories?.data || [],
+    periodTrends: periodTrendsFromMetrics(metrics),
+  }
+  const recommendations = buildProfitabilityRecommendations(financials, bbsc)
 
   return {
     businessModel,
     reportType: "profitability" as const,
-    summary: `Profitability report for ${dataset.name}. This combined report uses the paired Revenue and Expenses files in profitability analysis ${String(metrics.profitabilityAnalysisId || metrics.profitability_analysis_id || dataset.id)} and includes a Business Balanced Scorecard (also known as Balanced Scorecard or BSC).`,
+    summary: buildProfitabilitySummary(dataset.name, financials, bbsc),
+    financials,
     findings,
     kpis,
     charts,
     aiInsights: extractInsights(dataset.analysis),
     predictions: [],
+    recommendations,
     alerts: buildProfitabilityAlerts(netMargin, metrics),
     bbsc,
     rowCount: dataset.rowCount || rows.length,
     columns,
   }
+}
+
+function buildProfitabilitySummary(datasetName: string, financials: ReportFinancials, bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>) {
+  const revenue = financials.revenue !== null ? formatCurrencyForSummary(financials.revenue) : "Not available"
+  const grossMargin = financials.grossMargin !== null ? `${financials.grossMargin.toFixed(1)}%` : "not available"
+  const netMargin = financials.netMargin !== null ? `${financials.netMargin.toFixed(1)}%` : "not available"
+  const score = bbsc.overallScore !== null ? `${bbsc.overallScore}/100` : "not available"
+  const topCost = financials.topCostCategories?.[0]
+  const totalCost = financials.topCostCategories?.reduce((total, item) => total + item.value, 0) || 0
+  const topCostShare = topCost && totalCost > 0 ? `${((topCost.value / totalCost) * 100).toFixed(1)}%` : null
+  const confidence = financials.dataConfidence !== null && financials.dataConfidence !== undefined ? `${Math.round(financials.dataConfidence)}%` : "not available"
+
+  return [
+    `${datasetName} generated ${revenue} in revenue with gross margin of ${grossMargin} and net margin of ${netMargin}.`,
+    topCost && topCostShare ? `${topCost.name} represents ${topCostShare} of total categorized expenses.` : "Cost concentration is not available because expense category data is incomplete.",
+    `Profitability health score is ${score}; source-data confidence is ${confidence}.`,
+  ].join(" ")
+}
+
+function missingProfitabilityFields(values: Record<string, number | null>, metrics: Record<string, unknown>) {
+  const missing = new Set<string>()
+  for (const [field, value] of Object.entries(values)) {
+    if (value === null) missing.add(humanizeField(field))
+  }
+  if (Array.isArray(metrics.missingColumns)) {
+    for (const field of metrics.missingColumns) missing.add(String(field))
+  }
+  if (Array.isArray(metrics.unavailableMetrics)) {
+    for (const field of metrics.unavailableMetrics) missing.add(humanizeField(String(field)))
+  }
+  return Array.from(missing)
+}
+
+function periodTrendsFromMetrics(metrics: Record<string, unknown>): ReportFinancials["periodTrends"] {
+  if (!Array.isArray(metrics.periodTrends)) return []
+  return metrics.periodTrends
+    .filter(isRecord)
+    .map((trend) => {
+      const revenue = numberOrNull(trend.revenue)
+      const cogs = numberOrNull(trend.cogs)
+      const operatingExpenses = numberOrNull(trend.operatingExpenses)
+      const interestExpense = numberOrNull(trend.interestExpense)
+      const taxExpense = numberOrNull(trend.taxExpense)
+      const grossProfit = revenue !== null && cogs !== null ? round(revenue - cogs) : numberOrNull(trend.grossProfit)
+      const operatingProfit = grossProfit !== null && operatingExpenses !== null ? round(grossProfit - operatingExpenses) : numberOrNull(trend.operatingProfit)
+      const netProfit = operatingProfit !== null && interestExpense !== null && taxExpense !== null
+        ? round(operatingProfit - interestExpense - taxExpense)
+        : numberOrNull(trend.netProfit)
+
+      return {
+        period: String(trend.period || "Period"),
+        revenue,
+        cogs,
+        operatingExpenses,
+        interestExpense,
+        taxExpense,
+        grossProfit,
+        operatingProfit,
+        netProfit,
+        grossMargin: revenue && grossProfit !== null ? round((grossProfit / revenue) * 100) : null,
+        operatingMargin: revenue && operatingProfit !== null ? round((operatingProfit / revenue) * 100) : null,
+        netMargin: revenue && netProfit !== null ? round((netProfit / revenue) * 100) : null,
+      }
+    })
+}
+
+function revenueGrowthFromMetrics(metrics: Record<string, unknown>) {
+  const trends = periodTrendsFromMetrics(metrics) || []
+  const revenuePeriods = trends.filter((trend) => trend.revenue !== null)
+  if (revenuePeriods.length < 2) return null
+  const first = revenuePeriods[0].revenue
+  const last = revenuePeriods[revenuePeriods.length - 1].revenue
+  if (!first || last === null) return null
+  return round(((last - first) / first) * 100)
+}
+
+function reportingPeriodFromMetrics(metrics: Record<string, unknown>) {
+  const trends = periodTrendsFromMetrics(metrics) || []
+  if (trends.length === 0) return null
+  if (trends.length === 1) return trends[0].period
+  return `${trends[0].period} to ${trends[trends.length - 1].period}`
+}
+
+function buildProfitabilityRecommendations(
+  financials: ReportFinancials,
+  bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  const topCost = financials.topCostCategories?.[0]
+  const totalCost = financials.topCostCategories?.reduce((total, item) => total + item.value, 0) || 0
+  if (topCost && totalCost > 0) {
+    const share = (topCost.value / totalCost) * 100
+    recommendations.push({
+      issue: `${topCost.name} represents ${share.toFixed(1)}% of total categorized expenses.`,
+      businessImpact: share >= 50 ? "High expense concentration increases profitability risk." : "Expense concentration is visible and worth active management.",
+      recommendedAction: `Review ${topCost.name} contracts, staffing levels, vendors, or usage drivers and set a reduction target.`,
+      estimatedImpact: financials.netProfit !== null ? `A 5% reduction in ${topCost.name} would improve net profit by ${formatCurrencyForSummary(topCost.value * 0.05)}.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.netMargin !== null && financials.netMargin < 10) {
+    recommendations.push({
+      issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
+      businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
+      recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
+      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (bbsc.weakestPerspective) {
+    recommendations.push({
+      issue: `${bbsc.weakestPerspective.title} is the weakest available perspective at ${bbsc.weakestPerspective.score}/100.`,
+      businessImpact: "The weakest scored perspective limits the overall business score.",
+      recommendedAction: bbsc.weakestPerspective.recommendedActions[0] || "Track the missing drivers and review the perspective monthly.",
+      estimatedImpact: null,
+      confidence: bbsc.weakestPerspective.dataConfidence >= 70 ? "High" : "Medium",
+      requiredData: bbsc.weakestPerspective.status === "available" ? [] : bbsc.weakestPerspective.requiredFields,
+    })
+  }
+  if ((financials.missingFields || []).length > 0) {
+    recommendations.push({
+      issue: `Missing fields limit report completeness: ${financials.missingFields!.slice(0, 4).join(", ")}.`,
+      businessImpact: "Unavailable source fields reduce confidence and prevent some KPI calculations.",
+      recommendedAction: "Add the missing financial fields to the next Revenue and Expenses upload.",
+      estimatedImpact: null,
+      confidence: "Medium",
+      requiredData: financials.missingFields,
+    })
+  }
+  return recommendations.slice(0, 5)
 }
 
 function tupleChart(value: unknown, title: string): ReportChart | null {
@@ -458,4 +628,30 @@ function getNumber(value: unknown) {
   if (typeof value !== "string") return null
   const parsed = Number.parseFloat(value.replace(/[^0-9.-]/g, ""))
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function round(value: number) {
+  return Math.round(value * 100) / 100
+}
+
+function humanizeField(field: string) {
+  return field
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatCurrencyForSummary(value: number) {
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`
+  if (abs >= 1_000) return `$${(value / 1_000).toFixed(1)}K`
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value)
 }

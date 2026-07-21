@@ -1,605 +1,581 @@
 import { debugLog } from "@/lib/utils/debug";
 
-/**
- * PDF Report Generator for UseClevr
- * 
- * Creates premium, detailed executive BI reports.
- * Design principles:
- * - Executive-grade structure with meaningful depth
- * - Proper section hierarchy and spacing
- * - Chart interpretation and business context
- * - Clear monetary formatting ($16.33M, not 16327.9K)
- * - No overlapping text - proper vertical stacking
- * - Max 3 pages for comprehensive reports
- */
+import * as fs from "fs";
+import { jsPDF } from "jspdf";
+import * as path from "path";
+import type { Report, ReportFinancials, ReportRecommendation } from "./report-generator";
 
-import * as fs from 'fs';
-import { jsPDF } from 'jspdf';
-import * as path from 'path';
-import type { Report } from './report-generator';
+const PDF_DIR = path.join(process.env.TEMP_DIR || "/tmp/useclevr-reports", "pdfs");
 
-// PDF storage directory: use explicit temp directory to avoid broad project tracing in Next/Turbopack
-const PDF_DIR = path.join(process.env.TEMP_DIR || '/tmp/useclevr-reports', 'pdfs');
-
-// Ensure PDF directory exists
-function ensurePdfDir() {
-  if (!fs.existsSync(PDF_DIR)) {
-    fs.mkdirSync(PDF_DIR, { recursive: true });
-  }
+type Rgb = [number, number, number];
+type PdfMetric = {
+  title: string;
+  value: string;
+  accent: Rgb;
+  missing?: string | null;
 }
 
-// Professional monetary formatter
-function _formatCurrency(value: number): string {
-  if (Math.abs(value) >= 1000000) {
-    return `$${(value / 1000000).toFixed(2)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `$${(value / 1000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(2)}`;
-}
+const colors = {
+  navy: [9, 18, 38] as Rgb,
+  navy2: [15, 23, 42] as Rgb,
+  panel: [18, 31, 55] as Rgb,
+  panel2: [30, 41, 59] as Rgb,
+  text: [226, 232, 240] as Rgb,
+  muted: [148, 163, 184] as Rgb,
+  border: [51, 65, 85] as Rgb,
+  cyan: [34, 211, 238] as Rgb,
+  green: [52, 211, 153] as Rgb,
+  violet: [167, 139, 250] as Rgb,
+  amber: [251, 191, 36] as Rgb,
+  red: [248, 113, 113] as Rgb,
+  white: [255, 255, 255] as Rgb,
+};
 
-// Compact number formatter
-function formatCompactNumber(value: number): string {
-  if (Math.abs(value) >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`;
-  }
-  return value.toFixed(0);
-}
-
-// Percentage formatter
-function _formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
-// Get PDF path for existing report
 export function getPdfPath(reportId: string, datasetName: string): string | null {
-  const filename = `${datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${reportId}.pdf`;
+  const filename = `${datasetName.replace(/[^a-z0-9]/gi, "_")}_report_${reportId}.pdf`;
   const filepath = path.join(PDF_DIR, filename);
   return fs.existsSync(filepath) ? filepath : null;
 }
 
-/**
- * Generate a comprehensive executive PDF report
- * Layout rules:
- * - Page margins: 20mm all sides
- * - Section spacing: 10-15mm between major sections
- * - No overlapping - check available space before each section
- * - Max 3 pages for detailed reports
- */
 export async function generatePdfReport(report: Report): Promise<string> {
   ensurePdfDir();
-  
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  });
-  
-  // Page dimensions
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - (margin * 2);
-  
-  // Color palette - premium dark theme
-  const colors: Record<string, [number, number, number]> = {
-    primary: [30, 30, 35],      // Dark charcoal
-    accent: [99, 102, 241],     // Indigo  
-    muted: [107, 114, 128],     // Gray
-    success: [16, 185, 129],    // Emerald
-    warning: [245, 158, 11],    // Amber
-    danger: [239, 68, 68],      // Red
-    lightBg: [249, 250, 251],   // Near white
-    cardBg: [243, 244, 246],    // Light gray
-    border: [229, 231, 235],    // Border gray
-  };
-  
-  // Track current position
-  let y = margin;
-  let pageNum = 1;
-  
-  // Helper: check if we need a new page
-  const needNewPage = (requiredSpace: number): boolean => {
-    if (y + requiredSpace > pageHeight - margin) {
-      return true;
-    }
-    return false;
-  };
-  
-  // Helper: add new page with proper setup
-  const addPage = (): void => {
-    doc.addPage();
-    y = margin;
-    pageNum++;
-  };
-  
-  // Helper: add section spacing
-  const addSpacing = (mm: number): void => {
-    y += mm;
-  };
-  
-  // Helper: draw section divider line
-  const _drawDivider = (): void => {
-    doc.setDrawColor(...colors.border);
-    doc.setLineWidth(0.3);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 6;
-  };
-  
-  // Helper: wrap text to fit content width
-  const wrapText = (text: string, maxWidth: number): string[] => {
-    return doc.splitTextToSize(text, maxWidth);
-  };
-  
-  // ===== HEADER SECTION =====
-  // Full-width dark header
-  doc.setFillColor(...colors.primary);
-  doc.rect(0, 0, pageWidth, 50, 'F');
-  
-  // Brand name
-  doc.setFontSize(10);
-  doc.setTextColor(255, 255, 255);
-  doc.text('UseClevr', margin, 10);
-  
-  // Report title
-  doc.setFontSize(22);
-  doc.setTextColor(255, 255, 255);
-  doc.text('Executive Analysis Report', margin, 22);
-  
-  // Dataset subtitle and report metadata
-  // IMPORTANT: jsPDF setTextColor does not take RGBA; using 4 params
-  // switches to CMYK and caused black text. Use explicit RGB only.
-  doc.setFontSize(10);
-  doc.setTextColor(255, 255, 255);
-  const subtitle = report.datasetName.length > 45 
-    ? report.datasetName.substring(0, 42) + '...' 
-    : report.datasetName;
-  doc.text(subtitle, margin, 33);
-  
-  // Report metadata row (explicit lilac/purple accent on dark header)
-  doc.setFontSize(8);
-  // Tailwind purple-300 equivalent: rgb(196, 181, 253)
-  doc.setTextColor(196, 181, 253);
-  const metaRow = `Generated: ${report.localTime} | Rows: ${report.rowCount.toLocaleString()} | Type: Financial Performance`;
-  doc.text(metaRow, margin, 43);
-  
-  // Header border accent line
-  doc.setDrawColor(...colors.accent);
-  doc.setLineWidth(1);
-  doc.line(0, 50, pageWidth, 50);
-  
-  y = 60;
-  
-  // ===== EXECUTIVE SUMMARY =====
-  // More substantial summary with improved typography
-  if (needNewPage(30)) {
-    addPage();
-  }
-  
-  doc.setFontSize(14); // Stronger section title for hierarchy
-  doc.setTextColor(...colors.primary);
-  doc.text('Executive Summary', margin, y);
-  addSpacing(9); // More room under title
-  
-  // Build a richer summary from available data
-  let execSummary = '';
-  if (report.summary) {
-    execSummary = report.summary;
-  } else if (report.kpis && report.kpis.length > 0) {
-    // Generate summary from KPIs if no AI summary
-    const revenueKpi = report.kpis.find(k => k.title.toLowerCase().includes('revenue') || k.title.toLowerCase().includes('sales'));
-    const profitKpi = report.kpis.find(k => k.title.toLowerCase().includes('profit') || k.title.toLowerCase().includes('net'));
-    const marginKpi = report.kpis.find(k => k.title.toLowerCase().includes('margin'));
-    
-    if (revenueKpi) {
-      execSummary = `This analysis covers ${report.datasetName} with ${report.rowCount.toLocaleString()} data points. `;
-      execSummary += `Total ${revenueKpi.title.toLowerCase()} stands at ${revenueKpi.value}.`;
-      if (profitKpi) {
-        execSummary += ` Net performance shows ${profitKpi.value}.`;
-      }
-      if (marginKpi) {
-        execSummary += ` The ${marginKpi.title.toLowerCase()} is ${marginKpi.value}.`;
-      }
-    }
-  }
-  
-  if (!execSummary) {
-    execSummary = `This executive report analyzes ${report.rowCount.toLocaleString()} records from ${report.datasetName}. The analysis covers revenue performance, key trends, and actionable findings.`;
-  }
-  
-  // Display more summary text (up to 8 lines = ~250 words equivalent)
-  doc.setFontSize(10);
-  doc.setTextColor(...colors.muted);
-  const summaryLines = wrapText(execSummary, contentWidth);
-  const displaySummary = summaryLines.slice(0, 8);
-  doc.text(displaySummary, margin, y);
-  addSpacing(displaySummary.length * 5 + 10);
-  
-  // ===== KEY METRICS SECTION =====
-  if (report.kpis && report.kpis.length > 0) {
-    // Each KPI card needs ~35mm height
-    if (needNewPage(45)) {
-      addPage();
-    }
-    
-    // Section title - improved typography
-    doc.setFontSize(14); // Stronger section headers
-    doc.setTextColor(...colors.primary);
-    doc.text('Key Performance Metrics', margin, y);
-    addSpacing(10); // More air before cards
-    
-    const displayKpis = report.kpis.slice(0, 4);
-    const kpiWidth = contentWidth / displayKpis.length;
-    const kpiHeight = 40; // Slightly larger cards
-    
-    // KPI cards in a row
-    for (let i = 0; i < displayKpis.length; i++) {
-      const kpi = displayKpis[i];
-      const x = margin + (i * kpiWidth);
-      
-      // Check if we need new page for this KPI row
-      if (needNewPage(kpiHeight + 10)) {
-        addPage();
-      }
-      
-      // Card background
-      doc.setFillColor(...colors.cardBg);
-      doc.roundedRect(x, y, kpiWidth - 2, kpiHeight, 2.5, 2.5, 'F');
-      
-      // Label - improved typography
-      doc.setFontSize(9); // Slightly larger label
-      doc.setTextColor(...colors.muted);
-      doc.text(kpi.title.toUpperCase(), x + 6, y + 9);
-      
-      // Value - use professional formatting with larger font
-      doc.setFontSize(16); // Larger value for emphasis
-      doc.setTextColor(...colors.primary);
-      
-      // Format the value professionally
-      let displayValue = kpi.value;
-      // If it looks like currency but not formatted
-      if (kpi.value.includes('$') === false && 
-          (kpi.title.toLowerCase().includes('revenue') || 
-           kpi.title.toLowerCase().includes('profit') ||
-           kpi.title.toLowerCase().includes('sales') ||
-           kpi.title.toLowerCase().includes('income'))) {
-        // Value might need currency formatting
-        displayValue = kpi.value;
-      }
-      
-      doc.text(displayValue, x + 6, y + 22);
-    }
-    
-    addSpacing(kpiHeight + 14); // More space after KPI section
-  }
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+  const reportTitle = report.reportType === "profitability"
+    ? "Profitability Executive Report"
+    : "Executive BI Report";
+  const datasetName = cleanText(report.datasetName || "Selected dataset");
+  const financials = normalizeFinancials(report);
 
-  // ===== BUSINESS BALANCED SCORECARD SECTION =====
-  if (report.bbsc) {
-    if (needNewPage(86)) {
-      addPage();
-    }
+  drawPageBackground(doc, pageWidth, pageHeight);
+  drawHeader(doc, reportTitle, datasetName, pageWidth, margin);
+  drawExecutiveOverview(doc, report, financials, margin, contentWidth);
 
-    doc.setFontSize(14);
-    doc.setTextColor(...colors.primary);
-    doc.text('Business Balanced Scorecard', margin, y);
-    addSpacing(6);
+  doc.addPage();
+  drawPageBackground(doc, pageWidth, pageHeight);
+  drawHeader(doc, "Financial Performance", datasetName, pageWidth, margin);
+  drawFinancialPerformance(doc, financials, margin, contentWidth);
 
-    doc.setFontSize(8);
-    doc.setTextColor(...colors.muted);
-    doc.text('Also known as Balanced Scorecard (BSC)', margin, y);
-    addSpacing(8);
+  doc.addPage();
+  drawPageBackground(doc, pageWidth, pageHeight);
+  drawHeader(doc, "Cost Intelligence", datasetName, pageWidth, margin);
+  drawCostIntelligence(doc, financials, margin, contentWidth);
 
-    const overallLabel = report.bbsc.overallScore === null ? 'Insufficient data' : `${report.bbsc.overallScore}/100`;
-    doc.setFillColor(...colors.cardBg);
-    doc.roundedRect(margin, y, contentWidth, 18, 2, 2, 'F');
-    doc.setFontSize(9);
-    doc.setTextColor(...colors.muted);
-    doc.text('Overall Business Score', margin + 6, y + 7);
-    doc.setFontSize(16);
-    doc.setTextColor(...colors.primary);
-    doc.text(overallLabel, pageWidth - margin - 6, y + 12, { align: 'right' });
-    addSpacing(24);
+  doc.addPage();
+  drawPageBackground(doc, pageWidth, pageHeight);
+  drawHeader(doc, "Business Balanced Scorecard", datasetName, pageWidth, margin);
+  drawBalancedScorecard(doc, report, margin, contentWidth);
 
-    const perspectiveValues = Object.values(report.bbsc.perspectives);
-    const cardGap = 4;
-    const cardWidth = (contentWidth - cardGap) / 2;
-    const cardHeight = 28;
+  doc.addPage();
+  drawPageBackground(doc, pageWidth, pageHeight);
+  drawHeader(doc, "Executive Recommendations", datasetName, pageWidth, margin);
+  drawRecommendations(doc, report, financials, margin, contentWidth);
 
-    for (let i = 0; i < perspectiveValues.length; i++) {
-      const perspective = perspectiveValues[i];
-      const col = i % 2;
-      if (i > 0 && col === 0) addSpacing(cardHeight + 5);
-      if (needNewPage(cardHeight + 14)) addPage();
+  addFooters(doc, pageWidth, pageHeight, margin, report);
 
-      const x = margin + col * (cardWidth + cardGap);
-      const scoreLabel = perspective.score === null ? 'Insufficient data' : `${perspective.score}/100`;
-
-      doc.setFillColor(...colors.lightBg);
-      doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
-      doc.setFontSize(8);
-      doc.setTextColor(...colors.muted);
-      doc.text(perspective.title, x + 4, y + 6);
-      doc.setFontSize(14);
-      doc.setTextColor(...colors.primary);
-      doc.text(scoreLabel, x + 4, y + 15);
-      doc.setFontSize(7);
-      doc.setTextColor(...colors.muted);
-      const confidence = perspective.status === 'available' ? `${perspective.dataConfidence}% data confidence` : `Requires: ${perspective.requiredFields.slice(0, 2).join(', ')}`;
-      doc.text(wrapText(confidence, cardWidth - 8).slice(0, 2), x + 4, y + 22);
-    }
-
-    addSpacing(cardHeight + 12);
-
-    if (needNewPage(34)) addPage();
-    doc.setFontSize(11);
-    doc.setTextColor(...colors.primary);
-    doc.text('BBSC Executive Summary', margin, y);
-    addSpacing(7);
-
-    doc.setFontSize(9);
-    doc.setTextColor(...colors.muted);
-    const bbscSummary = [
-      report.bbsc.scoreExplanation,
-      report.bbsc.strongestPerspective ? `Strongest perspective: ${report.bbsc.strongestPerspective.title}.` : '',
-      report.bbsc.weakestPerspective ? `Weakest perspective: ${report.bbsc.weakestPerspective.title}.` : '',
-      report.bbsc.confidenceNote,
-    ].filter(Boolean).join(' ');
-    const bbscLines = wrapText(bbscSummary, contentWidth).slice(0, 7);
-    doc.text(bbscLines, margin, y);
-    addSpacing(bbscLines.length * 4.5 + 8);
-
-    const priorities = report.bbsc.topPriorities.length > 0 ? report.bbsc.topPriorities : report.bbsc.recommendedNextActions;
-    if (priorities.length > 0) {
-      if (needNewPage(24)) addPage();
-      doc.setFontSize(11);
-      doc.setTextColor(...colors.primary);
-      doc.text('Top BBSC Priorities', margin, y);
-      addSpacing(7);
-      doc.setFontSize(9);
-      doc.setTextColor(...colors.success);
-      for (const [index, priority] of priorities.slice(0, 3).entries()) {
-        const lines = wrapText(`${index + 1}. ${priority}`, contentWidth);
-        doc.text(lines, margin, y);
-        addSpacing(lines.length * 4.5 + 3);
-      }
-      addSpacing(4);
-    }
-  }
-  
-  // ===== DETAILED ANALYSIS SECTIONS =====
-  // Process each chart with interpretation
-  if (report.charts && report.charts.length > 0) {
-    const displayCharts = report.charts.slice(0, 3); // Show up to 3 charts
-    
-    for (let chartIdx = 0; chartIdx < displayCharts.length; chartIdx++) {
-      const chart = displayCharts[chartIdx];
-      
-      // Chart section needs ~55mm
-      if (needNewPage(60)) {
-        addPage();
-      }
-      
-      // Chart title - improved typography for section hierarchy
-      doc.setFontSize(13); // Slightly stronger chart section title
-      doc.setTextColor(...colors.primary);
-      doc.text(chart.title, margin, y);
-      addSpacing(9); // Slightly more spacing before description
-      
-      // Generate chart interpretation
-      const chartData = chart.data.slice(0, 5); // Top 5 for analysis
-      const totalValue = chartData.reduce((sum, d) => sum + Math.abs(d.value), 0);
-      const topItem = chartData[0];
-      const topPercent = totalValue > 0 ? ((Math.abs(topItem.value) / totalValue) * 100).toFixed(1) : '0';
-      
-      // Chart interpretation/commentary - improved typography
-      doc.setFontSize(10); // Better readability
-      doc.setTextColor(...colors.muted);
-      
-      let interpretation = '';
-      if (chart.title.toLowerCase().includes('product') || chart.title.toLowerCase().includes('category')) {
-        interpretation = `${topItem.name} leads with ${topPercent}% of total ${chart.title.toLowerCase()}. `;
-        if (parseFloat(topPercent) > 50) {
-          interpretation += `High concentration suggests dependency on this segment. `;
-          interpretation += `Consider diversification strategies.`;
-        } else if (parseFloat(topPercent) > 30) {
-          interpretation += `Moderate concentration - main driver represents ${topPercent}%. `;
-          interpretation += `Healthy distribution with primary focus area.`;
-        } else {
-          interpretation += `Balanced distribution across segments.`;
-        }
-      } else if (chart.title.toLowerCase().includes('region') || chart.title.toLowerCase().includes('country')) {
-        interpretation = `${topItem.name} is the primary market at ${topPercent}% of total. `;
-        if (parseFloat(topPercent) > 60) {
-          interpretation += `Strong geographic concentration - review market expansion opportunities.`;
-        } else {
-          interpretation += `Geographic spread indicates reasonable market penetration.`;
-        }
-      } else {
-        interpretation = `${topItem.name} shows the highest value at ${topPercent}%. `;
-        interpretation += `${chartData.length > 1 ? `${chartData[1].name} follows at ${((Math.abs(chartData[1].value) / totalValue) * 100).toFixed(1)}%.` : ''}`;
-      }
-      
-      const interpretationLines = wrapText(interpretation, contentWidth);
-      doc.text(interpretationLines, margin, y);
-      addSpacing(interpretationLines.length * 5 + 10); // More space before chart visual
-      
-      // Chart visual - horizontal bars with hardened layout
-      const maxValue = Math.max(...chart.data.map(d => Math.abs(d.value)), 1);
-      const chartDataDisplay = chart.data.slice(0, 5);
-      const rows = chartDataDisplay.length;
-      
-      // Chart background with computed height
-      const barHeight = 8;      // slightly taller
-      const barGap = 6;         // slightly larger row gap
-      const topPad = 8;         // padding inside chart box
-      const bottomPad = 8;
-      const chartHeight = topPad + rows * (barHeight + barGap) - barGap + bottomPad;
-
-      doc.setFillColor(...colors.lightBg);
-      doc.roundedRect(margin, y, contentWidth, chartHeight, 2, 2, 'F');
-      
-      // Stable three-column layout: label | bar | value
-      const labelWidth = 52;   // left label column
-      const valueWidth = 40;   // right value column
-      const gutter = 14;       // middle padding between bar and value
-      const barAreaWidth = contentWidth - labelWidth - valueWidth - gutter;
-      const labelX = margin + 5;
-      const barStartX = margin + labelWidth + 5;
-      const valueRightX = margin + labelWidth + barAreaWidth + gutter + valueWidth; // right edge of value column
-      
-      for (let i = 0; i < chartDataDisplay.length; i++) {
-        const item = chartDataDisplay[i];
-        const barWidth = (Math.abs(item.value) / maxValue) * barAreaWidth;
-        const yBar = y + topPad + (i * (barHeight + barGap));
-        
-        // Bar color - use accent for top, gray for others
-        const barColor = i === 0 ? colors.accent : [156, 163, 175];
-        doc.setFillColor(barColor[0], barColor[1], barColor[2]);
-        doc.roundedRect(barStartX, yBar, barWidth, barHeight, 1, 1, 'F');
-        
-        // Category label - left column, truncated
-        doc.setFontSize(9);
-        doc.setTextColor(...colors.muted);
-        const label = item.name.length > 18 ? item.name.substring(0, 16) + '..' : item.name;
-        doc.text(label, labelX, yBar + (barHeight / 2) + 2.6);
-        
-        // Value label - dedicated right column, never overlaps bar
-        doc.setFontSize(9);
-        const valStr = formatCompactNumber(item.value);
-        doc.setTextColor(...colors.primary);
-        doc.text(valStr, valueRightX, yBar + (barHeight / 2) + 2.6, { align: 'right' });
-      }
-      
-      addSpacing(chartHeight + 14);
-    }
-  }
-  
-  // ===== KEY INSIGHTS SECTION =====
-  if (report.aiInsights && report.aiInsights.length > 0) {
-    if (needNewPage(34)) {
-      addPage();
-    }
-    
-    // Title - improved typography for hierarchy
-    doc.setFontSize(13); // Stronger heading
-    doc.setTextColor(...colors.primary);
-    doc.text('Key Business Insights', margin, y);
-    addSpacing(9); // More space under heading
-    
-    // Display more insights with actual business context
-    const insights = report.aiInsights.slice(0, 4); // Show up to 4
-    doc.setFontSize(10); // Better readability
-    
-    for (let i = 0; i < insights.length; i++) {
-      const insight = insights[i];
-      // Make insights more substantial
-      const enhancedInsight = insight.length > 150 ? insight : insight + ' This insight reflects important patterns in the data that warrant attention.';
-      
-      const lines = wrapText(`• ${enhancedInsight}`, contentWidth - 5);
-      
-      // Check if fits
-      if (needNewPage(lines.length * 5 + 6)) {
-        addPage();
-      }
-      
-      doc.setTextColor(...colors.muted);
-      doc.text(lines, margin + 3, y);
-      addSpacing(lines.length * 5 + 5);
-  }
-  }
-  
-  // ===== RECOMMENDED ACTIONS SECTION =====
-  if (report.findings && report.findings.length > 0) {
-    if (needNewPage(30)) {
-      addPage();
-    }
-    
-    // Title - improved typography
-    doc.setFontSize(13); // Stronger heading
-    doc.setTextColor(...colors.primary);
-    doc.text('Recommended Actions', margin, y);
-    addSpacing(9); // More space under heading
-    
-    // More actionable, practical recommendations
-    const actions = report.findings.slice(0, 3); // Show up to 3
-    doc.setFontSize(10); // Better readability
-    
-    for (let i = 0; i < actions.length; i++) {
-      const action = actions[i];
-      // Enhance with context if too short
-      const enhancedAction = action.length > 100 ? action : action + ' Consider implementing this action to improve business performance.';
-      
-      const lines = wrapText(`${i + 1}. ${enhancedAction}`, contentWidth);
-      
-      if (needNewPage(lines.length * 5 + 5)) {
-        addPage();
-      }
-      
-      doc.setTextColor(...colors.success);
-      doc.text(lines, margin, y);
-      addSpacing(lines.length * 5 + 6);
-  }
-  }
-  
-  // ===== PERFORMANCE NOTES =====
-  // Add a notes section about data quality if relevant
-  if (needNewPage(26)) {
-    addPage();
-  }
-  
-  // Analysis Notes - improved typography
-  doc.setFontSize(12); // Stronger heading
-  doc.setTextColor(...colors.primary);
-  doc.text('Analysis Notes', margin, y);
-  addSpacing(8); // More space under heading
-  
-  doc.setFontSize(9); // Better readability
-  doc.setTextColor(...colors.muted);
-  const notes = `This report was generated automatically based on the uploaded dataset. ` +
-    `Data quality and insights depend on the completeness and accuracy of the source data. ` +
-    `For strategic decisions, verify key figures with primary data sources.`;
-  const notesLines = wrapText(notes, contentWidth);
-  doc.text(notesLines, margin, y);
-  addSpacing(notesLines.length * 4.2 + 10);
-  
-  // ===== FOOTER =====
-  // Always put footer at bottom of last page
-  y = pageHeight - 15;
-  
-  // Footer line
-  doc.setDrawColor(...colors.border);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y - 3, pageWidth - margin, y - 3);
-  
-  // Footer text - improved typography
-  doc.setFontSize(9); // Better footer readability
-  doc.setTextColor(...colors.muted);
-  
-  const footerLeft = `${report.localTime} | ${report.rowCount.toLocaleString()} rows analyzed`;
-  doc.text(footerLeft, margin, y);
-  
-  const footerCenter = `Report ID: ${report.id}`;
-  doc.text(footerCenter, pageWidth / 2, y, { align: 'center' });
-  
-  const footerRight = `Page ${pageNum} of ${pageNum}`;
-  doc.text(footerRight, pageWidth - margin, y, { align: 'right' });
-  
-  // Brand footer
-  doc.text('UseClevr', margin, y + 5);
-  doc.text('useclevr.com', pageWidth - margin, y + 5, { align: 'right' });
-  
-  // ===== SAVE PDF =====
-  const filename = `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.pdf`;
+  const filename = `${report.datasetName.replace(/[^a-z0-9]/gi, "_")}_report_${report.id}.pdf`;
   const filepath = path.join(PDF_DIR, filename);
-  
-  const pdfBuffer = doc.output('arraybuffer');
+  const pdfBuffer = doc.output("arraybuffer");
   fs.writeFileSync(filepath, Buffer.from(pdfBuffer));
-  
-  debugLog('[PDF] Generated executive report:', filepath, `(${pageNum} page(s))`);
-  
+
+  debugLog("[PDF] Generated executive report:", filepath, `(${doc.getNumberOfPages()} page(s))`);
   return filepath;
+}
+
+function ensurePdfDir() {
+  if (!fs.existsSync(PDF_DIR)) fs.mkdirSync(PDF_DIR, { recursive: true });
+}
+
+function drawPageBackground(doc: jsPDF, pageWidth: number, pageHeight: number) {
+  doc.setFillColor(...colors.navy);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+  doc.setFillColor(11, 31, 52);
+  doc.rect(0, 0, pageWidth, 30, "F");
+  doc.setDrawColor(...colors.cyan);
+  doc.setLineWidth(0.6);
+  doc.line(0, 30, pageWidth, 30);
+}
+
+function drawHeader(doc: jsPDF, title: string, datasetName: string, pageWidth: number, margin: number) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...colors.cyan);
+  doc.text("UseClevr", margin, 10);
+
+  doc.setFontSize(19);
+  doc.setTextColor(...colors.white);
+  doc.text(cleanText(title), margin, 20);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...colors.muted);
+  doc.text(truncate(datasetName, 72), margin, 26);
+
+  doc.setFillColor(...colors.violet);
+  doc.roundedRect(pageWidth - margin - 24, 9, 24, 10, 3, 3, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...colors.navy);
+  doc.text("BI REPORT", pageWidth - margin - 12, 15.6, { align: "center" });
+}
+
+function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFinancials, margin: number, contentWidth: number) {
+  let y = 42;
+  const dataConfidence = financials.dataConfidence ?? report.bbsc?.overallScore ?? null;
+  const meta = [
+    ["Reporting period", financials.reportingPeriod || "Not available"],
+    ["Generated", cleanText(report.localTime)],
+    ["Rows analyzed", report.rowCount.toLocaleString()],
+    ["Data confidence", dataConfidence === null ? "Not available" : `${Math.round(dataConfidence)}/100`],
+  ];
+  drawInfoGrid(doc, meta, margin, y, contentWidth);
+  y += 32;
+
+  const score = report.bbsc?.overallScore === null || report.bbsc?.overallScore === undefined
+    ? "Not available"
+    : `${report.bbsc.overallScore}/100`;
+  const metrics: PdfMetric[] = [
+    metric("Revenue", financials.revenue, "currency", colors.cyan),
+    metric("Gross Profit", financials.grossProfit, "currency", colors.green, missingLabel(financials, "Gross Profit")),
+    metric("Operating Profit", financials.operatingProfit, "currency", colors.violet, missingLabel(financials, "Operating Profit")),
+    metric("Net Profit", financials.netProfit, "currency", colors.amber, missingLabel(financials, "Net Profit")),
+    metric("Gross Margin", financials.grossMargin, "percent", colors.green, missingLabel(financials, "Gross Margin")),
+    metric("Operating Margin", financials.operatingMargin, "percent", colors.violet, missingLabel(financials, "Operating Margin")),
+    metric("Net Margin", financials.netMargin, "percent", colors.amber, missingLabel(financials, "Net Margin")),
+    { title: "Profitability Health Score", value: score, accent: colors.cyan, missing: score === "Not available" ? "Missing scorecard inputs" : null },
+  ];
+  drawMetricGrid(doc, metrics, margin, y, contentWidth, 4);
+  y += 72;
+
+  drawSectionTitle(doc, "Executive Summary", margin, y);
+  y += 9;
+  drawPanelText(doc, managementSummary(report, financials), margin, y, contentWidth, 48);
+}
+
+function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials, margin: number, contentWidth: number) {
+  let y = 42;
+  const metrics: PdfMetric[] = [
+    metric("Revenue", financials.revenue, "currency", colors.cyan),
+    metric("COGS", financials.cogs, "currency", colors.amber, missingLabel(financials, "COGS")),
+    metric("Gross Profit", financials.grossProfit, "currency", colors.green, missingLabel(financials, "Gross Profit")),
+    metric("Operating Expenses", financials.operatingExpenses, "currency", colors.amber, missingLabel(financials, "Operating Expenses")),
+    metric("Operating Profit", financials.operatingProfit, "currency", colors.violet, missingLabel(financials, "Operating Profit")),
+    metric("Interest Expense", financials.interestExpense, "currency", colors.amber, missingLabel(financials, "Interest Expense")),
+    metric("Tax Expense", financials.taxExpense, "currency", colors.amber, missingLabel(financials, "Tax Expense")),
+    metric("Net Profit", financials.netProfit, "currency", colors.green, missingLabel(financials, "Net Profit")),
+  ];
+  drawMetricGrid(doc, metrics, margin, y, contentWidth, 4);
+  y += 72;
+
+  drawSectionTitle(doc, "Revenue vs Expenses", margin, y);
+  y += 8;
+  drawHorizontalBars(doc, [
+    { name: "Revenue", value: financials.revenue || 0, color: colors.cyan },
+    { name: "COGS", value: financials.cogs || 0, color: colors.amber },
+    { name: "Operating Expenses", value: financials.operatingExpenses || 0, color: colors.violet },
+    { name: "Interest + Tax", value: (financials.interestExpense || 0) + (financials.taxExpense || 0), color: colors.red },
+  ], margin, y, contentWidth, true);
+  y += 58;
+
+  drawSectionTitle(doc, "Profit and Margin Trend", margin, y);
+  y += 8;
+  drawTrendPanel(doc, financials, margin, y, contentWidth);
+}
+
+function drawCostIntelligence(doc: jsPDF, financials: ReportFinancials, margin: number, contentWidth: number) {
+  let y = 42;
+  const categories = (financials.topCostCategories || []).slice(0, 8);
+  const total = categories.reduce((sum, item) => sum + Math.max(0, item.value), 0);
+  drawSectionTitle(doc, "Top Cost Categories", margin, y);
+  y += 9;
+
+  if (categories.length === 0) {
+    drawPanelText(doc, "Top cost categories are not available. Missing field: expense category.", margin, y, contentWidth, 32);
+    y += 40;
+  } else {
+    drawCostTable(doc, categories, total, margin, y, contentWidth);
+    y += 84;
+  }
+
+  const top = categories[0];
+  const share = top && total > 0 ? (top.value / total) * 100 : null;
+  const concentration = share === null
+    ? "Not available because expense category data is incomplete."
+    : share >= 50
+      ? `${top.name} represents ${share.toFixed(1)}% of categorized expenses, creating high concentration risk.`
+      : `${top.name} represents ${share.toFixed(1)}% of categorized expenses, which indicates manageable concentration.`;
+  drawSectionTitle(doc, "Management Interpretation", margin, y);
+  y += 9;
+  drawPanelText(doc, concentration, margin, y, contentWidth, 34);
+  y += 43;
+
+  drawSectionTitle(doc, "Cost Optimization Opportunities", margin, y);
+  y += 9;
+  const opportunity = top && total > 0
+    ? `Start with ${top.name}. A 5% improvement in this category equals ${formatCurrency(top.value * 0.05)} before secondary effects. Review vendors, staffing, volume drivers, or pricing pass-through options.`
+    : "Add categorized expense data to quantify cost optimization opportunities.";
+  drawPanelText(doc, opportunity, margin, y, contentWidth, 38);
+}
+
+function drawBalancedScorecard(doc: jsPDF, report: Report, margin: number, contentWidth: number) {
+  let y = 42;
+  const bbsc = report.bbsc;
+  if (!bbsc) {
+    drawPanelText(doc, "Business Balanced Scorecard is not available because the report has no scorecard payload.", margin, y, contentWidth, 34);
+    return;
+  }
+
+  drawMetricGrid(doc, [
+    { title: "Overall Business Score", value: bbsc.overallScore === null ? "Not available" : `${bbsc.overallScore}/100`, accent: colors.cyan },
+    { title: "Available Perspectives", value: `${bbsc.availablePerspectiveCount}/4`, accent: colors.violet },
+    { title: "Strongest Perspective", value: bbsc.strongestPerspective?.shortTitle || "Not available", accent: colors.green },
+    { title: "Weakest Perspective", value: bbsc.weakestPerspective?.shortTitle || "Not available", accent: colors.amber },
+  ], margin, y, contentWidth, 4);
+  y += 40;
+
+  const perspectives = Object.values(bbsc.perspectives);
+  for (const perspective of perspectives) {
+    const height = 35;
+    const x = margin + (perspectives.indexOf(perspective) % 2) * ((contentWidth - 4) / 2 + 4);
+    if (perspectives.indexOf(perspective) === 2) y += height + 5;
+    drawCard(doc, x, y, (contentWidth - 4) / 2, height, perspective.status === "available" ? colors.panel : colors.panel2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.text);
+    doc.text(perspective.title, x + 5, y + 7);
+    doc.setFontSize(15);
+    doc.setTextColor(...(perspective.status === "available" ? colors.cyan : colors.muted));
+    doc.text(perspective.score === null ? "Not available" : `${perspective.score}/100`, x + 5, y + 18);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...colors.muted);
+    const note = perspective.status === "available"
+      ? `${perspective.dataConfidence}% data confidence`
+      : `Missing: ${perspective.requiredFields.slice(0, 3).join(", ")}`;
+    doc.text(doc.splitTextToSize(cleanText(note), (contentWidth - 4) / 2 - 10).slice(0, 2), x + 5, y + 26);
+  }
+  y += 78;
+
+  drawSectionTitle(doc, "Source Data Completeness", margin, y);
+  y += 8;
+  const excluded = bbsc.scoringInputs.excludedPerspectives.length > 0
+    ? bbsc.scoringInputs.excludedPerspectives.join(", ")
+    : "No perspectives excluded.";
+  drawPanelText(doc, `${bbsc.scoreExplanation} Excluded perspectives: ${excluded}. ${bbsc.confidenceNote}`, margin, y, contentWidth, 45);
+}
+
+function drawRecommendations(doc: jsPDF, report: Report, financials: ReportFinancials, margin: number, contentWidth: number) {
+  let y = 42;
+  const recommendations = normalizeRecommendations(report, financials);
+  for (const [index, recommendation] of recommendations.entries()) {
+    const height = 38;
+    drawCard(doc, margin, y, contentWidth, height, colors.panel);
+    doc.setFillColor(...(index === 0 ? colors.cyan : index === 1 ? colors.violet : colors.amber));
+    doc.roundedRect(margin + 5, y + 6, 9, 9, 2, 2, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...colors.navy);
+    doc.text(String(index + 1), margin + 9.5, y + 12.2, { align: "center" });
+
+    doc.setFontSize(9.5);
+    doc.setTextColor(...colors.text);
+    doc.text(cleanText(recommendation.issue), margin + 18, y + 8);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.8);
+    doc.setTextColor(...colors.muted);
+    const body = [
+      `Impact: ${recommendation.businessImpact}`,
+      `Action: ${recommendation.recommendedAction}`,
+      recommendation.estimatedImpact ? `Estimated impact: ${recommendation.estimatedImpact}` : null,
+      `Confidence: ${recommendation.confidence}`,
+      recommendation.requiredData?.length ? `Required additional data: ${recommendation.requiredData.join(", ")}` : null,
+    ].filter(Boolean).join("  ");
+    doc.text(doc.splitTextToSize(cleanText(body), contentWidth - 26).slice(0, 4), margin + 18, y + 16);
+    y += height + 6;
+  }
+}
+
+function drawInfoGrid(doc: jsPDF, entries: string[][], x: number, y: number, width: number) {
+  const gap = 4;
+  const cardWidth = (width - gap * 3) / 4;
+  entries.forEach(([label, value], index) => {
+    const cardX = x + index * (cardWidth + gap);
+    drawCard(doc, cardX, y, cardWidth, 24, colors.panel);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...colors.muted);
+    doc.text(cleanText(label).toUpperCase(), cardX + 4, y + 7);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...colors.text);
+    doc.text(doc.splitTextToSize(cleanText(value), cardWidth - 8).slice(0, 2), cardX + 4, y + 15);
+  });
+}
+
+function drawMetricGrid(doc: jsPDF, metrics: PdfMetric[], x: number, y: number, width: number, columns: number) {
+  const gap = 4;
+  const cardWidth = (width - gap * (columns - 1)) / columns;
+  const cardHeight = 30;
+  metrics.forEach((item, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const cardX = x + col * (cardWidth + gap);
+    const cardY = y + row * (cardHeight + gap);
+    drawCard(doc, cardX, cardY, cardWidth, cardHeight, colors.panel);
+    doc.setFillColor(...item.accent);
+    doc.roundedRect(cardX + 4, cardY + 4, 2, 22, 1, 1, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...colors.muted);
+    doc.text(cleanText(item.title).toUpperCase(), cardX + 9, cardY + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(item.value.length > 12 ? 12 : 14);
+    doc.setTextColor(...colors.text);
+    doc.text(cleanText(item.value), cardX + 9, cardY + 18);
+    if (item.missing) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(...colors.amber);
+      doc.text(truncate(cleanText(item.missing), 24), cardX + 9, cardY + 25);
+    }
+  });
+}
+
+function drawSectionTitle(doc: jsPDF, title: string, x: number, y: number) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(...colors.text);
+  doc.text(cleanText(title), x, y);
+  doc.setDrawColor(...colors.cyan);
+  doc.setLineWidth(0.4);
+  doc.line(x, y + 2.5, x + 34, y + 2.5);
+}
+
+function drawPanelText(doc: jsPDF, text: string, x: number, y: number, width: number, height: number) {
+  drawCard(doc, x, y, width, height, colors.panel);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...colors.text);
+  doc.text(doc.splitTextToSize(cleanText(text), width - 12).slice(0, Math.floor(height / 5)), x + 6, y + 9);
+}
+
+function drawCard(doc: jsPDF, x: number, y: number, width: number, height: number, fill: Rgb) {
+  doc.setFillColor(...fill);
+  doc.setDrawColor(...colors.border);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(x, y, width, height, 3, 3, "FD");
+}
+
+function drawHorizontalBars(
+  doc: jsPDF,
+  rows: { name: string; value: number; color: Rgb }[],
+  x: number,
+  y: number,
+  width: number,
+  currency: boolean,
+) {
+  drawCard(doc, x, y, width, 48, colors.panel);
+  const max = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
+  rows.forEach((row, index) => {
+    const barY = y + 8 + index * 9;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.6);
+    doc.setTextColor(...colors.muted);
+    doc.text(cleanText(row.name), x + 5, barY + 4);
+    doc.setFillColor(...colors.panel2);
+    doc.roundedRect(x + 48, barY, width - 88, 5, 1.5, 1.5, "F");
+    doc.setFillColor(...row.color);
+    doc.roundedRect(x + 48, barY, ((width - 88) * Math.abs(row.value)) / max, 5, 1.5, 1.5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(currency ? formatCurrency(row.value) : formatNumber(row.value), x + width - 6, barY + 4, { align: "right" });
+  });
+}
+
+function drawTrendPanel(doc: jsPDF, financials: ReportFinancials, x: number, y: number, width: number) {
+  drawCard(doc, x, y, width, 72, colors.panel);
+  const trends = (financials.periodTrends || []).slice(-6);
+  if (trends.length < 2) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.muted);
+    doc.text("Monthly or period trend is not available. Missing field: period/date.", x + 6, y + 14);
+  } else {
+    const chartX = x + 10;
+    const chartY = y + 12;
+    const chartW = width - 20;
+    const chartH = 36;
+    const series = trends.map((trend) => trend.netProfit || 0);
+    const max = Math.max(...series, 1);
+    const min = Math.min(...series, 0);
+    const range = Math.max(max - min, 1);
+    doc.setDrawColor(...colors.border);
+    doc.rect(chartX, chartY, chartW, chartH);
+    doc.setDrawColor(...colors.green);
+    doc.setLineWidth(0.8);
+    let previous: { x: number; y: number } | null = null;
+    series.forEach((value, index) => {
+      const pointX = chartX + (index / Math.max(1, series.length - 1)) * chartW;
+      const pointY = chartY + chartH - ((value - min) / range) * chartH;
+      if (previous) doc.line(previous.x, previous.y, pointX, pointY);
+      doc.setFillColor(...colors.cyan);
+      doc.circle(pointX, pointY, 1.3, "F");
+      previous = { x: pointX, y: pointY };
+    });
+  }
+  const notes = [
+    `Revenue growth: ${financials.revenueGrowth === null || financials.revenueGrowth === undefined ? "Not available" : formatPercent(financials.revenueGrowth)}`,
+    `Expense ratio: ${financials.expenseRatio === null || financials.expenseRatio === undefined ? "Not available" : formatPercent(financials.expenseRatio)}`,
+    `Net margin: ${financials.netMargin === null ? "Not available" : formatPercent(financials.netMargin)}`,
+  ];
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...colors.text);
+  notes.forEach((note, index) => doc.text(note, x + 8 + index * 58, y + 62));
+}
+
+function drawCostTable(doc: jsPDF, categories: { name: string; value: number }[], total: number, x: number, y: number, width: number) {
+  drawCard(doc, x, y, width, 76, colors.panel);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...colors.muted);
+  doc.text("Category", x + 6, y + 8);
+  doc.text("% of expenses", x + width - 68, y + 8);
+  doc.text("Amount", x + width - 6, y + 8, { align: "right" });
+  categories.slice(0, 7).forEach((item, index) => {
+    const rowY = y + 17 + index * 8;
+    const share = total > 0 ? (item.value / total) * 100 : 0;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...colors.text);
+    doc.text(truncate(cleanText(item.name), 36), x + 6, rowY);
+    doc.setTextColor(...colors.cyan);
+    doc.text(formatPercent(share), x + width - 48, rowY);
+    doc.setTextColor(...colors.text);
+    doc.text(formatCurrency(item.value), x + width - 6, rowY, { align: "right" });
+  });
+}
+
+function addFooters(doc: jsPDF, pageWidth: number, pageHeight: number, margin: number, report: Report) {
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page++) {
+    doc.setPage(page);
+    doc.setDrawColor(...colors.border);
+    doc.line(margin, pageHeight - 16, pageWidth - margin, pageHeight - 16);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...colors.muted);
+    doc.text(`UseClevr executive BI report | ${cleanText(report.localTime)}`, margin, pageHeight - 10);
+    doc.text(`Page ${page} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: "right" });
+  }
+}
+
+function normalizeFinancials(report: Report): ReportFinancials {
+  if (report.financials) return report.financials;
+  const kpiValue = (title: string) => parseFormattedNumber(report.kpis.find((kpi) => kpi.title.toLowerCase() === title.toLowerCase())?.value);
+  const revenue = kpiValue("Revenue");
+  const profit = kpiValue("Profit") ?? kpiValue("Net Profit");
+  const marginValue = parseFormattedPercent(report.kpis.find((kpi) => kpi.title.toLowerCase().includes("margin"))?.value);
+  return {
+    revenue,
+    cogs: null,
+    grossProfit: profit,
+    operatingExpenses: null,
+    operatingProfit: profit,
+    interestExpense: null,
+    taxExpense: null,
+    netProfit: profit,
+    grossMargin: marginValue,
+    operatingMargin: marginValue,
+    netMargin: marginValue,
+    missingFields: ["COGS", "Operating Expenses", "Interest Expense", "Tax Expense"].filter((field) => !report.kpis.some((kpi) => kpi.title === field)),
+  };
+}
+
+function metric(title: string, value: number | null, format: "currency" | "percent" | "number", accent: Rgb, missing?: string | null): PdfMetric {
+  return {
+    title,
+    value: value === null ? "Not available" : format === "currency" ? formatCurrency(value) : format === "percent" ? formatPercent(value) : formatNumber(value),
+    accent,
+    missing: value === null ? missing || `Missing field: ${title}` : null,
+  };
+}
+
+function missingLabel(financials: ReportFinancials, field: string) {
+  const match = (financials.missingFields || []).find((item) => item.toLowerCase() === field.toLowerCase());
+  return match ? `Missing field: ${match}` : null;
+}
+
+function managementSummary(report: Report, financials: ReportFinancials) {
+  if (report.summary) return cleanText(report.summary);
+  return [
+    `Revenue reached ${financials.revenue === null ? "Not available" : formatCurrency(financials.revenue)} with gross margin of ${financials.grossMargin === null ? "not available" : formatPercent(financials.grossMargin)}.`,
+    `Net profitability is ${financials.netMargin === null ? "not available" : formatPercent(financials.netMargin)}.`,
+    financials.topCostCategories?.[0] ? `${financials.topCostCategories[0].name} is the largest detected cost category.` : "Cost category detail is not available.",
+  ].join(" ");
+}
+
+function normalizeRecommendations(report: Report, financials: ReportFinancials): ReportRecommendation[] {
+  if (report.recommendations?.length) return report.recommendations.slice(0, 5);
+  return (report.findings || []).slice(0, 5).map((finding) => ({
+    issue: cleanText(finding),
+    businessImpact: "This item affects the selected dataset's operating performance.",
+    recommendedAction: "Review the source drivers and assign an owner for follow-up.",
+    estimatedImpact: financials.revenue ? `Each 1% movement in revenue equals ${formatCurrency(financials.revenue * 0.01)}.` : null,
+    confidence: "Medium",
+    requiredData: [],
+  }));
+}
+
+function formatCurrency(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatNumber(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function parseFormattedNumber(value?: string) {
+  if (!value) return null;
+  const multiplier = value.includes("M") ? 1_000_000 : value.includes("K") ? 1_000 : 1;
+  const parsed = Number.parseFloat(value.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed * multiplier : null;
+}
+
+function parseFormattedPercent(value?: string) {
+  if (!value || !value.includes("%")) return null;
+  const parsed = Number.parseFloat(value.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function cleanText(value: string) {
+  return value
+    .replace(/\b(?:ds|pa|rep|report|dataset)_[a-z0-9_-]+\b/gi, "selected analysis")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "selected report")
+    .replace(/profitability_analysis_id/gi, "profitability analysis")
+    .replace(/dataset id/gi, "selected dataset")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function truncate(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }

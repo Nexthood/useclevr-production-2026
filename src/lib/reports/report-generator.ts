@@ -103,6 +103,49 @@ export interface ReportChart {
   data: { name: string; value: number }[];
 }
 
+export interface ReportFinancials {
+  reportingPeriod?: string | null;
+  dataConfidence?: number | null;
+  revenue: number | null;
+  cogs: number | null;
+  grossProfit: number | null;
+  operatingExpenses: number | null;
+  operatingProfit: number | null;
+  interestExpense: number | null;
+  taxExpense: number | null;
+  netProfit: number | null;
+  grossMargin: number | null;
+  operatingMargin: number | null;
+  netMargin: number | null;
+  revenueGrowth?: number | null;
+  expenseRatio?: number | null;
+  missingFields?: string[];
+  topCostCategories?: { name: string; value: number }[];
+  periodTrends?: Array<{
+    period: string;
+    revenue: number | null;
+    cogs?: number | null;
+    operatingExpenses?: number | null;
+    interestExpense?: number | null;
+    taxExpense?: number | null;
+    grossProfit: number | null;
+    operatingProfit: number | null;
+    netProfit: number | null;
+    grossMargin?: number | null;
+    operatingMargin?: number | null;
+    netMargin?: number | null;
+  }>;
+}
+
+export interface ReportRecommendation {
+  issue: string;
+  businessImpact: string;
+  recommendedAction: string;
+  estimatedImpact?: string | null;
+  confidence: "High" | "Medium" | "Low";
+  requiredData?: string[];
+}
+
 export interface Report {
   id: string;
   datasetId: string;
@@ -128,12 +171,14 @@ export interface Report {
   
   // Report sections
   summary: string;
+  financials?: ReportFinancials;
   bbsc?: BusinessBalancedScorecard;
   findings: string[];
   kpis: { title: string; value: string }[];
   charts: ReportChart[];
   aiInsights: string[];
   predictions: string[];
+  recommendations?: ReportRecommendation[];
   alerts: { type: string; message: string; severity: string }[];
   
   // Metadata
@@ -168,6 +213,8 @@ export async function generateReport(
     aiInsights?: string[];
     predictions?: string[];
     alerts?: { type: string; message: string; severity: string }[];
+    financials?: ReportFinancials;
+    recommendations?: ReportRecommendation[];
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -225,12 +272,14 @@ export async function generateReport(
     
     // Report content
     summary: analysisData.summary || 'Analysis report for ' + datasetName,
+    financials: analysisData.financials,
     bbsc: analysisData.bbsc,
     findings: analysisData.findings || [],
     kpis: formattedKPIs,
     charts: analysisData.charts || [],
     aiInsights: analysisData.aiInsights || [],
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
+    recommendations: analysisData.recommendations,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],
     
     // Metadata
@@ -375,13 +424,14 @@ export function updateReportVisibility(
  */
 function formatKPIValue(value: number, format: string): string {
   if (format === 'currency') {
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(2)}K`;
-    return `$${value.toFixed(2)}`;
+    const abs = Math.abs(value);
+    if (abs >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
+    if (abs >= 1000) return `$${(value / 1000).toFixed(1)}K`;
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
   }
   
-  if (format === 'percentage') {
-    return `${value.toFixed(2)}%`;
+  if (format === 'percentage' || format === 'percent') {
+    return `${value.toFixed(1)}%`;
   }
   
   if (format === 'number') {
