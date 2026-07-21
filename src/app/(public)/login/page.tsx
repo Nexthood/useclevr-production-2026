@@ -69,6 +69,11 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
+  const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
+  const intentMessage =
+    searchParams.get("message") === "demo"
+      ? "Create your free account to access the interactive demo."
+      : null;
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
@@ -78,7 +83,7 @@ function LoginForm() {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authAction, setAuthAction] = useState<
-    "signin" | "signup" | "demo" | "admin-bypass" | null
+    "signin" | "signup" | "admin-bypass" | null
   >(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
@@ -101,11 +106,11 @@ function LoginForm() {
   const REVEAL_PASSWORD = "edely";
 
   const goToDashboard = () => {
-    router.replace("/app/dashboard");
+    router.replace(callbackUrl);
     router.refresh();
   };
 
-  const dashboardCallbackUrl = () => "/app/dashboard";
+  const dashboardCallbackUrl = () => callbackUrl;
   const visibleAuthError = authError || getReadableAuthError(authQueryError);
   const isVerificationOpen = Boolean(pendingVerificationEmail);
   const resendSecondsRemaining = Math.max(0, Math.ceil((resendAvailableAt - nowMs) / 1000));
@@ -135,30 +140,9 @@ function LoginForm() {
     setNowMs(Date.now());
   };
 
-  const startDemoSignIn = async () => {
-    setIsLoading(true);
-    setAuthAction("demo");
+  const startDemoSignIn = () => {
     setAuthError(null);
-
-    try {
-      const result = await signIn("demo", {
-        redirect: false,
-        callbackUrl: dashboardCallbackUrl(),
-      });
-
-      if (!result?.ok) {
-        setAuthError("Demo sign-in failed. Please try again.");
-        return;
-      }
-
-      goToDashboard();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "";
-      setAuthError(message || "Demo sign-in failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-      setAuthAction(null);
-    }
+    router.push("/signup?callbackUrl=%2Fdemo&message=demo");
   };
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
@@ -376,11 +360,7 @@ function LoginForm() {
         disabled={isLoading}
         onClick={startDemoSignIn}
       >
-        {authAction === "demo" ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Rocket className="mr-2 h-4 w-4 text-pink-500" />
-        )}
+        <Rocket className="mr-2 h-4 w-4 text-pink-500" />
         Demo account
         <span className="ml-2 rounded-full bg-pink-500/15 px-2 py-0.5 text-xs text-pink-600 dark:text-pink-300">
           Free
@@ -430,6 +410,12 @@ function LoginForm() {
                   Sign in to turn CSV data into clear decisions.
                 </p>
               </div>
+
+              {intentMessage && (
+                <div className="mb-5 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-800 dark:text-cyan-100">
+                  {intentMessage}
+                </div>
+              )}
 
               {isVerificationOpen ? (
                 <div className="space-y-5">
@@ -833,6 +819,14 @@ function getReadableAuthError(error: string | null) {
   };
 
   return messages[error] || messages.Default;
+}
+
+function getSafeCallbackUrl(callbackUrl: string | null) {
+  if (!callbackUrl || !callbackUrl.startsWith("/") || callbackUrl.startsWith("//")) {
+    return "/app/dashboard";
+  }
+
+  return callbackUrl;
 }
 
 function InnerLabelInput({

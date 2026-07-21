@@ -21,7 +21,6 @@ import {
 import { getBusinessModelRedirect, resolveBusinessModel } from "@/lib/data/business-model";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
-import { checkDemoAccess, consumeDemoCredit, getDemoLimits } from "@/lib/billing/demo-access";
 import {
   finalizeCredits,
   releaseCredits,
@@ -149,31 +148,12 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       );
     }
     const sessionUserId = session?.user?.id;
-    const demoSessionToken = formData.get("demoSession") as string | null;
-
-    if (!sessionUserId && !demoSessionToken) {
+    if (!sessionUserId) {
       return fail(
         UPLOAD_STAGES.AUTH_CHECKED,
         "Unauthorized|Please sign in before uploading a dataset.",
       );
     }
-
-    if (!sessionUserId && demoSessionToken) {
-      const demoCheck = await checkDemoAccess(demoSessionToken, "upload");
-      if (!demoCheck.allowed) {
-        return fail(
-          UPLOAD_STAGES.CREDITS_DEDUCTED,
-          `DEMO_LIMIT|${demoCheck.reason}|${demoCheck.upgradeMessage || ""}`,
-        );
-      }
-
-      const limits = getDemoLimits();
-      if (demoCheck.creditsRemaining !== undefined && demoCheck.creditsRemaining < limits.credits) {
-        debugLog("[UPLOAD] Demo credits remaining:", demoCheck.creditsRemaining);
-      }
-    }
-
-    const isDemoUser = !sessionUserId && !!demoSessionToken;
 
     debugLog(
       "[UPLOAD] Session:",
@@ -327,16 +307,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       return fail(UPLOAD_STAGES.FILE_VALIDATED, "File size must be less than 50MB");
     }
 
-    if (isDemoUser) {
-      const demoLimits = getDemoLimits();
-      if (file.size > demoLimits.maxFileSizeMb * 1024 * 1024) {
-        return fail(
-          UPLOAD_STAGES.FILE_VALIDATED,
-          `DEMO_LIMIT|Demo file size limit is ${demoLimits.maxFileSizeMb}MB. Upgrade to continue with larger files.`,
-        );
-      }
-    }
-
     const rowLimit = Number.MAX_SAFE_INTEGER;
     debugLog("[UPLOAD] Row limit for user:", rowLimit);
 
@@ -365,16 +335,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     debugLog("[UPLOAD] columns detected:", headers);
     debugLog("[UPLOAD] row count detected:", totalRowCount);
     debugLog("[UPLOAD] exceeds limit:", parseResult.exceedsLimit);
-
-    if (isDemoUser) {
-      const demoLimits = getDemoLimits();
-      if (totalRowCount > demoLimits.maxRowsPerDataset) {
-        return fail(
-          UPLOAD_STAGES.ROWS_PROCESSED,
-          `DEMO_LIMIT|Demo row limit is ${demoLimits.maxRowsPerDataset.toLocaleString()} rows. Your file has ${totalRowCount.toLocaleString()} rows.`,
-        );
-      }
-    }
 
     // Determine storage mode:
     // - profitability: store only summary
@@ -410,9 +370,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const datasetName = file.name.replace(/\.csv$/i, "");
     let uploadCreditOperationId: string | null = null;
 
-    if (!isDemoUser && uploadUsage.unlimited) {
+    if (uploadUsage.unlimited) {
       debugLog("[UPLOAD] Credit reservation bypassed for unlimited role");
-    } else if (!isDemoUser) {
+    } else {
       const operationId = `upload:${effectiveUserId}:${datasetId}`;
       const reservation = await reserveCredits({
         userId: effectiveUserId,
@@ -904,12 +864,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const previewRowsToReturn = useStreamingStorage ? previewRows : allRows.slice(0, 5);
 
-    let demoCreditsRemaining: number | undefined;
-    if (isDemoUser && demoSessionToken) {
-      const consumeResult = await consumeDemoCredit(demoSessionToken, "upload", 1);
-      demoCreditsRemaining = consumeResult.remainingCredits;
-    }
-
     if (uploadCreditOperationId) {
       await finalizeCredits({
         operationId: uploadCreditOperationId,
@@ -952,7 +906,6 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         unlimited: uploadUsage.unlimited,
         unlimitedLabel: uploadUsage.unlimitedLabel,
       },
-      demoCreditsRemaining,
     };
   } catch (error) {
     debugError("Upload error:", error);

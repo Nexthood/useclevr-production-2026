@@ -246,13 +246,11 @@ export async function POST(request: Request) {
     const userId = session?.user?.id;
     const userEmail = session?.user?.email;
     const userRole = session?.user?.role ?? null;
-    const demoSessionToken = request.headers.get("x-demo-session");
     traceUserId = userId || null
 
-    const isDemoUser = !userId && !!demoSessionToken;
     const hasUnlimitedCredits = Boolean(userId && (isSuperAdminUserId(userId) || isUnlimitedCreditRole(userRole)));
 
-    if (!userId && !demoSessionToken) {
+    if (!userId) {
       return Response.json({
         success: false,
         error: "Unauthorized",
@@ -263,38 +261,6 @@ export async function POST(request: Request) {
         data: [],
         chartType: "table",
       }, { status: 401 });
-    }
-
-    if (isDemoUser) {
-      const { checkDemoAccess, consumeDemoCredit } = await import("@/lib/billing/demo-access");
-      const demoCheck = await checkDemoAccess(demoSessionToken!, "ai_analysis");
-      if (!demoCheck.allowed) {
-        await logAiCost({
-          userId: "demo",
-          subscriptionPlan: "demo",
-          provider: "system",
-          model: "system",
-          actionType: "dataset_analysis",
-          inputTokens: 0,
-          outputTokens: 0,
-          estimatedCostEur: 0,
-          creditsCharged: 0,
-          requestStatus: "blocked",
-          errorMessage: demoCheck.reason,
-        });
-        return Response.json({
-          success: false,
-          error: demoCheck.reason || "Demo limit reached",
-          answer: "Demo credits exhausted.",
-          insight: "Demo limit",
-          explanation: demoCheck.upgradeMessage || "Upgrade to continue.",
-          recommendation: "Sign up for a free account.",
-          data: [],
-          chartType: "table",
-          upgradeRequired: true,
-          demoLimit: true,
-        }, { status: 402 });
-      }
     }
 
     if (!checkRateLimit(`analyze:${userId || "anonymous"}`, 30, 60_000)) {
@@ -315,20 +281,16 @@ export async function POST(request: Request) {
     // ============================================================================
     let subscriptionTier = "free"
 
-    if (!isDemoUser && userId) {
+    if (userId) {
       const profile = await db.query.profiles.findFirst({
         where: eq(profiles.userId, userId),
       })
       subscriptionTier = profile?.subscriptionTier || "free"
     }
 
-    if (isDemoUser) {
-      subscriptionTier = "demo"
-    }
+    const effectiveUserId = userId
 
-    const effectiveUserId = userId || null
-
-    if (!isDemoUser && effectiveUserId && !hasUnlimitedCredits) {
+    if (effectiveUserId && !hasUnlimitedCredits) {
       const operationId = `analysis:${effectiveUserId}:${crypto.randomUUID()}`
       const reservation = await reserveCredits({
         userId: effectiveUserId,
@@ -413,11 +375,7 @@ export async function POST(request: Request) {
     let analysisToUse = precomputedAnalysis;
     if (datasetId && !data && !precomputedAnalysis) {
       let storedDataset;
-      if (isDemoUser) {
-        storedDataset = await db.query.datasets.findFirst({
-          where: eq(datasets.id, datasetId),
-        });
-      } else if (effectiveUserId) {
+      if (effectiveUserId) {
         storedDataset = await db.query.datasets.findFirst({
           where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
         });
@@ -447,11 +405,7 @@ export async function POST(request: Request) {
       debugLog('[ANALYZE] Loading dataset from database...');
       try {
         let storedDataset;
-        if (isDemoUser) {
-          storedDataset = await db.query.datasets.findFirst({
-            where: eq(datasets.id, datasetId),
-          });
-        } else if (effectiveUserId) {
+        if (effectiveUserId) {
           storedDataset = await db.query.datasets.findFirst({
             where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
           });
@@ -953,13 +907,6 @@ try {
       }
     }
 
-    let demoCreditsRemaining: number | undefined
-    if (isDemoUser && demoSessionToken) {
-      const { consumeDemoCredit } = await import("@/lib/billing/demo-access");
-      const consumeResult = await consumeDemoCredit(demoSessionToken, "ai_analysis", 1);
-      demoCreditsRemaining = consumeResult.remainingCredits;
-    }
-
     const responseBody = {
       success: true,
       answer,
@@ -974,7 +921,6 @@ try {
       providerName: traceProvider,
       modelName: traceModel,
       providerStatus,
-      demoCreditsRemaining,
     }
 
     debugLog('[ANALYZE] Returning response with', result.length, 'rows');
