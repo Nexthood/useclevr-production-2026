@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 
 const subPageLabels: Record<string, string> = {
   profile: "Profile",
-  preferences: "Preferences",
+  preferences: "Regional Preferences",
   subscription: "Subscription",
   activity: "Activity",
   billing: "Billing",

@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Expand Preferences into Regional Preferences with Auto locale detection, manual currency, number, date, timezone, and language settings, and dynamic formatting previews.
 - Align the app top navigation toolbar so search, subscription, action icons, and logout share consistent sizing, spacing, and vertical centering.
 - Hide Mentoring and Book Demo entry points while returning disabled Mentoring pages as unavailable until the feature returns.
 - Replace the broken Demo account CTA with a Start Free flow that sends guests to registration and signed-in users to the dashboard.
