@@ -5,8 +5,8 @@ export default async function DemoPage() {
   const session = await auth()
 
   if (!session?.user?.id) {
-    redirect("/signup?callbackUrl=%2Fdemo&message=demo")
+    redirect("/register")
   }
 
-  redirect("/app")
+  redirect("/app/dashboard")
 }

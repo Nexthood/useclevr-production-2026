@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Replace the broken Demo account CTA with a Start Free flow that sends guests to registration and signed-in users to the dashboard.
 - Redesign generated PDF reports with dashboard-matched executive styling, five-page structure, deterministic profitability calculations, professional number formatting, and customer-safe report language.
 - Add Business Balanced Scorecard reporting to generated reports and selected dashboards with deterministic perspective scores, confidence notes, and model-specific metrics.
 - Separate dataset processing type from business model so local retail, ecommerce, SaaS, startup, investor, marketplace, and generic datasets receive model-specific routing, dashboard KPIs, map eligibility, suggestions, and AI context.

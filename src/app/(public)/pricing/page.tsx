@@ -46,14 +46,14 @@ const checkoutHref: Record<BillingPlan["tier"], string> = {
   free: "/signup",
   pro: "/signup",
   business: "/app/settings/checkout?plan=business_monthly",
-  demo: "/demo",
+  demo: "/start",
 }
 
 const ctaLabel: Record<BillingPlan["tier"], string> = {
   free: "Get Started",
   pro: "Upgrade to Pro",
   business: "Upgrade to Business",
-  demo: "Try Demo",
+  demo: "Start Free",
 }
 
 function PricingCard({ plan }: { plan: BillingPlan }) {

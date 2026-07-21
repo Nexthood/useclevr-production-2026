@@ -70,10 +70,6 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
   const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
-  const intentMessage =
-    searchParams.get("message") === "demo"
-      ? "Create your free account to access the interactive demo."
-      : null;
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
@@ -138,11 +134,6 @@ function LoginForm() {
     setVerificationMessage(message);
     setResendAvailableAt(Date.now() + 60_000);
     setNowMs(Date.now());
-  };
-
-  const startDemoSignIn = () => {
-    setAuthError(null);
-    router.push("/signup?callbackUrl=%2Fdemo&message=demo");
   };
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
@@ -353,19 +344,17 @@ function LoginForm() {
 
   const providerButtons = (
     <div className="space-y-3">
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full border-primary/40 bg-background text-foreground hover:bg-primary/10"
-        disabled={isLoading}
-        onClick={startDemoSignIn}
-      >
-        <Rocket className="mr-2 h-4 w-4 text-pink-500" />
-        Demo account
-        <span className="ml-2 rounded-full bg-pink-500/15 px-2 py-0.5 text-xs text-pink-600 dark:text-pink-300">
-          Free
-        </span>
-      </Button>
+      <Link href="/start" className="block" prefetch={false}>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full border-primary/40 bg-background text-foreground hover:bg-primary/10"
+          disabled={isLoading}
+        >
+          <Rocket className="mr-2 h-4 w-4 text-pink-500" />
+          Start Free
+        </Button>
+      </Link>
     </div>
   );
 
@@ -410,12 +399,6 @@ function LoginForm() {
                   Sign in to turn CSV data into clear decisions.
                 </p>
               </div>
-
-              {intentMessage && (
-                <div className="mb-5 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-800 dark:text-cyan-100">
-                  {intentMessage}
-                </div>
-              )}
 
               {isVerificationOpen ? (
                 <div className="space-y-5">

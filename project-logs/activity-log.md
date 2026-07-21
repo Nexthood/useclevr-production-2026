@@ -1,3 +1,4 @@
+- fixed: replace the broken Demo account CTA with a Start Free link, route guests through `/register`, route authenticated users to `/app/dashboard`, and keep direct demo and app route access behind authentication
 - changed: redesign generated PDF reports with a dashboard-matched dark executive layout, five report pages, deterministic profitability financials, compact currency and one-decimal percentage formatting, BBSC detail, ranked recommendations, and customer-safe language without internal identifiers
 - fixed: pair Revenue and Expenses profitability uploads under one analysis id, preserve file roles, calculate gross, operating, and net profit separately, generate dataset-scoped profitability reports, and keep Usy clear of the final report rows
 - changed: add Business Balanced Scorecard reporting to selected dashboards and generated reports with deterministic perspective scores, model-specific KPIs, confidence notes, and report/download persistence

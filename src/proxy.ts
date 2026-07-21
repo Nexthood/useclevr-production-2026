@@ -76,16 +76,14 @@ export default function proxy(request: NextRequest) {
 
   if (isDemoRoute(pathname)) {
     if (!isLoggedIn) {
-      const signupUrl = nextUrl.clone()
-      signupUrl.pathname = "/signup"
-      signupUrl.search = ""
-      signupUrl.searchParams.set("callbackUrl", `${pathname}${nextUrl.search}`)
-      signupUrl.searchParams.set("message", "demo")
-      return redirectWithCsp(signupUrl, cspHeader)
+      const registerUrl = nextUrl.clone()
+      registerUrl.pathname = "/register"
+      registerUrl.search = ""
+      return redirectWithCsp(registerUrl, cspHeader)
     }
 
     const demoWorkspaceUrl = nextUrl.clone()
-    demoWorkspaceUrl.pathname = "/app"
+    demoWorkspaceUrl.pathname = "/app/dashboard"
     demoWorkspaceUrl.search = ""
     return redirectWithCsp(demoWorkspaceUrl, cspHeader)
   }
