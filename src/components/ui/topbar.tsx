@@ -10,7 +10,6 @@ import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { getSetupStatus } from "@/lib/business/company-setup-store";
 import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react";
 import Link from "next/link";
-import pkg from "../../../package.json";
 
 export default async function Topbar() {
   const session = await auth();
@@ -46,9 +45,6 @@ export default async function Topbar() {
       <div className="flex min-h-16 min-w-0 flex-1 items-center gap-3 overflow-visible px-4">
         <Link href="/app" className="flex shrink-0 items-center gap-2">
           <Logo className="h-12 w-auto" />
-          <span className="self-start pt-1 text-[10px] text-muted-foreground/60">
-            v{pkg.version}
-          </span>
         </Link>
 
         <nav className="flex min-w-0 flex-1 items-center justify-end gap-4 overflow-visible">

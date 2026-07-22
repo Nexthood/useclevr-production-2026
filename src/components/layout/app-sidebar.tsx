@@ -183,9 +183,6 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
               <Link href="/terms" className="transition hover:text-foreground">Terms</Link>
               <Link href="/privacy" className="transition hover:text-foreground">Privacy</Link>
             </div>
-            <p className="text-center text-[10px] text-muted-foreground/50 select-none">
-              v{process.env.NEXT_PUBLIC_APP_VERSION || "7.0.0"}
-            </p>
           </div>
         )}
       </div>

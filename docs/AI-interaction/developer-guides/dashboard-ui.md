@@ -6,7 +6,7 @@ Current dashboard layout for AI agents and developers working on UI changes.
 
 - Global topbar spans the dashboard above the sidebar and content area.
 - Topbar sections stay on one line and show logo, Hybrid AI, search, help, business workspace, mentoring, admin tools, credits, display settings, notices, account, and sign-out. Popovers render outside the topbar without horizontal-scroll clipping.
-- Sidebar uses one primary navigation list, expands for super-admin tools, and supports desktop collapse plus mobile drawer. Credit panel shows usage for regular accounts and unlimited for pro, and sidebar-footer shows copyright, terms, privacy links, and app version.
+- Sidebar uses one primary navigation list, expands for super-admin tools, and supports desktop collapse plus mobile drawer. Credit panel shows usage for regular accounts and unlimited for pro, and sidebar-footer shows copyright, terms, and privacy links.
 - Route layouts render the page title, breadcrumbs, and subpage navigation before the page body.
 - Page bodies use a center workspace with optional left and right sidebars. AI Assistant uses both sidebars; listing pages place summaries and supporting information in the right sidebar.
 - Listing pages use shared selectable table shells with bulk controls and create, upload, or refresh actions in the table header.

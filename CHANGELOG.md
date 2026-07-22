@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Remove visible version labels from the app header and sidebar footer while keeping version details in account system information.
 - Show UseClevr Pro launch pricing as fixed EUR, GBP, USD, and CAD monthly list prices with checkout validation based on billing country.
 - Expand Preferences into Regional Preferences with Auto locale detection, manual currency, number, date, timezone, and language settings, and dynamic formatting previews.
 - Align the app top navigation toolbar so search, subscription, action icons, and logout share consistent sizing, spacing, and vertical centering.
