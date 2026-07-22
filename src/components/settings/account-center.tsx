@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
 import { saveAiProvider, updateProfile } from "@/app/actions/settings"
+import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
 import { Bot, Building2, CheckCircle2, CreditCard, FileText, LockKeyhole, ShieldCheck, Sparkles, User, Settings } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -21,8 +22,8 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "security", label: "Security", icon: LockKeyhole },
 ]
 
-function formatAccountPlanPrice(plan: { price: number }) {
-  return plan.price === 0 ? "€0/month" : `€${plan.price}/month`
+function formatAccountPlanPrice(plan: { id: string; price: number }) {
+  return formatPlanPrice(getBillingPlan(plan.id))
 }
 
 type AccountCenterProps = {

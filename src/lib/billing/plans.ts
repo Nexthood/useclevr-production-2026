@@ -1,3 +1,12 @@
+import {
+  formatMonthlyPrice,
+  getFixedProPrice,
+  getProLaunchPrices,
+  getProStripePriceId,
+  proPriceEnvByCurrency,
+  type SupportedCurrency,
+} from "@/lib/billing/launch-pricing";
+
 export type BillingPlanId = "free" | "pro_monthly" | "business_monthly" | "demo";
 export type StripePricePlanId = BillingPlanId | "pro_annual";
 
@@ -23,6 +32,9 @@ export interface BillingPlan {
   name: string;
   tier: "free" | "pro" | "business" | "demo";
   price: number;
+  priceInMinor?: number;
+  currency?: SupportedCurrency;
+  launchPrices?: Array<{ currency: SupportedCurrency; amountMinor: number; label: string }>;
   interval: "month";
   description: string;
   features: string[];
@@ -32,7 +44,9 @@ export interface BillingPlan {
 }
 
 const stripePriceEnvByPlanId: Partial<Record<StripePricePlanId, StripePriceEnvConfig>> = {
-  pro_monthly: { primary: "STRIPE_PRICE_PRO_MONTHLY" },
+  pro_monthly: {
+    primary: proPriceEnvByCurrency.EUR,
+  },
   pro_annual: { primary: "STRIPE_PRICE_PRO_ANNUAL" },
   business_monthly: {
     primary: "STRIPE_PRICE_BUSINESS_MONTHLY",
@@ -41,12 +55,16 @@ const stripePriceEnvByPlanId: Partial<Record<StripePricePlanId, StripePriceEnvCo
 };
 
 export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
+  if (planId === "pro_monthly") return Object.values(proPriceEnvByCurrency);
+
   const config = stripePriceEnvByPlanId[planId];
   if (!config) return [];
   return [config.primary, ...(config.fallbacks ?? [])];
 }
 
 export function resolveStripePriceId(planId: StripePricePlanId): string | undefined {
+  if (planId === "pro_monthly") return getProStripePriceId("EUR");
+
   return getStripePriceEnvNames(planId)
     .map((envName) => process.env[envName]?.trim())
     .find((priceId): priceId is string => Boolean(priceId));
@@ -133,6 +151,9 @@ export const billingPlans: BillingPlan[] = [
     name: "Pro",
     tier: "pro",
     price: 40,
+    priceInMinor: getFixedProPrice("EUR").amountMinor,
+    currency: "EUR",
+    launchPrices: getProLaunchPrices(),
     interval: "month",
     description: "AI-powered analytics for growing businesses.",
     features: [
@@ -193,6 +214,8 @@ export const publicMonthlyPlanPrices = {
   business: billingPlans.find((plan) => plan.id === "business_monthly")?.price ?? 420,
 } as const
 
+export const publicProMonthlyLaunchPrices = getProLaunchPrices()
+
 export function getBillingPlan(planId: string | null | undefined) {
   return billingPlans.find((plan) => plan.id === normalizeBillingPlanId(planId)) || billingPlans[1];
 }
@@ -218,7 +241,16 @@ export function normalizeSubscriptionTier(tier: string | null | undefined): Bill
 
 export function formatPlanPrice(plan: BillingPlan) {
   if (plan.price === 0) return "€0/month";
+  if (plan.id === "pro_monthly") return formatMonthlyPrice(getFixedProPrice("EUR").amountMinor, "EUR");
   return `€${plan.price}/month`;
+}
+
+export function formatPlanPriceForCurrency(plan: BillingPlan, currency: SupportedCurrency = "EUR") {
+  if (plan.price === 0) return "€0/month";
+  if (plan.id === "pro_monthly") {
+    return formatMonthlyPrice(getFixedProPrice(currency).amountMinor, currency);
+  }
+  return formatPlanPrice(plan);
 }
 
 export function getDatasetLimitForTier(tier: string | null | undefined): number {

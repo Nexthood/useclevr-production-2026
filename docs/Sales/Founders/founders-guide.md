@@ -69,7 +69,7 @@ Week 4: Upload next month's data → Compare growth trends → Update investor p
 | Plan             | Price   | What You Get                                        |
 | Plan             | Price   | What You Get                                        |
 | Free             | €0/month   | Try upload and basic AI. 2 analyst credits.         |
-| Pro              | €40/month  | More datasets, advanced AI, PDF report downloads.   |
+| Pro              | €40 / £39 / $45 / CA$55 per month | More datasets, advanced AI, PDF report downloads.   |
 | Business         | €420/month | Business Profile, Accountancy, team features, priority support. |
 
 Hybrid AI upgrade available for on-device analysis when working with sensitive startup data. Two tiers:

@@ -59,6 +59,7 @@ const ctaLabel: Record<BillingPlan["tier"], string> = {
 function PricingCard({ plan }: { plan: BillingPlan }) {
   const Icon = planIcon[plan.tier]
   const isPro = plan.tier === "pro"
+  const launchPrices = plan.id === "pro_monthly" ? plan.launchPrices ?? [] : []
 
   return (
     <Card
@@ -87,6 +88,15 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
           <span className="text-4xl font-bold tracking-tight">{formatPlanPrice(plan).replace("/month", "")}</span>
           <span className="text-sm text-muted-foreground">/month</span>
         </div>
+        {launchPrices.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            {launchPrices.map((price) => (
+              <span key={price.currency} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+                {price.label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <ul className="flex-1 space-y-2">

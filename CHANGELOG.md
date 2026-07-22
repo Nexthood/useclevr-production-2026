@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show UseClevr Pro launch pricing as fixed EUR, GBP, USD, and CAD monthly list prices with checkout validation based on billing country.
 - Expand Preferences into Regional Preferences with Auto locale detection, manual currency, number, date, timezone, and language settings, and dynamic formatting previews.
 - Align the app top navigation toolbar so search, subscription, action icons, and logout share consistent sizing, spacing, and vertical centering.
 - Hide Mentoring and Book Demo entry points while returning disabled Mentoring pages as unavailable until the feature returns.
@@ -32,7 +33,7 @@
 - Show completed sidebar badges for Business, Accountancy, and Retail from the latest saved Business Profile status.
 - Remove app zoom controls completely and simplify theme toggle to a single sun/moon button.
 - Add a global cookie consent banner with essential-only, accept-all, and preference-management choices for analytics and product-improvement cookies.
-- Show Free at €0/month, Pro at €40/month, and Business at €420/month across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces.
+- Show Free, fixed multi-currency Pro launch pricing, and Business pricing consistently across subscription, billing, checkout, upgrade, pricing, FAQ, assistant, Stripe, and sales surfaces.
 - Provide globally oriented Terms of Service and Privacy Policy pages with GDPR, UK GDPR, CCPA, CPRA, international user, cross-border processing, Stripe payment, AI processing, SEO, and working internal legal links.
 - Replace the floating Help Chat with Usy, a premium UseClevr AI Business Intelligence Assistant that uses the assistant avatar, balanced header spacing, refined cyan-lilac motion, bright suggestion chips, Hybrid AI when available, and UseClevr-specific fallback answers.
 - Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status.

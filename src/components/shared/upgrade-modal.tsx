@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
-import { billingPlans } from "@/lib/billing/plans"
+import { billingPlans, formatPlanPrice } from "@/lib/billing/plans"
 import { CreditCard, Sparkles, Store } from "lucide-react"
 import Link from "next/link"
 
@@ -64,6 +64,7 @@ export function UpgradeModal({
             <p className="text-xs text-muted-foreground mb-3">
               {proPlan?.description || "AI-powered analytics for growing businesses."}
             </p>
+            {proPlan && <p className="mb-3 text-sm font-semibold text-foreground">{formatPlanPrice(proPlan)}</p>}
             <Link href={primaryActionHref} className="block">
               <Button size="sm" className="w-full" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />
