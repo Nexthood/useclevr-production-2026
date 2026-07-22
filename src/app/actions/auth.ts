@@ -27,12 +27,6 @@ export async function signup(formData: FormData) {
     .trim()
     .toLowerCase();
   const password = formData.get("password") as string;
-  const isDemo = formData.get("demo") === "true";
-
-  // Demo mode signup - no database required
-  if (isDemo) {
-    return { success: true, isDemo: true };
-  }
 
   if (!email || !password) {
     return { error: "Email and password are required" };

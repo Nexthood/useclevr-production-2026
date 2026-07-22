@@ -6,6 +6,7 @@ import { debugError } from "@/lib/utils/debug";
 
 import type { UserFormattingPreferences } from '@/lib/utils/formatting';
 import { getDefaultPreferences } from '@/lib/utils/formatting';
+import { normalizeRegionalPreferences } from '@/lib/utils/regional-preferences';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -22,7 +23,9 @@ export function FormattingProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Load preferences from localStorage
+    let ignore = false
+
+    // Load a local value immediately, then refresh from the authenticated profile.
     const stored = localStorage.getItem('formattingPreferences')
     if (stored) {
       try {
@@ -31,7 +34,34 @@ export function FormattingProvider({ children }: { children: ReactNode }) {
         debugError('Failed to parse stored formatting preferences')
       }
     }
-    setIsLoading(false)
+
+    fetch('/api/settings/preferences', { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) return null
+        return response.json()
+      })
+      .then((payload) => {
+        if (ignore || !payload?.preferences) return
+        const regional = normalizeRegionalPreferences(payload.preferences)
+        const nextPreferences: UserFormattingPreferences = {
+          ...regional,
+          preferredCurrency: regional.displayCurrency,
+          baseCurrency: regional.baseCurrency,
+          numberFormat: regional.numberFormat,
+        }
+        setPreferences(nextPreferences)
+        localStorage.setItem('formattingPreferences', JSON.stringify(nextPreferences))
+      })
+      .catch(() => {
+        debugError('Failed to load saved formatting preferences')
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false)
+      })
+
+    return () => {
+      ignore = true
+    }
   }, [])
 
   const handleSetPreferences = (prefs: UserFormattingPreferences) => {

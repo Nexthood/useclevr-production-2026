@@ -28,7 +28,7 @@ debugLog("[Auth] Drizzle client available:", !!getDb());
 const getDbClient = () => {
   const client = getDb();
   if (!client) {
-    debugWarn("[Auth] Database client is null - using demo mode only");
+    debugWarn("[Auth] Database client is null - built-in credentials only");
     return null;
   }
   return client;
@@ -61,25 +61,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Use a simple JWT adapter-like configuration without PrismaAdapter
   // to avoid database connections during module initialization
   providers: [
-    // Demo login provider - no database required
-    Credentials({
-      id: "demo",
-      name: "Demo Account",
-      credentials: {
-        // No credentials required for demo
-      },
-      async authorize() {
-        // Return demo user directly - no database lookup
-        debugLog("[Demo] Demo login authenticated");
-        return {
-          id: BUILTIN_DEMO_USER.id,
-          email: BUILTIN_DEMO_USER.email,
-          name: BUILTIN_DEMO_USER.name,
-          image: null,
-          role: BUILTIN_DEMO_USER.role,
-        };
-      },
-    }),
     // Regular credentials provider for real users
     Credentials({
       name: "credentials",
@@ -287,7 +268,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * CRITICAL: Return boolean, not redirect
      */
     async signIn({ user, account }) {
-      if (account?.provider === "credentials" || account?.provider === "demo") {
+      if (account?.provider === "credentials") {
         if (isBuiltinUserId(user.id)) {
           try {
             await ensureBuiltinUserRecord(user.id);

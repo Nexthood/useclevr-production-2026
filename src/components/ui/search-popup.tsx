@@ -209,7 +209,7 @@ export function Search() {
         variant="ghost"
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Close search" : "Search"}
-        className="h-full min-w-11 gap-2 rounded-none px-2.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        className="h-11 min-w-11 gap-2 rounded-md px-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
         title={`Search (${shortcutLabel})`}
       >
         {open ? (
@@ -217,7 +217,7 @@ export function Search() {
         ) : (
           <>
             <SearchIcon className="h-4 w-4" />
-            <span className="hidden min-w-24 items-center justify-between rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-muted-foreground lg:inline-flex">
+            <span className="hidden min-w-24 items-center justify-between rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-muted-foreground xl:inline-flex">
               <span className="truncate">Search</span>
               <kbd className="ml-2 shrink-0 font-mono text-[10px] text-muted-foreground/70">
                 {shortcutLabel}

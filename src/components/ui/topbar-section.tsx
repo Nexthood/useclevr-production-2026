@@ -19,12 +19,16 @@ export function TopbarSection({
   align?: "left" | "right";
   iconOnly?: boolean;
 }) {
+  const triggerClassName = iconOnly
+    ? "group flex h-11 w-11 items-center justify-center whitespace-nowrap rounded-md text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
+    : "group flex h-11 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
+
   return (
-    <Popover className="h-full">
+    <Popover className="flex h-11 items-center">
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="group flex h-full min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
+          className={triggerClassName}
           title={label}
           aria-label={label}
         >

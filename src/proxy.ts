@@ -26,6 +26,16 @@ function hasSessionCookie(request: NextRequest) {
     request.cookies.has("payload-token")
 }
 
+function isDemoRoute(pathname: string) {
+  return pathname === "/demo" || pathname.startsWith("/demo/")
+}
+
+function redirectWithCsp(url: URL, cspHeader: string) {
+  const response = NextResponse.redirect(url)
+  response.headers.set("Content-Security-Policy", cspHeader)
+  return response
+}
+
 export default function proxy(request: NextRequest) {
   const { nextUrl } = request
   const pathname = nextUrl.pathname
@@ -63,6 +73,20 @@ export default function proxy(request: NextRequest) {
 
   const isPublicApiPrefix = publicApiPrefixes.some((prefix) => pathname.startsWith(prefix))
   const isPublicApiPath = publicApiPaths.includes(pathname)
+
+  if (isDemoRoute(pathname)) {
+    if (!isLoggedIn) {
+      const registerUrl = nextUrl.clone()
+      registerUrl.pathname = "/register"
+      registerUrl.search = ""
+      return redirectWithCsp(registerUrl, cspHeader)
+    }
+
+    const demoWorkspaceUrl = nextUrl.clone()
+    demoWorkspaceUrl.pathname = "/app/dashboard"
+    demoWorkspaceUrl.search = ""
+    return redirectWithCsp(demoWorkspaceUrl, cspHeader)
+  }
 
   if (!isLoggedIn && pathname.startsWith(apiPrefix) && !isPublicApiPrefix && !isPublicApiPath) {
     const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 })

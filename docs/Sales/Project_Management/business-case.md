@@ -41,7 +41,7 @@ UseClevr creates value by turning business datasets into accessible analysis, AI
 ## Revenue Model
 
 - Free tier supports trial and onboarding.
-- Pro supports individual and small-team usage at €40/month.
+- Pro supports individual and small-team usage at fixed launch prices of €40, £39, $45, or CA$55 per month.
 - Business supports deeper business workflows at €420/month.
 - Hybrid AI options create additional upgrade value.
 - Referral and discount rules support acquisition and retention campaigns.

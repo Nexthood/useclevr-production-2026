@@ -22,7 +22,6 @@ export function PublicFooter() {
                 <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
                 <li><Link href="/news" className="hover:text-foreground transition-colors">News</Link></li>
-                <li><Link href="/mentoring" className="hover:text-foreground transition-colors">Mentoring</Link></li>
               </ul>
             </div>
 

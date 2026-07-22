@@ -1,3 +1,11 @@
+import {
+  defaultRegionalPreferences,
+  formatCurrencyWithPreferences,
+  formatNumberWithPreferences,
+  normalizeRegionalPreferences,
+  type RegionalPreferences,
+} from "@/lib/utils/regional-preferences";
+
 // ============================================================================
 // International Number and Currency Formatting Utilities
 // ============================================================================
@@ -125,8 +133,11 @@ export function formatPercentage(value: number, showSign = true): string {
   return `${sign}${Math.round(value)}%`;
 }
 
-export interface UserFormattingPreferences {
-  preferredCurrency: string; baseCurrency: string; numberFormat: 'auto' | 'manual'; manualLocale?: string;
+export interface UserFormattingPreferences extends Omit<Partial<RegionalPreferences>, "baseCurrency" | "numberFormat"> {
+  preferredCurrency: string;
+  baseCurrency: string;
+  numberFormat: RegionalPreferences["numberFormat"] | "manual";
+  manualLocale?: string;
 }
 
 export function normalizeNumberString(value: string): string {
@@ -148,18 +159,34 @@ export function parseNormalizedNumber(value: string): number {
 }
 
 export function formatNumber(value: number, preferences: UserFormattingPreferences, options: Intl.NumberFormatOptions = {}): string {
-  const locale = preferences.numberFormat === 'auto' ? (typeof navigator !== 'undefined' ? navigator.language : 'en-US') : (preferences.manualLocale || 'en-US');
-  return new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2, ...options }).format(value);
+  const normalized = normalizeRegionalPreferences({
+    ...preferences,
+    displayCurrency: preferences.displayCurrency ?? preferences.preferredCurrency,
+    baseCurrency: preferences.baseCurrency,
+    numberFormat: preferences.numberFormat === "manual" ? "comma_decimal" : preferences.numberFormat,
+    manualLocale: preferences.manualLocale,
+  })
+  return formatNumberWithPreferences(value, normalized, undefined, options);
 }
 
 export function formatCurrency(value: number, preferences: UserFormattingPreferences, currency?: string): string {
-  const locale = preferences.numberFormat === 'auto' ? (typeof navigator !== 'undefined' ? navigator.language : 'en-US') : (preferences.manualLocale || 'en-US');
-  const currencyCode = currency || preferences.preferredCurrency;
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  const normalized = normalizeRegionalPreferences({
+    ...preferences,
+    displayCurrency: currency ?? preferences.displayCurrency ?? preferences.preferredCurrency,
+    baseCurrency: preferences.baseCurrency,
+    numberFormat: preferences.numberFormat === "manual" ? "comma_decimal" : preferences.numberFormat,
+    manualLocale: preferences.manualLocale,
+  })
+  return formatCurrencyWithPreferences(value, normalized);
 }
 
 export function getDefaultPreferences(): UserFormattingPreferences {
-  return { preferredCurrency: 'EUR', baseCurrency: 'EUR', numberFormat: 'auto' };
+  return {
+    ...defaultRegionalPreferences,
+    preferredCurrency: "auto",
+    baseCurrency: defaultRegionalPreferences.baseCurrency,
+    numberFormat: defaultRegionalPreferences.numberFormat,
+  };
 }
 
 export function isValidCurrency(currency: string): boolean {

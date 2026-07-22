@@ -3,7 +3,7 @@
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
-import { billingPlans } from "@/lib/billing/plans"
+import { billingPlans, formatPlanPrice } from "@/lib/billing/plans"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 import { getHybridAiEntitlement, HYBRID_AI_MODULES, type HybridAiModule } from "@/lib/hybrid-ai/features"
 import { Brain, Check, PlugZap } from "lucide-react"
@@ -118,7 +118,7 @@ export default function HybridAiButton({
             <div className="space-y-3">
               <PlanOption
                 title="Pro"
-                price={`€${proPlan.price}/month`}
+                price={formatPlanPrice(proPlan)}
                 description="Includes private chat, CSV/Excel analysis, dashboard insights, and one AI provider."
                 productId="pro_monthly"
                 onNavigate={() => setOpen(false)}

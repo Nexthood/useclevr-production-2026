@@ -8,7 +8,7 @@ import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { getSetupStatus } from "@/lib/business/company-setup-store";
-import { BriefcaseBusiness, CreditCard, GraduationCap, HelpCircle, Shield, UserCircle } from "lucide-react";
+import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react";
 import Link from "next/link";
 import pkg from "../../../package.json";
 
@@ -51,15 +51,15 @@ export default async function Topbar() {
           </span>
         </Link>
 
-        <nav className="flex min-w-0 flex-1 items-stretch justify-end gap-0 overflow-visible">
+        <nav className="flex min-w-0 flex-1 items-center justify-end gap-4 overflow-visible">
           <HybridAiButton
             subscriptionTier={usage.subscriptionTier}
-            className="flex h-full items-center gap-2 whitespace-nowrap rounded-none border-0 bg-transparent px-2.5 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
+            className="flex h-11 items-center gap-2 whitespace-nowrap rounded-md border-0 bg-transparent px-3 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
           />
 
           <Search />
 
-          <div className="w-px self-stretch bg-border/30" />
+          <div className="h-7 w-px bg-border/30" />
 
           <TopbarSection
             icon={<BriefcaseBusiness className="h-4 w-4" />}
@@ -72,23 +72,14 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/business/review">Review</TopbarPanelLink>
           </TopbarSection>
 
-          <TopbarSection
-            icon={<GraduationCap className="h-4 w-4" />}
-            label="Mentoring"
-            iconOnly
-          >
-            <TopbarPanelLink href="/app/mentoring">My sessions</TopbarPanelLink>
-            <TopbarPanelLink href="/mentoring">Public page</TopbarPanelLink>
-          </TopbarSection>
-
           <Link
             href="/app/settings/subscription"
-            className="group flex h-full min-w-10 items-center gap-2 whitespace-nowrap px-2.5 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
+            className="group flex h-11 min-w-11 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm text-foreground outline-none transition hover:bg-muted/50 focus-visible:bg-muted/50 active:bg-muted/70"
             title="Subscription"
             aria-label="Subscription"
           >
             <CreditCard className="h-4 w-4 flex-shrink-0 text-muted-foreground transition group-hover:text-foreground" />
-            <span className="hidden min-w-0 lg:block">
+            <span className="hidden min-w-0 xl:block">
               <span className="block truncate text-xs font-semibold leading-4 whitespace-nowrap">Subscription</span>
               <span className="block truncate text-[11px] leading-4 whitespace-nowrap text-muted-foreground">
                 {usage.unlimited ? levelLabel : `${remainingCredits} ${levelLabel}`}
@@ -112,7 +103,7 @@ export default async function Topbar() {
             </TopbarSection>
           )}
 
-          <div className="w-px self-stretch bg-border/30" />
+          <div className="h-7 w-px bg-border/30" />
 
           <TopbarSection
             icon={<HelpCircle className="h-4 w-4" />}
@@ -124,11 +115,11 @@ export default async function Topbar() {
             <TopbarPanelLink href="/contact">Send feedback</TopbarPanelLink>
           </TopbarSection>
 
-          <div className="w-px self-stretch bg-border/30" />
+          <div className="h-7 w-px bg-border/30" />
 
-          <ThemeToggle className="flex h-full min-w-10 items-center justify-center rounded-none bg-transparent px-2.5 text-muted-foreground hover:text-foreground" />
+          <ThemeToggle className="bg-transparent" />
 
-          <TopbarNoticeActivityDrawer className="flex h-full min-w-10 items-center justify-center rounded-none border-0 bg-transparent text-muted-foreground hover:text-foreground" />
+          <TopbarNoticeActivityDrawer className="h-11 w-11 rounded-md border-0 bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground" />
 
           <TopbarSection
             icon={<UserCircle className="h-4 w-4" />}
@@ -142,7 +133,7 @@ export default async function Topbar() {
             <TopbarPanelLink href="/app/settings/activity">Activity</TopbarPanelLink>
           </TopbarSection>
 
-          <div className="flex h-full min-w-10 items-center justify-center px-2.5 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
+          <div className="flex h-11 min-w-11 items-center justify-center rounded-md px-3 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
             <TopbarSignOutButton />
           </div>
         </nav>

@@ -87,6 +87,54 @@ async function main() {
   const tempDir = "/tmp/useclevr-profitability-report-test"
   process.env.TEMP_DIR = tempDir
   const { generateReport, listReports, deleteReport } = await import("../../src/lib/reports/report-generator")
+  const { buildDatasetReportInput } = await import("../../src/lib/reports/dataset-report-builder")
+  const builtInput = await buildDatasetReportInput({
+    id: "ds_1784303088293_88d3ce8a",
+    userId: "synthetic_user",
+    name: "Synthetic Profitability Analysis",
+    fileName: "synthetic_profitability.csv",
+    fileSize: 1000,
+    mimeType: "text/csv",
+    storageKey: "private/storage/key.csv",
+    checksum: null,
+    rowCount: revenueFile.rows.length + expensesFile.rows.length,
+    columnCount: revenueFile.columns.length + expensesFile.columns.length,
+    columns: [...revenueFile.columns, ...expensesFile.columns],
+    data: [...revenueFile.rows, ...expensesFile.rows],
+    columnTypes: null,
+    previewRowCount: null,
+    previewGenerated: null,
+    fullAnalysisCompleted: null,
+    analysisStatus: "ready",
+    analysisProgress: null,
+    analysisMessage: null,
+    analysisError: null,
+    invalidRowCount: null,
+    missingValueCounts: null,
+    precomputedMetrics: analysis,
+    columnMapping: null,
+    detectedColumns: null,
+    aiInsights: null,
+    status: "ready",
+    analysis: { profitability: analysis },
+    datasetType: "profitability",
+    businessModel: "generic",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as any)
+  const builtText = `${builtInput.summary} ${builtInput.findings.join(" ")}`
+  assert(!/\b(ds|pa)_[a-z0-9_-]+\b/i.test(builtText), "Customer report text must not expose dataset or profitability analysis IDs")
+  assert(builtInput.reportType === "profitability" && "financials" in builtInput, "Builder must return profitability financials for profitability datasets")
+  const profitabilityInput = builtInput as typeof builtInput & { financials: {
+    grossProfit: number | null
+    operatingProfit: number | null
+    netProfit: number | null
+  } }
+  assert(profitabilityInput.financials.grossProfit === 6000, "Report builder must calculate gross profit from revenue minus COGS")
+  assert(profitabilityInput.financials.operatingProfit === 4000, "Report builder must calculate operating profit from gross profit minus operating expenses")
+  assert(profitabilityInput.financials.netProfit === 3000, "Report builder must calculate net profit after interest and tax")
+  assert(profitabilityInput.financials.netProfit !== profitabilityInput.financials.grossProfit, "Report builder must not copy gross profit into net profit")
+
   const report = await generateReport("synthetic_profitability_dataset", "Synthetic Profitability Analysis", {
     visibility: "private",
     status: "ready",
@@ -117,6 +165,8 @@ async function main() {
   })
   const persisted = listReports("synthetic_profitability_dataset").some((item) => item.id === report.id && item.reportType === "profitability")
   const pdfGenerated = Boolean(report.pdfPath && fs.existsSync(report.pdfPath))
+  assert(report.kpis.find((kpi) => kpi.title === "Net Margin")?.value === "30.0%", "Percent KPIs must use one decimal place")
+  assert(report.kpis.find((kpi) => kpi.title === "COGS")?.value === "$4.0K", "Currency KPIs must use compact professional formatting")
   if (report.pdfPath && fs.existsSync(report.pdfPath)) fs.unlinkSync(report.pdfPath)
   deleteReport(report.id)
   fs.rmSync(tempDir, { recursive: true, force: true })

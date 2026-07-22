@@ -1,10 +1,12 @@
+import { getFixedProPrice } from "@/lib/billing/launch-pricing"
+
 export const PRODUCTS = {
   pro_monthly: {
     id: "pro_monthly",
     name: "UseClevr Pro",
     description:
       "AI-powered analytics for growing businesses.",
-    priceInCents: 4000,
+    priceInCents: getFixedProPrice("EUR").amountMinor,
     currency: "eur",
     interval: "month" as const,
   },

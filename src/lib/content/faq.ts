@@ -5,9 +5,10 @@
 // CMS REST endpoint (e.g. Contentful, Sanity, Strapi) and keep the
 // `FaqCategory` type as the wire format contract.
 
-import { billingPlans, publicMonthlyPlanPrices } from "@/lib/billing/plans"
+import { billingPlans, publicMonthlyPlanPrices, publicProMonthlyLaunchPrices } from "@/lib/billing/plans"
 
 const _freePlan = billingPlans.find(p => p.id === "free")!;
+const proLaunchPriceText = publicProMonthlyLaunchPrices.map((price) => price.label).join(", ")
 
 export interface FaqItem {
   q: string
@@ -104,7 +105,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
        {
          q: "What does Pro cost?",
-         a: `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month.`,
+         a: `Pro launch pricing is ${proLaunchPriceText}. Business is €${publicMonthlyPlanPrices.business}/month.`,
        },
        {
          q: "Can I get a custom business plan?",

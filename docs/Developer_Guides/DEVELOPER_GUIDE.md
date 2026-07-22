@@ -74,6 +74,15 @@ Conditional service accounts:
 - Resend, required for production email verification delivery from the configured `EMAIL_FROM` sender.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
+Stripe Pro checkout uses separate fixed-price IDs per supported launch currency:
+
+- `USECLEVR_PRO_PRICE_EUR`
+- `USECLEVR_PRO_PRICE_GBP`
+- `USECLEVR_PRO_PRICE_USD`
+- `USECLEVR_PRO_PRICE_CAD`
+
+Set each variable to the matching UseClevr Pro monthly Stripe Price ID. The backend selects one of these IDs from the validated billing country and does not accept browser-supplied amounts as the final checkout price.
+
 Local-only tools:
 
 - Git

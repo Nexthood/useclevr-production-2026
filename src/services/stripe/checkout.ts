@@ -19,6 +19,7 @@ export interface CreateStripeCheckoutOptions {
   priceId: string;
   successUrl: string;
   cancelUrl: string;
+  metadata?: Record<string, string>;
 }
 
 export async function createStripeCheckoutSession({
@@ -28,21 +29,21 @@ export async function createStripeCheckoutSession({
   priceId,
   successUrl,
   cancelUrl,
+  metadata,
 }: CreateStripeCheckoutOptions): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe();
+  const mergedMetadata = {
+    userId,
+    userEmail,
+    ...(metadata ?? {}),
+  }
 
   const session = await stripe.checkout.sessions.create({
     ...(customerId ? { customer: customerId } : { customer_email: userEmail }),
     client_reference_id: userId,
-    metadata: {
-      userId,
-      userEmail,
-    },
+    metadata: mergedMetadata,
     subscription_data: {
-      metadata: {
-        userId,
-        userEmail,
-      },
+      metadata: mergedMetadata,
     },
     line_items: [{ price: priceId, quantity: 1 }],
     mode: "subscription",
@@ -56,6 +57,15 @@ export async function createStripeCheckoutSession({
   }
 
   return session;
+}
+
+export async function retrieveStripeCustomerCountry(customerId: string): Promise<string | null> {
+  const stripe = getStripe();
+  const customer = await stripe.customers.retrieve(customerId);
+
+  if (customer.deleted) return null;
+
+  return customer.address?.country || customer.shipping?.address?.country || null;
 }
 
 export async function retrieveStripeCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {

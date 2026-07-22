@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-19
-- **Goal**: Fix and complete the existing two-file Profitability workflow without adding new upload controls or a separate reports module.
-- **Durable change**: Revenue and Expenses profitability uploads now save as separate profitability datasets under one analysis ID with explicit file roles, single-file uploads show waiting states, paired files calculate gross profit, operating profit, net profit, and three distinct margins from deterministic source fields, and the Profitability page uses the existing Reports & Downloads flow for report generation and PDF/spreadsheet downloads.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false`, `pnpm test:profitability-two-file`, focused ESLint, `pnpm lint:package`, and `git diff --check` pass.
+- **Date**: 2026-07-22
+- **Goal**: Implement fixed multi-currency UseClevr Pro launch pricing.
+- **Durable change**: Pro launch pricing now uses one central Tier A configuration for EUR, GBP, USD, and CAD fixed prices, checkout requires validated billing country for final price selection, and public/account/checkout/help pricing surfaces read the shared source.
+- **Verification**: Focused pricing tests, TypeScript, focused ESLint, pricing validation, secret linting, project-record checks, and diff whitespace checks run before commit.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -33,7 +33,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       className={[
-        "inline-flex h-16 min-w-10 items-center justify-center rounded-none p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
+        "inline-flex h-11 w-11 items-center justify-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
         className,
       ]
         .filter(Boolean)

@@ -2,7 +2,7 @@
 
 import usyAvatar from "@/assets/images/avatar.png";
 import { Button } from "@/components/ui/button";
-import { publicMonthlyPlanPrices } from "@/lib/billing/plans";
+import { publicMonthlyPlanPrices, publicProMonthlyLaunchPrices } from "@/lib/billing/plans";
 import { ArrowUp, Bot, Loader2, MessageCircle, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -36,6 +36,8 @@ type UsyContext = {
   plan?: string;
   usage?: UsyUsageContext | null;
 };
+
+const proLaunchPriceText = publicProMonthlyLaunchPrices.map((price) => price.label).join(", ");
 
 type SupportedUsyLanguage = "english" | "german" | "dutch" | "spanish" | "hungarian" | "romanian";
 
@@ -335,7 +337,7 @@ const usyIntents: UsyIntent[] = [
     minScore: 3,
     followUps: pricingFollowUps,
     answer: () =>
-      `Pro is €${publicMonthlyPlanPrices.pro}/month. It includes 500 AI credits per month, up to 25 datasets, AI business analysis, revenue and margin analysis, stock detection, reports, exports, and priority support. You can upgrade from Billing Settings.`,
+      `Pro launch pricing is ${proLaunchPriceText}. It includes 500 AI credits per month, up to 25 datasets, AI business analysis, revenue and margin analysis, stock detection, reports, exports, and priority support. You can upgrade from Billing Settings.`,
   },
   {
     id: "business-pricing",
@@ -379,7 +381,7 @@ const usyIntents: UsyIntent[] = [
     ],
     followUps: pricingFollowUps,
     answer: () =>
-      `Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with 50 AI credits and 2 datasets; Pro adds 500 AI credits, 25 datasets, business analysis, reports, exports, and priority support; Business adds everything in Pro, 5000 AI credits, 250 datasets, larger uploads, Accounting AI, document processing, and dedicated support.`,
+      `Pro launch pricing is ${proLaunchPriceText}. Business is €${publicMonthlyPlanPrices.business}/month. Free is for trying the workflow with 50 AI credits and 2 datasets; Pro adds 500 AI credits, 25 datasets, business analysis, reports, exports, and priority support; Business adds everything in Pro, 5000 AI credits, 250 datasets, larger uploads, Accounting AI, document processing, and dedicated support.`,
   },
   {
     id: "upload",
@@ -465,7 +467,7 @@ const usyIntents: UsyIntent[] = [
           : context.usage?.unlimited
             ? ` Your account has ${context.usage.unlimitedLabel || "unlimited"} analyst usage.`
             : "";
-      return `AI Credits control included analysis usage on Free accounts.${usageText} Pro is €${publicMonthlyPlanPrices.pro}/month and unlocks more analysis capacity with advanced AI features. Business is €${publicMonthlyPlanPrices.business}/month for broader team and business usage. Open Billing or Settings to review your current plan.`;
+      return `AI Credits control included analysis usage on Free accounts.${usageText} Pro launch pricing is ${proLaunchPriceText} and unlocks more analysis capacity with advanced AI features. Business is €${publicMonthlyPlanPrices.business}/month for broader team and business usage. Open Billing or Settings to review your current plan.`;
     },
   },
   {
@@ -484,7 +486,7 @@ const usyIntents: UsyIntent[] = [
     ],
     followUps: userFollowUps.billing,
     answer: () =>
-      `Billing and invoices are managed through the secure Stripe flow in Settings. Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month. You can review your plan, open checkout, manage payment details, and access billing actions from the account and billing areas.`,
+      `Billing and invoices are managed through the secure Stripe flow in Settings. Pro launch pricing is ${proLaunchPriceText}. Business is €${publicMonthlyPlanPrices.business}/month. You can review your plan, open checkout, manage payment details, and access billing actions from the account and billing areas.`,
   },
   {
     id: "integrations",
@@ -870,7 +872,7 @@ function localizedFallbackAnswer(
     normalized.includes("stock") ||
     normalized.includes("sku");
 
-  const priceLine = `Pro: €${publicMonthlyPlanPrices.pro}/month. Business: €${publicMonthlyPlanPrices.business}/month.`;
+  const priceLine = `Pro: ${proLaunchPriceText}. Business: €${publicMonthlyPlanPrices.business}/month.`;
 
   if (language === "german") {
     if (unrelated)
@@ -1172,7 +1174,7 @@ function buildUsySystemPrompt(context: UsyContext) {
     `Detect the user's language and respond in that language when possible. Supported languages: ${supportedLanguageList}.`,
     `If asked whether you speak other languages, answer clearly: "Yes. I can help in ${supportedLanguageList}."`,
     `Current route: ${context.route}. Current module: ${moduleName}. Current user role: ${context.role}. Current plan: ${context.plan || "unknown"}. ${usageText}`,
-    `Current pricing: Pro is €${publicMonthlyPlanPrices.pro}/month. Business is €${publicMonthlyPlanPrices.business}/month.`,
+    `Current pricing: Pro launch pricing is ${proLaunchPriceText}. Business is €${publicMonthlyPlanPrices.business}/month.`,
     "Do not mention annual pricing unless UseClevr explicitly provides it in the current prompt.",
     "Normal users can receive help only with their own datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscription, and Business Profile.",
     "Admins and superadmins can use Usy as UseClevr Company Brain Lite for customers, plans, credits, uploads, errors, failed analyses, AI traces, billing settings, discount rules, MCP tokens, user issues, platform status, and usage monitoring.",

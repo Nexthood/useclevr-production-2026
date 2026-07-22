@@ -176,6 +176,27 @@ export const profiles = pgTable(
     subscriptionTier: varchar("subscriptionTier", { length: 255 }).default("free").notNull(),
     preferredCurrency: varchar("preferredCurrency", { length: 3 }).default("EUR").notNull(),
     numberFormat: varchar("numberFormat", { length: 10 }).default("auto").notNull(),
+    regionalPreferences: jsonb("regionalPreferences")
+      .$type<{
+        displayCurrency?: string;
+        baseCurrency?: string;
+        numberFormat?: string;
+        dateFormat?: string;
+        timezone?: string;
+        language?: string;
+        localeMode?: "auto" | "manual";
+        manualLocale?: string;
+      }>()
+      .default({
+        displayCurrency: "auto",
+        baseCurrency: "EUR",
+        numberFormat: "auto",
+        dateFormat: "auto",
+        timezone: "auto",
+        language: "auto",
+        localeMode: "auto",
+      })
+      .notNull(),
     themePreference: varchar("themePreference", { length: 20 }).default("system").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),

@@ -2,6 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  billingCountryOptions,
+  getCountryFromLocale,
+  getCurrencyForCountry,
+  resolveProPriceForCountry,
+  type SupportedCurrency,
+} from "@/lib/billing/launch-pricing";
 import { billingPlans, formatPlanPrice, getBillingPlan, normalizeBillingPlanId, type BillingPlan } from "@/lib/billing/plans";
 
 type DiscountRule = {
@@ -23,10 +30,13 @@ type CheckoutStep = "review" | "terms";
 
 type CheckoutPlan = BillingPlan & {
   status?: "ready" | "payment_provider_not_connected";
+  stripePriceStatusByCurrency?: Partial<Record<SupportedCurrency, boolean>> | null;
 };
 
 type CheckoutPlanOption = Omit<CheckoutPlan, "stripePriceId"> & {
   stripePriceId?: string | null;
+  launchPrices?: BillingPlan["launchPrices"] | null;
+  stripePriceStatusByCurrency?: Partial<Record<SupportedCurrency, boolean>> | null;
 };
 
 const defaultCheckoutPlans: CheckoutPlan[] = billingPlans.map((plan) => ({
@@ -50,9 +60,22 @@ function CheckoutClient() {
   const [isGoing, setIsGoing] = React.useState(false);
   const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
   const [availableDiscounts, setAvailableDiscounts] = React.useState<DiscountRule[]>([]);
+  const [billingCountry, setBillingCountry] = React.useState("NL");
+  const [browserCountry, setBrowserCountry] = React.useState<string | null>(null);
 
-  const plan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
+  const plan: CheckoutPlan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
   const paidPlans = availablePlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
+  const selectedProPrice = resolveProPriceForCountry(billingCountry);
+  const selectedProCurrency = getCurrencyForCountry(billingCountry);
+  const proStripeReadyByCurrency = plan.id === "pro_monthly" ? plan.stripePriceStatusByCurrency : null;
+
+  React.useEffect(() => {
+    const country = getCountryFromLocale(navigator.language);
+    setBrowserCountry(country);
+    if (country && billingCountryOptions.some((option) => option.value === country)) {
+      setBillingCountry(country);
+    }
+  }, []);
 
   // Load checkout readiness from the server because Stripe price env vars are server-only.
   React.useEffect(() => {
@@ -78,6 +101,8 @@ function CheckoutClient() {
                 ...(serverPlan ?? {}),
                 stripePriceId:
                   typeof serverPlan?.stripePriceId === "string" ? serverPlan.stripePriceId : undefined,
+                launchPrices: serverPlan?.launchPrices ?? staticPlan.launchPrices,
+                stripePriceStatusByCurrency: serverPlan?.stripePriceStatusByCurrency ?? null,
               };
             }),
           );
@@ -125,7 +150,11 @@ function CheckoutClient() {
   }, [plan.tier]);
 
   const tscUrl = "/terms";
-  const canReview = !isPlanConfigLoading && !!plan.stripePriceId;
+  const canReview = !isPlanConfigLoading && (
+    plan.id === "pro_monthly"
+      ? Boolean(proStripeReadyByCurrency?.[selectedProCurrency])
+      : Boolean(plan.stripePriceId)
+  );
   const submitLabel = isPlanConfigLoading
     ? "Checking payment provider..."
     : canReview
@@ -141,7 +170,7 @@ function CheckoutClient() {
       const response = await fetch("/api/checkout/confirm?form=review-accepted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, billingCountry, browserCountry }),
       });
       const result = await response.json().catch(() => ({}));
 
@@ -235,7 +264,9 @@ function CheckoutClient() {
                           aria-hidden="true"
                         />
                       </span>
-                      <span className="mt-1 block text-sm font-medium text-foreground">{formatPlanPrice(candidate)}</span>
+                      <span className="mt-1 block text-sm font-medium text-foreground">
+                        {candidate.id === "pro_monthly" ? selectedProPrice.label : formatPlanPrice(candidate)}
+                      </span>
                       <span className="mt-1 block text-xs text-muted-foreground">{candidate.description}</span>
                     </button>
                   );
@@ -244,9 +275,44 @@ function CheckoutClient() {
 
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">{plan.name}</h2>
-                <span className="text-xl font-semibold">{formatPlanPrice(plan)}</span>
+                <span className="text-xl font-semibold">
+                  {plan.id === "pro_monthly" ? selectedProPrice.label : formatPlanPrice(plan)}
+                </span>
               </div>
               <p className="mt-3 break-words text-sm text-muted-foreground">{plan.description}</p>
+
+              {plan.id === "pro_monthly" && (
+                <div className="mt-5 rounded-lg border border-border bg-muted/30 p-4">
+                  <label htmlFor="billingCountry" className="text-sm font-medium text-foreground">
+                    Billing country
+                  </label>
+                  <select
+                    id="billingCountry"
+                    value={billingCountry}
+                    onChange={(event) => {
+                      setBillingCountry(event.target.value);
+                      setCheckoutError(null);
+                    }}
+                    className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  >
+                    {billingCountryOptions.map((country) => (
+                      <option key={country.value} value={country.value}>
+                        {country.label} - {resolveProPriceForCountry(country.value).label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Checkout uses the validated billing country to choose the approved Stripe price. Switzerland, Denmark, Sweden, Norway, and unsupported countries use the temporary EUR launch fallback.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {plan.launchPrices?.map((price) => (
+                      <span key={price.currency} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+                        {price.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-5 space-y-2">
                 {plan.features.map((feature) => (

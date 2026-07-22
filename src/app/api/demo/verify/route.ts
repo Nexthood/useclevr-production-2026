@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
+import { auth } from "@/lib/auth/auth"
 import { requestDemoVerification, verifyDemoCode, validateDemoSession, getDemoLimits } from "@/lib/billing/demo-access"
 
 export async function POST(request: Request) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    }
+
     const body = await request.json()
     const { action, email, code } = body
 
@@ -96,6 +102,11 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+  }
+
   const sessionToken = request.headers.get("x-demo-session")
 
   if (!sessionToken) {

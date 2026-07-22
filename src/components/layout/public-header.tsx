@@ -99,11 +99,6 @@ export function PublicHeader() {
             Plans
           </Link>
 
-          {/* Book demo */}
-          <Link href="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
-            Book demo
-          </Link>
-
           {/* FAQ */}
           <Link href="/faq" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
             FAQ
@@ -230,13 +225,6 @@ export function PublicHeader() {
               onClick={() => setMobileOpen(false)}
             >
               News
-            </Link>
-            <Link
-              href="/contact"
-              className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-              onClick={() => setMobileOpen(false)}
-            >
-              Book demo
             </Link>
             <Link
               href="/faq"
