@@ -174,3 +174,38 @@ When the backend connector exists on a separate integrations page, the main prod
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail POS Connections Database Query Fix
+
+1. Interaction title
+Retail POS Connections database schema fix.
+
+2. What was the user goal
+Fix the Retail page database query failure for `RetailConnection` and `RetailSyncRun`, apply required migrations, preserve the POS Connections UI, and show the normal Not Connected state when no POS connection exists.
+
+3. What changed
+The root cause is that `0015_retail_pos_integrations.sql` exists in source but the configured database had no Retail POS tables, and `scripts/runtime/railway-predeploy.cjs` did not apply that migration. The Retail migration was applied to the configured database. The predeploy script now reads and executes `src/lib/db/migrations/0015_retail_pos_integrations.sql` inside its existing schema transaction so deployments create the Retail POS tables, indexes, and foreign keys before Retail integration queries run. Requirements, changelog, and AI interaction records now describe the current schema and empty-state behavior.
+
+4. Problems marked
+blocker: none.
+risk: Drizzle `db:push` needs an interactive TTY in this repository when resolving schema diffs, so this interaction used the explicit idempotent SQL migration and the deployment predeploy script.
+improvement: Drizzle migration metadata lists only early migrations, so a future maintenance task should align generated migration journal metadata with the current SQL migration folder.
+observation: `listRetailConnectionSummaries()` returns an empty array for a signed-in user with no POS connections once the Retail tables exist.
+
+5. User learning
+The Retail POS UI failure was a missing database schema problem, not a missing empty-state UI problem.
+
+6. AI-agent learning
+When a feature adds Drizzle tables, verify both source SQL files and the actual runtime database before diagnosing page-level UI errors.
+
+7. Follow-up tasks
+- Align Drizzle migration journal metadata with SQL migrations `0005` through `0015` so `drizzle-kit migrate` can be used as the primary noninteractive migration path.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred migration tooling cleanup: future TODO queue if requested.

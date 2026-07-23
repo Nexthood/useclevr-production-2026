@@ -23,6 +23,7 @@ Text rules for this file:
 - Keep edge route guards free of Node-only authentication and database modules.
 - Normalize generated Edge route guard manifests during production packaging.
 - Clean generated build output before production packaging.
+- Apply the Retail POS integration schema during deployment before Retail pages or integration APIs query POS connection tables.
 
 ## Upload & Analysis
 
@@ -77,6 +78,7 @@ Text rules for this file:
 - Explain each Retail Inventory Analyst dead-stock row with recent sales level, days since last sale, stock value stuck, and a suggested discount, bundle, or stop-reorder action.
 - Deduplicate Retail Inventory Analyst top-profit rows by product, SKU, and order number while preserving distinct SKU or order records.
 - Show Retail POS Connections at the top of the Retail workspace before CSV and Excel upload, with Square connection status, connect action, merchant name, locations, products, last sync, manual sync, disconnect action, imported record counts, sync history, last webhook time, and connection errors.
+- Show the Retail POS Connections empty state as Not Connected when the signed-in user has no POS connection.
 - Let authenticated retail users start Square OAuth from the Retail workspace through a server-created state value tied to the current primary business organization.
 - Store Square OAuth access tokens and refresh tokens only as encrypted server-side values.
 - Keep Square integration scopes read-only for merchant profile, catalog items, inventory, orders, and payments.

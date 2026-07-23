@@ -85,6 +85,7 @@
 
 ### Fixed
 
+- Load the Retail workspace POS Connections section without database errors by applying the Retail POS schema during deployment and showing Not Connected when no POS connection exists.
 - Require authentication for interactive demo access so anonymous visitors register before opening demo routes, uploads, AI analysis, or demo verification.
 - Pair Revenue and Expenses profitability uploads into one isolated profitability analysis with distinct gross, operating, and net profit calculations plus report/download actions.
 - Show Generate Report on selected dashboards and save the finished report into Reports & Downloads with PDF and CSV actions.

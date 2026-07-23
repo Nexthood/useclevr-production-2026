@@ -88,6 +88,7 @@ into the active queue.
 
 ## Label: deployment
 
+- Align Drizzle migration journal metadata with source SQL migrations 0005 through 0015 so the primary migration command can apply current database changes noninteractively. (labels: deployment, data, workflow)
 - Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable. (labels: deployment, dashboard, ui, docs)
 - Add verified root scripts for `dev:web`, `dev:docs`, `build:web`, `build:docs`, `lint:web`, and `lint:docs`, and keep the existing deploy flow unchanged. (labels: deployment, ci-build, docs, workflow)
 - Validate Railway service-root deployment for the web and docs apps while preserving the current `dist` and `dist-test` branch behavior. (labels: deployment, ci-build, testing, docs)
