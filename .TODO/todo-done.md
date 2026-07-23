@@ -315,6 +315,7 @@ moving work between states.
 
 ## Label: data
 
+- T-945. Add the Square POS retail integration foundation with encrypted read-only OAuth, normalized retail records, sync history, webhook intake, and Retail Integrations status actions. (labels: data, api, security, ui, testing; commit: worktree)
 - T-911. Load dataset detail and analysis through shared user-scoped access, keep superadmin dataset access available, remove broken dataset navigation from analysis, and show forecast guidance for missing forecast inputs. (labels: data, reporting, ui; commit: worktree)
 
 - T-780. Classify numeric, text, date, boolean, identifier, and mixed CSV columns from representative values without treating every unique value as an identifier. (labels: data, upload, testing; commit: worktree)

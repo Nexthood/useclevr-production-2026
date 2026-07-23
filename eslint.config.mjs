@@ -15,8 +15,10 @@ export default [
     ignores: [
       "dist/**",
       ".next/**",
+      ".kilo/**",
       "node_modules/**",
       "mcp/**",
+      "helper/**",
       "**/*.config.*",
       ".TODO/**",
       "scripts/**",
