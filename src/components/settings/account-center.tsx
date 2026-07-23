@@ -11,6 +11,7 @@ import { Bot, Building2, CheckCircle2, CreditCard, FileText, LockKeyhole, Shield
 import Link from "next/link"
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import pkg from "../../../package.json"
 
 type TabId = "profile" | "company" | "subscription" | "billing" | "rules" | "ai" | "security"
 
@@ -21,6 +22,8 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "ai", label: "AI Providers", icon: Bot },
   { id: "security", label: "Security", icon: LockKeyhole },
 ]
+
+const appVersion = pkg.version
 
 function formatAccountPlanPrice(plan: { id: string; price: number }) {
   return formatPlanPrice(getBillingPlan(plan.id))
@@ -663,6 +666,13 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
               </div>
               <div className="rounded-md border border-border bg-background/70 p-3 text-sm text-muted-foreground">
                 Authentication settings are managed by the active sign-in provider.
+              </div>
+              <div className="rounded-md border border-border bg-background/70 p-3">
+                <p className="text-sm font-medium text-foreground">System Information</p>
+                <div className="mt-3 flex items-center justify-between gap-4">
+                  <span className="text-sm text-muted-foreground">Application version</span>
+                  <span className="truncate text-sm font-medium text-foreground">v{appVersion}</span>
+                </div>
               </div>
             </CardContent>
           </Card>

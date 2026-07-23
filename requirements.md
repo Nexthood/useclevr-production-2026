@@ -76,6 +76,17 @@ Text rules for this file:
 - Explain each Retail Inventory Analyst low-stock alert with current stock, reorder point, recent units sold, and a reorder recommendation.
 - Explain each Retail Inventory Analyst dead-stock row with recent sales level, days since last sale, stock value stuck, and a suggested discount, bundle, or stop-reorder action.
 - Deduplicate Retail Inventory Analyst top-profit rows by product, SKU, and order number while preserving distinct SKU or order records.
+- Let authenticated retail users open Retail Integrations and review Square connection status, imported record counts, sync history, last successful sync, last webhook time, and connection errors.
+- Let authenticated retail users start Square OAuth from Retail Integrations through a server-created state value tied to the current primary business organization.
+- Store Square OAuth access tokens and refresh tokens only as encrypted server-side values.
+- Keep Square integration scopes read-only for merchant profile, catalog items, inventory, orders, and payments.
+- Store Square merchant, location, product, variant, inventory, order, order-item, sync-run, webhook-event, and AI-insight records as organization-scoped retail data.
+- Keep POS-connected retail data separate from standard, profitability, accountancy, and pre-bookkeeping datasets.
+- Preserve CSV and Excel retail uploads as a supported retail data source alongside Square-connected data.
+- Queue Square initial and manual sync runs without exposing provider tokens to the browser.
+- Verify Square webhooks against the raw request body and configured notification URL before storing sanitized webhook metadata.
+- Mark duplicate Square webhooks without processing the same provider event twice.
+- Disconnect Square without deleting imported analytics data.
 - Store AI answer feedback on the saved answer history item.
 - Explain efficient AI usage for public users, dashboard users, and operators.
 - Complete the usable-MVP and sales-validation exit gates before activating AI-differentiation or

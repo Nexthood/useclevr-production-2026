@@ -57,6 +57,7 @@
     "test:dashboard-crud": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dashboard-crud.ts",
     "test:dataset-deletion": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dataset-deletion.ts",
     "test:credit-engine": "node -r tsx/esm scripts/billing/test-credit-engine.ts",
+    "test:retail-pos": "node -r tsx/esm scripts/retail/test-pos-integration.ts",
     "test:pro-pricing": "node -r tsx/esm scripts/billing/test-pro-launch-pricing.ts",
     "test:mcp-dashboard": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-payload-mcp-dashboard.ts",
     "test:neon": "bash scripts/health/test-neon-connection.sh",

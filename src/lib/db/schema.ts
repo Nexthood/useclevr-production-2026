@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -45,6 +46,51 @@ export const datasetBusinessModels = [
   "generic",
 ] as const;
 export type DatasetBusinessModel = (typeof datasetBusinessModels)[number];
+
+export const retailProviders = ["square"] as const;
+export type RetailProvider = (typeof retailProviders)[number];
+
+export const retailConnectionStatuses = [
+  "pending",
+  "connected",
+  "syncing",
+  "active",
+  "error",
+  "reauthorization_required",
+  "disconnected",
+] as const;
+export type RetailConnectionStatus = (typeof retailConnectionStatuses)[number];
+
+export const retailSyncTypes = [
+  "initial",
+  "incremental",
+  "reconciliation",
+  "manual",
+  "webhook_recovery",
+] as const;
+export type RetailSyncType = (typeof retailSyncTypes)[number];
+
+export const retailSyncStatuses = [
+  "queued",
+  "running",
+  "partially_completed",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+export type RetailSyncStatus = (typeof retailSyncStatuses)[number];
+
+export const retailWebhookStatuses = [
+  "received",
+  "verified",
+  "queued",
+  "processing",
+  "processed",
+  "failed",
+  "ignored",
+  "duplicate",
+] as const;
+export type RetailWebhookStatus = (typeof retailWebhookStatuses)[number];
 
 // User table - NextAuth compatible
 export const users = pgTable(
@@ -362,6 +408,567 @@ export const datasets = pgTable(
       name: "Dataset_userId_fkey",
     }).onDelete("cascade"),
     businessModelIdx: index("Dataset_userId_businessModel_idx").on(table.userId, table.businessModel),
+  }),
+);
+
+export const retailConnections = pgTable(
+  "RetailConnection",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalMerchantId: text("externalMerchantId"),
+    displayName: text("displayName").notNull(),
+    connectionStatus: varchar("connectionStatus", { length: 40 })
+      .default("pending")
+      .notNull()
+      .$type<RetailConnectionStatus>(),
+    accessTokenEncrypted: text("accessTokenEncrypted"),
+    refreshTokenEncrypted: text("refreshTokenEncrypted"),
+    tokenExpiresAt: timestamp("tokenExpiresAt"),
+    grantedScopes: jsonb("grantedScopes").$type<string[]>().default([]).notNull(),
+    lastSuccessfulSyncAt: timestamp("lastSuccessfulSyncAt"),
+    lastSyncAttemptAt: timestamp("lastSyncAttemptAt"),
+    lastWebhookAt: timestamp("lastWebhookAt"),
+    connectionError: text("connectionError"),
+    createdBy: text("createdBy").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    disconnectedAt: timestamp("disconnectedAt"),
+  },
+  (table) => ({
+    organizationFk: foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [businesses.id],
+      name: "RetailConnection_organizationId_fkey",
+    }).onDelete("cascade"),
+    createdByFk: foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [users.id],
+      name: "RetailConnection_createdBy_fkey",
+    }).onDelete("cascade"),
+    organizationProviderIdx: index("RetailConnection_organization_provider_idx").on(
+      table.organizationId,
+      table.provider,
+    ),
+    organizationProviderMerchantIdx: uniqueIndex(
+      "RetailConnection_org_provider_merchant_key",
+    ).on(table.organizationId, table.provider, table.externalMerchantId),
+  }),
+);
+
+export const retailOauthStates = pgTable(
+  "RetailOauthState",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    stateHash: varchar("stateHash", { length: 64 }).notNull(),
+    createdBy: text("createdBy").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    usedAt: timestamp("usedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    organizationFk: foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [businesses.id],
+      name: "RetailOauthState_organizationId_fkey",
+    }).onDelete("cascade"),
+    createdByFk: foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [users.id],
+      name: "RetailOauthState_createdBy_fkey",
+    }).onDelete("cascade"),
+    stateHashIdx: uniqueIndex("RetailOauthState_stateHash_key").on(table.stateHash),
+    organizationIdx: index("RetailOauthState_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailMerchants = pgTable(
+  "RetailMerchant",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalMerchantId: text("externalMerchantId").notNull(),
+    businessName: text("businessName"),
+    country: varchar("country", { length: 8 }),
+    currency: varchar("currency", { length: 3 }),
+    timezone: text("timezone"),
+    language: varchar("language", { length: 16 }),
+    status: varchar("status", { length: 40 }),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailMerchant_connectionId_fkey",
+    }).onDelete("cascade"),
+    connectionMerchantIdx: uniqueIndex("RetailMerchant_connection_external_key").on(
+      table.connectionId,
+      table.externalMerchantId,
+    ),
+    organizationIdx: index("RetailMerchant_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailLocations = pgTable(
+  "RetailLocation",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    merchantId: text("merchantId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalLocationId: text("externalLocationId").notNull(),
+    name: text("name").notNull(),
+    addressLine1: text("addressLine1"),
+    addressLine2: text("addressLine2"),
+    city: text("city"),
+    region: text("region"),
+    postalCode: text("postalCode"),
+    country: varchar("country", { length: 8 }),
+    currency: varchar("currency", { length: 3 }),
+    timezone: text("timezone"),
+    status: varchar("status", { length: 40 }),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailLocation_connectionId_fkey",
+    }).onDelete("cascade"),
+    merchantFk: foreignKey({
+      columns: [table.merchantId],
+      foreignColumns: [retailMerchants.id],
+      name: "RetailLocation_merchantId_fkey",
+    }).onDelete("set null"),
+    connectionLocationIdx: uniqueIndex("RetailLocation_connection_external_key").on(
+      table.connectionId,
+      table.externalLocationId,
+    ),
+    organizationIdx: index("RetailLocation_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailProducts = pgTable(
+  "RetailProduct",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalProductId: text("externalProductId").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category"),
+    brand: text("brand"),
+    status: varchar("status", { length: 40 }),
+    imageUrl: text("imageUrl"),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailProduct_connectionId_fkey",
+    }).onDelete("cascade"),
+    connectionProductIdx: uniqueIndex("RetailProduct_connection_external_key").on(
+      table.connectionId,
+      table.externalProductId,
+    ),
+    organizationIdx: index("RetailProduct_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailVariants = pgTable(
+  "RetailVariant",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    productId: text("productId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalVariantId: text("externalVariantId").notNull(),
+    sku: text("sku"),
+    barcode: text("barcode"),
+    variantName: text("variantName"),
+    unitCost: numeric("unitCost", { precision: 14, scale: 4 }),
+    retailPrice: numeric("retailPrice", { precision: 14, scale: 4 }),
+    currency: varchar("currency", { length: 3 }),
+    compareAtPrice: numeric("compareAtPrice", { precision: 14, scale: 4 }),
+    taxable: boolean("taxable"),
+    trackInventory: boolean("trackInventory"),
+    status: varchar("status", { length: 40 }),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailVariant_connectionId_fkey",
+    }).onDelete("cascade"),
+    productFk: foreignKey({
+      columns: [table.productId],
+      foreignColumns: [retailProducts.id],
+      name: "RetailVariant_productId_fkey",
+    }).onDelete("set null"),
+    connectionVariantIdx: uniqueIndex("RetailVariant_connection_external_key").on(
+      table.connectionId,
+      table.externalVariantId,
+    ),
+    organizationIdx: index("RetailVariant_organization_idx").on(table.organizationId),
+    skuIdx: index("RetailVariant_connection_sku_idx").on(table.connectionId, table.sku),
+  }),
+);
+
+export const retailInventoryLevels = pgTable(
+  "RetailInventoryLevel",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    locationId: text("locationId"),
+    variantId: text("variantId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalCatalogObjectId: text("externalCatalogObjectId").notNull(),
+    quantityOnHand: numeric("quantityOnHand", { precision: 18, scale: 6 }),
+    quantityAvailable: numeric("quantityAvailable", { precision: 18, scale: 6 }),
+    quantityCommitted: numeric("quantityCommitted", { precision: 18, scale: 6 }),
+    quantityIncoming: numeric("quantityIncoming", { precision: 18, scale: 6 }),
+    quantityReserved: numeric("quantityReserved", { precision: 18, scale: 6 }),
+    reorderPoint: numeric("reorderPoint", { precision: 18, scale: 6 }),
+    safetyStock: numeric("safetyStock", { precision: 18, scale: 6 }),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailInventoryLevel_connectionId_fkey",
+    }).onDelete("cascade"),
+    locationFk: foreignKey({
+      columns: [table.locationId],
+      foreignColumns: [retailLocations.id],
+      name: "RetailInventoryLevel_locationId_fkey",
+    }).onDelete("set null"),
+    variantFk: foreignKey({
+      columns: [table.variantId],
+      foreignColumns: [retailVariants.id],
+      name: "RetailInventoryLevel_variantId_fkey",
+    }).onDelete("set null"),
+    connectionLocationObjectIdx: uniqueIndex("RetailInventoryLevel_connection_location_object_key").on(
+      table.connectionId,
+      table.locationId,
+      table.externalCatalogObjectId,
+    ),
+    organizationIdx: index("RetailInventoryLevel_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailOrders = pgTable(
+  "RetailOrder",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    locationId: text("locationId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalOrderId: text("externalOrderId").notNull(),
+    orderNumber: text("orderNumber"),
+    salesChannel: text("salesChannel"),
+    status: varchar("status", { length: 60 }),
+    currency: varchar("currency", { length: 3 }),
+    subtotalAmount: numeric("subtotalAmount", { precision: 14, scale: 4 }),
+    discountAmount: numeric("discountAmount", { precision: 14, scale: 4 }),
+    taxAmount: numeric("taxAmount", { precision: 14, scale: 4 }),
+    tipAmount: numeric("tipAmount", { precision: 14, scale: 4 }),
+    refundAmount: numeric("refundAmount", { precision: 14, scale: 4 }),
+    totalAmount: numeric("totalAmount", { precision: 14, scale: 4 }),
+    customerCount: integer("customerCount"),
+    orderedAt: timestamp("orderedAt"),
+    closedAt: timestamp("closedAt"),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailOrder_connectionId_fkey",
+    }).onDelete("cascade"),
+    locationFk: foreignKey({
+      columns: [table.locationId],
+      foreignColumns: [retailLocations.id],
+      name: "RetailOrder_locationId_fkey",
+    }).onDelete("set null"),
+    connectionOrderIdx: uniqueIndex("RetailOrder_connection_external_key").on(
+      table.connectionId,
+      table.externalOrderId,
+    ),
+    organizationOrderedIdx: index("RetailOrder_organization_ordered_idx").on(
+      table.organizationId,
+      table.orderedAt,
+    ),
+    statusIdx: index("RetailOrder_connection_status_idx").on(table.connectionId, table.status),
+  }),
+);
+
+export const retailOrderItems = pgTable(
+  "RetailOrderItem",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    orderId: text("orderId").notNull(),
+    productId: text("productId"),
+    variantId: text("variantId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalOrderItemId: text("externalOrderItemId").notNull(),
+    externalCatalogObjectId: text("externalCatalogObjectId"),
+    sku: text("sku"),
+    itemName: text("itemName").notNull(),
+    variantName: text("variantName"),
+    quantity: numeric("quantity", { precision: 18, scale: 6 }),
+    unitPrice: numeric("unitPrice", { precision: 14, scale: 4 }),
+    grossAmount: numeric("grossAmount", { precision: 14, scale: 4 }),
+    discountAmount: numeric("discountAmount", { precision: 14, scale: 4 }),
+    taxAmount: numeric("taxAmount", { precision: 14, scale: 4 }),
+    refundAmount: numeric("refundAmount", { precision: 14, scale: 4 }),
+    netAmount: numeric("netAmount", { precision: 14, scale: 4 }),
+    unitCost: numeric("unitCost", { precision: 14, scale: 4 }),
+    grossProfit: numeric("grossProfit", { precision: 14, scale: 4 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    orderFk: foreignKey({
+      columns: [table.orderId],
+      foreignColumns: [retailOrders.id],
+      name: "RetailOrderItem_orderId_fkey",
+    }).onDelete("cascade"),
+    productFk: foreignKey({
+      columns: [table.productId],
+      foreignColumns: [retailProducts.id],
+      name: "RetailOrderItem_productId_fkey",
+    }).onDelete("set null"),
+    variantFk: foreignKey({
+      columns: [table.variantId],
+      foreignColumns: [retailVariants.id],
+      name: "RetailOrderItem_variantId_fkey",
+    }).onDelete("set null"),
+    connectionItemIdx: uniqueIndex("RetailOrderItem_connection_external_key").on(
+      table.connectionId,
+      table.externalOrderItemId,
+    ),
+    organizationIdx: index("RetailOrderItem_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailPayments = pgTable(
+  "RetailPayment",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    orderId: text("orderId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalPaymentId: text("externalPaymentId").notNull(),
+    status: varchar("status", { length: 60 }),
+    currency: varchar("currency", { length: 3 }),
+    amount: numeric("amount", { precision: 14, scale: 4 }),
+    processingFee: numeric("processingFee", { precision: 14, scale: 4 }),
+    paymentMethod: text("paymentMethod"),
+    paidAt: timestamp("paidAt"),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    orderFk: foreignKey({
+      columns: [table.orderId],
+      foreignColumns: [retailOrders.id],
+      name: "RetailPayment_orderId_fkey",
+    }).onDelete("set null"),
+    connectionPaymentIdx: uniqueIndex("RetailPayment_connection_external_key").on(
+      table.connectionId,
+      table.externalPaymentId,
+    ),
+    organizationIdx: index("RetailPayment_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailRefunds = pgTable(
+  "RetailRefund",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    orderId: text("orderId"),
+    paymentId: text("paymentId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    externalRefundId: text("externalRefundId").notNull(),
+    status: varchar("status", { length: 60 }),
+    currency: varchar("currency", { length: 3 }),
+    amount: numeric("amount", { precision: 14, scale: 4 }),
+    reason: text("reason"),
+    refundedAt: timestamp("refundedAt"),
+    providerCreatedAt: timestamp("providerCreatedAt"),
+    providerUpdatedAt: timestamp("providerUpdatedAt"),
+    syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    orderFk: foreignKey({
+      columns: [table.orderId],
+      foreignColumns: [retailOrders.id],
+      name: "RetailRefund_orderId_fkey",
+    }).onDelete("set null"),
+    paymentFk: foreignKey({
+      columns: [table.paymentId],
+      foreignColumns: [retailPayments.id],
+      name: "RetailRefund_paymentId_fkey",
+    }).onDelete("set null"),
+    connectionRefundIdx: uniqueIndex("RetailRefund_connection_external_key").on(
+      table.connectionId,
+      table.externalRefundId,
+    ),
+    organizationIdx: index("RetailRefund_organization_idx").on(table.organizationId),
+  }),
+);
+
+export const retailSyncRuns = pgTable(
+  "RetailSyncRun",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId").notNull(),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    syncType: varchar("syncType", { length: 40 }).notNull().$type<RetailSyncType>(),
+    status: varchar("status", { length: 40 }).default("queued").notNull().$type<RetailSyncStatus>(),
+    startedAt: timestamp("startedAt"),
+    completedAt: timestamp("completedAt"),
+    cursor: text("cursor"),
+    recordsReceived: integer("recordsReceived").default(0).notNull(),
+    recordsCreated: integer("recordsCreated").default(0).notNull(),
+    recordsUpdated: integer("recordsUpdated").default(0).notNull(),
+    recordsSkipped: integer("recordsSkipped").default(0).notNull(),
+    recordsFailed: integer("recordsFailed").default(0).notNull(),
+    errorCode: varchar("errorCode", { length: 80 }),
+    errorMessage: text("errorMessage"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailSyncRun_connectionId_fkey",
+    }).onDelete("cascade"),
+    connectionStatusIdx: index("RetailSyncRun_connection_status_idx").on(
+      table.connectionId,
+      table.status,
+    ),
+    organizationCreatedIdx: index("RetailSyncRun_organization_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+  }),
+);
+
+export const retailWebhookEvents = pgTable(
+  "RetailWebhookEvent",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId"),
+    connectionId: text("connectionId"),
+    provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    providerEventId: text("providerEventId").notNull(),
+    eventType: text("eventType").notNull(),
+    status: varchar("status", { length: 40 }).default("received").notNull().$type<RetailWebhookStatus>(),
+    receivedAt: timestamp("receivedAt").defaultNow().notNull(),
+    processedAt: timestamp("processedAt"),
+    retryCount: integer("retryCount").default(0).notNull(),
+    processingError: text("processingError"),
+    sanitizedPayload: jsonb("sanitizedPayload").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailWebhookEvent_connectionId_fkey",
+    }).onDelete("set null"),
+    providerEventIdx: uniqueIndex("RetailWebhookEvent_provider_event_key").on(
+      table.provider,
+      table.providerEventId,
+    ),
+    connectionStatusIdx: index("RetailWebhookEvent_connection_status_idx").on(
+      table.connectionId,
+      table.status,
+    ),
+  }),
+);
+
+export const retailAiInsights = pgTable(
+  "RetailAiInsight",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId").notNull(),
+    connectionId: text("connectionId"),
+    provider: varchar("provider", { length: 40 }).$type<RetailProvider>(),
+    reportingPeriodStart: timestamp("reportingPeriodStart"),
+    reportingPeriodEnd: timestamp("reportingPeriodEnd"),
+    locationFilters: jsonb("locationFilters").$type<string[]>().default([]).notNull(),
+    productFilters: jsonb("productFilters").$type<string[]>().default([]).notNull(),
+    kpiSnapshot: jsonb("kpiSnapshot").$type<Record<string, unknown>>().default({}).notNull(),
+    sourceRecordCount: integer("sourceRecordCount").default(0).notNull(),
+    modelMetadata: jsonb("modelMetadata").$type<Record<string, unknown>>().default({}).notNull(),
+    dataQualityWarnings: jsonb("dataQualityWarnings").$type<string[]>().default([]).notNull(),
+    generatedAt: timestamp("generatedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectionFk: foreignKey({
+      columns: [table.connectionId],
+      foreignColumns: [retailConnections.id],
+      name: "RetailAiInsight_connectionId_fkey",
+    }).onDelete("set null"),
+    organizationGeneratedIdx: index("RetailAiInsight_organization_generated_idx").on(
+      table.organizationId,
+      table.generatedAt,
+    ),
   }),
 );
 
