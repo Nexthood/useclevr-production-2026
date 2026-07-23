@@ -139,3 +139,38 @@
 - Changed dataset architecture so `dataset_type` remains the processing/module category while persisted business model drives domain behavior. Uploads now resolve business model deterministically from explicit input, upload module, column schema, and generic fallback; legacy retail records migrate to local retail; standard datasets keep analysis routing with model metadata instead of inheriting retail or ecommerce modules. The executive dashboard now derives dominant business model, selects model-specific KPI cards, and renders the World Map only for ecommerce, marketplace, investor, or explicit multi-location local retail coordinates. Dataset analysis maps use the same gate, unknown locations stay unmapped, suggestions use business-model question sets, and AI analysis prompts receive strict business-model context. Verification passed with `pnpm test:business-models` and `pnpm exec tsc --noEmit --pretty false`.
 - Implemented fixed multi-currency UseClevr Pro launch pricing. Added a central Tier A pricing configuration for EUR 4000, GBP 3900, USD 4500, and CAD 5500 minor-unit prices, country-to-currency mapping with EUR fallback launch countries, billing-country-required checkout validation, per-currency Stripe Price ID resolution, checkout billing-country selection, public pricing chips, account/upgrade/help pricing copy updates, and a focused pricing test covering the required country, browser/IP mismatch, invalid currency, altered amount, provider price ID, and existing-subscription cases.
 - Removed visible version labels from the authenticated app header and sidebar footer. The app version remains available internally through Account Center system information, while package metadata and app configuration remain unchanged. Verification included TypeScript, focused ESLint, source search, and before/after layout screenshots.
+
+## Retail POS Connections On Main Retail Page
+
+1. Interaction title
+Retail POS Connections on the Retail workspace.
+
+2. What was the user goal
+Expose the completed Square connector backend in the current Retail UI instead of leaving the page as CSV and Excel upload only.
+
+3. What changed
+`src/app/(auth)/app/retail/page.tsx` now renders `RetailIntegrationsClient` above the existing embedded `RetailInventoryClient`. `src/components/retail/retail-integrations-client.tsx` now presents Square as the primary POS connector with connection status, connect, merchant name, locations, products, last sync, sync now, disconnect, imported counts, sync history, and error display. Shopify, Clover, and Lightspeed render as disabled coming-soon cards. `src/app/api/integrations/retail/square/callback/route.ts` redirects completed Square OAuth back to `/app/retail`. `requirements.md`, `CHANGELOG.md`, and AI interaction records describe the current behavior.
+
+4. Problems marked
+blocker: none.
+risk: Live Square OAuth interaction still requires configured Square credentials and a signed-in browser session.
+improvement: The Square backend summary can expose a richer merchant display name when provider profile data is available.
+observation: The existing connector API already provides the status, counts, sync history, and action endpoints needed by the Retail UI.
+
+5. User learning
+The Retail page now shows POS connection controls before the upload workflow while preserving CSV and Excel upload.
+
+6. AI-agent learning
+When the backend connector exists on a separate integrations page, the main product workspace must mount the same client so users see the integration at the point of work.
+
+7. Follow-up tasks
+- Add a provider-derived Square merchant display name when the sync engine stores merchant profile data.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

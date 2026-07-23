@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Show Retail POS Connections at the top of the Retail workspace with Square connect, status, sync, merchant, imported-data, and disconnect controls while keeping CSV and Excel upload available below.
 - Add a Square retail integration foundation with encrypted OAuth token storage, normalized POS records, read-only sync history, webhook intake, and a Retail Integrations status page so merchants can connect POS data without replacing CSV uploads.
 - Remove visible version labels from the app header and sidebar footer while keeping version details in account system information.
 - Show UseClevr Pro launch pricing as fixed EUR, GBP, USD, and CAD monthly list prices with checkout validation based on billing country.

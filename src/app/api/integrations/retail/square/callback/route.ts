@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  const baseUrl = new URL("/app/retail/integrations", request.url);
+  const baseUrl = new URL("/app/retail", request.url);
   if (!session?.user?.id) {
     baseUrl.searchParams.set("error", "unauthorized");
     return NextResponse.redirect(baseUrl);
