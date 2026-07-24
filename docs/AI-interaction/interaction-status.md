@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-23
-- **Goal**: Fix the Retail POS Connections database query failure on Retail page load.
-- **Durable change**: The configured database now has the Retail POS tables from `0015_retail_pos_integrations.sql`, the deployment predeploy script applies that migration idempotently, and the Retail connection summary query returns an empty Not Connected state when the signed-in user has no POS connection.
-- **Verification**: Retail POS migration applied; all 14 Retail POS tables exist; `RetailConnection` and `RetailSyncRun` columns and indexes match the ORM schema; `listRetailConnectionSummaries()` returns an empty array for a user without connections; `node scripts/runtime/railway-predeploy.cjs`, `pnpm exec tsc --noEmit --pretty false`, focused ESLint, `node --check scripts/runtime/railway-predeploy.cjs`, and `git diff --check` pass; `/app/retail` starts and redirects unauthenticated traffic without SQL errors.
+- **Date**: 2026-07-24
+- **Goal**: Fix Square Retail POS OAuth environment selection so production configuration generates production Square URLs.
+- **Durable change**: Square configuration now requires `SQUARE_ENVIRONMENT` to equal `production` or `sandbox` exactly, generates explicit authorization, token, revoke, and API base URLs from the same environment, and no longer falls back to sandbox when the variable is missing or invalid.
+- **Verification**: `pnpm test:retail-pos` verifies production authorization host, authorization URL, token endpoint, and API base URL; verifies sandbox authorization host, authorization URL, token endpoint, and API base URL; and verifies missing or invalid `SQUARE_ENVIRONMENT` throws instead of falling back. `pnpm exec tsc --noEmit --pretty false` passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

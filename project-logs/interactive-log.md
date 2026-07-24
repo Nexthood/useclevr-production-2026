@@ -209,3 +209,38 @@ When a feature adds Drizzle tables, verify both source SQL files and the actual 
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred migration tooling cleanup: future TODO queue if requested.
+
+## Square Production OAuth URL Fix
+
+1. Interaction title
+Square Retail POS OAuth environment selection.
+
+2. What was the user goal
+Fix the Square Connect action so Railway production configuration with `SQUARE_ENVIRONMENT=production` generates the production Square OAuth authorization URL instead of the sandbox authorization URL.
+
+3. What changed
+The exact authorization URL is generated in `src/integrations/retail/providers/square/square.connector.ts` by `SquareConnector.getAuthorizationUrl()`. The bug was in `src/integrations/retail/providers/square/square.config.ts`, where `normalizeEnvironment()` returned sandbox for every value except lowercase production, including missing, invalid, or differently cased values. Square config now requires `SQUARE_ENVIRONMENT` to equal `production` or `sandbox` exactly, builds authorization, token, revoke, and API base URLs from the same selected environment, and exposes explicit `authorizationUrl`, `tokenUrl`, and `revokeUrl` values. `SquareConnector` uses those explicit config URLs for authorization and OAuth requests. The Retail POS verification script now tests production and sandbox authorization host, authorization URL, token endpoint, API base URL, and invalid environment handling.
+
+4. Problems marked
+blocker: none.
+risk: Deploy environments must set `SQUARE_ENVIRONMENT` exactly to `production` or `sandbox`; missing or differently cased values now fail fast.
+improvement: Add a small runtime diagnostics endpoint for superadmins that reports Square environment and endpoint hosts without exposing secrets.
+observation: The Connect button path did not hardcode sandbox in the UI; the fallback came from provider config.
+
+5. User learning
+The Square Developer and Railway configuration can be correct while app code still routes to sandbox if environment parsing silently defaults.
+
+6. AI-agent learning
+Provider environment selection must fail closed when a production integration can move money or connect real merchant accounts.
+
+7. Follow-up tasks
+- Add a superadmin-safe Square integration diagnostics view that shows configured environment and endpoint hosts without secrets.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

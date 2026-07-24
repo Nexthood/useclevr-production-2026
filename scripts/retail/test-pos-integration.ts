@@ -6,6 +6,8 @@ import {
   calculateStockoutRisk,
 } from "@/integrations/retail/analytics/retail-kpis";
 import { encryptRetailSecret, decryptRetailSecret } from "@/integrations/retail/core/encryption.service";
+import { SquareConnector } from "@/integrations/retail/providers/square/square.connector";
+import { getSquareConfig } from "@/integrations/retail/providers/square/square.config";
 import {
   mapSquareCatalogItems,
   mapSquareInventoryCount,
@@ -20,7 +22,72 @@ type TestCase = {
 
 process.env.RETAIL_TOKEN_ENCRYPTION_KEY = "test-retail-token-encryption-key-with-32-chars";
 
+const squareProductionHost = "connect.squareup.com";
+const squareSandboxHost = "connect.squareupsandbox.com";
+
 const tests: TestCase[] = [
+  {
+    name: "Square production environment uses production OAuth, token, and API endpoints",
+    async run() {
+      withSquareEnv("production", () => {
+        const config = getSquareConfig();
+        assert.equal(config.environment, "production");
+        assert.equal(config.authorizationUrl, `https://${squareProductionHost}/oauth2/authorize`);
+        assert.equal(config.tokenUrl, `https://${squareProductionHost}/oauth2/token`);
+        assert.equal(config.apiBaseUrl, `https://${squareProductionHost}/v2`);
+      });
+
+      const url = await withSquareEnv("production", () =>
+        new SquareConnector().getAuthorizationUrl({
+          state: "state-production",
+          redirectUri: "https://app.useclevr.com/api/integrations/retail/square/callback",
+        }),
+      );
+
+      const parsed = new URL(url);
+      assert.equal(parsed.host, squareProductionHost);
+      assert.equal(parsed.pathname, "/oauth2/authorize");
+      assert.equal(parsed.searchParams.get("session"), "false");
+    },
+  },
+  {
+    name: "Square sandbox environment uses sandbox OAuth, token, and API endpoints",
+    async run() {
+      withSquareEnv("sandbox", () => {
+        const config = getSquareConfig();
+        assert.equal(config.environment, "sandbox");
+        assert.equal(config.authorizationUrl, `https://${squareSandboxHost}/oauth2/authorize`);
+        assert.equal(config.tokenUrl, `https://${squareSandboxHost}/oauth2/token`);
+        assert.equal(config.apiBaseUrl, `https://${squareSandboxHost}/v2`);
+      });
+
+      const url = await withSquareEnv("sandbox", () =>
+        new SquareConnector().getAuthorizationUrl({
+          state: "state-sandbox",
+          redirectUri: "https://app.useclevr.com/api/integrations/retail/square/callback",
+        }),
+      );
+
+      const parsed = new URL(url);
+      assert.equal(parsed.host, squareSandboxHost);
+      assert.equal(parsed.pathname, "/oauth2/authorize");
+      assert.equal(parsed.searchParams.has("session"), false);
+    },
+  },
+  {
+    name: "Square environment configuration rejects missing or invalid values",
+    run() {
+      withSquareEnv(undefined, () => {
+        assert.throws(() => getSquareConfig(), /SQUARE_ENVIRONMENT/);
+      });
+      withSquareEnv("Production", () => {
+        assert.throws(() => getSquareConfig(), /SQUARE_ENVIRONMENT/);
+      });
+      withSquareEnv("staging", () => {
+        assert.throws(() => getSquareConfig(), /SQUARE_ENVIRONMENT/);
+      });
+    },
+  },
   {
     name: "Square catalog mapper preserves products, variants, SKUs, and prices",
     run() {
@@ -181,6 +248,40 @@ const tests: TestCase[] = [
     },
   },
 ];
+
+function withSquareEnv<T>(environment: string | undefined, run: () => T): T {
+  const previous = {
+    environment: process.env.SQUARE_ENVIRONMENT,
+    applicationId: process.env.SQUARE_APPLICATION_ID,
+    applicationSecret: process.env.SQUARE_APPLICATION_SECRET,
+    redirectUri: process.env.SQUARE_REDIRECT_URI,
+  };
+  if (environment === undefined) {
+    delete process.env.SQUARE_ENVIRONMENT;
+  } else {
+    process.env.SQUARE_ENVIRONMENT = environment;
+  }
+  process.env.SQUARE_APPLICATION_ID = "square-app-id";
+  process.env.SQUARE_APPLICATION_SECRET = "square-app-secret";
+  process.env.SQUARE_REDIRECT_URI = "https://app.useclevr.com/api/integrations/retail/square/callback";
+
+  try {
+    return run();
+  } finally {
+    restoreEnv("SQUARE_ENVIRONMENT", previous.environment);
+    restoreEnv("SQUARE_APPLICATION_ID", previous.applicationId);
+    restoreEnv("SQUARE_APPLICATION_SECRET", previous.applicationSecret);
+    restoreEnv("SQUARE_REDIRECT_URI", previous.redirectUri);
+  }
+}
+
+function restoreEnv(name: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+  process.env[name] = value;
+}
 
 async function main() {
   for (const test of tests) {
