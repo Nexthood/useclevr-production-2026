@@ -8,8 +8,22 @@ export const SQUARE_READ_ONLY_SCOPES = [
 
 export type SquareEnvironment = "sandbox" | "production";
 
+const squareEnvironmentConfig: Record<SquareEnvironment, { oauthHost: string; apiHost: string }> = {
+  production: {
+    oauthHost: "connect.squareup.com",
+    apiHost: "connect.squareup.com",
+  },
+  sandbox: {
+    oauthHost: "connect.squareupsandbox.com",
+    apiHost: "connect.squareupsandbox.com",
+  },
+};
+
 export function getSquareConfig() {
-  const environment = normalizeEnvironment(process.env.SQUARE_ENVIRONMENT);
+  const environment = readSquareEnvironment(process.env.SQUARE_ENVIRONMENT);
+  const endpointConfig = squareEnvironmentConfig[environment];
+  const oauthBaseUrl = `https://${endpointConfig.oauthHost}/oauth2`;
+  const apiBaseUrl = `https://${endpointConfig.apiHost}/v2`;
   const applicationId = process.env.SQUARE_APPLICATION_ID?.trim();
   const applicationSecret = process.env.SQUARE_APPLICATION_SECRET?.trim();
   const redirectUri = process.env.SQUARE_REDIRECT_URI?.trim();
@@ -23,14 +37,11 @@ export function getSquareConfig() {
     redirectUri,
     webhookNotificationUrl,
     webhookSignatureKey,
-    oauthBaseUrl:
-      environment === "production"
-        ? "https://connect.squareup.com/oauth2"
-        : "https://connect.squareupsandbox.com/oauth2",
-    apiBaseUrl:
-      environment === "production"
-        ? "https://connect.squareup.com/v2"
-        : "https://connect.squareupsandbox.com/v2",
+    oauthBaseUrl,
+    authorizationUrl: `${oauthBaseUrl}/authorize`,
+    tokenUrl: `${oauthBaseUrl}/token`,
+    revokeUrl: `${oauthBaseUrl}/revoke`,
+    apiBaseUrl,
     squareVersion: process.env.SQUARE_VERSION?.trim() || "2026-07-23",
   };
 }
@@ -47,6 +58,7 @@ export function requireSquareOAuthConfig() {
   };
 }
 
-function normalizeEnvironment(value: string | undefined): SquareEnvironment {
-  return value?.toLowerCase() === "production" ? "production" : "sandbox";
+function readSquareEnvironment(value: string | undefined): SquareEnvironment {
+  if (value === "production" || value === "sandbox") return value;
+  throw new Error("SQUARE_ENVIRONMENT must be set exactly to production or sandbox.");
 }

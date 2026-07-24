@@ -385,7 +385,7 @@ function generateFallbackSummary(
   }
 }
 
-export function RetailInventoryClient() {
+export function RetailInventoryClient({ embedded = false }: { embedded?: boolean }) {
   const [state, setState] = useState<PageState>("idle")
   const [dragActive, setDragActive] = useState(false)
   const [parsedData, setParsedData] = useState<ParsedData | null>(null)
@@ -611,8 +611,8 @@ export function RetailInventoryClient() {
     : []
 
   return (
-    <div className="min-w-0 flex-1 px-4 pb-6 pt-6 sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className={embedded ? "space-y-6" : "min-w-0 flex-1 px-4 pb-6 pt-6 sm:px-6"}>
+      <div className={embedded ? "space-y-6" : "mx-auto max-w-6xl space-y-6"}>
         {/* Upload Card */}
         <Card
           className={`relative border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${

@@ -39,7 +39,7 @@ type SquareRequestOptions = {
 export class SquareConnector implements RetailPOSConnector {
   async getAuthorizationUrl(input: AuthorizationInput): Promise<string> {
     const config = requireSquareOAuthConfig();
-    const url = new URL(`${config.oauthBaseUrl}/authorize`);
+    const url = new URL(config.authorizationUrl);
     url.searchParams.set("client_id", config.applicationId);
     url.searchParams.set("scope", SQUARE_READ_ONLY_SCOPES.join(" "));
     url.searchParams.set("state", input.state);
@@ -206,9 +206,10 @@ export class SquareConnector implements RetailPOSConnector {
     return { status: "healthy", message: "Square connection credentials are available." };
   }
 
-  private async oauthRequest(path: string, body: Record<string, unknown>) {
+  private async oauthRequest(path: "/token" | "/revoke", body: Record<string, unknown>) {
     const config = requireSquareOAuthConfig();
-    const response = await fetch(`${config.oauthBaseUrl}${path}`, {
+    const endpoint = path === "/token" ? config.tokenUrl : config.revokeUrl;
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

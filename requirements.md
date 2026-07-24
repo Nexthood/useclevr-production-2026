@@ -23,6 +23,7 @@ Text rules for this file:
 - Keep edge route guards free of Node-only authentication and database modules.
 - Normalize generated Edge route guard manifests during production packaging.
 - Clean generated build output before production packaging.
+- Apply the Retail POS integration schema during deployment before Retail pages or integration APIs query POS connection tables.
 
 ## Upload & Analysis
 
@@ -76,8 +77,12 @@ Text rules for this file:
 - Explain each Retail Inventory Analyst low-stock alert with current stock, reorder point, recent units sold, and a reorder recommendation.
 - Explain each Retail Inventory Analyst dead-stock row with recent sales level, days since last sale, stock value stuck, and a suggested discount, bundle, or stop-reorder action.
 - Deduplicate Retail Inventory Analyst top-profit rows by product, SKU, and order number while preserving distinct SKU or order records.
-- Let authenticated retail users open Retail Integrations and review Square connection status, imported record counts, sync history, last successful sync, last webhook time, and connection errors.
-- Let authenticated retail users start Square OAuth from Retail Integrations through a server-created state value tied to the current primary business organization.
+- Show Retail POS Connections at the top of the Retail workspace before CSV and Excel upload, with Square connection status, connect action, merchant name, locations, products, last sync, manual sync, disconnect action, imported record counts, sync history, last webhook time, and connection errors.
+- Show the Retail POS Connections empty state as Not Connected when the signed-in user has no POS connection.
+- Let authenticated retail users start Square OAuth from the Retail workspace through a server-created state value tied to the current primary business organization.
+- Require `SQUARE_ENVIRONMENT` to equal `production` or `sandbox` exactly before Square OAuth, token exchange, webhook verification, or API sync requests run.
+- Use the Square production OAuth authorization, token, revoke, and API endpoints only when `SQUARE_ENVIRONMENT=production`.
+- Use the Square sandbox OAuth authorization, token, revoke, and API endpoints only when `SQUARE_ENVIRONMENT=sandbox`.
 - Store Square OAuth access tokens and refresh tokens only as encrypted server-side values.
 - Keep Square integration scopes read-only for merchant profile, catalog items, inventory, orders, and payments.
 - Store Square merchant, location, product, variant, inventory, order, order-item, sync-run, webhook-event, and AI-insight records as organization-scoped retail data.

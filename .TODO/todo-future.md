@@ -88,6 +88,7 @@ into the active queue.
 
 ## Label: deployment
 
+- Align Drizzle migration journal metadata with source SQL migrations 0005 through 0015 so the primary migration command can apply current database changes noninteractively. (labels: deployment, data, workflow)
 - Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable. (labels: deployment, dashboard, ui, docs)
 - Add verified root scripts for `dev:web`, `dev:docs`, `build:web`, `build:docs`, `lint:web`, and `lint:docs`, and keep the existing deploy flow unchanged. (labels: deployment, ci-build, docs, workflow)
 - Validate Railway service-root deployment for the web and docs apps while preserving the current `dist` and `dist-test` branch behavior. (labels: deployment, ci-build, testing, docs)
@@ -108,6 +109,7 @@ into the active queue.
 - Stabilize Railway main deploy first. Keep the deprecated middleware workaround if it is the only stable packaging path. Do not migrate middleware/proxy yet. Ensure dist branch contains all runtime files. Document exact deploy flow. (labels: deployment, dashboard, ui, data)
 - Add centralized error reporting with contextual information for production debugging. (labels: deployment, reports, workflow)
 - Add health check endpoints for all external service dependencies. (labels: deployment, monitoring)
+- Add a superadmin-safe Square integration diagnostics view that shows configured environment and endpoint hosts without secrets. (labels: deployment, monitoring, security)
 - Implement blue-green deployment strategy for zero-downtime releases. (labels: deployment, devops)
 - Fix Payload admin logout redirect and session expiration handling so users return to login instead of seeing a blank or broken page. (labels: deployment, auth, ui)
 - Add Payload collection field validation with user-friendly error messages for required fields, format checks, and relation constraints. (labels: deployment, content, workflow)

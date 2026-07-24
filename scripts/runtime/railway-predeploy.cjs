@@ -285,6 +285,18 @@ const statements = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceMember_workspaceId_userId_key" ON "WorkspaceMember" USING btree ("workspaceId","userId")`,
 ];
 
+function readMigrationStatement(relativePath) {
+  const migrationPath = path.join(__dirname, "..", "..", relativePath);
+  if (!fs.existsSync(migrationPath)) {
+    throw new Error(`Required migration file is missing: ${relativePath}`);
+  }
+  return fs.readFileSync(migrationPath, "utf8");
+}
+
+const migrationStatements = [
+  readMigrationStatement("src/lib/db/migrations/0015_retail_pos_integrations.sql"),
+];
+
 const constraints = [
   {
     name: "payload_locked_documents_rels_support_issues_fk",
@@ -437,6 +449,10 @@ async function main() {
     await client.query("BEGIN");
 
     for (const statement of statements) {
+      await client.query(statement);
+    }
+
+    for (const statement of migrationStatements) {
       await client.query(statement);
     }
 

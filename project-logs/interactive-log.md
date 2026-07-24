@@ -139,3 +139,108 @@
 - Changed dataset architecture so `dataset_type` remains the processing/module category while persisted business model drives domain behavior. Uploads now resolve business model deterministically from explicit input, upload module, column schema, and generic fallback; legacy retail records migrate to local retail; standard datasets keep analysis routing with model metadata instead of inheriting retail or ecommerce modules. The executive dashboard now derives dominant business model, selects model-specific KPI cards, and renders the World Map only for ecommerce, marketplace, investor, or explicit multi-location local retail coordinates. Dataset analysis maps use the same gate, unknown locations stay unmapped, suggestions use business-model question sets, and AI analysis prompts receive strict business-model context. Verification passed with `pnpm test:business-models` and `pnpm exec tsc --noEmit --pretty false`.
 - Implemented fixed multi-currency UseClevr Pro launch pricing. Added a central Tier A pricing configuration for EUR 4000, GBP 3900, USD 4500, and CAD 5500 minor-unit prices, country-to-currency mapping with EUR fallback launch countries, billing-country-required checkout validation, per-currency Stripe Price ID resolution, checkout billing-country selection, public pricing chips, account/upgrade/help pricing copy updates, and a focused pricing test covering the required country, browser/IP mismatch, invalid currency, altered amount, provider price ID, and existing-subscription cases.
 - Removed visible version labels from the authenticated app header and sidebar footer. The app version remains available internally through Account Center system information, while package metadata and app configuration remain unchanged. Verification included TypeScript, focused ESLint, source search, and before/after layout screenshots.
+
+## Retail POS Connections On Main Retail Page
+
+1. Interaction title
+Retail POS Connections on the Retail workspace.
+
+2. What was the user goal
+Expose the completed Square connector backend in the current Retail UI instead of leaving the page as CSV and Excel upload only.
+
+3. What changed
+`src/app/(auth)/app/retail/page.tsx` now renders `RetailIntegrationsClient` above the existing embedded `RetailInventoryClient`. `src/components/retail/retail-integrations-client.tsx` now presents Square as the primary POS connector with connection status, connect, merchant name, locations, products, last sync, sync now, disconnect, imported counts, sync history, and error display. Shopify, Clover, and Lightspeed render as disabled coming-soon cards. `src/app/api/integrations/retail/square/callback/route.ts` redirects completed Square OAuth back to `/app/retail`. `requirements.md`, `CHANGELOG.md`, and AI interaction records describe the current behavior.
+
+4. Problems marked
+blocker: none.
+risk: Live Square OAuth interaction still requires configured Square credentials and a signed-in browser session.
+improvement: The Square backend summary can expose a richer merchant display name when provider profile data is available.
+observation: The existing connector API already provides the status, counts, sync history, and action endpoints needed by the Retail UI.
+
+5. User learning
+The Retail page now shows POS connection controls before the upload workflow while preserving CSV and Excel upload.
+
+6. AI-agent learning
+When the backend connector exists on a separate integrations page, the main product workspace must mount the same client so users see the integration at the point of work.
+
+7. Follow-up tasks
+- Add a provider-derived Square merchant display name when the sync engine stores merchant profile data.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail POS Connections Database Query Fix
+
+1. Interaction title
+Retail POS Connections database schema fix.
+
+2. What was the user goal
+Fix the Retail page database query failure for `RetailConnection` and `RetailSyncRun`, apply required migrations, preserve the POS Connections UI, and show the normal Not Connected state when no POS connection exists.
+
+3. What changed
+The root cause is that `0015_retail_pos_integrations.sql` exists in source but the configured database had no Retail POS tables, and `scripts/runtime/railway-predeploy.cjs` did not apply that migration. The Retail migration was applied to the configured database. The predeploy script now reads and executes `src/lib/db/migrations/0015_retail_pos_integrations.sql` inside its existing schema transaction so deployments create the Retail POS tables, indexes, and foreign keys before Retail integration queries run. Requirements, changelog, and AI interaction records now describe the current schema and empty-state behavior.
+
+4. Problems marked
+blocker: none.
+risk: Drizzle `db:push` needs an interactive TTY in this repository when resolving schema diffs, so this interaction used the explicit idempotent SQL migration and the deployment predeploy script.
+improvement: Drizzle migration metadata lists only early migrations, so a future maintenance task should align generated migration journal metadata with the current SQL migration folder.
+observation: `listRetailConnectionSummaries()` returns an empty array for a signed-in user with no POS connections once the Retail tables exist.
+
+5. User learning
+The Retail POS UI failure was a missing database schema problem, not a missing empty-state UI problem.
+
+6. AI-agent learning
+When a feature adds Drizzle tables, verify both source SQL files and the actual runtime database before diagnosing page-level UI errors.
+
+7. Follow-up tasks
+- Align Drizzle migration journal metadata with SQL migrations `0005` through `0015` so `drizzle-kit migrate` can be used as the primary noninteractive migration path.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred migration tooling cleanup: future TODO queue if requested.
+
+## Square Production OAuth URL Fix
+
+1. Interaction title
+Square Retail POS OAuth environment selection.
+
+2. What was the user goal
+Fix the Square Connect action so Railway production configuration with `SQUARE_ENVIRONMENT=production` generates the production Square OAuth authorization URL instead of the sandbox authorization URL.
+
+3. What changed
+The exact authorization URL is generated in `src/integrations/retail/providers/square/square.connector.ts` by `SquareConnector.getAuthorizationUrl()`. The bug was in `src/integrations/retail/providers/square/square.config.ts`, where `normalizeEnvironment()` returned sandbox for every value except lowercase production, including missing, invalid, or differently cased values. Square config now requires `SQUARE_ENVIRONMENT` to equal `production` or `sandbox` exactly, builds authorization, token, revoke, and API base URLs from the same selected environment, and exposes explicit `authorizationUrl`, `tokenUrl`, and `revokeUrl` values. `SquareConnector` uses those explicit config URLs for authorization and OAuth requests. The Retail POS verification script now tests production and sandbox authorization host, authorization URL, token endpoint, API base URL, and invalid environment handling.
+
+4. Problems marked
+blocker: none.
+risk: Deploy environments must set `SQUARE_ENVIRONMENT` exactly to `production` or `sandbox`; missing or differently cased values now fail fast.
+improvement: Add a small runtime diagnostics endpoint for superadmins that reports Square environment and endpoint hosts without exposing secrets.
+observation: The Connect button path did not hardcode sandbox in the UI; the fallback came from provider config.
+
+5. User learning
+The Square Developer and Railway configuration can be correct while app code still routes to sandbox if environment parsing silently defaults.
+
+6. AI-agent learning
+Provider environment selection must fail closed when a production integration can move money or connect real merchant accounts.
+
+7. Follow-up tasks
+- Add a superadmin-safe Square integration diagnostics view that shows configured environment and endpoint hosts without secrets.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
