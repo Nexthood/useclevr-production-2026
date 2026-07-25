@@ -55,7 +55,19 @@ export function isOfficialSuperAdminEmail(email?: string | null): boolean {
   return email.trim().toLowerCase() === OFFICIAL_SUPERADMIN_EMAIL
 }
 
+export function isSuperadmin(user?: {
+  id?: string | null
+  email?: string | null
+  role?: string | null
+} | null): boolean {
+  if (!user) return false
+  return (
+    user.role === "superadmin" ||
+    isSuperAdminUserId(user.id) ||
+    isOfficialSuperAdminEmail(user.email)
+  )
+}
+
 export function isSuperAdminAccess(userId?: string | null, email?: string | null): boolean {
-  void email
-  return isSuperAdminUserId(userId)
+  return isSuperadmin({ id: userId, email })
 }

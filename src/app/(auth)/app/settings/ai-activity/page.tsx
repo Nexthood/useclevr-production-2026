@@ -13,7 +13,7 @@ export default async function AiActivityPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const access = await getHybridAiFeatureAccess(session.user.id, session.user.role);
+  const access = await getHybridAiFeatureAccess(session.user.id, session.user.role, session.user.email);
   const canViewAiAuditLogs = access.enabledFeatureIds.includes("auditLogs");
   if (!canViewAiAuditLogs) {
     logBlockedHybridAiFeatureAttempt({

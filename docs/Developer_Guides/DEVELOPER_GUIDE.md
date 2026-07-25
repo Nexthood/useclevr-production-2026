@@ -138,6 +138,7 @@ DATABASE_URL=          # Neon connection string (pooler)
 DIRECT_URL=            # Neon direct connection (migrations)
 AUTH_SECRET=           # NextAuth signing secret (min 32 chars)
 GEMINI_API_KEY=        # Google AI Studio key
+AI_PROVIDER_ENCRYPTION_KEY= # BYOK provider key encryption secret, 32 raw bytes or base64 for 32 bytes
 ```
 
 ### Stripe (optional — activates card collection and webhooks)
@@ -459,6 +460,31 @@ pnpm validate:prepush
 
 Secrets are loaded server-side only via `scripts/runtime/load-env.cjs` for the production dist
 process. Browser code must never read env vars directly.
+
+`AI_PROVIDER_ENCRYPTION_KEY` encrypts user-owned AI provider API keys with server-side
+AES-256-GCM. Provider credentials stay encrypted at rest, decrypted only while the server executes
+or tests that provider, and omitted from API responses, traces, audit logs, and analytics. Use a
+32-byte base64 value and keep the stored encryption payload versioned so operators can add key
+rotation without changing provider records.
+
+AI Providers supports OpenAI, Anthropic, Google Gemini, OpenAI-compatible endpoints, Ollama through
+the local connector, and managed UseClevr Cloud. Custom hosted endpoints must use public `http` or
+`https` URLs without embedded credentials; UseClevr rejects private networks, loopback, link-local
+addresses, metadata hosts, unsupported schemes, and DNS targets that resolve to private ranges.
+Localhost is valid only for the explicit Ollama/local flow.
+
+### BYOK Provider Schema
+
+`AiProviderConfig` stores one authenticated user's provider settings per row: provider type,
+display name, encrypted credential, base URL, default model, enabled/default/fallback flags,
+priority, last connection-test status, sanitized last error message, timestamps, and ownership by
+user ID. A database partial unique index allows only one default provider per user. Deleting a row
+removes the encrypted credential with the provider record.
+
+`AiRequestAuditLog` stores provider usage metadata only: provider type, model, request timestamp,
+latency, token counts when the provider returns them, success or failure, routing reason, execution
+location, selected mode, fallback use, and dataset ID when available. It does not store provider API
+keys, authorization headers, raw prompts, raw responses, or sensitive dataset content.
 
 For local work across multiple checkouts, put shared development secrets in the parent directory of
 the Git checkout, for example `../.env.local`. The runtime loader reads that file first, then reads

@@ -25,6 +25,7 @@ interface MegaInstallerModalProps {
   allowedTiers?: TierId[]
   subscriptionTier?: string | null
   userRole?: string | null
+  userEmail?: string | null
 }
 
 type PlatformDownload = {
@@ -87,6 +88,7 @@ export function MegaInstallerModal({
   allowedTiers = DEFAULT_ALLOWED_TIERS,
   subscriptionTier = "free",
   userRole,
+  userEmail,
 }: MegaInstallerModalProps) {
   const [selectedTier, setSelectedTier] = useState<TierId | null>(null)
   const [status, setStatus] = useState<UseClevrHelperStatus>({
@@ -100,8 +102,8 @@ export function MegaInstallerModal({
     }, {} as Record<HybridAiModuleId, boolean>),
   })
   const entitlement = useMemo(
-    () => getHybridAiEntitlement(subscriptionTier, userRole),
-    [subscriptionTier, userRole],
+    () => getHybridAiEntitlement(subscriptionTier, userRole, userEmail),
+    [subscriptionTier, userRole, userEmail],
   )
 
   const visibleTierOptions = useMemo(() => {

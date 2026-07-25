@@ -1,5 +1,6 @@
 export {
   getAiMode,
+  getUseClevrCloudFallbackAllowed,
   generateWithUniversalAiAdapter,
   isCloudProvider,
   isLocalAiUnavailableError,

@@ -22,6 +22,11 @@ export type AiRequestAuditInput = {
   mode: AiMode | string;
   executionLocation: AiRequestExecutionLocation;
   fallbackUsed: boolean;
+  routingReason?: string | null;
+  latencyMs?: number | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
   purpose: AiRequestAuditPurpose;
   success: boolean;
   errorReason?: string | null;
@@ -59,6 +64,11 @@ export function auditInputFromAdapterResult(
     mode: result.mode,
     executionLocation: result.route,
     fallbackUsed: result.fallbackUsed,
+    routingReason: result.routingReason,
+    latencyMs: result.latencyMs,
+    inputTokens: result.usage?.inputTokens ?? 0,
+    outputTokens: result.usage?.outputTokens ?? 0,
+    totalTokens: result.usage ? result.usage.inputTokens + result.usage.outputTokens : 0,
     purpose,
     success: true,
   };
@@ -111,11 +121,22 @@ async function writeAiRequestAudit(input: AiRequestAuditInput) {
     mode: normalizeRequired(input.mode, "auto", 30),
     executionLocation: input.executionLocation,
     fallbackUsed: input.fallbackUsed,
+    routingReason: normalizeNullable(input.routingReason),
+    latencyMs: normalizeInteger(input.latencyMs),
+    inputTokens: normalizeInteger(input.inputTokens),
+    outputTokens: normalizeInteger(input.outputTokens),
+    totalTokens: normalizeInteger(input.totalTokens),
     purpose: input.purpose,
     success: input.success,
     errorReason: normalizeErrorReason(input.errorReason),
     createdAt: new Date(),
   });
+}
+
+function normalizeInteger(value: unknown) {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.round(numeric));
 }
 
 function normalizeRequired(value: unknown, fallback: string, maxLength: number) {

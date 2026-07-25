@@ -1,5 +1,5 @@
 import { AiProvidersClient } from "@/app/(auth)/app/settings/ai-providers/ai-providers-client";
-import { getAiMode, listPublicAiProviderConfigs, type AiMode } from "@/lib/ai/byoai-provider";
+import { getAiMode, getUseClevrCloudFallbackAllowed, listPublicAiProviderConfigs, toPublicAiMode, type AiMode } from "@/lib/ai/byoai-provider";
 import { auth } from "@/lib/auth/auth";
 import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { debugError } from "@/lib/utils/debug";
@@ -10,16 +10,18 @@ export const metadata: Metadata = { title: "AI Providers" };
 export default async function AiProvidersSettingsPage() {
   const session = await auth();
   let providers: Awaited<ReturnType<typeof listPublicAiProviderConfigs>> = [];
-  let aiMode: AiMode = "auto";
+  let aiMode: AiMode = "automatic";
+  let allowUseClevrCloudFallback = true;
   let featureAccess: Awaited<ReturnType<typeof getHybridAiFeatureAccess>> | null = null;
   let loadError: string | null = null;
 
   if (session?.user?.id) {
     try {
-      [providers, aiMode, featureAccess] = await Promise.all([
+      [providers, aiMode, allowUseClevrCloudFallback, featureAccess] = await Promise.all([
         listPublicAiProviderConfigs(session.user.id),
-        getAiMode(session.user.id),
-        getHybridAiFeatureAccess(session.user.id, session.user.role),
+        getAiMode(session.user.id).then(toPublicAiMode),
+        getUseClevrCloudFallbackAllowed(session.user.id),
+        getHybridAiFeatureAccess(session.user.id, session.user.role, session.user.email),
       ]);
     } catch (error) {
       loadError = "AI provider settings need the latest database migration before saved providers can load.";
@@ -27,5 +29,5 @@ export default async function AiProvidersSettingsPage() {
     }
   }
 
-  return <AiProvidersClient providers={providers} aiMode={aiMode} featureAccess={featureAccess} loadError={loadError} />;
+  return <AiProvidersClient providers={providers} aiMode={aiMode} allowUseClevrCloudFallback={allowUseClevrCloudFallback} featureAccess={featureAccess} loadError={loadError} />;
 }

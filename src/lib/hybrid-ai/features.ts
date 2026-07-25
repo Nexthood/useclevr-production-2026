@@ -1,3 +1,5 @@
+import { isSuperadmin } from "@/lib/auth/builtin-users"
+
 export type HybridAiTier = "lite" | "mega"
 
 export type HybridAiFeatureId =
@@ -254,14 +256,18 @@ export function getHybridAiFeatureTier(featureId: HybridAiFeatureId): HybridAiTi
   return getHybridAiFeature(featureId)?.tier || "mega"
 }
 
-export function getHybridAiEntitlement(subscriptionTier?: string | null, role?: string | null) {
+export function getHybridAiEntitlement(
+  subscriptionTier?: string | null,
+  role?: string | null,
+  email?: string | null,
+) {
   const normalizedTier = (subscriptionTier || "free").toLowerCase()
   const normalizedRole = (role || "").toLowerCase()
   const isAdmin =
     normalizedRole === "admin" ||
-    normalizedRole === "superadmin" ||
     normalizedTier === "admin" ||
-    normalizedTier === "superadmin"
+    normalizedTier === "superadmin" ||
+    isSuperadmin({ role: normalizedRole, email })
   const accessTier: HybridAiTier | null =
     isAdmin || normalizedTier === "business"
       ? "mega"
@@ -285,7 +291,12 @@ export function canUseHybridAiFeature(
   featureId: HybridAiFeatureId,
   subscriptionTier?: string | null,
   role?: string | null,
+  email?: string | null,
 ) {
-  const entitlement = getHybridAiEntitlement(subscriptionTier, role)
+  const entitlement = getHybridAiEntitlement(subscriptionTier, role, email)
   return entitlement.enabledModuleIds.includes(featureId)
+}
+
+export function formatAiProviderLimit(providerLimit: number | null) {
+  return providerLimit === null ? "Unlimited" : String(providerLimit)
 }

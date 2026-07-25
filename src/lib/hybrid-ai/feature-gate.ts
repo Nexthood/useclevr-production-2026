@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/auth"
+import { isSuperadmin } from "@/lib/auth/builtin-users"
 import { getDb } from "@/lib/db"
-import { aiProviderConfigs, profiles } from "@/lib/db/schema"
+import { aiProviderConfigs, profiles, users } from "@/lib/db/schema"
 import {
   canUseHybridAiFeature,
   getHybridAiEntitlement,
@@ -29,22 +30,39 @@ export type HybridAiFeatureGateResult =
   | { success: true; session: Session; access: HybridAiFeatureAccess }
   | { success: false; error: NextResponse; status: 401 | 403; message: string; requiredTier?: HybridAiTier }
 
-export async function getHybridAiFeatureAccess(userId: string, sessionRole?: string | null): Promise<HybridAiFeatureAccess> {
+export async function getHybridAiFeatureAccess(
+  userId: string,
+  sessionRole?: string | null,
+  sessionEmail?: string | null,
+): Promise<HybridAiFeatureAccess> {
   const db = getDb()
-  const profile = db
-    ? await db.query.profiles.findFirst({
-        where: eq(profiles.userId, userId),
-        columns: {
-          subscriptionTier: true,
-          role: true,
-        },
-      })
-    : null
+  const [profile, user] = db
+    ? await Promise.all([
+        db.query.profiles.findFirst({
+          where: eq(profiles.userId, userId),
+          columns: {
+            subscriptionTier: true,
+            role: true,
+            email: true,
+          },
+        }),
+        db.query.users.findFirst({
+          where: eq(users.id, userId),
+          columns: {
+            email: true,
+          },
+        }),
+      ])
+    : [null, null]
 
-  const role = profile?.role || sessionRole || "user"
+  const email = [sessionEmail, profile?.email, user?.email].find((value) => isSuperadmin({ email: value })) ||
+    sessionEmail || profile?.email || user?.email || null
+  const role = isSuperadmin({ id: userId, email, role: profile?.role || sessionRole })
+    ? "superadmin"
+    : profile?.role || sessionRole || "user"
   const roleHasUnlimitedAccess = role === "superadmin" || role === "admin"
   const subscriptionTier = roleHasUnlimitedAccess ? role : profile?.subscriptionTier || "free"
-  const entitlement = getHybridAiEntitlement(subscriptionTier, role)
+  const entitlement = getHybridAiEntitlement(subscriptionTier, role, email)
 
   return {
     userId,
@@ -71,7 +89,7 @@ export async function requireHybridAiFeature(featureId: HybridAiFeatureId): Prom
     }
   }
 
-  const access = await getHybridAiFeatureAccess(userId, session.user.role)
+  const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
   if (access.enabledFeatureIds.includes(featureId)) {
     return { success: true, session, access }
   }
@@ -133,21 +151,27 @@ export function logBlockedHybridAiFeatureAttempt(input: {
   })
 }
 
-export async function canUseHybridAiFeatureForUser(userId: string, featureId: HybridAiFeatureId, sessionRole?: string | null) {
-  const access = await getHybridAiFeatureAccess(userId, sessionRole)
-  return canUseHybridAiFeature(featureId, access.subscriptionTier, access.role)
+export async function canUseHybridAiFeatureForUser(
+  userId: string,
+  featureId: HybridAiFeatureId,
+  sessionRole?: string | null,
+  sessionEmail?: string | null,
+) {
+  const access = await getHybridAiFeatureAccess(userId, sessionRole, sessionEmail)
+  return canUseHybridAiFeature(featureId, access.subscriptionTier, access.role, sessionEmail)
 }
 
-export async function canUseConfiguredAiProviders(userId: string, sessionRole?: string | null) {
-  return canUseHybridAiFeatureForUser(userId, "aiProviderManagement", sessionRole)
+export async function canUseConfiguredAiProviders(userId: string, sessionRole?: string | null, sessionEmail?: string | null) {
+  return canUseHybridAiFeatureForUser(userId, "aiProviderManagement", sessionRole, sessionEmail)
 }
 
 export async function assertCanSaveAiProvider(input: {
   userId: string
   sessionRole?: string | null
+  sessionEmail?: string | null
   providerId?: string | null
 }) {
-  const access = await getHybridAiFeatureAccess(input.userId, input.sessionRole)
+  const access = await getHybridAiFeatureAccess(input.userId, input.sessionRole, input.sessionEmail)
 
   if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
     logBlockedHybridAiFeatureAttempt({

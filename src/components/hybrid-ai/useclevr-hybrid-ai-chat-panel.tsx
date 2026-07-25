@@ -31,11 +31,13 @@ export function UseClevrHybridAiChatPanel({
   compact = false,
   subscriptionTier = "free",
   userRole,
+  userEmail,
 }: {
   datasetContext?: object
   compact?: boolean
   subscriptionTier?: string | null
   userRole?: string | null
+  userEmail?: string | null
 }) {
   const [status, setStatus] = React.useState<UseClevrHelperStatus>({
     state: "offline",
@@ -63,8 +65,8 @@ export function UseClevrHybridAiChatPanel({
   }, [refreshStatus])
 
   const entitlement = React.useMemo(
-    () => getHybridAiEntitlement(subscriptionTier, userRole),
-    [subscriptionTier, userRole],
+    () => getHybridAiEntitlement(subscriptionTier, userRole, userEmail),
+    [subscriptionTier, userRole, userEmail],
   )
   const enabledModules = React.useMemo(
     () => HYBRID_AI_MODULES.filter((module) => entitlement.enabledModuleIds.includes(module.id) && status.features[module.id] && module.status === "active"),

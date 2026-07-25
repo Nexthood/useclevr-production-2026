@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import {
   generateWithUniversalAiAdapter,
   getAiMode,
+  getUseClevrCloudFallbackAllowed,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -45,9 +46,13 @@ export async function generateServerAiText(
   const purpose = options.purpose ?? inferAiRequestPurpose(options.context);
   let aiMode: AiMode = "auto";
   let userProviderFailed = false;
+  let allowUseclevrCloudFallback = true;
 
   if (options.userId) {
-    aiMode = await getAiMode(options.userId);
+    [aiMode, allowUseclevrCloudFallback] = await Promise.all([
+      getAiMode(options.userId),
+      getUseClevrCloudFallbackAllowed(options.userId),
+    ]);
     const requiredFeature = featureForAiPurpose(purpose);
     const access = await getHybridAiFeatureAccess(options.userId);
     if (!access.enabledFeatureIds.includes(requiredFeature)) {
@@ -115,6 +120,20 @@ export async function generateServerAiText(
     }
   }
 
+  if (options.userId && !allowUseclevrCloudFallback && aiMode !== "cloud-only") {
+    recordAiRequestAudit(defaultCloudAuditInput(options.userId, {
+      datasetId: options.datasetId,
+      mode: aiMode,
+      purpose,
+      fallbackUsed: false,
+      success: false,
+      errorReason: userProviderFailed ? "Cloud fallback disabled" : "Cloud fallback disabled with no provider result",
+      executionLocation: "none",
+    }));
+    debugWarn(`[${options.context}] Default cloud fallback disabled by user preference`);
+    return null;
+  }
+
   try {
     const { text, usage } = await generateText({
       model: google("gemini-2.5-flash"),
@@ -179,6 +198,7 @@ function defaultCloudAuditInput(
     fallbackUsed: boolean;
     success: boolean;
     errorReason?: string | null;
+    executionLocation?: "cloud" | "none";
   },
 ): AiRequestAuditInput {
   return {
@@ -188,7 +208,7 @@ function defaultCloudAuditInput(
     providerType: "default-cloud",
     modelName: "gemini-2.5-flash",
     mode: input.mode,
-    executionLocation: "cloud",
+    executionLocation: input.executionLocation || "cloud",
     fallbackUsed: input.fallbackUsed,
     purpose: input.purpose,
     success: input.success,

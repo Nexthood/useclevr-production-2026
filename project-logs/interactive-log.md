@@ -175,6 +175,76 @@ When the backend connector exists on a separate integrations page, the main prod
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## BYOK AI Provider Security Hardening
+
+1. Interaction title
+BYOK AI provider implementation audit and security hardening.
+
+2. What was the user goal
+Implement a production-ready Bring Your Own Key AI provider system while preserving existing Local AI, Ollama, cloud AI, authentication, dataset, and module behavior.
+
+3. What changed
+The current BYOK implementation already includes provider schema, settings UI, API routes, AES-256-GCM key encryption, routing, audit metadata, migration, docs, changelog, and a focused security test. This interaction hardens the implementation by requiring saved-key provider tests to target the exact authenticated user's provider, making routing/default updates reject missing or non-owned provider IDs, keeping cloud fallback conservative for Local and BYOK mode saves without changing existing Automatic/cloud behavior, sanitizing provider base URLs before logging failed tests, widening the account summary type for every supported public provider, and blocking bracketed IPv6 plus IPv4-mapped IPv6 private or loopback SSRF targets.
+
+4. Problems marked
+blocker: none.
+risk: Full provider CRUD and routing mode coverage depends on database-backed integration tests beyond the focused security script.
+improvement: Add database-backed API route tests for cross-user provider access, provider CRUD, masked key responses, default uniqueness, priority fallback, and cloud fallback disabled behavior.
+observation: The focused security test requires valid dummy `DATABASE_URL` and a 32-character `AUTH_SECRET` because importing the provider module initializes app config.
+
+5. User learning
+BYOK provider security needs storage controls and request-routing controls, including exact provider ownership checks and SSRF handling for canonicalized IPv6 hostnames.
+
+6. AI-agent learning
+When public aliases such as `openai_compatible` and `google_gemini` leave a provider layer, downstream UI prop unions must include the same public values or convert them before rendering.
+
+7. Follow-up tasks
+- Add database-backed BYOK API route tests for cross-user access, provider CRUD, masked key responses, default uniqueness, routing modes, priority fallback, and cloud fallback disabled behavior.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred test expansion: future TODO queue if requested.
+
+## Official Superadmin Hybrid AI Entitlement
+
+1. Interaction title
+Official superadmin Hybrid AI and BYOK entitlement bypass.
+
+2. What was the user goal
+Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited provider access without requiring a paid subscription, while keeping normal Free, Pro, and Business entitlements unchanged.
+
+3. What changed
+The centralized built-in user helper now recognizes superadmin access from the superadmin role, built-in superadmin ID, or normalized official superadmin email. The Hybrid AI entitlement engine accepts email, server feature gates resolve session/profile/user email before returning access, Auth session refresh promotes the official email to the superadmin role, Local AI download gates pass session email, and frontend Hybrid AI components pass email into shared entitlement helpers. The AI Providers plan-limit display uses a shared formatter so the superadmin provider limit displays Unlimited. Requirements and changelog now describe the current unrestricted official superadmin behavior.
+
+4. Problems marked
+blocker: none.
+risk: Browser verification of the exact AI Providers page for the official account remains pending until a live signed-in session is available.
+improvement: Add route-level integration tests with mocked authenticated sessions when the test harness supports Auth.js route mocking.
+observation: The project already had a built-in official superadmin identity; the missing behavior was email-based recognition for persisted accounts and client-side entitlement helpers.
+
+5. User learning
+The official superadmin account can use Hybrid AI and BYOK without subscription prompts because entitlement resolution recognizes its normalized email centrally.
+
+6. AI-agent learning
+When entitlement state can be computed on both server and client, pass the same identity fields into shared helpers instead of fixing only route gates.
+
+7. Follow-up tasks
+- Add Auth.js route-level entitlement tests for AI provider API access when the repository has a route-session mocking harness.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred route-level test expansion: future TODO queue if requested.
+
 ## Retail POS Connections Database Query Fix
 
 1. Interaction title

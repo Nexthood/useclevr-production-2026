@@ -10,15 +10,17 @@ import Link from "next/link"
 export function AssistantPageClient({
   subscriptionTier,
   userRole,
+  userEmail,
 }: {
   subscriptionTier: string
   userRole?: string | null
+  userEmail?: string | null
 }) {
-  const entitlement = getHybridAiEntitlement(subscriptionTier, userRole)
+  const entitlement = getHybridAiEntitlement(subscriptionTier, userRole, userEmail)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 p-5">
-      <UseClevrHybridAiChatPanel compact subscriptionTier={subscriptionTier} userRole={userRole} />
+      <UseClevrHybridAiChatPanel compact subscriptionTier={subscriptionTier} userRole={userRole} userEmail={userEmail} />
       {entitlement.canUseLite ? (
         <div className="flex min-h-[560px] flex-1 overflow-hidden rounded-lg border border-border bg-background">
           <AiAssistantWorkspace />

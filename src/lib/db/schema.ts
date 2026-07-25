@@ -1328,6 +1328,11 @@ export const aiRequestAuditLogs = pgTable(
       .notNull()
       .$type<AiRequestExecutionLocation>(),
     fallbackUsed: boolean("fallbackUsed").default(false).notNull(),
+    routingReason: text("routingReason"),
+    latencyMs: integer("latencyMs"),
+    inputTokens: integer("inputTokens").default(0).notNull(),
+    outputTokens: integer("outputTokens").default(0).notNull(),
+    totalTokens: integer("totalTokens").default(0).notNull(),
     purpose: varchar("purpose", { length: 60 }).notNull().$type<AiRequestAuditPurpose>(),
     success: boolean("success").default(true).notNull(),
     errorReason: text("errorReason"),

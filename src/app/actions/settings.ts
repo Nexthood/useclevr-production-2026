@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
-import { saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, type AiProviderType } from "@/lib/ai/byoai-provider"
+import { deleteAiProviderConfig, saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, type AiProviderType } from "@/lib/ai/byoai-provider"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
@@ -117,6 +117,7 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
     await assertCanSaveAiProvider({
       userId,
       sessionRole: session.user.role,
+      sessionEmail: session.user.email,
       providerId: String(formData.get("providerId") || "") || undefined,
     })
     await saveAiProviderConfig(userId, {
@@ -160,7 +161,7 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
   if (!userId) return failure("Please sign in again.")
 
   try {
-    const access = await getHybridAiFeatureAccess(userId, session.user.role)
+    const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
     if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
       logBlockedHybridAiFeatureAttempt({
         userId,
@@ -217,10 +218,11 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
   if (!userId) return failure("Please sign in again.")
 
   const mode = String(formData.get("aiMode") || "auto") as AiMode
+  const allowUseclevrCloudFallback = formData.get("allowUseclevrCloudFallback") === "on"
 
   try {
-    const access = await getHybridAiFeatureAccess(userId, session.user.role)
-    const requiredModeFeature = mode === "local-only" ? "localMode" : mode === "cloud-only" ? "cloudMode" : "autoMode"
+    const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
+    const requiredModeFeature = mode === "local-only" || mode === "local" ? "localMode" : mode === "cloud-only" || mode === "useclevr_cloud" ? "cloudMode" : "autoMode"
     if (!access.enabledFeatureIds.includes(requiredModeFeature)) {
       logBlockedHybridAiFeatureAttempt({
         userId,
@@ -233,7 +235,7 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
       })
       return failure("AI mode switching requires Hybrid AI Lite or MEGA.")
     }
-    await setAiMode(userId, mode)
+    await setAiMode(userId, mode, { allowUseclevrCloudFallback })
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI mode was not saved."
     return failure(message)
@@ -252,6 +254,38 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
   revalidatePath("/app/settings/ai-providers")
 
   return success({ message: "AI mode saved." })
+}
+
+export async function deleteAiProvider(formData: FormData): Promise<Result<ProfileData>> {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) return failure("Please sign in again.")
+
+  try {
+    const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
+    if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
+      return failure("AI Providers require Hybrid AI Lite or MEGA.")
+    }
+    await deleteAiProviderConfig(userId, String(formData.get("providerId") || ""))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "AI provider was not deleted."
+    return failure(message)
+  }
+
+  await recordActivity({
+    userId,
+    userEmail: session.user.email,
+    type: "profile_updated",
+    feature: "settings",
+    title: "AI provider deleted",
+    description: "Bring Your Own AI provider settings were removed.",
+  })
+
+  revalidatePath("/app/settings")
+  revalidatePath("/app/settings/ai-providers")
+
+  return success({ message: "AI provider deleted." })
 }
 
 // ---------------------------------------------------------------------------

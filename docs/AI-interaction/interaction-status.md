@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-24
-- **Goal**: Fix Square Retail POS OAuth environment selection so production configuration generates production Square URLs.
-- **Durable change**: Square configuration now requires `SQUARE_ENVIRONMENT` to equal `production` or `sandbox` exactly, generates explicit authorization, token, revoke, and API base URLs from the same environment, and no longer falls back to sandbox when the variable is missing or invalid.
-- **Verification**: `pnpm test:retail-pos` verifies production authorization host, authorization URL, token endpoint, and API base URL; verifies sandbox authorization host, authorization URL, token endpoint, and API base URL; and verifies missing or invalid `SQUARE_ENVIRONMENT` throws instead of falling back. `pnpm exec tsc --noEmit --pretty false` passes.
+- **Date**: 2026-07-26
+- **Goal**: Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited provider access without a paid subscription.
+- **Durable change**: Superadmin entitlement resolution now uses the centralized superadmin helper with role, built-in ID, and normalized official email recognition; backend feature gates, provider actions, Local AI downloads, Auth session role refresh, AI Providers UI, assistant UI, and Hybrid AI modal entitlement checks use the email-aware result.
+- **Verification**: `pnpm test:hybrid-ai-gates`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:changelog`, and `pnpm lint:secrets` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 
 import {
   canUseHybridAiFeature,
+  formatAiProviderLimit,
   getHybridAiEntitlement,
   HYBRID_AI_COMING_SOON_MODULE_IDS,
   HYBRID_AI_FEATURES,
@@ -59,13 +60,14 @@ function assertEntitlementCase(input: {
   label: string
   subscriptionTier: string | null
   role?: string | null
+  email?: string | null
   accessTier: "lite" | "mega" | null
   providerLimit: number | null
   enabled: HybridAiFeatureId[]
   disabled: HybridAiFeatureId[]
   comingSoon: HybridAiFeatureId[]
 }) {
-  const entitlement = getHybridAiEntitlement(input.subscriptionTier, input.role)
+  const entitlement = getHybridAiEntitlement(input.subscriptionTier, input.role, input.email)
   assert.equal(entitlement.accessTier, input.accessTier, `${input.label} access tier`)
   assert.equal(entitlement.providerLimit, input.providerLimit, `${input.label} provider limit`)
   assertIncludesAll(entitlement.enabledModuleIds, input.enabled, `${input.label} enabled modules`)
@@ -74,14 +76,14 @@ function assertEntitlementCase(input: {
 
   for (const featureId of input.enabled) {
     assert.equal(
-      canUseHybridAiFeature(featureId, input.subscriptionTier, input.role),
+      canUseHybridAiFeature(featureId, input.subscriptionTier, input.role, input.email),
       true,
       `${input.label} can use ${featureId}`,
     )
   }
   for (const featureId of [...input.disabled, ...input.comingSoon]) {
     assert.equal(
-      canUseHybridAiFeature(featureId, input.subscriptionTier, input.role),
+      canUseHybridAiFeature(featureId, input.subscriptionTier, input.role, input.email),
       false,
       `${input.label} cannot execute ${featureId}`,
     )
@@ -160,5 +162,57 @@ assertEntitlementCase({
   disabled: [],
   comingSoon: comingSoonFeatures,
 })
+
+assertEntitlementCase({
+  label: "Official superadmin email",
+  subscriptionTier: "free",
+  role: "user",
+  email: "superadmin@useclevr.com",
+  accessTier: "mega",
+  providerLimit: null,
+  enabled: [...liteFeatures, ...megaFeatures],
+  disabled: [],
+  comingSoon: comingSoonFeatures,
+})
+
+assertEntitlementCase({
+  label: "Normalized official superadmin email",
+  subscriptionTier: "free",
+  role: "user",
+  email: "  SUPERADMIN@USECLEVR.COM  ",
+  accessTier: "mega",
+  providerLimit: null,
+  enabled: [...liteFeatures, ...megaFeatures],
+  disabled: [],
+  comingSoon: comingSoonFeatures,
+})
+
+assertEntitlementCase({
+  label: "Normal free user",
+  subscriptionTier: "free",
+  role: "user",
+  email: "free-user@example.com",
+  accessTier: null,
+  providerLimit: 0,
+  enabled: [],
+  disabled: [...liteFeatures, ...megaFeatures],
+  comingSoon: [],
+})
+
+assert.equal(
+  canUseHybridAiFeature("aiProviderManagement", "free", "user", "free-user@example.com"),
+  false,
+  "direct API feature checks block normal free users from AI provider management",
+)
+assert.equal(
+  canUseHybridAiFeature("providerHealthChecks", "free", "user", "free-user@example.com"),
+  false,
+  "direct API feature checks block normal free users from provider health checks",
+)
+assert.equal(
+  formatAiProviderLimit(getHybridAiEntitlement("free", "user", "superadmin@useclevr.com").providerLimit),
+  "Unlimited",
+  "official superadmin provider limit displays Unlimited",
+)
 
 console.log("Hybrid AI feature gate tests passed.")

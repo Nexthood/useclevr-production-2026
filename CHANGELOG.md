@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Add production-ready BYOK AI provider controls with encrypted keys, provider priority routing, explicit Automatic, Local, BYOK, and UseClevr Cloud modes, connection testing, SSRF protection, and metadata-only usage auditing so customers control where AI requests run.
+- Give the official superadmin account unrestricted Hybrid AI and BYOK access so internal testing can use providers, local setup, all AI modes, and unlimited provider slots without subscription prompts.
 - Show Retail POS Connections at the top of the Retail workspace with Square connect, status, sync, merchant, imported-data, and disconnect controls while keeping CSV and Excel upload available below.
 - Add a Square retail integration foundation with encrypted OAuth token storage, normalized POS records, read-only sync history, webhook intake, and a Retail Integrations status page so merchants can connect POS data without replacing CSV uploads.
 - Remove visible version labels from the app header and sidebar footer while keeping version details in account system information.

@@ -20,6 +20,7 @@
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import {
   generateWithUniversalAiAdapter,
+  getUseClevrCloudFallbackAllowed,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -289,6 +290,9 @@ export async function POST(request: Request) {
     }
 
     const effectiveUserId = userId
+    const allowUseclevrCloudFallback = effectiveUserId
+      ? await getUseClevrCloudFallbackAllowed(effectiveUserId)
+      : true
 
     if (effectiveUserId && !hasUnlimitedCredits) {
       const operationId = `analysis:${effectiveUserId}:${crypto.randomUUID()}`
@@ -676,6 +680,7 @@ try {
 
       try {
         let text: string | null = null;
+        let byoAiFailed = false;
 
         if (!mockAIMode) {
           try {
@@ -722,8 +727,33 @@ try {
               message: "Provider unavailable",
               fallbackActive: true,
             };
+            byoAiFailed = true;
             logDefaultCloudFallback(effectiveUserId || "demo", byoAiError);
           }
+        }
+
+        if (!text && !mockAIMode && effectiveUserId && !allowUseclevrCloudFallback) {
+          if (creditOperationId) {
+            await releaseCredits(creditOperationId, "cloud_fallback_disabled")
+          }
+          providerStatus = {
+            label: "Hybrid AI",
+            state: "provider_unavailable",
+            message: "Cloud fallback disabled",
+            fallbackActive: false,
+          };
+          traceError = byoAiFailed ? "Cloud fallback disabled after provider failure" : "Cloud fallback disabled";
+          return Response.json({
+            success: false,
+            error: "Cloud fallback disabled",
+            answer: "UseClevr Cloud fallback is disabled. Please check AI provider settings.",
+            insight: "AI provider unavailable",
+            explanation: "UseClevr did not send this dataset to cloud AI because cloud fallback is disabled.",
+            recommendation: "Enable UseClevr Cloud fallback, connect a working provider, or switch to Cloud only mode.",
+            data: result,
+            chartType,
+            providerStatus,
+          }, { status: 503 });
         }
 
         debugLog(
