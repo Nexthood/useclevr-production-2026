@@ -1,23 +1,41 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
 import { db } from "@/lib/db";
 import { aiProviderConfigs, appSettings } from "@/lib/db/schema";
 import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { normalizeProviderUsage, type ProviderUsage } from "@/lib/billing/provider-usage";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 
 export type AiProviderType =
   | "ollama"
   | "lm-studio"
   | "openai-compatible"
+  | "openai_compatible"
+  | "useclevr_cloud"
   | "openai"
   | "anthropic"
   | "google-gemini"
+  | "google_gemini"
   | "azure-openai";
 
-export type AiMode = "auto" | "local-only" | "cloud-only";
-export type AiProviderHealthStatus = "healthy" | "unreachable" | "auth_failed" | "model_missing" | "failed" | "not_tested";
+export type AiMode = "auto" | "local-only" | "cloud-only" | "automatic" | "local" | "byok" | "useclevr_cloud";
+export type AiProviderHealthStatus =
+  | "connected"
+  | "invalid_key"
+  | "model_unavailable"
+  | "endpoint_unreachable"
+  | "rate_limited"
+  | "provider_error"
+  | "configuration_error"
+  | "healthy"
+  | "unreachable"
+  | "auth_failed"
+  | "model_missing"
+  | "failed"
+  | "not_tested";
 
 export type PublicAiProviderConfig = {
   id: string;
@@ -124,6 +142,8 @@ export type UniversalAiGenerateResult = {
   fallbackUsed: boolean;
   mode: AiMode;
   route: "local" | "cloud";
+  routingReason: string;
+  latencyMs: number;
   usage?: ProviderUsage;
 };
 
@@ -145,9 +165,12 @@ const DEFAULT_BASE_URLS: Record<AiProviderType, string> = {
   ollama: "http://localhost:11434/v1",
   "lm-studio": "http://localhost:1234/v1",
   "openai-compatible": "",
+  openai_compatible: "",
+  useclevr_cloud: "",
   openai: "https://api.openai.com/v1",
   anthropic: "https://api.anthropic.com",
   "google-gemini": "https://generativelanguage.googleapis.com/v1beta",
+  google_gemini: "https://generativelanguage.googleapis.com/v1beta",
   "azure-openai": "",
 };
 
@@ -155,15 +178,20 @@ export const AI_PROVIDER_TYPE_LABELS: Record<AiProviderType, string> = {
   ollama: "Ollama",
   "lm-studio": "LM Studio",
   "openai-compatible": "OpenAI Compatible",
+  openai_compatible: "OpenAI Compatible",
+  useclevr_cloud: "UseClevr Cloud",
   openai: "OpenAI",
   anthropic: "Anthropic",
   "google-gemini": "Google Gemini",
+  google_gemini: "Google Gemini",
   "azure-openai": "Azure OpenAI",
 };
 
 const AI_MODE_KEY_PREFIX = "ai-provider-mode:";
-const LOCAL_PROVIDER_TYPES: AiProviderType[] = ["ollama", "lm-studio", "openai-compatible"];
-const CLOUD_PROVIDER_TYPES: AiProviderType[] = ["openai", "anthropic", "google-gemini", "azure-openai"];
+const LOCAL_PROVIDER_TYPES: AiProviderType[] = ["ollama", "lm-studio"];
+const CLOUD_PROVIDER_TYPES: AiProviderType[] = ["openai", "anthropic", "google-gemini", "google_gemini", "azure-openai", "openai-compatible", "openai_compatible"];
+const ENCRYPTION_KEY_VERSION = 2;
+const ENCRYPTION_KEY_LENGTH = 32;
 
 export async function getAiMode(userId: string): Promise<AiMode> {
   const [row] = await db
@@ -177,31 +205,58 @@ export async function getAiMode(userId: string): Promise<AiMode> {
   return normalizeAiMode(mode);
 }
 
-export async function setAiMode(userId: string, mode: AiMode) {
+export function toPublicAiMode(mode: AiMode): "automatic" | "local" | "byok" | "useclevr_cloud" {
   const normalized = normalizeAiMode(mode);
+  if (normalized === "local-only") return "local";
+  if (normalized === "cloud-only") return "useclevr_cloud";
+  if (normalized === "byok") return "byok";
+  return "automatic";
+}
+
+export async function setAiMode(userId: string, mode: AiMode, options: { allowUseclevrCloudFallback?: boolean } = {}) {
+  const normalized = normalizeAiMode(mode);
+  const allowUseclevrCloudFallback =
+    options.allowUseclevrCloudFallback ??
+    (normalized === "local-only" || normalized === "byok" ? false : await getUseClevrCloudFallbackAllowed(userId));
   await db
     .insert(appSettings)
     .values({
       key: aiModeKey(userId),
-      value: { mode: normalized },
+      value: { mode: normalized, allowUseclevrCloudFallback },
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: appSettings.key,
       set: {
-        value: { mode: normalized },
+        value: { mode: normalized, allowUseclevrCloudFallback },
         updatedAt: new Date(),
       },
     });
+}
+
+export async function getUseClevrCloudFallbackAllowed(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ value: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, aiModeKey(userId)))
+    .limit(1);
+  const value = typeof row?.value === "object" && row.value && "allowUseclevrCloudFallback" in row.value
+    ? (row.value as { allowUseclevrCloudFallback?: unknown }).allowUseclevrCloudFallback
+    : undefined;
+  if (value !== undefined) return value === true;
+
+  const storedMode = typeof row?.value === "object" && row.value && "mode" in row.value
+    ? (row.value as { mode?: unknown }).mode
+    : undefined;
+  const mode = normalizeAiMode(storedMode);
+  return mode !== "local-only" && mode !== "byok";
 }
 
 export async function listPublicAiProviderConfigs(userId: string): Promise<PublicAiProviderConfig[]> {
   const rows = await db.query.aiProviderConfigs.findMany({
     where: eq(aiProviderConfigs.userId, userId),
     orderBy: [
-      desc(aiProviderConfigs.selected),
       desc(aiProviderConfigs.isDefault),
-      desc(aiProviderConfigs.isFallback),
       asc(aiProviderConfigs.priority),
       desc(aiProviderConfigs.updatedAt),
     ],
@@ -234,6 +289,7 @@ export async function listPrivateAiProviderConfigs(userId: string): Promise<Priv
   return rows
     .map((row) => ({
       ...toPublicConfig(row),
+      providerType: normalizeProviderType(row.providerType),
       apiKey: row.encryptedApiKey ? decryptSecret(row.encryptedApiKey) : null,
     }))
     .filter((provider) => provider.enabled);
@@ -241,10 +297,12 @@ export async function listPrivateAiProviderConfigs(userId: string): Promise<Priv
 
 export async function listPrivateAiProviderConfigsForMode(userId: string, mode: AiMode): Promise<PrivateAiProviderConfig[]> {
   const providers = await listPrivateAiProviderConfigs(userId);
-  if (mode === "local-only") return providers.filter((provider) => isLocalProvider(provider.providerType));
-  if (mode === "cloud-only") return providers.filter((provider) => isCloudProvider(provider.providerType));
+  const normalizedMode = normalizeAiMode(mode);
+  if (normalizedMode === "local-only") return providers.filter((provider) => isLocalProvider(provider.providerType));
+  if (normalizedMode === "cloud-only") return [];
+  if (normalizedMode === "byok") return providers.filter((provider) => isByokProvider(provider.providerType));
   const localProviders = providers.filter((provider) => isLocalProvider(provider.providerType));
-  const cloudProviders = providers.filter((provider) => isCloudProvider(provider.providerType));
+  const cloudProviders = providers.filter((provider) => isByokProvider(provider.providerType));
   return [...localProviders, ...cloudProviders];
 }
 
@@ -331,6 +389,31 @@ export async function saveAiProviderConfig(userId: string, input: AiProviderInpu
   return saved;
 }
 
+export async function deleteAiProviderConfig(userId: string, providerId: string) {
+  const id = providerId.trim();
+  if (!id) throw new Error("Provider id is required.");
+
+  const [deleted] = await db
+    .delete(aiProviderConfigs)
+    .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, id)))
+    .returning();
+
+  if (!deleted) throw new Error("Provider was not found.");
+
+  const [nextProvider] = await db
+    .select({ id: aiProviderConfigs.id })
+    .from(aiProviderConfigs)
+    .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.isEnabled, true)))
+    .orderBy(asc(aiProviderConfigs.priority), desc(aiProviderConfigs.updatedAt))
+    .limit(1);
+
+  if (deleted.isDefault && nextProvider) {
+    await setDefaultAiProvider(userId, nextProvider.id);
+  }
+
+  return { id: deleted.id };
+}
+
 export async function testAiProviderConfig(input: AiProviderInput) {
   const normalized = normalizeAiProviderInput(input);
   const privateProvider: PrivateAiProviderConfig = {
@@ -359,8 +442,13 @@ export async function testAiProviderConfig(input: AiProviderInput) {
 
 export async function testSavedAiProviderConfig(userId: string, input?: Partial<AiProviderInput>) {
   const providers = await listPrivateAiProviderConfigs(userId);
-  const saved = providers.find((provider) => provider.id === input?.id) || providers[0];
-  if (!saved) throw new Error("Save an AI provider before testing without an API key.");
+  const requestedId = input?.id?.trim();
+  const saved = requestedId
+    ? providers.find((provider) => provider.id === requestedId)
+    : providers[0];
+  if (!saved) {
+    throw new Error(requestedId ? "Provider was not found." : "Save an AI provider before testing without an API key.");
+  }
 
   return testPrivateProvider({
     ...saved,
@@ -378,9 +466,20 @@ export async function setAiProviderRouting(
   userId: string,
   input: { defaultProviderId?: string; fallbackProviderId?: string },
 ) {
-  const now = new Date();
   const defaultProviderId = input.defaultProviderId?.trim();
   const fallbackProviderId = input.fallbackProviderId?.trim();
+  const requestedIds = [defaultProviderId, fallbackProviderId].filter((value): value is string => Boolean(value));
+  if (requestedIds.length) {
+    const existingProviders = await db.query.aiProviderConfigs.findMany({
+      where: eq(aiProviderConfigs.userId, userId),
+      columns: { id: true },
+    });
+    const ownedIds = new Set(existingProviders.map((provider) => provider.id));
+    const missingId = requestedIds.find((id) => !ownedIds.has(id));
+    if (missingId) throw new Error("Provider was not found.");
+  }
+
+  const now = new Date();
 
   await db
     .update(aiProviderConfigs)
@@ -402,6 +501,51 @@ export async function setAiProviderRouting(
   }
 }
 
+export async function setDefaultAiProvider(userId: string, providerId: string) {
+  const id = providerId.trim();
+  if (!id) throw new Error("Provider id is required.");
+  const existing = await db.query.aiProviderConfigs.findFirst({
+    where: and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, id)),
+    columns: { id: true },
+  });
+  if (!existing) throw new Error("Provider was not found.");
+
+  const now = new Date();
+  await db
+    .update(aiProviderConfigs)
+    .set({ isDefault: false, updatedAt: now })
+    .where(and(eq(aiProviderConfigs.userId, userId), ne(aiProviderConfigs.id, id)));
+  await db
+    .update(aiProviderConfigs)
+    .set({ isDefault: true, isFallback: false, selected: true, isEnabled: true, priority: 0, updatedAt: now })
+    .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, id)));
+}
+
+export async function updateAiProviderPriority(userId: string, providerId: string, priority: number) {
+  const id = providerId.trim();
+  if (!id) throw new Error("Provider id is required.");
+  const normalizedPriority = normalizePriority(priority);
+  const [updated] = await db
+    .update(aiProviderConfigs)
+    .set({ priority: normalizedPriority, updatedAt: new Date() })
+    .where(and(eq(aiProviderConfigs.userId, userId), eq(aiProviderConfigs.id, id)))
+    .returning();
+  if (!updated) throw new Error("Provider was not found.");
+}
+
+export function sanitizeProviderBaseUrlForLog(value: string) {
+  try {
+    const url = new URL(value);
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return "[invalid-base-url]";
+  }
+}
+
 export async function generateWithUserAiProvider(userId: string, prompt: string) {
   return generateWithUniversalAiAdapter(userId, prompt);
 }
@@ -413,7 +557,7 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
     return null;
   }
 
-  const mode = options.mode ?? await getAiMode(userId);
+  const mode = normalizeAiMode(options.mode ?? await getAiMode(userId));
   const providersForMode = await listPrivateAiProviderConfigsForMode(userId, mode);
   const providers = featureAccess.providerLimit === null ? providersForMode : providersForMode.slice(0, featureAccess.providerLimit);
   if (providers.length === 0) {
@@ -429,9 +573,10 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
     try {
+      const providerStartedAt = Date.now();
       const healthStartedAt = Date.now();
       await checkProviderHealth(provider);
-      await updateAiProviderTestStatus(userId, "healthy", "Connection successful. Model confirmed.", {
+      await updateAiProviderTestStatus(userId, "connected", "Connection successful. Model confirmed.", {
         providerId: provider.id,
         latencyMs: Date.now() - healthStartedAt,
       }).catch((statusError) => {
@@ -439,7 +584,7 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
           userId,
           providerName: provider.providerName,
           providerType: provider.providerType,
-          error: statusError instanceof Error ? statusError.message : String(statusError),
+        error: safeProviderErrorMessage(statusError),
         });
       });
       const chatResult = await callProviderChat(provider, prompt, 900);
@@ -461,6 +606,8 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
         fallbackUsed: index > 0,
         mode,
         route: isLocalProvider(provider.providerType) ? "local" : "cloud",
+        routingReason: routingReasonForMode(mode, provider, index),
+        latencyMs: Date.now() - providerStartedAt,
         usage: chatResult.usage,
       } satisfies UniversalAiGenerateResult;
     } catch (error) {
@@ -483,7 +630,7 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
         providerType: provider.providerType,
         modelName: provider.modelName,
         status,
-        error: error instanceof Error ? error.message : String(error),
+        error: safeProviderErrorMessage(error),
       });
     }
   }
@@ -579,7 +726,7 @@ async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<A
       debugWarn("[AI_PROVIDER] Model listing failed during test", {
         providerName: provider.providerName,
         providerType: provider.providerType,
-        error: error instanceof Error ? error.message : String(error),
+      error: safeProviderErrorMessage(error),
       });
       return [] as string[];
     }),
@@ -588,7 +735,7 @@ async function testPrivateProvider(provider: PrivateAiProviderConfig): Promise<A
 
   return {
     success: true,
-    status: "healthy",
+    status: "connected",
     message: "Connection successful. Model confirmed.",
     providerName: provider.providerName,
     providerType: provider.providerType,
@@ -638,12 +785,18 @@ function normalizePriority(value: number | undefined) {
 }
 
 function normalizeProviderType(value: string): AiProviderType {
+  if (value === "openai_compatible") return "openai-compatible";
+  if (value === "google_gemini") return "google-gemini";
   const allowed = Object.keys(AI_PROVIDER_TYPE_LABELS) as AiProviderType[];
   if (allowed.includes(value as AiProviderType)) return value as AiProviderType;
   throw new Error("Choose a supported provider type.");
 }
 
 function normalizeAiMode(value: unknown): AiMode {
+  if (value === "automatic") return "auto";
+  if (value === "local") return "local-only";
+  if (value === "useclevr_cloud") return "cloud-only";
+  if (value === "byok") return "byok";
   if (value === "local-only" || value === "cloud-only" || value === "auto") return value;
   return "auto";
 }
@@ -660,12 +813,20 @@ export function isCloudProvider(providerType: AiProviderType) {
   return CLOUD_PROVIDER_TYPES.includes(providerType);
 }
 
+export function isByokProvider(providerType: AiProviderType) {
+  return isCloudProvider(providerType) && !isUseClevrCloudProvider(providerType);
+}
+
+export function isUseClevrCloudProvider(providerType: AiProviderType) {
+  return providerType === "useclevr_cloud";
+}
+
 export function isLocalAiUnavailableError(error: unknown) {
   return error instanceof LocalAiUnavailableError || (error instanceof Error && error.name === "LocalAiUnavailableError");
 }
 
 export function isHealthyProviderStatus(status: string | null | undefined) {
-  return status === "healthy" || status === "success";
+  return status === "connected" || status === "healthy" || status === "success";
 }
 
 export function classifyProviderError(error: unknown): AiProviderHealthStatus {
@@ -680,7 +841,7 @@ export function classifyProviderError(error: unknown): AiProviderHealthStatus {
     message.includes("authentication") ||
     message.includes("auth")
   ) {
-    return "auth_failed";
+    return "invalid_key";
   }
 
   if (
@@ -689,7 +850,11 @@ export function classifyProviderError(error: unknown): AiProviderHealthStatus {
     message.includes("deployment") ||
     message.includes("not found")
   ) {
-    return "model_missing";
+    return "model_unavailable";
+  }
+
+  if (message.includes("429") || message.includes("rate limit") || message.includes("rate_limited")) {
+    return "rate_limited";
   }
 
   if (
@@ -702,15 +867,19 @@ export function classifyProviderError(error: unknown): AiProviderHealthStatus {
     message.includes("network") ||
     message.includes("unreachable")
   ) {
-    return "unreachable";
+    return "endpoint_unreachable";
   }
 
-  return "failed";
+  if (message.includes("configuration") || message.includes("encryption") || message.includes("base url")) {
+    return "configuration_error";
+  }
+
+  return "provider_error";
 }
 
 export function safeProviderErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (typeof error === "string" && error.trim()) return error;
+  if (error instanceof Error && error.message.trim()) return redactProviderSecretText(error.message);
+  if (typeof error === "string" && error.trim()) return redactProviderSecretText(error);
   return "Connection failed.";
 }
 
@@ -730,6 +899,14 @@ function normalizeBaseUrl(value: string, providerType: AiProviderType) {
     throw new Error("Base URL must start with http:// or https://.");
   }
 
+  if (url.username || url.password) {
+    throw new Error("Base URL must not include credentials.");
+  }
+
+  if (!isExplicitLocalProvider(providerType)) {
+    assertPublicHostname(url.hostname);
+  }
+
   if ((providerType === "ollama" || providerType === "lm-studio") && !url.pathname.endsWith("/v1")) {
     url.pathname = `${url.pathname.replace(/\/+$/, "")}/v1`;
   }
@@ -738,14 +915,24 @@ function normalizeBaseUrl(value: string, providerType: AiProviderType) {
 }
 
 function requiresApiKey(providerType: AiProviderType) {
-  return ["openai", "anthropic", "google-gemini", "azure-openai"].includes(providerType);
+  return [
+    "openai",
+    "anthropic",
+    "google-gemini",
+    "google_gemini",
+    "azure-openai",
+    "openai-compatible",
+    "openai_compatible",
+  ].includes(providerType);
 }
 
 async function callProviderChat(provider: PrivateAiProviderConfig, prompt: string, maxTokens: number): Promise<ProviderChatResult> {
+  await assertProviderUrlAllowed(provider);
   switch (provider.providerType) {
     case "anthropic":
       return callAnthropicChat(provider, prompt, maxTokens);
     case "google-gemini":
+    case "google_gemini":
       return callGeminiChat(provider, prompt, maxTokens);
     case "azure-openai":
       return callAzureOpenAiChat(provider, prompt, maxTokens);
@@ -885,9 +1072,10 @@ async function callAzureOpenAiChat(provider: PrivateAiProviderConfig, prompt: st
 }
 
 async function listAvailableModels(provider: PrivateAiProviderConfig) {
+  await assertProviderUrlAllowed(provider);
   if (provider.providerType === "azure-openai") return [provider.modelName];
 
-  if (provider.providerType === "google-gemini") {
+  if (provider.providerType === "google-gemini" || provider.providerType === "google_gemini") {
     if (!provider.apiKey) return [];
     const body = await fetchJsonWithTimeout<ModelListResponse>(
       `${provider.baseUrl}/models?key=${encodeURIComponent(provider.apiKey)}`,
@@ -981,11 +1169,11 @@ function getProviderErrorMessage(status: number, body: { error?: unknown }, rawT
   if (body.error && typeof body.error === "object") {
     const error = body.error as { message?: unknown; type?: unknown; code?: unknown; status?: unknown };
     const parts = [error.message, error.type, error.code, error.status].filter(Boolean).map(String);
-    if (parts.length) return `Provider returned ${status}: ${parts.join(" / ")}`;
+    if (parts.length) return redactProviderSecretText(`Provider returned ${status}: ${parts.join(" / ")}`);
   }
 
-  if (typeof body.error === "string") return `Provider returned ${status}: ${body.error}`;
-  if (rawText?.trim()) return `Provider returned ${status}: ${rawText.trim().slice(0, 300)}`;
+  if (typeof body.error === "string") return redactProviderSecretText(`Provider returned ${status}: ${body.error}`);
+  if (rawText?.trim()) return redactProviderSecretText(`Provider returned ${status}: ${rawText.trim().slice(0, 300)}`);
 
   return `Provider returned HTTP ${status}.`;
 }
@@ -993,12 +1181,12 @@ function getProviderErrorMessage(status: number, body: { error?: unknown }, rawT
 function toPublicConfig(row: typeof aiProviderConfigs.$inferSelect): PublicAiProviderConfig {
   return {
     id: row.id,
-    providerType: normalizeProviderType(row.providerType),
+    providerType: publicProviderType(normalizeProviderType(row.providerType)),
     providerName: row.providerName,
     baseUrl: row.baseUrl,
     modelName: row.modelName,
     hasApiKey: Boolean(row.encryptedApiKey),
-    apiKeyPreview: row.encryptedApiKey ? getSecretPreview(row.encryptedApiKey) : null,
+    apiKeyPreview: row.encryptedApiKey ? "Saved key" : null,
     selected: row.selected,
     enabled: row.isEnabled ?? row.selected,
     isDefault: row.isDefault ?? row.selected,
@@ -1012,19 +1200,26 @@ function toPublicConfig(row: typeof aiProviderConfigs.$inferSelect): PublicAiPro
   };
 }
 
-function getSecretPreview(payload: string) {
-  try {
-    return maskSecretPreview(decryptSecret(payload));
-  } catch {
-    return "Saved key";
-  }
-}
-
 function maskSecretPreview(secret: string) {
   const trimmed = secret.trim();
   if (!trimmed) return null;
   const suffix = trimmed.slice(-4);
   return `•••• ${suffix}`;
+}
+
+function publicProviderType(providerType: AiProviderType): AiProviderType {
+  if (providerType === "openai-compatible") return "openai_compatible";
+  if (providerType === "google-gemini") return "google_gemini";
+  return providerType;
+}
+
+function redactProviderSecretText(value: string) {
+  return value
+    .replace(/Authorization=Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Authorization=Bearer [redacted]")
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
+    .replace(/(api[_-]?key|key|token)=([^&\s]+)/gi, "$1=[redacted]")
+    .replace(/\b(sk-[A-Za-z0-9_-]{8,})\b/g, "[redacted-api-key]")
+    .replace(/\b(AIza[0-9A-Za-z_-]{16,})\b/g, "[redacted-api-key]");
 }
 
 function encryptSecret(secret: string) {
@@ -1035,7 +1230,9 @@ function encryptSecret(secret: string) {
   const tag = cipher.getAuthTag();
 
   return JSON.stringify({
-    v: 1,
+    v: ENCRYPTION_KEY_VERSION,
+    alg: "aes-256-gcm",
+    key: "AI_PROVIDER_ENCRYPTION_KEY",
     iv: iv.toString("base64"),
     tag: tag.toString("base64"),
     data: encrypted.toString("base64"),
@@ -1044,10 +1241,11 @@ function encryptSecret(secret: string) {
 
 function decryptSecret(payload: string) {
   try {
-    const parsed = JSON.parse(payload) as { iv: string; tag: string; data: string };
+    const parsed = JSON.parse(payload) as { v?: number; iv: string; tag: string; data: string };
+    const key = parsed.v === 1 ? getLegacyEncryptionKey() : getEncryptionKey();
     const decipher = createDecipheriv(
       "aes-256-gcm",
-      getEncryptionKey(),
+      key,
       Buffer.from(parsed.iv, "base64"),
     );
     decipher.setAuthTag(Buffer.from(parsed.tag, "base64"));
@@ -1064,13 +1262,38 @@ function decryptSecret(payload: string) {
 }
 
 function getEncryptionKey() {
-  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  const secret = process.env.AI_PROVIDER_ENCRYPTION_KEY?.trim();
   if (!secret) {
-    debugWarn("[AI_PROVIDER] Missing AUTH_SECRET/NEXTAUTH_SECRET for provider key encryption.");
+    debugWarn("[AI_PROVIDER] Missing AI_PROVIDER_ENCRYPTION_KEY for provider key encryption.");
     throw new Error("AI provider encryption is not configured.");
   }
 
+  const decoded = decodeEncryptionKey(secret);
+  if (!decoded) {
+    debugWarn("[AI_PROVIDER] Invalid AI_PROVIDER_ENCRYPTION_KEY. Use 32 raw bytes or base64 for 32 bytes.");
+    throw new Error("AI provider encryption key is invalid.");
+  }
+
+  return decoded;
+}
+
+function getLegacyEncryptionKey() {
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) throw new Error("Legacy provider key encryption is not configured.");
   return createHash("sha256").update(secret).digest();
+}
+
+function decodeEncryptionKey(secret: string) {
+  try {
+    const decoded = Buffer.from(secret, "base64");
+    if (decoded.length === ENCRYPTION_KEY_LENGTH) return decoded;
+  } catch {
+    return null;
+  }
+  if (Buffer.byteLength(secret, "utf8") >= ENCRYPTION_KEY_LENGTH) {
+    return createHash("sha256").update(secret).digest();
+  }
+  return null;
 }
 
 export function getProviderTypeLabel(providerType: AiProviderType) {
@@ -1084,7 +1307,7 @@ export function getDefaultBaseUrl(providerType: AiProviderType) {
 export function logDefaultCloudFallback(userId: string, error: unknown) {
   debugWarn("[AI_PROVIDER] Falling back to default cloud AI", {
     userId,
-    error: error instanceof Error ? error.message : String(error),
+    error: safeProviderErrorMessage(error),
   });
 }
 
@@ -1096,6 +1319,7 @@ export function logUniversalAiResponse(result: UniversalAiGenerateResult) {
     fallbackUsed: result.fallbackUsed,
     mode: result.mode,
     route: result.route,
+    routingReason: result.routingReason,
     usageCaptured: Boolean(result.usage),
   });
 }
@@ -1103,7 +1327,107 @@ export function logUniversalAiResponse(result: UniversalAiGenerateResult) {
 function normalizeBillingProvider(providerType: AiProviderType) {
   if (providerType === "anthropic") return "anthropic"
   if (providerType === "google-gemini") return "google"
+  if (providerType === "google_gemini") return "google"
   if (providerType === "ollama") return "ollama"
   if (providerType === "lm-studio") return "local"
   return "openai"
 }
+
+function isExplicitLocalProvider(providerType: AiProviderType) {
+  return providerType === "ollama" || providerType === "lm-studio";
+}
+
+async function assertProviderUrlAllowed(provider: Pick<PrivateAiProviderConfig, "providerType" | "baseUrl">) {
+  if (isExplicitLocalProvider(provider.providerType)) return;
+  const url = new URL(provider.baseUrl);
+  assertPublicHostname(url.hostname);
+  await assertPublicDnsTarget(url.hostname);
+}
+
+function assertPublicHostname(hostname: string) {
+  const normalized = hostname.toLowerCase().replace(/\.$/, "").replace(/^\[(.*)\]$/, "$1");
+  if (!normalized) throw new Error("Base URL host is required.");
+  if (normalized === "localhost" || normalized.endsWith(".localhost") || normalized.includes("localtest.me")) {
+    throw new Error("Base URL must use a public host.");
+  }
+  if (normalized === "metadata.google.internal") {
+    throw new Error("Base URL must not target cloud metadata services.");
+  }
+  if (isIP(normalized) && isPrivateIp(normalized)) {
+    throw new Error("Base URL must not target private, loopback, link-local, or metadata addresses.");
+  }
+}
+
+async function assertPublicDnsTarget(hostname: string) {
+  if (isIP(hostname)) return;
+  try {
+    const records = await lookup(hostname, { all: true, verbatim: true });
+    if (records.some((record) => isPrivateIp(record.address))) {
+      throw new Error("Base URL resolves to a private, loopback, link-local, or metadata address.");
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Base URL resolves")) throw error;
+    throw new Error("Base URL host could not be verified.");
+  }
+}
+
+function isPrivateIp(address: string) {
+  const family = isIP(address);
+  if (family === 4) {
+    const parts = address.split(".").map((part) => Number(part));
+    const [a = 0, b = 0] = parts;
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    );
+  }
+  if (family === 6) {
+    const normalized = address.toLowerCase();
+    const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+    if (mappedIpv4) return isPrivateIp(mappedIpv4);
+    const mappedHexIpv4 = normalized.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (mappedHexIpv4) {
+      const first = Number.parseInt(mappedHexIpv4[1] || "0", 16);
+      const second = Number.parseInt(mappedHexIpv4[2] || "0", 16);
+      const mappedAddress = [
+        (first >> 8) & 255,
+        first & 255,
+        (second >> 8) & 255,
+        second & 255,
+      ].join(".");
+      return isPrivateIp(mappedAddress);
+    }
+    return (
+      normalized === "::1" ||
+      normalized === "::" ||
+      normalized.startsWith("fc") ||
+      normalized.startsWith("fd") ||
+      normalized.startsWith("fe80:") ||
+      normalized.startsWith("::ffff:127.") ||
+      normalized.startsWith("::ffff:10.") ||
+      normalized.startsWith("::ffff:192.168.") ||
+      normalized === "169.254.169.254"
+    );
+  }
+  return false;
+}
+
+function routingReasonForMode(mode: AiMode, provider: PrivateAiProviderConfig, index: number) {
+  if (mode === "local-only") return "local mode uses explicit local providers only";
+  if (mode === "byok") return index === 0 ? "byok mode uses the default enabled provider" : "byok mode used the next enabled provider by priority";
+  if (isLocalProvider(provider.providerType)) return "automatic mode prefers local providers";
+  return index === 0 ? "automatic mode used the default enabled provider" : "automatic mode used fallback provider priority";
+}
+
+export const __aiProviderSecurityTestHooks = {
+  decryptSecret,
+  encryptSecret,
+  normalizeBaseUrl,
+};

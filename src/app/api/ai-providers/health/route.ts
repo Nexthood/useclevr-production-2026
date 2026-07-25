@@ -1,4 +1,4 @@
-import { healthCheckEnabledAiProviders } from "@/lib/ai/byoai-provider";
+import { healthCheckEnabledAiProviders, safeProviderErrorMessage } from "@/lib/ai/byoai-provider";
 import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { debugError } from "@/lib/utils/debug";
 import { NextResponse } from "next/server";
@@ -16,7 +16,7 @@ export async function POST() {
     const results = await healthCheckEnabledAiProviders(userId);
     return NextResponse.json({ success: true, results });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Provider health check failed.";
+    const message = safeProviderErrorMessage(error);
     debugError("[BYOAI] Enabled provider health check failed", { userId, message });
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

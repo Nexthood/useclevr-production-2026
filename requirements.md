@@ -148,13 +148,20 @@ Text rules for this file:
 - Let users choose Auto, Local only / Offline mode, or Cloud only routing from the AI Providers settings page.
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
-- Try the default enabled AI provider first, then use other enabled providers as fallbacks, and log fallback events server-side.
-- Let users choose the default provider and fallback provider from the AI Providers settings page.
-- In Auto mode, try enabled local providers before cloud providers and use fallback providers when the local provider is unavailable.
-- In Local only / Offline mode, never send customer data to cloud AI and show a clear local-provider-unavailable error when local AI cannot answer.
-- In Cloud only mode, ignore local providers and use configured cloud providers or the default cloud AI provider.
+- Support OpenAI, Anthropic, Google Gemini, OpenAI-compatible, Ollama, and managed UseClevr Cloud provider routes.
+- Store user-owned provider API keys only as server-side AES-256-GCM encrypted values with versioned encryption metadata.
+- Require `AI_PROVIDER_ENCRYPTION_KEY` before saving or using provider API keys.
+- Never send decrypted provider keys to the browser, AI traces, audit logs, analytics, provider status payloads, or error responses.
+- Reject custom provider base URLs that use unsupported schemes, embedded credentials, metadata hosts, private network ranges, loopback addresses, link-local addresses, localhost aliases, or DNS targets that resolve to private ranges.
+- Allow localhost only for the explicit Ollama/local provider flow through the local connector path.
+- Use Automatic mode to apply privacy, task complexity, local availability, BYOK priority, and the user's UseClevr Cloud fallback setting.
+- Use Local mode to route through Ollama/local AI and show a clear local-runtime-unavailable error when the local runtime cannot answer.
+- Use BYOK mode to try the default enabled user provider first, then other enabled BYOK providers by priority.
+- Use UseClevr Cloud mode to route directly to managed UseClevr Cloud AI.
+- Use the user's UseClevr Cloud fallback setting before default cloud AI handles a failed or missing BYOK route.
+- Let users choose default provider status and priority from the AI Providers settings page.
 - Check provider health with a non-customer prompt before sending analysis data to a configured provider.
-- Fall back to the default cloud AI provider when no user AI provider is configured or all enabled user providers fail.
+- Classify provider connection tests as connected, invalid key, model unavailable, endpoint unreachable, rate limited, provider error, or configuration error.
 - Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
 - Route existing AI Assistant chat through the same Hybrid AI provider routing, dataset-aware context builder, fallback rules, Local only cloud blocking, and provider status display as Hybrid AI Chat.
 - Allow AI Assistant users to ask general questions without a selected dataset and use summarized dataset context automatically when a dataset is selected.
@@ -163,7 +170,7 @@ Text rules for this file:
 - Give Usy UseClevr-aware fallback answers for uploads, datasets, AI credits, plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscriptions, Business Profile, troubleshooting, and upgrade flow when no live AI provider answers.
 - Keep Usy focused on UseClevr business-data workflows and answer unrelated general-chat topics with a polite same-language redirect to UseClevr uploads, credits, reports, billing, and analytics.
 - Show an AI Privacy Status panel in the AI Assistant with the latest provider, local or cloud route, offline mode state, and fallback status.
-- Store metadata-only AI request audit entries for chat, dataset analysis, report generation, and recommendation requests, including provider, model, mode, local or cloud execution location, fallback use, success state, dataset ID when available, and safe failure reason.
+- Store metadata-only AI request audit entries for chat, dataset analysis, report generation, and recommendation requests, including provider, model, request timestamp, mode, local or cloud execution location, routing reason, latency, token counts when available, fallback use, success state, dataset ID when available, and safe failure reason.
 - Keep AI privacy audit logs free of raw prompts, model responses, API keys, and sensitive dataset content by default.
 - Show AI Activity under Settings so normal users see only their own AI provider usage and superadmins see provider usage across workspaces.
 - Keep BYOAI setup independent from Hybrid AI installers, helper downloads, and auto-detection.

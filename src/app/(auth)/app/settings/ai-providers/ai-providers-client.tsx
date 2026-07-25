@@ -1,6 +1,6 @@
 "use client";
 
-import { saveAiProvider, updateAiMode, updateAiProviderRouting } from "@/app/actions/settings";
+import { deleteAiProvider, saveAiProvider, updateAiMode, updateAiProviderRouting } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
   PlugZap,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -25,12 +26,10 @@ import * as React from "react";
 
 type ProviderType =
   | "ollama"
-  | "lm-studio"
-  | "openai-compatible"
+  | "openai_compatible"
   | "openai"
   | "anthropic"
-  | "google-gemini"
-  | "azure-openai";
+  | "google_gemini";
 
 const providerTypes: Array<{
   value: ProviderType;
@@ -40,12 +39,10 @@ const providerTypes: Array<{
   keyOptional: boolean;
 }> = [
   { value: "ollama", label: "Ollama", baseUrl: "http://localhost:11434/v1", placeholderModel: "llama3.1", keyOptional: true },
-  { value: "lm-studio", label: "LM Studio", baseUrl: "http://localhost:1234/v1", placeholderModel: "local-model", keyOptional: true },
-  { value: "openai-compatible", label: "OpenAI Compatible", baseUrl: "http://localhost:8000/v1", placeholderModel: "model-name", keyOptional: true },
   { value: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", placeholderModel: "gpt-4o-mini", keyOptional: false },
   { value: "anthropic", label: "Anthropic", baseUrl: "https://api.anthropic.com", placeholderModel: "claude-3-5-sonnet-latest", keyOptional: false },
-  { value: "google-gemini", label: "Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", placeholderModel: "gemini-2.5-flash", keyOptional: false },
-  { value: "azure-openai", label: "Azure OpenAI", baseUrl: "https://your-resource.openai.azure.com", placeholderModel: "deployment-name", keyOptional: false },
+  { value: "google_gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", placeholderModel: "gemini-2.5-flash", keyOptional: false },
+  { value: "openai_compatible", label: "OpenAI-compatible", baseUrl: "https://api.example.com/v1", placeholderModel: "model-name", keyOptional: false },
 ];
 
 type FormState = {
@@ -64,8 +61,8 @@ type FormState = {
 const emptyForm: FormState = {
   providerId: "",
   providerName: "",
-  providerType: "openai-compatible",
-  baseUrl: "http://localhost:8000/v1",
+  providerType: "openai_compatible",
+  baseUrl: "https://api.example.com/v1",
   modelName: "",
   apiKey: "",
   enabled: true,
@@ -81,11 +78,13 @@ type HealthCheckResult = {
 export function AiProvidersClient({
   providers,
   aiMode,
+  allowUseClevrCloudFallback,
   featureAccess,
   loadError,
 }: {
   providers: PublicAiProviderConfig[];
   aiMode: AiMode;
+  allowUseClevrCloudFallback: boolean;
   featureAccess: HybridAiFeatureAccess | null;
   loadError?: string | null;
 }) {
@@ -97,6 +96,7 @@ export function AiProvidersClient({
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSavingRouting, setIsSavingRouting] = React.useState(false);
   const [isSavingMode, setIsSavingMode] = React.useState(false);
+  const [isDeletingProvider, setIsDeletingProvider] = React.useState(false);
   const [isTesting, setIsTesting] = React.useState(false);
   const [isCheckingHealth, setIsCheckingHealth] = React.useState(false);
   const [testResult, setTestResult] = React.useState<{
@@ -214,6 +214,24 @@ export function AiProvidersClient({
       router.refresh();
     }
     setIsSavingMode(false);
+  }
+
+  async function handleDeleteProvider() {
+    if (!form.providerId) return;
+    if (!window.confirm("Delete this AI provider? The saved credential is removed.")) return;
+    setIsDeletingProvider(true);
+    const formData = new FormData();
+    formData.set("providerId", form.providerId);
+    const result = await deleteAiProvider(formData);
+    if (!result.success) {
+      showNotice({ type: "error", title: "AI provider was not deleted.", message: result.error });
+    } else {
+      showNotice({ type: "success", title: "AI provider deleted.", message: "The provider and saved credential were removed." });
+      setIsDialogOpen(false);
+      setForm(emptyForm);
+      router.refresh();
+    }
+    setIsDeletingProvider(false);
   }
 
   async function handleTest() {
@@ -454,33 +472,52 @@ export function AiProvidersClient({
             <form onSubmit={handleModeSave} className="space-y-4">
               <div className="grid gap-3">
                 <ModeOption
-                  value="auto"
+                  value="automatic"
                   current={aiMode}
-                  title="Auto"
-                  description="Try local providers first, then use fallback or cloud providers."
+                  title="Automatic"
+                  description="Uses privacy, task complexity, local availability, provider priority, and cloud fallback settings."
                 />
                 <ModeOption
-                  value="local-only"
+                  value="local"
                   current={aiMode}
-                  title="Local only / Offline mode"
-                  description="Never call cloud AI. If local AI is unavailable, analysis returns a clear error."
+                  title="Local AI"
+                  description="Runs on your device. Data stays local unless cloud fallback is enabled."
                 />
                 <ModeOption
-                  value="cloud-only"
+                  value="byok"
                   current={aiMode}
-                  title="Cloud only"
-                  description="Ignore local providers and use configured cloud providers or default cloud AI."
+                  title="BYOK"
+                  description="Use your own provider account and API billing."
+                />
+                <ModeOption
+                  value="useclevr_cloud"
+                  current={aiMode}
+                  title="UseClevr Cloud"
+                  description="Managed AI provided by UseClevr."
                 />
               </div>
 
-              {aiMode === "local-only" ? (
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 p-3">
+                <input
+                  type="checkbox"
+                  name="allowUseclevrCloudFallback"
+                  defaultChecked={allowUseClevrCloudFallback}
+                  className="mt-1 h-4 w-4 rounded border-border"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-foreground">Allow UseClevr Cloud fallback</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">When enabled, UseClevr Cloud can handle requests only after the selected routing path allows cloud fallback.</span>
+                </span>
+              </label>
+
+              {aiMode === "local" || aiMode === "local-only" ? (
                 <div className="flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-800 dark:text-sky-200">
                   <ShieldCheck className="h-4 w-4" />
                   <span>Offline mode active</span>
                 </div>
               ) : null}
 
-              {aiMode === "local-only" && localProviderCount === 0 ? (
+              {(aiMode === "local" || aiMode === "local-only") && localProviderCount === 0 ? (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
                   Offline mode needs at least one enabled local provider before analysis can run.
                 </div>
@@ -565,9 +602,11 @@ export function AiProvidersClient({
           savedProvider={savedProvider}
           testResult={testResult}
           isSaving={isSaving}
+          isDeleting={isDeletingProvider}
           isTesting={isTesting}
           onClose={() => setIsDialogOpen(false)}
           onSave={handleSave}
+          onDelete={handleDeleteProvider}
           onTest={handleTest}
           onUpdate={updateForm}
           onProviderTypeChange={handleProviderTypeChange}
@@ -592,9 +631,11 @@ function ProviderDialog({
   savedProvider,
   testResult,
   isSaving,
+  isDeleting,
   isTesting,
   onClose,
   onSave,
+  onDelete,
   onTest,
   onUpdate,
   onProviderTypeChange,
@@ -604,13 +645,17 @@ function ProviderDialog({
   savedProvider?: PublicAiProviderConfig;
   testResult: { success: boolean; status?: string; message: string; latencyMs?: number; availableModels?: string[]; modelConfirmed?: boolean } | null;
   isSaving: boolean;
+  isDeleting: boolean;
   isTesting: boolean;
   onClose: () => void;
   onSave: (event: React.FormEvent<HTMLFormElement>) => void;
+  onDelete: () => void;
   onTest: () => void;
   onUpdate: (patch: Partial<FormState>) => void;
   onProviderTypeChange: (value: ProviderType) => void;
 }) {
+  const isBaseUrlEditable = form.providerType === "ollama" || form.providerType === "openai_compatible";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
@@ -655,17 +700,21 @@ function ProviderDialog({
             </Field>
           </div>
 
-          <Field label="Base URL" htmlFor="baseUrl">
-            <Input
-              id="baseUrl"
-              name="baseUrl"
-              value={form.baseUrl}
-              onChange={(event) => onUpdate({ baseUrl: event.target.value })}
-              placeholder={typeMeta.baseUrl}
-              className="h-11 bg-muted font-mono text-sm"
-              required
-            />
-          </Field>
+          {isBaseUrlEditable ? (
+            <Field label="Base URL" htmlFor="baseUrl">
+              <Input
+                id="baseUrl"
+                name="baseUrl"
+                value={form.baseUrl}
+                onChange={(event) => onUpdate({ baseUrl: event.target.value })}
+                placeholder={typeMeta.baseUrl}
+                className="h-11 bg-muted font-mono text-sm"
+                required
+              />
+            </Field>
+          ) : (
+            <input type="hidden" name="baseUrl" value={form.baseUrl || typeMeta.baseUrl} />
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Model" htmlFor="modelName">
@@ -680,17 +729,20 @@ function ProviderDialog({
               />
             </Field>
 
-            <Field label={typeMeta.keyOptional ? "API key optional" : "API key"} htmlFor="apiKey">
+            <Field label={savedProvider?.hasApiKey ? "Replace key" : typeMeta.keyOptional ? "API key optional" : "API key"} htmlFor="apiKey">
               <Input
                 id="apiKey"
                 name="apiKey"
                 type="password"
                 value={form.apiKey}
                 onChange={(event) => onUpdate({ apiKey: event.target.value })}
-                placeholder={savedProvider?.hasApiKey ? "Saved key hidden. Enter a new key to replace it." : typeMeta.keyOptional ? "Optional for local engines" : "Required"}
+                placeholder={savedProvider?.hasApiKey ? "Saved key hidden" : typeMeta.keyOptional ? "Not required for Ollama" : "Required"}
                 className="h-11 bg-muted"
                 autoComplete="off"
               />
+              {savedProvider?.hasApiKey ? (
+                <p className="mt-1 text-xs text-muted-foreground">Saved key: masked. Enter a new key only when replacing it.</p>
+              ) : null}
             </Field>
           </div>
 
@@ -730,7 +782,7 @@ function ProviderDialog({
           ) : null}
 
           <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row">
-            <Button type="submit" disabled={isSaving} className="bg-gradient-primary hover:opacity-90">
+            <Button type="submit" disabled={isSaving || isDeleting} className="bg-gradient-primary hover:opacity-90">
               {isSaving ? "Saving..." : "Save provider"}
             </Button>
             <Button
@@ -743,6 +795,12 @@ function ProviderDialog({
               {isTesting ? "Testing..." : "Test connection"}
             </Button>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            {form.providerId ? (
+              <Button type="button" variant="outline" disabled={isDeleting || isSaving} onClick={onDelete} className="ml-auto gap-2 border-red-500/30 bg-transparent text-red-600 hover:bg-red-500/10 dark:text-red-300">
+                <Trash2 className="h-4 w-4" />
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            ) : null}
           </div>
         </form>
       </div>
@@ -794,10 +852,11 @@ function UpgradeGateDialog({
 }
 
 function formFromProvider(provider: PublicAiProviderConfig): FormState {
+  const providerType = normalizeProviderTypeForForm(provider.providerType);
   return {
     providerId: provider.id,
     providerName: provider.providerName,
-    providerType: provider.providerType as ProviderType,
+    providerType,
     baseUrl: provider.baseUrl,
     modelName: provider.modelName,
     apiKey: "",
@@ -806,6 +865,15 @@ function formFromProvider(provider: PublicAiProviderConfig): FormState {
     isFallback: provider.isFallback,
     priority: provider.priority,
   };
+}
+
+function normalizeProviderTypeForForm(value: string): ProviderType {
+  if (value === "openai-compatible") return "openai_compatible";
+  if (value === "google-gemini") return "google_gemini";
+  if (value === "ollama" || value === "openai" || value === "anthropic" || value === "google_gemini" || value === "openai_compatible") {
+    return value;
+  }
+  return "openai_compatible";
 }
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
@@ -940,7 +1008,7 @@ function ProviderStatus({ provider }: { provider: PublicAiProviderConfig }) {
     );
   }
 
-  if (status === "healthy") {
+  if (status === "connected" || status === "healthy") {
     return (
       <div className="text-emerald-600 dark:text-emerald-300">
         <div className="flex items-center gap-2">
@@ -989,20 +1057,33 @@ function Pill({ children, tone }: { children: React.ReactNode; tone: "primary" |
 }
 
 function labelForType(type: string) {
-  return providerTypes.find((providerType) => providerType.value === type)?.label || type;
+  return providerTypes.find((providerType) => providerType.value === normalizeProviderTypeForForm(type))?.label || type;
 }
 
 function isLocalProviderType(type: string) {
-  return type === "ollama" || type === "lm-studio" || type === "openai-compatible";
+  return type === "ollama";
 }
 
 function isHealthyStatus(status: string | null | undefined) {
-  return status === "healthy" || status === "success";
+  return status === "connected" || status === "healthy" || status === "success";
 }
 
 function normalizeHealthStatus(status: string | null | undefined) {
+  if (status === "connected") return "connected";
   if (status === "success") return "healthy";
-  if (status === "auth_failed" || status === "model_missing" || status === "unreachable" || status === "failed" || status === "healthy") {
+  if (
+    status === "invalid_key" ||
+    status === "model_unavailable" ||
+    status === "endpoint_unreachable" ||
+    status === "rate_limited" ||
+    status === "provider_error" ||
+    status === "configuration_error" ||
+    status === "auth_failed" ||
+    status === "model_missing" ||
+    status === "unreachable" ||
+    status === "failed" ||
+    status === "healthy"
+  ) {
     return status;
   }
   return "not_tested";
@@ -1010,14 +1091,24 @@ function normalizeHealthStatus(status: string | null | undefined) {
 
 function statusLabel(status: string) {
   switch (normalizeHealthStatus(status)) {
+    case "connected":
+      return "Connected";
     case "healthy":
       return "Healthy";
+    case "invalid_key":
     case "auth_failed":
-      return "Auth failed";
+      return "Invalid key";
+    case "model_unavailable":
     case "model_missing":
-      return "Model missing";
+      return "Model unavailable";
+    case "endpoint_unreachable":
     case "unreachable":
-      return "Unreachable";
+      return "Endpoint unreachable";
+    case "rate_limited":
+      return "Rate limited";
+    case "configuration_error":
+      return "Configuration error";
+    case "provider_error":
     case "failed":
       return "Error";
     default:
@@ -1035,7 +1126,8 @@ function formatDateTime(value: string) {
 }
 
 function modeNoticeMessage(mode: AiMode) {
-  if (mode === "local-only") return "Offline mode is active. Cloud AI calls are blocked.";
-  if (mode === "cloud-only") return "Cloud-only mode is active. Local providers are ignored.";
-  return "Auto mode is active. Local providers are tried before fallback providers.";
+  if (mode === "local" || mode === "local-only") return "Local mode is active. Cloud fallback follows your setting.";
+  if (mode === "byok") return "BYOK mode is active. Enabled providers run by default and priority.";
+  if (mode === "useclevr_cloud" || mode === "cloud-only") return "UseClevr Cloud mode is active.";
+  return "Automatic mode is active.";
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   generateWithUniversalAiAdapter,
   getAiMode,
+  getUseClevrCloudFallbackAllowed,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -54,7 +55,10 @@ export async function POST(request: Request) {
   }
 
   const prompt = buildHybridChatPrompt(messages);
-  const aiMode = await getAiMode(userId);
+  const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
+    getAiMode(userId),
+    getUseClevrCloudFallbackAllowed(userId),
+  ]);
   let userProviderFailed = false;
 
   try {
@@ -140,6 +144,43 @@ export async function POST(request: Request) {
 
   const configuredProviders = await listPrivateAiProviderConfigs(userId);
   const hasCloudProvider = configuredProviders.some((p) => p.enabled && isCloudProvider(p.providerType));
+
+  if (!allowUseclevrCloudFallback && userProviderFailed) {
+    const message = "UseClevr Cloud fallback is disabled. Please check AI provider settings.";
+    debugWarn("[HYBRID_AI_CHAT] Cloud fallback disabled by user preference", { userId, mode: aiMode });
+    recordAiRequestAudit({
+      userId,
+      providerName: "UseClevr Cloud fallback disabled",
+      providerType: "default-cloud",
+      modelName: "none",
+      mode: aiMode,
+      executionLocation: "none",
+      fallbackUsed: false,
+      purpose: "chat",
+      success: false,
+      errorReason: "Cloud fallback disabled",
+    });
+    return NextResponse.json({
+      success: false,
+      code: "AI_PROVIDER_ERROR",
+      message,
+      requestId,
+      error: message,
+      answer: message,
+      content: message,
+      providerName: "Hybrid AI",
+      modelName: "",
+      mode: aiMode,
+      route: "none",
+      providerStatus: {
+        label: "Hybrid AI",
+        state: "provider_unavailable",
+        message: "Cloud fallback disabled",
+        fallbackActive: false,
+        route: "none",
+      } satisfies HybridProviderStatus,
+    }, { status: 503 });
+  }
 
   if (!hasCloudProvider) {
     const message = "AI provider is not configured yet. Please check AI provider settings.";

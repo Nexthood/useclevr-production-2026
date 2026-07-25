@@ -3,6 +3,7 @@ import { datasets } from '@/lib/db/schema';
 import { debugError } from '@/lib/utils/debug';
 import {
   generateWithUniversalAiAdapter,
+  getUseClevrCloudFallbackAllowed,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -250,6 +251,8 @@ export async function handleRegularChat(
   const systemContent = buildSystemPrompt(datasetInfo, datasetRowsData, appSearchResults);
 
   if (userId) {
+    const allowUseclevrCloudFallback = await getUseClevrCloudFallbackAllowed(userId);
+    let userProviderFailed = false;
     try {
       const result = await generateWithUniversalAiAdapter(userId, buildPlainChatPrompt(messages, systemContent));
       if (result) {
@@ -277,6 +280,21 @@ export async function handleRegularChat(
         };
       }
       logDefaultCloudFallback(userId, error);
+      userProviderFailed = true;
+    }
+    if (!allowUseclevrCloudFallback) {
+      return {
+        success: false,
+        content: userProviderFailed
+          ? "UseClevr Cloud fallback is disabled. Please check AI provider settings."
+          : "UseClevr Cloud fallback is disabled and no AI provider handled this request.",
+        providerStatus: {
+          label: "Hybrid AI",
+          state: "provider_unavailable",
+          message: "Cloud fallback disabled",
+          fallbackActive: false,
+        },
+      };
     }
   }
 
@@ -351,6 +369,8 @@ export async function handleRegularChatStream(
   const systemContent = buildSystemPrompt(datasetInfo, datasetRowsData, appSearchResults);
 
   if (userId) {
+    const allowUseclevrCloudFallback = await getUseClevrCloudFallbackAllowed(userId);
+    let userProviderFailed = false;
     try {
       const result = await generateWithUniversalAiAdapter(userId, buildPlainChatPrompt(messages, systemContent));
       if (result) {
@@ -362,6 +382,12 @@ export async function handleRegularChatStream(
         return textToStream("Offline mode is enabled, but your local AI provider is not reachable.");
       }
       logDefaultCloudFallback(userId, error);
+      userProviderFailed = true;
+    }
+    if (!allowUseclevrCloudFallback) {
+      return textToStream(userProviderFailed
+        ? "UseClevr Cloud fallback is disabled. Please check AI provider settings."
+        : "UseClevr Cloud fallback is disabled and no AI provider handled this request.");
     }
   }
 

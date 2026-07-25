@@ -63,7 +63,7 @@ type AccountCenterProps = {
   session: { user?: { id?: string; name?: string | null; email?: string | null; role?: string } } | null
   aiProvider: {
     id: string
-    providerType: "ollama" | "lm-studio" | "openai-compatible" | "openai" | "anthropic" | "google-gemini" | "azure-openai"
+    providerType: "ollama" | "lm-studio" | "openai-compatible" | "openai_compatible" | "openai" | "anthropic" | "google-gemini" | "google_gemini" | "azure-openai" | "useclevr_cloud"
     providerName: string
     baseUrl: string
     modelName: string
