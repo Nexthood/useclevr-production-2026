@@ -17,11 +17,16 @@ export default async function AiProvidersSettingsPage() {
 
   if (session?.user?.id) {
     try {
-      [providers, aiMode, allowUseClevrCloudFallback, featureAccess] = await Promise.all([
+      featureAccess = await getHybridAiFeatureAccess(session.user.id, session.user.role, session.user.email);
+    } catch (error) {
+      debugError("[AI_PROVIDER] Failed to load Hybrid AI entitlement", error);
+    }
+
+    try {
+      [providers, aiMode, allowUseClevrCloudFallback] = await Promise.all([
         listPublicAiProviderConfigs(session.user.id),
         getAiMode(session.user.id).then(toPublicAiMode),
         getUseClevrCloudFallbackAllowed(session.user.id),
-        getHybridAiFeatureAccess(session.user.id, session.user.role, session.user.email),
       ]);
     } catch (error) {
       loadError = "AI provider settings need the latest database migration before saved providers can load.";

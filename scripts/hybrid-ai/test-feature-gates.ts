@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import {
   canUseHybridAiFeature,
   formatAiProviderLimit,
+  getHybridAIEntitlements,
   getHybridAiEntitlement,
   HYBRID_AI_COMING_SOON_MODULE_IDS,
   HYBRID_AI_FEATURES,
@@ -10,6 +11,7 @@ import {
   HYBRID_AI_MEGA_MODULE_IDS,
   type HybridAiFeatureId,
 } from "../../src/lib/hybrid-ai/features"
+import { getAiProvidersPageState } from "../../src/lib/hybrid-ai/provider-page-state"
 
 const liteFeatures: HybridAiFeatureId[] = [
   "hybridAiModal",
@@ -213,6 +215,49 @@ assert.equal(
   formatAiProviderLimit(getHybridAiEntitlement("free", "user", "superadmin@useclevr.com").providerLimit),
   "Unlimited",
   "official superadmin provider limit displays Unlimited",
+)
+
+const superadminEntitlement = getHybridAIEntitlements(
+  { role: "user", email: "  SUPERADMIN@USECLEVR.COM  " },
+  "free",
+)
+assert.equal(superadminEntitlement.isSuperadmin, true, "official superadmin email resolves as superadmin")
+assert.equal(superadminEntitlement.canUseHybridAI, true, "official superadmin can use Hybrid AI")
+assert.equal(superadminEntitlement.canManageProviders, true, "official superadmin can manage AI providers")
+assert.equal(superadminEntitlement.canDownloadLocalAI, true, "official superadmin can download Local AI")
+assert.equal(superadminEntitlement.canChangeAIMode, true, "official superadmin can change AI mode")
+assert.equal(superadminEntitlement.providerLimit, null, "official superadmin provider limit is unlimited")
+assert.equal(superadminEntitlement.providerLimitLabel, "Unlimited", "official superadmin provider limit label is Unlimited")
+assert.equal(superadminEntitlement.upgradeRequired, false, "official superadmin does not require upgrade")
+
+const superadminProviderPage = getAiProvidersPageState({
+  canManageProviders: superadminEntitlement.canManageProviders,
+  canChangeAIMode: superadminEntitlement.canChangeAIMode,
+  enabledFeatureIds: superadminEntitlement.enabledModuleIds,
+  providerLimit: superadminEntitlement.providerLimit,
+  providerLimitLabel: superadminEntitlement.providerLimitLabel,
+  upgradeRequired: superadminEntitlement.upgradeRequired,
+}, 4)
+assert.equal(superadminProviderPage.providerLimitLabel, "Unlimited", "AI Providers page shows Unlimited for superadmin")
+assert.equal(superadminProviderPage.showSubscriptionWarning, false, "AI Providers subscription warning is absent for superadmin")
+assert.equal(superadminProviderPage.addProviderLabel, "Add provider", "AI Providers add button stays enabled for superadmin")
+assert.equal(superadminProviderPage.canAddProvider, true, "AI Providers add provider action is enabled for superadmin")
+assert.equal(superadminProviderPage.canUseModeRouting, true, "AI Providers mode controls are enabled for superadmin")
+assert.equal(superadminProviderPage.modeSaveLabel, "Save AI mode", "AI Providers mode save action is enabled for superadmin")
+
+const missingMigrationState = getAiProvidersPageState({
+  canManageProviders: superadminEntitlement.canManageProviders,
+  canChangeAIMode: superadminEntitlement.canChangeAIMode,
+  enabledFeatureIds: superadminEntitlement.enabledModuleIds,
+  providerLimit: superadminEntitlement.providerLimit,
+  providerLimitLabel: superadminEntitlement.providerLimitLabel,
+  upgradeRequired: superadminEntitlement.upgradeRequired,
+}, 0)
+assert.equal(missingMigrationState.showSubscriptionWarning, false, "missing provider storage does not create a subscription warning for superadmin")
+assert.equal(
+  "AI provider settings need the latest database migration before saved providers can load.".includes("latest database migration"),
+  true,
+  "real missing migration warning text remains available",
 )
 
 console.log("Hybrid AI feature gate tests passed.")

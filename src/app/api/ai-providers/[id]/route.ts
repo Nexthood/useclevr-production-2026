@@ -1,5 +1,5 @@
 import { deleteAiProviderConfig, listPublicAiProviderConfigs, saveAiProviderConfig, type AiProviderType } from "@/lib/ai/byoai-provider";
-import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
+import { assertCanSaveAiProvider, featureGateFailureMessage, requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -40,6 +40,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const { id } = await params;
+    await assertCanSaveAiProvider({
+      userId,
+      sessionRole: gate.session.user.role,
+      sessionEmail: gate.session.user.email,
+      providerId: id,
+    });
     const existing = (await listPublicAiProviderConfigs(userId)).find((provider) => provider.id === id);
     if (!existing) {
       return NextResponse.json({ success: false, code: "PROVIDER_NOT_FOUND", error: "Provider was not found." }, { status: 404 });
@@ -58,6 +64,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
     return NextResponse.json({ success: true, provider });
   } catch (error) {
+    const gateMessage = featureGateFailureMessage(error);
+    if (gateMessage) {
+      return NextResponse.json({ success: false, code: "UPGRADE_REQUIRED", error: gateMessage }, { status: 403 });
+    }
     const message = error instanceof Error ? error.message : "AI provider was not saved.";
     return NextResponse.json({ success: false, code: "PROVIDER_SAVE_FAILED", error: message }, { status: 400 });
   }

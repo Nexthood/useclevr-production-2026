@@ -136,6 +136,9 @@ Text rules for this file:
 - Keep technical runtime names, internal engine names, and model names out of normal customer UI.
 - Register every Hybrid AI capability in a centralized feature gate with a required Lite or MEGA tier and upgrade explanation.
 - Enforce Hybrid AI feature access on backend routes and server actions before local-provider chat, dataset-aware Hybrid AI chat, AI provider testing, provider health checks, provider saves, provider routing, and mode changes run.
+- Resolve Hybrid AI and BYOK page access from the same centralized superadmin-aware entitlement object that drives global subscription status.
+- Preserve `null` as the unlimited AI provider limit and display it as Unlimited.
+- Show the AI provider database migration warning only when provider settings or mode storage cannot load.
 - Include Hybrid AI Modal, Private Chat, CSV/Excel Analysis, Dashboard Insights, AI Provider Management, Provider Health Checks, Auto Mode, Local Mode, Cloud Mode, AI Assistant integration, and Dataset-aware chat in Hybrid AI Lite.
 - Include Multiple AI Providers, Provider Fallback, Multi-document Analysis, AI Reports, Audit Logs, Workflow Automation roadmap, and UseClevr Helper roadmap in Hybrid AI MEGA.
 - Mark AI Agents, Deep Research, Background Tasks, Business Assistants, Team AI, and Local Knowledge Base as coming soon MEGA modules.

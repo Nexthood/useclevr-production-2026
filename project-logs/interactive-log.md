@@ -348,3 +348,37 @@ Use existing KPI helpers for column and breakdown context, but keep risk scoring
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.
+## AI Providers Superadmin Entitlement Consistency
+
+1. Interaction title
+AI Providers superadmin entitlement consistency.
+
+2. What was the user goal
+Fix the AI Providers and BYOK settings page so `superadmin@useclevr.com` receives the same unrestricted access shown by the global Unlimited Superadmin subscription state.
+
+3. What changed
+Hybrid AI entitlements now expose one superadmin-aware access object with explicit `isSuperadmin`, provider-management access, Local AI download access, AI mode access, provider limit, provider limit label, and upgrade state. The AI Providers page now loads entitlement separately from provider settings so a provider database or migration failure does not erase superadmin access. The AI Providers client now uses a pure page-state helper that preserves `null` as Unlimited instead of converting it to plan limit 0. Direct provider create/update APIs use the same limit-aware backend guard as server actions, and direct routing API requests enforce the Lite fallback-provider restriction. Global usage resolution now uses the same normalized `isSuperadmin` helper for the official email fallback.
+
+4. Problems marked
+blocker: none.
+risk: Full browser interaction was not run because the current request required code validation, not a live signed-in browser session.
+improvement: Add authenticated UI tests for AI Providers once the project has a stable session fixture.
+observation: The inconsistent UI came from both a rejected provider-settings `Promise.all` that set feature access to `null` and `?? 0` handling that converted the intended unlimited provider limit `null` into `0`.
+
+5. User learning
+The migration warning can be real while subscription access remains unrestricted; those states must render independently.
+
+6. AI-agent learning
+Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the semantic difference between unavailable entitlement and unlimited entitlement.
+
+7. Follow-up tasks
+- Add authenticated browser regression coverage for the AI Providers superadmin page state when the project has reusable session fixtures.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.

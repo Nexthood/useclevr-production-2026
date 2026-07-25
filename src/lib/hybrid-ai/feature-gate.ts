@@ -19,11 +19,18 @@ export type HybridAiFeatureAccess = {
   userId: string
   role: string
   subscriptionTier: string
+  isSuperadmin: boolean
   accessTier: HybridAiTier | null
+  canUseHybridAI: boolean
   canUseLite: boolean
   canUseMega: boolean
+  canManageProviders: boolean
+  canDownloadLocalAI: boolean
+  canChangeAIMode: boolean
   enabledFeatureIds: HybridAiFeatureId[]
   providerLimit: number | null
+  providerLimitLabel: string
+  upgradeRequired: boolean
 }
 
 export type HybridAiFeatureGateResult =
@@ -68,11 +75,18 @@ export async function getHybridAiFeatureAccess(
     userId,
     role,
     subscriptionTier,
+    isSuperadmin: entitlement.isSuperadmin,
     accessTier: entitlement.accessTier,
+    canUseHybridAI: entitlement.canUseHybridAI,
     canUseLite: entitlement.canUseLite,
     canUseMega: entitlement.canUseMega,
+    canManageProviders: entitlement.canManageProviders,
+    canDownloadLocalAI: entitlement.canDownloadLocalAI,
+    canChangeAIMode: entitlement.canChangeAIMode,
     enabledFeatureIds: entitlement.enabledModuleIds,
     providerLimit: entitlement.providerLimit,
+    providerLimitLabel: entitlement.providerLimitLabel,
+    upgradeRequired: entitlement.upgradeRequired,
   }
 }
 
