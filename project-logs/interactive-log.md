@@ -314,3 +314,37 @@ Provider environment selection must fail closed when a production integration ca
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+## Risk Intelligence Lite Module
+
+1. Interaction title
+Risk Intelligence Lite module.
+
+2. What was the user goal
+Add a production-ready first version of Risk Intelligence that scores supported business datasets with deterministic rules, server-side entitlement enforcement, dashboard navigation, APIs, tests, and documentation.
+
+3. What changed
+The app now exposes `/app/risk-intelligence` and a sidebar Risk Intelligence item. The server calculates Risk Intelligence from one selected supported dataset at a time, using centralized versioned rules, existing business-column/KPI helpers, dataset rows, and Hybrid AI Lite dashboard-insights entitlement. The API routes list supported datasets and recalculate one dataset while preserving ownership, admin, and superadmin access rules. The UI shows overall score, severity counts, category summaries, last calculated time, dataset scope, prioritized findings, recommendations, and source links. Docs and requirements now describe the module, thresholds, score formula, route access, and no-migration dynamic calculation.
+
+4. Problems marked
+blocker: none.
+risk: Existing business-column analysis logs detected columns during focused tests, so Risk Intelligence tests are noisy until shared debug logging is quieted.
+improvement: Add browser-level responsive visual regression coverage when the project has a stable Playwright app harness.
+observation: Risk Intelligence does not need a database table for the first version because results derive from existing dataset storage.
+
+5. User learning
+Risk Intelligence is a traceable business-intelligence module, not an enterprise compliance or professional-advice workflow.
+
+6. AI-agent learning
+Use existing KPI helpers for column and breakdown context, but keep risk scoring conservative when helper-level metrics rely on estimates.
+
+7. Follow-up tasks
+- Add browser-level responsive Risk Intelligence rendering tests when the project has a stable authenticated Playwright harness.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.

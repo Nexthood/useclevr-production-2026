@@ -110,6 +110,15 @@ Text rules for this file:
 - Detect business risks including declining revenue, falling margins, low stock, customer concentration, seasonal or trend anomalies, and outliers.
 - Detect business opportunities including high-performing products, growth opportunities, upselling opportunities, inventory optimization, and cost savings.
 - Show a concise executive summary and prioritized High, Medium, and Low recommended actions with reason, expected business impact, and confidence.
+- Show Risk Intelligence as an authenticated dashboard module for supported standard, retail, profitability, accountancy, and pre-bookkeeping datasets.
+- Calculate Risk Intelligence on the server from existing KPI outputs, uploaded dataset rows, and centralized versioned rules.
+- Score Risk Intelligence from 0 to 100 where higher scores mean greater risk, with Low at 0-24, Medium at 25-49, High at 50-74, and Critical at 75-100.
+- Calculate category and overall Risk Intelligence scores from applicable rule weights only, without penalizing datasets for unsupported metrics.
+- Keep Risk Intelligence isolated to one selected dataset or module scope at a time.
+- Show Risk Intelligence summary cards, severity counts, last calculated time, dataset scope, prioritized findings, recommendations, and source links.
+- Show "No supported business data is available yet. Upload or connect a dataset to generate risk intelligence." when supported data is unavailable.
+- Require the Hybrid AI Lite dashboard-insights entitlement before Risk Intelligence page and API calculations run, while the official superadmin account keeps unrestricted access.
+- Reject direct Risk Intelligence API requests from normal Free accounts and from users who do not own the requested dataset.
 - Store Accuracy Engine retrieval documents by authenticated dataset owner, dataset ID, dataset type, source type, source record ID, content, metadata, embedding metadata, content hash, language, and ingestion timestamps.
 - Detect Accuracy Engine database retrieval mode as `lakebase_hybrid`, `pgvector_fts`, or `fts_only` without crashing when Lakebase or pgvector extensions are unavailable.
 - Keep Accuracy Engine retrieval separate from deterministic KPI calculations; SQL calculates exact KPI values and retrieval supplies context for explanation.

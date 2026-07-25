@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add Risk Intelligence for supported uploaded datasets with server-calculated risk scores, category summaries, severity counts, prioritized recommendations, source links, and Hybrid AI Lite access control so users can see traceable business-risk signals without enterprise compliance workflows.
 - Add production-ready BYOK AI provider controls with encrypted keys, provider priority routing, explicit Automatic, Local, BYOK, and UseClevr Cloud modes, connection testing, SSRF protection, and metadata-only usage auditing so customers control where AI requests run.
 - Give the official superadmin account unrestricted Hybrid AI and BYOK access so internal testing can use providers, local setup, all AI modes, and unlimited provider slots without subscription prompts.
 - Show Retail POS Connections at the top of the Retail workspace with Square connect, status, sync, merchant, imported-data, and disconnect controls while keeping CSV and Excel upload available below.
