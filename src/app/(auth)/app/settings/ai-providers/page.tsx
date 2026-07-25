@@ -21,7 +21,7 @@ export default async function AiProvidersSettingsPage() {
         listPublicAiProviderConfigs(session.user.id),
         getAiMode(session.user.id).then(toPublicAiMode),
         getUseClevrCloudFallbackAllowed(session.user.id),
-        getHybridAiFeatureAccess(session.user.id, session.user.role),
+        getHybridAiFeatureAccess(session.user.id, session.user.role, session.user.email),
       ]);
     } catch (error) {
       loadError = "AI provider settings need the latest database migration before saved providers can load.";

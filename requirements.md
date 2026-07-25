@@ -120,6 +120,7 @@ Text rules for this file:
 - Route Business Intelligence Engine narrative generation through the Universal AI Adapter while keeping deterministic calculations in the backend.
 - Offer Hybrid AI Lite to Pro users.
 - Offer Hybrid AI MEGA to Business users.
+- Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited AI provider access without requiring a paid subscription.
 - Explain Hybrid AI plan access in customer-facing plan copy.
 - Use UseClevr Helper as the desktop bridge for Hybrid AI private analysis.
 - Keep normal Hybrid AI UI branded as UseClevr Hybrid AI, Private AI Analysis, Local AI Engine, Secure runtime connected, and Files stay on your device.

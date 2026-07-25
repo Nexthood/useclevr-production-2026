@@ -10,6 +10,7 @@ export default async function AssistantPage() {
     <AssistantPageClient
       subscriptionTier={usage.subscriptionTier}
       userRole={session?.user?.role ?? null}
+      userEmail={session?.user?.email ?? null}
     />
   )
 }

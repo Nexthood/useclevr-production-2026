@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-25
-- **Goal**: Audit and harden the BYOK AI provider implementation while preserving existing Local AI, Ollama, cloud AI, authentication, dataset, and module behavior.
-- **Durable change**: BYOK provider handling now enforces exact saved-provider ownership during tests, rejects missing provider IDs during routing/default changes, saves Local and BYOK modes with cloud fallback off unless selected, sanitizes provider base URLs in failed-test logs, accepts every public provider alias in the account summary, and blocks bracketed IPv6 plus IPv4-mapped IPv6 private or loopback SSRF targets.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes. `pnpm test:ai-provider-security` passes with dummy local config values.
+- **Date**: 2026-07-26
+- **Goal**: Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited provider access without a paid subscription.
+- **Durable change**: Superadmin entitlement resolution now uses the centralized superadmin helper with role, built-in ID, and normalized official email recognition; backend feature gates, provider actions, Local AI downloads, Auth session role refresh, AI Providers UI, assistant UI, and Hybrid AI modal entitlement checks use the email-aware result.
+- **Verification**: `pnpm test:hybrid-ai-gates`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:changelog`, and `pnpm lint:secrets` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

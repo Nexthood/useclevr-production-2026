@@ -210,6 +210,41 @@ When public aliases such as `openai_compatible` and `google_gemini` leave a prov
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred test expansion: future TODO queue if requested.
 
+## Official Superadmin Hybrid AI Entitlement
+
+1. Interaction title
+Official superadmin Hybrid AI and BYOK entitlement bypass.
+
+2. What was the user goal
+Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited provider access without requiring a paid subscription, while keeping normal Free, Pro, and Business entitlements unchanged.
+
+3. What changed
+The centralized built-in user helper now recognizes superadmin access from the superadmin role, built-in superadmin ID, or normalized official superadmin email. The Hybrid AI entitlement engine accepts email, server feature gates resolve session/profile/user email before returning access, Auth session refresh promotes the official email to the superadmin role, Local AI download gates pass session email, and frontend Hybrid AI components pass email into shared entitlement helpers. The AI Providers plan-limit display uses a shared formatter so the superadmin provider limit displays Unlimited. Requirements and changelog now describe the current unrestricted official superadmin behavior.
+
+4. Problems marked
+blocker: none.
+risk: Browser verification of the exact AI Providers page for the official account remains pending until a live signed-in session is available.
+improvement: Add route-level integration tests with mocked authenticated sessions when the test harness supports Auth.js route mocking.
+observation: The project already had a built-in official superadmin identity; the missing behavior was email-based recognition for persisted accounts and client-side entitlement helpers.
+
+5. User learning
+The official superadmin account can use Hybrid AI and BYOK without subscription prompts because entitlement resolution recognizes its normalized email centrally.
+
+6. AI-agent learning
+When entitlement state can be computed on both server and client, pass the same identity fields into shared helpers instead of fixing only route gates.
+
+7. Follow-up tasks
+- Add Auth.js route-level entitlement tests for AI provider API access when the repository has a route-session mocking harness.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred route-level test expansion: future TODO queue if requested.
+
 ## Retail POS Connections Database Query Fix
 
 1. Interaction title

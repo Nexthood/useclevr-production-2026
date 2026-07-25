@@ -5,6 +5,7 @@ import {
   BUILTIN_SUPER_ADMIN_USER,
   findBuiltinUserByCredentials,
   isBuiltinUserId,
+  isSuperadmin,
   type BuiltinUserRole,
 } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
@@ -158,7 +159,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: eq(profiles.userId, user.id),
             columns: { role: true },
           })
-          const role = (profile?.role || "user") as BuiltinUserRole
+          const role = (isSuperadmin({ email: user.email, role: profile?.role }) ? "superadmin" : profile?.role || "user") as BuiltinUserRole
 
           logCredentialsAuthEvent("authorized", { email: user.email, verificationPurpose });
           return {
@@ -253,7 +254,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.name = profile?.fullName || user?.name || session.user.name;
                 session.user.email = profile?.email || user?.email || session.user.email;
                 session.user.image = profile?.avatarUrl || user?.image;
-                session.user.role = (profile?.role || token.role || "user") as BuiltinUserRole;
+                const sessionIsSuperadmin =
+                  isSuperadmin({ id: userId, email: profile?.email, role: profile?.role || String(token.role || "") }) ||
+                  isSuperadmin({ id: userId, email: user?.email, role: profile?.role || String(token.role || "") }) ||
+                  isSuperadmin({ id: userId, email: session.user.email, role: profile?.role || String(token.role || "") })
+                session.user.role = (sessionIsSuperadmin ? "superadmin" : profile?.role || token.role || "user") as BuiltinUserRole;
               }
             } catch (error) {
               debugWarn("[Auth] Session refresh from database failed:", error);

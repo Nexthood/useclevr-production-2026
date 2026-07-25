@@ -15,11 +15,15 @@ const businessPlan = billingPlans.find((plan) => plan.id === "business_monthly")
 
 export default function HybridAiButton({
   subscriptionTier = "free",
+  userRole,
+  userEmail,
   hybridAiCreditCosts = { lite: 5, standard: 12, mega: 35 },
   mode = "button",
   className = "",
 }: {
   subscriptionTier?: string
+  userRole?: string | null
+  userEmail?: string | null
   hybridAiCreditCosts?: HybridAiCreditCosts
   mode?: "button" | "link"
   className?: string
@@ -27,7 +31,10 @@ export default function HybridAiButton({
   const [open, setOpen] = React.useState(false)
   const [installerOpen, setInstallerOpen] = React.useState(false)
   const [megaUpgradeOpen, setMegaUpgradeOpen] = React.useState(false)
-  const entitlement = React.useMemo(() => getHybridAiEntitlement(subscriptionTier), [subscriptionTier])
+  const entitlement = React.useMemo(
+    () => getHybridAiEntitlement(subscriptionTier, userRole, userEmail),
+    [subscriptionTier, userRole, userEmail],
+  )
   const hasLocalAiAccess = entitlement.canDownload
   const hybridTiers =
     entitlement.accessTier === "mega"
@@ -142,6 +149,8 @@ export default function HybridAiButton({
         preselectTier={defaultTier}
         allowedTiers={[...hybridTiers]}
         subscriptionTier={subscriptionTier}
+        userRole={userRole}
+        userEmail={userEmail}
       />
 
       {megaUpgradeOpen ? (

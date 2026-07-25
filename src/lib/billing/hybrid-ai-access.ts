@@ -13,7 +13,7 @@ export async function requireHybridAiDownloadAccess(tier: HybridAiTier = "lite")
     }
   }
 
-  const access = await getHybridAiFeatureAccess(session.user.id, session.user.role)
+  const access = await getHybridAiFeatureAccess(session.user.id, session.user.role, session.user.email)
   const allowed = tier === "mega" ? access.canUseMega : access.canUseLite
 
   if (!allowed) {

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
 import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
+import { formatAiProviderLimit } from "@/lib/hybrid-ai/features";
 import type { HybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import {
   CheckCircle2,
@@ -338,7 +339,7 @@ export function AiProvidersClient({
           <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[420px]">
             <StatusTile label="Providers" value={String(providers.length)} />
             <StatusTile label="Enabled" value={String(enabledCount)} />
-            <StatusTile label="Plan limit" value={providerLimit === null ? "Unlimited" : String(providerLimit)} />
+            <StatusTile label="Plan limit" value={formatAiProviderLimit(providerLimit)} />
           </div>
         </div>
       </section>

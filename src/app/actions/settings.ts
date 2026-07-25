@@ -117,6 +117,7 @@ export async function saveAiProvider(formData: FormData): Promise<Result<Profile
     await assertCanSaveAiProvider({
       userId,
       sessionRole: session.user.role,
+      sessionEmail: session.user.email,
       providerId: String(formData.get("providerId") || "") || undefined,
     })
     await saveAiProviderConfig(userId, {
@@ -160,7 +161,7 @@ export async function updateAiProviderRouting(formData: FormData): Promise<Resul
   if (!userId) return failure("Please sign in again.")
 
   try {
-    const access = await getHybridAiFeatureAccess(userId, session.user.role)
+    const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
     if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
       logBlockedHybridAiFeatureAttempt({
         userId,
@@ -220,7 +221,7 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
   const allowUseclevrCloudFallback = formData.get("allowUseclevrCloudFallback") === "on"
 
   try {
-    const access = await getHybridAiFeatureAccess(userId, session.user.role)
+    const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
     const requiredModeFeature = mode === "local-only" || mode === "local" ? "localMode" : mode === "cloud-only" || mode === "useclevr_cloud" ? "cloudMode" : "autoMode"
     if (!access.enabledFeatureIds.includes(requiredModeFeature)) {
       logBlockedHybridAiFeatureAttempt({
@@ -262,7 +263,7 @@ export async function deleteAiProvider(formData: FormData): Promise<Result<Profi
   if (!userId) return failure("Please sign in again.")
 
   try {
-    const access = await getHybridAiFeatureAccess(userId, session.user.role)
+    const access = await getHybridAiFeatureAccess(userId, session.user.role, session.user.email)
     if (!access.enabledFeatureIds.includes("aiProviderManagement")) {
       return failure("AI Providers require Hybrid AI Lite or MEGA.")
     }

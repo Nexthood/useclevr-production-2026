@@ -50,6 +50,8 @@ export default async function Topbar() {
         <nav className="flex min-w-0 flex-1 items-center justify-end gap-4 overflow-visible">
           <HybridAiButton
             subscriptionTier={usage.subscriptionTier}
+            userEmail={session?.user?.email ?? null}
+            userRole={session?.user?.role ?? null}
             className="flex h-11 items-center gap-2 whitespace-nowrap rounded-md border-0 bg-transparent px-3 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
           />
 
