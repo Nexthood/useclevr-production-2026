@@ -188,8 +188,9 @@ Run the email-password flow diagnostics inside Railway with `pnpm test:auth-flow
 
 `AUTH_SECRET` and `AUTH_URL` are the canonical Auth.js names. The runtime also accepts
 `NEXTAUTH_SECRET` and `NEXTAUTH_URL` for compatibility. Railway test auth uses
-`AUTH_URL=https://test.useclevr.com` and `NEXTAUTH_URL=https://test.useclevr.com`; the server bind
-host stays internal and never becomes a browser redirect URL.
+`AUTH_URL=https://test.useclevr.com`, `NEXTAUTH_URL=https://test.useclevr.com`, and
+`NEXT_PUBLIC_APP_URL=https://test.useclevr.com`; the server bind host stays internal and never
+becomes a browser redirect URL.
 Google OAuth accepts `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` and the common
 `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` aliases. LinkedIn OAuth accepts
 `AUTH_LINKEDIN_ID`/`AUTH_LINKEDIN_SECRET` and the common
@@ -199,11 +200,19 @@ OAuth provider callback paths are fixed by the provider IDs in code:
 
 - Google: `/api/auth/callback/google`
 - LinkedIn: `/api/auth/callback/linkedin`
+- Square: `/api/integrations/retail/square/callback`
 
 For the Railway test service, register these exact redirect URIs in each provider console:
 
 - `https://test.useclevr.com/api/auth/callback/google`
 - `https://test.useclevr.com/api/auth/callback/linkedin`
+- `https://test.useclevr.com/api/integrations/retail/square/callback`
+
+Square OAuth uses one server-resolved callback URL for the authorization request and token exchange.
+The Railway test service sets `SQUARE_REDIRECT_URI` to
+`https://test.useclevr.com/api/integrations/retail/square/callback`. The Square Developer Dashboard
+must contain that exact callback URI for the test service. The apex `useclevr.com` callback applies
+only after DNS and hosting route the apex domain to the production Next.js application.
 
 Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
 commit `.env` files.

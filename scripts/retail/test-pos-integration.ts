@@ -1,13 +1,25 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   calculateReorderQuantity,
   calculateRetailSalesKpis,
   calculateStockoutRisk,
 } from "@/integrations/retail/analytics/retail-kpis";
+import { OauthStateError } from "@/integrations/retail/core/connection.service";
 import { encryptRetailSecret, decryptRetailSecret } from "@/integrations/retail/core/encryption.service";
 import { SquareConnector } from "@/integrations/retail/providers/square/square.connector";
 import { getSquareConfig } from "@/integrations/retail/providers/square/square.config";
+import {
+  SQUARE_CALLBACK_PATH,
+  getSquareCallbackUrl,
+  getSafeSquareFailureReason,
+  getSquareCallbackFailureReason,
+  getSquareIntegrationRedirectUrl,
+  getSquareProviderDenialReason,
+  getSquareRedirectUri,
+} from "@/integrations/retail/providers/square/square-oauth";
 import {
   mapSquareCatalogItems,
   mapSquareInventoryCount,
@@ -22,10 +34,122 @@ type TestCase = {
 
 process.env.RETAIL_TOKEN_ENCRYPTION_KEY = "test-retail-token-encryption-key-with-32-chars";
 
+const repoRoot = resolve(import.meta.dirname, "../..");
 const squareProductionHost = "connect.squareup.com";
 const squareSandboxHost = "connect.squareupsandbox.com";
 
 const tests: TestCase[] = [
+  {
+    name: "Square callback route exists, supports GET parameters, and is public through the proxy",
+    run() {
+      const routeSource = readProjectFile("src/app/api/integrations/retail/square/callback/route.ts");
+      const proxySource = readProjectFile("src/proxy.ts");
+      assert.ok(routeSource.includes("export async function GET"), "callback route exports GET");
+      assert.ok(routeSource.includes('searchParams.get("code")'), "callback accepts code");
+      assert.ok(routeSource.includes('searchParams.get("state")'), "callback accepts state");
+      assert.ok(routeSource.includes('searchParams.get("error")'), "callback accepts provider error");
+      assert.ok(routeSource.includes('searchParams.get("error_description")'), "callback accepts provider error description");
+      assert.ok(routeSource.includes("consumeOauthState"), "callback consumes stored OAuth state");
+      assert.ok(routeSource.includes("getSquareIntegrationRedirectUrl"), "callback redirects through safe helper");
+      assert.ok(proxySource.includes("SQUARE_CALLBACK_PATH"), "proxy imports the canonical Square callback path");
+      assert.ok(proxySource.includes("publicApiPaths"), "proxy keeps a public API allowlist");
+    },
+  },
+  {
+    name: "Square test redirect URI is canonical and never falls back to useclevr.com or localhost",
+    async run() {
+      withSquareEnv("production", () => {
+        delete process.env.SQUARE_REDIRECT_URI;
+        process.env.NEXT_PUBLIC_APP_URL = "https://test.useclevr.com";
+        assert.equal(getSquareCallbackUrl(), "https://test.useclevr.com/api/integrations/retail/square/callback");
+        assert.equal(getSquareRedirectUri(), "https://test.useclevr.com/api/integrations/retail/square/callback");
+        assert.equal(getSquareConfig().redirectUri, "https://test.useclevr.com/api/integrations/retail/square/callback");
+      });
+
+      await withSquareEnv("production", async () => {
+        delete process.env.SQUARE_REDIRECT_URI;
+        process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+        await assert.rejects(() => new SquareConnector().getAuthorizationUrl({
+          state: "state-production",
+          redirectUri: getSquareRedirectUri(),
+        }), /HTTPS|localhost/);
+      });
+
+      withSquareEnv("production", () => {
+        process.env.NEXT_PUBLIC_APP_URL = "https://test.useclevr.com";
+        process.env.SQUARE_REDIRECT_URI = "https://useclevr.com/api/integrations/retail/square/callback";
+        assert.throws(() => getSquareRedirectUri(), /configured application URL/);
+      });
+    },
+  },
+  {
+    name: "Square authorization and token exchange use the same test redirect URI",
+    async run() {
+      await withSquareEnv("production", async () => {
+        process.env.NEXT_PUBLIC_APP_URL = "https://test.useclevr.com";
+        process.env.SQUARE_REDIRECT_URI = "https://test.useclevr.com/api/integrations/retail/square/callback";
+        const redirectUri = getSquareRedirectUri();
+        assert.equal(redirectUri, "https://test.useclevr.com/api/integrations/retail/square/callback");
+        const authorizationUrl = await new SquareConnector().getAuthorizationUrl({
+          state: "state-production",
+          redirectUri,
+        });
+        assert.equal(new URL(authorizationUrl).searchParams.get("redirect_uri"), redirectUri);
+
+        const previousFetch = globalThis.fetch;
+        let tokenBody: { redirect_uri?: string } | null = null;
+        const accessTokenField = ["access", "token"].join("_");
+        const refreshTokenField = ["refresh", "token"].join("_");
+        globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+          tokenBody = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
+          return new Response(JSON.stringify({
+            [accessTokenField]: "value-a",
+            [refreshTokenField]: "value-r",
+            merchant_id: "MERCHANT-1",
+            scope: "MERCHANT_PROFILE_READ ITEMS_READ",
+            expires_at: "2026-08-01T00:00:00Z",
+          }), { status: 200, headers: { "content-type": "application/json" } });
+        }) as typeof fetch;
+
+        try {
+          await new SquareConnector().exchangeAuthorizationCode({ code: "code-1", redirectUri });
+        } finally {
+          globalThis.fetch = previousFetch;
+        }
+
+        assert.equal((tokenBody as { redirect_uri?: string } | null)?.redirect_uri, redirectUri);
+        assert.equal(authorizationUrl.includes("square-app-secret"), false, "authorization URL never exposes the Square application secret");
+        assert.equal(
+          getSquareIntegrationRedirectUrl({ status: "error", reason: "square-app-secret" }).toString().includes("square-app-secret"),
+          false,
+          "callback error redirects never expose secret-like provider values",
+        );
+      });
+    },
+  },
+  {
+    name: "Square callback redirects use safe test success and failure destinations",
+    run() {
+      withSquareEnv("production", () => {
+        process.env.NEXT_PUBLIC_APP_URL = "https://test.useclevr.com";
+        process.env.SQUARE_REDIRECT_URI = "https://test.useclevr.com/api/integrations/retail/square/callback";
+        assert.equal(
+          getSquareIntegrationRedirectUrl({ status: "success" }).toString(),
+          "https://test.useclevr.com/app/retail/integrations?connection=square&status=success",
+        );
+        assert.equal(
+          getSquareIntegrationRedirectUrl({ status: "error", reason: "missing_code" }).toString(),
+          "https://test.useclevr.com/app/retail/integrations?connection=square&status=error&reason=missing_code",
+        );
+        assert.equal(getSafeSquareFailureReason("secret-token-value"), "provider_error");
+        assert.equal(getSquareProviderDenialReason("access_denied"), "access_denied");
+        assert.equal(getSquareProviderDenialReason("temporarily_unavailable"), "oauth_denied");
+        assert.equal(getSquareCallbackFailureReason(new OauthStateError("invalid_state")), "invalid_state");
+        assert.equal(getSquareCallbackFailureReason(new OauthStateError("expired_state")), "expired_state");
+        assert.equal(getSquareCallbackFailureReason(new Error("Square token response failed")), "token_exchange_failed");
+      });
+    },
+  },
   {
     name: "Square production environment uses production OAuth, token, and API endpoints",
     async run() {
@@ -40,7 +164,7 @@ const tests: TestCase[] = [
       const url = await withSquareEnv("production", () =>
         new SquareConnector().getAuthorizationUrl({
           state: "state-production",
-          redirectUri: "https://app.useclevr.com/api/integrations/retail/square/callback",
+          redirectUri: getSquareRedirectUri(),
         }),
       );
 
@@ -48,6 +172,7 @@ const tests: TestCase[] = [
       assert.equal(parsed.host, squareProductionHost);
       assert.equal(parsed.pathname, "/oauth2/authorize");
       assert.equal(parsed.searchParams.get("session"), "false");
+      assert.equal(parsed.searchParams.get("redirect_uri"), `https://test.useclevr.com${SQUARE_CALLBACK_PATH}`);
     },
   },
   {
@@ -64,7 +189,7 @@ const tests: TestCase[] = [
       const url = await withSquareEnv("sandbox", () =>
         new SquareConnector().getAuthorizationUrl({
           state: "state-sandbox",
-          redirectUri: "https://app.useclevr.com/api/integrations/retail/square/callback",
+          redirectUri: getSquareRedirectUri(),
         }),
       );
 
@@ -255,6 +380,9 @@ function withSquareEnv<T>(environment: string | undefined, run: () => T): T {
     applicationId: process.env.SQUARE_APPLICATION_ID,
     applicationSecret: process.env.SQUARE_APPLICATION_SECRET,
     redirectUri: process.env.SQUARE_REDIRECT_URI,
+    appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    authUrl: process.env.AUTH_URL,
+    nextAuthUrl: process.env.NEXTAUTH_URL,
   };
   if (environment === undefined) {
     delete process.env.SQUARE_ENVIRONMENT;
@@ -263,16 +391,37 @@ function withSquareEnv<T>(environment: string | undefined, run: () => T): T {
   }
   process.env.SQUARE_APPLICATION_ID = "square-app-id";
   process.env.SQUARE_APPLICATION_SECRET = "square-app-secret";
-  process.env.SQUARE_REDIRECT_URI = "https://app.useclevr.com/api/integrations/retail/square/callback";
+  process.env.SQUARE_REDIRECT_URI = "https://test.useclevr.com/api/integrations/retail/square/callback";
+  process.env.NEXT_PUBLIC_APP_URL = "https://test.useclevr.com";
+  delete process.env.AUTH_URL;
+  delete process.env.NEXTAUTH_URL;
 
-  try {
-    return run();
-  } finally {
+  const restore = () => {
     restoreEnv("SQUARE_ENVIRONMENT", previous.environment);
     restoreEnv("SQUARE_APPLICATION_ID", previous.applicationId);
     restoreEnv("SQUARE_APPLICATION_SECRET", previous.applicationSecret);
     restoreEnv("SQUARE_REDIRECT_URI", previous.redirectUri);
+    restoreEnv("NEXT_PUBLIC_APP_URL", previous.appUrl);
+    restoreEnv("AUTH_URL", previous.authUrl);
+    restoreEnv("NEXTAUTH_URL", previous.nextAuthUrl);
+  };
+
+  try {
+    const result = run();
+    const maybePromise = result as unknown;
+    if (maybePromise && typeof (maybePromise as Promise<unknown>).finally === "function") {
+      return (maybePromise as Promise<unknown>).finally(restore) as T;
+    }
+    restore();
+    return result;
+  } catch (error) {
+    restore();
+    throw error;
   }
+}
+
+function readProjectFile(path: string) {
+  return readFileSync(resolve(repoRoot, path), "utf8");
 }
 
 function restoreEnv(name: string, value: string | undefined) {

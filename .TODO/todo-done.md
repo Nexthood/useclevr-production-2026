@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-947. Repair Square OAuth callback routing with a public callback proxy exemption, canonical redirect URI generation, state-owned callback completion, safe redirects, and focused OAuth tests. (labels: upload, api, testing; commit: worktree)
 - T-946. Show one Standard Upload success panel with full KPI values, standard dashboard navigation, dataset detail navigation, and upload-another reset behavior while preserving every non-standard upload success flow. (labels: upload, ui, testing; commit: worktree)
 - T-943. Delete selected Dataset Library rows through confirmed single or bulk actions with scoped authorization, related-record cleanup, storage cleanup logging, partial-failure reporting, immediate table updates, and refreshed usage counters. (labels: upload, data, security; commit: worktree)
 - T-941. Enforce dataset module separation so uploads persist the correct standard, retail, profitability, accountancy, or pre-bookkeeping category and open only in the matching workspace. (labels: upload, data, dashboard; commit: worktree)
@@ -96,6 +97,9 @@ moving work between states.
 
 ## Label: ai
 
+- T-950. Execute dataset-aware assistant KPI questions through a central analytical intent registry with semantic schema mapping, deterministic gross-margin results, capability-filtered suggestions, direct-analysis status, and multi-schema regression coverage. (labels: ai, data, ui, testing; commit: worktree)
+- T-949. Present deterministic declining sales segment results as grouped responsive assistant sections with executive summaries, top-three defaults, show-all expansion, and contained result tables. (labels: ai, ui, data, testing; commit: worktree)
+- T-948. Answer dataset-aware declining sales segment questions with deterministic complete-period analysis, direct-data fallback output, structured missing-schema errors, and regression coverage for startup SaaS sales data. (labels: ai, data, testing; commit: worktree)
 - T-944. Add the Accuracy Engine Phase 1 retrieval foundation with guarded Neon capability detection, retrieval document storage, bounded dataset ingestion, hybrid retrieval, superadmin diagnostics, and tenant-isolation validation. (labels: ai, data, security, testing; commit: worktree)
 - T-906. Add Business Intelligence Engine Phase 1 with automatic post-upload profiling, KPI detection, health scoring, risk detection, opportunity detection, summaries, prioritized actions, and deterministic tests. (labels: ai, data, business, testing; commit: worktree)
 - T-905. Complete Hybrid AI feature gates for current Lite and MEGA features with backend enforcement and automated entitlement tests. (labels: ai, billing, security, testing; commit: worktree)

@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Route dataset-aware AI Assistant KPI questions through a semantic analytical intent layer so supported financial questions return deterministic direct results and unsupported suggestions stay hidden.
+- Group AI Assistant declining sales segment results by business dimension with concise summaries, top declines, expandable sections, and contained responsive tables.
 - Fix AI Providers access for the official superadmin account so provider limits, setup controls, mode switching, and backend BYOK actions use the same unlimited entitlement as the global subscription display.
 - Add Risk Intelligence for supported uploaded datasets with server-calculated risk scores, category summaries, severity counts, prioritized recommendations, source links, and Hybrid AI Lite access control so users can see traceable business-risk signals without enterprise compliance workflows.
 - Add production-ready BYOK AI provider controls with encrypted keys, provider priority routing, explicit Automatic, Local, BYOK, and UseClevr Cloud modes, connection testing, SSRF protection, and metadata-only usage auditing so customers control where AI requests run.
@@ -89,6 +91,9 @@
 
 ### Fixed
 
+- Resolve Square OAuth callbacks to the configured application domain so test connections return to the UseClevr test app.
+- Answer dataset-aware declining sales segment questions from complete-period data with direct calculated findings when an AI provider is unavailable.
+- Route Square OAuth callbacks through the application with one canonical callback URL, state-bound connection completion, and safe Retail Integrations success and error redirects.
 - Show one Standard Upload success panel with full KPI values, standard dashboard routing, dataset detail navigation, and upload-another reset actions.
 - Use the configured Square environment for Retail POS OAuth, token, revoke, and API requests so production settings no longer fall back to sandbox.
 - Load the Retail workspace POS Connections section without database errors by applying the Retail POS schema during deployment and showing Not Connected when no POS connection exists.

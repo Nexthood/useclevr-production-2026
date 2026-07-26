@@ -55,6 +55,21 @@ Text rules for this file:
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
+- Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
+- Map uploaded dataset columns to canonical business fields with normalized names, confidence values, original column references, ambiguity handling, and dataset-scoped schema state.
+- Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.
+- Never calculate gross margin from operating expenses alone and never infer COGS from an ambiguous generic cost field.
+- Return structured unsupported analysis messages for missing revenue, missing COGS, ambiguous cost mapping, zero revenue, mixed currency, invalid numeric values, unavailable dataset context, unsupported dataset type, and insufficient data.
+- Filter AI Assistant suggested questions by selected-dataset semantic capabilities before showing financial KPI prompts.
+- Show deterministic KPI results with Direct data analysis status and Last provider: Not required when no AI provider is needed.
+- Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
+- Compare declining sales segment results across the two latest complete periods and exclude sparse trailing periods from period-over-period comparisons.
+- Return direct calculated declining sales segment findings when the AI provider is unavailable or not needed for the numeric answer.
+- Present declining sales segment findings in grouped AI Assistant sections for Startup Stage, Acquisition Channel, Plan, and Geography.
+- Show the largest declining segment first within each group, limit each group to three visible rows by default, and let users expand groups with additional rows.
+- Show declining sales segment result tables inside contained horizontal-scroll panels with readable headers and important columns first.
+- Return structured dataset-schema errors for missing segment dimensions, missing time dimensions, missing sales metrics, and insufficient complete periods.
+- Show AI Assistant provider status as Direct data analysis or Failed before provider execution when deterministic dataset handling completes or blocks before provider routing.
 - Require a signed-in user for dataset upload, analysis, query, dashboard, prediction, investigation, and suggestion operations.
 - Scope every persisted dataset read and calculation to the owning user.
 - Never substitute another account's datasets when the current request has no signed-in owner.
@@ -90,6 +105,11 @@ Text rules for this file:
 - Keep POS-connected retail data separate from standard, profitability, accountancy, and pre-bookkeeping datasets.
 - Preserve CSV and Excel retail uploads as a supported retail data source alongside Square-connected data.
 - Queue Square initial and manual sync runs without exposing provider tokens to the browser.
+- Build Square OAuth authorization and token-exchange requests from one canonical server-side callback URL at `/api/integrations/retail/square/callback`.
+- Resolve Railway test Square OAuth callbacks to `https://test.useclevr.com/api/integrations/retail/square/callback` from the configured application URL and reject mixed application/callback origins.
+- Allow the Square OAuth callback route through API proxy authentication so Square can return authorization results to the application.
+- Complete Square OAuth callbacks from the stored server-side state record that binds provider, organization, creator, expiration, and nonce.
+- Redirect Square OAuth success and failure results to the Retail Integrations page with safe status and reason codes.
 - Verify Square webhooks against the raw request body and configured notification URL before storing sanitized webhook metadata.
 - Mark duplicate Square webhooks without processing the same provider event twice.
 - Disconnect Square without deleting imported analytics data.

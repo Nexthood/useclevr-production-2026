@@ -18,6 +18,15 @@ import {
 import { encryptRetailSecret } from "./encryption.service";
 import type { RetailConnectionRecord, TokenResult } from "./normalized-types";
 
+export type OauthStateErrorCode = "invalid_state" | "expired_state";
+
+export class OauthStateError extends Error {
+  constructor(public readonly code: OauthStateErrorCode) {
+    super(code === "expired_state" ? "Square authorization state is expired." : "Square authorization state is invalid.");
+    this.name = "OauthStateError";
+  }
+}
+
 export function createRetailId(prefix: string) {
   return `${prefix}_${randomUUID().replaceAll("-", "").slice(0, 18)}`;
 }
@@ -47,25 +56,29 @@ export async function createOauthState(input: {
 export async function consumeOauthState(input: {
   state: string;
   provider: RetailProvider;
-  userId: string;
+  userId?: string | null;
 }) {
   const db = getRequiredDb();
   const now = new Date();
+  const predicates = [
+    eq(retailOauthStates.stateHash, hashOauthState(input.state)),
+    eq(retailOauthStates.provider, input.provider),
+    isNull(retailOauthStates.usedAt),
+  ];
+  if (input.userId) predicates.push(eq(retailOauthStates.createdBy, input.userId));
+
   const [row] = await db
     .select()
     .from(retailOauthStates)
-    .where(
-      and(
-        eq(retailOauthStates.stateHash, hashOauthState(input.state)),
-        eq(retailOauthStates.provider, input.provider),
-        eq(retailOauthStates.createdBy, input.userId),
-        isNull(retailOauthStates.usedAt),
-      ),
-    )
+    .where(and(...predicates))
     .limit(1);
 
-  if (!row || row.expiresAt <= now) {
-    throw new Error("Square authorization state is invalid or expired.");
+  if (!row) {
+    throw new OauthStateError("invalid_state");
+  }
+
+  if (row.expiresAt <= now) {
+    throw new OauthStateError("expired_state");
   }
 
   await db
@@ -73,7 +86,10 @@ export async function consumeOauthState(input: {
     .set({ usedAt: now })
     .where(eq(retailOauthStates.id, row.id));
 
-  return row.organizationId;
+  return {
+    organizationId: row.organizationId,
+    createdBy: row.createdBy,
+  };
 }
 
 export async function saveRetailConnection(input: {

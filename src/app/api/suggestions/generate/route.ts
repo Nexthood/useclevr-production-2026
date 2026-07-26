@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid"
 import { auth } from "@/lib/auth/auth"
 import { getDb } from "@/lib/db"
 import { datasets, appSettings, datasetRows } from "@/lib/db/schema"
+import { availableAnalyticalSuggestions } from "@/lib/data/analytical-intents"
 import type { DatasetRecord } from "@/lib/data/dataset-intelligence"
 import {
   buildDatasetIntelligence,
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dataset not found" }, { status: 404 })
     }
 
-    const datasetKey = `suggestions_dataset_${datasetId}`
+    const datasetKey = `suggestions_dataset_v2_${datasetId}`
     const [cached] = await db
       .select()
       .from(appSettings)
@@ -67,12 +68,23 @@ export async function POST(request: Request) {
 
     const columns = Array.isArray(dataset.columns) ? dataset.columns : []
     const datasetType = detectDatasetTypeFromColumns(columns, dataset.name)
-    const newSuggestions = data.length > 0
+    const analyticalSuggestions = availableAnalyticalSuggestions({
+      datasetId,
+      datasetType,
+      columns: columns.length > 0 ? columns : Object.keys(data[0] || {}),
+      rows: data,
+    })
+    const generatedSuggestions = data.length > 0
       ? generateSuggestions(buildDatasetIntelligence(data as DatasetRecord[]), dataset.name)
       : fallbackSuggestionsForDatasetType(datasetType)
-    const safeSuggestions = newSuggestions.length >= 10
-      ? newSuggestions
-      : [...new Set([...newSuggestions, ...fallbackSuggestionsForDatasetType(datasetType)])].slice(0, 12)
+    const grossMarginQuestion = "What is the current gross margin?"
+    const filteredGeneratedSuggestions = generatedSuggestions.filter((suggestion) =>
+      suggestion !== grossMarginQuestion || analyticalSuggestions.includes(grossMarginQuestion)
+    )
+    const filteredFallbackSuggestions = fallbackSuggestionsForDatasetType(datasetType).filter((suggestion) =>
+      suggestion !== grossMarginQuestion || analyticalSuggestions.includes(grossMarginQuestion)
+    )
+    const safeSuggestions = [...new Set([...analyticalSuggestions, ...filteredGeneratedSuggestions, ...filteredFallbackSuggestions])].slice(0, 12)
 
     const savedSuggestions = safeSuggestions.map((s) => ({
       id: `sug_${uuidv4()}`,

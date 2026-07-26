@@ -11,6 +11,10 @@ import {
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
+import {
+  executeAnalyticalIntent,
+  type AnalyticalUnsupportedCode,
+} from "@/lib/data/analytical-intents";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
@@ -27,7 +31,7 @@ type HybridProviderStatus = {
   state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable";
   message: string;
   fallbackActive: boolean;
-  route: "local" | "cloud" | "none";
+  route: "local" | "cloud" | "direct" | "none";
 };
 
 type DatasetContextSummary = {
@@ -67,6 +71,7 @@ type DatasetContextSummary = {
 };
 
 const MAX_PROFILE_ROWS = 1000;
+const MAX_DETERMINISTIC_ROWS = 25000;
 const MAX_SAMPLE_ROWS_SENT = 8;
 const MAX_COLUMNS_IN_CONTEXT = 30;
 
@@ -152,13 +157,15 @@ export async function POST(request: Request) {
     where: eq(datasetRows.datasetId, parsed.datasetId),
     columns: { data: true },
     orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
-    limit: MAX_PROFILE_ROWS,
+    limit: MAX_DETERMINISTIC_ROWS,
   });
 
-  const profileRows = normalizeRows(
-    storedRows.length > 0 ? storedRows.map((row) => row.data) : Array.isArray(dataset.data) ? dataset.data.slice(0, MAX_PROFILE_ROWS) : [],
+  const analysisRows = normalizeRows(
+    storedRows.length > 0 ? storedRows.map((row) => row.data) : Array.isArray(dataset.data) ? dataset.data.slice(0, MAX_DETERMINISTIC_ROWS) : [],
   );
+  const profileRows = analysisRows.slice(0, MAX_PROFILE_ROWS);
   const columns = normalizeColumns(dataset.columns, profileRows);
+  const datasetType = detectDatasetTypeFromColumns(columns, dataset.name);
   const context = buildDatasetContext({
     id: dataset.id,
     name: dataset.name,
@@ -170,6 +177,84 @@ export async function POST(request: Request) {
     precomputedMetrics: dataset.precomputedMetrics,
     analysis: dataset.analysis,
   });
+  const latestQuestion = latestUserMessage(messages);
+  if (latestQuestion) {
+    const analyticalResult = executeAnalyticalIntent({
+      question: latestQuestion,
+      datasetId: dataset.id,
+      datasetType,
+      columns,
+      rows: analysisRows,
+    });
+    if (analyticalResult.status === "success") {
+      const providerStatus = directDataAnalysisStatus();
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Direct data analysis",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: true,
+      });
+      return NextResponse.json({
+        success: true,
+        answer: analyticalResult.answer,
+        content: analyticalResult.answer,
+        insight: analyticalResult.insight,
+        explanation: analyticalResult.explanation,
+        recommendation: analyticalResult.recommendation,
+        data: analyticalResult.data,
+        chartType: analyticalResult.chartType,
+        providerName: "Not required",
+        modelName: "",
+        mode: "direct",
+        route: "direct",
+        analyticalResult: analyticalResult.result,
+        deterministicAnalysis: analyticalResult.intent === "segment_decline" ? analyticalResult.result : undefined,
+        datasetContext: contextForClient(context),
+        privacyWarning: null,
+        providerStatus,
+      });
+    }
+
+    if (analyticalResult.status === "unsupported") {
+      const providerStatus = failedBeforeProviderStatus(analyticalResult.code);
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Failed before provider execution",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: false,
+        errorReason: analyticalResult.code,
+      });
+      return NextResponse.json({
+        success: false,
+        code: analyticalResult.code,
+        message: analyticalResult.message,
+        error: analyticalResult.message,
+        answer: analyticalResult.message,
+        content: analyticalResult.message,
+        providerName: "Not used",
+        modelName: "",
+        mode: "direct",
+        route: "none",
+        analyticalResult,
+        datasetContext: contextForClient(context),
+        privacyWarning: null,
+        providerStatus,
+      }, { status: 422 });
+    }
+  }
+
   const prompt = buildDatasetChatPrompt(messages, context);
   const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
     getAiMode(userId),
@@ -432,6 +517,10 @@ function normalizeMessages(input: z.infer<typeof datasetChatSchema>) {
   return message ? [{ role: "user" as const, content: message }] : [];
 }
 
+function latestUserMessage(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {
+  return [...messages].reverse().find((message) => message.role === "user")?.content.trim() || "";
+}
+
 function buildDatasetChatPrompt(
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
   context: DatasetContextSummary,
@@ -674,6 +763,42 @@ function providerStatusFromAdapterResult(
     message: mode === "local-only" ? "Offline mode active" : isLocalRoute ? "Local AI active" : fallbackUsed ? "Cloud fallback active" : "Connected",
     fallbackActive: fallbackUsed,
     route: isLocalRoute ? "local" : "cloud",
+  };
+}
+
+function directDataAnalysisStatus(): HybridProviderStatus {
+  return {
+    label: "Direct data analysis",
+    state: "connection_healthy",
+    message: "Direct data analysis",
+    fallbackActive: false,
+    route: "direct",
+  };
+}
+
+function failedBeforeProviderStatus(code: AnalyticalUnsupportedCode): HybridProviderStatus {
+  const messageByCode: Partial<Record<AnalyticalUnsupportedCode, string>> = {
+    missing_revenue_metric: "Missing revenue metric",
+    missing_cogs_metric: "Missing COGS metric",
+    ambiguous_cost_mapping: "Ambiguous cost mapping",
+    zero_revenue: "Zero revenue",
+    mixed_currency_dataset: "Mixed currency dataset",
+    invalid_numeric_values: "Invalid numeric values",
+    dataset_context_unavailable: "Dataset context unavailable",
+    unsupported_dataset_type: "Unsupported dataset type",
+    insufficient_data: "Insufficient data",
+    unsupported_question: "Unsupported calculation",
+    missing_segment_dimension: "Missing segment dimension",
+    missing_time_dimension: "Missing time dimension",
+    missing_sales_metric: "Missing sales metric",
+    insufficient_periods: "Insufficient complete periods",
+  };
+  return {
+    label: "Failed before provider execution",
+    state: "provider_unavailable",
+    message: messageByCode[code] ?? "Analysis unavailable",
+    fallbackActive: false,
+    route: "none",
   };
 }
 

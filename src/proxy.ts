@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+import { SQUARE_CALLBACK_PATH } from "@/integrations/retail/providers/square/square-oauth"
+
 const MCP_SUBDOMAIN_PATTERN = /^mcp(?:-test)?\.useclevr\.com(:?\d+)?$/;
 const MCP_TEST_SUBDOMAIN_PATTERN = /^mcp-test\.useclevr\.com(:?\d+)?$/
 
@@ -16,6 +18,7 @@ const publicApiPaths = [
   "/api/payload/cms-users/forgot-password",
   "/api/payload/cms-users/reset-password",
   "/api/payload/cms-users/unlock",
+  SQUARE_CALLBACK_PATH,
 ]
 
 function hasSessionCookie(request: NextRequest) {

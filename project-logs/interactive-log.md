@@ -348,6 +348,145 @@ Use existing KPI helpers for column and breakdown context, but keep risk scoring
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.
+## Square OAuth Callback Routing
+
+1. Interaction title
+Square OAuth callback routing.
+
+2. What was the user goal
+Fix the production Square OAuth callback 404 where Square redirects to `https://useclevr.com/api/integrations/retail/square/callback?code=...` and receives a LiteSpeed 404 instead of the UseClevr application route.
+
+3. What changed
+Square OAuth now builds authorization and token-exchange redirect URIs from one canonical server-side callback helper at `/api/integrations/retail/square/callback`. The API proxy allowlist includes the Square callback path so OAuth provider returns can reach the route before normal API authentication. The callback route consumes the stored server-side OAuth state record and uses its creator and organization to save the connection, so callback completion does not depend on a normal browser session cookie. Callback success redirects to `/app/retail/integrations?connection=square&status=success`; callback failures redirect with safe reason codes only. Retail POS tests cover callback route existence, GET support, proxy public access, production redirect URI generation, authorization and token-exchange redirect URI consistency, missing/invalid/expired/denied failure codes, safe redirects, secret redaction from redirects, production localhost rejection, and test/preview-domain rejection in production mode.
+
+4. Problems marked
+blocker: none.
+risk: The current apex and www domains resolve to a LiteSpeed host (`66.29.148.12`), so `https://useclevr.com/api/...` cannot reach the deployed Next.js application until DNS or hosting changes route that domain to the application.
+improvement: Add an operational domain check that alerts when the configured production callback host does not return UseClevr application headers.
+observation: `app.useclevr.com` and `test.useclevr.com` resolve to Railway and return Next.js/Payload headers; `useclevr.com` and `www.useclevr.com` return LiteSpeed 404 for `/api/health` and the Square callback path.
+
+5. User learning
+The code route can exist and still 404 at Square callback time when the registered callback domain points at a different hosting origin.
+
+6. AI-agent learning
+OAuth callback routes must be public at the proxy layer and must complete from server-side state, not from a live client session alone.
+
+7. Follow-up tasks
+- Configure the production callback host so the Square Dashboard registered redirect URI points to the active UseClevr application origin, or move `useclevr.com` and `www.useclevr.com` DNS/proxy routing from LiteSpeed to the active application deployment.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+## Generic Dataset-Aware Analytical Execution
+
+1. Interaction title
+Generic dataset-aware analytical execution.
+
+2. What was the user goal
+Fix the AI Assistant so selected-dataset questions such as "What is the current gross margin?" work across different uploaded datasets instead of relying on one-off question-specific branches.
+
+3. What changed
+The dataset chat API now runs a central analytical intent registry before AI provider routing. The registry defines the requested initial intent IDs and gives gross margin plus segment decline deterministic handlers. A semantic schema mapper maps normalized source columns to canonical business fields with confidence, original column references, ambiguity handling, currency detection, and dataset-scoped inputs. Gross margin calculates only from revenue plus COGS, revenue plus validated gross profit, or a validated gross margin field. Operating expenses and generic cost fields are not treated as COGS. Suggestions now use the same semantic capability check and a versioned dataset-ID cache key. The assistant renders gross margin as a structured KPI card with Direct data analysis status and Last provider: Not required.
+
+4. Problems marked
+blocker: none.
+risk: Only gross margin and segment decline have deterministic handlers in this pass; the registry lists the broader initial intent surface and returns structured unsupported results for handlers that are not implemented yet.
+improvement: Implement deterministic handlers for total revenue, total cost, gross profit, net profit, net margin, trends, concentration, rankings, and unusual transactions using the same registry.
+observation: The failure happened because gross-margin questions did not match the earlier segment-decline-only deterministic branch and fell through to provider routing, leaving the UI to report a provider-style failure when deterministic handling was missing.
+
+5. User learning
+Dataset-aware assistant suggestions must be generated from selected-dataset semantic capabilities so the UI does not invite unsupported KPI questions.
+
+6. AI-agent learning
+Question-specific deterministic branches should be replaced with an intent registry and semantic schema mapping so new KPI handlers share dataset loading, capability checks, unsupported messages, and provider status behavior.
+
+7. Follow-up tasks
+- Implement the remaining registered analytical intent handlers for revenue, cost, profit, margin, trend, concentration, ranking, and anomaly questions. (labels: ai, data, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Declining Sales Segment Result Presentation
+
+1. Interaction title
+Declining sales segment result presentation.
+
+2. What was the user goal
+Improve the AI Assistant presentation of deterministic declining sales segment results so Startup Stage, Acquisition Channel, Plan, and Geography do not appear as one dense flat list.
+
+3. What changed
+The assistant now passes the deterministic segment-decline payload into a dedicated grouped result renderer. The renderer builds an executive summary from deterministic values, groups rows by Startup Stage, Acquisition Channel, Plan, Geography, and Other, sorts each group by the largest percentage decline first, shows three rows per group by default, and provides Show all and Show less controls when a group has additional rows. The result table uses important columns first and stays inside a horizontal-scroll panel with a sticky header. Numeric formatting uses thousands separators, one decimal percentage precision, explicit negative percentages, and optional dataset currency metadata only when a currency column exists.
+
+4. Problems marked
+blocker: none.
+risk: Authenticated browser screenshots were not run because the project does not include a reusable signed-in assistant fixture for this state.
+improvement: Add Playwright coverage for the assistant result card once a reusable signed-in dataset fixture exists.
+observation: The deterministic analyzer values remained unchanged; the change is presentation-focused with optional currency metadata.
+
+5. User learning
+Deterministic assistant results need dimension-aware UI so users can scan business findings without mentally separating unrelated segment types.
+
+6. AI-agent learning
+When deterministic backend output includes structured findings, prefer a typed renderer over a single preformatted answer string.
+
+7. Follow-up tasks
+- Add authenticated browser coverage for grouped assistant result cards when a reusable signed-in dataset fixture exists.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Dataset-Aware Declining Sales Segment Analysis
+
+1. Interaction title
+Dataset-aware declining sales segment analysis.
+
+2. What was the user goal
+Fix the AI Assistant failure for the selected `startup_saas_sales_dataset` when the user asks, "Which sales segments are declining?", and use the startup SaaS sales CSV as a regression fixture.
+
+3. What changed
+The dataset chat API now recognizes declining sales segment questions before provider routing, loads deterministic rows separately from the bounded provider context, detects the time column, sales metric, and segment-like dimensions, excludes sparse trailing periods such as a one-row May period, and returns direct calculated findings when valid results exist. The assistant UI now preserves structured backend error status and shows Direct data analysis or Failed before provider execution instead of leaving privacy status pending or blaming an AI provider that was not called. A regression fixture covers March 2025 versus April 2025 declines for startup stage, plan, and acquisition channel.
+
+4. Problems marked
+blocker: none.
+risk: The focused regression uses a safe synthetic fixture with the user-specified totals because the original uploaded CSV file was not present in the accessible attachment tree.
+improvement: Add authenticated API or browser coverage for the `/app/assistant` selected-dataset request body when a reusable session fixture exists.
+observation: The previous dataset-aware route sent summarized context to providers without a deterministic branch for declining segment questions, so provider routing failures could mask pre-provider dataset analysis gaps.
+
+5. User learning
+Declining segment answers require deterministic aggregation across complete periods before AI narration.
+
+6. AI-agent learning
+Dataset-aware assistant endpoints must keep provider status separate from dataset-validation and deterministic-analysis status so the UI does not misreport provider failures.
+
+7. Follow-up tasks
+- Add authenticated `/app/assistant` browser coverage for selected dataset state and request payload when a reusable signed-in fixture exists.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Standard Upload Success UI
 
 1. Interaction title
@@ -416,3 +555,38 @@ Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the 
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.
+
+## Square OAuth Test Callback Domain Alignment
+
+1. Interaction title
+Square OAuth test callback domain alignment.
+
+2. What was the user goal
+Fix the Square OAuth environment mismatch so the deployed test app uses `https://test.useclevr.com` as the canonical application URL and sends Square the exact callback `https://test.useclevr.com/api/integrations/retail/square/callback` during authorization and token exchange.
+
+3. What changed
+Square OAuth now exposes one server-side callback URL helper used by Square config, authorization, and token exchange. The helper resolves the callback from `SQUARE_REDIRECT_URI` or the configured app URL, rejects mixed app/callback origins, keeps production Square endpoints tied to `SQUARE_ENVIRONMENT=production`, and allows the test domain while continuing to reject localhost and preview domains for production Square OAuth. Square OAuth diagnostics log only the resolved app URL, Square environment, callback hostname, and callback path. Railway test service variables now set `AUTH_URL`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `SQUARE_REDIRECT_URI` to `https://test.useclevr.com` values.
+
+4. Problems marked
+blocker: none.
+risk: Square Developer Dashboard configuration remains external to the repo and must include the exact test callback URI.
+improvement: Add authenticated browser coverage for the Square connect button when a reusable signed-in Retail workspace fixture exists.
+observation: The previous observed callback URL was `https://useclevr.com/api/integrations/retail/square/callback`, which routes to the apex LiteSpeed host and returns a generic 404.
+
+5. User learning
+Square requires the authorization redirect URI and token-exchange redirect URI to match exactly.
+
+6. AI-agent learning
+When a test deployment uses production Square endpoints from a non-apex app domain, the OAuth guard must validate origin consistency against the configured app URL rather than rejecting the test domain by hostname.
+
+7. Follow-up tasks
+- Add authenticated Square OAuth browser coverage when reusable signed-in Retail workspace fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
