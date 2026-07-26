@@ -555,3 +555,38 @@ Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the 
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.
+
+## Square OAuth Test Callback Domain Alignment
+
+1. Interaction title
+Square OAuth test callback domain alignment.
+
+2. What was the user goal
+Fix the Square OAuth environment mismatch so the deployed test app uses `https://test.useclevr.com` as the canonical application URL and sends Square the exact callback `https://test.useclevr.com/api/integrations/retail/square/callback` during authorization and token exchange.
+
+3. What changed
+Square OAuth now exposes one server-side callback URL helper used by Square config, authorization, and token exchange. The helper resolves the callback from `SQUARE_REDIRECT_URI` or the configured app URL, rejects mixed app/callback origins, keeps production Square endpoints tied to `SQUARE_ENVIRONMENT=production`, and allows the test domain while continuing to reject localhost and preview domains for production Square OAuth. Square OAuth diagnostics log only the resolved app URL, Square environment, callback hostname, and callback path. Railway test service variables now set `AUTH_URL`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `SQUARE_REDIRECT_URI` to `https://test.useclevr.com` values.
+
+4. Problems marked
+blocker: none.
+risk: Square Developer Dashboard configuration remains external to the repo and must include the exact test callback URI.
+improvement: Add authenticated browser coverage for the Square connect button when a reusable signed-in Retail workspace fixture exists.
+observation: The previous observed callback URL was `https://useclevr.com/api/integrations/retail/square/callback`, which routes to the apex LiteSpeed host and returns a generic 404.
+
+5. User learning
+Square requires the authorization redirect URI and token-exchange redirect URI to match exactly.
+
+6. AI-agent learning
+When a test deployment uses production Square endpoints from a non-apex app domain, the OAuth guard must validate origin consistency against the configured app URL rather than rejecting the test domain by hostname.
+
+7. Follow-up tasks
+- Add authenticated Square OAuth browser coverage when reusable signed-in Retail workspace fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

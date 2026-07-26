@@ -3,6 +3,8 @@ import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin";
 export const SQUARE_CALLBACK_PATH = "/api/integrations/retail/square/callback";
 export const SQUARE_INTEGRATIONS_PATH = "/app/retail/integrations";
 
+let hasLoggedSquareOAuthDiagnostics = false;
+
 const safeFailureReasons = new Set([
   "access_denied",
   "callback_domain_mismatch",
@@ -18,18 +20,40 @@ const safeFailureReasons = new Set([
   "token_exchange_failed",
 ]);
 
-export function getSquareRedirectUri() {
+export function getSquareCallbackUrl() {
   const explicit = normalizeSquareRedirectUri(process.env.SQUARE_REDIRECT_URI);
-  if (explicit) return explicit;
+  if (explicit) {
+    assertSquareRedirectUriMatchesAppUrl(explicit);
+    return explicit;
+  }
 
   const baseUrl = getCanonicalSquareAppBaseUrl();
   return new URL(SQUARE_CALLBACK_PATH, baseUrl).toString();
 }
 
+export function getSquareRedirectUri() {
+  return getSquareCallbackUrl();
+}
+
 export function requireSquareRedirectUri(environment: "production" | "sandbox") {
-  const redirectUri = getSquareRedirectUri();
+  const redirectUri = getSquareCallbackUrl();
   assertSquareRedirectUriAllowed(redirectUri, environment);
   return redirectUri;
+}
+
+export function logSquareOAuthDiagnostics(environment: "production" | "sandbox") {
+  if (hasLoggedSquareOAuthDiagnostics) return;
+  hasLoggedSquareOAuthDiagnostics = true;
+
+  const appUrl = getCanonicalSquareAppBaseUrl();
+  const callbackUrl = getSquareCallbackUrl();
+  const parsedCallback = new URL(callbackUrl);
+  console.warn("[SQUARE_OAUTH] Resolved configuration", {
+    appUrl,
+    squareEnvironment: environment,
+    callbackHostname: parsedCallback.hostname,
+    callbackPath: parsedCallback.pathname,
+  });
 }
 
 export function getCanonicalSquareAppBaseUrl() {
@@ -119,10 +143,36 @@ export function assertSquareRedirectUriAllowed(redirectUri: string, environment:
     if (isLocalhost(parsed.hostname)) {
       throw new Error("Square production redirect URI must not use localhost.");
     }
-    if (parsed.hostname === "test.useclevr.com" || parsed.hostname.endsWith(".vercel.app")) {
-      throw new Error("Square production redirect URI must not use test or preview domains.");
+    if (parsed.hostname.endsWith(".vercel.app")) {
+      throw new Error("Square production redirect URI must not use preview domains.");
     }
   }
+}
+
+function assertSquareRedirectUriMatchesAppUrl(redirectUri: string) {
+  const configuredBaseUrl = getConfiguredSquareAppBaseUrl();
+  if (!configuredBaseUrl) return;
+
+  const redirectUrl = new URL(redirectUri);
+  const appUrl = new URL(configuredBaseUrl);
+  if (redirectUrl.origin !== appUrl.origin) {
+    throw new Error("Square redirect URI origin must match the configured application URL.");
+  }
+}
+
+function getConfiguredSquareAppBaseUrl() {
+  const candidates = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.AUTH_URL,
+    process.env.NEXTAUTH_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeSquareBaseUrl(candidate);
+    if (normalized) return normalized;
+  }
+
+  return "";
 }
 
 function normalizeSquareRedirectUri(value: string | undefined) {

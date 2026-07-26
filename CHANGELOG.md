@@ -91,6 +91,7 @@
 
 ### Fixed
 
+- Resolve Square OAuth callbacks to the configured application domain so test connections return to the UseClevr test app.
 - Answer dataset-aware declining sales segment questions from complete-period data with direct calculated findings when an AI provider is unavailable.
 - Route Square OAuth callbacks through the application with one canonical callback URL, state-bound connection completion, and safe Retail Integrations success and error redirects.
 - Show one Standard Upload success panel with full KPI values, standard dashboard routing, dataset detail navigation, and upload-another reset actions.

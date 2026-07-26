@@ -1,4 +1,4 @@
-import { getSquareRedirectUri, requireSquareRedirectUri } from "./square-oauth";
+import { getSquareCallbackUrl, logSquareOAuthDiagnostics, requireSquareRedirectUri } from "./square-oauth";
 
 export const SQUARE_READ_ONLY_SCOPES = [
   "MERCHANT_PROFILE_READ",
@@ -28,7 +28,7 @@ export function getSquareConfig() {
   const apiBaseUrl = `https://${endpointConfig.apiHost}/v2`;
   const applicationId = process.env.SQUARE_APPLICATION_ID?.trim();
   const applicationSecret = process.env.SQUARE_APPLICATION_SECRET?.trim();
-  const redirectUri = getSquareRedirectUri();
+  const redirectUri = getSquareCallbackUrl();
   const webhookNotificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL?.trim();
   const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY?.trim();
 
@@ -54,6 +54,7 @@ export function requireSquareOAuthConfig() {
     throw new Error("Square OAuth is not configured.");
   }
   requireSquareRedirectUri(config.environment);
+  logSquareOAuthDiagnostics(config.environment);
   return config as ReturnType<typeof getSquareConfig> & {
     applicationId: string;
     applicationSecret: string;

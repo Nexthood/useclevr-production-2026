@@ -106,6 +106,7 @@ Text rules for this file:
 - Preserve CSV and Excel retail uploads as a supported retail data source alongside Square-connected data.
 - Queue Square initial and manual sync runs without exposing provider tokens to the browser.
 - Build Square OAuth authorization and token-exchange requests from one canonical server-side callback URL at `/api/integrations/retail/square/callback`.
+- Resolve Railway test Square OAuth callbacks to `https://test.useclevr.com/api/integrations/retail/square/callback` from the configured application URL and reject mixed application/callback origins.
 - Allow the Square OAuth callback route through API proxy authentication so Square can return authorization results to the application.
 - Complete Square OAuth callbacks from the stored server-side state record that binds provider, organization, creator, expiration, and nonce.
 - Redirect Square OAuth success and failure results to the Retail Integrations page with safe status and reason codes.
