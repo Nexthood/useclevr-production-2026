@@ -55,6 +55,11 @@ Text rules for this file:
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
+- Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
+- Compare declining sales segment results across the two latest complete periods and exclude sparse trailing periods from period-over-period comparisons.
+- Return direct calculated declining sales segment findings when the AI provider is unavailable or not needed for the numeric answer.
+- Return structured dataset-schema errors for missing segment dimensions, missing time dimensions, missing sales metrics, and insufficient complete periods.
+- Show AI Assistant provider status as Direct data analysis or Failed before provider execution when deterministic dataset handling completes or blocks before provider routing.
 - Require a signed-in user for dataset upload, analysis, query, dashboard, prediction, investigation, and suggestion operations.
 - Scope every persisted dataset read and calculation to the owning user.
 - Never substitute another account's datasets when the current request has no signed-in owner.

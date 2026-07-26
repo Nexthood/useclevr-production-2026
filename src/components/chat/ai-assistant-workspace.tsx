@@ -44,6 +44,7 @@ type AssistantMessage = {
   providerStatus?: ProviderStatus
   privacyWarning?: string | null
   error?: string
+  errorCode?: string
 }
 
 type ProviderStatus = {
@@ -51,7 +52,7 @@ type ProviderStatus = {
   state: "connection_healthy" | "fallback_active" | "provider_unavailable" | "offline_active" | "local_unavailable"
   message: string
   fallbackActive: boolean
-  route?: "local" | "cloud" | "none"
+  route?: "local" | "cloud" | "direct" | "none"
 }
 
 type HistoryEntry = {
@@ -117,6 +118,8 @@ type RightTab = "suggestions" | "history" | "search"
 function displayProviderName(providerName?: string | null) {
   if (!providerName) return "UseClevr Cloud Analysis"
   const normalized = providerName.toLowerCase()
+  if (normalized.includes("direct data")) return "Direct data analysis"
+  if (normalized.includes("failed before provider")) return "Failed before provider execution"
   if (normalized.includes("local") || normalized.includes("ollama")) return "UseClevr Hybrid AI"
   if (normalized.includes("gemini") || normalized.includes("google")) return "UseClevr Cloud Analysis"
   if (normalized.includes("mock")) return "UseClevr Test Analysis"
@@ -184,6 +187,11 @@ export function AiAssistantWorkspace() {
         const nextDatasets = Array.isArray(body.datasets) ? body.datasets : []
         setDatasets(nextDatasets)
         if (nextDatasets.length === 0) sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
+        setSelectedDatasetId((current) => {
+          if (!current || nextDatasets.some((dataset: DatasetOption) => dataset.id === current)) return current
+          sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
+          return ""
+        })
       } catch {
         if (!cancelled) setDatasets([])
       } finally {
@@ -257,7 +265,22 @@ export function AiAssistantWorkspace() {
 
       if (!response.ok || body.success === false) {
         const errorMessage = String(body.message || body.error || "The assistant could not answer that question.")
-        throw new Error(errorMessage)
+        const assistantMessage: AssistantMessage = {
+          id: `assistant-error-${Date.now()}`,
+          traceId: typeof body.traceId === "string" ? body.traceId : undefined,
+          role: "assistant",
+          content: errorMessage,
+          error: errorMessage,
+          errorCode: typeof body.code === "string" ? body.code : undefined,
+          providerName: isProviderStatus(body.providerStatus) && typeof body.providerStatus.label === "string"
+            ? body.providerStatus.label
+            : displayProviderName(typeof body.providerName === "string" ? body.providerName : undefined),
+          modelName: typeof body.modelName === "string" ? body.modelName : undefined,
+          providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
+          privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
+        }
+        setMessages((current) => [...current, assistantMessage])
+        return
       }
 
       const assistantMessage: AssistantMessage = {
@@ -513,7 +536,7 @@ export function AiAssistantWorkspace() {
                         )}
                         {message.providerStatus?.route && (
                           <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                            {message.providerStatus.route === "local" ? "Local" : message.providerStatus.route === "cloud" ? "Cloud" : "Unavailable"}
+                            {message.providerStatus.route === "local" ? "Local" : message.providerStatus.route === "cloud" ? "Cloud" : message.providerStatus.route === "direct" ? "Direct" : "Unavailable"}
                           </span>
                         )}
                       </span>
@@ -540,15 +563,10 @@ export function AiAssistantWorkspace() {
                     <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/10 p-2 text-xs text-destructive">
                       <p className="font-medium">What happened:</p>
                       <p className="mt-0.5 text-muted-foreground">
-                        The AI provider could not process this question. This may be due to a temporary
-                        service interruption, a timeout, or an unsupported query pattern.
+                        {errorExplanation(message)}
                       </p>
                       <p className="mt-1 font-medium">Next steps:</p>
-                      <ul className="mt-0.5 list-inside list-disc text-muted-foreground">
-                        <li>Rephrase your question in simpler terms</li>
-                        <li>Check that your dataset has the relevant columns</li>
-                        <li>Try again in a few moments</li>
-                      </ul>
+                      <p className="mt-0.5 text-muted-foreground">{errorNextStep(message)}</p>
                     </div>
                   )}
 
@@ -866,7 +884,7 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
   const message = status?.message || "Provider routing appears after the next AI response."
   const providerName = latestMessage?.providerName || "Not used yet"
   const modelName = latestMessage?.modelName || "Pending"
-  const route = status?.route === "local" ? "Local" : status?.route === "cloud" ? "Cloud" : status?.route === "none" ? "Unavailable" : "Pending"
+  const route = status?.route === "local" ? "Local" : status?.route === "cloud" ? "Cloud" : status?.route === "direct" ? "Direct" : status?.route === "none" ? "Unavailable" : "Pending"
 
   return (
     <div className="border-b border-border bg-background px-4 py-2">
@@ -880,6 +898,8 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
                 ? "Cloud fallback active"
                 : status?.route === "local"
                   ? "Local AI active"
+                  : status?.route === "direct"
+                    ? "Direct data analysis"
                   : message}
           </p>
         </div>
@@ -899,6 +919,24 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
       </div>
     </div>
   )
+}
+
+function errorExplanation(message: AssistantMessage) {
+  if (message.providerStatus?.label === "Failed before provider execution") {
+    return "The request stopped during dataset validation or deterministic analysis before any AI provider was selected."
+  }
+  if (message.errorCode?.startsWith("missing_") || message.errorCode === "insufficient_periods") {
+    return "The selected dataset does not contain enough validated fields for this analysis."
+  }
+  return "The assistant could not complete this request. The provider status above shows whether the failure happened before or during provider routing."
+}
+
+function errorNextStep(message: AssistantMessage) {
+  if (message.errorCode === "missing_time_dimension") return "Use a dataset with a date, month, or period column and at least two complete periods."
+  if (message.errorCode === "missing_sales_metric") return "Use a dataset with a numeric revenue, sales, amount, or order value column."
+  if (message.errorCode === "missing_segment_dimension") return "Use a dataset with a segment, plan, channel, region, country, or category column."
+  if (message.errorCode === "insufficient_periods") return "Add enough rows for two complete comparable periods."
+  return "Check the selected dataset and try the question again."
 }
 
 function ResponseSection({ title, text }: { title: string; text: string }) {

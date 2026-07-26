@@ -1,0 +1,14 @@
+order_date,revenue,startup_stage,plan,acquisition_channel,region,country
+2025-03-04,8501,Seed,Enterprise,Referral,North America,United States
+2025-03-08,16396,Seed,Enterprise,Organic,Europe,Netherlands
+2025-03-12,12689,Seed,Enterprise,LinkedIn Ads,Europe,United Kingdom
+2025-03-20,855,Seed,Enterprise,Direct,North America,Canada
+2025-03-22,18369,Series A,Enterprise,Direct,North America,United States
+2025-03-26,4998,Growth,Pro,Direct,Europe,Germany
+2025-04-03,4302,Seed,Enterprise,Referral,North America,United States
+2025-04-09,5225,Seed,Enterprise,Organic,Europe,Netherlands
+2025-04-14,3542,Series A,Enterprise,Organic,Europe,United Kingdom
+2025-04-18,8372,Series A,Enterprise,LinkedIn Ads,Europe,Germany
+2025-04-24,29987,Series A,Enterprise,Direct,North America,Canada
+2025-04-28,3822,Growth,Pro,Direct,Europe,Germany
+2025-05-01,1,Seed,Pro,Referral,North America,United States

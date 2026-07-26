@@ -382,6 +382,41 @@ OAuth callback routes must be public at the proxy layer and must complete from s
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+## Dataset-Aware Declining Sales Segment Analysis
+
+1. Interaction title
+Dataset-aware declining sales segment analysis.
+
+2. What was the user goal
+Fix the AI Assistant failure for the selected `startup_saas_sales_dataset` when the user asks, "Which sales segments are declining?", and use the startup SaaS sales CSV as a regression fixture.
+
+3. What changed
+The dataset chat API now recognizes declining sales segment questions before provider routing, loads deterministic rows separately from the bounded provider context, detects the time column, sales metric, and segment-like dimensions, excludes sparse trailing periods such as a one-row May period, and returns direct calculated findings when valid results exist. The assistant UI now preserves structured backend error status and shows Direct data analysis or Failed before provider execution instead of leaving privacy status pending or blaming an AI provider that was not called. A regression fixture covers March 2025 versus April 2025 declines for startup stage, plan, and acquisition channel.
+
+4. Problems marked
+blocker: none.
+risk: The focused regression uses a safe synthetic fixture with the user-specified totals because the original uploaded CSV file was not present in the accessible attachment tree.
+improvement: Add authenticated API or browser coverage for the `/app/assistant` selected-dataset request body when a reusable session fixture exists.
+observation: The previous dataset-aware route sent summarized context to providers without a deterministic branch for declining segment questions, so provider routing failures could mask pre-provider dataset analysis gaps.
+
+5. User learning
+Declining segment answers require deterministic aggregation across complete periods before AI narration.
+
+6. AI-agent learning
+Dataset-aware assistant endpoints must keep provider status separate from dataset-validation and deterministic-analysis status so the UI does not misreport provider failures.
+
+7. Follow-up tasks
+- Add authenticated `/app/assistant` browser coverage for selected dataset state and request payload when a reusable signed-in fixture exists.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Standard Upload Success UI
 
 1. Interaction title
