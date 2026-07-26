@@ -1,6 +1,6 @@
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import { logMissingStripePriceId } from "@/lib/billing/plans";
-import { getProLaunchPrices, getProStripePriceId } from "@/lib/billing/launch-pricing";
+import { getCheckoutMarketOptions, getProLaunchPrices, getProStripePriceId } from "@/lib/billing/launch-pricing";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -19,6 +19,11 @@ export async function GET(_request: NextRequest) {
       features: plan.features,
       discountLabel: plan.discountLabel ?? null,
       launchPrices: plan.id === "pro_monthly" ? getProLaunchPrices() : null,
+      marketOptions: plan.id === "pro_monthly"
+        ? getCheckoutMarketOptions("pro").map(sanitizeMarketOption)
+        : plan.id === "business_monthly"
+          ? getCheckoutMarketOptions("business").map(sanitizeMarketOption)
+          : null,
       stripePriceStatusByCurrency: plan.id === "pro_monthly"
         ? {
             EUR: Boolean(getProStripePriceId("EUR")),
@@ -31,4 +36,17 @@ export async function GET(_request: NextRequest) {
       status: plan.tier === "free" || plan.stripePriceId ? "ready" : "payment_provider_not_connected",
     })),
   });
+}
+
+function sanitizeMarketOption(option: ReturnType<typeof getCheckoutMarketOptions>[number]) {
+  return {
+    plan: option.plan,
+    billingInterval: option.billingInterval,
+    market: option.market,
+    marketLabel: option.marketLabel,
+    currency: option.currency,
+    amountMinor: option.amountMinor,
+    displayPrice: option.displayPrice,
+    enabled: option.enabled,
+  };
 }

@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   billingCountryOptions,
   getCountryFromLocale,
-  getCurrencyForCountry,
-  resolveProPriceForCountry,
+  getMarketForCountry,
+  normalizeCheckoutMarket,
+  type CheckoutMarket,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing";
 import { billingPlans, formatPlanPrice, getBillingPlan, normalizeBillingPlanId, type BillingPlan } from "@/lib/billing/plans";
@@ -31,12 +32,25 @@ type CheckoutStep = "review" | "terms";
 type CheckoutPlan = BillingPlan & {
   status?: "ready" | "payment_provider_not_connected";
   stripePriceStatusByCurrency?: Partial<Record<SupportedCurrency, boolean>> | null;
+  marketOptions?: CheckoutMarketOption[] | null;
 };
 
 type CheckoutPlanOption = Omit<CheckoutPlan, "stripePriceId"> & {
   stripePriceId?: string | null;
   launchPrices?: BillingPlan["launchPrices"] | null;
   stripePriceStatusByCurrency?: Partial<Record<SupportedCurrency, boolean>> | null;
+  marketOptions?: CheckoutMarketOption[] | null;
+};
+
+type CheckoutMarketOption = {
+  plan: "pro" | "business";
+  billingInterval: "monthly";
+  market: CheckoutMarket;
+  marketLabel: string;
+  currency: SupportedCurrency;
+  amountMinor: number | null;
+  displayPrice: string;
+  enabled: boolean;
 };
 
 const defaultCheckoutPlans: CheckoutPlan[] = billingPlans.map((plan) => ({
@@ -60,20 +74,20 @@ function CheckoutClient() {
   const [isGoing, setIsGoing] = React.useState(false);
   const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
   const [availableDiscounts, setAvailableDiscounts] = React.useState<DiscountRule[]>([]);
-  const [billingCountry, setBillingCountry] = React.useState("NL");
+  const [selectedMarket, setSelectedMarket] = React.useState<CheckoutMarket>(
+    normalizeCheckoutMarket(searchParams.get("market")) ?? "eu",
+  );
   const [browserCountry, setBrowserCountry] = React.useState<string | null>(null);
 
   const plan: CheckoutPlan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
   const paidPlans = availablePlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
-  const selectedProPrice = resolveProPriceForCountry(billingCountry);
-  const selectedProCurrency = getCurrencyForCountry(billingCountry);
-  const proStripeReadyByCurrency = plan.id === "pro_monthly" ? plan.stripePriceStatusByCurrency : null;
+  const selectedMarketOption = getSelectedMarketOption(plan, selectedMarket);
 
   React.useEffect(() => {
     const country = getCountryFromLocale(navigator.language);
     setBrowserCountry(country);
     if (country && billingCountryOptions.some((option) => option.value === country)) {
-      setBillingCountry(country);
+      setSelectedMarket(getMarketForCountry(country));
     }
   }, []);
 
@@ -103,6 +117,7 @@ function CheckoutClient() {
                   typeof serverPlan?.stripePriceId === "string" ? serverPlan.stripePriceId : undefined,
                 launchPrices: serverPlan?.launchPrices ?? staticPlan.launchPrices,
                 stripePriceStatusByCurrency: serverPlan?.stripePriceStatusByCurrency ?? null,
+                marketOptions: serverPlan?.marketOptions ?? null,
               };
             }),
           );
@@ -126,7 +141,10 @@ function CheckoutClient() {
     setStep("review");
     setTermsAccepted(false);
     setCheckoutError(null);
-    router.push(`/app/settings/checkout?plan=${normalized}${discount ? "&discount=auto" : ""}`);
+    const nextPlan = availablePlans.find((candidate) => candidate.id === normalized) ?? getBillingPlan(normalized);
+    const nextMarket = getMarketSelectionForPlan(nextPlan, selectedMarket);
+    setSelectedMarket(nextMarket);
+    router.push(buildCheckoutUrl({ planId: normalized, market: nextMarket, discount }));
   };
 
   // Fetch available discounts and filter by plan target
@@ -150,11 +168,7 @@ function CheckoutClient() {
   }, [plan.tier]);
 
   const tscUrl = "/terms";
-  const canReview = !isPlanConfigLoading && (
-    plan.id === "pro_monthly"
-      ? Boolean(proStripeReadyByCurrency?.[selectedProCurrency])
-      : Boolean(plan.stripePriceId)
-  );
+  const canReview = !isPlanConfigLoading && Boolean(selectedMarketOption?.enabled);
   const submitLabel = isPlanConfigLoading
     ? "Checking payment provider..."
     : canReview
@@ -170,7 +184,12 @@ function CheckoutClient() {
       const response = await fetch("/api/checkout/confirm?form=review-accepted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingCountry, browserCountry }),
+        body: JSON.stringify({
+          plan: plan.tier,
+          billingInterval: "monthly",
+          market: selectedMarket,
+          browserCountry,
+        }),
       });
       const result = await response.json().catch(() => ({}));
 
@@ -197,22 +216,13 @@ function CheckoutClient() {
   const goTerms = (e: React.MouseEvent) => {
     e.preventDefault();
     setStep("terms");
-    // Push discount into URL so Step 2 re-render picks it up via searchParams
-    if (discount) {
-      router.push(`/app/settings/checkout?form=review-accepted&plan=${planId}&discount=auto`);
-    } else {
-      router.push(`/app/settings/checkout?form=review-accepted&plan=${planId}`);
-    }
+    router.push(buildCheckoutUrl({ planId, market: selectedMarket, discount, form: "review-accepted" }));
   };
 
   const goBack = (e: React.MouseEvent) => {
     e.preventDefault();
     setStep("review");
-    if (discount) {
-      router.push(`/app/settings/checkout?plan=${planId}&discount=auto`);
-    } else {
-      router.push(`/app/settings/checkout?plan=${planId}`);
-    }
+    router.push(buildCheckoutUrl({ planId, market: selectedMarket, discount }));
   };
 
   return (
@@ -265,7 +275,7 @@ function CheckoutClient() {
                         />
                       </span>
                       <span className="mt-1 block text-sm font-medium text-foreground">
-                        {candidate.id === "pro_monthly" ? selectedProPrice.label : formatPlanPrice(candidate)}
+                        {formatCheckoutPlanPrice(candidate, selectedMarket)}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">{candidate.description}</span>
                     </button>
@@ -276,42 +286,21 @@ function CheckoutClient() {
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">{plan.name}</h2>
                 <span className="text-xl font-semibold">
-                  {plan.id === "pro_monthly" ? selectedProPrice.label : formatPlanPrice(plan)}
+                  {formatCheckoutPlanPrice(plan, selectedMarket)}
                 </span>
               </div>
               <p className="mt-3 break-words text-sm text-muted-foreground">{plan.description}</p>
 
-              {plan.id === "pro_monthly" && (
-                <div className="mt-5 rounded-lg border border-border bg-muted/30 p-4">
-                  <label htmlFor="billingCountry" className="text-sm font-medium text-foreground">
-                    Billing country
-                  </label>
-                  <select
-                    id="billingCountry"
-                    value={billingCountry}
-                    onChange={(event) => {
-                      setBillingCountry(event.target.value);
-                      setCheckoutError(null);
-                    }}
-                    className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  >
-                    {billingCountryOptions.map((country) => (
-                      <option key={country.value} value={country.value}>
-                        {country.label} - {resolveProPriceForCountry(country.value).label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Checkout uses the validated billing country to choose the approved Stripe price. Switzerland, Denmark, Sweden, Norway, and unsupported countries use the temporary EUR launch fallback.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    {plan.launchPrices?.map((price) => (
-                      <span key={price.currency} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
-                        {price.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              {(plan.id === "pro_monthly" || plan.id === "business_monthly") && (
+                <MarketSelector
+                  plan={plan}
+                  selectedMarket={selectedMarket}
+                  onSelect={(market) => {
+                    setSelectedMarket(market);
+                    setCheckoutError(null);
+                    router.push(buildCheckoutUrl({ planId, market, discount }));
+                  }}
+                />
               )}
 
               <div className="mt-5 space-y-2">
@@ -342,9 +331,16 @@ function CheckoutClient() {
               </div>
 
               <div className="mt-5">
-                <Button onClick={goTerms} className="w-full">
-                  Continue to terms &amp; conditions
+                <Button onClick={goTerms} className="w-full" disabled={!canReview}>
+                  {canReview ? "Continue to terms & conditions" : "Checkout unavailable for this market"}
                 </Button>
+                {!isPlanConfigLoading && !canReview && (
+                  <p className="mt-2 text-sm text-destructive">
+                    {selectedMarketOption
+                      ? `${selectedMarketOption.marketLabel} checkout is not available for ${plan.name} yet.`
+                      : "Choose an available billing market before checkout."}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -505,6 +501,90 @@ function CheckoutClient() {
       </Card>
     </div>
   );
+}
+
+function MarketSelector({
+  plan,
+  selectedMarket,
+  onSelect,
+}: {
+  plan: CheckoutPlan;
+  selectedMarket: CheckoutMarket;
+  onSelect: (market: CheckoutMarket) => void;
+}) {
+  const options = plan.marketOptions ?? [];
+  if (options.length === 0) return null;
+
+  return (
+    <div className="mt-5 rounded-lg border border-border bg-muted/30 p-4">
+      <p className="text-sm font-medium text-foreground">Billing market</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {options.map((option) => {
+          const selected = option.market === selectedMarket;
+          return (
+            <button
+              key={option.market}
+              type="button"
+              disabled={!option.enabled}
+              onClick={() => onSelect(option.market)}
+              className={[
+                "min-h-20 rounded-lg border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                selected ? "border-primary bg-primary/10" : "border-border bg-background",
+                option.enabled ? "hover:border-primary/50" : "cursor-not-allowed opacity-60",
+              ].join(" ")}
+              aria-pressed={selected}
+            >
+              <span className="block text-sm font-semibold text-foreground">{option.marketLabel}</span>
+              <span className="mt-1 block text-sm font-medium text-foreground">
+                {option.enabled ? option.displayPrice : "Unavailable"}
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {option.enabled ? option.currency : "Not configured"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Checkout uses the selected market to choose the approved Stripe subscription price.
+      </p>
+    </div>
+  );
+}
+
+function getSelectedMarketOption(plan: CheckoutPlan, market: CheckoutMarket) {
+  return plan.marketOptions?.find((option) => option.market === market) ?? null;
+}
+
+function getMarketSelectionForPlan(plan: CheckoutPlan, currentMarket: CheckoutMarket): CheckoutMarket {
+  const options = plan.marketOptions ?? [];
+  if (options.some((option) => option.market === currentMarket && option.enabled)) return currentMarket;
+  return options.find((option) => option.enabled)?.market ?? currentMarket;
+}
+
+function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket) {
+  if (plan.id === "pro_monthly" || plan.id === "business_monthly") {
+    return getSelectedMarketOption(plan, market)?.displayPrice ?? formatPlanPrice(plan);
+  }
+
+  return formatPlanPrice(plan);
+}
+
+function buildCheckoutUrl({
+  planId,
+  market,
+  discount,
+  form,
+}: {
+  planId: string;
+  market: CheckoutMarket;
+  discount: boolean;
+  form?: string;
+}) {
+  const params = new URLSearchParams({ plan: normalizeBillingPlanId(planId), market });
+  if (form) params.set("form", form);
+  if (discount) params.set("discount", "auto");
+  return `/app/settings/checkout?${params.toString()}`;
 }
 
 export default function SettingsCheckoutPage() {

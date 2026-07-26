@@ -28,8 +28,8 @@ export function CheckoutButton({
   const [loading, setLoading] = React.useState(false)
 
   const handleCheckout = async () => {
-    if (productId === "pro_monthly") {
-      window.location.assign("/app/settings/checkout?plan=pro_monthly")
+    if (productId === "pro_monthly" || productId === "business_monthly") {
+      window.location.assign(`/app/settings/checkout?plan=${productId}&market=eu`)
       return
     }
 

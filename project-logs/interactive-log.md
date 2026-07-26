@@ -590,3 +590,38 @@ When a test deployment uses production Square endpoints from a non-apex app doma
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Pro And Business Market Checkout
+
+1. Interaction title
+Pro and Business market checkout.
+
+2. What was the user goal
+Repair Pro multi-market Stripe checkout and add Business market selection by reusing the Pro selector architecture while preserving the working Business EUR Stripe flow.
+
+3. What changed
+Checkout pricing now uses one server-side monthly market registry for Pro and Business. Pro keeps approved EUR, GBP, USD, and CAD prices and reads the current `USECLEVR_PRO_PRICE_*` variables plus `STRIPE_PRO_PRICE_ID_*` aliases. Business keeps approved EUR pricing through `STRIPE_BUSINESS_PRICE_ID_EUR`, `STRIPE_PRICE_BUSINESS_MONTHLY`, or `STRIPE_PRICE_ID_BUSINESS_MONTHLY`; Business UK, US, and Canada render as unavailable until approved prices and matching Price IDs exist. The checkout page uses one market selector for both paid plans, preserves market through review, terms, back navigation, and checkout submit, and posts only canonical plan, monthly interval, and market. Stripe checkout validates active recurring monthly price configuration and expected currency before session creation. Webhook tier mapping now recognizes every configured market Price ID.
+
+4. Problems marked
+blocker: none.
+risk: Live Stripe Price validation was not run because the task must not expose or log secrets and no Stripe Dashboard access is available in the workspace.
+improvement: Add authenticated browser coverage for checkout review and terms once reusable signed-in fixtures exist.
+observation: Business worked because it used one configured EUR plan Price ID, while Pro depended on market-specific Price IDs and the old browser flow did not send a canonical market.
+
+5. User learning
+Business non-EUR checkout requires approved monthly prices and matching Stripe Price IDs before those markets can be enabled.
+
+6. AI-agent learning
+Do not let checkout UI send amount, currency, or Price ID; resolve payable values from canonical plan, interval, and market on the server.
+
+7. Follow-up tasks
+- Add authenticated browser coverage for Pro and Business market checkout when signed-in checkout fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

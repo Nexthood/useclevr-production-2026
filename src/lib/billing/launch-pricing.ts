@@ -2,6 +2,9 @@ import { debugWarn } from "@/lib/utils/debug"
 
 export type SupportedCurrency = "EUR" | "GBP" | "USD" | "CAD"
 export type PricingTier = "TIER_A" | "TIER_B" | "TIER_C"
+export type CheckoutMarket = "eu" | "uk" | "us" | "ca"
+export type CheckoutPlanSlug = "pro" | "business"
+export type BillingInterval = "monthly"
 
 export type LaunchPrice = {
   currency: SupportedCurrency
@@ -9,7 +12,24 @@ export type LaunchPrice = {
   label: string
 }
 
+export type CheckoutMarketPrice = {
+  plan: CheckoutPlanSlug
+  billingPlanId: "pro_monthly" | "business_monthly"
+  billingInterval: BillingInterval
+  market: CheckoutMarket
+  marketLabel: string
+  currency: SupportedCurrency
+  amountMinor: number | null
+  displayPrice: string
+  stripePriceId?: string
+  priceEnvNames: string[]
+  enabled: boolean
+}
+
 export type CheckoutPriceResolutionInput = {
+  plan?: CheckoutPlanSlug | null
+  market?: string | null
+  billingInterval?: string | null
   billingCountry?: string | null
   paymentProviderCustomerCountry?: string | null
   taxCountry?: string | null
@@ -17,6 +37,7 @@ export type CheckoutPriceResolutionInput = {
   browserCountry?: string | null
   requestedCurrency?: string | null
   requestedAmountMinor?: number | null
+  requestedStripePriceId?: string | null
 }
 
 export const pricingConfig: Record<PricingTier, { enabled: boolean; prices: Partial<Record<SupportedCurrency, number>> }> = {
@@ -86,6 +107,52 @@ export const proPriceEnvByCurrency: Record<SupportedCurrency, string> = {
   CAD: "USECLEVR_PRO_PRICE_CAD",
 }
 
+export const checkoutMarkets: ReadonlyArray<{
+  market: CheckoutMarket
+  label: string
+  currency: SupportedCurrency
+}> = [
+  { market: "eu", label: "EU", currency: "EUR" },
+  { market: "uk", label: "UK", currency: "GBP" },
+  { market: "us", label: "US", currency: "USD" },
+  { market: "ca", label: "Canada", currency: "CAD" },
+]
+
+const proPriceEnvNamesByMarket: Record<CheckoutMarket, string[]> = {
+  eu: ["USECLEVR_PRO_PRICE_EUR", "STRIPE_PRO_PRICE_ID_EUR", "STRIPE_PRICE_PRO_MONTHLY"],
+  uk: ["USECLEVR_PRO_PRICE_GBP", "STRIPE_PRO_PRICE_ID_GBP"],
+  us: ["USECLEVR_PRO_PRICE_USD", "STRIPE_PRO_PRICE_ID_USD"],
+  ca: ["USECLEVR_PRO_PRICE_CAD", "STRIPE_PRO_PRICE_ID_CAD"],
+}
+
+const businessPriceEnvNamesByMarket: Record<CheckoutMarket, string[]> = {
+  eu: ["STRIPE_BUSINESS_PRICE_ID_EUR", "STRIPE_PRICE_BUSINESS_MONTHLY", "STRIPE_PRICE_ID_BUSINESS_MONTHLY"],
+  uk: ["STRIPE_BUSINESS_PRICE_ID_GBP"],
+  us: ["STRIPE_BUSINESS_PRICE_ID_USD"],
+  ca: ["STRIPE_BUSINESS_PRICE_ID_CAD"],
+}
+
+const approvedBusinessAmountByMarket: Partial<Record<CheckoutMarket, number>> = {
+  eu: 42000,
+}
+
+const proMarketByCurrency: Record<SupportedCurrency, CheckoutMarket> = {
+  EUR: "eu",
+  GBP: "uk",
+  USD: "us",
+  CAD: "ca",
+}
+
+export class CheckoutPricingError extends Error {
+  code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = "CheckoutPricingError"
+    this.code = code
+  }
+}
+
 const currencyLocale: Record<SupportedCurrency, string> = {
   EUR: "en-IE",
   GBP: "en-GB",
@@ -108,6 +175,10 @@ export function getCountryFromLocale(locale?: string | null): string | null {
 export function getCurrencyForCountry(country?: string | null): SupportedCurrency {
   const normalized = normalizeCountryCode(country)
   return normalized ? countryCurrencyMap[normalized] ?? "EUR" : "EUR"
+}
+
+export function getMarketForCountry(country?: string | null): CheckoutMarket {
+  return proMarketByCurrency[getCurrencyForCountry(country)]
 }
 
 export function getFixedProPrice(currency: SupportedCurrency): LaunchPrice {
@@ -174,11 +245,105 @@ export function resolveCheckoutProPrice(input: CheckoutPriceResolutionInput): La
 }
 
 export function getProStripePriceId(currency: SupportedCurrency): string | undefined {
-  return process.env[proPriceEnvByCurrency[currency]]?.trim() || undefined
+  return readFirstConfiguredEnv(proPriceEnvNamesByMarket[proMarketByCurrency[currency]])
 }
 
 export function getMissingProStripePriceEnvLabel(currency: SupportedCurrency): string {
-  return proPriceEnvByCurrency[currency]
+  return proPriceEnvNamesByMarket[proMarketByCurrency[currency]].join(" or ")
+}
+
+export function getCheckoutMarketOptions(plan: CheckoutPlanSlug): CheckoutMarketPrice[] {
+  return checkoutMarkets.map(({ market, label, currency }) => {
+    const amountMinor = getApprovedAmountMinor(plan, market)
+    const priceEnvNames = getPriceEnvNames(plan, market)
+    const stripePriceId = readFirstConfiguredEnv(priceEnvNames)
+
+    return {
+      plan,
+      billingPlanId: plan === "pro" ? "pro_monthly" : "business_monthly",
+      billingInterval: "monthly",
+      market,
+      marketLabel: label,
+      currency,
+      amountMinor,
+      displayPrice: amountMinor === null ? "Unavailable" : formatMonthlyPrice(amountMinor, currency),
+      stripePriceId,
+      priceEnvNames,
+      enabled: Boolean(stripePriceId) && amountMinor !== null,
+    }
+  })
+}
+
+export function resolveCheckoutMarketPrice(input: CheckoutPriceResolutionInput): CheckoutMarketPrice {
+  const plan = normalizeCheckoutPlanSlug(input.plan)
+  const billingInterval = input.billingInterval || "monthly"
+  if (billingInterval !== "monthly") {
+    throw new CheckoutPricingError("invalid_billing_interval", "Only monthly checkout is available.")
+  }
+
+  const market = normalizeCheckoutMarket(input.market)
+  if (!market) {
+    throw new CheckoutPricingError(`${plan}_market_lost`, "Choose a billing market before checkout.")
+  }
+
+  if (input.requestedCurrency || typeof input.requestedAmountMinor === "number" || input.requestedStripePriceId) {
+    throw new CheckoutPricingError(
+      plan === "pro" ? "invalid_pro_price_mapping" : "invalid_business_price_mapping",
+      "Checkout price is resolved securely on the server.",
+    )
+  }
+
+  const option = getCheckoutMarketOptions(plan).find((candidate) => candidate.market === market)
+  if (!option) {
+    throw new CheckoutPricingError(`${plan}_market_lost`, "Choose a supported billing market before checkout.")
+  }
+
+  if (option.amountMinor === null) {
+    throw new CheckoutPricingError(
+      `${plan}_price_not_configured`,
+      `${option.marketLabel} pricing is not available for ${plan === "pro" ? "Pro" : "Business"} yet.`,
+    )
+  }
+
+  if (!option.stripePriceId) {
+    throw new CheckoutPricingError(
+      `${plan}_price_not_configured`,
+      `${option.marketLabel} checkout is not configured for ${plan === "pro" ? "Pro" : "Business"} yet.`,
+    )
+  }
+
+  return option
+}
+
+export function getStripePriceIdForCheckout(plan: CheckoutPlanSlug, market: CheckoutMarket): string | undefined {
+  return readFirstConfiguredEnv(getPriceEnvNames(plan, market))
+}
+
+export function getMissingCheckoutStripePriceEnvLabel(plan: CheckoutPlanSlug, market: CheckoutMarket): string {
+  return getPriceEnvNames(plan, market).join(" or ")
+}
+
+export function getSubscriptionTierForStripePriceId(priceId: string): CheckoutPlanSlug | null {
+  for (const plan of ["pro", "business"] as CheckoutPlanSlug[]) {
+    for (const option of getCheckoutMarketOptions(plan)) {
+      if (option.stripePriceId === priceId) return plan
+    }
+  }
+
+  return null
+}
+
+export function normalizeCheckoutPlanSlug(plan: string | null | undefined): CheckoutPlanSlug {
+  const normalized = plan?.trim().toLowerCase()
+  if (normalized === "business" || normalized === "business_monthly") return "business"
+  return "pro"
+}
+
+export function normalizeCheckoutMarket(market: string | null | undefined): CheckoutMarket | null {
+  const normalized = market?.trim().toLowerCase()
+  return normalized === "eu" || normalized === "uk" || normalized === "us" || normalized === "ca"
+    ? normalized
+    : null
 }
 
 function normalizeCurrency(currency?: string | null): SupportedCurrency | null {
@@ -186,6 +351,19 @@ function normalizeCurrency(currency?: string | null): SupportedCurrency | null {
   return normalized === "EUR" || normalized === "GBP" || normalized === "USD" || normalized === "CAD"
     ? normalized
     : null
+}
+
+function getApprovedAmountMinor(plan: CheckoutPlanSlug, market: CheckoutMarket): number | null {
+  if (plan === "pro") return getFixedProPrice(checkoutMarkets.find((entry) => entry.market === market)!.currency).amountMinor
+  return approvedBusinessAmountByMarket[market] ?? null
+}
+
+function getPriceEnvNames(plan: CheckoutPlanSlug, market: CheckoutMarket): string[] {
+  return plan === "pro" ? proPriceEnvNamesByMarket[market] : businessPriceEnvNamesByMarket[market]
+}
+
+function readFirstConfiguredEnv(names: string[]): string | undefined {
+  return names.map((name) => process.env[name]?.trim()).find((value): value is string => Boolean(value))
 }
 
 function validateRequestedCheckoutPrice(expected: LaunchPrice, input: CheckoutPriceResolutionInput) {

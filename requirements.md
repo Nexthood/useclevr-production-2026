@@ -250,13 +250,14 @@ Text rules for this file:
   enough width for plan details, terms, and action buttons.
 - Show selected-plan terms and payment confirmation in a compact two-column desktop layout with
   terms beside accept/payment actions.
-- Accept `plan=pro`, `plan=pro_monthly`, `plan=business`, and `plan=business_monthly` in checkout, show Pro and Business as switchable paid packages, and send the selected plan's configured Stripe price ID.
-- Resolve Stripe price IDs on the server with `STRIPE_PRICE_PRO_MONTHLY` for Pro monthly, `STRIPE_PRICE_PRO_ANNUAL` for Pro annual when an annual plan exists, and `STRIPE_PRICE_BUSINESS_MONTHLY` for Business monthly with `STRIPE_PRICE_ID_BUSINESS_MONTHLY` as a compatibility fallback.
-- Show paid checkout as available only after the server confirms the selected paid plan has an active Stripe price ID.
+- Accept `plan=pro`, `plan=pro_monthly`, `plan=business`, and `plan=business_monthly` in checkout, show Pro and Business as switchable paid packages, and send only the canonical plan, monthly interval, and market to checkout APIs.
+- Resolve Stripe price IDs on the server from the selected paid plan and market, using Pro `USECLEVR_PRO_PRICE_EUR`, `USECLEVR_PRO_PRICE_GBP`, `USECLEVR_PRO_PRICE_USD`, and `USECLEVR_PRO_PRICE_CAD` values or their `STRIPE_PRO_PRICE_ID_*` aliases.
+- Resolve Business EUR checkout with `STRIPE_BUSINESS_PRICE_ID_EUR`, `STRIPE_PRICE_BUSINESS_MONTHLY`, or `STRIPE_PRICE_ID_BUSINESS_MONTHLY`, and keep Business UK, US, and Canada markets unavailable until approved prices and matching Stripe Price IDs exist.
+- Show paid checkout as available only after the server confirms the selected paid plan and market have an approved monthly amount and a configured Stripe price ID.
 - Use Subscription as the single customer-facing entry point for subscription management, with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs.
 - Redirect legacy Billing and Credit Rules settings routes to the matching Subscription Management tabs.
 - Show upgrade modals with the selected plan name, monthly price, and a visible secure-checkout button.
-- Start a Stripe Checkout session immediately when the user confirms the selected paid plan from an upgrade modal.
+- Route upgrade prompts for paid plans to the checkout review page so users choose a market and accept terms before Stripe Checkout opens.
 - Redirect successful paid-plan checkout session creation to the Stripe-hosted checkout page.
 - Show a visible checkout error in the upgrade modal when Stripe Checkout session creation fails.
 - Use a checkout review step before terms acceptance and payment.

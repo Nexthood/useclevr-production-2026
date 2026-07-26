@@ -233,8 +233,8 @@ export default function DownloadsPage() {
   }
 
   const handleUpgradeCheckout = async () => {
-    if (selectedPlan.id === "pro_monthly") {
-      window.location.assign("/app/settings/checkout?plan=pro_monthly")
+    if (selectedPlan.id === "pro_monthly" || selectedPlan.id === "business_monthly") {
+      window.location.assign(`/app/settings/checkout?plan=${selectedPlan.id}&market=eu`)
       return
     }
 

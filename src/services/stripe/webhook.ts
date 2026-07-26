@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db/index";
 import { recordActivity } from "@/lib/activity/activity-store";
-import { billingPlans } from "@/lib/billing/plans";
+import { getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
 import { profiles, users } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
 import Stripe from "stripe";
@@ -254,7 +254,7 @@ function applySubscriptionUpdates(updates: Record<string, unknown>, sub: Stripe.
 }
 
 function getSubscriptionTierForPrice(priceId: string) {
-  return billingPlans.find((plan) => plan.stripePriceId === priceId)?.tier ?? null;
+  return getSubscriptionTierForStripePriceId(priceId);
 }
 
 function getStripeId(value: string | { id?: string } | null): string | null {
