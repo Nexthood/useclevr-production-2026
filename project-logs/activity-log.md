@@ -103,6 +103,7 @@
 - changed: simplify display controls to a compact Light Mode and Dark Mode theme control with dark mode as the default
 - changed: show Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states that route incomplete users to setup workflows
 - changed: redesign Account settings as a wide control center with Profile, Company, Subscription, Security, account status, completion indicators, and Continue Setup
+- fixed: route Square OAuth callbacks through the application with canonical callback URL generation, public callback proxy access, state-owned callback completion, and safe Retail Integrations redirects
 - fixed: show one Standard Upload success panel with full KPI values, standard dashboard routing, dataset detail navigation, and upload-another reset behavior while keeping non-standard upload success flows on their existing routes and labels
 - changed: expand Business Profile setup into a conditional professional wizard with tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth assumptions for uploaded-data analysis
 - fixed: show Upgrade to Pro plan price and secure checkout action, create Stripe Checkout directly, and show visible modal errors

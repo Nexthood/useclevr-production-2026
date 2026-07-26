@@ -348,6 +348,40 @@ Use existing KPI helpers for column and breakdown context, but keep risk scoring
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.
+## Square OAuth Callback Routing
+
+1. Interaction title
+Square OAuth callback routing.
+
+2. What was the user goal
+Fix the production Square OAuth callback 404 where Square redirects to `https://useclevr.com/api/integrations/retail/square/callback?code=...` and receives a LiteSpeed 404 instead of the UseClevr application route.
+
+3. What changed
+Square OAuth now builds authorization and token-exchange redirect URIs from one canonical server-side callback helper at `/api/integrations/retail/square/callback`. The API proxy allowlist includes the Square callback path so OAuth provider returns can reach the route before normal API authentication. The callback route consumes the stored server-side OAuth state record and uses its creator and organization to save the connection, so callback completion does not depend on a normal browser session cookie. Callback success redirects to `/app/retail/integrations?connection=square&status=success`; callback failures redirect with safe reason codes only. Retail POS tests cover callback route existence, GET support, proxy public access, production redirect URI generation, authorization and token-exchange redirect URI consistency, missing/invalid/expired/denied failure codes, safe redirects, secret redaction from redirects, production localhost rejection, and test/preview-domain rejection in production mode.
+
+4. Problems marked
+blocker: none.
+risk: The current apex and www domains resolve to a LiteSpeed host (`66.29.148.12`), so `https://useclevr.com/api/...` cannot reach the deployed Next.js application until DNS or hosting changes route that domain to the application.
+improvement: Add an operational domain check that alerts when the configured production callback host does not return UseClevr application headers.
+observation: `app.useclevr.com` and `test.useclevr.com` resolve to Railway and return Next.js/Payload headers; `useclevr.com` and `www.useclevr.com` return LiteSpeed 404 for `/api/health` and the Square callback path.
+
+5. User learning
+The code route can exist and still 404 at Square callback time when the registered callback domain points at a different hosting origin.
+
+6. AI-agent learning
+OAuth callback routes must be public at the proxy layer and must complete from server-side state, not from a live client session alone.
+
+7. Follow-up tasks
+- Configure the production callback host so the Square Dashboard registered redirect URI points to the active UseClevr application origin, or move `useclevr.com` and `www.useclevr.com` DNS/proxy routing from LiteSpeed to the active application deployment.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
 ## Standard Upload Success UI
 
 1. Interaction title

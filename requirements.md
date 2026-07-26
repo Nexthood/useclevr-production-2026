@@ -90,6 +90,10 @@ Text rules for this file:
 - Keep POS-connected retail data separate from standard, profitability, accountancy, and pre-bookkeeping datasets.
 - Preserve CSV and Excel retail uploads as a supported retail data source alongside Square-connected data.
 - Queue Square initial and manual sync runs without exposing provider tokens to the browser.
+- Build Square OAuth authorization and token-exchange requests from one canonical server-side callback URL at `/api/integrations/retail/square/callback`.
+- Allow the Square OAuth callback route through API proxy authentication so Square can return authorization results to the application.
+- Complete Square OAuth callbacks from the stored server-side state record that binds provider, organization, creator, expiration, and nonce.
+- Redirect Square OAuth success and failure results to the Retail Integrations page with safe status and reason codes.
 - Verify Square webhooks against the raw request body and configured notification URL before storing sanitized webhook metadata.
 - Mark duplicate Square webhooks without processing the same provider event twice.
 - Disconnect Square without deleting imported analytics data.

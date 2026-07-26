@@ -7,56 +7,75 @@ import {
   saveRetailConnection,
 } from "@/integrations/retail/core/connection.service";
 import { queueRetailSync } from "@/integrations/retail/core/sync-engine";
-import { getSquareConfig } from "@/integrations/retail/providers/square/square.config";
+import { requireSquareOAuthConfig } from "@/integrations/retail/providers/square/square.config";
+import {
+  getSquareCallbackFailureReason,
+  getSafeSquareFailureReason,
+  getSquareIntegrationRedirectUrl,
+  getSquareProviderDenialReason,
+} from "@/integrations/retail/providers/square/square-oauth";
+import { debugWarn } from "@/lib/utils/debug";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  const baseUrl = new URL("/app/retail", request.url);
-  if (!session?.user?.id) {
-    baseUrl.searchParams.set("error", "unauthorized");
-    return NextResponse.redirect(baseUrl);
-  }
-
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const providerError = searchParams.get("error");
+  const providerErrorDescription = searchParams.get("error_description");
 
   if (providerError) {
-    baseUrl.searchParams.set("error", providerError);
-    return NextResponse.redirect(baseUrl);
+    debugWarn("[SQUARE_OAUTH] Provider denied authorization", {
+      error: providerError,
+      errorDescription: providerErrorDescription ? "present" : "absent",
+    });
+    return redirectWithError(request.url, getSquareProviderDenialReason(providerError));
   }
-  if (!code || !state) {
-    baseUrl.searchParams.set("error", "missing_square_authorization");
-    return NextResponse.redirect(baseUrl);
+  if (!state) {
+    return redirectWithError(request.url, "missing_state");
+  }
+  if (!code) {
+    return redirectWithError(request.url, "missing_code");
   }
 
   try {
-    const organizationId = await consumeOauthState({
+    const oauthState = await consumeOauthState({
       state,
       provider: "square",
-      userId: session.user.id,
+      userId: session?.user?.id,
     });
-    const config = getSquareConfig();
-    if (!config.redirectUri) throw new Error("Square redirect URI is not configured.");
+    const config = requireSquareOAuthConfig();
     const connector = getRetailConnector("square");
     const token = await connector.exchangeAuthorizationCode({ code, redirectUri: config.redirectUri });
     const connection = await saveRetailConnection({
-      organizationId,
+      organizationId: oauthState.organizationId,
       provider: "square",
-      createdBy: session.user.id,
+      createdBy: oauthState.createdBy,
       token,
       displayName: "Square",
     });
     await queueRetailSync(connection, "initial");
-    baseUrl.searchParams.set("connected", "square");
-    return NextResponse.redirect(baseUrl);
+    return NextResponse.redirect(getSquareIntegrationRedirectUrl({ requestUrl: request.url, status: "success" }));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Square authorization failed.";
-    baseUrl.searchParams.set("error", message);
-    return NextResponse.redirect(baseUrl);
+    const reason = getSquareCallbackFailureReason(error);
+    debugWarn("[SQUARE_OAUTH] Callback failed", {
+      reason,
+      hasCode: Boolean(code),
+      hasState: Boolean(state),
+    });
+    return redirectWithError(request.url, reason);
   }
+}
+
+function redirectWithError(requestUrl: string, reason: string) {
+  return NextResponse.redirect(
+    getSquareIntegrationRedirectUrl({
+      requestUrl,
+      status: "error",
+      reason: getSafeSquareFailureReason(reason),
+    }),
+  );
 }

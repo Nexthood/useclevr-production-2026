@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth/auth";
 import { getRetailConnector } from "@/integrations/retail/core/connector.factory";
 import { createOauthState } from "@/integrations/retail/core/connection.service";
 import { requirePrimaryRetailOrganization } from "@/integrations/retail/core/organization.service";
-import { getSquareConfig } from "@/integrations/retail/providers/square/square.config";
+import { requireSquareOAuthConfig } from "@/integrations/retail/providers/square/square.config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,10 +22,7 @@ export async function POST() {
       provider: "square",
       createdBy: session.user.id,
     });
-    const config = getSquareConfig();
-    if (!config.redirectUri) {
-      return NextResponse.json({ error: "Square redirect URI is not configured." }, { status: 500 });
-    }
+    const config = requireSquareOAuthConfig();
     const authorizationUrl = await getRetailConnector("square").getAuthorizationUrl({
       state,
       redirectUri: config.redirectUri,

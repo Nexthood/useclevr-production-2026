@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-947. Repair Square OAuth callback routing with a public callback proxy exemption, canonical redirect URI generation, state-owned callback completion, safe redirects, and focused OAuth tests. (labels: upload, api, testing; commit: worktree)
 - T-946. Show one Standard Upload success panel with full KPI values, standard dashboard navigation, dataset detail navigation, and upload-another reset behavior while preserving every non-standard upload success flow. (labels: upload, ui, testing; commit: worktree)
 - T-943. Delete selected Dataset Library rows through confirmed single or bulk actions with scoped authorization, related-record cleanup, storage cleanup logging, partial-failure reporting, immediate table updates, and refreshed usage counters. (labels: upload, data, security; commit: worktree)
 - T-941. Enforce dataset module separation so uploads persist the correct standard, retail, profitability, accountancy, or pre-bookkeeping category and open only in the matching workspace. (labels: upload, data, dashboard; commit: worktree)

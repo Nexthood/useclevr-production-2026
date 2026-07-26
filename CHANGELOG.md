@@ -89,6 +89,7 @@
 
 ### Fixed
 
+- Route Square OAuth callbacks through the application with one canonical callback URL, state-bound connection completion, and safe Retail Integrations success and error redirects.
 - Show one Standard Upload success panel with full KPI values, standard dashboard routing, dataset detail navigation, and upload-another reset actions.
 - Use the configured Square environment for Retail POS OAuth, token, revoke, and API requests so production settings no longer fall back to sandbox.
 - Load the Retail workspace POS Connections section without database errors by applying the Retail POS schema during deployment and showing Not Connected when no POS connection exists.
