@@ -3,6 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import type { DataTableColumn } from "@/components/ui/data-table"
+import {
+  normalizeSegmentDeclineAnalysis,
+  SegmentDeclineResults,
+  type SegmentDeclineAnalysisPayload,
+} from "@/components/chat/segment-decline-results"
 import { debugError } from "@/lib/utils/debug"
 import {
   BarChart3,
@@ -45,6 +50,7 @@ type AssistantMessage = {
   privacyWarning?: string | null
   error?: string
   errorCode?: string
+  deterministicAnalysis?: SegmentDeclineAnalysisPayload
 }
 
 type ProviderStatus = {
@@ -293,6 +299,7 @@ export function AiAssistantWorkspace() {
         recommendation: typeof body.recommendation === "string" ? body.recommendation : undefined,
         data: Array.isArray(body.data) ? body.data : [],
         chartType: typeof body.chartType === "string" ? body.chartType : undefined,
+        deterministicAnalysis: normalizeSegmentDeclineAnalysis(body.deterministicAnalysis) ?? undefined,
         providerName: isProviderStatus(body.providerStatus) && typeof body.providerStatus.label === "string"
           ? body.providerStatus.label
           : displayProviderName(typeof body.providerName === "string" ? body.providerName : undefined),
@@ -506,7 +513,7 @@ export function AiAssistantWorkspace() {
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-lg border p-4 shadow-sm ${
+                  className={`${message.deterministicAnalysis ? "w-full max-w-full md:max-w-[92%]" : "max-w-[85%]"} rounded-lg border p-4 shadow-sm ${
                     message.role === "user"
                       ? "border-primary bg-primary text-primary-foreground"
                       : message.error
@@ -550,7 +557,11 @@ export function AiAssistantWorkspace() {
                     </div>
                   )}
 
-                  <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                  {message.deterministicAnalysis ? (
+                    <SegmentDeclineResults analysis={message.deterministicAnalysis} />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                  )}
 
                   {message.privacyWarning && (
                     <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
@@ -578,7 +589,7 @@ export function AiAssistantWorkspace() {
                     </div>
                   )}
 
-                  {message.role === "assistant" && message.data && message.data.length > 0 && (
+                  {message.role === "assistant" && !message.deterministicAnalysis && message.data && message.data.length > 0 && (
                     <ResultPreview data={message.data} chartType={message.chartType} />
                   )}
 

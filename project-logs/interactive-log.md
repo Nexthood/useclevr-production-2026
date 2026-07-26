@@ -382,6 +382,41 @@ OAuth callback routes must be public at the proxy layer and must complete from s
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+## Declining Sales Segment Result Presentation
+
+1. Interaction title
+Declining sales segment result presentation.
+
+2. What was the user goal
+Improve the AI Assistant presentation of deterministic declining sales segment results so Startup Stage, Acquisition Channel, Plan, and Geography do not appear as one dense flat list.
+
+3. What changed
+The assistant now passes the deterministic segment-decline payload into a dedicated grouped result renderer. The renderer builds an executive summary from deterministic values, groups rows by Startup Stage, Acquisition Channel, Plan, Geography, and Other, sorts each group by the largest percentage decline first, shows three rows per group by default, and provides Show all and Show less controls when a group has additional rows. The result table uses important columns first and stays inside a horizontal-scroll panel with a sticky header. Numeric formatting uses thousands separators, one decimal percentage precision, explicit negative percentages, and optional dataset currency metadata only when a currency column exists.
+
+4. Problems marked
+blocker: none.
+risk: Authenticated browser screenshots were not run because the project does not include a reusable signed-in assistant fixture for this state.
+improvement: Add Playwright coverage for the assistant result card once a reusable signed-in dataset fixture exists.
+observation: The deterministic analyzer values remained unchanged; the change is presentation-focused with optional currency metadata.
+
+5. User learning
+Deterministic assistant results need dimension-aware UI so users can scan business findings without mentally separating unrelated segment types.
+
+6. AI-agent learning
+When deterministic backend output includes structured findings, prefer a typed renderer over a single preformatted answer string.
+
+7. Follow-up tasks
+- Add authenticated browser coverage for grouped assistant result cards when a reusable signed-in dataset fixture exists.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Dataset-Aware Declining Sales Segment Analysis
 
 1. Interaction title

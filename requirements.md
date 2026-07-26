@@ -58,6 +58,9 @@ Text rules for this file:
 - Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
 - Compare declining sales segment results across the two latest complete periods and exclude sparse trailing periods from period-over-period comparisons.
 - Return direct calculated declining sales segment findings when the AI provider is unavailable or not needed for the numeric answer.
+- Present declining sales segment findings in grouped AI Assistant sections for Startup Stage, Acquisition Channel, Plan, and Geography.
+- Show the largest declining segment first within each group, limit each group to three visible rows by default, and let users expand groups with additional rows.
+- Show declining sales segment result tables inside contained horizontal-scroll panels with readable headers and important columns first.
 - Return structured dataset-schema errors for missing segment dimensions, missing time dimensions, missing sales metrics, and insufficient complete periods.
 - Show AI Assistant provider status as Direct data analysis or Failed before provider execution when deterministic dataset handling completes or blocks before provider routing.
 - Require a signed-in user for dataset upload, analysis, query, dashboard, prediction, investigation, and suggestion operations.

@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Group AI Assistant declining sales segment results by business dimension with concise summaries, top declines, expandable sections, and contained responsive tables.
 - Fix AI Providers access for the official superadmin account so provider limits, setup controls, mode switching, and backend BYOK actions use the same unlimited entitlement as the global subscription display.
 - Add Risk Intelligence for supported uploaded datasets with server-calculated risk scores, category summaries, severity counts, prioritized recommendations, source links, and Hybrid AI Lite access control so users can see traceable business-risk signals without enterprise compliance workflows.
 - Add production-ready BYOK AI provider controls with encrypted keys, provider priority routing, explicit Automatic, Local, BYOK, and UseClevr Cloud modes, connection testing, SSRF protection, and metadata-only usage auditing so customers control where AI requests run.

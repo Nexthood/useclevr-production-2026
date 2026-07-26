@@ -19,6 +19,7 @@ export type SegmentDeclineAnalysis =
       ok: true;
       metric: string;
       metricLabel: string;
+      currencyCode?: string | null;
       timeColumn: string;
       periodComparison: {
         previous: string;
@@ -165,6 +166,7 @@ export function analyzeSalesSegmentDeclines(
   findings.sort((a, b) => a.changePercent - b.changePercent || a.dimensionLabel.localeCompare(b.dimensionLabel) || a.segment.localeCompare(b.segment));
 
   const metricLabel = labelFor(metricColumn);
+  const currencyCode = detectCurrencyCode(rowsWithData, columns);
   const data = findings.map((finding) => ({
     dimension: finding.dimensionLabel,
     segment: finding.segment,
@@ -172,13 +174,14 @@ export function analyzeSalesSegmentDeclines(
     previousValue: finding.previousValue,
     currentPeriod: currentPeriod.label,
     currentValue: finding.currentValue,
-    declinePercent: Math.abs(finding.changePercent),
+    changePercent: finding.changePercent,
   }));
 
   return {
     ok: true,
     metric: metricColumn,
     metricLabel,
+    currencyCode,
     timeColumn,
     periodComparison: {
       previous: previousPeriod.label,
@@ -228,6 +231,30 @@ function findDimensionColumns(rows: Record<string, unknown>[], columns: string[]
     const uniqueCount = new Set(values).size;
     return uniqueCount >= 2 && uniqueCount <= Math.max(12, Math.min(80, rows.length * 0.8));
   });
+}
+
+function detectCurrencyCode(rows: Record<string, unknown>[], columns: string[]) {
+  const currencyColumn = columns.find((column) => /currency|currency_code|iso_currency/i.test(column));
+  if (!currencyColumn) return null;
+
+  const values = rows
+    .map((row) => String(row[currencyColumn] ?? "").trim().toUpperCase())
+    .filter(Boolean);
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    const code = currencyCodeFromValue(value);
+    if (code) counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+function currencyCodeFromValue(value: string) {
+  if (/^[A-Z]{3}$/.test(value)) return value;
+  if (value.includes("$")) return "USD";
+  if (value.includes("€")) return "EUR";
+  if (value.includes("£")) return "GBP";
+  return null;
 }
 
 function pickColumn(columns: string[], aliases: string[], validate: (column: string) => boolean) {
