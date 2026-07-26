@@ -35,6 +35,7 @@ Text rules for this file:
 - Show uploaded datasets in structured tables with row counts.
 - Store dataset category metadata for standard, retail, profitability, accountancy, and pre-bookkeeping uploads.
 - Route Standard Upload datasets to the generic dataset analysis route.
+- Show one Standard Upload success panel with Dataset type, Rows processed, Columns detected, Analysis status, Open in Dashboard, View Dataset, and Upload Another File actions after a standard dataset upload completes.
 - Route Profitability Upload datasets to the Profitability workspace.
 - Route Accountancy Upload datasets to the Accountancy workspace.
 - Route Invoice, Receipt, Bank Export, and Pre-bookkeeping Upload datasets to the Pre-bookkeeping workspace.

@@ -494,9 +494,18 @@ export function CsvUpload() {
     checkConnection()
   }
 
+  const showStandardSuccessPanelOnly = uploadStatus === "success" && uploadResult
+
   return (
     <>
-      <Card
+      {showStandardSuccessPanelOnly ? (
+        <UploadSuccessPanel
+          result={uploadResult}
+          uploadMode="standard"
+          onUploadAnother={resetUploader}
+        />
+      ) : (
+        <Card
         className={`relative border-2 border-dashed transition-all duration-300 overflow-hidden ${
           isPlanLimitReached
             ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
@@ -733,14 +742,7 @@ export function CsvUpload() {
           )}
         </div>
       </label>
-      </Card>
-
-      {uploadStatus === "success" && uploadResult && (
-        <UploadSuccessPanel
-          result={uploadResult}
-          uploadMode="standard"
-          onUploadAnother={resetUploader}
-        />
+        </Card>
       )}
 
       <UpgradeModal

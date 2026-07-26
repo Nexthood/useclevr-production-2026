@@ -53,6 +53,7 @@
     "test:profitability-two-file": "node -r tsx/esm scripts/analysis/test-profitability-two-file.ts",
     "test:business-intelligence": "node -r tsx/esm scripts/analysis/test-business-intelligence-engine.ts",
     "test:risk-intelligence": "node -r tsx/esm scripts/risk-intelligence/test-risk-engine.ts",
+    "test:standard-upload-success-ui": "node -r tsx/esm scripts/upload/test-standard-upload-success-ui.ts",
     "test:accuracy-tenant-isolation": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/accuracy/test-tenant-isolation.ts",
     "test:hybrid-ai-gates": "node -r tsx/esm scripts/hybrid-ai/test-feature-gates.ts",
     "test:ai-provider-security": "node -r tsx/esm scripts/ai/test-provider-security.ts",

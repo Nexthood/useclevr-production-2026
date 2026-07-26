@@ -348,6 +348,40 @@ Use existing KPI helpers for column and breakdown context, but keep risk scoring
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.
+## Standard Upload Success UI
+
+1. Interaction title
+Standard Upload success UI.
+
+2. What was the user goal
+Fix the Standard Upload success state for `dataset_type=standard` only, remove the duplicated dropzone-plus-card presentation, show one professional success panel with complete KPI values, preserve standard routing, and leave Retail, Profitability, Accountancy, and Pre-bookkeeping upload success flows unchanged.
+
+3. What changed
+Standard Upload now renders the success panel instead of the dashed upload dropzone after a successful standard upload. The shared upload success component now has a guarded Standard-specific variant that only runs when `uploadMode` and the resolved dataset type are both standard. The Standard panel shows Dataset type: Standard, full row and column counts, full Ready/Processing/Failed analysis status, Open in Dashboard, View Dataset, and Upload Another File. A pure Standard success view helper drives routes and values, and a focused Node assertion test covers the Standard contract and non-standard route/label isolation.
+
+4. Problems marked
+blocker: none.
+risk: Full browser rendering was not run because the project has no established authenticated browser test harness for this upload state.
+improvement: Add browser-level upload success screenshots when reusable signed-in Playwright fixtures exist.
+observation: The correct Standard dashboard destination is `/app/dashboard?datasetId=...`, returned by the simple Standard upload API and used by dataset library actions.
+
+5. User learning
+Standard Upload success is a distinct UI state from Retail, Profitability, Accountancy, and Pre-bookkeeping success handling.
+
+6. AI-agent learning
+When a shared success component supports multiple upload modules, add a guarded view-model-backed branch for one module instead of reshaping the shared non-standard layout.
+
+7. Follow-up tasks
+- Add browser-level Standard Upload success visual regression coverage when the project has reusable signed-in upload fixtures.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
 ## AI Providers Superadmin Entitlement Consistency
 
 1. Interaction title
