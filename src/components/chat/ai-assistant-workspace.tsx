@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import type { DataTableColumn } from "@/components/ui/data-table"
 import {
+  AnalyticalResultView,
+  normalizeAnalyticalResult,
+  type SupportedAnalyticalResult,
+} from "@/components/chat/analytical-results"
+import {
   normalizeSegmentDeclineAnalysis,
   SegmentDeclineResults,
   type SegmentDeclineAnalysisPayload,
@@ -51,6 +56,7 @@ type AssistantMessage = {
   error?: string
   errorCode?: string
   deterministicAnalysis?: SegmentDeclineAnalysisPayload
+  analyticalResult?: SupportedAnalyticalResult
 }
 
 type ProviderStatus = {
@@ -130,6 +136,12 @@ function displayProviderName(providerName?: string | null) {
   if (normalized.includes("gemini") || normalized.includes("google")) return "UseClevr Cloud Analysis"
   if (normalized.includes("mock")) return "UseClevr Test Analysis"
   return providerName
+}
+
+function providerNameFromResponse(body: Record<string, unknown>) {
+  if (typeof body.providerName === "string" && body.providerName.trim()) return displayProviderName(body.providerName)
+  if (isProviderStatus(body.providerStatus) && typeof body.providerStatus.label === "string") return body.providerStatus.label
+  return displayProviderName(undefined)
 }
 
 function providerStatusClassName(state?: ProviderStatus["state"]) {
@@ -278,9 +290,7 @@ export function AiAssistantWorkspace() {
           content: errorMessage,
           error: errorMessage,
           errorCode: typeof body.code === "string" ? body.code : undefined,
-          providerName: isProviderStatus(body.providerStatus) && typeof body.providerStatus.label === "string"
-            ? body.providerStatus.label
-            : displayProviderName(typeof body.providerName === "string" ? body.providerName : undefined),
+          providerName: providerNameFromResponse(body),
           modelName: typeof body.modelName === "string" ? body.modelName : undefined,
           providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
           privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
@@ -300,9 +310,8 @@ export function AiAssistantWorkspace() {
         data: Array.isArray(body.data) ? body.data : [],
         chartType: typeof body.chartType === "string" ? body.chartType : undefined,
         deterministicAnalysis: normalizeSegmentDeclineAnalysis(body.deterministicAnalysis) ?? undefined,
-        providerName: isProviderStatus(body.providerStatus) && typeof body.providerStatus.label === "string"
-          ? body.providerStatus.label
-          : displayProviderName(typeof body.providerName === "string" ? body.providerName : undefined),
+        analyticalResult: normalizeAnalyticalResult(body.analyticalResult) ?? undefined,
+        providerName: providerNameFromResponse(body),
         modelName: typeof body.modelName === "string" ? body.modelName : undefined,
         providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
         privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
@@ -559,6 +568,8 @@ export function AiAssistantWorkspace() {
 
                   {message.deterministicAnalysis ? (
                     <SegmentDeclineResults analysis={message.deterministicAnalysis} />
+                  ) : message.analyticalResult ? (
+                    <AnalyticalResultView result={message.analyticalResult} />
                   ) : (
                     <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
                   )}
@@ -589,7 +600,7 @@ export function AiAssistantWorkspace() {
                     </div>
                   )}
 
-                  {message.role === "assistant" && !message.deterministicAnalysis && message.data && message.data.length > 0 && (
+                  {message.role === "assistant" && !message.deterministicAnalysis && !message.analyticalResult && message.data && message.data.length > 0 && (
                     <ResultPreview data={message.data} chartType={message.chartType} />
                   )}
 

@@ -55,6 +55,13 @@ Text rules for this file:
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
+- Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
+- Map uploaded dataset columns to canonical business fields with normalized names, confidence values, original column references, ambiguity handling, and dataset-scoped schema state.
+- Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.
+- Never calculate gross margin from operating expenses alone and never infer COGS from an ambiguous generic cost field.
+- Return structured unsupported analysis messages for missing revenue, missing COGS, ambiguous cost mapping, zero revenue, mixed currency, invalid numeric values, unavailable dataset context, unsupported dataset type, and insufficient data.
+- Filter AI Assistant suggested questions by selected-dataset semantic capabilities before showing financial KPI prompts.
+- Show deterministic KPI results with Direct data analysis status and Last provider: Not required when no AI provider is needed.
 - Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
 - Compare declining sales segment results across the two latest complete periods and exclude sparse trailing periods from period-over-period comparisons.
 - Return direct calculated declining sales segment findings when the AI provider is unavailable or not needed for the numeric answer.

@@ -382,6 +382,41 @@ OAuth callback routes must be public at the proxy layer and must complete from s
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+## Generic Dataset-Aware Analytical Execution
+
+1. Interaction title
+Generic dataset-aware analytical execution.
+
+2. What was the user goal
+Fix the AI Assistant so selected-dataset questions such as "What is the current gross margin?" work across different uploaded datasets instead of relying on one-off question-specific branches.
+
+3. What changed
+The dataset chat API now runs a central analytical intent registry before AI provider routing. The registry defines the requested initial intent IDs and gives gross margin plus segment decline deterministic handlers. A semantic schema mapper maps normalized source columns to canonical business fields with confidence, original column references, ambiguity handling, currency detection, and dataset-scoped inputs. Gross margin calculates only from revenue plus COGS, revenue plus validated gross profit, or a validated gross margin field. Operating expenses and generic cost fields are not treated as COGS. Suggestions now use the same semantic capability check and a versioned dataset-ID cache key. The assistant renders gross margin as a structured KPI card with Direct data analysis status and Last provider: Not required.
+
+4. Problems marked
+blocker: none.
+risk: Only gross margin and segment decline have deterministic handlers in this pass; the registry lists the broader initial intent surface and returns structured unsupported results for handlers that are not implemented yet.
+improvement: Implement deterministic handlers for total revenue, total cost, gross profit, net profit, net margin, trends, concentration, rankings, and unusual transactions using the same registry.
+observation: The failure happened because gross-margin questions did not match the earlier segment-decline-only deterministic branch and fell through to provider routing, leaving the UI to report a provider-style failure when deterministic handling was missing.
+
+5. User learning
+Dataset-aware assistant suggestions must be generated from selected-dataset semantic capabilities so the UI does not invite unsupported KPI questions.
+
+6. AI-agent learning
+Question-specific deterministic branches should be replaced with an intent registry and semantic schema mapping so new KPI handlers share dataset loading, capability checks, unsupported messages, and provider status behavior.
+
+7. Follow-up tasks
+- Implement the remaining registered analytical intent handlers for revenue, cost, profit, margin, trend, concentration, ranking, and anomaly questions. (labels: ai, data, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Declining Sales Segment Result Presentation
 
 1. Interaction title

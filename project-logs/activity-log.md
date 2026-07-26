@@ -147,3 +147,4 @@
 - changed: add Risk Intelligence with a server-calculated scoring engine, supported-dataset page, sidebar entry, entitlement-gated APIs, category summaries, prioritized findings, rule documentation, and focused deterministic tests
 - fixed: answer dataset-aware declining sales segment questions with complete-period deterministic analysis, sparse trailing-period exclusion, direct-data provider status, structured missing-schema errors, and a startup SaaS sales regression fixture
 - changed: group deterministic declining sales segment assistant results by dimension with executive summaries, top-three defaults, show-all expansion, explicit negative percentages, and contained responsive tables
+- changed: route dataset-aware assistant KPI questions through a semantic analytical intent registry with deterministic gross-margin results, unsupported-schema messages, direct-analysis provider status, dataset-scoped suggestions, and multi-schema fixtures

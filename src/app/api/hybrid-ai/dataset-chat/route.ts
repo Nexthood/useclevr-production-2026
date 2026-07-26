@@ -11,12 +11,11 @@ import {
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
-import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import {
-  analyzeSalesSegmentDeclines,
-  isSalesSegmentDeclineQuestion,
-  type SegmentDeclineErrorCode,
-} from "@/lib/data/segment-decline-analysis";
+  executeAnalyticalIntent,
+  type AnalyticalUnsupportedCode,
+} from "@/lib/data/analytical-intents";
+import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
@@ -166,6 +165,7 @@ export async function POST(request: Request) {
   );
   const profileRows = analysisRows.slice(0, MAX_PROFILE_ROWS);
   const columns = normalizeColumns(dataset.columns, profileRows);
+  const datasetType = detectDatasetTypeFromColumns(columns, dataset.name);
   const context = buildDatasetContext({
     id: dataset.id,
     name: dataset.name,
@@ -178,9 +178,15 @@ export async function POST(request: Request) {
     analysis: dataset.analysis,
   });
   const latestQuestion = latestUserMessage(messages);
-  if (latestQuestion && isSalesSegmentDeclineQuestion(latestQuestion)) {
-    const declineAnalysis = analyzeSalesSegmentDeclines(analysisRows, columns);
-    if (declineAnalysis.ok) {
+  if (latestQuestion) {
+    const analyticalResult = executeAnalyticalIntent({
+      question: latestQuestion,
+      datasetId: dataset.id,
+      datasetType,
+      columns,
+      rows: analysisRows,
+    });
+    if (analyticalResult.status === "success") {
       const providerStatus = directDataAnalysisStatus();
       recordAiRequestAudit({
         userId,
@@ -196,53 +202,57 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({
         success: true,
-        answer: declineAnalysis.answer,
-        content: declineAnalysis.answer,
-        insight: declineAnalysis.insight,
-        explanation: declineAnalysis.explanation,
-        recommendation: declineAnalysis.recommendation,
-        data: declineAnalysis.data,
-        chartType: "table",
-        providerName: "Direct data analysis",
+        answer: analyticalResult.answer,
+        content: analyticalResult.answer,
+        insight: analyticalResult.insight,
+        explanation: analyticalResult.explanation,
+        recommendation: analyticalResult.recommendation,
+        data: analyticalResult.data,
+        chartType: analyticalResult.chartType,
+        providerName: "Not required",
         modelName: "",
         mode: "direct",
         route: "direct",
-        deterministicAnalysis: declineAnalysis,
+        analyticalResult: analyticalResult.result,
+        deterministicAnalysis: analyticalResult.intent === "segment_decline" ? analyticalResult.result : undefined,
         datasetContext: contextForClient(context),
         privacyWarning: null,
         providerStatus,
       });
     }
 
-    const providerStatus = failedBeforeProviderStatus(declineAnalysis.code);
-    recordAiRequestAudit({
-      userId,
-      datasetId: parsed.datasetId,
-      providerName: "Failed before provider execution",
-      providerType: "deterministic",
-      modelName: "none",
-      mode: "direct",
-      executionLocation: "none",
-      fallbackUsed: false,
-      purpose: "dataset_analysis",
-      success: false,
-      errorReason: declineAnalysis.code,
-    });
-    return NextResponse.json({
-      success: false,
-      code: declineAnalysis.code,
-      message: declineAnalysis.message,
-      error: declineAnalysis.message,
-      answer: declineAnalysis.message,
-      content: declineAnalysis.message,
-      providerName: "Failed before provider execution",
-      modelName: "",
-      mode: "direct",
-      route: "none",
-      datasetContext: contextForClient(context),
-      privacyWarning: null,
-      providerStatus,
-    }, { status: 422 });
+    if (analyticalResult.status === "unsupported") {
+      const providerStatus = failedBeforeProviderStatus(analyticalResult.code);
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Failed before provider execution",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: false,
+        errorReason: analyticalResult.code,
+      });
+      return NextResponse.json({
+        success: false,
+        code: analyticalResult.code,
+        message: analyticalResult.message,
+        error: analyticalResult.message,
+        answer: analyticalResult.message,
+        content: analyticalResult.message,
+        providerName: "Not used",
+        modelName: "",
+        mode: "direct",
+        route: "none",
+        analyticalResult,
+        datasetContext: contextForClient(context),
+        privacyWarning: null,
+        providerStatus,
+      }, { status: 422 });
+    }
   }
 
   const prompt = buildDatasetChatPrompt(messages, context);
@@ -766,8 +776,18 @@ function directDataAnalysisStatus(): HybridProviderStatus {
   };
 }
 
-function failedBeforeProviderStatus(code: SegmentDeclineErrorCode): HybridProviderStatus {
-  const messageByCode: Record<SegmentDeclineErrorCode, string> = {
+function failedBeforeProviderStatus(code: AnalyticalUnsupportedCode): HybridProviderStatus {
+  const messageByCode: Partial<Record<AnalyticalUnsupportedCode, string>> = {
+    missing_revenue_metric: "Missing revenue metric",
+    missing_cogs_metric: "Missing COGS metric",
+    ambiguous_cost_mapping: "Ambiguous cost mapping",
+    zero_revenue: "Zero revenue",
+    mixed_currency_dataset: "Mixed currency dataset",
+    invalid_numeric_values: "Invalid numeric values",
+    dataset_context_unavailable: "Dataset context unavailable",
+    unsupported_dataset_type: "Unsupported dataset type",
+    insufficient_data: "Insufficient data",
+    unsupported_question: "Unsupported calculation",
     missing_segment_dimension: "Missing segment dimension",
     missing_time_dimension: "Missing time dimension",
     missing_sales_metric: "Missing sales metric",
@@ -776,7 +796,7 @@ function failedBeforeProviderStatus(code: SegmentDeclineErrorCode): HybridProvid
   return {
     label: "Failed before provider execution",
     state: "provider_unavailable",
-    message: messageByCode[code],
+    message: messageByCode[code] ?? "Analysis unavailable",
     fallbackActive: false,
     route: "none",
   };
