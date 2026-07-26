@@ -314,3 +314,105 @@ Provider environment selection must fail closed when a production integration ca
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+## Risk Intelligence Lite Module
+
+1. Interaction title
+Risk Intelligence Lite module.
+
+2. What was the user goal
+Add a production-ready first version of Risk Intelligence that scores supported business datasets with deterministic rules, server-side entitlement enforcement, dashboard navigation, APIs, tests, and documentation.
+
+3. What changed
+The app now exposes `/app/risk-intelligence` and a sidebar Risk Intelligence item. The server calculates Risk Intelligence from one selected supported dataset at a time, using centralized versioned rules, existing business-column/KPI helpers, dataset rows, and Hybrid AI Lite dashboard-insights entitlement. The API routes list supported datasets and recalculate one dataset while preserving ownership, admin, and superadmin access rules. The UI shows overall score, severity counts, category summaries, last calculated time, dataset scope, prioritized findings, recommendations, and source links. Docs and requirements now describe the module, thresholds, score formula, route access, and no-migration dynamic calculation.
+
+4. Problems marked
+blocker: none.
+risk: Existing business-column analysis logs detected columns during focused tests, so Risk Intelligence tests are noisy until shared debug logging is quieted.
+improvement: Add browser-level responsive visual regression coverage when the project has a stable Playwright app harness.
+observation: Risk Intelligence does not need a database table for the first version because results derive from existing dataset storage.
+
+5. User learning
+Risk Intelligence is a traceable business-intelligence module, not an enterprise compliance or professional-advice workflow.
+
+6. AI-agent learning
+Use existing KPI helpers for column and breakdown context, but keep risk scoring conservative when helper-level metrics rely on estimates.
+
+7. Follow-up tasks
+- Add browser-level responsive Risk Intelligence rendering tests when the project has a stable authenticated Playwright harness.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.
+## Standard Upload Success UI
+
+1. Interaction title
+Standard Upload success UI.
+
+2. What was the user goal
+Fix the Standard Upload success state for `dataset_type=standard` only, remove the duplicated dropzone-plus-card presentation, show one professional success panel with complete KPI values, preserve standard routing, and leave Retail, Profitability, Accountancy, and Pre-bookkeeping upload success flows unchanged.
+
+3. What changed
+Standard Upload now renders the success panel instead of the dashed upload dropzone after a successful standard upload. The shared upload success component now has a guarded Standard-specific variant that only runs when `uploadMode` and the resolved dataset type are both standard. The Standard panel shows Dataset type: Standard, full row and column counts, full Ready/Processing/Failed analysis status, Open in Dashboard, View Dataset, and Upload Another File. A pure Standard success view helper drives routes and values, and a focused Node assertion test covers the Standard contract and non-standard route/label isolation.
+
+4. Problems marked
+blocker: none.
+risk: Full browser rendering was not run because the project has no established authenticated browser test harness for this upload state.
+improvement: Add browser-level upload success screenshots when reusable signed-in Playwright fixtures exist.
+observation: The correct Standard dashboard destination is `/app/dashboard?datasetId=...`, returned by the simple Standard upload API and used by dataset library actions.
+
+5. User learning
+Standard Upload success is a distinct UI state from Retail, Profitability, Accountancy, and Pre-bookkeeping success handling.
+
+6. AI-agent learning
+When a shared success component supports multiple upload modules, add a guarded view-model-backed branch for one module instead of reshaping the shared non-standard layout.
+
+7. Follow-up tasks
+- Add browser-level Standard Upload success visual regression coverage when the project has reusable signed-in upload fixtures.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+## AI Providers Superadmin Entitlement Consistency
+
+1. Interaction title
+AI Providers superadmin entitlement consistency.
+
+2. What was the user goal
+Fix the AI Providers and BYOK settings page so `superadmin@useclevr.com` receives the same unrestricted access shown by the global Unlimited Superadmin subscription state.
+
+3. What changed
+Hybrid AI entitlements now expose one superadmin-aware access object with explicit `isSuperadmin`, provider-management access, Local AI download access, AI mode access, provider limit, provider limit label, and upgrade state. The AI Providers page now loads entitlement separately from provider settings so a provider database or migration failure does not erase superadmin access. The AI Providers client now uses a pure page-state helper that preserves `null` as Unlimited instead of converting it to plan limit 0. Direct provider create/update APIs use the same limit-aware backend guard as server actions, and direct routing API requests enforce the Lite fallback-provider restriction. Global usage resolution now uses the same normalized `isSuperadmin` helper for the official email fallback.
+
+4. Problems marked
+blocker: none.
+risk: Full browser interaction was not run because the current request required code validation, not a live signed-in browser session.
+improvement: Add authenticated UI tests for AI Providers once the project has a stable session fixture.
+observation: The inconsistent UI came from both a rejected provider-settings `Promise.all` that set feature access to `null` and `?? 0` handling that converted the intended unlimited provider limit `null` into `0`.
+
+5. User learning
+The migration warning can be real while subscription access remains unrestricted; those states must render independently.
+
+6. AI-agent learning
+Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the semantic difference between unavailable entitlement and unlimited entitlement.
+
+7. Follow-up tasks
+- Add authenticated browser regression coverage for the AI Providers superadmin page state when the project has reusable session fixtures.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.

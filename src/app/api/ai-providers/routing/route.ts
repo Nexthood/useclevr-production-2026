@@ -1,5 +1,5 @@
 import { setAiProviderRouting } from "@/lib/ai/byoai-provider";
-import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
+import { logBlockedHybridAiFeatureAttempt, requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -26,6 +26,25 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
+    if (gate.access.providerLimit === 1 && parsed.fallback_provider_id) {
+      logBlockedHybridAiFeatureAttempt({
+        userId,
+        role: gate.access.role,
+        subscriptionTier: gate.access.subscriptionTier,
+        featureId: "providerFallback",
+        requiredTier: "mega",
+        source: "provider-routing-api",
+        message: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.",
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          code: "UPGRADE_REQUIRED",
+          error: "Hybrid AI Lite includes one AI provider. Upgrade to Hybrid AI MEGA to configure a fallback provider.",
+        },
+        { status: 403 },
+      );
+    }
     await setAiProviderRouting(userId, {
       defaultProviderId: parsed.default_provider_id,
       fallbackProviderId: parsed.fallback_provider_id,

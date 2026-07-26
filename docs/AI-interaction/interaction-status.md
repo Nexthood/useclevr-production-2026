@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-07-26
-- **Goal**: Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited provider access without a paid subscription.
-- **Durable change**: Superadmin entitlement resolution now uses the centralized superadmin helper with role, built-in ID, and normalized official email recognition; backend feature gates, provider actions, Local AI downloads, Auth session role refresh, AI Providers UI, assistant UI, and Hybrid AI modal entitlement checks use the email-aware result.
-- **Verification**: `pnpm test:hybrid-ai-gates`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:changelog`, and `pnpm lint:secrets` pass.
+- **Goal**: Fix the duplicated Standard Upload success UI without changing Retail, Profitability, Accountancy, or Pre-bookkeeping upload success flows.
+- **Durable change**: Standard Upload now replaces the dashed dropzone with one success panel after `dataset_type=standard` completes, shows full Dataset type, Rows processed, Columns detected, and Analysis status values, keeps Open in Dashboard on the existing `/app/dashboard?datasetId=...` flow, opens View Dataset at `/app/datasets/[id]`, and resets only the Standard upload UI for another file.
+- **Verification**: `pnpm test:standard-upload-success-ui`, `pnpm exec tsc --noEmit --pretty false`, focused ESLint for changed source and test files, `pnpm lint:todos`, and `pnpm lint:package` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

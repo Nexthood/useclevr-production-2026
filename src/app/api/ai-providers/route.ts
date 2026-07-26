@@ -3,7 +3,7 @@ import {
   saveAiProviderConfig,
   type AiProviderType,
 } from "@/lib/ai/byoai-provider";
-import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
+import { assertCanSaveAiProvider, featureGateFailureMessage, requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -62,6 +62,12 @@ async function saveFromRequest(request: NextRequest) {
   }
 
   try {
+    await assertCanSaveAiProvider({
+      userId,
+      sessionRole: gate.session.user.role,
+      sessionEmail: gate.session.user.email,
+      providerId: parsed.id,
+    });
     const provider = await saveAiProviderConfig(userId, {
       id: parsed.id,
       providerName: parsed.display_name || parsed.provider_name || "",
@@ -75,6 +81,10 @@ async function saveFromRequest(request: NextRequest) {
     });
     return NextResponse.json({ success: true, provider });
   } catch (error) {
+    const gateMessage = featureGateFailureMessage(error);
+    if (gateMessage) {
+      return NextResponse.json({ success: false, code: "UPGRADE_REQUIRED", error: gateMessage }, { status: 403 });
+    }
     const message = error instanceof Error ? error.message : "AI provider was not saved.";
     return NextResponse.json({ success: false, code: "PROVIDER_SAVE_FAILED", error: message }, { status: 400 });
   }

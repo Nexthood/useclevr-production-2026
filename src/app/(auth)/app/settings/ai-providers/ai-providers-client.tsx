@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
 import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
-import { formatAiProviderLimit } from "@/lib/hybrid-ai/features";
 import type { HybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
+import { getAiProvidersPageState } from "@/lib/hybrid-ai/provider-page-state";
 import {
   CheckCircle2,
   Clock3,
@@ -115,14 +115,11 @@ export function AiProvidersClient({
   const localProviderCount = providers.filter((provider) => isLocalProviderType(provider.providerType)).length;
   const typeMeta = providerTypes.find((type) => type.value === form.providerType) || providerTypes[2];
   const savedProvider = providers.find((provider) => provider.id === form.providerId);
-  const canUseAiProviders = Boolean(featureAccess?.enabledFeatureIds.includes("aiProviderManagement"));
-  const canUseModeRouting = Boolean(
-    featureAccess?.enabledFeatureIds.includes("autoMode") &&
-      featureAccess.enabledFeatureIds.includes("localMode") &&
-      featureAccess.enabledFeatureIds.includes("cloudMode"),
-  );
-  const providerLimit = featureAccess?.providerLimit ?? 0;
-  const canAddProvider = canUseAiProviders && (providerLimit === null || providers.length < providerLimit);
+  const pageState = getAiProvidersPageState(featureAccess, providers.length);
+  const canUseAiProviders = pageState.canUseAiProviders;
+  const canUseModeRouting = pageState.canUseModeRouting;
+  const providerLimit = pageState.providerLimit;
+  const canAddProvider = pageState.canAddProvider;
 
   function updateForm(patch: Partial<FormState>) {
     setForm((current) => ({ ...current, ...patch }));
@@ -339,12 +336,12 @@ export function AiProvidersClient({
           <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[420px]">
             <StatusTile label="Providers" value={String(providers.length)} />
             <StatusTile label="Enabled" value={String(enabledCount)} />
-            <StatusTile label="Plan limit" value={formatAiProviderLimit(providerLimit)} />
+            <StatusTile label="Plan limit" value={pageState.providerLimitLabel} />
           </div>
         </div>
       </section>
 
-      {!canUseAiProviders ? (
+      {pageState.showSubscriptionWarning ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
           <div className="flex items-start gap-2">
             <TriangleAlert className="mt-0.5 h-4 w-4" />
@@ -385,7 +382,7 @@ export function AiProvidersClient({
                 </Button>
                 <Button type="button" onClick={openNewDialog} className="gap-2 bg-gradient-primary hover:opacity-90">
                   <Plus className="h-4 w-4" />
-                  {canAddProvider ? "Add provider" : "Upgrade for more"}
+                  {pageState.addProviderLabel}
                 </Button>
               </div>
             </div>
@@ -525,7 +522,7 @@ export function AiProvidersClient({
               ) : null}
 
               <Button type="submit" disabled={isSavingMode} className="w-full bg-gradient-primary hover:opacity-90">
-                {isSavingMode ? "Saving..." : canUseModeRouting ? "Save AI mode" : "Upgrade for modes"}
+                {isSavingMode ? "Saving..." : pageState.modeSaveLabel}
               </Button>
             </form>
           </CardContent>

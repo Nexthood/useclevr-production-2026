@@ -41,6 +41,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-946. Show one Standard Upload success panel with full KPI values, standard dashboard navigation, dataset detail navigation, and upload-another reset behavior while preserving every non-standard upload success flow. (labels: upload, ui, testing; commit: worktree)
 - T-943. Delete selected Dataset Library rows through confirmed single or bulk actions with scoped authorization, related-record cleanup, storage cleanup logging, partial-failure reporting, immediate table updates, and refreshed usage counters. (labels: upload, data, security; commit: worktree)
 - T-941. Enforce dataset module separation so uploads persist the correct standard, retail, profitability, accountancy, or pre-bookkeeping category and open only in the matching workspace. (labels: upload, data, dashboard; commit: worktree)
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)

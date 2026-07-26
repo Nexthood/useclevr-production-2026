@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Fix AI Providers access for the official superadmin account so provider limits, setup controls, mode switching, and backend BYOK actions use the same unlimited entitlement as the global subscription display.
+- Add Risk Intelligence for supported uploaded datasets with server-calculated risk scores, category summaries, severity counts, prioritized recommendations, source links, and Hybrid AI Lite access control so users can see traceable business-risk signals without enterprise compliance workflows.
 - Add production-ready BYOK AI provider controls with encrypted keys, provider priority routing, explicit Automatic, Local, BYOK, and UseClevr Cloud modes, connection testing, SSRF protection, and metadata-only usage auditing so customers control where AI requests run.
 - Give the official superadmin account unrestricted Hybrid AI and BYOK access so internal testing can use providers, local setup, all AI modes, and unlimited provider slots without subscription prompts.
 - Show Retail POS Connections at the top of the Retail workspace with Square connect, status, sync, merchant, imported-data, and disconnect controls while keeping CSV and Excel upload available below.
@@ -87,6 +89,7 @@
 
 ### Fixed
 
+- Show one Standard Upload success panel with full KPI values, standard dashboard routing, dataset detail navigation, and upload-another reset actions.
 - Use the configured Square environment for Retail POS OAuth, token, revoke, and API requests so production settings no longer fall back to sandbox.
 - Load the Retail workspace POS Connections section without database errors by applying the Retail POS schema during deployment and showing Not Connected when no POS connection exists.
 - Require authentication for interactive demo access so anonymous visitors register before opening demo routes, uploads, AI analysis, or demo verification.

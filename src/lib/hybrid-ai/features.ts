@@ -263,28 +263,51 @@ export function getHybridAiEntitlement(
 ) {
   const normalizedTier = (subscriptionTier || "free").toLowerCase()
   const normalizedRole = (role || "").toLowerCase()
+  const hasSuperadminAccess = isSuperadmin({ role: normalizedRole, email })
   const isAdmin =
     normalizedRole === "admin" ||
     normalizedTier === "admin" ||
     normalizedTier === "superadmin" ||
-    isSuperadmin({ role: normalizedRole, email })
+    hasSuperadminAccess
   const accessTier: HybridAiTier | null =
     isAdmin || normalizedTier === "business"
       ? "mega"
       : normalizedTier === "pro"
         ? "lite"
         : null
+  const enabledModuleIds =
+    accessTier === "mega" ? HYBRID_AI_MEGA_MODULE_IDS : accessTier === "lite" ? HYBRID_AI_LITE_MODULE_IDS : []
+  const providerLimit = accessTier === "mega" ? null : accessTier === "lite" ? 1 : 0
+  const canUseLite = accessTier === "lite" || accessTier === "mega"
+  const canUseMega = accessTier === "mega"
+  const canChangeAIMode =
+    enabledModuleIds.includes("autoMode") &&
+    enabledModuleIds.includes("localMode") &&
+    enabledModuleIds.includes("cloudMode")
 
   return {
+    isSuperadmin: hasSuperadminAccess || normalizedTier === "superadmin",
     accessTier,
+    canUseHybridAI: canUseLite,
     canDownload: Boolean(accessTier),
-    canUseLite: accessTier === "lite" || accessTier === "mega",
-    canUseMega: accessTier === "mega",
-    enabledModuleIds:
-      accessTier === "mega" ? HYBRID_AI_MEGA_MODULE_IDS : accessTier === "lite" ? HYBRID_AI_LITE_MODULE_IDS : [],
+    canDownloadLocalAI: Boolean(accessTier),
+    canUseLite,
+    canUseMega,
+    canManageProviders: enabledModuleIds.includes("aiProviderManagement"),
+    canChangeAIMode,
+    enabledModuleIds,
     comingSoonModuleIds: accessTier === "mega" ? HYBRID_AI_COMING_SOON_MODULE_IDS : [],
-    providerLimit: accessTier === "mega" ? null : accessTier === "lite" ? 1 : 0,
+    providerLimit,
+    providerLimitLabel: formatAiProviderLimit(providerLimit),
+    upgradeRequired: !canUseLite,
   }
+}
+
+export function getHybridAIEntitlements(
+  user: { role?: string | null; email?: string | null } | null | undefined,
+  subscriptionTier?: string | null,
+) {
+  return getHybridAiEntitlement(subscriptionTier, user?.role, user?.email)
 }
 
 export function canUseHybridAiFeature(
