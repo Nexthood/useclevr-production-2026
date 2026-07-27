@@ -1,17 +1,22 @@
 import { auth } from "@/lib/auth/auth";
 import {
-  getMissingProStripePriceEnvLabel,
-  getProStripePriceId,
+  CheckoutPricingError,
+  getMarketForCountry,
+  normalizeCheckoutPlanSlug,
   normalizeCountryCode,
-  resolveCheckoutProPrice,
+  resolveCheckoutMarketPrice,
 } from "@/lib/billing/launch-pricing";
-import { getMissingStripePriceEnvLabel, logMissingStripePriceId } from "@/lib/billing/plans";
+import { logMissingStripePriceId } from "@/lib/billing/plans";
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
 import { getDb } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
 import { issueCheckoutToken } from "@/lib/stripe/checkout-token";
 import { debugError, debugWarn } from "@/lib/utils/debug";
-import { createStripeCheckoutSession, retrieveStripeCustomerCountry } from "@/services/stripe/checkout";
+import {
+  createStripeCheckoutSession,
+  retrieveStripeCustomerCountry,
+  StripeCheckoutConfigurationError,
+} from "@/services/stripe/checkout";
 import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -28,7 +33,9 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const plan = await getConfiguredBillingPlan(body.planId);
+  const planSlug = normalizeCheckoutPlanSlug(body.plan || body.planId || body.productId);
+  const billingPlanId = planSlug === "business" ? "business_monthly" : "pro_monthly";
+  const plan = await getConfiguredBillingPlan(billingPlanId);
   logMissingStripePriceId(plan, "checkout/confirm");
 
   const searchParams = request.nextUrl.searchParams;
@@ -45,47 +52,45 @@ export async function POST(request: NextRequest) {
     : null;
   let priceId = plan.stripePriceId;
   let checkoutPriceMetadata: Record<string, string> = {};
+  const requestedMarket = body.market || (body.billingCountry ? getMarketForCountry(body.billingCountry) : null);
 
   try {
-    if (plan.id === "pro_monthly") {
-      if (!normalizeCountryCode(body.billingCountry)) {
-        return NextResponse.json({ error: "Billing country is required for Pro checkout." }, { status: 400 });
-      }
-      const resolvedPrice = resolveCheckoutProPrice({
-        billingCountry: body.billingCountry,
-        paymentProviderCustomerCountry,
-        taxCountry: body.taxCountry,
-        accountCountry: body.accountCountry || profile?.location,
-        browserCountry: body.browserCountry,
-        requestedCurrency: body.currency || body.requestedCurrency,
-        requestedAmountMinor: typeof body.amountMinor === "number" ? body.amountMinor : body.requestedAmountMinor,
-      });
-      priceId = getProStripePriceId(resolvedPrice.currency);
-      checkoutPriceMetadata = {
-        billingCountry: String(body.billingCountry || ""),
-        resolvedCountry: resolvedPrice.country || "",
-        resolvedCountrySource: resolvedPrice.source,
-        resolvedCurrency: resolvedPrice.currency,
-        resolvedAmountMinor: String(resolvedPrice.amountMinor),
-        fixedPricingTier: "TIER_A",
-      };
-      logCountryMismatch("checkout/confirm", {
-        billingCountry: body.billingCountry,
-        paymentProviderCustomerCountry,
-        taxCountry: body.taxCountry,
-        accountCountry: body.accountCountry || profile?.location,
-        resolvedCurrency: resolvedPrice.currency,
-      });
-    }
+    const resolvedPrice = resolveCheckoutMarketPrice({
+      plan: planSlug,
+      market: requestedMarket,
+      billingInterval: body.billingInterval,
+      requestedCurrency: body.currency || body.requestedCurrency,
+      requestedAmountMinor: typeof body.amountMinor === "number" ? body.amountMinor : body.requestedAmountMinor,
+      requestedStripePriceId: body.stripePriceId || body.priceId,
+    });
+    priceId = resolvedPrice.stripePriceId;
+    checkoutPriceMetadata = {
+      plan: planSlug,
+      billingPlanId,
+      billingInterval: resolvedPrice.billingInterval,
+      market: resolvedPrice.market,
+      resolvedCurrency: resolvedPrice.currency,
+      resolvedAmountMinor: String(resolvedPrice.amountMinor),
+      fixedPricingTier: planSlug === "pro" ? "TIER_A" : "BUSINESS_APPROVED",
+    };
+    logCountryMismatch("checkout/confirm", {
+      billingCountry: body.billingCountry,
+      paymentProviderCustomerCountry,
+      taxCountry: body.taxCountry,
+      accountCountry: body.accountCountry || profile?.location,
+      resolvedCurrency: resolvedPrice.currency,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Checkout price validation failed.";
+    const code = error instanceof CheckoutPricingError ? error.code : "checkout_price_validation_failed";
     debugWarn("[checkout/confirm] Price validation failed.", {
       planId: plan.id,
+      market: requestedMarket,
       billingCountry: body.billingCountry,
       requestedCurrency: body.currency || body.requestedCurrency,
       requestedAmountMinor: body.amountMinor ?? body.requestedAmountMinor,
     });
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message, code }, { status: 400 });
   }
 
   // Step 2 – T&C accepted and a Stripe price ID is configured: open real checkout
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin;
     const checkoutToken = issueCheckoutToken(null, user.id);
     const successUrl = `${origin}/checkout/success?t=${checkoutToken}&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}`;
+    const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}&market=${checkoutPriceMetadata.market}`;
 
     try {
       const checkout = await createStripeCheckoutSession({
@@ -101,6 +106,8 @@ export async function POST(request: NextRequest) {
         userEmail: user.email,
         customerId: profile?.stripeCustomerId ?? null,
         priceId,
+        expectedCurrency: checkoutPriceMetadata.resolvedCurrency,
+        plan: planSlug,
         successUrl,
         cancelUrl,
         metadata: checkoutPriceMetadata,
@@ -124,8 +131,9 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       debugError("[checkout/confirm] Stripe error:", err);
       const message = err instanceof Error ? err.message : "Payment provider error. Please try again.";
+      const code = err instanceof StripeCheckoutConfigurationError ? err.code : "checkout_session_failed";
       return NextResponse.json(
-        { error: message },
+        { error: message, code },
         { status: 500 },
       );
     }
@@ -140,11 +148,8 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(
     {
-      error: `Card checkout is not configured for this plan. Set ${
-        plan.id === "pro_monthly"
-          ? getMissingProStripePriceEnvLabel(resolveCheckoutProPrice({ billingCountry: body.billingCountry }).currency)
-          : getMissingStripePriceEnvLabel(plan.id)
-      }.`,
+      error: "Card checkout is not configured for this plan.",
+      code: `${planSlug}_price_not_configured`,
     },
     { status: 503 },
   );

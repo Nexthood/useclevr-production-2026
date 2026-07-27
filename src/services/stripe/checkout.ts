@@ -17,9 +17,21 @@ export interface CreateStripeCheckoutOptions {
   userEmail: string;
   customerId?: string | null;
   priceId: string;
+  expectedCurrency?: string;
+  plan?: string;
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
+}
+
+export class StripeCheckoutConfigurationError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "StripeCheckoutConfigurationError";
+    this.code = code;
+  }
 }
 
 export async function createStripeCheckoutSession({
@@ -27,11 +39,18 @@ export async function createStripeCheckoutSession({
   userEmail,
   customerId,
   priceId,
+  expectedCurrency,
+  plan,
   successUrl,
   cancelUrl,
   metadata,
 }: CreateStripeCheckoutOptions): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe();
+  await validateStripeSubscriptionPrice(stripe, {
+    priceId,
+    expectedCurrency,
+    plan,
+  });
   const mergedMetadata = {
     userId,
     userEmail,
@@ -57,6 +76,37 @@ export async function createStripeCheckoutSession({
   }
 
   return session;
+}
+
+async function validateStripeSubscriptionPrice(
+  stripe: Stripe,
+  input: {
+    priceId: string;
+    expectedCurrency?: string;
+    plan?: string;
+  },
+) {
+  const price = await stripe.prices.retrieve(input.priceId);
+  const planCode = input.plan === "business" ? "business" : "pro";
+
+  if (!price.active) {
+    throw new StripeCheckoutConfigurationError(`${planCode}_price_inactive`, "The selected Stripe price is inactive.");
+  }
+
+  if (!price.recurring || price.recurring.interval !== "month") {
+    throw new StripeCheckoutConfigurationError(
+      "stripe_mode_mismatch",
+      "The selected Stripe price must be a recurring monthly subscription price.",
+    );
+  }
+
+  const expectedCurrency = input.expectedCurrency?.trim().toLowerCase();
+  if (expectedCurrency && price.currency.toLowerCase() !== expectedCurrency) {
+    throw new StripeCheckoutConfigurationError(
+      planCode === "pro" ? "invalid_pro_price_mapping" : "invalid_business_price_mapping",
+      "The selected Stripe price currency does not match the selected market.",
+    );
+  }
 }
 
 export async function retrieveStripeCustomerCountry(customerId: string): Promise<string | null> {

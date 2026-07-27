@@ -1,8 +1,10 @@
 import {
   formatMonthlyPrice,
   getFixedProPrice,
+  getCheckoutMarketOptions,
   getProLaunchPrices,
   getProStripePriceId,
+  getStripePriceIdForCheckout,
   proPriceEnvByCurrency,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing";
@@ -49,13 +51,16 @@ const stripePriceEnvByPlanId: Partial<Record<StripePricePlanId, StripePriceEnvCo
   },
   pro_annual: { primary: "STRIPE_PRICE_PRO_ANNUAL" },
   business_monthly: {
-    primary: "STRIPE_PRICE_BUSINESS_MONTHLY",
-    fallbacks: ["STRIPE_PRICE_ID_BUSINESS_MONTHLY"],
+    primary: "STRIPE_BUSINESS_PRICE_ID_EUR",
+    fallbacks: ["STRIPE_PRICE_BUSINESS_MONTHLY", "STRIPE_PRICE_ID_BUSINESS_MONTHLY"],
   },
 };
 
 export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
   if (planId === "pro_monthly") return Object.values(proPriceEnvByCurrency);
+  if (planId === "business_monthly") {
+    return getCheckoutMarketOptions("business").flatMap((option) => option.priceEnvNames);
+  }
 
   const config = stripePriceEnvByPlanId[planId];
   if (!config) return [];
@@ -64,6 +69,7 @@ export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
 
 export function resolveStripePriceId(planId: StripePricePlanId): string | undefined {
   if (planId === "pro_monthly") return getProStripePriceId("EUR");
+  if (planId === "business_monthly") return getStripePriceIdForCheckout("business", "eu");
 
   return getStripePriceEnvNames(planId)
     .map((envName) => process.env[envName]?.trim())

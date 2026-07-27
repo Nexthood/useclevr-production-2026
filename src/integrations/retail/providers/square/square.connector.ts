@@ -27,6 +27,7 @@ import {
   mapSquareWebhookEvent,
 } from "./square.mapper";
 import { SQUARE_READ_ONLY_SCOPES, getSquareConfig, requireSquareOAuthConfig } from "./square.config";
+import { SquareOAuthConfigurationError, logSquareOAuthDiagnostics } from "./square-oauth";
 
 const squareClientSecretParam = ["client", "secret"].join("_");
 
@@ -39,29 +40,46 @@ type SquareRequestOptions = {
 export class SquareConnector implements RetailPOSConnector {
   async getAuthorizationUrl(input: AuthorizationInput): Promise<string> {
     const config = requireSquareOAuthConfig();
+    const redirectUri = requireMatchingRedirectUri(input.redirectUri, config.redirectUri);
     const url = new URL(config.authorizationUrl);
     url.searchParams.set("client_id", config.applicationId);
     url.searchParams.set("scope", SQUARE_READ_ONLY_SCOPES.join(" "));
     url.searchParams.set("state", input.state);
-    url.searchParams.set("redirect_uri", input.redirectUri);
-    if (config.environment === "production") url.searchParams.set("session", "false");
+    url.searchParams.set("session", "false");
+    url.searchParams.set("redirect_uri", redirectUri);
+    if (!url.searchParams.get("redirect_uri")) {
+      throw new SquareOAuthConfigurationError(
+        "square_redirect_uri_missing",
+        "Square authorization URL is missing redirect_uri.",
+      );
+    }
+    logSquareOAuthDiagnostics({
+      environment: config.environment,
+      authorizationUrl: config.authorizationUrl,
+      applicationId: config.applicationId,
+      redirectUri,
+      redirectUriIncluded: true,
+      stage: "authorize",
+    });
     return url.toString();
   }
 
   async exchangeAuthorizationCode(input: AuthorizationCodeInput): Promise<TokenResult> {
     const config = requireSquareOAuthConfig();
+    const redirectUri = requireMatchingRedirectUri(input.redirectUri, config.redirectUri);
     const payload = await this.oauthRequest("/token", {
       client_id: config.applicationId,
       [squareClientSecretParam]: config.applicationSecret,
       code: input.code,
       grant_type: "authorization_code",
-      redirect_uri: input.redirectUri,
+      redirect_uri: redirectUri,
     });
     return mapTokenResult(payload);
   }
 
   async refreshAccessToken(connection: RetailConnectionRecord): Promise<TokenResult> {
     const config = requireSquareOAuthConfig();
+    assertConnectionEnvironmentMatchesConfig(connection, config.environment);
     if (!connection.refreshTokenEncrypted) {
       throw new RetailProviderError("REAUTHORIZATION_REQUIRED", "Square refresh token is missing.");
     }
@@ -76,6 +94,7 @@ export class SquareConnector implements RetailPOSConnector {
 
   async revokeConnection(connection: RetailConnectionRecord): Promise<void> {
     const config = requireSquareOAuthConfig();
+    assertConnectionEnvironmentMatchesConfig(connection, config.environment);
     if (!connection.accessTokenEncrypted || !config.applicationSecret) return;
     await this.oauthRequest("/revoke", {
       client_id: config.applicationId,
@@ -226,6 +245,7 @@ export class SquareConnector implements RetailPOSConnector {
     options: SquareRequestOptions = {},
   ) {
     const config = getSquareConfig();
+    assertConnectionEnvironmentMatchesConfig(connection, config.environment);
     const token = options.accessToken || decryptAccessToken(connection);
     const response = await fetch(`${config.apiBaseUrl}${path}`, {
       method: options.method || "GET",
@@ -237,6 +257,34 @@ export class SquareConnector implements RetailPOSConnector {
       body: options.body ? JSON.stringify(removeUndefined(options.body)) : undefined,
     });
     return parseSquareResponse(response);
+  }
+}
+
+function requireMatchingRedirectUri(inputRedirectUri: string, configRedirectUri: string) {
+  if (!inputRedirectUri) {
+    throw new SquareOAuthConfigurationError(
+      "square_redirect_uri_missing",
+      "Square OAuth redirect_uri is required.",
+    );
+  }
+  if (inputRedirectUri !== configRedirectUri) {
+    throw new SquareOAuthConfigurationError(
+      "square_redirect_uri_mismatch",
+      "Square OAuth redirect_uri must match the configured callback URI.",
+    );
+  }
+  return configRedirectUri;
+}
+
+function assertConnectionEnvironmentMatchesConfig(
+  connection: RetailConnectionRecord,
+  environment: "sandbox" | "production",
+) {
+  if (connection.providerEnvironment && connection.providerEnvironment !== environment) {
+    throw new SquareOAuthConfigurationError(
+      "square_environment_mismatch",
+      "Square connection environment does not match the configured Square environment.",
+    );
   }
 }
 

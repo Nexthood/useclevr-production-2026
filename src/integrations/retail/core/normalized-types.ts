@@ -1,5 +1,6 @@
 import type {
   RetailConnectionStatus,
+  RetailProviderEnvironment,
   RetailProvider,
   RetailSyncStatus,
   RetailSyncType,
@@ -8,6 +9,7 @@ import type {
 
 export type {
   RetailConnectionStatus,
+  RetailProviderEnvironment,
   RetailProvider,
   RetailSyncStatus,
   RetailSyncType,
@@ -18,6 +20,7 @@ export type RetailConnectionRecord = {
   id: string;
   organizationId: string;
   provider: RetailProvider;
+  providerEnvironment: RetailProviderEnvironment | null;
   externalMerchantId: string | null;
   displayName: string;
   connectionStatus: RetailConnectionStatus;

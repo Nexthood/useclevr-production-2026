@@ -74,14 +74,24 @@ Conditional service accounts:
 - Resend, required for production email verification delivery from the configured `EMAIL_FROM` sender.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
-Stripe Pro checkout uses separate fixed-price IDs per supported launch currency:
+Stripe paid checkout uses server-resolved monthly Price IDs. Pro supports all launch markets with
+fixed approved prices:
 
 - `USECLEVR_PRO_PRICE_EUR`
 - `USECLEVR_PRO_PRICE_GBP`
 - `USECLEVR_PRO_PRICE_USD`
 - `USECLEVR_PRO_PRICE_CAD`
 
-Set each variable to the matching UseClevr Pro monthly Stripe Price ID. The backend selects one of these IDs from the validated billing country and does not accept browser-supplied amounts as the final checkout price.
+The server also accepts `STRIPE_PRO_PRICE_ID_EUR`, `STRIPE_PRO_PRICE_ID_GBP`,
+`STRIPE_PRO_PRICE_ID_USD`, and `STRIPE_PRO_PRICE_ID_CAD` as compatibility aliases. Set each variable
+to the matching UseClevr Pro monthly Stripe Price ID.
+
+Business EUR checkout uses `STRIPE_BUSINESS_PRICE_ID_EUR` with
+`STRIPE_PRICE_BUSINESS_MONTHLY` and `STRIPE_PRICE_ID_BUSINESS_MONTHLY` as compatibility fallbacks.
+Business UK, US, and Canada markets stay unavailable until approved monthly prices and matching
+`STRIPE_BUSINESS_PRICE_ID_GBP`, `STRIPE_BUSINESS_PRICE_ID_USD`, and
+`STRIPE_BUSINESS_PRICE_ID_CAD` values exist. The backend selects Stripe prices from the canonical
+plan, monthly interval, and market and rejects browser-supplied amounts or Price IDs.
 
 Local-only tools:
 
@@ -209,10 +219,13 @@ For the Railway test service, register these exact redirect URIs in each provide
 - `https://test.useclevr.com/api/integrations/retail/square/callback`
 
 Square OAuth uses one server-resolved callback URL for the authorization request and token exchange.
-The Railway test service sets `SQUARE_REDIRECT_URI` to
-`https://test.useclevr.com/api/integrations/retail/square/callback`. The Square Developer Dashboard
-must contain that exact callback URI for the test service. The apex `useclevr.com` callback applies
-only after DNS and hosting route the apex domain to the production Next.js application.
+The Railway test service sets `SQUARE_ENVIRONMENT=sandbox`, `NEXT_PUBLIC_APP_URL=https://test.useclevr.com`,
+and `SQUARE_REDIRECT_URI=https://test.useclevr.com/api/integrations/retail/square/callback`.
+The production service sets `SQUARE_ENVIRONMENT=production`, `NEXT_PUBLIC_APP_URL=https://useclevr.com`,
+and `SQUARE_REDIRECT_URI=https://useclevr.com/api/integrations/retail/square/callback`.
+The Square Developer Dashboard must register the sandbox and production callback URIs on their matching
+Square applications. The apex `useclevr.com` callback is usable only when DNS and hosting route the
+apex domain to the production Next.js application.
 
 Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
 commit `.env` files.

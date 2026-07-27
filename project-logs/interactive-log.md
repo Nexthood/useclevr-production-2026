@@ -556,6 +556,41 @@ Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.
 
+## Square OAuth Environment Isolation
+
+1. Interaction title
+Square OAuth environment isolation.
+
+2. What was the user goal
+Fix Square OAuth so the test application uses Sandbox credentials, Sandbox endpoints, and the test callback, while production uses Production credentials, Production endpoints, and the production callback without mixing redirect URIs or application IDs.
+
+3. What changed
+Square OAuth now requires `SQUARE_REDIRECT_URI`, validates the callback against the selected Square environment, rejects Sandbox/Production application ID mismatches, always sends the `redirect_uri` parameter, and uses the same callback URI for token exchange. Retail OAuth state and retail connection records now store the provider environment so callbacks, sync, refresh, and disconnect operations can reject environment mismatches. The deployment migration adds the provider-environment columns and updates the retail connection uniqueness boundary. Environment examples and operator docs now show separate Sandbox test and Production callback settings.
+
+4. Problems marked
+blocker: Production OAuth remains blocked if `https://useclevr.com/api/integrations/retail/square/callback` still reaches LiteSpeed instead of the production Next.js app.
+risk: Existing legacy Square connection rows receive the migration default provider environment and may need reconnecting if they were created against a different Square environment.
+improvement: Add authenticated browser E2E coverage for Square OAuth after reusable signed-in Retail fixtures and Square test credentials are available.
+observation: The previous code allowed `SQUARE_ENVIRONMENT=production` to generate a production Square authorization URL with the `test.useclevr.com` callback, which Square rejects as an invalid redirect URI.
+
+5. User learning
+Square requires the authorization request `redirect_uri` and token-exchange `redirect_uri` to match the exact URL registered on the matching Sandbox or Production Square application.
+
+6. AI-agent learning
+Store the selected provider environment with OAuth state and provider connections whenever one codebase supports isolated Sandbox and Production OAuth flows.
+
+7. Follow-up tasks
+- Add authenticated Square OAuth browser coverage when reusable signed-in Retail fixtures and Square Sandbox credentials are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Square OAuth Test Callback Domain Alignment
 
 1. Interaction title
@@ -581,6 +616,41 @@ When a test deployment uses production Square endpoints from a non-apex app doma
 
 7. Follow-up tasks
 - Add authenticated Square OAuth browser coverage when reusable signed-in Retail workspace fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Pro And Business Market Checkout
+
+1. Interaction title
+Pro and Business market checkout.
+
+2. What was the user goal
+Repair Pro multi-market Stripe checkout and add Business market selection by reusing the Pro selector architecture while preserving the working Business EUR Stripe flow.
+
+3. What changed
+Checkout pricing now uses one server-side monthly market registry for Pro and Business. Pro keeps approved EUR, GBP, USD, and CAD prices and reads the current `USECLEVR_PRO_PRICE_*` variables plus `STRIPE_PRO_PRICE_ID_*` aliases. Business keeps approved EUR pricing through `STRIPE_BUSINESS_PRICE_ID_EUR`, `STRIPE_PRICE_BUSINESS_MONTHLY`, or `STRIPE_PRICE_ID_BUSINESS_MONTHLY`; Business UK, US, and Canada render as unavailable until approved prices and matching Price IDs exist. The checkout page uses one market selector for both paid plans, preserves market through review, terms, back navigation, and checkout submit, and posts only canonical plan, monthly interval, and market. Stripe checkout validates active recurring monthly price configuration and expected currency before session creation. Webhook tier mapping now recognizes every configured market Price ID.
+
+4. Problems marked
+blocker: none.
+risk: Live Stripe Price validation was not run because the task must not expose or log secrets and no Stripe Dashboard access is available in the workspace.
+improvement: Add authenticated browser coverage for checkout review and terms once reusable signed-in fixtures exist.
+observation: Business worked because it used one configured EUR plan Price ID, while Pro depended on market-specific Price IDs and the old browser flow did not send a canonical market.
+
+5. User learning
+Business non-EUR checkout requires approved monthly prices and matching Stripe Price IDs before those markets can be enabled.
+
+6. AI-agent learning
+Do not let checkout UI send amount, currency, or Price ID; resolve payable values from canonical plan, interval, and market on the server.
+
+7. Follow-up tasks
+- Add authenticated browser coverage for Pro and Business market checkout when signed-in checkout fixtures exist.
 
 8. Instruction sources
 - AGENTS.md
