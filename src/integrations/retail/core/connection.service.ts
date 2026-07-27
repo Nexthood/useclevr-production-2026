@@ -12,19 +12,26 @@ import {
   retailVariants,
   retailWebhookEvents,
   type RetailConnectionStatus,
+  type RetailProviderEnvironment,
   type RetailProvider,
   type RetailSyncType,
 } from "@/lib/db/schema";
 import { encryptRetailSecret } from "./encryption.service";
 import type { RetailConnectionRecord, TokenResult } from "./normalized-types";
 
-export type OauthStateErrorCode = "invalid_state" | "expired_state";
+export type OauthStateErrorCode = "invalid_state" | "expired_state" | "environment_mismatch";
 
 export class OauthStateError extends Error {
   constructor(public readonly code: OauthStateErrorCode) {
-    super(code === "expired_state" ? "Square authorization state is expired." : "Square authorization state is invalid.");
+    super(getOauthStateErrorMessage(code));
     this.name = "OauthStateError";
   }
+}
+
+function getOauthStateErrorMessage(code: OauthStateErrorCode) {
+  if (code === "expired_state") return "Square authorization state is expired.";
+  if (code === "environment_mismatch") return "Square authorization state environment does not match.";
+  return "Square authorization state is invalid.";
 }
 
 export function createRetailId(prefix: string) {
@@ -38,6 +45,7 @@ export function hashOauthState(state: string) {
 export async function createOauthState(input: {
   organizationId: string;
   provider: RetailProvider;
+  providerEnvironment: RetailProviderEnvironment;
   createdBy: string;
 }) {
   const db = getRequiredDb();
@@ -46,6 +54,7 @@ export async function createOauthState(input: {
     id: createRetailId("oauth"),
     organizationId: input.organizationId,
     provider: input.provider,
+    providerEnvironment: input.providerEnvironment,
     stateHash: hashOauthState(state),
     createdBy: input.createdBy,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -56,6 +65,7 @@ export async function createOauthState(input: {
 export async function consumeOauthState(input: {
   state: string;
   provider: RetailProvider;
+  providerEnvironment: RetailProviderEnvironment;
   userId?: string | null;
 }) {
   const db = getRequiredDb();
@@ -77,6 +87,10 @@ export async function consumeOauthState(input: {
     throw new OauthStateError("invalid_state");
   }
 
+  if (row.providerEnvironment !== input.providerEnvironment) {
+    throw new OauthStateError("environment_mismatch");
+  }
+
   if (row.expiresAt <= now) {
     throw new OauthStateError("expired_state");
   }
@@ -89,12 +103,14 @@ export async function consumeOauthState(input: {
   return {
     organizationId: row.organizationId,
     createdBy: row.createdBy,
+    providerEnvironment: row.providerEnvironment,
   };
 }
 
 export async function saveRetailConnection(input: {
   organizationId: string;
   provider: RetailProvider;
+  providerEnvironment: RetailProviderEnvironment;
   createdBy: string;
   token: TokenResult;
   displayName?: string | null;
@@ -109,6 +125,7 @@ export async function saveRetailConnection(input: {
         and(
           eq(retailConnections.organizationId, input.organizationId),
           eq(retailConnections.provider, input.provider),
+          eq(retailConnections.providerEnvironment, input.providerEnvironment),
           eq(retailConnections.externalMerchantId, input.token.merchantId),
         ),
       )
@@ -118,6 +135,7 @@ export async function saveRetailConnection(input: {
   const values = {
     organizationId: input.organizationId,
     provider: input.provider,
+    providerEnvironment: input.providerEnvironment,
     externalMerchantId: input.token.merchantId,
     displayName: input.displayName || "Square",
     connectionStatus: "connected" as RetailConnectionStatus,
@@ -313,6 +331,7 @@ function toConnectionRecord(row: typeof retailConnections.$inferSelect): RetailC
     id: row.id,
     organizationId: row.organizationId,
     provider: row.provider,
+    providerEnvironment: row.providerEnvironment,
     externalMerchantId: row.externalMerchantId,
     displayName: row.displayName,
     connectionStatus: row.connectionStatus,

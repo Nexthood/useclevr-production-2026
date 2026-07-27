@@ -92,6 +92,7 @@
 ### Fixed
 
 - Resolve Pro and Business checkout from a shared market-based Stripe price flow so Pro keeps its selected market and Business shows unavailable markets until approved prices exist.
+- Keep Square OAuth test and production connections isolated with environment-matched callbacks, Square endpoints, and state validation.
 - Resolve Square OAuth callbacks to the configured application domain so test connections return to the UseClevr test app.
 - Answer dataset-aware declining sales segment questions from complete-period data with direct calculated findings when an AI provider is unavailable.
 - Route Square OAuth callbacks through the application with one canonical callback URL, state-bound connection completion, and safe Retail Integrations success and error redirects.

@@ -556,6 +556,41 @@ Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.
 
+## Square OAuth Environment Isolation
+
+1. Interaction title
+Square OAuth environment isolation.
+
+2. What was the user goal
+Fix Square OAuth so the test application uses Sandbox credentials, Sandbox endpoints, and the test callback, while production uses Production credentials, Production endpoints, and the production callback without mixing redirect URIs or application IDs.
+
+3. What changed
+Square OAuth now requires `SQUARE_REDIRECT_URI`, validates the callback against the selected Square environment, rejects Sandbox/Production application ID mismatches, always sends the `redirect_uri` parameter, and uses the same callback URI for token exchange. Retail OAuth state and retail connection records now store the provider environment so callbacks, sync, refresh, and disconnect operations can reject environment mismatches. The deployment migration adds the provider-environment columns and updates the retail connection uniqueness boundary. Environment examples and operator docs now show separate Sandbox test and Production callback settings.
+
+4. Problems marked
+blocker: Production OAuth remains blocked if `https://useclevr.com/api/integrations/retail/square/callback` still reaches LiteSpeed instead of the production Next.js app.
+risk: Existing legacy Square connection rows receive the migration default provider environment and may need reconnecting if they were created against a different Square environment.
+improvement: Add authenticated browser E2E coverage for Square OAuth after reusable signed-in Retail fixtures and Square test credentials are available.
+observation: The previous code allowed `SQUARE_ENVIRONMENT=production` to generate a production Square authorization URL with the `test.useclevr.com` callback, which Square rejects as an invalid redirect URI.
+
+5. User learning
+Square requires the authorization request `redirect_uri` and token-exchange `redirect_uri` to match the exact URL registered on the matching Sandbox or Production Square application.
+
+6. AI-agent learning
+Store the selected provider environment with OAuth state and provider connections whenever one codebase supports isolated Sandbox and Production OAuth flows.
+
+7. Follow-up tasks
+- Add authenticated Square OAuth browser coverage when reusable signed-in Retail fixtures and Square Sandbox credentials are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Square OAuth Test Callback Domain Alignment
 
 1. Interaction title

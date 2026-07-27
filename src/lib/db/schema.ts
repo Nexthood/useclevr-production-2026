@@ -50,6 +50,9 @@ export type DatasetBusinessModel = (typeof datasetBusinessModels)[number];
 export const retailProviders = ["square"] as const;
 export type RetailProvider = (typeof retailProviders)[number];
 
+export const retailProviderEnvironments = ["sandbox", "production"] as const;
+export type RetailProviderEnvironment = (typeof retailProviderEnvironments)[number];
+
 export const retailConnectionStatuses = [
   "pending",
   "connected",
@@ -417,6 +420,10 @@ export const retailConnections = pgTable(
     id: text("id").primaryKey(),
     organizationId: text("organizationId").notNull(),
     provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    providerEnvironment: varchar("providerEnvironment", { length: 40 })
+      .default("sandbox")
+      .notNull()
+      .$type<RetailProviderEnvironment>(),
     externalMerchantId: text("externalMerchantId"),
     displayName: text("displayName").notNull(),
     connectionStatus: varchar("connectionStatus", { length: 40 })
@@ -452,8 +459,8 @@ export const retailConnections = pgTable(
       table.provider,
     ),
     organizationProviderMerchantIdx: uniqueIndex(
-      "RetailConnection_org_provider_merchant_key",
-    ).on(table.organizationId, table.provider, table.externalMerchantId),
+      "RetailConnection_org_provider_env_merchant_key",
+    ).on(table.organizationId, table.provider, table.providerEnvironment, table.externalMerchantId),
   }),
 );
 
@@ -463,6 +470,10 @@ export const retailOauthStates = pgTable(
     id: text("id").primaryKey(),
     organizationId: text("organizationId").notNull(),
     provider: varchar("provider", { length: 40 }).notNull().$type<RetailProvider>(),
+    providerEnvironment: varchar("providerEnvironment", { length: 40 })
+      .default("sandbox")
+      .notNull()
+      .$type<RetailProviderEnvironment>(),
     stateHash: varchar("stateHash", { length: 64 }).notNull(),
     createdBy: text("createdBy").notNull(),
     expiresAt: timestamp("expiresAt").notNull(),

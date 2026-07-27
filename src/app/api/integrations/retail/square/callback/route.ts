@@ -42,17 +42,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const config = requireSquareOAuthConfig();
     const oauthState = await consumeOauthState({
       state,
       provider: "square",
+      providerEnvironment: config.environment,
       userId: session?.user?.id,
     });
-    const config = requireSquareOAuthConfig();
     const connector = getRetailConnector("square");
     const token = await connector.exchangeAuthorizationCode({ code, redirectUri: config.redirectUri });
     const connection = await saveRetailConnection({
       organizationId: oauthState.organizationId,
       provider: "square",
+      providerEnvironment: config.environment,
       createdBy: oauthState.createdBy,
       token,
       displayName: "Square",

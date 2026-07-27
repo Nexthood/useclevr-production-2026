@@ -219,10 +219,13 @@ For the Railway test service, register these exact redirect URIs in each provide
 - `https://test.useclevr.com/api/integrations/retail/square/callback`
 
 Square OAuth uses one server-resolved callback URL for the authorization request and token exchange.
-The Railway test service sets `SQUARE_REDIRECT_URI` to
-`https://test.useclevr.com/api/integrations/retail/square/callback`. The Square Developer Dashboard
-must contain that exact callback URI for the test service. The apex `useclevr.com` callback applies
-only after DNS and hosting route the apex domain to the production Next.js application.
+The Railway test service sets `SQUARE_ENVIRONMENT=sandbox`, `NEXT_PUBLIC_APP_URL=https://test.useclevr.com`,
+and `SQUARE_REDIRECT_URI=https://test.useclevr.com/api/integrations/retail/square/callback`.
+The production service sets `SQUARE_ENVIRONMENT=production`, `NEXT_PUBLIC_APP_URL=https://useclevr.com`,
+and `SQUARE_REDIRECT_URI=https://useclevr.com/api/integrations/retail/square/callback`.
+The Square Developer Dashboard must register the sandbox and production callback URIs on their matching
+Square applications. The apex `useclevr.com` callback is usable only when DNS and hosting route the
+apex domain to the production Next.js application.
 
 Persist secrets via your hosting platform environment variable UI (Railway, Vercel, etc.) — never
 commit `.env` files.

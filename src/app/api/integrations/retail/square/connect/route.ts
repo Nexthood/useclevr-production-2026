@@ -17,12 +17,13 @@ export async function POST() {
 
   try {
     const organizationId = await requirePrimaryRetailOrganization(session.user.id);
+    const config = requireSquareOAuthConfig();
     const state = await createOauthState({
       organizationId,
       provider: "square",
+      providerEnvironment: config.environment,
       createdBy: session.user.id,
     });
-    const config = requireSquareOAuthConfig();
     const authorizationUrl = await getRetailConnector("square").getAuthorizationUrl({
       state,
       redirectUri: config.redirectUri,

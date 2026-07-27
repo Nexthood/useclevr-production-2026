@@ -106,9 +106,11 @@ Text rules for this file:
 - Preserve CSV and Excel retail uploads as a supported retail data source alongside Square-connected data.
 - Queue Square initial and manual sync runs without exposing provider tokens to the browser.
 - Build Square OAuth authorization and token-exchange requests from one canonical server-side callback URL at `/api/integrations/retail/square/callback`.
-- Resolve Railway test Square OAuth callbacks to `https://test.useclevr.com/api/integrations/retail/square/callback` from the configured application URL and reject mixed application/callback origins.
+- Resolve Railway test Square OAuth with `SQUARE_ENVIRONMENT=sandbox`, Square sandbox endpoints, and `https://test.useclevr.com/api/integrations/retail/square/callback`.
+- Resolve production Square OAuth with `SQUARE_ENVIRONMENT=production`, Square production endpoints, and `https://useclevr.com/api/integrations/retail/square/callback`.
+- Reject Square OAuth when the Square environment, application ID, callback URI, or stored OAuth state environment do not match the current deployment configuration.
 - Allow the Square OAuth callback route through API proxy authentication so Square can return authorization results to the application.
-- Complete Square OAuth callbacks from the stored server-side state record that binds provider, organization, creator, expiration, and nonce.
+- Complete Square OAuth callbacks from the stored server-side state record that binds provider, provider environment, organization, creator, expiration, and nonce.
 - Redirect Square OAuth success and failure results to the Retail Integrations page with safe status and reason codes.
 - Verify Square webhooks against the raw request body and configured notification URL before storing sanitized webhook metadata.
 - Mark duplicate Square webhooks without processing the same provider event twice.
