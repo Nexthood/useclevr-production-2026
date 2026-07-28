@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 import {
   generateWithUniversalAiAdapter,
@@ -7,10 +9,12 @@ import {
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
+  type AiMode,
 } from "@/lib/ai/universal-ai-adapter";
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { auth } from "@/lib/auth/auth";
+import { normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
 import {
   executeAnalyticalIntent,
@@ -386,10 +390,11 @@ export async function POST(request: Request) {
       startedAt,
     });
   }
-  const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
-    getAiMode(userId),
-    getUseClevrCloudFallbackAllowed(userId),
-  ]);
+  const { aiMode, allowUseclevrCloudFallback } = await resolveDatasetAiProviderSettings({
+    userId,
+    datasetId: parsed.datasetId,
+    requestId,
+  });
   let userProviderFailed = false;
 
   try {
@@ -484,7 +489,14 @@ export async function POST(request: Request) {
     });
   }
 
-  const configuredProviders = await listPrivateAiProviderConfigs(userId);
+  const configuredProviders = await listDatasetAiProviders({
+    userId,
+    datasetId: parsed.datasetId,
+    requestId,
+  });
+  if (!configuredProviders.loaded) {
+    userProviderFailed = true;
+  }
   const hasCloudProvider = configuredProviders.some((p) => p.enabled && isCloudProvider(p.providerType));
 
   if (!allowUseclevrCloudFallback && userProviderFailed) {
@@ -528,6 +540,17 @@ export async function POST(request: Request) {
   }
 
   if (!hasCloudProvider) {
+    const defaultCloudResult = await generateDefaultCloudDatasetAnswer({
+      userId,
+      datasetId: parsed.datasetId,
+      prompt,
+      context,
+      aiMode,
+      userProviderFailed,
+      requestId,
+    });
+    if (defaultCloudResult) return defaultCloudResult;
+
     const message = "AI provider is not configured yet. Please check AI provider settings.";
     debugWarn("[HYBRID_AI_DATASET_CHAT] No cloud provider configured", { userId, datasetId: parsed.datasetId });
     recordAiRequestAudit({
@@ -605,43 +628,226 @@ export async function POST(request: Request) {
     }
     throw new Error("Cloud fallback provider returned no response.");
   } catch (cloudError) {
-    const code = providerErrorCode(cloudError);
-    const message = providerErrorMessage(cloudError);
     debugError("[HYBRID_AI_DATASET_CHAT] Cloud fallback failed", { 
       userId, 
       datasetId: parsed.datasetId, 
       error: cloudError instanceof Error ? cloudError.message : String(cloudError) 
     });
-    recordAiRequestAudit({
+    const defaultCloudResult = await generateDefaultCloudDatasetAnswer({
       userId,
       datasetId: parsed.datasetId,
-      providerName: "Cloud fallback",
-      providerType: "cloud",
-      modelName: "none",
-      mode: aiMode,
-      executionLocation: "cloud",
+      prompt,
+      context,
+      aiMode,
+      userProviderFailed: true,
+      requestId,
+      previousError: cloudError,
+    });
+    if (defaultCloudResult) return defaultCloudResult;
+
+    return providerFailureResponse({
+      userId,
+      datasetId: parsed.datasetId,
+      requestId,
+      context,
+      aiMode,
+      error: cloudError,
       fallbackUsed: true,
+    });
+  }
+}
+
+async function resolveDatasetAiProviderSettings(input: {
+  userId: string;
+  datasetId: string;
+  requestId: string;
+}): Promise<{ aiMode: AiMode; allowUseclevrCloudFallback: boolean }> {
+  try {
+    const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
+      getAiMode(input.userId),
+      getUseClevrCloudFallbackAllowed(input.userId),
+    ]);
+    return { aiMode, allowUseclevrCloudFallback };
+  } catch (error) {
+    debugWarn("[HYBRID_AI_DATASET_CHAT] Provider settings lookup failed; using default cloud fallback", {
+      userId: input.userId,
+      datasetId: input.datasetId,
+      requestId: input.requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { aiMode: "auto", allowUseclevrCloudFallback: true };
+  }
+}
+
+async function listDatasetAiProviders(input: {
+  userId: string;
+  datasetId: string;
+  requestId: string;
+}): Promise<Array<Awaited<ReturnType<typeof listPrivateAiProviderConfigs>>[number]> & { loaded: boolean }> {
+  try {
+    const providers = await listPrivateAiProviderConfigs(input.userId);
+    return Object.assign(providers, { loaded: true });
+  } catch (error) {
+    debugWarn("[HYBRID_AI_DATASET_CHAT] Provider config lookup failed; using default cloud fallback", {
+      userId: input.userId,
+      datasetId: input.datasetId,
+      requestId: input.requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return Object.assign([], { loaded: false });
+  }
+}
+
+async function generateDefaultCloudDatasetAnswer(input: {
+  userId: string;
+  datasetId: string;
+  prompt: string;
+  context: DatasetContextSummary;
+  aiMode: AiMode;
+  userProviderFailed: boolean;
+  requestId: string;
+  previousError?: unknown;
+}) {
+  if (!process.env.GEMINI_API_KEY) {
+    debugWarn("[HYBRID_AI_DATASET_CHAT] Default cloud provider is not configured", {
+      userId: input.userId,
+      datasetId: input.datasetId,
+      requestId: input.requestId,
+      previousError: input.previousError instanceof Error ? input.previousError.message : input.previousError ? String(input.previousError) : null,
+    });
+    return null;
+  }
+
+  const startedAt = Date.now();
+  try {
+    const { text, usage } = await generateText({
+      model: google("gemini-2.5-flash"),
+      prompt: input.prompt,
+      temperature: 0.3,
+      maxOutputTokens: 900,
+    });
+    const answer = text.trim();
+    if (!answer) throw new Error("Default cloud provider returned an empty response.");
+    const normalizedUsage = normalizeProviderUsage({
+      provider: "google",
+      model: "gemini-2.5-flash",
+      usage: usage as Record<string, unknown> | undefined,
+      rawUsageReference: usage ? { source: "ai_sdk_usage" } : { source: "missing_provider_usage" },
+    });
+
+    recordAiRequestAudit({
+      userId: input.userId,
+      datasetId: input.datasetId,
+      providerName: "Gemini Cloud",
+      providerType: "default-cloud",
+      modelName: "gemini-2.5-flash",
+      mode: input.aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: input.userProviderFailed,
+      purpose: "dataset_analysis",
+      success: true,
+      latencyMs: Date.now() - startedAt,
+      inputTokens: normalizedUsage.inputTokens,
+      outputTokens: normalizedUsage.outputTokens,
+      totalTokens: normalizedUsage.inputTokens + normalizedUsage.outputTokens,
+    });
+    debugLog("[HYBRID_AI_DATASET_CHAT] Default cloud provider response generated", {
+      userId: input.userId,
+      datasetId: input.datasetId,
+      requestId: input.requestId,
+      providerName: "Gemini Cloud",
+      modelName: "gemini-2.5-flash",
+      fallbackUsed: input.userProviderFailed,
+      mode: input.aiMode,
+      route: "cloud",
+    });
+
+    return NextResponse.json({
+      success: true,
+      answer,
+      content: answer,
+      providerName: "Gemini Cloud",
+      modelName: "gemini-2.5-flash",
+      mode: input.aiMode,
+      route: "cloud",
+      datasetContext: contextForClient(input.context),
+      privacyWarning: input.userProviderFailed
+        ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset."
+        : null,
+      providerStatus: {
+        label: "Gemini Cloud",
+        state: input.userProviderFailed ? "fallback_active" : "connection_healthy",
+        message: input.userProviderFailed ? "Cloud fallback active" : "Connection healthy",
+        fallbackActive: input.userProviderFailed,
+        route: "cloud",
+      } satisfies HybridProviderStatus,
+      requestId: input.requestId,
+    });
+  } catch (error) {
+    debugError("[HYBRID_AI_DATASET_CHAT] Default cloud provider failed", {
+      userId: input.userId,
+      datasetId: input.datasetId,
+      requestId: input.requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    recordAiRequestAudit({
+      userId: input.userId,
+      datasetId: input.datasetId,
+      providerName: "Gemini Cloud",
+      providerType: "default-cloud",
+      modelName: "gemini-2.5-flash",
+      mode: input.aiMode,
+      executionLocation: "cloud",
+      fallbackUsed: input.userProviderFailed,
       purpose: "dataset_analysis",
       success: false,
-      errorReason: cloudError instanceof Error ? cloudError.message : String(cloudError),
+      latencyMs: Date.now() - startedAt,
+      errorReason: error instanceof Error ? error.message : String(error),
     });
-    return NextResponse.json({
-      success: false,
-      code,
-      message,
-      requestId,
-      error: message,
-      datasetContext: contextForClient(context),
-      privacyWarning: null,
-      providerStatus: {
-        label: "Hybrid AI",
-        state: "provider_unavailable",
-        message: "Provider unavailable",
-        fallbackActive: false,
-        route: "none",
-      } satisfies HybridProviderStatus,
-    }, { status: 503 });
+    return null;
   }
+}
+
+function providerFailureResponse(input: {
+  userId: string;
+  datasetId: string;
+  requestId: string;
+  context: DatasetContextSummary;
+  aiMode: AiMode;
+  error: unknown;
+  fallbackUsed: boolean;
+}) {
+  const code = providerErrorCode(input.error);
+  const message = providerErrorMessage(input.error);
+  recordAiRequestAudit({
+    userId: input.userId,
+    datasetId: input.datasetId,
+    providerName: "Cloud fallback",
+    providerType: "cloud",
+    modelName: "none",
+    mode: input.aiMode,
+    executionLocation: "cloud",
+    fallbackUsed: input.fallbackUsed,
+    purpose: "dataset_analysis",
+    success: false,
+    errorReason: input.error instanceof Error ? input.error.message : String(input.error),
+  });
+  return NextResponse.json({
+    success: false,
+    code,
+    message,
+    requestId: input.requestId,
+    error: message,
+    datasetContext: contextForClient(input.context),
+    privacyWarning: null,
+    providerStatus: {
+      label: "Hybrid AI",
+      state: "provider_unavailable",
+      message: "Provider unavailable",
+      fallbackActive: false,
+      route: "none",
+    } satisfies HybridProviderStatus,
+  }, { status: code === "PROVIDER_TIMEOUT" ? 504 : 503 });
 }
 
 function datasetAiErrorResponse(input: {

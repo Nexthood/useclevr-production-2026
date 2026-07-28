@@ -1,3 +1,37 @@
+## Dataset AI Assistant Production Provider Fallback
+
+1. Interaction title
+Dataset AI Assistant production provider fallback.
+
+2. What was the user goal
+Fix the authenticated production Dataset AI Assistant so selected-dataset questions answer from the selected dataset instead of stopping at tests or returning production failures.
+
+3. What changed
+The Dataset AI route keeps deterministic selected-dataset answers first, wraps saved provider mode and provider-list lookups so broken provider settings cannot return an empty production 500, and falls back to configured Gemini cloud AI for provider-backed selected-dataset prompts while preserving dataset ID, authenticated user ID, request ID, provider status, privacy warning, and audit metadata.
+
+4. Problems marked
+blocker: Railway log streaming is unavailable through the local CLI session even though Railway project status is authenticated and connected.
+risk: Browser DevTools automation is unavailable because Playwright and Puppeteer packages are not installed, so authenticated production request and response details are captured with the same HTTP session cookies instead of a visual DevTools panel.
+observation: Production selected-dataset deterministic questions already return grounded answers, while provider-backed selected-dataset questions return an empty 500 before this fix.
+
+5. User learning
+Dataset AI production failures can occur after deterministic handling when provider setup or saved provider configuration fails before the cloud fallback path runs.
+
+6. AI-agent learning
+Selected-dataset AI fixes must verify deterministic answers and provider-backed prompts separately in authenticated production.
+
+7. Follow-up tasks
+- Add authenticated browser automation for Dataset AI production smoke testing when a browser driver is available in the workspace.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dataset AI Assistant Grounded Responses
 
 1. Interaction title
