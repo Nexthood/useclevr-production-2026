@@ -55,6 +55,8 @@ type AssistantMessage = {
   privacyWarning?: string | null
   error?: string
   errorCode?: string
+  retryQuestion?: string
+  replyToId?: string
   deterministicAnalysis?: SegmentDeclineAnalysisPayload
   analyticalResult?: SupportedAnalyticalResult
 }
@@ -117,6 +119,32 @@ async function readAssistantResponse(response: Response): Promise<Record<string,
     })
     throw new Error("I received an incomplete AI response. Please try again.")
   }
+}
+
+function datasetAssistantErrorMessage(body: Record<string, unknown>, fallback: string) {
+  const code = typeof body.code === "string" ? body.code : ""
+  if (code === "NO_DATASET_SELECTED") return "Select a dataset before asking questions."
+  if (code === "DATASET_NOT_FOUND") return "The selected dataset could not be found for this account."
+  if (code === "UNAUTHORIZED") return "Sign in before asking dataset questions."
+  if (code === "EMPTY_DATASET") return "This dataset does not contain enough usable information."
+  if (code === "PROVIDER_TIMEOUT") return "The request timed out. Please retry."
+  if (code === "INVALID_PROVIDER_RESPONSE") return "The AI provider returned an invalid response. Please retry."
+  if (code === "PROVIDER_MISSING") return "The AI assistant is not configured for provider-backed answers."
+  if (code === "PROVIDER_UNAVAILABLE" || code === "AI_PROVIDER_ERROR") return "The AI assistant is temporarily unavailable. Please try again shortly."
+  const message = String(body.message || body.error || fallback).trim()
+  if (!message || /could not answer that question/i.test(message)) return fallback
+  return message
+}
+
+function classifyClientFetchError(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return { code: "PROVIDER_TIMEOUT", message: "The request timed out. Please retry." }
+  }
+  const message = error instanceof Error ? error.message : String(error)
+  if (/networkerror|failed to fetch|load failed/i.test(message)) {
+    return { code: "NETWORK_ERROR", message: "The assistant connection was interrupted. Please retry." }
+  }
+  return { code: "INTERNAL_ERROR", message: "The assistant could not complete the request. Please retry." }
 }
 
 type SavedSuggestion = {
@@ -259,18 +287,23 @@ export function AiAssistantWorkspace() {
     setInputValue("")
     setIsAsking(true)
 
+    const userMessageId = `user-${Date.now()}`
     const userMessage: AssistantMessage = {
-      id: `user-${Date.now()}`,
+      id: userMessageId,
       role: "user",
       content: trimmed,
     }
 
     setMessages((current) => [...current, userMessage])
 
+    let timeoutId: number | null = null
     try {
+      const controller = new AbortController()
+      timeoutId = window.setTimeout(() => controller.abort(), 45_000)
       const response = await fetch(selectedDatasetId ? "/api/hybrid-ai/dataset-chat" : "/api/hybrid-ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           datasetId: selectedDatasetId || undefined,
           messages: [...messages, userMessage]
@@ -278,11 +311,13 @@ export function AiAssistantWorkspace() {
             .map((message) => ({ role: message.role, content: message.content })),
         }),
       })
+      if (timeoutId) window.clearTimeout(timeoutId)
+      timeoutId = null
       
       const body = await readAssistantResponse(response)
 
       if (!response.ok || body.success === false) {
-        const errorMessage = String(body.message || body.error || "The assistant could not answer that question.")
+        const errorMessage = datasetAssistantErrorMessage(body, "The assistant could not complete the request. Please retry.")
         const assistantMessage: AssistantMessage = {
           id: `assistant-error-${Date.now()}`,
           traceId: typeof body.traceId === "string" ? body.traceId : undefined,
@@ -290,6 +325,8 @@ export function AiAssistantWorkspace() {
           content: errorMessage,
           error: errorMessage,
           errorCode: typeof body.code === "string" ? body.code : undefined,
+          retryQuestion: trimmed,
+          replyToId: userMessageId,
           providerName: providerNameFromResponse(body),
           modelName: typeof body.modelName === "string" ? body.modelName : undefined,
           providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
@@ -303,6 +340,7 @@ export function AiAssistantWorkspace() {
         id: `assistant-${Date.now()}`,
         traceId: typeof body.traceId === "string" ? body.traceId : undefined,
         role: "assistant",
+        replyToId: userMessageId,
         content: responseText(body),
         insight: typeof body.insight === "string" ? body.insight : undefined,
         explanation: typeof body.explanation === "string" ? body.explanation : (selectedDatasetId ? "The response used summarized dataset context, backend KPI extracts, column profiles, and bounded sample rows." : undefined),
@@ -319,14 +357,18 @@ export function AiAssistantWorkspace() {
 
       setMessages((current) => [...current, assistantMessage])
     } catch (askError) {
-      const message = askError instanceof Error ? askError.message : "The assistant could not answer that question."
+      if (timeoutId) window.clearTimeout(timeoutId)
+      const classified = classifyClientFetchError(askError)
       setMessages((current) => [
         ...current,
         {
           id: `assistant-error-${Date.now()}`,
           role: "assistant",
-          content: message,
-          error: message,
+          content: classified.message,
+          error: classified.message,
+          errorCode: classified.code,
+          retryQuestion: trimmed,
+          replyToId: userMessageId,
           providerName: "System",
         },
       ])
@@ -562,7 +604,7 @@ export function AiAssistantWorkspace() {
                   {message.role === "assistant" && message.error && (
                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-destructive">
                       <Info className="h-4 w-4" />
-                      Analysis error
+                      Dataset assistant issue
                     </div>
                   )}
 
@@ -589,6 +631,19 @@ export function AiAssistantWorkspace() {
                       </p>
                       <p className="mt-1 font-medium">Next steps:</p>
                       <p className="mt-0.5 text-muted-foreground">{errorNextStep(message)}</p>
+                      {message.retryQuestion && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 h-8 gap-1.5 border-destructive/30 bg-background text-xs text-foreground hover:bg-destructive/10"
+                          onClick={() => askAssistant(message.retryQuestion || "")}
+                          disabled={isAsking}
+                        >
+                          <Repeat className="h-3.5 w-3.5" />
+                          Retry
+                        </Button>
+                      )}
                     </div>
                   )}
 
@@ -944,6 +999,15 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
 }
 
 function errorExplanation(message: AssistantMessage) {
+  if (message.errorCode === "NO_DATASET_SELECTED") return "No dataset was selected for this Dataset AI request."
+  if (message.errorCode === "DATASET_NOT_FOUND") return "The dataset ID in the request does not match an available dataset for this account."
+  if (message.errorCode === "UNAUTHORIZED") return "The request did not include a valid signed-in session."
+  if (message.errorCode === "EMPTY_DATASET") return "The selected dataset has no usable rows for grounded analysis."
+  if (message.errorCode === "PROVIDER_TIMEOUT") return "The Dataset AI request exceeded the response time limit."
+  if (message.errorCode === "NETWORK_ERROR") return "The browser connection to the Dataset AI endpoint was interrupted."
+  if (message.errorCode === "PROVIDER_MISSING") return "Dataset context loaded, but no AI provider is configured for provider-backed answers."
+  if (message.errorCode === "PROVIDER_UNAVAILABLE" || message.errorCode === "AI_PROVIDER_ERROR") return "The provider route is unavailable after dataset context preparation."
+  if (message.errorCode === "INVALID_PROVIDER_RESPONSE") return "The provider returned a response the Dataset AI could not parse safely."
   if (message.providerStatus?.label === "Failed before provider execution") {
     return "The request stopped during dataset validation or deterministic analysis before any AI provider was selected."
   }
@@ -954,6 +1018,14 @@ function errorExplanation(message: AssistantMessage) {
 }
 
 function errorNextStep(message: AssistantMessage) {
+  if (message.errorCode === "NO_DATASET_SELECTED") return "Select a dataset in the left sidebar, then ask again."
+  if (message.errorCode === "DATASET_NOT_FOUND") return "Refresh the dataset list and choose the dataset again."
+  if (message.errorCode === "UNAUTHORIZED") return "Sign in again and retry the question."
+  if (message.errorCode === "EMPTY_DATASET") return "Upload a dataset with rows and columns before asking Dataset AI."
+  if (message.errorCode === "PROVIDER_TIMEOUT" || message.errorCode === "NETWORK_ERROR") return "Use Retry to send the same question again."
+  if (message.errorCode === "PROVIDER_MISSING") return "Ask a revenue, segment, trend, or risk question for direct dataset analysis, or configure an AI provider."
+  if (message.errorCode === "PROVIDER_UNAVAILABLE" || message.errorCode === "AI_PROVIDER_ERROR") return "Retry shortly, or check AI Providers if provider-backed answers are required."
+  if (message.errorCode === "INVALID_PROVIDER_RESPONSE") return "Retry the same question. If it repeats, switch provider settings."
   if (message.errorCode === "missing_time_dimension") return "Use a dataset with a date, month, or period column and at least two complete periods."
   if (message.errorCode === "missing_sales_metric") return "Use a dataset with a numeric revenue, sales, amount, or order value column."
   if (message.errorCode === "missing_segment_dimension") return "Use a dataset with a segment, plan, channel, region, country, or category column."

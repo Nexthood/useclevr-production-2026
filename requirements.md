@@ -56,6 +56,12 @@ Text rules for this file:
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
+- Answer selected-dataset AI Assistant questions from normalized dataset rows before provider routing when deterministic revenue, segment, risk, trend, best-segment, forecast-baseline, or summary answers are available.
+- Interpret short dataset questions such as plan, segment, growth, forecast, risk, and best-segment prompts against the selected dataset context without requiring perfect wording.
+- Keep Dataset AI Assistant state, selected dataset routing, retry behavior, and dataset-grounded conversation separate from the Usy floating product assistant.
+- Show classified Dataset AI Assistant failure states for no dataset selected, missing dataset, unauthorized request, empty dataset, provider unavailable, provider timeout, missing provider configuration, invalid provider response, network interruption, and internal failure.
+- Preserve the failed Dataset AI Assistant question and show one retry action for the corresponding response state.
+- Log Dataset AI Assistant request diagnostics with request ID, dataset ID, dataset type, tenant, user ID, provider, model, processing stage, duration, HTTP status, and sanitized error only.
 - Map uploaded dataset columns to canonical business fields with normalized names, confidence values, original column references, ambiguity handling, and dataset-scoped schema state.
 - Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.
 - Never calculate gross margin from operating expenses alone and never infer COGS from an ambiguous generic cost field.
