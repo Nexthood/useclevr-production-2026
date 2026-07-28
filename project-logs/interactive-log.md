@@ -1,3 +1,38 @@
+## Dataset AI Assistant Grounded Responses
+
+1. Interaction title
+Dataset AI Assistant grounded responses.
+
+2. What was the user goal
+Restore the main Dataset AI Assistant so selected-dataset questions return grounded answers while Usy remains a separate floating product assistant with separate routing, state, and conversation history.
+
+3. What changed
+The Dataset AI route authenticates the user, loads the selected owned dataset with stored dataset type, rejects missing or empty dataset states with classified JSON, and generates direct deterministic answers before provider routing for revenue, segment lookup, revenue risks, trends, best segments, forecast baseline, and dataset summaries. The assistant UI preserves the failed question, classifies network, timeout, provider, dataset, and auth failures, shows one Dataset assistant issue state, and adds Retry. A focused fixture test covers `plan Pro?`, revenue risks, growth, Dataset AI routing, retry rendering, error classifications, and Usy route isolation.
+
+4. Problems marked
+blocker: Authenticated browser and Railway user-session reproduction require live credentials outside this Codex session.
+risk: Provider-backed freeform answers still depend on the configured Hybrid AI provider when deterministic dataset handling cannot answer.
+improvement: A browser E2E test can cover selected dataset persistence, refresh, and no-console-error behavior once a stable authenticated test account is available.
+observation: The root cause is provider/gate fallthrough for valid dataset questions that deterministic normalized-row analysis can answer without an AI provider.
+
+5. User learning
+Dataset AI now answers supported selected-dataset questions directly from uploaded rows and keeps Usy as the product assistant.
+
+6. AI-agent learning
+Dataset AI fixes must verify the selected dataset API path and the Usy API path separately so product-chat routing does not absorb dataset-analysis behavior.
+
+7. Follow-up tasks
+- Add an authenticated browser regression for selected Dataset AI chat once shared test credentials are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 - Added the Square POS retail integration foundation. The request asked for a provider-independent POS platform with Square as the first read-only connector while preserving CSV and Excel Retail uploads. The repository audit found Next.js App Router, Drizzle over Neon/PostgreSQL, user-owned Business records as the closest organization boundary, existing encrypted provider-key patterns, upload-driven Retail analysis, and no existing POS tables. Added normalized retail tables and migration for connections, OAuth state, merchants, locations, products, variants, inventory, orders, order items, payments, refunds, sync runs, webhook events, and AI insight traceability. Added a reusable connector contract, retail encryption service, organization guards, connection persistence, sync orchestration, webhook ingestion, deterministic retail KPI helpers, Square REST connector, Square mapping layer, OAuth routes, webhook route, manual sync/disconnect routes, Retail Integrations page, server-only env placeholders, requirements, changelog, TODO record `T-945`, and a focused retail POS verification script. Square documentation confirms seller-scoped OAuth, read-only least-privilege scopes, 30-day access tokens with refresh, SDK version churn, and raw-body HMAC-SHA256 webhook verification with the exact notification URL. Problems marked: blocker: Square sandbox credentials are not present, so live OAuth and real API response testing cannot run. risk: sync runs are queued by the UI and the sync engine is implemented, but no persistent worker or scheduler executes queued runs yet. improvement: add a first-class background job runner for initial, manual, incremental, and reconciliation syncs. observation: the project’s primary Business record acts as the organization boundary for this foundation. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm test:retail-pos`, `pnpm lint:todos`, `pnpm lint:secrets`, and `pnpm lint:package`.
 - Upgraded Preferences into an international Regional Preferences system. The root cause was that `/app/settings/preferences` existed but rendered a small local-only panel titled Settings with EUR-centered currency choices, Auto/manual number formatting only, no date/timezone/language controls, and no authenticated profile persistence for the expanded settings. The page now loads existing profile preferences server-side, preserves legacy `preferredCurrency` values for existing profiles through migration `0014_profile_regional_preferences.sql`, stores expanded regional settings in `Profile.regionalPreferences`, keeps `Profile.preferredCurrency` and `Profile.numberFormat` as compatibility fields, saves through `/api/settings/preferences`, and updates the shared formatting provider from the authenticated profile. Regional utilities now resolve Auto display currency from browser locale (`en-GB` GBP, `en-US` USD, `nl-NL` EUR) with EUR fallback when no browser locale exists, keep Base Currency separate from display formatting, format currency/number/date previews with `Intl`, and expose timezone/language preferences without claiming full-app translation or fake FX conversion. Verification passed with TypeScript, focused ESLint, and `node -r tsx/esm scripts/health/test-regional-preferences.ts`.
 - Polished the authenticated top navigation toolbar alignment. The root cause was mixed control footprints in the same toolbar: popover triggers used full-height links, theme used a 64px button, search and notice used independent widths, the subscription block used full-height two-line layout, and the nav had zero item gap. The toolbar now uses centered 44px action containers, rounded shared hover areas, 16px gaps, centered 28px dividers, desktop-only text labels for constrained controls, and tablet-safe icon-only labels while preserving every existing action. Verification passed with TypeScript, focused ESLint, local desktop and 125% zoom screenshots at `/tmp/useclevr-topbar-verification/desktop-100.png` and `/tmp/useclevr-topbar-verification/desktop-125.png`, and static responsive review for tablet class behavior; the tablet browser screenshot attempt was blocked by an unrelated local dashboard database out-of-memory response during page rendering.

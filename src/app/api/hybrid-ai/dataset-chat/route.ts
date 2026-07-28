@@ -10,11 +10,13 @@ import {
 } from "@/lib/ai/universal-ai-adapter";
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
+import { auth } from "@/lib/auth/auth";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
 import {
   executeAnalyticalIntent,
   type AnalyticalUnsupportedCode,
 } from "@/lib/data/analytical-intents";
+import { answerDatasetQuestionDeterministically } from "@/lib/data/dataset-assistant-deterministic";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
@@ -117,22 +119,54 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
-  const gate = await requireHybridAiFeature("datasetAwareChat");
-  if (!gate.success) return gate.error;
-  const userId = gate.session?.user?.id;
-  if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  const startedAt = Date.now();
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return datasetAiErrorResponse({
+    status: 401,
+    code: "UNAUTHORIZED",
+    message: "Sign in before asking dataset questions.",
+    requestId,
+    stage: "authentication",
+    startedAt,
+  });
 
   let parsed: z.infer<typeof datasetChatSchema>;
   try {
     parsed = datasetChatSchema.parse(await request.json());
   } catch {
-    return NextResponse.json({ success: false, error: "Select a dataset and send a question." }, { status: 400 });
+    return datasetAiErrorResponse({
+      status: 400,
+      code: "NO_DATASET_SELECTED",
+      message: "Select a dataset before asking questions.",
+      requestId,
+      userId,
+      stage: "parse_request",
+      startedAt,
+    });
   }
 
   const messages = normalizeMessages(parsed);
   if (messages.length === 0) {
-    return NextResponse.json({ success: false, error: "Send a dataset question to Hybrid AI." }, { status: 400 });
+    return datasetAiErrorResponse({
+      status: 400,
+      code: "EMPTY_QUESTION",
+      message: "Enter a question about the selected dataset.",
+      requestId,
+      userId,
+      datasetId: parsed.datasetId,
+      stage: "normalize_question",
+      startedAt,
+    });
   }
+
+  debugLog("[DATASET_AI] Request started", {
+    requestId,
+    datasetId: parsed.datasetId,
+    userId,
+    tenant: userId,
+    stage: "load_dataset",
+  });
 
   const dataset = await db.query.datasets.findFirst({
     where: and(eq(datasets.id, parsed.datasetId), eq(datasets.userId, userId)),
@@ -146,11 +180,22 @@ export async function POST(request: Request) {
       precomputedMetrics: true,
       detectedColumns: true,
       analysis: true,
+      datasetType: true,
+      businessModel: true,
     },
   });
 
   if (!dataset) {
-    return NextResponse.json({ success: false, error: "Dataset not found." }, { status: 404 });
+    return datasetAiErrorResponse({
+      status: 404,
+      code: "DATASET_NOT_FOUND",
+      message: "The selected dataset could not be found for this account.",
+      requestId,
+      userId,
+      datasetId: parsed.datasetId,
+      stage: "load_dataset",
+      startedAt,
+    });
   }
 
   const storedRows = await db.query.datasetRows.findMany({
@@ -163,9 +208,22 @@ export async function POST(request: Request) {
   const analysisRows = normalizeRows(
     storedRows.length > 0 ? storedRows.map((row) => row.data) : Array.isArray(dataset.data) ? dataset.data.slice(0, MAX_DETERMINISTIC_ROWS) : [],
   );
+  if (analysisRows.length === 0) {
+    return datasetAiErrorResponse({
+      status: 422,
+      code: "EMPTY_DATASET",
+      message: "This dataset does not contain enough usable information.",
+      requestId,
+      userId,
+      datasetId: parsed.datasetId,
+      datasetType: dataset.datasetType || "standard",
+      stage: "load_rows",
+      startedAt,
+    });
+  }
   const profileRows = analysisRows.slice(0, MAX_PROFILE_ROWS);
   const columns = normalizeColumns(dataset.columns, profileRows);
-  const datasetType = detectDatasetTypeFromColumns(columns, dataset.name);
+  const datasetType = dataset.datasetType || detectDatasetTypeFromColumns(columns, dataset.name);
   const context = buildDatasetContext({
     id: dataset.id,
     name: dataset.name,
@@ -218,6 +276,61 @@ export async function POST(request: Request) {
         datasetContext: contextForClient(context),
         privacyWarning: null,
         providerStatus,
+        requestId,
+      });
+    }
+
+    const deterministicResult = answerDatasetQuestionDeterministically({
+      question: latestQuestion,
+      datasetId: dataset.id,
+      datasetType,
+      columns,
+      rows: analysisRows,
+    });
+    if (deterministicResult) {
+      const providerStatus = directDataAnalysisStatus();
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Direct data analysis",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: true,
+      });
+      debugLog("[DATASET_AI] Direct dataset response generated", {
+        requestId,
+        datasetId: parsed.datasetId,
+        datasetType,
+        userId,
+        tenant: userId,
+        provider: "Direct data analysis",
+        model: "none",
+        stage: "direct_dataset_answer",
+        durationMs: Date.now() - startedAt,
+        httpStatus: 200,
+      });
+      return NextResponse.json({
+        success: true,
+        answer: deterministicResult.answer,
+        content: deterministicResult.answer,
+        insight: deterministicResult.insight,
+        explanation: deterministicResult.explanation,
+        recommendation: deterministicResult.recommendation,
+        data: deterministicResult.data,
+        chartType: deterministicResult.chartType,
+        providerName: "Not required",
+        modelName: "",
+        mode: "direct",
+        route: "direct",
+        analyticalResult: deterministicResult.result,
+        datasetContext: contextForClient(context),
+        privacyWarning: null,
+        providerStatus,
+        requestId,
       });
     }
 
@@ -251,11 +364,28 @@ export async function POST(request: Request) {
         datasetContext: contextForClient(context),
         privacyWarning: null,
         providerStatus,
+        requestId,
       }, { status: 422 });
     }
   }
 
   const prompt = buildDatasetChatPrompt(messages, context);
+  const gate = await requireHybridAiFeature("datasetAwareChat");
+  if (!gate.success) {
+    return datasetAiErrorResponse({
+      status: 503,
+      code: "PROVIDER_UNAVAILABLE",
+      message: "The AI assistant is temporarily unavailable. Please try again shortly.",
+      requestId,
+      userId,
+      datasetId: parsed.datasetId,
+      datasetType,
+      providerName: "Hybrid AI",
+      modelName: "none",
+      stage: "provider_gate",
+      startedAt,
+    });
+  }
   const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
     getAiMode(userId),
     getUseClevrCloudFallbackAllowed(userId),
@@ -297,6 +427,7 @@ export async function POST(request: Request) {
           result.mode,
           result.route,
         ),
+        requestId,
       });
     }
   } catch (error) {
@@ -322,7 +453,7 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({
         success: false,
-        code: "AI_PROVIDER_ERROR",
+        code: "PROVIDER_UNAVAILABLE",
         message,
         requestId,
         error: message,
@@ -374,7 +505,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
-      code: "AI_PROVIDER_ERROR",
+      code: "PROVIDER_UNAVAILABLE",
       message,
       requestId,
       error: message,
@@ -414,7 +545,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
-      code: "AI_PROVIDER_ERROR",
+      code: "PROVIDER_MISSING",
       message,
       requestId,
       error: message,
@@ -469,11 +600,13 @@ export async function POST(request: Request) {
           result.mode,
           result.route,
         ),
+        requestId,
       });
     }
     throw new Error("Cloud fallback provider returned no response.");
   } catch (cloudError) {
-    const message = "AI provider is not configured yet. Please check AI provider settings.";
+    const code = providerErrorCode(cloudError);
+    const message = providerErrorMessage(cloudError);
     debugError("[HYBRID_AI_DATASET_CHAT] Cloud fallback failed", { 
       userId, 
       datasetId: parsed.datasetId, 
@@ -494,7 +627,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       success: false,
-      code: "AI_PROVIDER_ERROR",
+      code,
       message,
       requestId,
       error: message,
@@ -509,6 +642,66 @@ export async function POST(request: Request) {
       } satisfies HybridProviderStatus,
     }, { status: 503 });
   }
+}
+
+function datasetAiErrorResponse(input: {
+  status: number;
+  code: string;
+  message: string;
+  requestId: string;
+  userId?: string | null;
+  datasetId?: string | null;
+  datasetType?: string | null;
+  providerName?: string;
+  modelName?: string;
+  stage: string;
+  startedAt: number;
+}) {
+  debugWarn("[DATASET_AI] Request failed", {
+    requestId: input.requestId,
+    datasetId: input.datasetId || null,
+    datasetType: input.datasetType || null,
+    tenant: input.userId || null,
+    userId: input.userId || null,
+    provider: input.providerName || "none",
+    model: input.modelName || "none",
+    stage: input.stage,
+    durationMs: Date.now() - input.startedAt,
+    httpStatus: input.status,
+    sanitizedProviderError: input.code,
+  });
+  return NextResponse.json({
+    success: false,
+    code: input.code,
+    message: input.message,
+    error: input.message,
+    answer: input.message,
+    content: input.message,
+    requestId: input.requestId,
+    providerName: input.providerName || "Dataset AI",
+    modelName: input.modelName || "",
+    providerStatus: {
+      label: input.providerName || "Dataset AI",
+      state: input.status === 401 || input.status === 404 || input.status === 422 ? "provider_unavailable" : "provider_unavailable",
+      message: input.message,
+      fallbackActive: false,
+      route: "none",
+    } satisfies HybridProviderStatus,
+  }, { status: input.status });
+}
+
+function providerErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  if (message.includes("timeout") || message.includes("timed out")) return "The request timed out. Please retry.";
+  if (message.includes("json") || message.includes("parse")) return "The AI provider returned an invalid response. Please retry.";
+  return "The AI assistant is temporarily unavailable. Please try again shortly.";
+}
+
+function providerErrorCode(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  if (message.includes("timeout") || message.includes("timed out")) return "PROVIDER_TIMEOUT";
+  if (message.includes("json") || message.includes("parse")) return "INVALID_PROVIDER_RESPONSE";
+  return "PROVIDER_UNAVAILABLE";
 }
 
 function normalizeMessages(input: z.infer<typeof datasetChatSchema>) {

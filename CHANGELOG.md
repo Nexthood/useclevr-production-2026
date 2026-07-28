@@ -91,6 +91,7 @@
 
 ### Fixed
 
+- Answer selected-dataset AI Assistant questions with grounded direct dataset responses, retryable failure states, and separate Usy chat behavior.
 - Resolve Pro and Business checkout from a shared market-based Stripe price flow so Pro keeps its selected market and Business shows unavailable markets until approved prices exist.
 - Keep Square OAuth test and production connections isolated with environment-matched callbacks, Square endpoints, and state validation.
 - Resolve Square OAuth callbacks to the configured application domain so test connections return to the UseClevr test app.
