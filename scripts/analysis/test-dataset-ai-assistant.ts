@@ -74,6 +74,7 @@ assert.match(datasetRouteSource, /generateAntigravityCompletion/, "Dataset AI de
 assert.match(datasetRouteSource, /datasetId: input\.datasetId/, "Dataset AI default cloud audit preserves the selected dataset id");
 assert.match(datasetRouteSource, /contextForClient\(input\.context\)/, "Dataset AI default cloud response returns selected dataset context");
 assert.match(datasetRouteSource, /providerName: "Gemini Cloud"[\s\S]*route: "none"/, "Dataset AI reports default cloud provider failures without dropping selected dataset context");
+assert.match(datasetRouteSource, /providerErrorDiagnostic/, "Dataset AI reports sanitized cloud provider diagnostics");
 
 const usySource = readFileSync(join(repoRoot, "src", "components", "ui", "help-chatbox.tsx"), "utf8");
 assert.match(usySource, /fetch\("\/api\/hybrid-ai\/chat"/, "Usy Bot keeps its separate chat API");

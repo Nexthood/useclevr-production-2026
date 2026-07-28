@@ -792,6 +792,7 @@ async function generateDefaultCloudDatasetAnswer(input: {
     });
     const code = providerErrorCode(error);
     const message = providerErrorMessage(error);
+    const diagnostic = providerErrorDiagnostic(error);
     return NextResponse.json({
       success: false,
       code,
@@ -809,7 +810,7 @@ async function generateDefaultCloudDatasetAnswer(input: {
       providerStatus: {
         label: "Gemini Cloud",
         state: "provider_unavailable",
-        message: "Provider unavailable",
+        message: diagnostic,
         fallbackActive: input.userProviderFailed,
         route: "none",
       } satisfies HybridProviderStatus,
@@ -840,6 +841,10 @@ async function generateDefaultCloudText(prompt: string): Promise<{
       usage: usage as Record<string, unknown> | undefined,
       usageSource: "ai_sdk_usage",
     };
+  }
+
+  if (!process.env.ANTIGRAVITY_API_KEY) {
+    throw new Error("Default cloud provider key missing.");
   }
 
   const text = await generateAntigravityCompletion({
@@ -957,6 +962,32 @@ function providerErrorCode(error: unknown) {
   if (message.includes("timeout") || message.includes("timed out")) return "PROVIDER_TIMEOUT";
   if (message.includes("json") || message.includes("parse")) return "INVALID_PROVIDER_RESPONSE";
   return "PROVIDER_UNAVAILABLE";
+}
+
+function providerErrorDiagnostic(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  if (message.includes("default cloud provider key missing") || message.includes("api key not configured")) {
+    return "Default cloud provider key missing";
+  }
+  if (message.includes("api_key_invalid") || message.includes("api key not valid") || message.includes("invalid api key")) {
+    return "Gemini API rejected the configured key";
+  }
+  if (message.includes("permission_denied") || message.includes("permission denied") || message.includes("forbidden")) {
+    return "Gemini provider permission denied";
+  }
+  if (message.includes("quota") || message.includes("resource_exhausted") || message.includes("rate limit")) {
+    return "Gemini provider quota or rate limit reached";
+  }
+  if (message.includes("not found") || message.includes("model") || message.includes("404")) {
+    return "Gemini model unavailable";
+  }
+  if (message.includes("timeout") || message.includes("timed out")) {
+    return "Gemini provider request timed out";
+  }
+  if (message.includes("fetch failed") || message.includes("econn") || message.includes("network")) {
+    return "Gemini provider network request failed";
+  }
+  return "Gemini provider unavailable";
 }
 
 function normalizeMessages(input: z.infer<typeof datasetChatSchema>) {
