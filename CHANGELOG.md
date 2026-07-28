@@ -91,7 +91,7 @@
 
 ### Fixed
 
-- Keep selected-dataset AI Assistant questions working in production by falling back to configured cloud AI when saved provider settings fail or no saved provider handles the request.
+- Keep selected-dataset AI Assistant questions working in production by falling back to configured Gemini or Antigravity cloud AI when saved provider settings fail or no saved provider handles the request.
 - Answer selected-dataset AI Assistant questions with grounded direct dataset responses, retryable failure states, and separate Usy chat behavior.
 - Resolve Pro and Business checkout from a shared market-based Stripe price flow so Pro keeps its selected market and Business shows unavailable markets until approved prices exist.
 - Keep Square OAuth test and production connections isolated with environment-matched callbacks, Square endpoints, and state validation.

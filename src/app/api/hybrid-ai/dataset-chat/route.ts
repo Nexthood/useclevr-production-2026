@@ -11,6 +11,7 @@ import {
   logUniversalAiResponse,
   type AiMode,
 } from "@/lib/ai/universal-ai-adapter";
+import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
 import { auth } from "@/lib/auth/auth";
@@ -708,39 +709,24 @@ async function generateDefaultCloudDatasetAnswer(input: {
   requestId: string;
   previousError?: unknown;
 }) {
-  if (!process.env.GEMINI_API_KEY) {
-    debugWarn("[HYBRID_AI_DATASET_CHAT] Default cloud provider is not configured", {
-      userId: input.userId,
-      datasetId: input.datasetId,
-      requestId: input.requestId,
-      previousError: input.previousError instanceof Error ? input.previousError.message : input.previousError ? String(input.previousError) : null,
-    });
-    return null;
-  }
-
   const startedAt = Date.now();
   try {
-    const { text, usage } = await generateText({
-      model: google("gemini-2.5-flash"),
-      prompt: input.prompt,
-      temperature: 0.3,
-      maxOutputTokens: 900,
-    });
-    const answer = text.trim();
+    const cloudResult = await generateDefaultCloudText(input.prompt);
+    const answer = cloudResult.text.trim();
     if (!answer) throw new Error("Default cloud provider returned an empty response.");
     const normalizedUsage = normalizeProviderUsage({
       provider: "google",
-      model: "gemini-2.5-flash",
-      usage: usage as Record<string, unknown> | undefined,
-      rawUsageReference: usage ? { source: "ai_sdk_usage" } : { source: "missing_provider_usage" },
+      model: cloudResult.modelName,
+      usage: cloudResult.usage,
+      rawUsageReference: cloudResult.usage ? { source: cloudResult.usageSource } : { source: "missing_provider_usage" },
     });
 
     recordAiRequestAudit({
       userId: input.userId,
       datasetId: input.datasetId,
-      providerName: "Gemini Cloud",
+      providerName: cloudResult.providerName,
       providerType: "default-cloud",
-      modelName: "gemini-2.5-flash",
+      modelName: cloudResult.modelName,
       mode: input.aiMode,
       executionLocation: "cloud",
       fallbackUsed: input.userProviderFailed,
@@ -755,8 +741,8 @@ async function generateDefaultCloudDatasetAnswer(input: {
       userId: input.userId,
       datasetId: input.datasetId,
       requestId: input.requestId,
-      providerName: "Gemini Cloud",
-      modelName: "gemini-2.5-flash",
+      providerName: cloudResult.providerName,
+      modelName: cloudResult.modelName,
       fallbackUsed: input.userProviderFailed,
       mode: input.aiMode,
       route: "cloud",
@@ -766,8 +752,8 @@ async function generateDefaultCloudDatasetAnswer(input: {
       success: true,
       answer,
       content: answer,
-      providerName: "Gemini Cloud",
-      modelName: "gemini-2.5-flash",
+      providerName: cloudResult.providerName,
+      modelName: cloudResult.modelName,
       mode: input.aiMode,
       route: "cloud",
       datasetContext: contextForClient(input.context),
@@ -775,7 +761,7 @@ async function generateDefaultCloudDatasetAnswer(input: {
         ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset."
         : null,
       providerStatus: {
-        label: "Gemini Cloud",
+        label: cloudResult.providerName,
         state: input.userProviderFailed ? "fallback_active" : "connection_healthy",
         message: input.userProviderFailed ? "Cloud fallback active" : "Connection healthy",
         fallbackActive: input.userProviderFailed,
@@ -806,6 +792,44 @@ async function generateDefaultCloudDatasetAnswer(input: {
     });
     return null;
   }
+}
+
+async function generateDefaultCloudText(prompt: string): Promise<{
+  text: string;
+  providerName: string;
+  modelName: string;
+  usage?: Record<string, unknown>;
+  usageSource: string;
+}> {
+  if (process.env.GEMINI_API_KEY) {
+    const { text, usage } = await generateText({
+      model: google("gemini-2.5-flash"),
+      prompt,
+      temperature: 0.3,
+      maxOutputTokens: 900,
+    });
+    return {
+      text,
+      providerName: "Gemini Cloud",
+      modelName: "gemini-2.5-flash",
+      usage: usage as Record<string, unknown> | undefined,
+      usageSource: "ai_sdk_usage",
+    };
+  }
+
+  const text = await generateAntigravityCompletion({
+    model: "gemini-2.5-flash",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.3,
+    max_tokens: 900,
+  });
+  return {
+    text,
+    providerName: "Gemini Cloud",
+    modelName: "gemini-2.5-flash",
+    usage: undefined,
+    usageSource: "antigravity_usage_unavailable",
+  };
 }
 
 function providerFailureResponse(input: {

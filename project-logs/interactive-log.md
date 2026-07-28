@@ -7,7 +7,7 @@ Dataset AI Assistant production provider fallback.
 Fix the authenticated production Dataset AI Assistant so selected-dataset questions answer from the selected dataset instead of stopping at tests or returning production failures.
 
 3. What changed
-The Dataset AI route keeps deterministic selected-dataset answers first, wraps saved provider mode and provider-list lookups so broken provider settings cannot return an empty production 500, and falls back to configured Gemini cloud AI for provider-backed selected-dataset prompts while preserving dataset ID, authenticated user ID, request ID, provider status, privacy warning, and audit metadata.
+The Dataset AI route keeps deterministic selected-dataset answers first, wraps saved provider mode and provider-list lookups so broken provider settings cannot return an empty production 500, and falls back to configured Gemini or Antigravity cloud AI for provider-backed selected-dataset prompts while preserving dataset ID, authenticated user ID, request ID, provider status, privacy warning, and audit metadata.
 
 4. Problems marked
 blocker: Railway log streaming is unavailable through the local CLI session even though Railway project status is authenticated and connected.
