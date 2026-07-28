@@ -68,10 +68,12 @@ assert.match(datasetRouteSource, /EMPTY_DATASET/, "Dataset AI route classifies e
 assert.match(datasetRouteSource, /resolveDatasetAiProviderSettings/, "Dataset AI route wraps provider mode settings lookup");
 assert.match(datasetRouteSource, /listDatasetAiProviders/, "Dataset AI route wraps saved provider lookup");
 assert.match(datasetRouteSource, /generateDefaultCloudDatasetAnswer/, "Dataset AI route falls back to default cloud AI for provider-backed selected-dataset questions");
+assert.match(datasetRouteSource, /createGoogleGenerativeAI\(\{ apiKey: geminiApiKey \}\)/, "Dataset AI default cloud fallback sends the resolved Gemini key explicitly");
 assert.match(datasetRouteSource, /google\("gemini-2\.5-flash"\)/, "Dataset AI default cloud fallback sends a Gemini provider request");
 assert.match(datasetRouteSource, /generateAntigravityCompletion/, "Dataset AI default cloud fallback uses the established Antigravity cloud provider path when direct Gemini env is absent");
 assert.match(datasetRouteSource, /datasetId: input\.datasetId/, "Dataset AI default cloud audit preserves the selected dataset id");
 assert.match(datasetRouteSource, /contextForClient\(input\.context\)/, "Dataset AI default cloud response returns selected dataset context");
+assert.match(datasetRouteSource, /providerName: "Gemini Cloud"[\s\S]*route: "none"/, "Dataset AI reports default cloud provider failures without dropping selected dataset context");
 
 const usySource = readFileSync(join(repoRoot, "src", "components", "ui", "help-chatbox.tsx"), "utf8");
 assert.match(usySource, /fetch\("\/api\/hybrid-ai\/chat"/, "Usy Bot keeps its separate chat API");

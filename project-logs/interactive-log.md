@@ -729,3 +729,38 @@ Do not let checkout UI send amount, currency, or Price ID; resolve payable value
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Dataset AI Assistant Provider Routing
+
+1. Interaction title
+Production Dataset AI Assistant provider routing.
+
+2. What was the user goal
+Fix the authenticated production Dataset AI Assistant so selected-dataset questions work in the deployed application, including deterministic dataset questions and provider-backed broader dataset questions.
+
+3. What changed
+Dataset AI keeps selected dataset ID and authenticated user context through direct deterministic answers and provider-backed fallback answers. The production cloud fallback now constructs the Gemini provider with the resolved configured key directly, then falls back to the established Antigravity cloud path only when no Gemini key exists. Default cloud provider failures now return classified provider-unavailable responses with the selected dataset context instead of falling through to a missing-provider response.
+
+4. Problems marked
+blocker: Browser DevTools Network inspection was not available from this shell because no Playwright, Puppeteer, or browser DevTools driver is installed.
+risk: Railway log streaming is not available through the current local Railway token, so production request diagnostics rely on authenticated HTTP request/response captures, Railway request IDs, deployment status, and application response payloads.
+observation: Production deterministic selected-dataset questions return grounded answers for `plan Pro?` and `What are the biggest revenue risks?` from dataset `ds_65dfee4778031da360ea9647`.
+
+5. User learning
+Provider-backed Dataset AI questions must prove that the provider request succeeds separately from deterministic direct-data answers.
+
+6. AI-agent learning
+When an AI SDK provider key exists under a project-specific environment name, pass the key directly to the provider factory instead of relying on SDK implicit environment variable discovery.
+
+7. Follow-up tasks
+- Add browser-driven authenticated Dataset AI smoke coverage when a DevTools-capable browser runner exists in the workspace.
+- Restore the stashed Risk Intelligence work after the production Dataset AI fix completes.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
