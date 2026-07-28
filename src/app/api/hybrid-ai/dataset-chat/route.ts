@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 
 import {
@@ -790,7 +790,30 @@ async function generateDefaultCloudDatasetAnswer(input: {
       latencyMs: Date.now() - startedAt,
       errorReason: error instanceof Error ? error.message : String(error),
     });
-    return null;
+    const code = providerErrorCode(error);
+    const message = providerErrorMessage(error);
+    return NextResponse.json({
+      success: false,
+      code,
+      message,
+      requestId: input.requestId,
+      error: message,
+      answer: message,
+      content: message,
+      providerName: "Gemini Cloud",
+      modelName: "gemini-2.5-flash",
+      mode: input.aiMode,
+      route: "none",
+      datasetContext: contextForClient(input.context),
+      privacyWarning: null,
+      providerStatus: {
+        label: "Gemini Cloud",
+        state: "provider_unavailable",
+        message: "Provider unavailable",
+        fallbackActive: input.userProviderFailed,
+        route: "none",
+      } satisfies HybridProviderStatus,
+    }, { status: code === "PROVIDER_TIMEOUT" ? 504 : 503 });
   }
 }
 
@@ -801,7 +824,9 @@ async function generateDefaultCloudText(prompt: string): Promise<{
   usage?: Record<string, unknown>;
   usageSource: string;
 }> {
-  if (process.env.GEMINI_API_KEY) {
+  const geminiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  if (geminiApiKey) {
+    const google = createGoogleGenerativeAI({ apiKey: geminiApiKey });
     const { text, usage } = await generateText({
       model: google("gemini-2.5-flash"),
       prompt,

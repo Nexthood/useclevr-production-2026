@@ -91,6 +91,7 @@
 
 ### Fixed
 
+- Send selected-dataset AI Assistant fallback questions through the configured Gemini provider in production so broader dataset questions return grounded answers instead of provider setup errors.
 - Keep selected-dataset AI Assistant questions working in production by falling back to configured Gemini or Antigravity cloud AI when saved provider settings fail or no saved provider handles the request.
 - Answer selected-dataset AI Assistant questions with grounded direct dataset responses, retryable failure states, and separate Usy chat behavior.
 - Resolve Pro and Business checkout from a shared market-based Stripe price flow so Pro keeps its selected market and Business shows unavailable markets until approved prices exist.
