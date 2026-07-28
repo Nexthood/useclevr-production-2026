@@ -155,3 +155,4 @@
 - fixed: resolve Pro and Business checkout through a shared market-based monthly Stripe price registry, preserve market through review and terms, block browser price overrides, keep Business non-EUR markets unavailable until approved prices exist, and map all configured market Price IDs to the correct subscription tier
 - fixed: send production Dataset AI Assistant provider-backed selected-dataset questions through an explicitly keyed Gemini fallback, preserve selected dataset context on cloud-provider failures, and keep deterministic selected-dataset questions answering from normalized rows
 - fixed: classify Dataset AI Assistant production cloud-provider failures with sanitized missing-key, rejected-key, quota, model, timeout, and network diagnostics
+- fixed: normalize Dataset AI Assistant production cloud-provider secrets before requests so quoted or padded deployment values do not cause key rejection
