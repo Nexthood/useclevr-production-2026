@@ -58,6 +58,7 @@ Text rules for this file:
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
 - Answer selected-dataset AI Assistant questions from normalized dataset rows before provider routing when deterministic revenue, segment, risk, trend, best-segment, forecast-baseline, or summary answers are available.
 - Interpret short dataset questions such as plan, segment, growth, forecast, risk, and best-segment prompts against the selected dataset context without requiring perfect wording.
+- Send selected-dataset AI Assistant provider-backed questions to configured cloud AI when saved provider settings fail to load or no saved provider handles the request.
 - Keep Dataset AI Assistant state, selected dataset routing, retry behavior, and dataset-grounded conversation separate from the Usy floating product assistant.
 - Show classified Dataset AI Assistant failure states for no dataset selected, missing dataset, unauthorized request, empty dataset, provider unavailable, provider timeout, missing provider configuration, invalid provider response, network interruption, and internal failure.
 - Preserve the failed Dataset AI Assistant question and show one retry action for the corresponding response state.
