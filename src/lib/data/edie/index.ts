@@ -1,4 +1,15 @@
 export { DatasetAnalysisPipeline, createPipelineContext } from "./dataset-analysis-pipeline";
+export {
+  DefaultEntityRegistry,
+  createDefaultEntityRegistry,
+  defaultEntityRegistryDefinition,
+} from "./entity-registry";
+export {
+  UniversalEntityIntelligenceScanner,
+  buildEntityDatasetProfile,
+  createEntityRegistry,
+  prepareEntityResolutionCandidate,
+} from "./entity-intelligence-scanner";
 export { ScannerRegistry } from "./scanner-registry";
 export {
   compactSemanticTerm,
@@ -15,6 +26,25 @@ export {
   UniversalDatasetStructureScanner,
   buildDatasetStructureProfile,
 } from "./universal-structure-scanner";
+export type {
+  EntityColumnBundle,
+  EntityColumnReference,
+  EntityDatasetProfile,
+  EntityDuplicateCandidate,
+  EntityEvidence,
+  EntityEvidenceType,
+  EntityPatternDefinition,
+  EntityPatternType,
+  EntityProfile,
+  EntityRegistry,
+  EntityRegistryEntry,
+  EntityRegistryPlugin,
+  EntityResolutionCandidate,
+  EntityScannerInput,
+  EntityScannerLog,
+  EntityStatistics,
+  EntityType,
+} from "./entity-types";
 export type {
   SemanticAlternative,
   SemanticCategory,
