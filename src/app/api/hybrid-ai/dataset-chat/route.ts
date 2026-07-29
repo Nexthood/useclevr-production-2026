@@ -825,7 +825,9 @@ async function generateDefaultCloudText(prompt: string): Promise<{
   usage?: Record<string, unknown>;
   usageSource: string;
 }> {
-  const geminiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  const geminiApiKey = normalizeProviderSecret(
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY,
+  );
   if (geminiApiKey) {
     const google = createGoogleGenerativeAI({ apiKey: geminiApiKey });
     const { text, usage } = await generateText({
@@ -988,6 +990,12 @@ function providerErrorDiagnostic(error: unknown) {
     return "Gemini provider network request failed";
   }
   return "Gemini provider unavailable";
+}
+
+function normalizeProviderSecret(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  return trimmed.replace(/^['"]|['"]$/g, "").trim();
 }
 
 function normalizeMessages(input: z.infer<typeof datasetChatSchema>) {
