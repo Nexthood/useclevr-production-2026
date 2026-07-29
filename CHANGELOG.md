@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add the Enterprise Dataset Intelligence semantic scanner so structured dataset columns receive configurable multilingual business meanings, confidence evidence, unknown-field review flags, semantic coverage, quality scores, and cache-backed scanner profiles.
 - Add the Enterprise Dataset Intelligence universal structure scanner so CSV and Excel files receive physical structure profiles, worksheet profiles, column type profiles, data-region detection, health reports, fingerprints, and scanner logs.
 - Add Enterprise Dataset Intelligence orchestration foundation so future dataset scanners run through registered, ordered, observable, retryable, and failure-tolerant pipeline execution.
 - Add Dataset Intelligence Engine semantics so uploaded datasets receive confidence-scored business field meanings, detected relationships, model-aware KPIs, dynamic dashboard metadata, and richer AI context.

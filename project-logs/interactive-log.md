@@ -521,6 +521,40 @@ Question-specific deterministic branches should be replaced with an intent regis
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## EDIE Universal Semantic Intelligence Scanner
+
+1. Interaction title
+EDIE universal semantic intelligence scanner.
+
+2. What was the user goal
+Implement EDIE-003 as the universal semantic intelligence scanner that turns structured dataset columns into confidence-scored business meaning without classifying the business model or learning user data.
+
+3. What changed
+Dataset intelligence now has a configurable multilingual semantic dictionary and indexed lookup for aliases, acronyms, abbreviations, normalized casing, separators, plurals, misspellings, and enterprise vocabulary across English, German, Dutch, French, Spanish, Hungarian, Romanian, Italian, and Portuguese. The EDIE module now exports a universal semantic scanner with header, value, detected-type, neighbor, frequency, business-pattern, and statistical evidence scoring; low-confidence unknown-field review; alternative matches; dictionary hits; semantic coverage; quality scoring; scanner logs; deterministic caching; and EDIE pipeline integration. The focused scanner test covers revenue aliases, quantity aliases, multilingual aliases, unknown columns, misspelled headers, confidence behavior, dictionary loading, cache hits, semantic profile generation, and structure-to-semantic pipeline execution.
+
+4. Problems marked
+blocker: none.
+risk: Semantic profiles currently consume structure profiles during explicit pipeline/test execution; upload persistence can wire profile storage when downstream EDIE phases need production snapshots.
+observation: Semantic scoring caps predictions that lack dictionary or header-similarity evidence so generic numeric values do not hallucinate business meaning.
+
+5. User learning
+EDIE-003 consumes EDIE-002 structure profiles and generates deterministic semantic column profiles with explainable confidence and unknown-field review.
+
+6. AI-agent learning
+Keep semantic scanning separate from business-model classification, KPI generation, dashboard rendering, relationship inference, automatic learning, and user-data training until the matching EDIE phases explicitly add those responsibilities.
+
+7. Follow-up tasks
+- Connect EDIE semantic profiles to EDIE-004 value-intelligence work and downstream AI context when the scanner chain needs production upload integration.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Declining Sales Segment Result Presentation
 
 1. Interaction title

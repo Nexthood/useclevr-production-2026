@@ -1,6 +1,34 @@
 export { DatasetAnalysisPipeline, createPipelineContext } from "./dataset-analysis-pipeline";
 export { ScannerRegistry } from "./scanner-registry";
-export { UniversalDatasetStructureScanner, buildDatasetStructureProfile } from "./universal-structure-scanner";
+export {
+  compactSemanticTerm,
+  createSemanticDictionaryIndex,
+  defaultSemanticDictionary,
+  normalizeSemanticTerm,
+} from "./semantic-dictionary";
+export {
+  UniversalSemanticIntelligenceScanner,
+  buildSemanticDatasetProfile,
+  clearSemanticProfileCache,
+} from "./semantic-intelligence-scanner";
+export {
+  UniversalDatasetStructureScanner,
+  buildDatasetStructureProfile,
+} from "./universal-structure-scanner";
+export type {
+  SemanticAlternative,
+  SemanticCategory,
+  SemanticColumnProfile,
+  SemanticDatasetProfile,
+  SemanticDictionary,
+  SemanticDictionaryAlias,
+  SemanticDictionaryEntry,
+  SemanticEvidence,
+  SemanticEvidenceType,
+  SemanticScannerInput,
+  SemanticScannerLog,
+  UnknownSemanticField,
+} from "./semantic-types";
 export type {
   DatasetColumnProfile,
   DatasetHealthReport,
