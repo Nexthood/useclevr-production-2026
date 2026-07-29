@@ -320,6 +320,7 @@ moving work between states.
 
 ## Label: data
 
+- T-953. Implement the Enterprise Dataset Intelligence semantic scanner with configurable multilingual dictionary lookup, confidence evidence, unknown detection, semantic profiles, and caching. (labels: data, ai, testing; commit: worktree)
 - T-952. Implement the Enterprise Dataset Intelligence universal structure scanner for CSV and Excel profiling, data-region detection, column typing, health reports, fingerprints, metadata, and scanner logs. (labels: data, ai, testing; commit: worktree)
 - T-951. Implement the Enterprise Dataset Intelligence pipeline foundation with scanner registration, ordered execution, progress, structured logs, failure recovery, retry, resume, cancellation, and execution reports. (labels: data, ai, testing; commit: db514159)
 - T-945. Add the Square POS retail integration foundation with encrypted read-only OAuth, normalized retail records, sync history, webhook intake, and Retail Integrations status actions. (labels: data, api, security, ui, testing; commit: worktree)
