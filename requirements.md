@@ -36,6 +36,7 @@ Text rules for this file:
 - Store dataset category metadata for standard, retail, profitability, accountancy, and pre-bookkeeping uploads.
 - Scan uploaded datasets with the Dataset Intelligence Engine to detect file structure, semantic column meanings, value types, business model, relationships, KPI candidates, dashboard metadata, confidence scores, and explainability.
 - Keep the Dataset Intelligence Engine modular with detector registries for current CSV and Excel-style tables and future PDF, image OCR, SQL, Snowflake, and API sources.
+- Run Enterprise Dataset Intelligence scanners through a central orchestration foundation with registry-based scanner discovery, ordered execution, immutable shared context, progress reporting, structured logs, failure recovery, retry, resume, cancellation, and execution reports.
 - Provide Dataset Intelligence Engine semantic metadata to dataset analysis, dynamic dashboard generation, and Dataset AI Assistant provider prompts.
 - Generate dashboard KPI and chart candidates from detected semantic roles instead of fixed header-only assumptions.
 - Route Standard Upload datasets to the generic dataset analysis route.
