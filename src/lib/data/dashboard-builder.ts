@@ -7,6 +7,7 @@
 
 import type { DatasetRecord } from './dataset-intelligence';
 import { buildDatasetIntelligence } from './dataset-intelligence';
+import { findSemanticColumn, type DynamicDashboardDefinition, type SemanticBusinessModel } from './dataset-intelligence-engine';
 
 export interface KPI {
   id: string;
@@ -32,6 +33,9 @@ export interface DashboardConfig {
   metadata: {
     datasetId: string;
     rowCount: number;
+    businessModel: SemanticBusinessModel;
+    semanticConfidence: number;
+    semanticDashboard: DynamicDashboardDefinition;
     generatedAt: string;
   };
 }
@@ -53,18 +57,19 @@ export function buildDashboard(
   const categoricalCols = dims.categoryColumns;
   const timeCols = dims.timeColumns;
   const geoCols = dims.geographicColumns;
+  const semantic = intelligence.semanticMetadata;
 
   // Get key columns
-  const revenueCol = numericCols.find(c =>
+  const revenueCol = findSemanticColumn(semantic, ["Revenue"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('revenue') || c.toLowerCase().includes('sales') || c.toLowerCase().includes('amount')
   );
-  const profitCol = numericCols.find(c =>
+  const profitCol = findSemanticColumn(semantic, ["Profit"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('profit') || c.toLowerCase().includes('margin')
   );
-  const _costCol = numericCols.find(c =>
+  const _costCol = findSemanticColumn(semantic, ["Cost"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('cost') || c.toLowerCase().includes('cogs')
   );
-  const quantityCol = numericCols.find(c =>
+  const quantityCol = findSemanticColumn(semantic, ["Quantity"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('quantity') || c.toLowerCase().includes('units') || c.toLowerCase().includes('qty')
   );
 
@@ -127,7 +132,7 @@ export function buildDashboard(
   // Generate Charts
   // 1. Revenue by Category (bar chart)
   if (revenueCol && categoricalCols.length > 0) {
-    const groupCol = categoricalCols[0];
+    const groupCol = findSemanticColumn(semantic, ["Category", "Product", "Customer", "Seller", "Buyer"])?.columnName || categoricalCols[0];
     const chartData = aggregateGroup(data, groupCol, revenueCol);
     charts.push({
       id: 'revenue_by_category',
@@ -141,7 +146,7 @@ export function buildDashboard(
 
   // 2. Revenue by Region (bar chart)
   if (revenueCol && geoCols.length > 0) {
-    const groupCol = geoCols[0];
+    const groupCol = findSemanticColumn(semantic, ["Country", "Region", "City"])?.columnName || geoCols[0];
     const chartData = aggregateGroup(data, groupCol, revenueCol);
     charts.push({
       id: 'revenue_by_region',
@@ -155,7 +160,7 @@ export function buildDashboard(
 
   // 3. Time Series (line chart)
   if (revenueCol && timeCols.length > 0) {
-    const timeCol = timeCols[0];
+    const timeCol = findSemanticColumn(semantic, ["Date"])?.columnName || timeCols[0];
     const chartData = aggregateTimeSeries(data, timeCol, revenueCol);
     charts.push({
       id: 'revenue_over_time',
@@ -169,7 +174,7 @@ export function buildDashboard(
 
   // 4. Top Products (bar chart)
   if (revenueCol) {
-    const productCol = categoricalCols.find(c =>
+    const productCol = findSemanticColumn(semantic, ["Product", "SKU"])?.columnName || categoricalCols.find(c =>
       c.toLowerCase().includes('product') || c.toLowerCase().includes('item')
     ) || categoricalCols[0];
 
@@ -206,6 +211,9 @@ export function buildDashboard(
     metadata: {
       datasetId,
       rowCount: data.length,
+      businessModel: semantic.businessModel.model,
+      semanticConfidence: semantic.businessModel.confidence,
+      semanticDashboard: semantic.dashboard,
       generatedAt: new Date().toISOString()
     }
   };

@@ -1,3 +1,8 @@
+import {
+  buildDatasetIntelligenceEngine,
+  type DatasetIntelligenceEngineResult,
+} from "./dataset-intelligence-engine";
+
 /**
  * Dataset Intelligence Builder
  * 
@@ -67,6 +72,7 @@ export interface DatasetIntelligence {
   metrics: DatasetMetrics;
   dimensions: DatasetDimensions;
   insights: DatasetInsight[];
+  semanticMetadata: DatasetIntelligenceEngineResult;
   generatedAt: string;
 }
 
@@ -623,6 +629,10 @@ export function buildDatasetIntelligence(data: DatasetRecord[]): DatasetIntellig
   }
   
   const columns = Object.keys(data[0]);
+  const semanticMetadata = buildDatasetIntelligenceEngine({
+    rows: data as Record<string, unknown>[],
+    columns,
+  });
   
   // 1. Detect schema
   const schema: DatasetSchema = {
@@ -669,9 +679,18 @@ export function buildDatasetIntelligence(data: DatasetRecord[]): DatasetIntellig
   }
   
   // 2. Generate metrics
-  const numericColumns = columns.filter(col => columnStats[col]?.type === 'numeric');
-  const categoricalColumns = columns.filter(col => columnStats[col]?.type === 'categorical');
-  const dateColumns = columns.filter(col => columnStats[col]?.type === 'date');
+  const numericColumns = columns.filter((col) =>
+    columnStats[col]?.type === 'numeric' ||
+    semanticMetadata.columns.some((column) => column.columnName === col && ["Revenue", "Commission", "Cost", "Profit", "Margin", "Quantity", "Percentage", "Metric"].includes(column.canonicalRole))
+  );
+  const categoricalColumns = columns.filter((col) =>
+    columnStats[col]?.type === 'categorical' ||
+    semanticMetadata.columns.some((column) => column.columnName === col && ["Category", "Country", "Region", "City", "Product", "Customer", "Seller", "Buyer", "Status", "SKU"].includes(column.canonicalRole))
+  );
+  const dateColumns = columns.filter((col) =>
+    columnStats[col]?.type === 'date' ||
+    semanticMetadata.columns.some((column) => column.columnName === col && column.canonicalRole === "Date")
+  );
   
   const metrics: DatasetMetrics = {
     rowCount: data.length,
@@ -693,10 +712,28 @@ export function buildDatasetIntelligence(data: DatasetRecord[]): DatasetIntellig
   
   // 3. Identify dimensions
   const dimensions: DatasetDimensions = {
-    timeColumns: detectTimeColumns(columns, columnStats),
-    categoryColumns: detectCategoryColumns(columns, columnStats),
-    numericMetrics: detectNumericMetrics(columns, columnStats),
-    geographicColumns: detectGeographicColumns(columns)
+    timeColumns: mergeUnique(
+      detectTimeColumns(columns, columnStats),
+      semanticMetadata.columns.filter((column) => column.canonicalRole === "Date").map((column) => column.columnName),
+    ),
+    categoryColumns: mergeUnique(
+      detectCategoryColumns(columns, columnStats),
+      semanticMetadata.columns
+        .filter((column) => ["Category", "Product", "Customer", "Seller", "Buyer", "Status", "SKU"].includes(column.canonicalRole))
+        .map((column) => column.columnName),
+    ),
+    numericMetrics: mergeUnique(
+      detectNumericMetrics(columns, columnStats),
+      semanticMetadata.columns
+        .filter((column) => ["Revenue", "Commission", "Cost", "Profit", "Margin", "Quantity", "Percentage", "Metric"].includes(column.canonicalRole))
+        .map((column) => column.columnName),
+    ),
+    geographicColumns: mergeUnique(
+      detectGeographicColumns(columns),
+      semanticMetadata.columns
+        .filter((column) => ["Country", "Region", "City"].includes(column.canonicalRole))
+        .map((column) => column.columnName),
+    )
   };
   
   // 4. Generate insights
@@ -708,8 +745,13 @@ export function buildDatasetIntelligence(data: DatasetRecord[]): DatasetIntellig
     metrics,
     dimensions,
     insights,
+    semanticMetadata,
     generatedAt: new Date().toISOString()
   };
+}
+
+function mergeUnique<T>(...groups: T[][]) {
+  return Array.from(new Set(groups.flat()));
 }
 
 /**
@@ -739,6 +781,11 @@ export function getIntelligenceSummary(intelligence: DatasetIntelligence): strin
   }
   if (intelligence.dimensions.numericMetrics.length > 0) {
     parts.push(`- Metrics: ${intelligence.dimensions.numericMetrics.join(', ')}`);
+  }
+  parts.push(`\nSemantic Model: ${intelligence.semanticMetadata.businessModel.model} (${Math.round(intelligence.semanticMetadata.businessModel.confidence * 100)}% confidence)`);
+  parts.push('Semantic Columns:');
+  for (const column of intelligence.semanticMetadata.aiContext.semanticColumns.slice(0, 12)) {
+    parts.push(`- ${column.columnName}: ${column.canonicalRole} (${Math.round(column.confidence * 100)}%)`);
   }
   
   return parts.join('\n');

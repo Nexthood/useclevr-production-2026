@@ -52,6 +52,7 @@
     "test:bbsc": "node -r tsx/esm scripts/analysis/test-bbsc.ts",
     "test:profitability-two-file": "node -r tsx/esm scripts/analysis/test-profitability-two-file.ts",
     "test:business-intelligence": "node -r tsx/esm scripts/analysis/test-business-intelligence-engine.ts",
+    "test:dataset-intelligence-engine": "node -r tsx/esm scripts/analysis/test-dataset-intelligence-engine.ts",
     "test:segment-decline-analysis": "node -r tsx/esm scripts/analysis/test-segment-decline-analysis.ts",
     "test:segment-decline-presentation": "node -r tsx/esm scripts/analysis/test-segment-decline-presentation.ts",
     "test:analytical-intents": "node -r tsx/esm scripts/analysis/test-analytical-intents.ts",

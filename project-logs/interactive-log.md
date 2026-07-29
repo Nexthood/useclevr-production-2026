@@ -1,3 +1,38 @@
+## Dataset Intelligence Engine
+
+1. Interaction title
+Dataset Intelligence Engine.
+
+2. What was the user goal
+Replace header-only dataset detection with a semantic AI pipeline that understands business datasets, generates dynamic KPIs and dashboards, and enriches AI context.
+
+3. What changed
+Added a modular Dataset Intelligence Engine with detector registries for file structure, semantic columns, value types, relationships, business model classification, KPIs, dashboard widgets, and AI context. Legacy dataset intelligence now exposes semantic metadata while preserving existing schema, metrics, dimensions, suggestions, dashboard generation, Dataset AI prompts, and analyst planning paths.
+
+4. Problems marked
+blocker: none.
+risk: PDF, image OCR, SQL, Snowflake, and API connectors expose future source-type hooks but do not parse those sources end to end yet.
+improvement: Add persisted per-dataset DIE snapshots as a first-class database column when dashboard customization needs queryable semantic metadata.
+observation: Existing analysis JSON storage supports the first DIE rollout without a schema migration.
+
+5. User learning
+UseClevr can now treat fields such as GMV, platform fee, buyer, seller, country, category, and date as business concepts with confidence and explanations.
+
+6. AI-agent learning
+Dataset intelligence work must preserve the old analysis contract while adding semantic metadata for newer consumers.
+
+7. Follow-up tasks
+- Add connector-specific parsers for PDF, image OCR, SQL, Snowflake, and API sources when those ingestion paths become active.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dataset AI Assistant Production Provider Fallback
 
 1. Interaction title

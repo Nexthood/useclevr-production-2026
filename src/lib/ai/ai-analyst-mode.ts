@@ -11,6 +11,7 @@ import { generateServerAiText } from "@/lib/ai/server-ai-text";
 
 import type { DatasetIntelligence, DatasetRecord } from '../data/dataset-intelligence';
 import { buildDatasetIntelligence } from '../data/dataset-intelligence';
+import { findSemanticColumn } from '../data/dataset-intelligence-engine';
 import { executeDuckDBQuery } from '../utils/investigation-autopilot';
 
 export interface AnalysisPlan {
@@ -49,15 +50,16 @@ function generateAnalysisPlan(intelligence: DatasetIntelligence): AnalysisPlan {
   const categoryCols = intelligence.dimensions.categoryColumns;
   const timeCols = intelligence.dimensions.timeColumns;
   const geoCols = intelligence.dimensions.geographicColumns;
+  const semantic = intelligence.semanticMetadata;
 
   // Find key metrics
-  const hasRevenue = numericCols.some(c =>
+  const hasRevenue = Boolean(findSemanticColumn(semantic, ["Revenue"])) || numericCols.some(c =>
     c.toLowerCase().includes('revenue') || c.toLowerCase().includes('sales') || c.toLowerCase().includes('amount')
   );
-  const hasProfit = numericCols.some(c =>
+  const hasProfit = Boolean(findSemanticColumn(semantic, ["Profit"])) || numericCols.some(c =>
     c.toLowerCase().includes('profit') || c.toLowerCase().includes('margin')
   );
-  const hasQuantity = numericCols.some(c =>
+  const hasQuantity = Boolean(findSemanticColumn(semantic, ["Quantity"])) || numericCols.some(c =>
     c.toLowerCase().includes('quantity') || c.toLowerCase().includes('units')
   );
 
@@ -123,20 +125,21 @@ function executeAnalysisStep(
   const categoryCols = intelligence.dimensions.categoryColumns;
   const timeCols = intelligence.dimensions.timeColumns;
   const geoCols = intelligence.dimensions.geographicColumns;
+  const semantic = intelligence.semanticMetadata;
 
-  const revenueCol = numericCols.find(c =>
+  const revenueCol = findSemanticColumn(semantic, ["Revenue"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('revenue') || c.toLowerCase().includes('sales') || c.toLowerCase().includes('amount')
   );
-  const profitCol = numericCols.find(c =>
+  const profitCol = findSemanticColumn(semantic, ["Profit"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('profit') || c.toLowerCase().includes('margin')
   );
-  const quantityCol = numericCols.find(c =>
+  const quantityCol = findSemanticColumn(semantic, ["Quantity"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('quantity') || c.toLowerCase().includes('units')
   );
 
-  const catCol = categoryCols[0];
-  const timeCol = timeCols[0];
-  const geoCol = geoCols[0];
+  const catCol = findSemanticColumn(semantic, ["Category", "Product", "Customer", "Seller", "Buyer"])?.columnName || categoryCols[0];
+  const timeCol = findSemanticColumn(semantic, ["Date"])?.columnName || timeCols[0];
+  const geoCol = findSemanticColumn(semantic, ["Country", "Region", "City"])?.columnName || geoCols[0];
 
   let sql = '';
 

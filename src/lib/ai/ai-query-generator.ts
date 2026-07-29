@@ -31,6 +31,9 @@ export async function generateSQLQuery(
   const schemaDesc = intelligence.schema.columns
     .map(col => `- ${col.name}: ${col.type}`)
     .join('\n');
+  const semanticDesc = intelligence.semanticMetadata.aiContext.semanticColumns
+    .map((column) => `- ${column.columnName}: ${column.canonicalRole}, ${column.primaryValueType}, confidence=${column.confidence}`)
+    .join('\n');
 
   const metrics = intelligence.metrics;
   const metricsDesc = `
@@ -44,6 +47,10 @@ ${Object.entries(metrics.numericStats)
 
 Available Schema:
 ${schemaDesc}
+
+Semantic Metadata:
+Business model: ${intelligence.semanticMetadata.businessModel.model} (${intelligence.semanticMetadata.businessModel.confidence})
+${semanticDesc}
 
 Dataset Metrics:
 ${metricsDesc}
