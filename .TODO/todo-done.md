@@ -320,6 +320,8 @@ moving work between states.
 
 ## Label: data
 
+- T-955. Implement the EDIE relationship intelligence engine with key detection, cardinality analysis, relationship graph output, explainable confidence scoring, and pipeline integration. (labels: data, ai, testing; commit: 36f2fe00)
+- T-954. Implement the Enterprise Dataset Intelligence entity scanner with registry-driven entity types, pattern recognition, cross-column validation, duplicate candidates, entity statistics, logs, and pipeline integration. (labels: data, ai, testing; commit: worktree)
 - T-953. Implement the Enterprise Dataset Intelligence semantic scanner with configurable multilingual dictionary lookup, confidence evidence, unknown detection, semantic profiles, and caching. (labels: data, ai, testing; commit: worktree)
 - T-952. Implement the Enterprise Dataset Intelligence universal structure scanner for CSV and Excel profiling, data-region detection, column typing, health reports, fingerprints, metadata, and scanner logs. (labels: data, ai, testing; commit: worktree)
 - T-951. Implement the Enterprise Dataset Intelligence pipeline foundation with scanner registration, ordered execution, progress, structured logs, failure recovery, retry, resume, cancellation, and execution reports. (labels: data, ai, testing; commit: db514159)

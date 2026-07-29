@@ -1,3 +1,4 @@
+- changed: add EDIE universal entity intelligence scanner with registry-driven entity profiles, pattern recognition, cross-column validation, duplicate candidates, statistics, quality scoring, logs, and pipeline integration
 - changed: add EDIE universal semantic intelligence scanner with configurable multilingual dictionary aliases, evidence-based confidence, unknown-field review, semantic coverage, quality scoring, deterministic caching, and pipeline integration
 - changed: add Dataset Intelligence Engine semantics with structure scanning, confidence-scored column and value meaning, relationship detection, model-aware KPI generation, dynamic dashboard metadata, and Dataset AI context.
 - fixed: keep production selected-dataset AI Assistant questions grounded by preserving authenticated dataset context through deterministic answers and falling back to configured Gemini or Antigravity cloud AI for provider-backed selected-dataset prompts
@@ -160,4 +161,5 @@
 - fixed: send production Dataset AI Assistant provider-backed selected-dataset questions through an explicitly keyed Gemini fallback, preserve selected dataset context on cloud-provider failures, and keep deterministic selected-dataset questions answering from normalized rows
 - fixed: classify Dataset AI Assistant production cloud-provider failures with sanitized missing-key, rejected-key, quota, model, timeout, and network diagnostics
 - fixed: normalize Dataset AI Assistant production cloud-provider secrets before requests so quoted or padded deployment values do not cause key rejection
+- changed: add Enterprise Dataset Intelligence relationship engine with key profiles, confidence-scored relationship profiles, cardinality detection, accepted graph edges, disconnected-entity warnings, graph export metadata, statistics, and pipeline integration
 - fixed: store Business Profile setup in one organization-scoped profile table, upsert wizard saves, revalidate dependent modules, and route Accountancy, Tax, Compliance, Reporting, Business, and AI reads through the same profile record

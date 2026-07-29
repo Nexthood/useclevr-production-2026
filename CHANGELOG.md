@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Add the Enterprise Dataset Intelligence relationship engine so detected entities receive key profiles, cardinality, explainable relationship profiles, graph output, relationship statistics, quality scores, and graph export metadata.
+- Add the Enterprise Dataset Intelligence entity scanner so structured datasets receive registry-driven business entity profiles, pattern matches, cross-column validation, duplicate candidates, statistics, quality scores, and scanner logs.
 - Add the Enterprise Dataset Intelligence semantic scanner so structured dataset columns receive configurable multilingual business meanings, confidence evidence, unknown-field review flags, semantic coverage, quality scores, and cache-backed scanner profiles.
 - Add the Enterprise Dataset Intelligence universal structure scanner so CSV and Excel files receive physical structure profiles, worksheet profiles, column type profiles, data-region detection, health reports, fingerprints, and scanner logs.
 - Add Enterprise Dataset Intelligence orchestration foundation so future dataset scanners run through registered, ordered, observable, retryable, and failure-tolerant pipeline execution.
