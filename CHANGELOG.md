@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Add the Enterprise Dataset Intelligence universal structure scanner so CSV and Excel files receive physical structure profiles, worksheet profiles, column type profiles, data-region detection, health reports, fingerprints, and scanner logs.
+- Add Enterprise Dataset Intelligence orchestration foundation so future dataset scanners run through registered, ordered, observable, retryable, and failure-tolerant pipeline execution.
 - Add Dataset Intelligence Engine semantics so uploaded datasets receive confidence-scored business field meanings, detected relationships, model-aware KPIs, dynamic dashboard metadata, and richer AI context.
 - Route dataset-aware AI Assistant KPI questions through a semantic analytical intent layer so supported financial questions return deterministic direct results and unsupported suggestions stay hidden.
 - Group AI Assistant declining sales segment results by business dimension with concise summaries, top declines, expandable sections, and contained responsive tables.

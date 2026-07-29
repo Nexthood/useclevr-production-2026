@@ -320,6 +320,8 @@ moving work between states.
 
 ## Label: data
 
+- T-952. Implement the Enterprise Dataset Intelligence universal structure scanner for CSV and Excel profiling, data-region detection, column typing, health reports, fingerprints, metadata, and scanner logs. (labels: data, ai, testing; commit: worktree)
+- T-951. Implement the Enterprise Dataset Intelligence pipeline foundation with scanner registration, ordered execution, progress, structured logs, failure recovery, retry, resume, cancellation, and execution reports. (labels: data, ai, testing; commit: db514159)
 - T-945. Add the Square POS retail integration foundation with encrypted read-only OAuth, normalized retail records, sync history, webhook intake, and Retail Integrations status actions. (labels: data, api, security, ui, testing; commit: worktree)
 - T-911. Load dataset detail and analysis through shared user-scoped access, keep superadmin dataset access available, remove broken dataset navigation from analysis, and show forecast guidance for missing forecast inputs. (labels: data, reporting, ui; commit: worktree)
 

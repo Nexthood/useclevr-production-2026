@@ -833,3 +833,71 @@ When a setup wizard and dependent module disagree, inspect both the write target
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Enterprise Dataset Intelligence Pipeline Foundation
+
+1. Interaction title
+Enterprise Dataset Intelligence pipeline foundation.
+
+2. What was the user goal
+Implement Phase 1 of the Enterprise Dataset Intelligence Engine as orchestration infrastructure only, without adding semantic detection, AI, KPIs, dashboards, relationships, OCR, or business-model logic.
+
+3. What changed
+Dataset intelligence now has a scanner-agnostic orchestration layer with a shared immutable pipeline context, standard scanner interface, standardized analysis result contract, scanner registry, sequential execution strategy, progress state, structured machine-readable logs, cancellation, resume, retry, failure recovery, and final execution reports. The EDIE test script verifies initialization, registry operations, execution ordering, failed-scanner recovery, progress, logging, report generation, retry, cancellation, and resume behavior.
+
+4. Problems marked
+blocker: none.
+risk: Parallel scanner execution is represented by extension-ready interfaces only; execution is intentionally sequential in Phase 1.
+observation: Existing Dataset Intelligence Engine semantic behavior remains separate from the EDIE foundation so Phase 1 does not introduce new business-specific assumptions.
+
+5. User learning
+The EDIE foundation provides the operating layer that future scanner modules plug into through the registry.
+
+6. AI-agent learning
+Keep orchestration infrastructure separate from detector implementation when the acceptance criteria explicitly exclude semantic, KPI, dashboard, and AI behavior.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+
+## EDIE Universal Dataset Structure Scanner
+
+1. Interaction title
+EDIE universal dataset structure scanner.
+
+2. What was the user goal
+Implement EDIE-002 as the first production scanner that understands uploaded dataset physical structure for CSV and Excel without assigning business meaning.
+
+3. What changed
+The EDIE module now exports a universal structure scanner with CSV and Excel source normalization, encoding, delimiter, separator, language, and timezone detection, worksheet profiles, header and body/footer region detection, duplicate column and row detection, merged and hidden Excel element detection, comments and formula capture, column-level data type profiles, missing and unique ratios, sparse-region detection, dataset health reports, structural fingerprints, scanner confidence, and step-level detection logs. The focused scanner test covers CSV, Excel, large CSV input, duplicate headers, broken encoding, different delimiters, merged cells, hidden rows and columns, multiple worksheets, sparse files, header detection, footer detection, mixed types, and pipeline integration.
+
+4. Problems marked
+blocker: none.
+risk: CSV profiling parses the provided text input and limits column profiling to a bounded sample; future upload wiring can pass stream-derived samples and counts into the same scanner contract.
+observation: The scanner returns physical and quality metadata only; semantic, KPI, dashboard, relationship, and AI decisions remain outside EDIE-002.
+
+5. User learning
+EDIE-002 creates the structural profile that later semantic scanners can consume without re-reading file layout details.
+
+6. AI-agent learning
+Delimiter detection must account for line coverage so decimal separators inside numeric values do not beat the actual CSV delimiter.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
