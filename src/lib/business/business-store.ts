@@ -2,9 +2,15 @@ import { randomUUID } from "node:crypto"
 import { and, desc, eq } from "drizzle-orm"
 
 import { getDb } from "@/lib/db"
-import { businesses, profiles } from "@/lib/db/schema"
+import { businesses, businessProfiles, profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
 import type { BusinessDetails } from "./business-profile"
+import {
+  buildSetupStatus,
+  emptyCompanySetupPayload,
+  normalizeCompanySetupPayload,
+  type CompanySetupPayload,
+} from "./company-setup"
 
 export type BusinessStatus = "draft" | "active" | "archived"
 
@@ -73,15 +79,92 @@ function toDetails(row: {
   }
 }
 
+function setupToDetails(input: unknown): BusinessDetails {
+  const setup = normalizeCompanySetupPayload(input as Partial<CompanySetupPayload>)
+  const raw = (input && typeof input === "object" ? input : {}) as Record<string, unknown>
+  const text = (value: unknown) => (typeof value === "string" ? value : "")
+  const location = [
+    setup.companyInfo.country || setup.companyInfo.taxResidenceCountry || setup.companyInfo.countryOfRegistration,
+    setup.companyInfo.stateRegion,
+  ].filter(Boolean).join(", ")
+
+  return {
+    businessName: setup.companyInfo.companyName || text(raw.businessName),
+    businessEmail: text(raw.businessEmail),
+    industry: setup.companyInfo.industry || setup.companyInfo.businessType || text(raw.industry),
+    location: location || text(raw.location),
+    website: text(raw.website),
+    businessDescription: text(raw.businessDescription),
+  }
+}
+
+function mergeDetailsIntoSetup(input: unknown, details: BusinessDetails): CompanySetupPayload & Record<string, unknown> {
+  const setup = normalizeCompanySetupPayload(input as Partial<CompanySetupPayload>)
+  const next = {
+    ...setup,
+    businessName: details.businessName,
+    businessEmail: details.businessEmail,
+    industry: details.industry,
+    location: details.location,
+    website: details.website,
+    businessDescription: details.businessDescription,
+    companyInfo: {
+      ...setup.companyInfo,
+      companyName: details.businessName || setup.companyInfo.companyName,
+      industry: details.industry || setup.companyInfo.industry,
+      country: details.location || setup.companyInfo.country,
+      taxResidenceCountry: details.location || setup.companyInfo.taxResidenceCountry,
+      countryOfRegistration: details.location || setup.companyInfo.countryOfRegistration,
+    },
+  }
+  next.setupStatus = buildSetupStatus(next)
+  return next
+}
+
+async function getBusinessProfilePayload(organizationId: string) {
+  const db = getDb()
+  if (!db) return null
+
+  const [profile] = await db
+    .select({ payload: businessProfiles.payload })
+    .from(businessProfiles)
+    .where(eq(businessProfiles.organizationId, organizationId))
+    .limit(1)
+
+  return profile?.payload ?? null
+}
+
+async function upsertBusinessProfilePayload(organizationId: string, payload: Record<string, unknown>) {
+  const db = getDb()
+  if (!db) throw new Error("Database connection is unavailable.")
+
+  const now = new Date()
+  await db.insert(businessProfiles)
+    .values({
+      id: `business_profile_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
+      organizationId,
+      payload,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: businessProfiles.organizationId,
+      set: {
+        payload,
+        updatedAt: now,
+      },
+    })
+}
+
 function toListRow(row: typeof businesses.$inferSelect): BusinessListRow {
   const details = toDetails(row)
 
   return {
     id: row.id,
     name: row.name || "Primary business profile",
-    email: row.email || "Not set",
-    industry: row.industry || "Not set",
-    location: row.address || "Not set",
+    email: row.email || "Not configured",
+    industry: row.industry || "Not configured",
+    location: row.address || "Not configured",
     website: row.website || "",
     description: row.description || "",
     status: row.status as BusinessStatus,
@@ -91,6 +174,26 @@ function toListRow(row: typeof businesses.$inferSelect): BusinessListRow {
     archiveExpiresAt: row.archiveExpiresAt ? row.archiveExpiresAt.toISOString() : null,
     updatedAt: row.updatedAt.toISOString(),
     canArchive: !row.isPrimary,
+  }
+}
+
+async function toBusinessProfileListRow(row: typeof businesses.$inferSelect): Promise<BusinessListRow> {
+  const base = toListRow(row)
+  const payload = await getBusinessProfilePayload(row.id)
+  if (!payload) return base
+
+  const details = setupToDetails(payload)
+  const completion = businessCompletion(details)
+  return {
+    ...base,
+    name: details.businessName || base.name,
+    email: details.businessEmail || "Not configured",
+    industry: details.industry || "Not configured",
+    location: details.location || "Not configured",
+    website: details.website,
+    description: details.businessDescription,
+    status: completion === 100 ? "active" : "draft",
+    completion,
   }
 }
 
@@ -128,9 +231,9 @@ async function getProfileBusinessListRow(userId: string): Promise<BusinessListRo
     {
       id: "profile-primary",
       name: details.businessName,
-      email: details.businessEmail || "Not set",
-      industry: details.industry || "Not set",
-      location: details.location || "Not set",
+      email: details.businessEmail || "Not configured",
+      industry: details.industry || "Not configured",
+      location: details.location || "Not configured",
       website: details.website,
       description: details.businessDescription,
       status: businessCompletion(details) === 100 ? "active" : "draft",
@@ -163,7 +266,7 @@ export async function listUserBusinesses(userId: string | null | undefined) {
     return getProfileBusinessListRow(userId)
   }
 
-  if (rows.length > 0) return rows.map(toListRow)
+  if (rows.length > 0) return Promise.all(rows.map(toBusinessProfileListRow))
 
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
@@ -221,7 +324,18 @@ export async function getPrimaryBusinessDetails(userId: string | null | undefine
     return getProfileBusinessDetails(userId)
   }
 
-  if (business) return toDetails(business)
+  if (business) {
+    const profilePayload = await getBusinessProfilePayload(business.id)
+    if (profilePayload) {
+      const profileDetails = setupToDetails(profilePayload)
+      if (businessCompletion(profileDetails) > 0) return profileDetails
+    }
+    if (business.companySetup && typeof business.companySetup === "object" && Object.keys(business.companySetup as object).length > 0) {
+      const legacyDetails = setupToDetails(business.companySetup)
+      if (businessCompletion(legacyDetails) > 0) return legacyDetails
+    }
+    return toDetails(business)
+  }
 
   return getProfileBusinessDetails(userId)
 }
@@ -272,20 +386,23 @@ export async function upsertPrimaryBusinessDetails(userId: string, details: Busi
   }
 
   const values = {
-    name: details.businessName || "Primary business profile",
-    email: details.businessEmail || null,
-    industry: details.industry || null,
-    address: details.location || null,
-    website: details.website || null,
-    description: details.businessDescription || null,
+    name: "Primary business profile",
+    email: null,
+    industry: null,
+    address: null,
+    website: null,
+    description: null,
     status,
     archivedAt: null,
     archiveExpiresAt: null,
     updatedAt: now,
+    companySetup: {},
   }
 
   if (existing) {
     await db.update(businesses).set(values).where(eq(businesses.id, existing.id))
+    const currentPayload = await getBusinessProfilePayload(existing.id)
+    await upsertBusinessProfilePayload(existing.id, mergeDetailsIntoSetup(currentPayload, details))
     return existing.id
   }
 
@@ -300,6 +417,7 @@ export async function upsertPrimaryBusinessDetails(userId: string, details: Busi
       invoiceSettings: {},
       createdAt: now,
     })
+    await upsertBusinessProfilePayload(id, mergeDetailsIntoSetup(emptyCompanySetupPayload(), details))
   } catch (error) {
     debugError("[BUSINESS] Business table insert failed after profile save:", error)
     return "profile-primary"
@@ -322,16 +440,17 @@ export async function upsertBusinessDetails(
   const now = new Date()
   const status = businessCompletion(details) === 100 ? "active" : "draft"
   const values = {
-    name: details.businessName || "Business profile",
-    email: details.businessEmail || null,
-    industry: details.industry || null,
-    address: details.location || null,
-    website: details.website || null,
-    description: details.businessDescription || null,
+    name: "Business profile",
+    email: null,
+    industry: null,
+    address: null,
+    website: null,
+    description: null,
     status,
     archivedAt: null,
     archiveExpiresAt: null,
     updatedAt: now,
+    companySetup: {},
   }
 
   if (businessId !== "new") {
@@ -341,7 +460,11 @@ export async function upsertBusinessDetails(
       .where(and(eq(businesses.userId, userId), eq(businesses.id, businessId)))
       .returning()
 
-    if (updated?.id) return updated.id
+    if (updated?.id) {
+      const currentPayload = await getBusinessProfilePayload(updated.id)
+      await upsertBusinessProfilePayload(updated.id, mergeDetailsIntoSetup(currentPayload, details))
+      return updated.id
+    }
     throw new Error("Business profile was not found.")
   }
 
@@ -355,6 +478,7 @@ export async function upsertBusinessDetails(
     invoiceSettings: {},
     createdAt: now,
   })
+  await upsertBusinessProfilePayload(id, mergeDetailsIntoSetup(emptyCompanySetupPayload(), details))
 
   return id
 }

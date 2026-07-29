@@ -34,6 +34,10 @@ Text rules for this file:
 - Compare Free, Pro, and Business upload benefits in the dataset-limit upload state.
 - Show uploaded datasets in structured tables with row counts.
 - Store dataset category metadata for standard, retail, profitability, accountancy, and pre-bookkeeping uploads.
+- Scan uploaded datasets with the Dataset Intelligence Engine to detect file structure, semantic column meanings, value types, business model, relationships, KPI candidates, dashboard metadata, confidence scores, and explainability.
+- Keep the Dataset Intelligence Engine modular with detector registries for current CSV and Excel-style tables and future PDF, image OCR, SQL, Snowflake, and API sources.
+- Provide Dataset Intelligence Engine semantic metadata to dataset analysis, dynamic dashboard generation, and Dataset AI Assistant provider prompts.
+- Generate dashboard KPI and chart candidates from detected semantic roles instead of fixed header-only assumptions.
 - Route Standard Upload datasets to the generic dataset analysis route.
 - Show one Standard Upload success panel with Dataset type, Rows processed, Columns detected, Analysis status, Open in Dashboard, View Dataset, and Upload Another File actions after a standard dataset upload completes.
 - Route Profitability Upload datasets to the Profitability workspace.
@@ -292,6 +296,11 @@ Text rules for this file:
 ## Business Profile
 
 - Use Business Profile as the SME business-intelligence and pre-accounting context layer.
+- Store Business Profile setup exactly once in `business_profile`, keyed by `organization_id`.
+- Upsert Business Profile wizard saves into the existing organization profile record instead of inserting duplicate setup records.
+- Read Business Profile context for Business, Accountancy, Tax, Compliance, Reporting, and AI from the same organization-scoped profile record.
+- Revalidate Business, Accountancy, Tax, Compliance, Reporting, Pre-bookkeeping, and Profitability after successful Business Profile saves.
+- Show missing Business Profile values as "Not configured".
 - Show a one-step-at-a-time global Business Profile wizard with progress, save-and-continue,
   optional-section skipping, review/edit controls, and a green completion state.
 - Open Business Profile setup in a compact centered modal that shows one clear question, one answer

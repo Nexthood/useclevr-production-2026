@@ -1,3 +1,38 @@
+## Dataset Intelligence Engine
+
+1. Interaction title
+Dataset Intelligence Engine.
+
+2. What was the user goal
+Replace header-only dataset detection with a semantic AI pipeline that understands business datasets, generates dynamic KPIs and dashboards, and enriches AI context.
+
+3. What changed
+Added a modular Dataset Intelligence Engine with detector registries for file structure, semantic columns, value types, relationships, business model classification, KPIs, dashboard widgets, and AI context. Legacy dataset intelligence now exposes semantic metadata while preserving existing schema, metrics, dimensions, suggestions, dashboard generation, Dataset AI prompts, and analyst planning paths.
+
+4. Problems marked
+blocker: none.
+risk: PDF, image OCR, SQL, Snowflake, and API connectors expose future source-type hooks but do not parse those sources end to end yet.
+improvement: Add persisted per-dataset DIE snapshots as a first-class database column when dashboard customization needs queryable semantic metadata.
+observation: Existing analysis JSON storage supports the first DIE rollout without a schema migration.
+
+5. User learning
+UseClevr can now treat fields such as GMV, platform fee, buyer, seller, country, category, and date as business concepts with confidence and explanations.
+
+6. AI-agent learning
+Dataset intelligence work must preserve the old analysis contract while adding semantic metadata for newer consumers.
+
+7. Follow-up tasks
+- Add connector-specific parsers for PDF, image OCR, SQL, Snowflake, and API sources when those ingestion paths become active.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dataset AI Assistant Production Provider Fallback
 
 1. Interaction title
@@ -755,6 +790,40 @@ When an AI SDK provider key exists under a project-specific environment name, pa
 7. Follow-up tasks
 - Add browser-driven authenticated Dataset AI smoke coverage when a DevTools-capable browser runner exists in the workspace.
 - Restore the stashed Risk Intelligence work after the production Dataset AI fix completes.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Business Profile Single Source Of Truth
+
+1. Interaction title
+Business Profile single source of truth.
+
+2. What was the user goal
+Fix the mismatch where the Business Profile wizard reports completion while Accountancy still shows profile fields as missing.
+
+3. What changed
+Business Profile setup now has one organization-scoped `business_profile` table keyed by `organization_id`. Wizard saves upsert into that table, legacy `Business.companySetup` values migrate into it, and saves clear the legacy setup payload from the organization shell. Business details, Accountancy, Tax, Compliance, Reporting, and AI analysis read the same profile payload through shared store functions. Successful profile saves revalidate Business, Accountancy, Tax, Compliance, Reporting, Pre-bookkeeping, and Profitability paths. Wizard setup fetches use no-store responses and `router.refresh()`.
+
+4. Problems marked
+blocker: none.
+risk: Existing production rows require the new idempotent migration to run before the deployed code queries `business_profile`.
+observation: `Profile` keeps legacy business columns for backward-compatible reads only when no organization profile exists.
+
+5. User learning
+Accountancy context must use the same organization profile payload as the wizard, not a copied profile snapshot or module-specific table.
+
+6. AI-agent learning
+When a setup wizard and dependent module disagree, inspect both the write target and every read fallback before changing UI labels.
+
+7. Follow-up tasks
+- Add browser coverage for completing the Business Profile wizard and seeing Accountancy context update after route refresh when authenticated Playwright fixtures exist.
 
 8. Instruction sources
 - AGENTS.md

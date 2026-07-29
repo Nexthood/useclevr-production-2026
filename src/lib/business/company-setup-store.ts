@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 
 import { getDb } from "@/lib/db"
-import { businesses } from "@/lib/db/schema"
+import { businesses, businessProfiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
 import { businessCompletion, getPrimaryBusinessDetails } from "./business-store"
 import {
@@ -17,24 +17,24 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
   if (!db) return emptyCompanySetupPayload()
 
   try {
-    const conditions = [eq(businesses.userId, userId)]
-    if (businessId) {
-      conditions.push(eq(businesses.id, businessId))
-    } else {
-      conditions.push(eq(businesses.isPrimary, true))
-    }
+    const organization = await resolveBusinessProfileOrganization(userId, businessId)
+    if (!organization) return emptyCompanySetupPayload()
 
-    const [row] = await db
-      .select({ companySetup: businesses.companySetup })
-      .from(businesses)
-      .where(and(...conditions))
+    const [profile] = await db
+      .select({ payload: businessProfiles.payload })
+      .from(businessProfiles)
+      .where(eq(businessProfiles.organizationId, organization.id))
       .limit(1)
 
-    if (!row?.companySetup || typeof row.companySetup !== "object" || Object.keys(row.companySetup as object).length === 0) {
-      return emptyCompanySetupPayload()
+    if (profile?.payload && typeof profile.payload === "object" && Object.keys(profile.payload as object).length > 0) {
+      return normalizeCompanySetupPayload(profile.payload as Partial<CompanySetupPayload>)
     }
 
-    return normalizeCompanySetupPayload(row.companySetup as Partial<CompanySetupPayload>)
+    if (organization.companySetup && typeof organization.companySetup === "object" && Object.keys(organization.companySetup as object).length > 0) {
+      return normalizeCompanySetupPayload(organization.companySetup as Partial<CompanySetupPayload>)
+    }
+
+    return emptyCompanySetupPayload()
   } catch {
     return emptyCompanySetupPayload()
   }
@@ -53,33 +53,37 @@ export async function saveCompanySetup(
   const fullPayload = { ...normalizedPayload, setupStatus: computed }
 
   try {
-    const conditions = [eq(businesses.userId, userId)]
-    if (businessId) {
-      conditions.push(eq(businesses.id, businessId))
-    } else {
-      conditions.push(eq(businesses.isPrimary, true))
-    }
+    const organization = await resolveBusinessProfileOrganization(userId, businessId, true)
+    if (!organization) return false
 
-    const updated = await db
+    const now = new Date()
+    await db
+      .insert(businessProfiles)
+      .values({
+        id: `business_profile_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
+        organizationId: organization.id,
+        payload: fullPayload as unknown as Record<string, unknown>,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: businessProfiles.organizationId,
+        set: {
+          payload: fullPayload as unknown as Record<string, unknown>,
+          updatedAt: now,
+        },
+      })
+
+    await db
       .update(businesses)
       .set({
-        companySetup: fullPayload as unknown as Record<string, unknown>,
-        updatedAt: new Date(),
+        status: computed.completed ? "active" : "draft",
+        updatedAt: now,
       })
-      .where(and(...conditions))
-      .returning()
+      .where(eq(businesses.id, organization.id))
 
-    if (updated.length === 0 && !businessId) {
-      await db.insert(businesses).values({
-        id: `business_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
-        userId,
-        name: payload.companyInfo.companyName || "Primary business profile",
-        status: "draft",
-        isPrimary: true,
-        localeSettings: {},
-        invoiceSettings: {},
-        companySetup: fullPayload as unknown as Record<string, unknown>,
-      })
+    if (organization.companySetup && typeof organization.companySetup === "object" && Object.keys(organization.companySetup as object).length > 0) {
+      await db.update(businesses).set({ companySetup: {}, updatedAt: now }).where(eq(businesses.id, organization.id))
     }
 
     return true
@@ -112,4 +116,44 @@ export async function getSetupStatus(
   }
 
   return payload.setupStatus
+}
+
+async function resolveBusinessProfileOrganization(
+  userId: string,
+  businessId?: string,
+  createPrimary = false,
+): Promise<{ id: string; companySetup: unknown } | null> {
+  const db = getDb()
+  if (!db) return null
+
+  const conditions = [eq(businesses.userId, userId)]
+  if (businessId) {
+    conditions.push(eq(businesses.id, businessId))
+  } else {
+    conditions.push(eq(businesses.isPrimary, true))
+  }
+
+  const [organization] = await db
+    .select({ id: businesses.id, companySetup: businesses.companySetup })
+    .from(businesses)
+    .where(and(...conditions))
+    .limit(1)
+
+  if (organization || businessId || !createPrimary) return organization ?? null
+
+  const [created] = await db
+    .insert(businesses)
+    .values({
+      id: `business_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
+      userId,
+      name: "Primary business profile",
+      status: "draft",
+      isPrimary: true,
+      localeSettings: {},
+      invoiceSettings: {},
+      companySetup: {},
+    })
+    .returning()
+
+  return created ? { id: created.id, companySetup: created.companySetup } : null
 }

@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add Dataset Intelligence Engine semantics so uploaded datasets receive confidence-scored business field meanings, detected relationships, model-aware KPIs, dynamic dashboard metadata, and richer AI context.
 - Route dataset-aware AI Assistant KPI questions through a semantic analytical intent layer so supported financial questions return deterministic direct results and unsupported suggestions stay hidden.
 - Group AI Assistant declining sales segment results by business dimension with concise summaries, top declines, expandable sections, and contained responsive tables.
 - Fix AI Providers access for the official superadmin account so provider limits, setup controls, mode switching, and backend BYOK actions use the same unlimited entitlement as the global subscription display.
@@ -91,6 +92,7 @@
 
 ### Fixed
 
+- Store Business Profile setup in one organization-scoped profile record so Business, Accountancy, Tax, Compliance, Reporting, and AI use the same saved context immediately after the wizard saves.
 - Send selected-dataset AI Assistant fallback questions through the configured Gemini provider in production so broader dataset questions return grounded answers instead of provider setup errors.
 - Classify selected-dataset AI Assistant cloud-provider failures with safe production diagnostics so support can distinguish missing keys, rejected keys, quota, model, timeout, and network issues.
 - Normalize selected-dataset AI Assistant cloud-provider keys before requests so quoted or padded deployment secrets do not block production answers.

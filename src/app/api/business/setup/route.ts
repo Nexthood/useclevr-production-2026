@@ -2,7 +2,11 @@ import { auth } from "@/lib/auth/auth"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { type CompanySetupPayload, emptyCompanySetupPayload } from "@/lib/business/company-setup"
 import { getCompanySetup, saveCompanySetup } from "@/lib/business/company-setup-store"
+import { revalidateBusinessProfileDependents } from "@/lib/business/business-profile-revalidation"
 import { NextResponse } from "next/server"
+
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
 
 export async function GET(request: Request) {
   const session = await auth()
@@ -15,7 +19,7 @@ export async function GET(request: Request) {
   const businessId = searchParams.get("businessId") || undefined
 
   const payload = await getCompanySetup(session.user.id, businessId)
-  return NextResponse.json({ payload })
+  return NextResponse.json({ payload }, { headers: { "Cache-Control": "no-store" } })
 }
 
 export async function PUT(request: Request) {
@@ -41,7 +45,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Failed to save setup" }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  revalidateBusinessProfileDependents()
+
+  const payload = await getCompanySetup(session.user.id, body.businessId)
+  return NextResponse.json({ success: true, payload }, { headers: { "Cache-Control": "no-store" } })
 }
 
 export async function DELETE(request: Request) {
@@ -57,5 +64,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Failed to reset setup" }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  revalidateBusinessProfileDependents()
+
+  const payload = await getCompanySetup(session.user.id)
+  return NextResponse.json({ success: true, payload }, { headers: { "Cache-Control": "no-store" } })
 }

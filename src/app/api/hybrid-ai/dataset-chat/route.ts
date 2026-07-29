@@ -23,6 +23,7 @@ import {
 } from "@/lib/data/analytical-intents";
 import { answerDatasetQuestionDeterministically } from "@/lib/data/dataset-assistant-deterministic";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
+import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
@@ -74,6 +75,7 @@ type DatasetContextSummary = {
     metric: string;
     rows: Array<{ label: string; value: number; count: number }>;
   }>;
+  semanticContext: DatasetIntelligenceEngineResult["aiContext"];
   sampleRows: Record<string, unknown>[];
 };
 
@@ -1021,6 +1023,7 @@ function buildDatasetChatPrompt(
     "You are UseClevr Hybrid AI, a dataset-aware business analyst.",
     "Answer only from the dataset context below. Do not invent rows, totals, products, customers, or dates.",
     "Use backend-derived KPIs and grouped summaries as the source of truth. If a metric is sample-based, say that clearly.",
+    "Use semanticContext to understand business meaning: gmv and sales_amount can be revenue, platform_fee can be commission, buyer_id can be buyer/customer, seller_id can be seller, and geography/date/category fields must keep their detected roles and confidence scores.",
     "For risks, best performers, and next actions, cite the columns or KPI extracts that support the answer.",
     "Do not ask for the full dataset unless the provided summary cannot answer the question.",
     "",
@@ -1051,6 +1054,11 @@ function buildDatasetContext(input: {
   const columnProfiles = columns.map((column) => profileColumn(column, input.rows));
   const kpis = buildKpiExtract(input.rows, columns, input.precomputedMetrics, input.analysis);
   const topGroups = buildTopGroups(input.rows, columns);
+  const semanticIntelligence = buildDatasetIntelligenceEngine({
+    rows: input.rows,
+    columns,
+    fileName: input.name,
+  });
 
   return {
     dataset: {
@@ -1070,6 +1078,7 @@ function buildDatasetContext(input: {
     columnProfiles,
     kpis,
     topGroups,
+    semanticContext: semanticIntelligence.aiContext,
     sampleRows: input.rows.slice(0, MAX_SAMPLE_ROWS_SENT).map((row) => pickColumns(row, columns.slice(0, 12))),
   };
 }
@@ -1080,6 +1089,13 @@ function contextForClient(context: DatasetContextSummary) {
     sample: context.sample,
     detectedColumns: context.detectedColumns,
     kpis: context.kpis,
+    semanticContext: {
+      businessModel: context.semanticContext.businessModel,
+      semanticColumns: context.semanticContext.semanticColumns,
+      relationships: context.semanticContext.relationships,
+      kpis: context.semanticContext.kpis,
+      confidenceSummary: context.semanticContext.confidenceSummary,
+    },
   };
 }
 

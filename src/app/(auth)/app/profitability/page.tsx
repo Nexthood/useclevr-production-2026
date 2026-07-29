@@ -264,7 +264,7 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="max-w-[12rem] text-right font-medium text-foreground">{value || "Not set"}</span>
+      <span className="max-w-[12rem] text-right font-medium text-foreground">{value || "Not configured"}</span>
     </div>
   )
 }

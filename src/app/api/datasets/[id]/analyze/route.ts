@@ -11,6 +11,7 @@ import type { CSVAnalysisResult, DatasetRecord } from "@/lib/data/csv-analyzer";
 import { analyzeCSV } from "@/lib/data/csv-analyzer";
 import type { DatasetAnalysis } from "@/lib/data/dataset-analyzer";
 import { analyzeDataset, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
+import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
@@ -109,6 +110,12 @@ interface AnalysisRequestBody {
   limit?: number;
   includeSample?: boolean;
 }
+
+type SemanticCSVAnalysisResult = CSVAnalysisResult & {
+  dataset_intelligence_engine?: DatasetIntelligenceEngineResult;
+  semantic_metadata?: DatasetIntelligenceEngineResult["aiContext"];
+  businessModel?: DatasetIntelligenceEngineResult["businessModel"]["model"];
+};
 
 async function getUsagePayload(userId: string, role?: string | null, email?: string | null) {
   const usage = await getAnalystCreditUsage(userId, role, email ?? null);
@@ -336,7 +343,16 @@ export async function POST(
     await updateAnalysisStatus("processing", "Analysis is still being prepared...", 50);
 
     // Use the comprehensive CSV analyzer (async for FX rate fetching)
-    const analysis: CSVAnalysisResult = await analyzeCSV(data);
+    const analysis = await analyzeCSV(data) as SemanticCSVAnalysisResult;
+    const semanticIntelligence = buildDatasetIntelligenceEngine({
+      rows: data as Record<string, unknown>[],
+      columns: datasetData.columns,
+      fileName: datasetData.name,
+      mimeType: (dataset as { mimeType?: string | null }).mimeType || undefined,
+    });
+    analysis.dataset_intelligence_engine = semanticIntelligence;
+    analysis.semantic_metadata = semanticIntelligence.aiContext;
+    analysis.businessModel = semanticIntelligence.businessModel.model;
 
     // NEW: Run Executive KPI Engine
     const executiveAnalysis: DatasetAnalysis = analyzeDataset(data);
