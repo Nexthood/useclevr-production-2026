@@ -10,6 +10,16 @@ export {
   createEntityRegistry,
   prepareEntityResolutionCandidate,
 } from "./entity-intelligence-scanner";
+export {
+  DefaultRelationshipRegistry,
+  createDefaultRelationshipRegistry,
+  defaultRelationshipRegistryDefinition,
+} from "./relationship-registry";
+export {
+  UniversalRelationshipIntelligenceScanner,
+  buildRelationshipDatasetProfile,
+  createRelationshipRegistry,
+} from "./relationship-intelligence-scanner";
 export { ScannerRegistry } from "./scanner-registry";
 export {
   compactSemanticTerm,
@@ -45,6 +55,29 @@ export type {
   EntityStatistics,
   EntityType,
 } from "./entity-types";
+export type {
+  CardinalityType,
+  KeyProfile,
+  KeyType,
+  RelationshipColumnBundle,
+  RelationshipColumnReference,
+  RelationshipConfidenceBand,
+  RelationshipDatasetProfile,
+  RelationshipEvidence,
+  RelationshipEvidenceType,
+  RelationshipGraph,
+  RelationshipGraphEdge,
+  RelationshipGraphExport,
+  RelationshipGraphNode,
+  RelationshipProfile,
+  RelationshipRegistry,
+  RelationshipRegistryEntry,
+  RelationshipRegistryPlugin,
+  RelationshipScannerInput,
+  RelationshipScannerLog,
+  RelationshipStatistics,
+  RelationshipType,
+} from "./relationship-types";
 export type {
   SemanticAlternative,
   SemanticCategory,

@@ -521,6 +521,40 @@ Question-specific deterministic branches should be replaced with an intent regis
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## EDIE Universal Relationship Intelligence Engine
+
+1. Interaction title
+EDIE universal relationship intelligence engine.
+
+2. What was the user goal
+Implement EDIE-005 as the scanner that transforms detected entities into an explainable business relationship model without implementing future knowledge graph, KPI, AI reasoning, graph database, learning, or human-validation features.
+
+3. What changed
+The EDIE module now exports a relationship registry, relationship types, key profiles, relationship profiles, graph nodes and edges, graph export metadata, relationship statistics, and a universal relationship scanner. The scanner resolves structure, semantic, and entity profiles when needed; detects primary, foreign, composite, natural, candidate, generated, and unknown keys; scores registry relationships from entity, semantic, column-position, key, distribution, vocabulary, and cross-validation evidence; separates accepted relationships from review candidates; detects cardinality; reports disconnected entities and possible broken key evidence; and patches the pipeline context with relationship graph edges and relationship metadata.
+
+4. Problems marked
+blocker: none.
+risk: Relationship detection currently uses available row samples or parsed raw text, so future streaming upload wiring must pass bounded row samples and column statistics into the same scanner contract for very large files.
+observation: Knowledge graph persistence and advanced graph integrations are exposed as extension points only.
+
+5. User learning
+EDIE-005 creates the entity relationship graph foundation that later KPI, business model, reasoning, and knowledge graph phases can consume.
+
+6. AI-agent learning
+Relationship inference should require multiple independent signals and keep low-confidence candidates out of the accepted graph.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## EDIE Universal Entity Intelligence Scanner
 
 1. Interaction title
