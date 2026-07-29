@@ -26,6 +26,12 @@ export interface PipelineDatasetInput {
   rowCount?: number;
   columnCount?: number;
   sourceType?: string;
+  mimeType?: string;
+  fileSize?: number;
+  rawText?: string;
+  rawBuffer?: Uint8Array | ArrayBuffer;
+  importedAt?: string;
+  createdAt?: string;
   rows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   columns?: ReadonlyArray<string>;
 }
