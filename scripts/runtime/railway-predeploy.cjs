@@ -296,6 +296,7 @@ function readMigrationStatement(relativePath) {
 const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0015_retail_pos_integrations.sql"),
   readMigrationStatement("src/lib/db/migrations/0017_square_provider_environment.sql"),
+  readMigrationStatement("src/lib/db/migrations/0018_business_profile_ssot.sql"),
 ];
 
 const constraints = [

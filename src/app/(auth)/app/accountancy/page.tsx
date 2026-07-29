@@ -20,6 +20,8 @@ import type React from "react"
 
 import { getDatasetCategoryLabel, resolveDatasetType } from "@/lib/data/dataset-category"
 
+const MISSING_PROFILE_VALUE = "Not configured"
+
 export const metadata = {
   title: "Accountancy - UseClevr",
 }
@@ -103,23 +105,23 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
   const taxPeriod = [companySetup?.companyInfo.fiscalYearStart, companySetup?.companyInfo.fiscalYearEnd]
     .filter(Boolean)
     .join(" to ")
-  const taxCountry = companySetup?.companyInfo.taxResidenceCountry || companySetup?.companyInfo.country || "Not set"
-  const currency = companySetup?.currencySettings.primaryCurrency || "Not set"
+  const taxCountry = companySetup?.companyInfo.taxResidenceCountry || companySetup?.companyInfo.country || MISSING_PROFILE_VALUE
+  const currency = companySetup?.currencySettings.primaryCurrency || MISSING_PROFILE_VALUE
   const taxSummary = companySetup?.taxSettings.taxEntries.length
     ? companySetup.taxSettings.taxEntries
         .map((tax) => `${tax.taxType}${tax.percentage ? ` ${tax.percentage}%` : ""}`)
         .join(", ")
-    : companySetup?.taxSettings.taxType || "Not set"
+    : companySetup?.taxSettings.taxType || MISSING_PROFILE_VALUE
   const payrollSummary = companySetup?.employerContributions.length
     ? companySetup.employerContributions.map((entry) => entry.contributionType).join(", ")
-    : "Not set"
+    : MISSING_PROFILE_VALUE
   const fixedCostSummary = companySetup?.fixedCosts.length
     ? companySetup.fixedCosts.map((entry) => entry.costCategory).join(", ")
-    : "Not set"
+    : MISSING_PROFILE_VALUE
   const profileContextRows = [
     { label: "Tax country", value: taxCountry },
     { label: "Currency", value: currency },
-    { label: "Fiscal year", value: taxPeriod || "Not set" },
+    { label: "Fiscal year", value: taxPeriod || MISSING_PROFILE_VALUE },
     { label: "VAT/sales tax", value: taxSummary },
     { label: "Payroll", value: payrollSummary },
     { label: "Fixed costs", value: fixedCostSummary },
@@ -262,7 +264,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
             <div className="grid gap-2 text-sm">
               <ProfileContextRow label="Tax country" value={taxCountry} />
               <ProfileContextRow label="Currency" value={currency} />
-              <ProfileContextRow label="Fiscal year" value={taxPeriod || "Not set"} />
+              <ProfileContextRow label="Fiscal year" value={taxPeriod || MISSING_PROFILE_VALUE} />
               <ProfileContextRow label="VAT/sales tax" value={taxSummary} />
               <ProfileContextRow label="Payroll" value={payrollSummary} />
               <ProfileContextRow label="Fixed costs" value={fixedCostSummary} />
@@ -335,7 +337,7 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="max-w-[12rem] text-right font-medium text-foreground">{value || "Not set"}</span>
+      <span className="max-w-[12rem] text-right font-medium text-foreground">{value || MISSING_PROFILE_VALUE}</span>
     </div>
   )
 }

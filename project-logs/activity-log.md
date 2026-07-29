@@ -156,3 +156,4 @@
 - fixed: send production Dataset AI Assistant provider-backed selected-dataset questions through an explicitly keyed Gemini fallback, preserve selected dataset context on cloud-provider failures, and keep deterministic selected-dataset questions answering from normalized rows
 - fixed: classify Dataset AI Assistant production cloud-provider failures with sanitized missing-key, rejected-key, quota, model, timeout, and network diagnostics
 - fixed: normalize Dataset AI Assistant production cloud-provider secrets before requests so quoted or padded deployment values do not cause key rejection
+- fixed: store Business Profile setup in one organization-scoped profile table, upsert wizard saves, revalidate dependent modules, and route Accountancy, Tax, Compliance, Reporting, Business, and AI reads through the same profile record

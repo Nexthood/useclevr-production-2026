@@ -345,45 +345,16 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
     revalidatePath("/app/business")
     revalidatePath("/app/business/profile")
     revalidatePath("/app/business/review")
+    revalidatePath("/app/accountancy")
+    revalidatePath("/app/accountancy/tax")
+    revalidatePath("/app/accountancy/compliance")
+    revalidatePath("/app/accountancy/reporting")
+    revalidatePath("/app/prebookkeeping")
 
     return success({ message: businessId === "new" ? "Business profile created." : "Business profile saved." })
   }
 
   try {
-    const existingProfile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-      columns: {
-        userId: true,
-        email: true,
-        fullName: true,
-      },
-    })
-
-    if (existingProfile) {
-      await db.update(profiles)
-        .set({
-          businessName,
-          businessEmail,
-          industry,
-          location,
-          website,
-          businessDescription,
-          updatedAt: new Date(),
-        })
-        .where(eq(profiles.userId, userId))
-    } else {
-      await db.insert(profiles).values({
-        id: `profile_${uuidv4()}`,
-        userId,
-        businessName,
-        businessEmail,
-        industry,
-        location,
-        website,
-        businessDescription,
-      })
-    }
-
     await upsertPrimaryBusinessDetails(userId, details)
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to save business details."
@@ -405,6 +376,11 @@ export async function updateBusinessDetails(formData: FormData): Promise<Result<
   revalidatePath("/app/business")
   revalidatePath("/app/business/profile")
   revalidatePath("/app/business/review")
+  revalidatePath("/app/accountancy")
+  revalidatePath("/app/accountancy/tax")
+  revalidatePath("/app/accountancy/compliance")
+  revalidatePath("/app/accountancy/reporting")
+  revalidatePath("/app/prebookkeeping")
 
   return success({ message: "Business details saved." })
 }

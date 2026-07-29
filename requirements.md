@@ -292,6 +292,11 @@ Text rules for this file:
 ## Business Profile
 
 - Use Business Profile as the SME business-intelligence and pre-accounting context layer.
+- Store Business Profile setup exactly once in `business_profile`, keyed by `organization_id`.
+- Upsert Business Profile wizard saves into the existing organization profile record instead of inserting duplicate setup records.
+- Read Business Profile context for Business, Accountancy, Tax, Compliance, Reporting, and AI from the same organization-scoped profile record.
+- Revalidate Business, Accountancy, Tax, Compliance, Reporting, Pre-bookkeeping, and Profitability after successful Business Profile saves.
+- Show missing Business Profile values as "Not configured".
 - Show a one-step-at-a-time global Business Profile wizard with progress, save-and-continue,
   optional-section skipping, review/edit controls, and a green completion state.
 - Open Business Profile setup in a compact centered modal that shows one clear question, one answer

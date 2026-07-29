@@ -21,8 +21,8 @@ export default async function AccountancyTaxPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
-          <StatCard icon={Landmark} label="Tax region" value={safeDetails.location || "Not set - add location in business profile"} />
-          <StatCard icon={Landmark} label="Business activity" value={safeDetails.industry || "Not set - add industry in business profile"} />
+          <StatCard icon={Landmark} label="Tax region" value={safeDetails.location || "Not configured - add location in business profile"} />
+          <StatCard icon={Landmark} label="Business activity" value={safeDetails.industry || "Not configured - add industry in business profile"} />
         </div>
         <p className="text-sm text-muted-foreground">
           Tax calculations require a business location and industry. Complete your business profile to enable automated tax insights.
@@ -31,5 +31,4 @@ export default async function AccountancyTaxPage() {
     </Card>
   )
 }
-
 

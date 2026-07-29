@@ -1,6 +1,7 @@
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
+import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { count, eq, sum } from "drizzle-orm"
@@ -42,6 +43,8 @@ export default async function AccountancyReportingPage() {
   const session = await auth()
   const userId = session?.user?.id
   const metrics = await getReportingMetrics(userId)
+  const companySetup = userId ? await getCompanySetup(userId) : null
+  const reportingCurrency = companySetup?.currencySettings.primaryCurrency || "Not configured"
 
   return (
     <Card className="border-border bg-card">
@@ -50,10 +53,11 @@ export default async function AccountancyReportingPage() {
         <CardDescription>Automated financial reports generated from connected datasets.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-4">
           <StatCard icon={BarChart3} label="Datasets" value={metrics.totalDatasets.toString()} variant="large" />
           <StatCard icon={DollarSign} label="Total rows" value={metrics.totalRows.toLocaleString()} variant="large" />
           <StatCard icon={Calendar} label="Ready for analysis" value={metrics.analysisReady.toString()} variant="large" />
+          <StatCard icon={DollarSign} label="Profile currency" value={reportingCurrency} variant="large" />
         </div>
         <p className="text-sm text-muted-foreground">
           Reports are generated automatically when datasets have valid financial data. Visit the datasets page to upload profit/loss statements or accounting exports.
@@ -62,4 +66,3 @@ export default async function AccountancyReportingPage() {
     </Card>
   )
 }
-

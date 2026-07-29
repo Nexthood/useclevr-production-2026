@@ -525,7 +525,7 @@ export function BusinessProfileQuestionWizard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/business/setup")
+        const res = await fetch("/api/business/setup", { cache: "no-store" })
         if (!res.ok) return
         const data = await res.json()
         if (data.payload) {
@@ -564,13 +564,18 @@ export function BusinessProfileQuestionWizard() {
       const normalized = normalizeCompanySetupPayload(payload)
       const res = await fetch("/api/business/setup", {
         method: "PUT",
+        cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payload: normalized }),
       })
       if (!res.ok) throw new Error("Save failed")
-      setPayload(normalized)
+      const data = await res.json()
+      const savedPayload = data.payload
+        ? normalizeCompanySetupPayload(data.payload as Partial<CompanySetupPayload>)
+        : normalized
+      setPayload(savedPayload)
       setSaveMessage(markComplete ? "Business Profile completed and ready for future analysis." : "Progress saved.")
-      if (markComplete) setCompleted(true)
+      if (markComplete) setCompleted(savedPayload.setupStatus.completed)
       if (typeof nextIndex === "number") setActiveIndex(Math.max(0, Math.min(nextIndex, visibleQuestions.length - 1)))
       router.refresh()
     } catch {

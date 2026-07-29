@@ -764,3 +764,37 @@ When an AI SDK provider key exists under a project-specific environment name, pa
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Business Profile Single Source Of Truth
+
+1. Interaction title
+Business Profile single source of truth.
+
+2. What was the user goal
+Fix the mismatch where the Business Profile wizard reports completion while Accountancy still shows profile fields as missing.
+
+3. What changed
+Business Profile setup now has one organization-scoped `business_profile` table keyed by `organization_id`. Wizard saves upsert into that table, legacy `Business.companySetup` values migrate into it, and saves clear the legacy setup payload from the organization shell. Business details, Accountancy, Tax, Compliance, Reporting, and AI analysis read the same profile payload through shared store functions. Successful profile saves revalidate Business, Accountancy, Tax, Compliance, Reporting, Pre-bookkeeping, and Profitability paths. Wizard setup fetches use no-store responses and `router.refresh()`.
+
+4. Problems marked
+blocker: none.
+risk: Existing production rows require the new idempotent migration to run before the deployed code queries `business_profile`.
+observation: `Profile` keeps legacy business columns for backward-compatible reads only when no organization profile exists.
+
+5. User learning
+Accountancy context must use the same organization profile payload as the wizard, not a copied profile snapshot or module-specific table.
+
+6. AI-agent learning
+When a setup wizard and dependent module disagree, inspect both the write target and every read fallback before changing UI labels.
+
+7. Follow-up tasks
+- Add browser coverage for completing the Business Profile wizard and seeing Accountancy context update after route refresh when authenticated Playwright fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

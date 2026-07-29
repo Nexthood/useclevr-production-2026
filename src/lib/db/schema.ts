@@ -316,6 +316,25 @@ export const businesses = pgTable(
   }),
 );
 
+export const businessProfiles = pgTable(
+  "business_profile",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    organizationIdFk: foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [businesses.id],
+      name: "business_profile_organization_id_fkey",
+    }).onDelete("cascade"),
+    organizationIdIdx: uniqueIndex("business_profile_organization_id_key").on(table.organizationId),
+  }),
+);
+
 export const businessEntities = pgTable(
   "BusinessEntity",
   {

@@ -28,7 +28,7 @@ export default async function BusinessLocationsPage() {
               </div>
               <div>
                 <p className="font-medium text-foreground">{safe.businessName || "Primary business profile"}</p>
-                <p className="text-sm text-muted-foreground">{safe.location || "No operating location saved yet."}</p>
+                <p className="text-sm text-muted-foreground">{safe.location || "Not configured"}</p>
               </div>
             </div>
           </div>

@@ -23,12 +23,11 @@ export default async function BusinessTaxPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2">
-            <StatCard icon={Landmark} label="Tax region" value={safe.location || "Needs location"} />
-            <StatCard icon={Landmark} label="Business activity" value={safe.industry || "Needs industry"} />
+            <StatCard icon={Landmark} label="Tax region" value={safe.location || "Not configured"} />
+            <StatCard icon={Landmark} label="Business activity" value={safe.industry || "Not configured"} />
           </div>
         </CardContent>
       </Card>
     </DashboardContent>
   )
 }
-

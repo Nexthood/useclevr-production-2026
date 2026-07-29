@@ -91,6 +91,7 @@
 
 ### Fixed
 
+- Store Business Profile setup in one organization-scoped profile record so Business, Accountancy, Tax, Compliance, Reporting, and AI use the same saved context immediately after the wizard saves.
 - Send selected-dataset AI Assistant fallback questions through the configured Gemini provider in production so broader dataset questions return grounded answers instead of provider setup errors.
 - Classify selected-dataset AI Assistant cloud-provider failures with safe production diagnostics so support can distinguish missing keys, rejected keys, quota, model, timeout, and network issues.
 - Normalize selected-dataset AI Assistant cloud-provider keys before requests so quoted or padded deployment secrets do not block production answers.
