@@ -11,6 +11,13 @@ export {
   createDefaultRecommendationLibraryRegistry,
   defaultRecommendationDefinitions,
 } from "./recommendation-library";
+export { UniversalForecastScenarioIntelligenceEngine, buildForecastProfile } from "./forecast-engine";
+export {
+  DefaultForecastLibraryRegistry,
+  createDefaultForecastLibraryRegistry,
+  defaultForecastModels,
+  defaultScenarioDefinitions,
+} from "./forecast-library";
 export {
   DefaultWidgetLibraryRegistry,
   createDefaultWidgetLibraryRegistry,
@@ -62,6 +69,27 @@ export type {
   RecommendationSummary,
   RecommendationType,
 } from "./recommendation-types";
+export type {
+  BusinessForecast,
+  BusinessScenario,
+  ConfidenceInterval,
+  ForecastCandidate,
+  ForecastCategory,
+  ForecastEvidence,
+  ForecastEvidenceType,
+  ForecastGenerationInput,
+  ForecastGenerationLog,
+  ForecastLibrary,
+  ForecastLibraryPlugin,
+  ForecastLibraryRegistry,
+  ForecastModelDefinition,
+  ForecastModelType,
+  ForecastProfile,
+  ForecastStatistics,
+  HistoricalPoint,
+  ScenarioDefinition,
+  ScenarioType,
+} from "./forecast-types";
 export { UniversalKPIDiscoveryEngine, buildKPIDatasetProfile } from "./kpi-discovery-engine";
 export {
   DefaultKPILibraryRegistry,

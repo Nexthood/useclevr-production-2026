@@ -320,6 +320,7 @@ moving work between states.
 
 ## Label: data
 
+- T-961. Implement the Universal Forecast and Scenario Intelligence Engine with forecast model registration, confidence intervals, scenario simulation, evidence-backed forecast profiles, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-960. Implement the Universal Business Recommendation Engine with recommendation rule registration, evidence-backed action profiles, priority scoring, dependency mapping, duplicate detection, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-959. Implement the Universal Insight Generation Engine with insight rule registration, evidence-backed insight profiles, priority scoring, duplicate detection, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-958. Implement the Universal Intelligent Dashboard Composer with widget library registration, widget selection, responsive layout metadata, dashboard profile statistics, confidence evidence, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)

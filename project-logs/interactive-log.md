@@ -1004,6 +1004,40 @@ Keep dashboard composition separate from dashboard rendering and value calculati
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## BIE Universal Forecast and Scenario Intelligence Engine
+
+1. Interaction title
+BIE universal forecast and scenario intelligence engine.
+
+2. What was the user goal
+Implement BIE-005 as a universal forecast and scenario engine that predicts supported business outcomes and simulates configurable scenarios from EDIE, KPI, insight, and recommendation profiles.
+
+3. What changed
+Business Intelligence now has a configurable forecast model library, plugin-capable forecast registry, deterministic forecast engine, scenario rule library, confidence intervals, uncertainty warnings, forecast evidence scoring, scenario comparison records, business and financial impact scoring, forecast statistics, logs, and pipeline integration. Forecast generation consumes historical rows, business-model signals, business maturity, relationship graph context, KPI discovery, insight profiles, recommendation profiles, seasonality evidence, and business-rule confidence.
+
+4. Problems marked
+blocker: none.
+risk: Forecast generation produces structured explainable profiles only; later BIE phases still need real-time forecasting, Monte Carlo simulation, digital twins, economic indicators, weather integration, competitor signals, external APIs, AI self-learning, dynamic pricing execution, investment planning, capacity planning, workforce planning, multi-year forecasting, and strategic planning.
+observation: The engine skips unsupported forecasts when historical coverage or semantic evidence does not meet the configured model threshold.
+
+5. User learning
+BIE-005 adds prediction and scenario simulation above recommendation generation while leaving external signal ingestion and automated planning for later phases.
+
+6. AI-agent learning
+When forecasting requirements require no unsupported predictions, forecasts must trace to historical coverage, model ID, supporting KPI IDs, insight IDs, recommendation IDs, confidence intervals, warnings, and evidence.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## BIE Universal Business Recommendation Engine
 
 1. Interaction title
