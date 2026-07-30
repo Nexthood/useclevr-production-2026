@@ -1004,6 +1004,40 @@ Keep dashboard composition separate from dashboard rendering and value calculati
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## BIE Universal Insight Generation Engine
+
+1. Interaction title
+BIE universal insight generation engine.
+
+2. What was the user goal
+Implement BIE-003 as a universal insight generation engine that explains what matters in uploaded business datasets from EDIE and KPI discovery outputs without inventing unsupported claims.
+
+3. What changed
+Business Intelligence now has a configurable insight rule library, plugin-capable insight registry, deterministic insight generation engine, evidence and confidence scoring, priority classification, duplicate, overlap, and contradiction records, grouped insight profiles, investigation guidance, quality scoring, statistics, logs, and pipeline integration. Insight generation consumes KPI discovery, semantic coverage, entity statistics, relationship graph context, business maturity, business-model signals, and dataset quality.
+
+4. Problems marked
+blocker: none.
+risk: Insight generation produces structured evidence-backed profiles only; later BIE phases still need AI-written executive summaries, natural-language reports, personalization, scheduled delivery, predictive insights, root-cause analysis, recommendations, alerts, notifications, collaboration channels, and historical tracking.
+observation: The engine can produce missing-information and data-quality insights when source data does not support a stronger business claim, which keeps output useful without guessing.
+
+5. User learning
+BIE-003 adds the insight explanation layer above KPI discovery and dashboard composition while keeping recommendations and AI prose for later phases.
+
+6. AI-agent learning
+When insight requirements prohibit hallucination, generate deterministic profile objects from explicit evidence and use missing-information insights instead of narrative speculation.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## BIE Universal KPI Discovery Engine
 
 1. Interaction title

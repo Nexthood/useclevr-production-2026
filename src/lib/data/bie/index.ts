@@ -1,9 +1,37 @@
 export { UniversalIntelligentDashboardComposer, buildDashboardProfile } from "./dashboard-composer";
+export { UniversalInsightGenerationEngine, buildInsightProfile } from "./insight-generation-engine";
+export {
+  DefaultInsightLibraryRegistry,
+  createDefaultInsightLibraryRegistry,
+  defaultInsightDefinitions,
+} from "./insight-library";
 export {
   DefaultWidgetLibraryRegistry,
   createDefaultWidgetLibraryRegistry,
   defaultWidgetDefinitions,
 } from "./widget-library";
+export type {
+  BusinessInsight,
+  ContradictingInsightRecord,
+  DuplicateInsightRecord,
+  InsightCandidate,
+  InsightCategory,
+  InsightEvidence,
+  InsightEvidenceType,
+  InsightGenerationInput,
+  InsightGenerationLog,
+  InsightGroup,
+  InsightLibrary,
+  InsightLibraryPlugin,
+  InsightLibraryRegistry,
+  InsightPriority,
+  InsightProfile,
+  InsightRuleDefinition,
+  InsightSeverity,
+  InsightStatistics,
+  InsightType,
+  OverlappingInsightRecord,
+} from "./insight-types";
 export { UniversalKPIDiscoveryEngine, buildKPIDatasetProfile } from "./kpi-discovery-engine";
 export {
   DefaultKPILibraryRegistry,
