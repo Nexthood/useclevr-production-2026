@@ -320,6 +320,7 @@ moving work between states.
 
 ## Label: data
 
+- T-956. Implement the EDIE business maturity intelligence engine with maturity dimensions, growth-stage scoring, complexity analysis, readiness scores, statistics, and pipeline integration. (labels: data, ai, testing; commit: 69ed9da9)
 - T-955. Implement the EDIE relationship intelligence engine with key detection, cardinality analysis, relationship graph output, explainable confidence scoring, and pipeline integration. (labels: data, ai, testing; commit: 36f2fe00)
 - T-954. Implement the Enterprise Dataset Intelligence entity scanner with registry-driven entity types, pattern recognition, cross-column validation, duplicate candidates, entity statistics, logs, and pipeline integration. (labels: data, ai, testing; commit: worktree)
 - T-953. Implement the Enterprise Dataset Intelligence semantic scanner with configurable multilingual dictionary lookup, confidence evidence, unknown detection, semantic profiles, and caching. (labels: data, ai, testing; commit: worktree)

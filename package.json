@@ -58,6 +58,7 @@
     "test:edie-semantic-scanner": "node -r tsx/esm scripts/analysis/test-edie-semantic-scanner.ts",
     "test:edie-entity-scanner": "node -r tsx/esm scripts/analysis/test-edie-entity-scanner.ts",
     "test:edie-relationship-scanner": "node -r tsx/esm scripts/analysis/test-edie-relationship-scanner.ts",
+    "test:edie-business-maturity-scanner": "node -r tsx/esm scripts/analysis/test-edie-business-maturity-scanner.ts",
     "test:segment-decline-analysis": "node -r tsx/esm scripts/analysis/test-segment-decline-analysis.ts",
     "test:segment-decline-presentation": "node -r tsx/esm scripts/analysis/test-segment-decline-presentation.ts",
     "test:analytical-intents": "node -r tsx/esm scripts/analysis/test-analytical-intents.ts",

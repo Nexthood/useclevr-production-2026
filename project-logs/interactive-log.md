@@ -521,6 +521,40 @@ Question-specific deterministic branches should be replaced with an intent regis
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## EDIE Business Maturity Intelligence Engine
+
+1. Interaction title
+EDIE business maturity intelligence engine.
+
+2. What was the user goal
+Implement EDIE-006B as the scanner that determines organization maturity, complexity, operational stage, readiness, and health context without determining the business model or generating recommendations.
+
+3. What changed
+The EDIE module now exports business maturity types and a universal business maturity scanner. The scanner resolves structure, semantic, entity, and relationship profiles when needed; summarizes dataset size, entity counts, relationship density, financial and inventory complexity, stores, warehouses, departments, countries, currencies, business vocabulary, historical data, and data quality; scores all requested maturity dimensions; detects growth stage with confidence and alternatives; produces company-size, operational-complexity, financial-complexity, reporting-maturity, AI-readiness, BI-readiness, automation, complexity-indicator, health-indicator, statistics, evidence, warning, unknown-area, and log outputs; and patches the pipeline context with the maturity profile.
+
+4. Problems marked
+blocker: none.
+risk: Maturity detection currently uses bounded rows or parsed raw text; future upload wiring must pass stable profile statistics for very large streamed files.
+observation: Business-model classification, KPI discovery, dashboard personalization, recommendations, forecasting, benchmarking, compliance assessment, risk/opportunity generation, active learning, and human-review workflows remain extension points only.
+
+5. User learning
+EDIE-006B distinguishes operational maturity from business model so two companies with the same model can receive different dashboard, KPI, AI, and readiness context later.
+
+6. AI-agent learning
+Maturity scoring must combine multiple independent signals and report unknown dimensions when a dataset lacks sufficient operating evidence.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## EDIE Universal Relationship Intelligence Engine
 
 1. Interaction title
