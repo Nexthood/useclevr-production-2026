@@ -1004,6 +1004,40 @@ Keep dashboard composition separate from dashboard rendering and value calculati
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## BIE Universal Business Recommendation Engine
+
+1. Interaction title
+BIE universal business recommendation engine.
+
+2. What was the user goal
+Implement BIE-004 as a universal recommendation engine that determines evidence-backed next business actions from EDIE outputs, KPI discovery, and insight profiles without recommending unsupported actions.
+
+3. What changed
+Business Intelligence now has a configurable recommendation rule library, plugin-capable recommendation registry, deterministic recommendation engine, confidence evidence scoring, priority classification, implementation difficulty and benefit estimates, dependency mapping, duplicate, overlap, and conflict records, required-data reporting, recommendation statistics, logs, and pipeline integration. Recommendation generation consumes business-model signals, business maturity, relationship graph context, KPI discovery, insight profiles, business health, risk indicators, semantic coverage, and dataset quality.
+
+4. Problems marked
+blocker: none.
+risk: Recommendation generation produces structured evidence-backed action profiles only; later BIE phases still need AI decision execution, automated advisor workflows, external integrations, scheduled delivery, learning, ROI tracking, success tracking, action confirmation, continuous optimization, and benchmark engines.
+observation: The engine uses missing-data recommendations when evidence is incomplete instead of converting incomplete evidence into unsupported business actions.
+
+5. User learning
+BIE-004 adds the action-prioritization layer above insight generation while leaving automated execution and recommendation learning for later phases.
+
+6. AI-agent learning
+When recommendation requirements require no hallucination, recommendations must trace to insight IDs, KPI IDs, entity IDs, relationship IDs, required data, and confidence evidence.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## BIE Universal Insight Generation Engine
 
 1. Interaction title

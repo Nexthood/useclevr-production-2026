@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add the Business Intelligence universal recommendation engine so datasets receive evidence-backed business actions, priority scoring, implementation difficulty and benefit estimates, dependency mapping, duplicate and conflict detection, statistics, plugin registration, and future recommendation extension points from EDIE, KPI, and insight profiles.
 - Add the Business Intelligence universal insight generation engine so datasets receive evidence-backed business insights, priority scoring, duplicate and overlap detection, grouped insight profiles, statistics, plugin registration, and future insight extension points from EDIE and KPI profiles.
 - Add the Business Intelligence universal dashboard composer so datasets receive generated dashboard sections, widget selections, responsive layout metadata, confidence evidence, missing-data warnings, statistics, plugin registration, and future dashboard extension points from EDIE and KPI profiles.
 - Add the Business Intelligence universal KPI discovery engine so datasets receive relevant KPI candidates, availability status, missing-data guidance, dependency graphs, category coverage, confidence evidence, plugin registration, and profile statistics from EDIE outputs.

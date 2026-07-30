@@ -5,6 +5,12 @@ export {
   createDefaultInsightLibraryRegistry,
   defaultInsightDefinitions,
 } from "./insight-library";
+export { UniversalBusinessRecommendationEngine, buildRecommendationProfile } from "./recommendation-engine";
+export {
+  DefaultRecommendationLibraryRegistry,
+  createDefaultRecommendationLibraryRegistry,
+  defaultRecommendationDefinitions,
+} from "./recommendation-library";
 export {
   DefaultWidgetLibraryRegistry,
   createDefaultWidgetLibraryRegistry,
@@ -32,6 +38,30 @@ export type {
   InsightType,
   OverlappingInsightRecord,
 } from "./insight-types";
+export type {
+  BusinessRecommendation,
+  ConflictingRecommendationRecord,
+  DuplicateRecommendationRecord,
+  OverlappingRecommendationRecord,
+  RecommendationCandidate,
+  RecommendationCategory,
+  RecommendationConfidenceSummary,
+  RecommendationDependency,
+  RecommendationDifficulty,
+  RecommendationEvidence,
+  RecommendationEvidenceType,
+  RecommendationGenerationInput,
+  RecommendationGenerationLog,
+  RecommendationLibrary,
+  RecommendationLibraryPlugin,
+  RecommendationLibraryRegistry,
+  RecommendationPriority,
+  RecommendationProfile,
+  RecommendationRuleDefinition,
+  RecommendationStatistics,
+  RecommendationSummary,
+  RecommendationType,
+} from "./recommendation-types";
 export { UniversalKPIDiscoveryEngine, buildKPIDatasetProfile } from "./kpi-discovery-engine";
 export {
   DefaultKPILibraryRegistry,
