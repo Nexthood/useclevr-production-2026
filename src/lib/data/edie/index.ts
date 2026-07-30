@@ -1,5 +1,9 @@
 export { DatasetAnalysisPipeline, createPipelineContext } from "./dataset-analysis-pipeline";
 export {
+  UniversalBusinessMaturityIntelligenceScanner,
+  buildBusinessMaturityProfile,
+} from "./business-maturity-intelligence-scanner";
+export {
   DefaultEntityRegistry,
   createDefaultEntityRegistry,
   defaultEntityRegistryDefinition,
@@ -55,6 +59,20 @@ export type {
   EntityStatistics,
   EntityType,
 } from "./entity-types";
+export type {
+  BusinessHealthIndicators,
+  BusinessMaturityDimension,
+  BusinessMaturityLog,
+  BusinessMaturityProfile,
+  BusinessMaturityScannerInput,
+  BusinessMaturityStatistics,
+  CompanyGrowthStage,
+  ComplexityIndicators,
+  MaturityDimensionScore,
+  MaturityEvidence,
+  MaturityEvidenceType,
+  MaturitySignalSummary,
+} from "./business-maturity-types";
 export type {
   CardinalityType,
   KeyProfile,
