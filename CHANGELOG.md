@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Add the Business Intelligence universal KPI discovery engine so datasets receive relevant KPI candidates, availability status, missing-data guidance, dependency graphs, category coverage, confidence evidence, plugin registration, and profile statistics from EDIE outputs.
 - Add the Enterprise Dataset Intelligence business maturity engine so datasets receive growth-stage, complexity, readiness, health, maturity dimension, confidence, evidence, and statistics profiles without business-model classification.
 - Add the Enterprise Dataset Intelligence relationship engine so detected entities receive key profiles, cardinality, explainable relationship profiles, graph output, relationship statistics, quality scores, and graph export metadata.
 - Add the Enterprise Dataset Intelligence entity scanner so structured datasets receive registry-driven business entity profiles, pattern matches, cross-column validation, duplicate candidates, statistics, quality scores, and scanner logs.

@@ -970,6 +970,40 @@ When a setup wizard and dependent module disagree, inspect both the write target
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## BIE Universal KPI Discovery Engine
+
+1. Interaction title
+BIE universal KPI discovery engine.
+
+2. What was the user goal
+Implement BIE-001 as a universal KPI discovery engine that determines which KPIs are relevant for an uploaded business from EDIE outputs without hardcoded dashboard templates or meaningless KPI calculations.
+
+3. What changed
+Business Intelligence now has a configurable KPI library, plugin-capable KPI registry, dependency-aware availability graph, confidence and evidence scoring, missing-data identification, recommendation stubs, profile statistics, quality scoring, category coverage, logs, and pipeline integration. KPI discovery consumes structure, semantic, entity, relationship, business-model, and business-maturity signals to classify KPI candidates as Available, Partially Available, Unavailable, or Needs User Input.
+
+4. Problems marked
+blocker: none.
+risk: KPI discovery identifies what should be measured and whether source data supports calculation; later BIE phases still need value calculation, dashboard rendering, recommendations, forecasts, benchmarks, learning, and streaming updates.
+observation: EDIE semantic categories define the current evidence vocabulary, so KPI definitions only reference semantic fields that existing EDIE scanners can produce.
+
+5. User learning
+BIE-001 selects KPI relevance and availability from detected dataset intelligence instead of fixed dashboards or raw column-name templates.
+
+6. AI-agent learning
+When a discovery engine sits above semantic scanners, test fixtures must use semantic fields that upstream scanners can actually prove rather than assuming new semantic categories exist.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Enterprise Dataset Intelligence Pipeline Foundation
 
 1. Interaction title
