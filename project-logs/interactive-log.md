@@ -1,3 +1,37 @@
+## AI Analyst Accuracy Sprint 1
+
+1. Interaction title
+AI Analyst Accuracy Sprint 1.
+
+2. What was the user goal
+Refactor the Dataset AI Analyst query pipeline so questions are classified into business intents before calculation and so metric-specific questions do not fall back to a generic revenue summary.
+
+3. What changed
+Added a Question Intent Engine and Metric Resolver for selected-dataset AI questions. The assistant resolves deterministic revenue, average order value, average selling price, order count, customer count, grouped revenue, top customers, top products, top regions, concentration, revenue risk, monthly revenue, customer growth, forecast-baseline, comparison, and margin questions. Missing required data returns a direct explanation instead of substituting a different metric.
+
+4. Problems marked
+blocker: none.
+risk: Natural language coverage is rule-based and should expand as production question logs reveal new phrasing.
+improvement: Add persisted evaluation traces for intent, missing fields, and calculation validation when the AI interaction trace UI needs per-question accuracy review.
+observation: The existing Dataset AI route can keep provider fallback behavior unchanged because deterministic answers return before provider routing.
+
+5. User learning
+UseClevr now answers AOV, top-customer, margin, and revenue-risk questions from validated uploaded rows without returning a generic revenue summary.
+
+6. AI-agent learning
+Dataset AI metric fixes must protect the route order where the analytical executor, deterministic assistant, and provider fallback interact.
+
+7. Follow-up tasks
+- Add more production question phrasings to the intent test set when support logs identify repeated unsupported wording.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Dataset Intelligence Engine
 
 1. Interaction title

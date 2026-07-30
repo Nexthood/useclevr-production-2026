@@ -45,8 +45,8 @@ type FieldRule = {
 const FIELD_RULES: FieldRule[] = [
   {
     field: "revenue",
-    exact: ["revenue", "sales", "total_sales", "amount", "sales_amount", "income", "turnover", "net_sales", "gross_sales", "order_value"],
-    contains: ["revenue", "sales_amount", "total_sales", "turnover"],
+    exact: ["revenue", "sales", "total_sales", "amount", "sales_amount", "income", "turnover", "net_sales", "gross_sales", "order_value", "gmv", "gross_merchandise_value"],
+    contains: ["revenue", "sales_amount", "total_sales", "turnover", "gross_merchandise_value"],
     rejectContains: ["cost", "expense", "profit", "margin", "tax", "discount", "refund"],
     validator: isMostlyNumeric,
   },
@@ -111,8 +111,8 @@ const FIELD_RULES: FieldRule[] = [
   },
   {
     field: "customer",
-    exact: ["customer", "customer_id", "customer_name", "client", "client_id"],
-    contains: ["customer", "client"],
+    exact: ["customer", "customer_id", "customer_name", "client", "client_id", "buyer", "buyer_id", "account", "account_id"],
+    contains: ["customer", "client", "buyer"],
   },
   {
     field: "category",

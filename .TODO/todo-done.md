@@ -29,6 +29,10 @@ moving work between states.
 - T-817. Expose Payload News and FAQ tools through Payload-native MCP API keys while `/api/mcp` serves product datasets only. (labels: mcp, content, api; commit: worktree)
 - T-836. Store Payload News cover media through S3-compatible durable storage and apply the Media and MCP API-key migration. (labels: content, upload, data; commit: worktree)
 
+## Label: ai
+
+- T-962. Classify selected-dataset AI Analyst questions before calculation and resolve requested business metrics with deterministic answers or precise missing-data explanations. (labels: ai, data, metrics, testing; commit: worktree)
+
 ## Label: docs
 
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)

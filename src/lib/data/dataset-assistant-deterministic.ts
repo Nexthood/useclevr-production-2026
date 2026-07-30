@@ -3,6 +3,7 @@ import {
   parseBusinessNumber,
   semanticColumn,
 } from "@/lib/data/semantic-schema";
+import { resolveQuestionMetric } from "@/lib/data/metric-resolver";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -54,6 +55,38 @@ export function answerDatasetQuestionDeterministically(
   const question = input.question.trim();
   if (!question || input.rows.length === 0) return null;
 
+  const resolvedMetric = resolveQuestionMetric(input);
+  if (resolvedMetric.status === "success") {
+    return {
+      status: "success",
+      answer: resolvedMetric.answer,
+      insight: resolvedMetric.insight,
+      explanation: resolvedMetric.explanation,
+      recommendation: resolvedMetric.nextQuestion,
+      data: resolvedMetric.data,
+      chartType: resolvedMetric.chartType,
+      result: resolvedMetric.result,
+    };
+  }
+  if (resolvedMetric.status === "unsupported") {
+    return {
+      status: "success",
+      answer: `Answer: ${resolvedMetric.message}\n\nInsight: Required data is missing for the requested metric.\n\nTakeaway: UseClevr will not substitute another metric or return a generic revenue summary.\n\nNext question: Ask about a metric available in the selected dataset.`,
+      insight: "Required data is missing for the requested metric.",
+      explanation: "The Question Intent Engine classified the question before calculation and the Metric Resolver rejected the calculation because required fields were unavailable.",
+      recommendation: "Ask about a metric available in the selected dataset.",
+      data: resolvedMetric.missingFields.map((field) => ({ field, status: "missing" })),
+      chartType: "table",
+      result: {
+        intent: resolvedMetric.intent,
+        status: "missing_data",
+        missingFields: resolvedMetric.missingFields,
+        datasetId: input.datasetId,
+        datasetType: input.datasetType,
+      },
+    };
+  }
+
   const schema = buildSemanticSchema(input);
   const revenueColumn = semanticColumn(schema, "revenue");
   if (!revenueColumn) return null;
@@ -91,7 +124,11 @@ export function answerDatasetQuestionDeterministically(
     };
   }
 
-  return describeDatasetSummary({ ...input, revenueColumn, currencyCode, dimensionColumns });
+  if (isDatasetSummaryQuestion(question)) {
+    return describeDatasetSummary({ ...input, revenueColumn, currencyCode, dimensionColumns });
+  }
+
+  return null;
 }
 
 function describeRequestedSegment(input: DatasetAssistantInput & {
@@ -516,6 +553,10 @@ function isExplicitRevenueTrendQuestion(question: string) {
 
 function isForecastQuestion(question: string) {
   return /forecast|predict|projection|next\s+(month|period|quarter)/i.test(question);
+}
+
+function isDatasetSummaryQuestion(question: string) {
+  return /summary|overview|summarize|analyse|analyze|what\s+do\s+you\s+see|tell\s+me\s+about|dataset|total\s+revenue|revenue\s+summary/i.test(question);
 }
 
 function normalizeToken(value: string) {

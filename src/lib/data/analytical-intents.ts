@@ -11,6 +11,7 @@ import {
   type SemanticField,
   type SemanticSchema,
 } from "@/lib/data/semantic-schema";
+import { resolveQuestionMetric, type MetricResolutionResult } from "@/lib/data/metric-resolver";
 
 export type AnalyticalIntentId =
   | "total_revenue"
@@ -144,12 +145,47 @@ export function executeAnalyticalIntent(input: {
   const handlerInput = { ...input, schema };
   if (matchedIntent.handler) return matchedIntent.handler(handlerInput);
 
+  const metricResult = resolveQuestionMetric(input);
+  if (metricResult.status === "success") return metricResolverSuccess(matchedIntent.id, metricResult);
+  if (metricResult.status === "unsupported") {
+    return unsupported(
+      matchedIntent.id,
+      unsupportedCodeFromMetricResolver(metricResult.missingFields),
+      metricResult.message,
+      schema,
+    );
+  }
+
   return unsupported(
     matchedIntent.id,
     "unsupported_question",
     "UseClevr recognizes this analytical question, but deterministic calculation for this intent is not available yet.",
     schema,
   );
+}
+
+function metricResolverSuccess(
+  intent: AnalyticalIntentId,
+  metricResult: Extract<MetricResolutionResult, { status: "success" }>,
+): AnalyticalExecutionResult {
+  return {
+    status: "success",
+    intent,
+    answer: metricResult.answer,
+    insight: metricResult.insight,
+    explanation: metricResult.explanation,
+    recommendation: metricResult.nextQuestion,
+    data: metricResult.data,
+    chartType: metricResult.chartType,
+    result: metricResult.result,
+  };
+}
+
+function unsupportedCodeFromMetricResolver(missingFields: string[]): AnalyticalUnsupportedCode {
+  if (missingFields.includes("revenue")) return "missing_revenue_metric";
+  if (missingFields.includes("date")) return "missing_time_dimension";
+  if (missingFields.some((field) => ["customer", "product", "category", "region", "country", "any_region"].includes(field))) return "missing_segment_dimension";
+  return "unsupported_question";
 }
 
 export function availableAnalyticalSuggestions(input: {

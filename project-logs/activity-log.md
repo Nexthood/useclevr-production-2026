@@ -1,3 +1,4 @@
+- changed: route selected-dataset AI Analyst questions through intent classification and deterministic metric resolution for AOV, ASP, orders, customers, rankings, concentration, risk, trends, forecast baselines, comparisons, and margin explanations
 - changed: add EDIE universal entity intelligence scanner with registry-driven entity profiles, pattern recognition, cross-column validation, duplicate candidates, statistics, quality scoring, logs, and pipeline integration
 - changed: add EDIE universal semantic intelligence scanner with configurable multilingual dictionary aliases, evidence-based confidence, unknown-field review, semantic coverage, quality scoring, deterministic caching, and pipeline integration
 - changed: add Dataset Intelligence Engine semantics with structure scanning, confidence-scored column and value meaning, relationship detection, model-aware KPI generation, dynamic dashboard metadata, and Dataset AI context.
