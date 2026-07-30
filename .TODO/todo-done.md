@@ -320,6 +320,7 @@ moving work between states.
 
 ## Label: data
 
+- T-958. Implement the Universal Intelligent Dashboard Composer with widget library registration, widget selection, responsive layout metadata, dashboard profile statistics, confidence evidence, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-957. Implement the Universal KPI Discovery Engine with configurable KPI definitions, dependency-aware availability, evidence scoring, profile statistics, plugin registration, and EDIE profile integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-956. Implement the EDIE business maturity intelligence engine with maturity dimensions, growth-stage scoring, complexity analysis, readiness scores, statistics, and pipeline integration. (labels: data, ai, testing; commit: 69ed9da9)
 - T-955. Implement the EDIE relationship intelligence engine with key detection, cardinality analysis, relationship graph output, explainable confidence scoring, and pipeline integration. (labels: data, ai, testing; commit: 36f2fe00)

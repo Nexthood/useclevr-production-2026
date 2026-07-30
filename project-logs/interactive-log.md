@@ -970,6 +970,40 @@ When a setup wizard and dependent module disagree, inspect both the write target
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## BIE Universal Intelligent Dashboard Composer
+
+1. Interaction title
+BIE universal intelligent dashboard composer.
+
+2. What was the user goal
+Implement BIE-002 as a universal dashboard composer that builds dashboard profiles from EDIE and KPI discovery outputs without predefined dashboard templates.
+
+3. What changed
+Business Intelligence now has a versioned widget library, plugin-capable widget registry, dashboard composer scanner, widget selection engine, section generation, executive and operational view metadata, responsive layout metadata, confidence and evidence scoring, missing-data warnings, dashboard statistics, logs, and pipeline integration. Dashboard composition consumes KPI profiles, business maturity, relationship signals, business-model hints, and dataset quality while generating only supported widgets.
+
+4. Problems marked
+blocker: none.
+risk: Dashboard profiles describe dashboard structure and widget intent; UI rendering, KPI value calculation, personalization, exports, live widgets, sharing, collaboration, and recommendations remain later BIE responsibilities.
+observation: Widget selection uses supported KPI availability, units, category, confidence, section priority, business-model hints, and BI readiness instead of fixed dashboard templates.
+
+5. User learning
+BIE-002 creates the dashboard blueprint layer that downstream UI can render without deciding which business sections or widgets belong on the dashboard.
+
+6. AI-agent learning
+Keep dashboard composition separate from dashboard rendering and value calculation when acceptance criteria require generated profiles and extension points only.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## BIE Universal KPI Discovery Engine
 
 1. Interaction title
