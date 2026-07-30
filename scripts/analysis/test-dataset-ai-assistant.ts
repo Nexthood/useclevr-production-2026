@@ -36,7 +36,7 @@ const riskAnswer = answerDatasetQuestionDeterministically({
 assert.ok(riskAnswer, "revenue risk question receives a deterministic dataset answer");
 assert.match(riskAnswer.answer, /2025-03 to 2025-04/, "risk answer compares complete March and April periods");
 assert.doesNotMatch(riskAnswer.answer, /2025-05/, "risk answer excludes incomplete May period");
-assert.equal(riskAnswer.result.intent, "revenue_risks");
+assert.equal(riskAnswer.result.intent, "risk.revenue");
 assert.ok(riskAnswer.data.length > 0, "risk answer includes grounded preview rows");
 
 const generalAnswer = answerDatasetQuestionDeterministically({

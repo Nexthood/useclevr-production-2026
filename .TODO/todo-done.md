@@ -29,6 +29,10 @@ moving work between states.
 - T-817. Expose Payload News and FAQ tools through Payload-native MCP API keys while `/api/mcp` serves product datasets only. (labels: mcp, content, api; commit: worktree)
 - T-836. Store Payload News cover media through S3-compatible durable storage and apply the Media and MCP API-key migration. (labels: content, upload, data; commit: worktree)
 
+## Label: ai
+
+- T-962. Classify selected-dataset AI Analyst questions before calculation and resolve requested business metrics with deterministic answers or precise missing-data explanations. (labels: ai, data, metrics, testing; commit: worktree)
+
 ## Label: docs
 
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
@@ -320,6 +324,8 @@ moving work between states.
 
 ## Label: data
 
+- T-961. Implement the Universal Forecast and Scenario Intelligence Engine with forecast model registration, confidence intervals, scenario simulation, evidence-backed forecast profiles, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
+- T-960. Implement the Universal Business Recommendation Engine with recommendation rule registration, evidence-backed action profiles, priority scoring, dependency mapping, duplicate detection, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-959. Implement the Universal Insight Generation Engine with insight rule registration, evidence-backed insight profiles, priority scoring, duplicate detection, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-958. Implement the Universal Intelligent Dashboard Composer with widget library registration, widget selection, responsive layout metadata, dashboard profile statistics, confidence evidence, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-957. Implement the Universal KPI Discovery Engine with configurable KPI definitions, dependency-aware availability, evidence scoring, profile statistics, plugin registration, and EDIE profile integration. (labels: data, ai, dashboard, testing; commit: worktree)

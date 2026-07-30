@@ -1,3 +1,37 @@
+## AI Analyst Accuracy Sprint 1
+
+1. Interaction title
+AI Analyst Accuracy Sprint 1.
+
+2. What was the user goal
+Refactor the Dataset AI Analyst query pipeline so questions are classified into business intents before calculation and so metric-specific questions do not fall back to a generic revenue summary.
+
+3. What changed
+Added a Question Intent Engine and Metric Resolver for selected-dataset AI questions. The assistant resolves deterministic revenue, average order value, average selling price, order count, customer count, grouped revenue, top customers, top products, top regions, concentration, revenue risk, monthly revenue, customer growth, forecast-baseline, comparison, and margin questions. Missing required data returns a direct explanation instead of substituting a different metric.
+
+4. Problems marked
+blocker: none.
+risk: Natural language coverage is rule-based and should expand as production question logs reveal new phrasing.
+improvement: Add persisted evaluation traces for intent, missing fields, and calculation validation when the AI interaction trace UI needs per-question accuracy review.
+observation: The existing Dataset AI route can keep provider fallback behavior unchanged because deterministic answers return before provider routing.
+
+5. User learning
+UseClevr now answers AOV, top-customer, margin, and revenue-risk questions from validated uploaded rows without returning a generic revenue summary.
+
+6. AI-agent learning
+Dataset AI metric fixes must protect the route order where the analytical executor, deterministic assistant, and provider fallback interact.
+
+7. Follow-up tasks
+- Add more production question phrasings to the intent test set when support logs identify repeated unsupported wording.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Dataset Intelligence Engine
 
 1. Interaction title
@@ -991,6 +1025,74 @@ BIE-002 creates the dashboard blueprint layer that downstream UI can render with
 
 6. AI-agent learning
 Keep dashboard composition separate from dashboard rendering and value calculation when acceptance criteria require generated profiles and extension points only.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## BIE Universal Forecast and Scenario Intelligence Engine
+
+1. Interaction title
+BIE universal forecast and scenario intelligence engine.
+
+2. What was the user goal
+Implement BIE-005 as a universal forecast and scenario engine that predicts supported business outcomes and simulates configurable scenarios from EDIE, KPI, insight, and recommendation profiles.
+
+3. What changed
+Business Intelligence now has a configurable forecast model library, plugin-capable forecast registry, deterministic forecast engine, scenario rule library, confidence intervals, uncertainty warnings, forecast evidence scoring, scenario comparison records, business and financial impact scoring, forecast statistics, logs, and pipeline integration. Forecast generation consumes historical rows, business-model signals, business maturity, relationship graph context, KPI discovery, insight profiles, recommendation profiles, seasonality evidence, and business-rule confidence.
+
+4. Problems marked
+blocker: none.
+risk: Forecast generation produces structured explainable profiles only; later BIE phases still need real-time forecasting, Monte Carlo simulation, digital twins, economic indicators, weather integration, competitor signals, external APIs, AI self-learning, dynamic pricing execution, investment planning, capacity planning, workforce planning, multi-year forecasting, and strategic planning.
+observation: The engine skips unsupported forecasts when historical coverage or semantic evidence does not meet the configured model threshold.
+
+5. User learning
+BIE-005 adds prediction and scenario simulation above recommendation generation while leaving external signal ingestion and automated planning for later phases.
+
+6. AI-agent learning
+When forecasting requirements require no unsupported predictions, forecasts must trace to historical coverage, model ID, supporting KPI IDs, insight IDs, recommendation IDs, confidence intervals, warnings, and evidence.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## BIE Universal Business Recommendation Engine
+
+1. Interaction title
+BIE universal business recommendation engine.
+
+2. What was the user goal
+Implement BIE-004 as a universal recommendation engine that determines evidence-backed next business actions from EDIE outputs, KPI discovery, and insight profiles without recommending unsupported actions.
+
+3. What changed
+Business Intelligence now has a configurable recommendation rule library, plugin-capable recommendation registry, deterministic recommendation engine, confidence evidence scoring, priority classification, implementation difficulty and benefit estimates, dependency mapping, duplicate, overlap, and conflict records, required-data reporting, recommendation statistics, logs, and pipeline integration. Recommendation generation consumes business-model signals, business maturity, relationship graph context, KPI discovery, insight profiles, business health, risk indicators, semantic coverage, and dataset quality.
+
+4. Problems marked
+blocker: none.
+risk: Recommendation generation produces structured evidence-backed action profiles only; later BIE phases still need AI decision execution, automated advisor workflows, external integrations, scheduled delivery, learning, ROI tracking, success tracking, action confirmation, continuous optimization, and benchmark engines.
+observation: The engine uses missing-data recommendations when evidence is incomplete instead of converting incomplete evidence into unsupported business actions.
+
+5. User learning
+BIE-004 adds the action-prioritization layer above insight generation while leaving automated execution and recommendation learning for later phases.
+
+6. AI-agent learning
+When recommendation requirements require no hallucination, recommendations must trace to insight IDs, KPI IDs, entity IDs, relationship IDs, required data, and confidence evidence.
 
 7. Follow-up tasks
 - None.

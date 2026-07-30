@@ -5,6 +5,19 @@ export {
   createDefaultInsightLibraryRegistry,
   defaultInsightDefinitions,
 } from "./insight-library";
+export { UniversalBusinessRecommendationEngine, buildRecommendationProfile } from "./recommendation-engine";
+export {
+  DefaultRecommendationLibraryRegistry,
+  createDefaultRecommendationLibraryRegistry,
+  defaultRecommendationDefinitions,
+} from "./recommendation-library";
+export { UniversalForecastScenarioIntelligenceEngine, buildForecastProfile } from "./forecast-engine";
+export {
+  DefaultForecastLibraryRegistry,
+  createDefaultForecastLibraryRegistry,
+  defaultForecastModels,
+  defaultScenarioDefinitions,
+} from "./forecast-library";
 export {
   DefaultWidgetLibraryRegistry,
   createDefaultWidgetLibraryRegistry,
@@ -32,6 +45,51 @@ export type {
   InsightType,
   OverlappingInsightRecord,
 } from "./insight-types";
+export type {
+  BusinessRecommendation,
+  ConflictingRecommendationRecord,
+  DuplicateRecommendationRecord,
+  OverlappingRecommendationRecord,
+  RecommendationCandidate,
+  RecommendationCategory,
+  RecommendationConfidenceSummary,
+  RecommendationDependency,
+  RecommendationDifficulty,
+  RecommendationEvidence,
+  RecommendationEvidenceType,
+  RecommendationGenerationInput,
+  RecommendationGenerationLog,
+  RecommendationLibrary,
+  RecommendationLibraryPlugin,
+  RecommendationLibraryRegistry,
+  RecommendationPriority,
+  RecommendationProfile,
+  RecommendationRuleDefinition,
+  RecommendationStatistics,
+  RecommendationSummary,
+  RecommendationType,
+} from "./recommendation-types";
+export type {
+  BusinessForecast,
+  BusinessScenario,
+  ConfidenceInterval,
+  ForecastCandidate,
+  ForecastCategory,
+  ForecastEvidence,
+  ForecastEvidenceType,
+  ForecastGenerationInput,
+  ForecastGenerationLog,
+  ForecastLibrary,
+  ForecastLibraryPlugin,
+  ForecastLibraryRegistry,
+  ForecastModelDefinition,
+  ForecastModelType,
+  ForecastProfile,
+  ForecastStatistics,
+  HistoricalPoint,
+  ScenarioDefinition,
+  ScenarioType,
+} from "./forecast-types";
 export { UniversalKPIDiscoveryEngine, buildKPIDatasetProfile } from "./kpi-discovery-engine";
 export {
   DefaultKPILibraryRegistry,
