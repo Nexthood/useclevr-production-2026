@@ -1,6 +1,7 @@
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
+import { displayBusinessProfileValue, getBusinessProfileContext } from "@/lib/business/business-profile-context"
 import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { Landmark } from "lucide-react"
 
@@ -10,6 +11,7 @@ export const metadata = {
 
 export default async function AccountancyTaxPage() {
   const session = await auth()
+  const context = await getBusinessProfileContext(session?.user?.id)
   const details = await getPrimaryBusinessDetails(session?.user?.id)
   const safeDetails = details ?? {}
 
@@ -21,7 +23,7 @@ export default async function AccountancyTaxPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
-          <StatCard icon={Landmark} label="Tax region" value={safeDetails.location || "Not configured - add location in business profile"} />
+          <StatCard icon={Landmark} label="Tax region" value={displayBusinessProfileValue(context.taxCountry)} />
           <StatCard icon={Landmark} label="Business activity" value={safeDetails.industry || "Not configured - add industry in business profile"} />
         </div>
         <p className="text-sm text-muted-foreground">
@@ -31,4 +33,3 @@ export default async function AccountancyTaxPage() {
     </Card>
   )
 }
-

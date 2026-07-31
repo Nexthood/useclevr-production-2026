@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Accountancy Business Profile context so tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the saved Business Profile values.
 - Fix Accountancy and Pre-bookkeeping uploads so CSV, Excel, PDF, receipts, invoices, and bank exports use type-specific validation, processing, document storage, staged errors, and retry-safe dataset saving.
 
 ### Changed
