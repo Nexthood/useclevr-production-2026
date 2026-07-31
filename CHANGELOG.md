@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- Fix Accountancy and Pre-bookkeeping uploads so CSV, Excel, PDF, receipts, invoices, and bank exports use type-specific validation, processing, document storage, staged errors, and retry-safe dataset saving.
+
 ### Changed
 
 - Route Dataset AI metric questions through intent classification and deterministic metric resolution so average order value, order counts, customer rankings, margin questions, risks, trends, forecasts, and comparisons answer the requested metric or explain the missing data instead of returning a generic revenue summary.

@@ -1,0 +1,190 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import * as XLSX from "xlsx";
+import {
+  AccountancyUploadError,
+  parseAccountancyUploadBuffer,
+  validateAccountancyUpload,
+  type AccountancyUploadMeta,
+  type AccountancyUploadType,
+} from "../../src/lib/accountancy/upload-processing";
+
+const baseMeta = (uploadType: AccountancyUploadType, fileName: string, mimeType: string): AccountancyUploadMeta => ({
+  fileName,
+  mimeType,
+  size: 100,
+  uploadType,
+  datasetType: "prebookkeeping",
+});
+
+async function run() {
+  await testCommaCsv();
+  await testSemicolonCsv();
+  await testExcel();
+  await testMultiSheetExcel();
+  await testTextPdfInvoice();
+  await testScannedPdf();
+  await testImageReceipts();
+  await testCsvBankExport();
+  await testXlsxBankExport();
+  await testOfxBankExport();
+  testUnsupportedFiles();
+  testUiWiring();
+  testApiRouteWiring();
+  console.log("Accountancy upload system regression tests passed.");
+}
+
+async function testCommaCsv() {
+  const parsed = await parseAccountancyUploadBuffer(
+    Buffer.from("date,description,amount\n2026-01-01,Software,12.50\n"),
+    baseMeta("csv", "ledger.csv", "text/csv"),
+  );
+  assert.equal(parsed.route, "accountancy_csv_parser");
+  assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
+  assert.equal(parsed.rowCount, 1);
+}
+
+async function testSemicolonCsv() {
+  const parsed = await parseAccountancyUploadBuffer(
+    Buffer.from("\uFEFFdate;description;amount\r\n2026-01-01;Office;12,50\r\n"),
+    baseMeta("csv", "ledger.csv", "application/vnd.ms-excel"),
+  );
+  assert.equal(parsed.route, "accountancy_csv_parser");
+  assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
+  assert.match(parsed.warnings.join(" "), /Detected ; delimiter/);
+}
+
+async function testExcel() {
+  const parsed = await parseAccountancyUploadBuffer(
+    workbookBuffer([["date", "description", "amount"], ["2026-01-01", "Software", 12.5]]),
+    baseMeta("excel", "ledger.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+  );
+  assert.equal(parsed.route, "accountancy_excel_workbook_parser");
+  assert.equal(parsed.selectedSheet, "Sheet1");
+  assert.equal(parsed.rowCount, 1);
+  assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
+}
+
+async function testMultiSheetExcel() {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Notes"], ["empty"]]), "Notes");
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet([
+      ["Bank Export"],
+      ["Generated"],
+      ["date", "description", "amount"],
+      ["2026-01-01", "Deposit", 100],
+      ["2026-01-02", "Fee", -5],
+    ]),
+    "Transactions",
+  );
+  const parsed = await parseAccountancyUploadBuffer(
+    XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer,
+    baseMeta("excel", "multi.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+  );
+  assert.equal(parsed.selectedSheet, "Transactions");
+  assert.equal(parsed.rowCount, 2);
+  assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
+}
+
+async function testTextPdfInvoice() {
+  const pdf = Buffer.from(
+    "%PDF-1.4\n(Supplier: ACME Ltd)\n(Invoice Number: INV-1001)\n(Date: 2026-01-31)\n(Currency: EUR)\n(Subtotal: 100.00)\n(VAT: 21.00)\n(Total: 121.00)\n%%EOF",
+  );
+  const parsed = await parseAccountancyUploadBuffer(pdf, baseMeta("pdf", "invoice.pdf", "application/pdf"));
+  assert.equal(parsed.route, "accountancy_pdf_document_processor");
+  assert.equal(parsed.documentTextStatus, "embedded_text");
+  assert.ok(parsed.extractedData.some((field) => field.field === "invoiceNumber" && field.value === "INV-1001"));
+  assert.ok(parsed.extractedData.some((field) => field.field === "total" && field.value === "121.00"));
+}
+
+async function testScannedPdf() {
+  const parsed = await parseAccountancyUploadBuffer(Buffer.from("%PDF-1.4\n%%EOF"), baseMeta("pdf", "scan.pdf", "application/pdf"));
+  assert.equal(parsed.route, "receipt_document_scanner");
+  assert.equal(parsed.documentTextStatus, "scanner_required");
+}
+
+async function testImageReceipts() {
+  const jpg = await parseAccountancyUploadBuffer(Buffer.from([255, 216, 255, 217]), baseMeta("receipt", "receipt.jpg", "image/jpeg"));
+  assert.equal(jpg.route, "receipt_invoice_document_scanner");
+  assert.equal(jpg.documentTextStatus, "image_scanner");
+
+  const png = await parseAccountancyUploadBuffer(Buffer.from([137, 80, 78, 71]), baseMeta("receipt", "receipt.png", "image/png"));
+  assert.equal(png.route, "receipt_invoice_document_scanner");
+  assert.equal(png.documentTextStatus, "image_scanner");
+}
+
+async function testCsvBankExport() {
+  const parsed = await parseAccountancyUploadBuffer(
+    Buffer.from("date,description,debit,credit,currency,balance,reference\n2026-01-01,Fee,5,,EUR,95,ABC\n2026-01-02,Sale,,25,EUR,120,DEF\n"),
+    baseMeta("bank", "bank.csv", "text/csv"),
+  );
+  assert.equal(parsed.route, "bank_transaction_parser");
+  assert.equal(parsed.rows[0]?.normalizedAmount, -5);
+  assert.equal(parsed.rows[1]?.normalizedAmount, 25);
+}
+
+async function testXlsxBankExport() {
+  const parsed = await parseAccountancyUploadBuffer(
+    workbookBuffer([["date", "description", "amount"], ["2026-01-01", "Deposit", 250]]),
+    baseMeta("bank", "bank.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+  );
+  assert.equal(parsed.route, "bank_transaction_parser");
+  assert.equal(parsed.rows[0]?.normalizedAmount, 250);
+}
+
+async function testOfxBankExport() {
+  const ofx = Buffer.from("<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20260101<TRNAMT>-9.99<FITID>1<NAME>Bank fee</BANKTRANLIST></OFX>");
+  const parsed = await parseAccountancyUploadBuffer(ofx, baseMeta("bank", "bank.ofx", "application/octet-stream"));
+  assert.equal(parsed.route, "bank_transaction_parser");
+  assert.equal(parsed.rows[0]?.normalizedAmount, -9.99);
+}
+
+function testUnsupportedFiles() {
+  const unsupported: Array<[AccountancyUploadType, string, string]> = [
+    ["csv", "invoice.pdf", "application/pdf"],
+    ["excel", "ledger.csv", "text/csv"],
+    ["pdf", "receipt.jpg", "image/jpeg"],
+    ["receipt", "ledger.csv", "text/csv"],
+    ["bank", "receipt.jpg", "image/jpeg"],
+  ];
+
+  for (const [uploadType, fileName, mimeType] of unsupported) {
+    assert.throws(
+      () => validateAccountancyUpload(baseMeta(uploadType, fileName, mimeType)),
+      (error) => error instanceof AccountancyUploadError && error.stage === "validation",
+    );
+  }
+}
+
+function testUiWiring() {
+  const source = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8");
+  assert.ok(source.includes('fetch("/api/accountancy/upload"'), "Accountancy UI uses dedicated route");
+  assert.ok(source.includes('formData.append("uploadType", selectedType)'), "selected upload type is submitted");
+  assert.ok(source.includes("resetSelectedFileState"), "tab switching clears selected file and errors");
+  assert.ok(source.includes("fileInputRef.current.value = \"\""), "file input is cleared on tab switch");
+  assert.ok(!source.includes("simulateExtraction"), "mock extraction is removed");
+  assert.ok(!source.includes("Math.random() * 1000"), "random mock transactions are removed");
+}
+
+function testApiRouteWiring() {
+  const route = readFileSync("src/app/api/accountancy/upload/route.ts", "utf8");
+  const processor = readFileSync("src/lib/accountancy/upload-processing.ts", "utf8");
+  assert.ok(route.includes("processAccountancyUpload"), "API route uses Accountancy processor");
+  assert.ok(route.includes("stage"), "API route returns staged errors");
+  assert.ok(processor.includes("eq(datasets.checksum, checksum)"), "processor reuses duplicate datasets by checksum");
+  assert.ok(!route.includes("reserveCredits") && !processor.includes("reserveCredits"), "failed uploads do not reserve credits");
+  assert.ok(!route.includes("finalizeCredits") && !processor.includes("finalizeCredits"), "Accountancy upload route does not finalize credits");
+}
+
+function workbookBuffer(rows: unknown[][]) {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Sheet1");
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
