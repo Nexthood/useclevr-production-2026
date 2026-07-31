@@ -64,6 +64,7 @@ Text rules for this file:
 - Route Profitability Upload datasets to the Profitability workspace.
 - Route Accountancy Upload datasets to the Accountancy workspace.
 - Route Invoice, Receipt, Bank Export, and Pre-bookkeeping Upload datasets to the Pre-bookkeeping workspace.
+- Process Accountancy and Pre-bookkeeping CSV, Excel, PDF, receipt, invoice, and bank-export uploads through type-specific server validators, parsers, extraction routes, original-file storage, structured validation/storage/parsing/database/extraction errors, duplicate retry protection, and failed-upload credit protection.
 - Route Retail uploads to the Retail workspace.
 - Keep the main Dashboard free of retail-specific report sections and retail-only KPIs.
 - Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.

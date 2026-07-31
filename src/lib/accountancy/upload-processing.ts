@@ -1,0 +1,883 @@
+import { getBusinessModelRedirect } from "@/lib/data/business-model";
+import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
+import { getDb } from "@/lib/db";
+import { datasetRows, datasets, type DatasetBusinessModel } from "@/lib/db/schema";
+import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
+import { debugError, debugLog } from "@/lib/utils/debug";
+import { and, eq } from "drizzle-orm";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
+import { createHash } from "node:crypto";
+
+export type AccountancyDatasetType = "accountancy" | "prebookkeeping";
+export type AccountancyUploadType = "csv" | "excel" | "pdf" | "receipt" | "bank";
+export type AccountancyUploadStage = "validation" | "storage" | "parsing" | "database" | "extraction";
+
+export interface AccountancyUploadMeta {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  uploadType: AccountancyUploadType;
+  datasetType: AccountancyDatasetType;
+}
+
+export interface AccountancyParsedUpload {
+  route: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  columnCount: number;
+  columnTypes: Record<string, string>;
+  previewRows: Record<string, unknown>[];
+  extractedData: Record<string, unknown>[];
+  sheetNames?: string[];
+  selectedSheet?: string;
+  duplicateColumns?: string[];
+  documentTextStatus?: "embedded_text" | "scanner_required" | "image_scanner";
+  warnings: string[];
+}
+
+export interface AccountancyUploadResult {
+  ok: true;
+  success: true;
+  datasetId: string;
+  datasetName: string;
+  datasetType: AccountancyDatasetType;
+  uploadType: AccountancyUploadType;
+  processingRoute: string;
+  rowsProcessed: number;
+  columnsDetected: number;
+  redirectTo: string;
+  redirectUrl: string;
+  storageKey?: string | null;
+  checksum?: string;
+  duplicate?: boolean;
+  extractedData: Record<string, unknown>[];
+  preview: { headers: string[]; rows: Record<string, unknown>[] };
+  warnings: string[];
+}
+
+export class AccountancyUploadError extends Error {
+  readonly stage: AccountancyUploadStage;
+  readonly code: string;
+  readonly status: number;
+  readonly retryable: boolean;
+
+  constructor(stage: AccountancyUploadStage, code: string, message: string, status = 400, retryable = false) {
+    super(message);
+    this.name = "AccountancyUploadError";
+    this.stage = stage;
+    this.code = code;
+    this.status = status;
+    this.retryable = retryable;
+  }
+}
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const PREVIEW_ROW_COUNT = 20;
+
+const uploadSpecs: Record<
+  AccountancyUploadType,
+  { route: string; extensions: string[]; mimeTypes: string[]; tabular: boolean }
+> = {
+  csv: {
+    route: "accountancy_csv_parser",
+    extensions: [".csv"],
+    mimeTypes: ["text/csv", "application/csv", "application/vnd.ms-excel", "application/octet-stream", ""],
+    tabular: true,
+  },
+  excel: {
+    route: "accountancy_excel_workbook_parser",
+    extensions: [".xlsx", ".xls"],
+    mimeTypes: [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/octet-stream",
+      "",
+    ],
+    tabular: true,
+  },
+  pdf: {
+    route: "accountancy_pdf_document_processor",
+    extensions: [".pdf"],
+    mimeTypes: ["application/pdf", "application/octet-stream", ""],
+    tabular: false,
+  },
+  receipt: {
+    route: "receipt_invoice_document_scanner",
+    extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    mimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/webp", "application/octet-stream", ""],
+    tabular: false,
+  },
+  bank: {
+    route: "bank_transaction_parser",
+    extensions: [".csv", ".xlsx", ".xls", ".ofx", ".qif", ".qfx"],
+    mimeTypes: [
+      "text/csv",
+      "application/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/octet-stream",
+      "application/x-ofx",
+      "application/vnd.intu.qfx",
+      "",
+    ],
+    tabular: true,
+  },
+};
+
+export function getAccountancyUploadSpec(uploadType: AccountancyUploadType) {
+  return uploadSpecs[uploadType];
+}
+
+export function normalizeAccountancyUploadType(value: FormDataEntryValue | null): AccountancyUploadType | null {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "csv" || normalized === "excel" || normalized === "pdf" || normalized === "receipt" || normalized === "bank") {
+    return normalized;
+  }
+  return null;
+}
+
+export function normalizeAccountancyDatasetType(value: FormDataEntryValue | null): AccountancyDatasetType | null {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "accountancy" || normalized === "prebookkeeping") return normalized;
+  return null;
+}
+
+export function getFileExtension(fileName: string) {
+  const dotIndex = fileName.lastIndexOf(".");
+  return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : "";
+}
+
+export function validateAccountancyUpload(meta: AccountancyUploadMeta) {
+  const spec = uploadSpecs[meta.uploadType];
+  const extension = getFileExtension(meta.fileName);
+  const mimeType = meta.mimeType.toLowerCase();
+
+  if (meta.size <= 0) {
+    throw new AccountancyUploadError("validation", "EMPTY_FILE", "The selected file is empty.", 400, false);
+  }
+
+  if (meta.size > MAX_FILE_SIZE) {
+    throw new AccountancyUploadError(
+      "validation",
+      "FILE_TOO_LARGE",
+      "File size must be less than 50MB.",
+      413,
+      false,
+    );
+  }
+
+  if (!spec.extensions.includes(extension)) {
+    throw new AccountancyUploadError(
+      "validation",
+      "UNSUPPORTED_EXTENSION",
+      `${displayUploadType(meta.uploadType)} uploads accept ${spec.extensions.join(", ")} files.`,
+      415,
+      false,
+    );
+  }
+
+  if (!spec.mimeTypes.includes(mimeType)) {
+    throw new AccountancyUploadError(
+      "validation",
+      "UNSUPPORTED_MIME_TYPE",
+      `${displayUploadType(meta.uploadType)} uploads do not accept ${meta.mimeType || "unknown"} files.`,
+      415,
+      false,
+    );
+  }
+}
+
+export async function parseAccountancyUploadBuffer(
+  buffer: Buffer,
+  meta: AccountancyUploadMeta,
+): Promise<AccountancyParsedUpload> {
+  validateAccountancyUpload(meta);
+
+  if (meta.uploadType === "csv") return parseCsvUpload(buffer, meta);
+  if (meta.uploadType === "excel") return parseExcelUpload(buffer, meta);
+  if (meta.uploadType === "bank") return parseBankUpload(buffer, meta);
+  if (meta.uploadType === "pdf") return parsePdfUpload(buffer, meta);
+  return parseReceiptUpload(buffer, meta);
+}
+
+export async function processAccountancyUpload(input: {
+  buffer: Buffer;
+  fileName: string;
+  mimeType: string;
+  userId: string;
+  datasetType: AccountancyDatasetType;
+  uploadType: AccountancyUploadType;
+}): Promise<AccountancyUploadResult> {
+  const requestMeta: AccountancyUploadMeta = {
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    size: input.buffer.length,
+    uploadType: input.uploadType,
+    datasetType: input.datasetType,
+  };
+  const extension = getFileExtension(input.fileName);
+
+  debugLog("[ACCOUNTANCY-UPLOAD] request received", {
+    fileName: input.fileName,
+    extension,
+    mimeType: input.mimeType || "unknown",
+    uploadType: input.uploadType,
+    datasetType: input.datasetType,
+    processingRoute: uploadSpecs[input.uploadType].route,
+    stage: "validation",
+  });
+
+  validateAccountancyUpload(requestMeta);
+  const checksum = createHash("sha256").update(input.buffer).digest("hex");
+
+  const db = getDb();
+  if (!db) {
+    throw new AccountancyUploadError("database", "DB_UNAVAILABLE", "Database is not configured.", 503, true);
+  }
+
+  const existingDataset = await db.query.datasets.findFirst({
+    where: and(
+      eq(datasets.userId, input.userId),
+      eq(datasets.checksum, checksum),
+      eq(datasets.datasetType, input.datasetType),
+      eq(datasets.fileName, input.fileName),
+    ),
+  });
+
+  if (existingDataset) {
+    debugLog("[ACCOUNTANCY-UPLOAD] duplicate upload returned existing dataset", {
+      fileName: input.fileName,
+      extension,
+      mimeType: input.mimeType || "unknown",
+      uploadType: input.uploadType,
+      datasetType: input.datasetType,
+      processingRoute: uploadSpecs[input.uploadType].route,
+      stage: "database",
+      datasetId: existingDataset.id,
+    });
+
+    return {
+      ok: true,
+      success: true,
+      datasetId: existingDataset.id,
+      datasetName: existingDataset.name,
+      datasetType: input.datasetType,
+      uploadType: input.uploadType,
+      processingRoute: uploadSpecs[input.uploadType].route,
+      rowsProcessed: existingDataset.rowCount || 0,
+      columnsDetected: Array.isArray(existingDataset.columns) ? existingDataset.columns.length : 0,
+      redirectTo: getBusinessModelRedirect({
+        datasetType: input.datasetType,
+        businessModel: existingDataset.businessModel || "generic",
+        datasetId: existingDataset.id,
+      }),
+      redirectUrl: getBusinessModelRedirect({
+        datasetType: input.datasetType,
+        businessModel: existingDataset.businessModel || "generic",
+        datasetId: existingDataset.id,
+      }),
+      storageKey: existingDataset.storageKey,
+      checksum,
+      duplicate: true,
+      extractedData: [],
+      preview: {
+        headers: Array.isArray(existingDataset.columns) ? existingDataset.columns : [],
+        rows: Array.isArray(existingDataset.data) ? existingDataset.data.slice(0, 5) : [],
+      },
+      warnings: ["This file already exists, so the existing dataset was reused."],
+    };
+  }
+
+  let parsed: AccountancyParsedUpload;
+  try {
+    parsed = await parseAccountancyUploadBuffer(input.buffer, requestMeta);
+  } catch (error) {
+    if (error instanceof AccountancyUploadError) throw error;
+    debugError("[ACCOUNTANCY-UPLOAD] parsing failed", safeLogMeta(input, "parsing", error));
+    throw new AccountancyUploadError(
+      "parsing",
+      "PARSING_FAILED",
+      error instanceof Error ? error.message : "The file could not be parsed.",
+      422,
+      false,
+    );
+  }
+
+  debugLog("[ACCOUNTANCY-UPLOAD] parsing finished", {
+    fileName: input.fileName,
+    extension,
+    mimeType: input.mimeType || "unknown",
+    uploadType: input.uploadType,
+    datasetType: input.datasetType,
+    processingRoute: parsed.route,
+    stage: "parsing",
+    rows: parsed.rowCount,
+    columns: parsed.columnCount,
+  });
+
+  let storage;
+  try {
+    storage = await storeUploadedFile(input.buffer, input.fileName, input.mimeType || inferMimeType(input.fileName));
+  } catch (error) {
+    debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", error));
+    throw new AccountancyUploadError(
+      "storage",
+      "STORAGE_FAILED",
+      error instanceof Error ? error.message : "The original file could not be stored.",
+      500,
+      true,
+    );
+  }
+
+  if (!storage.success) {
+    debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", storage.error));
+    throw new AccountancyUploadError(
+      "storage",
+      "STORAGE_FAILED",
+      storage.error || "The original file could not be stored.",
+      500,
+      true,
+    );
+  }
+
+  const datasetId = `acct_${Date.now()}_${checksum.slice(0, 8)}`;
+  const datasetName = input.fileName.replace(/\.(csv|xlsx|xls|pdf|jpg|jpeg|png|webp|ofx|qif|qfx)$/i, "");
+  const now = new Date();
+  const businessModel: DatasetBusinessModel = "generic";
+  const redirectTo = getBusinessModelRedirect({ datasetType: input.datasetType, businessModel, datasetId });
+  const precomputedMetrics = parsed.rows.length > 0 ? computePrecomputedMetrics(parsed.rows, parsed.columns) : null;
+
+  const insertData = {
+    id: datasetId,
+    userId: input.userId,
+    name: datasetName || input.fileName,
+    fileName: input.fileName,
+    fileSize: input.buffer.length,
+    mimeType: input.mimeType || inferMimeType(input.fileName),
+    storageKey: storage.storageKey,
+    checksum,
+    rowCount: parsed.rowCount,
+    columnCount: parsed.columnCount,
+    columns: parsed.columns,
+    data: parsed.previewRows,
+    columnTypes: parsed.columnTypes,
+    datasetType: input.datasetType,
+    businessModel,
+    status: "ready",
+    analysisStatus: "ready",
+    analysisProgress: 100,
+    analysisMessage: "Accountancy upload processed.",
+    analysisError: null,
+    analysis: {
+      dataset_type: input.datasetType,
+      datasetCategory: input.datasetType,
+      datasetType: input.datasetType,
+      accountancyUploadType: input.uploadType,
+      processingRoute: parsed.route,
+      selectedSheet: parsed.selectedSheet,
+      sheetNames: parsed.sheetNames,
+      duplicateColumns: parsed.duplicateColumns,
+      documentTextStatus: parsed.documentTextStatus,
+      extractedData: parsed.extractedData,
+      warnings: parsed.warnings,
+    },
+    precomputedMetrics,
+    columnMapping: {
+      accountancyUploadType: input.uploadType,
+      processingRoute: parsed.route,
+      selectedSheet: parsed.selectedSheet,
+    },
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(datasets).values(insertData);
+
+      if (parsed.rows.length > 0) {
+        const rowValues = parsed.rows.slice(0, 5000).map((row, index) => ({
+          id: `${datasetId}-row-${index}`,
+          datasetId,
+          rowIndex: index,
+          data: row,
+        }));
+        if (rowValues.length > 0) {
+          await tx.insert(datasetRows).values(rowValues);
+        }
+      }
+    });
+  } catch (error) {
+    await deleteFile(storage.storageKey).catch(() => false);
+    debugError("[ACCOUNTANCY-UPLOAD] database failed", safeLogMeta(input, "database", error));
+    throw new AccountancyUploadError(
+      "database",
+      "DATABASE_FAILED",
+      error instanceof Error ? error.message : "The dataset could not be saved.",
+      500,
+      true,
+    );
+  }
+
+  debugLog("[ACCOUNTANCY-UPLOAD] upload completed", {
+    fileName: input.fileName,
+    extension,
+    mimeType: input.mimeType || "unknown",
+    uploadType: input.uploadType,
+    datasetType: input.datasetType,
+    processingRoute: parsed.route,
+    stage: "database",
+    datasetId,
+  });
+
+  return {
+    ok: true,
+    success: true,
+    datasetId,
+    datasetName: datasetName || input.fileName,
+    datasetType: input.datasetType,
+    uploadType: input.uploadType,
+    processingRoute: parsed.route,
+    rowsProcessed: parsed.rowCount,
+    columnsDetected: parsed.columnCount,
+    redirectTo,
+    redirectUrl: redirectTo,
+    storageKey: storage.storageKey,
+    checksum,
+    extractedData: parsed.extractedData,
+    preview: {
+      headers: parsed.columns,
+      rows: parsed.previewRows.slice(0, 5),
+    },
+    warnings: parsed.warnings,
+  };
+}
+
+function parseCsvUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
+  const text = decodeText(buffer);
+  const delimiter = detectDelimiter(text);
+  const parsed = Papa.parse<Record<string, unknown>>(text, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+    delimiter,
+    transformHeader: (header) => header.trim().replace(/^\uFEFF/, ""),
+  });
+
+  if (parsed.errors.length > 0) {
+    throw new AccountancyUploadError(
+      "parsing",
+      "CSV_PARSE_FAILED",
+      `CSV parsing failed: ${parsed.errors[0]?.message || "invalid CSV"}`,
+      422,
+      false,
+    );
+  }
+
+  return normalizeTabularRows(parsed.meta.fields || [], parsed.data, {
+    route: uploadSpecs[meta.uploadType].route,
+    warnings: [`Detected ${delimiter === "\t" ? "tab" : delimiter} delimiter.`],
+  });
+}
+
+function parseExcelUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const sheetNames = workbook.SheetNames;
+  const sheetProfiles = sheetNames.map((sheetName) => {
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" }) as unknown[][];
+    const nonEmptyRows = rows.filter((row) => row.some((value) => value !== null && value !== undefined && String(value).trim() !== ""));
+    return { sheetName, rows, nonEmptyRows, score: nonEmptyRows.length * Math.max(...nonEmptyRows.map((row) => row.length), 0) };
+  });
+  const selected = sheetProfiles.sort((a, b) => b.score - a.score)[0];
+
+  if (!selected || selected.nonEmptyRows.length < 2) {
+    throw new AccountancyUploadError("parsing", "EXCEL_NO_DATA", "The workbook does not contain a valid data sheet.", 422, false);
+  }
+
+  const headerIndex = detectHeaderRow(selected.rows);
+  const headers = selected.rows[headerIndex]?.map((value) => String(value || "").trim()) || [];
+  const dataRows = selected.rows.slice(headerIndex + 1).filter((row) =>
+    row.some((value) => value !== null && value !== undefined && String(value).trim() !== ""),
+  );
+  const objectRows = dataRows.map((row) => {
+    const record: Record<string, unknown> = {};
+    headers.forEach((header, index) => {
+      record[header] = row[index] === "" ? null : row[index];
+    });
+    return record;
+  });
+
+  return {
+    ...normalizeTabularRows(headers, objectRows, {
+      route: uploadSpecs[meta.uploadType].route,
+      warnings: sheetNames.length > 1 ? [`Selected worksheet "${selected.sheetName}" from ${sheetNames.length} worksheets.`] : [],
+    }),
+    sheetNames,
+    selectedSheet: selected.sheetName,
+  };
+}
+
+function parseBankUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
+  const extension = getFileExtension(meta.fileName);
+  const parsed =
+    extension === ".xlsx" || extension === ".xls"
+      ? parseExcelUpload(buffer, { ...meta, uploadType: "excel" })
+      : extension === ".csv"
+        ? parseCsvUpload(buffer, { ...meta, uploadType: "csv" })
+        : parseBankTextUpload(buffer);
+
+  if (extension !== ".csv" && extension !== ".xlsx" && extension !== ".xls") {
+    return parsed;
+  }
+
+  const bankColumns = detectBankColumns(parsed.columns);
+  const normalizedRows = parsed.rows.map((row) => normalizeBankRow(row, bankColumns));
+  const warnings = [...parsed.warnings];
+
+  if (!bankColumns.date || !bankColumns.description || (!bankColumns.amount && (!bankColumns.debit || !bankColumns.credit))) {
+    warnings.push("Bank export columns were detected partially; review date, description, amount, debit, and credit mappings.");
+  }
+
+  const bankOutputColumns = [
+    ...parsed.columns,
+    "normalizedAmount",
+    "transactionDate",
+    "transactionDescription",
+    "transactionCurrency",
+    "transactionBalance",
+    "transactionReference",
+  ].filter((column, index, array) => array.indexOf(column) === index);
+
+  return {
+    ...normalizeTabularRows(bankOutputColumns, normalizedRows, {
+      route: uploadSpecs.bank.route,
+      warnings,
+    }),
+    sheetNames: parsed.sheetNames,
+    selectedSheet: parsed.selectedSheet,
+  };
+}
+
+function parseBankTextUpload(buffer: Buffer): AccountancyParsedUpload {
+  const text = decodeText(buffer);
+  const ofxTransactions = Array.from(text.matchAll(/<STMTTRN>([\s\S]*?)(?=<STMTTRN>|<\/BANKTRANLIST>)/gi)).map(
+    (match) => {
+      const block = match[1] || "";
+      return {
+        transactionDate: tagValue(block, "DTPOSTED"),
+        normalizedAmount: parseLocalizedNumber(tagValue(block, "TRNAMT")),
+        transactionDescription: tagValue(block, "NAME") || tagValue(block, "MEMO"),
+        transactionReference: tagValue(block, "FITID"),
+      };
+    },
+  );
+
+  if (ofxTransactions.length > 0) {
+    return normalizeTabularRows(
+      ["transactionDate", "normalizedAmount", "transactionDescription", "transactionReference"],
+      ofxTransactions,
+      { route: uploadSpecs.bank.route, warnings: ["Detected OFX/QFX bank export structure."] },
+    );
+  }
+
+  const qifRows = text
+    .split("^")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const lines = entry.split(/\r?\n/);
+      const getLine = (prefix: string) => lines.find((line) => line.startsWith(prefix))?.slice(1).trim() || null;
+      return {
+        transactionDate: getLine("D"),
+        normalizedAmount: parseLocalizedNumber(getLine("T")),
+        transactionDescription: getLine("P") || getLine("M"),
+        transactionReference: getLine("N"),
+      };
+    })
+    .filter((row) => row.transactionDate || row.normalizedAmount || row.transactionDescription);
+
+  if (qifRows.length > 0) {
+    return normalizeTabularRows(
+      ["transactionDate", "normalizedAmount", "transactionDescription", "transactionReference"],
+      qifRows,
+      { route: uploadSpecs.bank.route, warnings: ["Detected QIF bank export structure."] },
+    );
+  }
+
+  throw new AccountancyUploadError(
+    "parsing",
+    "BANK_EXPORT_PARSE_FAILED",
+    "The bank export format was accepted but no transactions could be read.",
+    422,
+    false,
+  );
+}
+
+function parsePdfUpload(buffer: Buffer, _meta: AccountancyUploadMeta): AccountancyParsedUpload {
+  const text = extractPdfText(buffer);
+  const hasAccountingSignal = /invoice|receipt|supplier|vendor|merchant|subtotal|total|tax|vat|amount due/i.test(text);
+  const scannerRequired = text.trim().length < 80 && !hasAccountingSignal;
+  const extractedData = scannerRequired ? [] : extractAccountingFields(text);
+
+  if (!scannerRequired && extractedData.length === 0) {
+    throw new AccountancyUploadError(
+      "extraction",
+      "PDF_EXTRACTION_FAILED",
+      "The PDF contains text, but no accounting fields could be extracted.",
+      422,
+      false,
+    );
+  }
+
+  const rows = extractedData.length > 0 ? extractedData : [{ status: "scanner_required", reason: "No embedded PDF text detected" }];
+
+  return {
+    route: scannerRequired ? "receipt_document_scanner" : uploadSpecs.pdf.route,
+    columns: ["field", "value", "confidence"],
+    rows,
+    rowCount: rows.length,
+    columnCount: 3,
+    columnTypes: { field: "text", value: "text", confidence: "decimal" },
+    previewRows: rows,
+    extractedData,
+    documentTextStatus: scannerRequired ? "scanner_required" : "embedded_text",
+    warnings: scannerRequired ? ["No embedded text was detected, so the document was routed to the scanner flow."] : [],
+  };
+}
+
+function parseReceiptUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
+  const extension = getFileExtension(meta.fileName);
+
+  if (extension === ".pdf") {
+    const parsed = parsePdfUpload(buffer, meta);
+    return { ...parsed, route: uploadSpecs.receipt.route };
+  }
+
+  const rows = [{ status: "image_scanner", fileType: extension.slice(1), extractionStatus: "queued" }];
+  return {
+    route: uploadSpecs.receipt.route,
+    columns: ["status", "fileType", "extractionStatus"],
+    rows,
+    rowCount: rows.length,
+    columnCount: 3,
+    columnTypes: { status: "text", fileType: "text", extractionStatus: "text" },
+    previewRows: rows,
+    extractedData: [],
+    documentTextStatus: "image_scanner",
+    warnings: ["Image receipt was stored and routed to the document scanner flow."],
+  };
+}
+
+function normalizeTabularRows(
+  rawHeaders: string[],
+  inputRows: Record<string, unknown>[],
+  options: { route: string; warnings?: string[] },
+): AccountancyParsedUpload {
+  const { headers, duplicateColumns } = normalizeHeaders(rawHeaders);
+  if (headers.length === 0) {
+    throw new AccountancyUploadError("parsing", "NO_COLUMNS", "The file does not contain a usable header row.", 422, false);
+  }
+
+  const rows = inputRows
+    .filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && String(value).trim() !== ""))
+    .map((row) => {
+      const normalized: Record<string, unknown> = {};
+      rawHeaders.forEach((rawHeader, index) => {
+        normalized[headers[index]] = row[rawHeader] ?? null;
+      });
+      return normalized;
+    });
+
+  if (rows.length === 0) {
+    throw new AccountancyUploadError("parsing", "NO_ROWS", "The file contains headers but no data rows.", 422, false);
+  }
+
+  return {
+    route: options.route,
+    columns: headers,
+    rows,
+    rowCount: rows.length,
+    columnCount: headers.length,
+    columnTypes: inferColumnTypes(headers, rows),
+    previewRows: rows.slice(0, PREVIEW_ROW_COUNT),
+    extractedData: rows.slice(0, PREVIEW_ROW_COUNT),
+    duplicateColumns,
+    warnings: [...(options.warnings || []), ...(duplicateColumns.length > 0 ? [`Duplicate columns renamed: ${duplicateColumns.join(", ")}.`] : [])],
+  };
+}
+
+function normalizeHeaders(rawHeaders: string[]) {
+  const seen = new Map<string, number>();
+  const duplicateColumns: string[] = [];
+  const headers = rawHeaders
+    .map((header, index) => String(header || `Column ${index + 1}`).trim() || `Column ${index + 1}`)
+    .map((header) => {
+      const count = seen.get(header) || 0;
+      seen.set(header, count + 1);
+      if (count === 0) return header;
+      duplicateColumns.push(header);
+      return `${header}_${count + 1}`;
+    });
+  return { headers, duplicateColumns };
+}
+
+function detectDelimiter(text: string) {
+  const firstLines = text.replace(/^\uFEFF/, "").split(/\r?\n/).slice(0, 10).join("\n");
+  const candidates = [",", ";", "\t"];
+  return candidates
+    .map((delimiter) => ({ delimiter, count: firstLines.split(delimiter).length - 1 }))
+    .sort((a, b) => b.count - a.count)[0]?.delimiter || ",";
+}
+
+function decodeText(buffer: Buffer) {
+  return buffer.toString("utf8").replace(/^\uFEFF/, "");
+}
+
+function detectHeaderRow(rows: unknown[][]) {
+  let bestIndex = 0;
+  let bestScore = -1;
+  rows.slice(0, 20).forEach((row, index) => {
+    const textCells = row.filter((value) => typeof value === "string" && value.trim().length > 0).length;
+    const totalCells = row.filter((value) => value !== null && value !== undefined && String(value).trim() !== "").length;
+    const nextRow = rows[index + 1] || [];
+    const nextCells = nextRow.filter((value) => value !== null && value !== undefined && String(value).trim() !== "").length;
+    const score = textCells * 2 + totalCells + Math.min(totalCells, nextCells);
+    if (score > bestScore) {
+      bestIndex = index;
+      bestScore = score;
+    }
+  });
+  return bestIndex;
+}
+
+function inferColumnTypes(columns: string[], rows: Record<string, unknown>[]) {
+  const types: Record<string, string> = {};
+  for (const column of columns) {
+    const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== undefined && value !== "");
+    const sample = values.slice(0, 25).map(String);
+    if (sample.length === 0) {
+      types[column] = "unknown";
+    } else if (sample.every((value) => /^-?\d+$/.test(value))) {
+      types[column] = "integer";
+    } else if (sample.every((value) => !Number.isNaN(parseLocalizedNumber(value)))) {
+      types[column] = "decimal";
+    } else if (sample.every((value) => /^\d{4}-\d{2}-\d{2}|^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(value))) {
+      types[column] = "date";
+    } else {
+      types[column] = "text";
+    }
+  }
+  return types;
+}
+
+function detectBankColumns(columns: string[]) {
+  const find = (pattern: RegExp) => columns.find((column) => pattern.test(column.toLowerCase()));
+  return {
+    date: find(/date|datum|posted|booking/),
+    description: find(/description|details|memo|omschrijving|merchant|payee|name/),
+    debit: find(/debit|withdrawal|paid out|afschrijving/),
+    credit: find(/credit|deposit|paid in|bijschrijving/),
+    amount: find(/^amount$|transaction amount|bedrag/),
+    currency: find(/currency|valuta/),
+    balance: find(/balance|saldo/),
+    reference: find(/reference|ref|transaction id|iban/),
+  };
+}
+
+function normalizeBankRow(row: Record<string, unknown>, columns: ReturnType<typeof detectBankColumns>) {
+  const debit = columns.debit ? parseLocalizedNumber(row[columns.debit]) : Number.NaN;
+  const credit = columns.credit ? parseLocalizedNumber(row[columns.credit]) : Number.NaN;
+  const amount = columns.amount ? parseLocalizedNumber(row[columns.amount]) : Number.NaN;
+  const normalizedAmount = Number.isFinite(amount)
+    ? amount
+    : Number.isFinite(credit)
+      ? Math.abs(credit)
+      : Number.isFinite(debit)
+        ? -Math.abs(debit)
+        : null;
+
+  return {
+    ...row,
+    normalizedAmount,
+    transactionDate: columns.date ? row[columns.date] : null,
+    transactionDescription: columns.description ? row[columns.description] : null,
+    transactionCurrency: columns.currency ? row[columns.currency] : null,
+    transactionBalance: columns.balance ? row[columns.balance] : null,
+    transactionReference: columns.reference ? row[columns.reference] : null,
+  };
+}
+
+function parseLocalizedNumber(value: unknown) {
+  if (typeof value === "number") return value;
+  const text = String(value ?? "").trim();
+  if (!text) return Number.NaN;
+  const cleaned = text
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\.(?=\d{3}(?:\D|$))/g, "")
+    .replace(",", ".");
+  return Number(cleaned);
+}
+
+function tagValue(block: string, tag: string) {
+  return new RegExp(`<${tag}>([^<\\r\\n]+)`, "i").exec(block)?.[1]?.trim() || null;
+}
+
+function extractPdfText(buffer: Buffer) {
+  const text = `${buffer.toString("utf8")}\n${buffer.toString("latin1")}`;
+  const literalStrings = Array.from(text.matchAll(/\(([^()]{2,200})\)/g)).map((match) => match[1]);
+  const readable = literalStrings.length > 0 ? literalStrings.join("\n") : text;
+  return readable.replace(/[^\S\r\n]+/g, " ").replace(/[^\x20-\x7E\r\n€£$-]/g, " ").trim();
+}
+
+function extractAccountingFields(text: string) {
+  const fields: Record<string, unknown>[] = [];
+  const add = (field: string, value: string | undefined, confidence = 0.8) => {
+    if (value && value.trim()) fields.push({ field, value: value.trim(), confidence });
+  };
+
+  add("supplier", /(?:supplier|vendor|merchant|from)[:\s]+([A-Za-z0-9 &.,'-]{2,80})/i.exec(text)?.[1], 0.75);
+  add("invoiceNumber", /(?:invoice|receipt)\s*(?:number|no|#)?[:\s#-]+([A-Z0-9-]{3,40})/i.exec(text)?.[1], 0.85);
+  add("date", /(?:date|invoice date)[:\s]+(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i.exec(text)?.[1], 0.8);
+  add("currency", /\b(EUR|USD|GBP|CHF|HUF|RON|€|\$|£)\b/i.exec(text)?.[1], 0.75);
+  add("subtotal", /(?:subtotal|net amount)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
+  add("tax", /(?:vat|tax|gst)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
+  add("total", /\b(?:total|amount due|grand total)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.85);
+  return fields;
+}
+
+function inferMimeType(fileName: string) {
+  const extension = getFileExtension(fileName);
+  if (extension === ".csv") return "text/csv";
+  if (extension === ".xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (extension === ".xls") return "application/vnd.ms-excel";
+  if (extension === ".pdf") return "application/pdf";
+  if (extension === ".png") return "image/png";
+  if (extension === ".webp") return "image/webp";
+  if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
+  return "application/octet-stream";
+}
+
+function displayUploadType(uploadType: AccountancyUploadType) {
+  if (uploadType === "receipt") return "Receipts/Invoices";
+  if (uploadType === "bank") return "Bank export";
+  return uploadType.toUpperCase();
+}
+
+function safeLogMeta(
+  input: { fileName: string; mimeType: string; uploadType: AccountancyUploadType; datasetType: AccountancyDatasetType },
+  stage: AccountancyUploadStage,
+  error: unknown,
+) {
+  return {
+    fileName: input.fileName,
+    extension: getFileExtension(input.fileName),
+    mimeType: input.mimeType || "unknown",
+    uploadType: input.uploadType,
+    datasetType: input.datasetType,
+    processingRoute: uploadSpecs[input.uploadType].route,
+    stage,
+    error: error instanceof Error ? error.message : String(error),
+  };
+}

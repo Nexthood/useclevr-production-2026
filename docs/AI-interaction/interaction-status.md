@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-30
-- **Goal**: Implement AI Analyst Accuracy Sprint 1 with a Question Intent Engine and Metric Resolver.
-- **Durable change**: Dataset AI classifies selected-dataset questions into business intents before deterministic metric calculation, resolves revenue, AOV, ASP, order, customer, ranking, concentration, risk, trend, forecast-baseline, comparison, and margin requests, and returns missing-data explanations instead of generic revenue summaries when required columns are unavailable.
-- **Verification**: Focused 60-question intent and metric resolver regression, Dataset AI assistant regression, analytical intent regression, and TypeScript.
+- **Date**: 2026-07-31
+- **Goal**: Fix the complete Accountancy and Pre-bookkeeping upload system with separate production flows for CSV, Excel, PDF, receipts/invoices, and bank exports.
+- **Durable change**: Accountancy uploads use a dedicated authenticated API route with type-specific validation, parsing, document storage, extraction routing, structured staged errors, duplicate retry protection, and UI tab reset behavior instead of the generic CSV/Excel upload route.
+- **Verification**: Accountancy upload regression matrix, TypeScript, focused ESLint, and diff whitespace check.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

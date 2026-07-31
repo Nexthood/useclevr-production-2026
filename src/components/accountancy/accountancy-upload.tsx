@@ -48,6 +48,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
    const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
+   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
    const { toast } = useToast()
    const { showNotice } = useNotice()
 
@@ -152,34 +153,6 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     return true
   }
 
-  const simulateExtraction = async (file: File, type: UploadType): Promise<Record<string, unknown>[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    const mockData: Record<string, unknown>[] = []
-    const rowCount = Math.min(Math.max(3, Math.floor(file.size / 1024)), 15)
-
-    for (let i = 0; i < rowCount; i++) {
-      mockData.push({
-        id: i + 1,
-        date: new Date(Date.now() - i * 86400000).toISOString().split("T")[0],
-        description: `Sample transaction ${i + 1}`,
-        amount: (Math.random() * 1000).toFixed(2),
-        category: ["Office supplies", "Travel", "Software", "Marketing", "Payroll"][i % 5],
-        tax: type === "receipt" || type === "bank" ? (Math.random() * 20).toFixed(2) : "0.00",
-      })
-    }
-
-    return mockData
-  }
-
-  const categorizeTransactions = (data: Record<string, unknown>[]): Record<string, unknown>[] => {
-    return data.map((row) => ({
-      ...row,
-      category: (row.category as string) || "Uncategorized",
-      vatApplicable: parseFloat(row.amount as string) > 50 && parseFloat(row.tax as string) > 0,
-    }))
-  }
-
   const uploadFile = async (file: File) => {
     if (!validateFile(file)) {
       setUploadStatus("error")
@@ -205,14 +178,15 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     try {
       const formData = new FormData()
       formData.append("file", file)
+      formData.append("uploadType", selectedType)
       formData.append("type", selectedType)
       formData.append("uploadMode", datasetType)
       formData.append("dataset_type", datasetType)
       formData.append("fileType", `${datasetType}_${selectedType}`)
 
-      debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", { fileName: file.name, datasetType })
+      debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", { fileName: file.name, datasetType, uploadType: selectedType })
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/accountancy/upload", {
         method: "POST",
         body: formData,
       })
@@ -226,17 +200,19 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
 
         const result = await response.json().catch(() => ({}))
-
-        const extractedData = await simulateExtraction(file, selectedType)
-        const categorizedData = categorizeTransactions(extractedData)
+        const extractedData = Array.isArray(result.extractedData)
+          ? result.extractedData
+          : Array.isArray(result.preview?.rows)
+            ? result.preview.rows
+            : []
 
         const newFile: UploadedFile = {
-          id: fileId,
+          id: result.datasetId || fileId,
           name: file.name,
           type: selectedType,
           size: file.size,
           status: "categorized",
-          extractedData: categorizedData,
+          extractedData,
           category: selectedType === "receipt" ? "Receipts/Invoices" : selectedType === "bank" ? "Bank exports" : selectedType === "pdf" ? "Documents" : selectedType === "excel" ? "Spreadsheets" : "CSV data",
         }
 
@@ -247,7 +223,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         showNotice({
           type: "success",
           title: "File uploaded and processed",
-          message: `${file.name}: ${categorizedData.length} transactions categorized`,
+          message: `${file.name}: ${result.rowsProcessed ?? extractedData.length} row(s) processed`,
         })
 
         if (result.redirectTo) {
@@ -263,7 +239,9 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         }
       } else {
         const result = await response.json().catch(() => ({ error: "Upload failed" }))
-        const uploadError = result.error || result.message || "Upload failed"
+        const uploadError = result.message || result.error || "Upload failed"
+        const stage = typeof result.stage === "string" ? result.stage : ""
+        const stagedError = stage ? `${stage}: ${uploadError}` : uploadError
 
         // Plan limits are an upgrade state, not an upload failure.
         if (result.datasetLimit?.limitReached) {
@@ -314,7 +292,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           })
         } else {
           setUploadStatus("error")
-          setErrorMessage(uploadError)
+          setErrorMessage(stagedError)
           setProcessingStep(0)
         }
       }
@@ -342,17 +320,29 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   }
 
   const allFileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode; accept: string }[] = [
-    { type: "csv", label: "CSV", icon: <FileText className="h-4 w-4" />, accept: ".csv" },
-    { type: "excel", label: "Excel", icon: <FileText className="h-4 w-4" />, accept: ".xlsx,.xls" },
-    { type: "pdf", label: "PDF", icon: <FileText className="h-4 w-4" />, accept: ".pdf" },
-    { type: "receipt", label: "Receipts/Invoices", icon: <Receipt className="h-4 w-4" />, accept: ".pdf,.jpg,.jpeg,.png,.webp" },
-    { type: "bank", label: "Bank exports", icon: <FileText className="h-4 w-4" />, accept: ".csv,.xlsx,.xls,.ofx,.qif" },
+    { type: "csv", label: "CSV", icon: <FileText className="h-4 w-4" />, accept: ".csv,text/csv,application/csv,application/vnd.ms-excel,application/octet-stream" },
+    { type: "excel", label: "Excel", icon: <FileText className="h-4 w-4" />, accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" },
+    { type: "pdf", label: "PDF", icon: <FileText className="h-4 w-4" />, accept: ".pdf,application/pdf" },
+    { type: "receipt", label: "Receipts/Invoices", icon: <Receipt className="h-4 w-4" />, accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" },
+    { type: "bank", label: "Bank exports", icon: <FileText className="h-4 w-4" />, accept: ".csv,.xlsx,.xls,.ofx,.qif,.qfx,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" },
   ]
   const fileTypeOptions = datasetType === "accountancy"
     ? allFileTypeOptions.filter((option) => option.type === "csv" || option.type === "excel")
     : allFileTypeOptions
 
   const selectedOption = fileTypeOptions.find((opt) => opt.type === selectedType)
+
+  const resetSelectedFileState = React.useCallback(() => {
+    setUploadStatus("idle")
+    setUploadProgress(0)
+    setProcessingStep(0)
+    setErrorMessage("")
+    setCurrentFileName("")
+    setLimitReachedInfo(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }, [])
 
   React.useEffect(() => {
     if (!selectedOption) {
@@ -366,7 +356,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         {fileTypeOptions.map((option) => (
           <button
             key={option.type}
-            onClick={() => setSelectedType(option.type)}
+            onClick={() => {
+              setSelectedType(option.type)
+              resetSelectedFileState()
+            }}
             className={`flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-xs font-medium transition-all ${
               selectedType === option.type
                 ? "border-primary bg-primary/10 text-primary"
@@ -397,6 +390,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none opacity-50" />
 
         <input
+          ref={fileInputRef}
           type="file"
           accept={selectedOption?.accept || "*"}
           onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}

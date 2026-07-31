@@ -555,6 +555,39 @@ Question-specific deterministic branches should be replaced with an intent regis
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Accountancy Upload System Production Flows
+
+1. Interaction title
+Accountancy upload system production flows.
+
+2. What was the user goal
+Fix Accountancy and Pre-bookkeeping uploads so CSV, Excel, PDF, receipts/invoices, and bank exports run as separate production flows instead of sharing the generic CSV/Excel upload handler.
+
+3. What changed
+Accountancy uploads now use a dedicated authenticated API route and server processor with per-type extension and MIME validation, CSV delimiter handling, Excel workbook and multi-sheet parsing, PDF embedded-text extraction with scanner fallback, receipt/invoice document routing for PDF and images, bank transaction normalization for CSV, Excel, OFX, QIF, and QFX-style exports, durable original-file storage, staged structured errors, sanitized logs, duplicate retry protection, and no upload-credit reservation on failed Accountancy uploads. The Accountancy upload UI submits the selected upload type to the dedicated route, clears file and error state when tabs change, preserves the existing Accountancy versus Pre-bookkeeping destination split, and shows server error stages directly.
+
+4. Problems marked
+blocker: none.
+risk: Image receipt extraction is routed to the existing document-scanner processing state because OCR is not implemented in this task.
+observation: Accountancy pages keep the existing architecture where Accountancy exposes CSV and Excel, while Pre-bookkeeping exposes documents, receipts, invoices, and bank exports.
+
+5. User learning
+The PDF rejection came from the Accountancy component sending every upload tab to the generic `/api/upload` route, whose server validator only accepts CSV and Excel files.
+
+6. AI-agent learning
+Accountancy document uploads must bypass generic dataset upload credit reservation and generic CSV/Excel validation; use staged Accountancy-specific server errors for validation, storage, parsing, database, and extraction failures.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## EDIE Business Maturity Intelligence Engine
 
 1. Interaction title

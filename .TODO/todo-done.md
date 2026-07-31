@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-963. Process Accountancy and Pre-bookkeeping CSV, Excel, PDF, receipt, invoice, and bank-export uploads through type-specific server validation, parsing, extraction, storage, staged UI errors, retry-safe dataset saving, and failed-upload credit protection. (labels: upload, data, testing; commit: worktree)
 - T-947. Repair Square OAuth callback routing with a public callback proxy exemption, canonical redirect URI generation, state-owned callback completion, safe redirects, and focused OAuth tests. (labels: upload, api, testing; commit: worktree)
 - T-946. Show one Standard Upload success panel with full KPI values, standard dashboard navigation, dataset detail navigation, and upload-another reset behavior while preserving every non-standard upload success flow. (labels: upload, ui, testing; commit: worktree)
 - T-943. Delete selected Dataset Library rows through confirmed single or bulk actions with scoped authorization, related-record cleanup, storage cleanup logging, partial-failure reporting, immediate table updates, and refreshed usage counters. (labels: upload, data, security; commit: worktree)
