@@ -4,6 +4,7 @@ import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { auth } from "@/lib/auth/auth"
+import { displayBusinessProfileValue, getBusinessProfileContextResult } from "@/lib/business/business-profile-context"
 import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
@@ -102,22 +103,14 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
 
   const profileComplete = Boolean(companySetup?.setupStatus.completed)
   const companyName = companySetup?.companyInfo.companyName || ""
-  const taxPeriod = [companySetup?.companyInfo.fiscalYearStart, companySetup?.companyInfo.fiscalYearEnd]
-    .filter(Boolean)
-    .join(" to ")
-  const taxCountry = companySetup?.companyInfo.taxResidenceCountry || companySetup?.companyInfo.country || MISSING_PROFILE_VALUE
-  const currency = companySetup?.currencySettings.primaryCurrency || MISSING_PROFILE_VALUE
-  const taxSummary = companySetup?.taxSettings.taxEntries.length
-    ? companySetup.taxSettings.taxEntries
-        .map((tax) => `${tax.taxType}${tax.percentage ? ` ${tax.percentage}%` : ""}`)
-        .join(", ")
-    : companySetup?.taxSettings.taxType || MISSING_PROFILE_VALUE
-  const payrollSummary = companySetup?.employerContributions.length
-    ? companySetup.employerContributions.map((entry) => entry.contributionType).join(", ")
-    : MISSING_PROFILE_VALUE
-  const fixedCostSummary = companySetup?.fixedCosts.length
-    ? companySetup.fixedCosts.map((entry) => entry.costCategory).join(", ")
-    : MISSING_PROFILE_VALUE
+  const businessProfileContextResult = await getBusinessProfileContextResult(userId)
+  const businessProfileContext = businessProfileContextResult.context
+  const taxPeriod = displayBusinessProfileValue(businessProfileContext.fiscalYear)
+  const taxCountry = displayBusinessProfileValue(businessProfileContext.taxCountry)
+  const currency = displayBusinessProfileValue(businessProfileContext.currency)
+  const taxSummary = displayBusinessProfileValue(businessProfileContext.vatSalesTax)
+  const payrollSummary = displayBusinessProfileValue(businessProfileContext.payroll)
+  const fixedCostSummary = displayBusinessProfileValue(businessProfileContext.fixedCosts)
   const profileContextRows = [
     { label: "Tax country", value: taxCountry },
     { label: "Currency", value: currency },
@@ -261,10 +254,15 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                 fixed-cost assumptions.
               </p>
             </div>
+            {businessProfileContextResult.error && (
+              <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                Business Profile context could not be loaded: {businessProfileContextResult.error}
+              </div>
+            )}
             <div className="grid gap-2 text-sm">
               <ProfileContextRow label="Tax country" value={taxCountry} />
               <ProfileContextRow label="Currency" value={currency} />
-              <ProfileContextRow label="Fiscal year" value={taxPeriod || MISSING_PROFILE_VALUE} />
+              <ProfileContextRow label="Fiscal year" value={taxPeriod} />
               <ProfileContextRow label="VAT/sales tax" value={taxSummary} />
               <ProfileContextRow label="Payroll" value={payrollSummary} />
               <ProfileContextRow label="Fixed costs" value={fixedCostSummary} />
@@ -311,7 +309,7 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
             </div>
             <AccountancyPackageForm
               initialCompanyName={companyName}
-              initialTaxPeriod={taxPeriod}
+              initialTaxPeriod={taxPeriod === MISSING_PROFILE_VALUE ? "" : taxPeriod}
               packageReady={activeDatasets > 0}
               profileContext={profileContextRows}
             />
@@ -337,7 +335,7 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="max-w-[12rem] text-right font-medium text-foreground">{value || MISSING_PROFILE_VALUE}</span>
+      <span className="max-w-[12rem] text-right font-medium text-foreground">{value}</span>
     </div>
   )
 }

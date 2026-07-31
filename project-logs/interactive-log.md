@@ -555,6 +555,39 @@ Question-specific deterministic branches should be replaced with an intent regis
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Accountancy Business Profile Context Integration
+
+1. Interaction title
+Accountancy Business Profile context integration.
+
+2. What was the user goal
+Fix Accountancy Overview so saved Business Profile values for tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the existing Business Profile single source of truth.
+
+3. What changed
+Business Profile context now has a shared server-side normalizer that maps the organization-scoped Business Profile payload into tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs. Accountancy Overview, Accountancy Tax, and Accountancy Reporting read this normalized context instead of local ad hoc mappings. The mapper supports current nested setup fields and legacy flat field names, preserves zero and false values as configured values, and formats tax, payroll, and fixed-cost entries for display.
+
+4. Problems marked
+blocker: none.
+risk: Live browser verification for normal and superadmin users still depends on available authenticated production sessions.
+observation: Business Profile persistence already uses `business_profile.organization_id`; the display bug came from Accountancy's local read/format mapping, not from a new Accountancy profile table.
+
+5. User learning
+Business Profile saves through `PUT /api/business/setup` into the `business_profile` table keyed by `organization_id`, while Accountancy now reads the same saved profile through the shared normalized context service.
+
+6. AI-agent learning
+When Business Profile fields are nested and legacy fields can exist, dependent modules must consume a shared normalized mapping and treat only `null` or `undefined` as missing.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Upload System Production Flows
 
 1. Interaction title
