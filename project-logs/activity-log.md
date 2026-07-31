@@ -176,3 +176,4 @@
 - fixed: separate Accountancy Business Profile load failures from missing profile fields and add a temporary runtime diagnostics panel for deployed profile verification
 - fixed: log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures
 - fixed: load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database
+- fixed: parse Accountancy Excel workbooks by scanning every worksheet, selecting generic tabular data, handling merged report titles, and returning detailed sheet rejection reasons

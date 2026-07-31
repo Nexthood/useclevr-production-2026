@@ -1441,3 +1441,35 @@ Delimiter detection must account for line coverage so decimal separators inside 
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Excel Workbook Parser
+
+1. Interaction title
+Accountancy Excel workbook parser.
+
+2. What was the user goal
+Fix Accountancy Excel uploads that reach parsing but fail with a generic no-valid-data-sheet error.
+
+3. What changed
+The Accountancy Excel parser now scans every worksheet, logs workbook sheet names plus per-sheet row count, column count, selected status, and rejection reason, ignores empty and non-tabular sheets, detects generic tabular sheets without fixed accounting headers, handles merged report-title rows without treating them as headers, and returns a detailed error listing every rejected sheet when no valid sheet exists. The accountancy upload regression script covers multi-sheet selection, non-tabular first sheets, merged formatted header rows, Excel, Google Sheets, and LibreOffice-style XLSX exports, and detailed no-valid-sheet errors.
+
+4. Problems marked
+blocker: none.
+risk: The parser accepts generic two-or-more-column tables; one-column workbooks remain rejected because they do not provide enough tabular structure for accountancy dataset creation.
+
+5. User learning
+The upload flow now distinguishes parser-stage workbook structure failures from validation/storage failures and reports the specific rejected worksheet reasons.
+
+6. AI-agent learning
+Merged title rows must not become candidate headers after merge expansion; require distinct header labels before accepting an Excel row as a generic table header.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

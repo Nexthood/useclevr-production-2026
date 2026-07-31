@@ -516,6 +516,10 @@ moving work between states.
 
 - T-722. Resolve dashboard-ui-refactor audit plan — delete plan file, distribute content to dashboard-ui.md, AGENTS.md, DEVELOPER_GUIDE.md, todo-future.md. (labels: dashboard, ui, docs; commit: worktree)
 
+## Label: upload
+
+- T-969. Accountancy Excel uploads inspect every worksheet, select generic tabular data, support merged title rows, and return detailed invalid-sheet reasons. (labels: upload, data, testing; commit: worktree)
+
 ## Label: ui
 
 - Add reduced motion accessibility toggle in theme switcher with `.reduced-motion` CSS override. (labels: ui, accessibility; commit: worktree)

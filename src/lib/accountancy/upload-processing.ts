@@ -75,6 +75,21 @@ export class AccountancyUploadError extends Error {
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const PREVIEW_ROW_COUNT = 20;
+const MAX_EXCEL_HEADER_SCAN_ROWS = 30;
+
+interface ExcelSheetProfile {
+  sheetName: string;
+  rows: unknown[][];
+  rowCount: number;
+  columnCount: number;
+  nonEmptyRowCount: number;
+  selected: boolean;
+  score: number;
+  reason: string;
+  headerIndex: number | null;
+  headers: string[];
+  dataRows: unknown[][];
+}
 
 const uploadSpecs: Record<
   AccountancyUploadType,
@@ -483,40 +498,171 @@ function parseCsvUpload(buffer: Buffer, meta: AccountancyUploadMeta): Accountanc
 }
 
 function parseExcelUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
-  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true, cellFormula: true, cellStyles: true });
   const sheetNames = workbook.SheetNames;
-  const sheetProfiles = sheetNames.map((sheetName) => {
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" }) as unknown[][];
-    const nonEmptyRows = rows.filter((row) => row.some((value) => value !== null && value !== undefined && String(value).trim() !== ""));
-    return { sheetName, rows, nonEmptyRows, score: nonEmptyRows.length * Math.max(...nonEmptyRows.map((row) => row.length), 0) };
-  });
-  const selected = sheetProfiles.sort((a, b) => b.score - a.score)[0];
+  const sheetProfiles = sheetNames.map((sheetName) => profileExcelSheet(sheetName, workbook.Sheets[sheetName]));
+  const selected = sheetProfiles
+    .filter((profile) => profile.selected)
+    .sort((a, b) => b.score - a.score || sheetNames.indexOf(a.sheetName) - sheetNames.indexOf(b.sheetName))[0];
 
-  if (!selected || selected.nonEmptyRows.length < 2) {
-    throw new AccountancyUploadError("parsing", "EXCEL_NO_DATA", "The workbook does not contain a valid data sheet.", 422, false);
+  debugLog("[ACCOUNTANCY-UPLOAD] workbook sheet scan", {
+    fileName: meta.fileName,
+    mimeType: meta.mimeType || "unknown",
+    uploadType: meta.uploadType,
+    datasetType: meta.datasetType,
+    processingRoute: uploadSpecs[meta.uploadType].route,
+    stage: "parsing",
+    sheetNames,
+    sheets: sheetProfiles.map((profile) => ({
+      sheetName: profile.sheetName,
+      rowCount: profile.rowCount,
+      columnCount: profile.columnCount,
+      nonEmptyRowCount: profile.nonEmptyRowCount,
+      selected: profile.selected,
+      reason: profile.reason,
+    })),
+  });
+
+  if (!selected) {
+    const details =
+      sheetProfiles.length > 0
+        ? sheetProfiles
+            .map((profile) => `${profile.sheetName}: ${profile.reason} (${profile.rowCount} rows, ${profile.columnCount} columns)`)
+            .join("; ")
+        : "No worksheets were found.";
+
+    throw new AccountancyUploadError(
+      "parsing",
+      "EXCEL_NO_DATA_SHEET",
+      `No valid Excel data sheet was found. ${details}`,
+      422,
+      false,
+    );
   }
 
-  const headerIndex = detectHeaderRow(selected.rows);
-  const headers = selected.rows[headerIndex]?.map((value) => String(value || "").trim()) || [];
-  const dataRows = selected.rows.slice(headerIndex + 1).filter((row) =>
-    row.some((value) => value !== null && value !== undefined && String(value).trim() !== ""),
-  );
-  const objectRows = dataRows.map((row) => {
+  const objectRows = selected.dataRows.map((row) => {
     const record: Record<string, unknown> = {};
-    headers.forEach((header, index) => {
+    selected.headers.forEach((header, index) => {
       record[header] = row[index] === "" ? null : row[index];
     });
     return record;
   });
 
   return {
-    ...normalizeTabularRows(headers, objectRows, {
+    ...normalizeTabularRows(selected.headers, objectRows, {
       route: uploadSpecs[meta.uploadType].route,
-      warnings: sheetNames.length > 1 ? [`Selected worksheet "${selected.sheetName}" from ${sheetNames.length} worksheets.`] : [],
+      warnings: [
+        ...(sheetNames.length > 1 ? [`Selected worksheet "${selected.sheetName}" from ${sheetNames.length} worksheets.`] : []),
+        ...sheetProfiles
+          .filter((profile) => profile.sheetName !== selected.sheetName && !profile.selected)
+          .map((profile) => `Rejected worksheet "${profile.sheetName}": ${profile.reason}`),
+      ],
     }),
     sheetNames,
     selectedSheet: selected.sheetName,
   };
+}
+
+function profileExcelSheet(sheetName: string, sheet: XLSX.WorkSheet | undefined): ExcelSheetProfile {
+  if (!sheet) return rejectedExcelSheet(sheetName, [], "Worksheet is missing from the workbook.");
+
+  const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: true }) as unknown[][];
+  const rows = expandMergedCells(rawRows, sheet["!merges"]);
+  const nonEmptyRows = rows.filter(isNonEmptyRow);
+  const rowCount = rows.length;
+  const columnCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+
+  if (nonEmptyRows.length === 0) {
+    return rejectedExcelSheet(sheetName, rows, "Sheet is empty.");
+  }
+
+  if (nonEmptyRows.length < 2) {
+    return rejectedExcelSheet(sheetName, rows, "Sheet has only one non-empty row.");
+  }
+
+  const candidate = detectExcelTableRegion(rows);
+  if (!candidate) {
+    return rejectedExcelSheet(sheetName, rows, "No generic tabular region with a header row and data rows was detected.");
+  }
+
+  const score =
+    candidate.dataRows.length * candidate.headers.length +
+    candidate.headerSignal * 4 +
+    candidate.density * 10 -
+    candidate.headerIndex * 0.1;
+
+  return {
+    sheetName,
+    rows,
+    rowCount,
+    columnCount,
+    nonEmptyRowCount: nonEmptyRows.length,
+    selected: true,
+    score,
+    reason: `Accepted generic table at row ${candidate.headerIndex + 1} with ${candidate.headers.length} columns and ${candidate.dataRows.length} data rows.`,
+    headerIndex: candidate.headerIndex,
+    headers: candidate.headers,
+    dataRows: candidate.dataRows,
+  };
+}
+
+function rejectedExcelSheet(sheetName: string, rows: unknown[][], reason: string): ExcelSheetProfile {
+  return {
+    sheetName,
+    rows,
+    rowCount: rows.length,
+    columnCount: rows.reduce((max, row) => Math.max(max, row.length), 0),
+    nonEmptyRowCount: rows.filter(isNonEmptyRow).length,
+    selected: false,
+    score: 0,
+    reason,
+    headerIndex: null,
+    headers: [],
+    dataRows: [],
+  };
+}
+
+function detectExcelTableRegion(rows: unknown[][]) {
+  const candidates = rows.slice(0, MAX_EXCEL_HEADER_SCAN_ROWS).map((row, headerIndex) => {
+    const headers = row.map((value) => normalizeExcelCell(value));
+    const meaningfulHeaderCount = headers.filter(Boolean).length;
+    const distinctHeaderCount = new Set(headers.filter(Boolean).map((header) => header.toLowerCase())).size;
+    const headerSignal = new Set(
+      headers
+        .filter((header) => header && !looksLikeMostlyNumeric(header))
+        .map((header) => header.toLowerCase()),
+    ).size;
+    const tableWidth = Math.max(headers.length, ...rows.slice(headerIndex + 1, headerIndex + 8).map((nextRow) => nextRow.length));
+
+    if (meaningfulHeaderCount < 2 || distinctHeaderCount < 2 || headerSignal < 1 || tableWidth < 2) return null;
+
+    const dataRows = rows
+      .slice(headerIndex + 1)
+      .filter(isNonEmptyRow)
+      .filter((dataRow) => !isFooterLikeRow(dataRow))
+      .filter((dataRow) => countCellsInRange(dataRow, tableWidth) >= 1);
+
+    if (dataRows.length === 0) return null;
+
+    const populatedCells = dataRows.reduce((sum, dataRow) => sum + countCellsInRange(dataRow, tableWidth), 0);
+    const density = populatedCells / Math.max(dataRows.length * tableWidth, 1);
+    const usableWidth = Math.max(meaningfulHeaderCount, dataRows.reduce((max, dataRow) => Math.max(max, countCellsInRange(dataRow, tableWidth)), 0));
+
+    if (usableWidth < 2 || density < 0.15) return null;
+
+    const normalizedHeaders = Array.from({ length: usableWidth }, (_, index) => headers[index] || `Column ${index + 1}`);
+
+    return {
+      headerIndex,
+      headers: normalizedHeaders,
+      dataRows: dataRows.map((dataRow) => normalizedHeaders.map((_, index) => dataRow[index] ?? "")),
+      headerSignal,
+      density,
+      score: dataRows.length * usableWidth + headerSignal * 4 + density * 10 - headerIndex * 0.1,
+    };
+  });
+
+  return candidates.filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate)).sort((a, b) => b.score - a.score)[0] || null;
 }
 
 function parseBankUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
@@ -735,21 +881,50 @@ function decodeText(buffer: Buffer) {
   return buffer.toString("utf8").replace(/^\uFEFF/, "");
 }
 
-function detectHeaderRow(rows: unknown[][]) {
-  let bestIndex = 0;
-  let bestScore = -1;
-  rows.slice(0, 20).forEach((row, index) => {
-    const textCells = row.filter((value) => typeof value === "string" && value.trim().length > 0).length;
-    const totalCells = row.filter((value) => value !== null && value !== undefined && String(value).trim() !== "").length;
-    const nextRow = rows[index + 1] || [];
-    const nextCells = nextRow.filter((value) => value !== null && value !== undefined && String(value).trim() !== "").length;
-    const score = textCells * 2 + totalCells + Math.min(totalCells, nextCells);
-    if (score > bestScore) {
-      bestIndex = index;
-      bestScore = score;
+function expandMergedCells(rows: unknown[][], merges: XLSX.Range[] | undefined) {
+  const expanded = rows.map((row) => [...row]);
+
+  for (const merge of merges || []) {
+    const sourceValue = expanded[merge.s.r]?.[merge.s.c];
+    if (sourceValue === null || sourceValue === undefined || String(sourceValue).trim() === "") continue;
+
+    for (let rowIndex = merge.s.r; rowIndex <= merge.e.r; rowIndex += 1) {
+      expanded[rowIndex] ||= [];
+      for (let columnIndex = merge.s.c; columnIndex <= merge.e.c; columnIndex += 1) {
+        if (expanded[rowIndex][columnIndex] === null || expanded[rowIndex][columnIndex] === undefined || String(expanded[rowIndex][columnIndex]).trim() === "") {
+          expanded[rowIndex][columnIndex] = sourceValue;
+        }
+      }
     }
-  });
-  return bestIndex;
+  }
+
+  return expanded;
+}
+
+function isNonEmptyRow(row: unknown[]) {
+  return row.some((value) => normalizeExcelCell(value) !== "");
+}
+
+function normalizeExcelCell(value: unknown) {
+  if (value instanceof Date) return value.toISOString();
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function looksLikeMostlyNumeric(value: string) {
+  const compact = value.replace(/[^\dA-Za-z]/g, "");
+  if (!compact) return false;
+  const digitCount = (compact.match(/\d/g) || []).length;
+  return digitCount / compact.length > 0.6;
+}
+
+function isFooterLikeRow(row: unknown[]) {
+  const values = row.map((value) => normalizeExcelCell(value)).filter(Boolean);
+  if (values.length !== 1) return false;
+  return /^(total|subtotal|grand total|notes?|generated|exported|page \d+)/i.test(values[0] || "");
+}
+
+function countCellsInRange(row: unknown[], width: number) {
+  return row.slice(0, width).filter((value) => normalizeExcelCell(value) !== "").length;
 }
 
 function inferColumnTypes(columns: string[], rows: Record<string, unknown>[]) {
