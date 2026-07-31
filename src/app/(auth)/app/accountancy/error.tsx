@@ -42,31 +42,8 @@ export default function AccountancyError({
               fixed-cost assumptions.
             </p>
           </div>
-          <div className="grid gap-2 text-sm">
-            <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-              <span className="text-muted-foreground">Tax country</span>
-              <span className="max-w-[12rem] text-right font-medium text-foreground">Not configured</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-              <span className="text-muted-foreground">Currency</span>
-              <span className="max-w-[12rem] text-right font-medium text-foreground">Not configured</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-              <span className="text-muted-foreground">Fiscal year</span>
-              <span className="max-w-[12rem] text-right font-medium text-foreground">Not configured</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-              <span className="text-muted-foreground">VAT/sales tax</span>
-              <span className="max-w-[12rem] text-right font-medium text-foreground">Not configured</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-              <span className="text-muted-foreground">Payroll</span>
-              <span className="max-w-[12rem] text-right font-medium text-foreground">Not configured</span>
-            </div>
-            <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-              <span className="text-muted-foreground">Fixed costs</span>
-              <span className="max-w-[12rem] text-right font-medium text-foreground">Not configured</span>
-            </div>
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            Could not load Business Profile. Reload Accountancy or open Business Profile Setup to confirm the saved values.
           </div>
           <Link href="/app/business/setup" className="mt-4 inline-flex text-sm font-medium text-primary hover:underline">
             Complete Business Profile Setup

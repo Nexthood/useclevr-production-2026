@@ -1,3 +1,36 @@
+## Accountancy Business Profile Runtime Diagnosis
+
+1. Interaction title
+Accountancy Business Profile runtime diagnosis.
+
+2. What was the user goal
+Stop speculative Accountancy Business Profile fixes and prove the deployed route, component, API response, and runtime mapping before declaring the issue fixed.
+
+3. What changed
+Accountancy includes a temporary query-gated runtime diagnostics panel that displays the current route, authenticated user ID, organization ID, `/api/business/setup` browser-fetch status and raw response, server-loaded Business Profile object, normalized Accountancy profile object, and deployed commit hash. The Accountancy error boundary no longer renders six hardcoded Business Profile fields as Not configured when the real page fails.
+
+4. Problems marked
+blocker: Authenticated browser response and screenshot verification require a signed-in browser session.
+risk: The temporary diagnostics panel must be removed after the deployed Accountancy page shows the six real Business Profile values.
+observation: `test.useclevr.com` maps to the Railway service named useclevr TEST in the production Railway environment, and the latest dist-test publish contains source commit `f10477f26e6a35de88ad174521ae2919a3980a48`.
+
+5. User learning
+The screenshot can be distinguished between the real Accountancy page and the Accountancy error fallback because the fallback now shows a load error instead of fake Not configured values.
+
+6. AI-agent learning
+Runtime data bugs need deployed diagnostics that compare browser API data with server-rendered data before additional mapping changes.
+
+7. Follow-up tasks
+- Remove the temporary Accountancy runtime diagnostics panel after authenticated deployed verification confirms the six profile values render correctly.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Business Profile Direct Source
 
 1. Interaction title

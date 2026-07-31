@@ -30,4 +30,8 @@ const accountancyReportingPage = readFileSync("src/app/(auth)/app/accountancy/re
 assert.ok(accountancyReportingPage.includes("await getCompanySetup(userId)"), "Accountancy Reporting uses the same Business Profile source")
 assert.ok(!accountancyReportingPage.includes("getBusinessProfileContext"), "Accountancy Reporting does not use a separate profile query")
 
+const accountancyErrorPage = readFileSync("src/app/(auth)/app/accountancy/error.tsx", "utf8")
+assert.ok(accountancyErrorPage.includes("Could not load Business Profile"), "Accountancy error boundary shows a load failure state")
+assert.ok(!accountancyErrorPage.includes(">Not configured</span>"), "Accountancy error boundary does not hardcode profile fields as not configured")
+
 console.log("Accountancy Business Profile source tests passed.")

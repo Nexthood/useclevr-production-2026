@@ -3,12 +3,15 @@ import { AccountancyPackageForm } from "@/components/accountancy/accountancy-pac
 import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { AccountancyProfileDebugPanel } from "./accountancy-profile-debug-panel"
 import { auth } from "@/lib/auth/auth"
 import { getCompanySetup } from "@/lib/business/company-setup-store"
 import type { CompanySetupPayload, EmployerContribution, FixedCostEntry, TaxEntry } from "@/lib/business/company-setup"
 import { getDb } from "@/lib/db"
-import { businesses, datasets } from "@/lib/db/schema"
+import { businesses, businessProfiles, datasets } from "@/lib/db/schema"
 import { and, count, eq } from "drizzle-orm"
+import { existsSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import {
   ArrowRight,
   BookOpenCheck,
@@ -47,10 +50,14 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     precomputedMetrics: unknown
     datasetType: string | null
   } | null = null
+  let profileOrganizationId: string | null = null
+  let persistedBusinessProfileObject: unknown = null
   const companySetup = userId ? await getCompanySetup(userId) : null
   const resolvedSearchParams = await searchParams
   const rawDatasetId = resolvedSearchParams?.datasetId
   const focusedDatasetId = Array.isArray(rawDatasetId) ? rawDatasetId[0] : rawDatasetId
+  const debugProfileValue = resolvedSearchParams?.businessProfileDebug
+  const showBusinessProfileDebug = Array.isArray(debugProfileValue) ? debugProfileValue[0] === "1" : debugProfileValue === "1"
 
   if (userId) {
     const db = getDb()
@@ -68,6 +75,22 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
           .select({ count: count() })
           .from(businesses)
           .where(eq(businesses.userId, userId))
+
+        const [primaryOrganization] = await db
+          .select({ id: businesses.id })
+          .from(businesses)
+          .where(and(eq(businesses.userId, userId), eq(businesses.isPrimary, true)))
+          .limit(1)
+
+        profileOrganizationId = primaryOrganization?.id ?? null
+        if (profileOrganizationId) {
+          const [profileRecord] = await db
+            .select({ payload: businessProfiles.payload })
+            .from(businessProfiles)
+            .where(eq(businessProfiles.organizationId, profileOrganizationId))
+            .limit(1)
+          persistedBusinessProfileObject = profileRecord?.payload ?? null
+        }
 
         if (focusedDatasetId) {
           const datasetWhere = session?.user?.role === "superadmin"
@@ -244,6 +267,21 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
               </div>
             </div>
           </Card>
+
+          {showBusinessProfileDebug && (
+            <AccountancyProfileDebugPanel
+              userId={userId ?? null}
+              organizationId={profileOrganizationId}
+              profileApiUrl="/api/business/setup"
+              serverProfileObject={{
+                repository: "getCompanySetup",
+                persistedBusinessProfileObject,
+                companySetup,
+              }}
+              normalizedProfileObject={sharedBusinessProfile}
+              deployedCommitHash={getDeployedCommitHash()}
+            />
+          )}
 
           <Card className="border-border bg-card p-5">
             <div className="mb-4">
@@ -436,6 +474,21 @@ function formatLabel(value: string | null | undefined) {
   const text = configuredString(value)
   if (!text) return null
   return text.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function getDeployedCommitHash() {
+  const envCommit = process.env.SOURCE_COMMIT || process.env.GITHUB_SHA || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA
+  if (envCommit) return envCommit
+
+  const manifestPath = join(process.cwd(), "deployment-manifest.json")
+  if (!existsSync(manifestPath)) return "unknown"
+
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { sourceCommit?: string }
+    return manifest.sourceCommit || "unknown"
+  } catch {
+    return "unknown"
+  }
 }
 
 function getFocusedDatasetCategory(dataset: { datasetType?: string | null; analysis: unknown }) {

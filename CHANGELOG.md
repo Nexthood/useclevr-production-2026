@@ -4,6 +4,7 @@
 
 - Fix Accountancy Business Profile context so tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the saved Business Profile values.
 - Fix Accountancy Business Profile context to read the same saved Business Profile source as the Business page.
+- Show Accountancy Business Profile load failures as a real error state and add a temporary runtime diagnostic panel for verifying deployed profile data.
 - Fix Accountancy and Pre-bookkeeping uploads so CSV, Excel, PDF, receipts, invoices, and bank exports use type-specific validation, processing, document storage, staged errors, and retry-safe dataset saving.
 
 ### Changed
