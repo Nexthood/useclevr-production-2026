@@ -4,8 +4,8 @@ import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { auth } from "@/lib/auth/auth"
-import { displayBusinessProfileValue, getBusinessProfileContextResult } from "@/lib/business/business-profile-context"
 import { getCompanySetup } from "@/lib/business/company-setup-store"
+import type { CompanySetupPayload, EmployerContribution, FixedCostEntry, TaxEntry } from "@/lib/business/company-setup"
 import { getDb } from "@/lib/db"
 import { businesses, datasets } from "@/lib/db/schema"
 import { and, count, eq } from "drizzle-orm"
@@ -103,14 +103,13 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
 
   const profileComplete = Boolean(companySetup?.setupStatus.completed)
   const companyName = companySetup?.companyInfo.companyName || ""
-  const businessProfileContextResult = await getBusinessProfileContextResult(userId)
-  const businessProfileContext = businessProfileContextResult.context
-  const taxPeriod = displayBusinessProfileValue(businessProfileContext.fiscalYear)
-  const taxCountry = displayBusinessProfileValue(businessProfileContext.taxCountry)
-  const currency = displayBusinessProfileValue(businessProfileContext.currency)
-  const taxSummary = displayBusinessProfileValue(businessProfileContext.vatSalesTax)
-  const payrollSummary = displayBusinessProfileValue(businessProfileContext.payroll)
-  const fixedCostSummary = displayBusinessProfileValue(businessProfileContext.fixedCosts)
+  const sharedBusinessProfile = mapSharedBusinessProfile(companySetup)
+  const taxPeriod = displayBusinessProfileValue(sharedBusinessProfile.fiscalYear)
+  const taxCountry = displayBusinessProfileValue(sharedBusinessProfile.taxCountry)
+  const currency = displayBusinessProfileValue(sharedBusinessProfile.currency)
+  const taxSummary = displayBusinessProfileValue(sharedBusinessProfile.vatSalesTax)
+  const payrollSummary = displayBusinessProfileValue(sharedBusinessProfile.payroll)
+  const fixedCostSummary = displayBusinessProfileValue(sharedBusinessProfile.fixedCosts)
   const profileContextRows = [
     { label: "Tax country", value: taxCountry },
     { label: "Currency", value: currency },
@@ -254,11 +253,6 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                 fixed-cost assumptions.
               </p>
             </div>
-            {businessProfileContextResult.error && (
-              <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                Business Profile context could not be loaded: {businessProfileContextResult.error}
-              </div>
-            )}
             <div className="grid gap-2 text-sm">
               <ProfileContextRow label="Tax country" value={taxCountry} />
               <ProfileContextRow label="Currency" value={currency} />
@@ -338,6 +332,110 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
       <span className="max-w-[12rem] text-right font-medium text-foreground">{value}</span>
     </div>
   )
+}
+
+type SharedBusinessProfileFields = {
+  taxCountry: string | number | boolean | null
+  currency: string | number | boolean | null
+  fiscalYear: string | number | boolean | null
+  vatSalesTax: string | number | boolean | null
+  payroll: string | number | boolean | null
+  fixedCosts: string | number | boolean | null
+}
+
+function mapSharedBusinessProfile(setup: CompanySetupPayload | null): SharedBusinessProfileFields {
+  if (!setup) {
+    return {
+      taxCountry: null,
+      currency: null,
+      fiscalYear: null,
+      vatSalesTax: null,
+      payroll: null,
+      fixedCosts: null,
+    }
+  }
+
+  return {
+    taxCountry: configuredString(setup.companyInfo.taxResidenceCountry),
+    currency: configuredString(setup.currencySettings.primaryCurrency),
+    fiscalYear: formatFiscalYear(setup.companyInfo.fiscalYearStart, setup.companyInfo.fiscalYearEnd),
+    vatSalesTax: formatTaxEntries(setup.taxSettings.taxEntries),
+    payroll: formatEmployerContributions(setup.employerContributions),
+    fixedCosts: formatFixedCosts(setup.fixedCosts),
+  }
+}
+
+function displayBusinessProfileValue(value: string | number | boolean | null | undefined) {
+  if (value === null || value === undefined) return MISSING_PROFILE_VALUE
+  if (typeof value === "number") return Number.isFinite(value) ? value.toLocaleString("en-US") : MISSING_PROFILE_VALUE
+  if (typeof value === "boolean") return value ? "Yes" : "No"
+  const text = value.trim()
+  return text.length > 0 ? text : MISSING_PROFILE_VALUE
+}
+
+function configuredString(value: string | null | undefined) {
+  if (value === null || value === undefined) return null
+  const text = value.trim()
+  return text.length > 0 ? text : null
+}
+
+function formatFiscalYear(start: string | null | undefined, end: string | null | undefined) {
+  const values = [configuredString(start), configuredString(end)].filter(Boolean)
+  return values.length > 0 ? values.join(" to ") : null
+}
+
+function formatTaxEntries(entries: TaxEntry[]) {
+  return formatEntryList(entries, (entry) => {
+    const label = formatLabel(entry.taxType)
+    const percentage = configuredString(entry.percentage)
+    const fixedAmount = configuredString(entry.fixedAmount)
+    const frequency = configuredString(entry.frequency)
+    return [
+      label,
+      percentage ? `${percentage}%` : null,
+      fixedAmount ? `fixed ${fixedAmount}` : null,
+      frequency,
+    ].filter(Boolean).join(" ")
+  })
+}
+
+function formatEmployerContributions(entries: EmployerContribution[]) {
+  return formatEntryList(entries, (entry) => {
+    const label = formatLabel(entry.contributionType)
+    const percentage = configuredString(entry.percentage)
+    const monthlyCost = configuredString(entry.monthlyCost)
+    const annualCost = configuredString(entry.annualCost)
+    return [
+      label,
+      percentage ? `${percentage}%` : null,
+      monthlyCost ? `${monthlyCost} monthly` : null,
+      annualCost ? `${annualCost} annual` : null,
+    ].filter(Boolean).join(" ")
+  })
+}
+
+function formatFixedCosts(entries: FixedCostEntry[]) {
+  return formatEntryList(entries, (entry) => {
+    const label = formatLabel(entry.costCategory)
+    const monthlyCost = configuredString(entry.monthlyCost)
+    const annualCost = configuredString(entry.annualCost)
+    return [
+      label,
+      monthlyCost ? `${monthlyCost} monthly` : null,
+      annualCost ? `${annualCost} annual` : null,
+    ].filter(Boolean).join(" ")
+  })
+}
+
+function formatEntryList<T>(entries: T[], formatEntry: (entry: T) => string) {
+  const formatted = entries.map(formatEntry).map((entry) => entry.trim()).filter(Boolean)
+  return formatted.length > 0 ? formatted.join("; ") : null
+}
+
+function formatLabel(value: string | null | undefined) {
+  const text = configuredString(value)
+  if (!text) return null
+  return text.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 function getFocusedDatasetCategory(dataset: { datasetType?: string | null; analysis: unknown }) {

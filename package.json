@@ -70,7 +70,7 @@
     "test:analytical-intents": "node -r tsx/esm scripts/analysis/test-analytical-intents.ts",
     "test:dataset-ai-assistant": "node -r tsx/esm scripts/analysis/test-dataset-ai-assistant.ts",
     "test:business-profile-ssot": "node -r tsx/esm scripts/business/test-business-profile-ssot.ts",
-    "test:business-profile-context": "node -r tsx/esm scripts/business/test-business-profile-context.ts",
+    "test:business-profile-context": "node -r tsx/esm scripts/business/test-accountancy-business-profile-source.ts",
     "test:accountancy-upload-system": "node -r tsx/esm scripts/accountancy/test-accountancy-upload-system.ts",
     "test:risk-intelligence": "node -r tsx/esm scripts/risk-intelligence/test-risk-engine.ts",
     "test:standard-upload-success-ui": "node -r tsx/esm scripts/upload/test-standard-upload-success-ui.ts",

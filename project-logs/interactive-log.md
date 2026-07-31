@@ -1,3 +1,36 @@
+## Accountancy Business Profile Direct Source
+
+1. Interaction title
+Accountancy Business Profile direct source.
+
+2. What was the user goal
+Replace Accountancy profile-loading logic with the exact same saved Business Profile source used by the Business page.
+
+3. What changed
+Accountancy Overview, Tax, and Reporting read the authenticated user's saved Business Profile through `getCompanySetup`, the same repository behind the Business Profile API. Accountancy maps tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs from that persisted setup payload only, and the separate Accountancy Business Profile context query module is removed.
+
+4. Problems marked
+blocker: none.
+risk: Hard-refresh and authenticated production checks require a signed-in browser session; local validation proves the shared repository path and source-level field mapping.
+observation: The Business Profile repository remains the source of truth for the organization-scoped `business_profile` record and its existing save/load behavior.
+
+5. User learning
+Accountancy uses the same saved Business Profile record as Business, so values shown in Business are the values Accountancy reads.
+
+6. AI-agent learning
+For shared-data bugs, reuse the existing read repository directly before adding abstraction layers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## AI Analyst Accuracy Sprint 1
 
 1. Interaction title

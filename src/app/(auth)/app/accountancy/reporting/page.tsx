@@ -1,7 +1,7 @@
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
-import { displayBusinessProfileValue, getBusinessProfileContext } from "@/lib/business/business-profile-context"
+import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { count, eq, sum } from "drizzle-orm"
@@ -43,8 +43,8 @@ export default async function AccountancyReportingPage() {
   const session = await auth()
   const userId = session?.user?.id
   const metrics = await getReportingMetrics(userId)
-  const profileContext = await getBusinessProfileContext(userId)
-  const reportingCurrency = displayBusinessProfileValue(profileContext.currency)
+  const setup = userId ? await getCompanySetup(userId) : null
+  const reportingCurrency = displayProfileValue(setup?.currencySettings.primaryCurrency)
 
   return (
     <Card className="border-border bg-card">
@@ -65,4 +65,10 @@ export default async function AccountancyReportingPage() {
       </CardContent>
     </Card>
   )
+}
+
+function displayProfileValue(value: string | null | undefined) {
+  if (value === null || value === undefined) return "Not configured"
+  const text = value.trim()
+  return text.length > 0 ? text : "Not configured"
 }

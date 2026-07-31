@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-965. Read Accountancy Business Profile context through the same saved Business Profile repository used by the Business page and display the six persisted accounting context fields from that profile only. (labels: business, upload, testing; commit: worktree)
 - T-964. Read Accountancy Business Profile context from the organization-scoped Business Profile record and display tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs through one normalized profile mapping. (labels: business, upload, testing; commit: worktree)
 - T-963. Process Accountancy and Pre-bookkeeping CSV, Excel, PDF, receipt, invoice, and bank-export uploads through type-specific server validation, parsing, extraction, storage, staged UI errors, retry-safe dataset saving, and failed-upload credit protection. (labels: upload, data, testing; commit: worktree)
 - T-947. Repair Square OAuth callback routing with a public callback proxy exemption, canonical redirect URI generation, state-owned callback completion, safe redirects, and focused OAuth tests. (labels: upload, api, testing; commit: worktree)
