@@ -1,3 +1,37 @@
+## Accountancy Business Profile Backend Diagnostics
+
+1. Interaction title
+Accountancy Business Profile backend diagnostics.
+
+2. What was the user goal
+Investigate the backend failure causing Accountancy to show "Could not load Business Profile" and stop changing the UI.
+
+3. What changed
+The Business Profile API, shared Business Profile repository, and Accountancy server render path now emit sanitized production diagnostics for request URL, authenticated user ID, organization ID, request payload summary, response status, response body shape, query stage, SQL query description, and stack traces. The source regression test now verifies the API resolves the authenticated user before saving through the shared repository.
+
+4. Problems marked
+blocker: none.
+risk: Authenticated browser reproduction is still required to capture the exact failing status and stack from Railway logs.
+observation: The production database contains the `business_profile` table and profile rows, and saved profile payloads normalize successfully in the local sanitized probe.
+
+5. User learning
+The Accountancy failure is not caused by a missing `business_profile` migration or a malformed saved profile payload in the probed production data.
+
+6. AI-agent learning
+When a route error boundary displays a generic Business Profile failure, instrument the API, repository, and server-render stages before making another data-mapping change.
+
+7. Follow-up tasks
+- Reproduce the authenticated Accountancy request after deployment and inspect Railway log lines tagged `BUSINESS_PROFILE_API`, `BUSINESS_PROFILE_DIAGNOSTIC`, and `ACCOUNTANCY_BUSINESS_PROFILE`.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Business Profile Runtime Diagnosis
 
 1. Interaction title

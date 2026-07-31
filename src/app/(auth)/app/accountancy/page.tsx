@@ -35,8 +35,13 @@ type AccountancyPageProps = {
 }
 
 export default async function AccountancyPage({ searchParams }: AccountancyPageProps) {
+  const renderStartedAt = Date.now()
   const session = await auth()
   const userId = session?.user?.id
+  logAccountancyBusinessProfileDiagnostic("render.started", {
+    route: "/app/accountancy",
+    authenticatedUserId: userId ?? null,
+  })
 
   let activeDatasets = 0
   let totalBusinesses = 0
@@ -52,12 +57,12 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
   } | null = null
   let profileOrganizationId: string | null = null
   let persistedBusinessProfileObject: unknown = null
-  const companySetup = userId ? await getCompanySetup(userId) : null
   const resolvedSearchParams = await searchParams
   const rawDatasetId = resolvedSearchParams?.datasetId
   const focusedDatasetId = Array.isArray(rawDatasetId) ? rawDatasetId[0] : rawDatasetId
   const debugProfileValue = resolvedSearchParams?.businessProfileDebug
   const showBusinessProfileDebug = Array.isArray(debugProfileValue) ? debugProfileValue[0] === "1" : debugProfileValue === "1"
+  const companySetup = userId ? await getCompanySetup(userId) : null
 
   if (userId) {
     const db = getDb()
@@ -118,7 +123,14 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
           resolveDatasetType(dataset.datasetType, dataset.analysis) === "accountancy"
         ).length
         totalBusinesses = (businessCount?.count ?? 0) as number
-      } catch {
+      } catch (error) {
+        logAccountancyBusinessProfileDiagnostic("render.databaseStatsFailed", {
+          route: "/app/accountancy",
+          authenticatedUserId: userId,
+          organizationId: profileOrganizationId,
+          focusedDatasetId: focusedDatasetId ?? null,
+          error: serializeAccountancyBusinessProfileError(error),
+        })
         // Continue without counts; the Pre-Bookkeeping Center remains usable without DB stats.
       }
     }
@@ -141,6 +153,18 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     { label: "Payroll", value: payrollSummary },
     { label: "Fixed costs", value: fixedCostSummary },
   ]
+
+  logAccountancyBusinessProfileDiagnostic("render.profileResolved", {
+    route: "/app/accountancy",
+    authenticatedUserId: userId ?? null,
+    organizationId: profileOrganizationId,
+    responseStatus: "server_render",
+    responseBody: {
+      profileComplete,
+      normalizedProfile: sharedBusinessProfile,
+    },
+    durationMs: Date.now() - renderStartedAt,
+  })
 
   const bookkeepingRows = [
     {
@@ -587,3 +611,21 @@ const bookkeepingColumns: DataTableColumn<Record<string, unknown>>[] = [
     ),
   },
 ]
+
+function logAccountancyBusinessProfileDiagnostic(event: string, details: Record<string, unknown>) {
+  console.warn("[ACCOUNTANCY_BUSINESS_PROFILE]", JSON.stringify({ event, ...details }))
+}
+
+function serializeAccountancyBusinessProfileError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause instanceof Error
+        ? { name: error.cause.name, message: error.cause.message, stack: error.cause.stack }
+        : error.cause ? String(error.cause) : undefined,
+    }
+  }
+  return { message: String(error) }
+}

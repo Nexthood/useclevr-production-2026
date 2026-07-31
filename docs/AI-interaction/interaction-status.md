@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-31
-- **Goal**: Diagnose the deployed Accountancy Business Profile context mismatch with live runtime evidence.
-- **Durable change**: Accountancy exposes a temporary query-gated runtime diagnostics panel and shows Business Profile load failures separately from missing profile fields.
-- **Verification**: Deployment status inspection, Accountancy Business Profile source regression, TypeScript, focused ESLint, and dist-test publish status review.
+- **Date**: 2026-08-01
+- **Goal**: Diagnose the failing Accountancy Business Profile backend request without UI changes.
+- **Durable change**: Business Profile API, repository, and Accountancy server render paths log sanitized authenticated request status, organization lookup results, response shape, query stage, and stack traces.
+- **Verification**: Production database schema probe, profile payload normalization probe, Accountancy Business Profile source regression, TypeScript, and focused ESLint.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

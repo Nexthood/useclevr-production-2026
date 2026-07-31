@@ -174,3 +174,4 @@
 - fixed: read Accountancy Business Profile context through a shared normalized Business Profile mapping so saved tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the organization-scoped profile record
 - fixed: read Accountancy Business Profile context directly from the same saved Business Profile repository used by the Business page and remove the separate Accountancy profile context query
 - fixed: separate Accountancy Business Profile load failures from missing profile fields and add a temporary runtime diagnostics panel for deployed profile verification
+- fixed: log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures

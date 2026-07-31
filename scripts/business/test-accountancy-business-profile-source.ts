@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs"
 
 const businessSetupRoute = readFileSync("src/app/api/business/setup/route.ts", "utf8")
 assert.ok(businessSetupRoute.includes("getCompanySetup(session.user.id"), "Business Profile API loads the saved profile through getCompanySetup")
-assert.ok(businessSetupRoute.includes("saveCompanySetup(session.user.id"), "Business Profile API saves the profile through saveCompanySetup")
+assert.ok(businessSetupRoute.includes("sessionUserId = session?.user?.id ?? null"), "Business Profile API resolves the authenticated user before save")
+assert.ok(businessSetupRoute.includes("saveCompanySetup(sessionUserId"), "Business Profile API saves the profile through saveCompanySetup")
 
 const setupStore = readFileSync("src/lib/business/company-setup-store.ts", "utf8")
 assert.ok(setupStore.includes("businessProfiles.organizationId"), "Business Profile repository reads by organization_id")

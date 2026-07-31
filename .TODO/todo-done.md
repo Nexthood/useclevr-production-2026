@@ -127,6 +127,7 @@ moving work between states.
 
 ## Label: business
 
+- T-967. Log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures. (labels: business, logging, testing; commit: worktree)
 - T-882. Refine Business Profile setup into a polished SaaS onboarding flow with context-aware copy, intelligent examples, clear validation, accessible navigation, and a stronger completion state. (labels: business, ui, accessibility; commit: worktree)
 - T-867. Expand Business Profile setup into a professional multi-step wizard with conditional tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth questions for uploaded-data analysis context. (labels: business, ui, data; commit: worktree)
 - T-865. Accountancy shows a pre-bookkeeping empty state, document-upload and package-generation actions, accountant handoff fields, and saved Business Profile accounting context for new-user workflows. (labels: business, ui, workflow; commit: worktree)
