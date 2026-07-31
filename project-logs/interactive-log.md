@@ -1,3 +1,137 @@
+## Accountancy Business Profile API Root Cause
+
+1. Interaction title
+Accountancy Business Profile API root cause.
+
+2. What was the user goal
+Run the failing Accountancy Business Profile request, report the exact HTTP failure, backend exception, database error, and file location, then fix only that error.
+
+3. What changed
+The built-in dashboard account initialization path now writes the profile row with a minimal deployed-column SQL upsert. This prevents Business Profile API requests from failing before they reach the shared Business Profile repository when the deployed `Profile` table does not contain newer optional profile columns.
+
+4. Problems marked
+blocker: none.
+risk: The deployed API still requires the pushed fix before the authenticated endpoint returns `200` in the test environment.
+observation: The authenticated deployed API returned `500` with `{"error":"Could not load Business Profile."}`. The reproduced backend exception is PostgreSQL `42703`, `column "regionalPreferences" of relation "Profile" does not exist`, thrown from the built-in user profile upsert before `getCompanySetup` runs.
+
+5. User learning
+Business and Accountancy server pages can display the profile because they call the shared profile repository directly, while the client Business Profile API failed first in built-in-account record synchronization.
+
+6. AI-agent learning
+When a client API fails but the server page renders shared repository data, compare API-only guards and side effects before changing profile mapping or UI.
+
+7. Follow-up tasks
+- Deploy the fix and rerun authenticated `GET /api/business/setup` to confirm HTTP `200` and saved profile payload.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Backend Diagnostics
+
+1. Interaction title
+Accountancy Business Profile backend diagnostics.
+
+2. What was the user goal
+Investigate the backend failure causing Accountancy to show "Could not load Business Profile" and stop changing the UI.
+
+3. What changed
+The Business Profile API, shared Business Profile repository, and Accountancy server render path now emit sanitized production diagnostics for request URL, authenticated user ID, organization ID, request payload summary, response status, response body shape, query stage, SQL query description, and stack traces. The source regression test now verifies the API resolves the authenticated user before saving through the shared repository.
+
+4. Problems marked
+blocker: none.
+risk: Authenticated browser reproduction is still required to capture the exact failing status and stack from Railway logs.
+observation: The production database contains the `business_profile` table and profile rows, and saved profile payloads normalize successfully in the local sanitized probe.
+
+5. User learning
+The Accountancy failure is not caused by a missing `business_profile` migration or a malformed saved profile payload in the probed production data.
+
+6. AI-agent learning
+When a route error boundary displays a generic Business Profile failure, instrument the API, repository, and server-render stages before making another data-mapping change.
+
+7. Follow-up tasks
+- Reproduce the authenticated Accountancy request after deployment and inspect Railway log lines tagged `BUSINESS_PROFILE_API`, `BUSINESS_PROFILE_DIAGNOSTIC`, and `ACCOUNTANCY_BUSINESS_PROFILE`.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Runtime Diagnosis
+
+1. Interaction title
+Accountancy Business Profile runtime diagnosis.
+
+2. What was the user goal
+Stop speculative Accountancy Business Profile fixes and prove the deployed route, component, API response, and runtime mapping before declaring the issue fixed.
+
+3. What changed
+Accountancy includes a temporary query-gated runtime diagnostics panel that displays the current route, authenticated user ID, organization ID, `/api/business/setup` browser-fetch status and raw response, server-loaded Business Profile object, normalized Accountancy profile object, and deployed commit hash. The Accountancy error boundary no longer renders six hardcoded Business Profile fields as Not configured when the real page fails.
+
+4. Problems marked
+blocker: Authenticated browser response and screenshot verification require a signed-in browser session.
+risk: The temporary diagnostics panel must be removed after the deployed Accountancy page shows the six real Business Profile values.
+observation: `test.useclevr.com` maps to the Railway service named useclevr TEST in the production Railway environment, and the latest dist-test publish contains source commit `f10477f26e6a35de88ad174521ae2919a3980a48`.
+
+5. User learning
+The screenshot can be distinguished between the real Accountancy page and the Accountancy error fallback because the fallback now shows a load error instead of fake Not configured values.
+
+6. AI-agent learning
+Runtime data bugs need deployed diagnostics that compare browser API data with server-rendered data before additional mapping changes.
+
+7. Follow-up tasks
+- Remove the temporary Accountancy runtime diagnostics panel after authenticated deployed verification confirms the six profile values render correctly.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Direct Source
+
+1. Interaction title
+Accountancy Business Profile direct source.
+
+2. What was the user goal
+Replace Accountancy profile-loading logic with the exact same saved Business Profile source used by the Business page.
+
+3. What changed
+Accountancy Overview, Tax, and Reporting read the authenticated user's saved Business Profile through `getCompanySetup`, the same repository behind the Business Profile API. Accountancy maps tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs from that persisted setup payload only, and the separate Accountancy Business Profile context query module is removed.
+
+4. Problems marked
+blocker: none.
+risk: Hard-refresh and authenticated production checks require a signed-in browser session; local validation proves the shared repository path and source-level field mapping.
+observation: The Business Profile repository remains the source of truth for the organization-scoped `business_profile` record and its existing save/load behavior.
+
+5. User learning
+Accountancy uses the same saved Business Profile record as Business, so values shown in Business are the values Accountancy reads.
+
+6. AI-agent learning
+For shared-data bugs, reuse the existing read repository directly before adding abstraction layers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## AI Analyst Accuracy Sprint 1
 
 1. Interaction title

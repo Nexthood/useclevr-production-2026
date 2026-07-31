@@ -3,12 +3,15 @@ import { AccountancyPackageForm } from "@/components/accountancy/accountancy-pac
 import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { AccountancyProfileDebugPanel } from "./accountancy-profile-debug-panel"
 import { auth } from "@/lib/auth/auth"
-import { displayBusinessProfileValue, getBusinessProfileContextResult } from "@/lib/business/business-profile-context"
 import { getCompanySetup } from "@/lib/business/company-setup-store"
+import type { CompanySetupPayload, EmployerContribution, FixedCostEntry, TaxEntry } from "@/lib/business/company-setup"
 import { getDb } from "@/lib/db"
-import { businesses, datasets } from "@/lib/db/schema"
+import { businesses, businessProfiles, datasets } from "@/lib/db/schema"
 import { and, count, eq } from "drizzle-orm"
+import { existsSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import {
   ArrowRight,
   BookOpenCheck,
@@ -32,8 +35,13 @@ type AccountancyPageProps = {
 }
 
 export default async function AccountancyPage({ searchParams }: AccountancyPageProps) {
+  const renderStartedAt = Date.now()
   const session = await auth()
   const userId = session?.user?.id
+  logAccountancyBusinessProfileDiagnostic("render.started", {
+    route: "/app/accountancy",
+    authenticatedUserId: userId ?? null,
+  })
 
   let activeDatasets = 0
   let totalBusinesses = 0
@@ -47,10 +55,14 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     precomputedMetrics: unknown
     datasetType: string | null
   } | null = null
-  const companySetup = userId ? await getCompanySetup(userId) : null
+  let profileOrganizationId: string | null = null
+  let persistedBusinessProfileObject: unknown = null
   const resolvedSearchParams = await searchParams
   const rawDatasetId = resolvedSearchParams?.datasetId
   const focusedDatasetId = Array.isArray(rawDatasetId) ? rawDatasetId[0] : rawDatasetId
+  const debugProfileValue = resolvedSearchParams?.businessProfileDebug
+  const showBusinessProfileDebug = Array.isArray(debugProfileValue) ? debugProfileValue[0] === "1" : debugProfileValue === "1"
+  const companySetup = userId ? await getCompanySetup(userId) : null
 
   if (userId) {
     const db = getDb()
@@ -68,6 +80,22 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
           .select({ count: count() })
           .from(businesses)
           .where(eq(businesses.userId, userId))
+
+        const [primaryOrganization] = await db
+          .select({ id: businesses.id })
+          .from(businesses)
+          .where(and(eq(businesses.userId, userId), eq(businesses.isPrimary, true)))
+          .limit(1)
+
+        profileOrganizationId = primaryOrganization?.id ?? null
+        if (profileOrganizationId) {
+          const [profileRecord] = await db
+            .select({ payload: businessProfiles.payload })
+            .from(businessProfiles)
+            .where(eq(businessProfiles.organizationId, profileOrganizationId))
+            .limit(1)
+          persistedBusinessProfileObject = profileRecord?.payload ?? null
+        }
 
         if (focusedDatasetId) {
           const datasetWhere = session?.user?.role === "superadmin"
@@ -95,7 +123,14 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
           resolveDatasetType(dataset.datasetType, dataset.analysis) === "accountancy"
         ).length
         totalBusinesses = (businessCount?.count ?? 0) as number
-      } catch {
+      } catch (error) {
+        logAccountancyBusinessProfileDiagnostic("render.databaseStatsFailed", {
+          route: "/app/accountancy",
+          authenticatedUserId: userId,
+          organizationId: profileOrganizationId,
+          focusedDatasetId: focusedDatasetId ?? null,
+          error: serializeAccountancyBusinessProfileError(error),
+        })
         // Continue without counts; the Pre-Bookkeeping Center remains usable without DB stats.
       }
     }
@@ -103,14 +138,13 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
 
   const profileComplete = Boolean(companySetup?.setupStatus.completed)
   const companyName = companySetup?.companyInfo.companyName || ""
-  const businessProfileContextResult = await getBusinessProfileContextResult(userId)
-  const businessProfileContext = businessProfileContextResult.context
-  const taxPeriod = displayBusinessProfileValue(businessProfileContext.fiscalYear)
-  const taxCountry = displayBusinessProfileValue(businessProfileContext.taxCountry)
-  const currency = displayBusinessProfileValue(businessProfileContext.currency)
-  const taxSummary = displayBusinessProfileValue(businessProfileContext.vatSalesTax)
-  const payrollSummary = displayBusinessProfileValue(businessProfileContext.payroll)
-  const fixedCostSummary = displayBusinessProfileValue(businessProfileContext.fixedCosts)
+  const sharedBusinessProfile = mapSharedBusinessProfile(companySetup)
+  const taxPeriod = displayBusinessProfileValue(sharedBusinessProfile.fiscalYear)
+  const taxCountry = displayBusinessProfileValue(sharedBusinessProfile.taxCountry)
+  const currency = displayBusinessProfileValue(sharedBusinessProfile.currency)
+  const taxSummary = displayBusinessProfileValue(sharedBusinessProfile.vatSalesTax)
+  const payrollSummary = displayBusinessProfileValue(sharedBusinessProfile.payroll)
+  const fixedCostSummary = displayBusinessProfileValue(sharedBusinessProfile.fixedCosts)
   const profileContextRows = [
     { label: "Tax country", value: taxCountry },
     { label: "Currency", value: currency },
@@ -119,6 +153,18 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     { label: "Payroll", value: payrollSummary },
     { label: "Fixed costs", value: fixedCostSummary },
   ]
+
+  logAccountancyBusinessProfileDiagnostic("render.profileResolved", {
+    route: "/app/accountancy",
+    authenticatedUserId: userId ?? null,
+    organizationId: profileOrganizationId,
+    responseStatus: "server_render",
+    responseBody: {
+      profileComplete,
+      normalizedProfile: sharedBusinessProfile,
+    },
+    durationMs: Date.now() - renderStartedAt,
+  })
 
   const bookkeepingRows = [
     {
@@ -246,6 +292,21 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
             </div>
           </Card>
 
+          {showBusinessProfileDebug && (
+            <AccountancyProfileDebugPanel
+              userId={userId ?? null}
+              organizationId={profileOrganizationId}
+              profileApiUrl="/api/business/setup"
+              serverProfileObject={{
+                repository: "getCompanySetup",
+                persistedBusinessProfileObject,
+                companySetup,
+              }}
+              normalizedProfileObject={sharedBusinessProfile}
+              deployedCommitHash={getDeployedCommitHash()}
+            />
+          )}
+
           <Card className="border-border bg-card p-5">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground">Business Profile context</h2>
@@ -254,11 +315,6 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                 fixed-cost assumptions.
               </p>
             </div>
-            {businessProfileContextResult.error && (
-              <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                Business Profile context could not be loaded: {businessProfileContextResult.error}
-              </div>
-            )}
             <div className="grid gap-2 text-sm">
               <ProfileContextRow label="Tax country" value={taxCountry} />
               <ProfileContextRow label="Currency" value={currency} />
@@ -338,6 +394,125 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
       <span className="max-w-[12rem] text-right font-medium text-foreground">{value}</span>
     </div>
   )
+}
+
+type SharedBusinessProfileFields = {
+  taxCountry: string | number | boolean | null
+  currency: string | number | boolean | null
+  fiscalYear: string | number | boolean | null
+  vatSalesTax: string | number | boolean | null
+  payroll: string | number | boolean | null
+  fixedCosts: string | number | boolean | null
+}
+
+function mapSharedBusinessProfile(setup: CompanySetupPayload | null): SharedBusinessProfileFields {
+  if (!setup) {
+    return {
+      taxCountry: null,
+      currency: null,
+      fiscalYear: null,
+      vatSalesTax: null,
+      payroll: null,
+      fixedCosts: null,
+    }
+  }
+
+  return {
+    taxCountry: configuredString(setup.companyInfo.taxResidenceCountry),
+    currency: configuredString(setup.currencySettings.primaryCurrency),
+    fiscalYear: formatFiscalYear(setup.companyInfo.fiscalYearStart, setup.companyInfo.fiscalYearEnd),
+    vatSalesTax: formatTaxEntries(setup.taxSettings.taxEntries),
+    payroll: formatEmployerContributions(setup.employerContributions),
+    fixedCosts: formatFixedCosts(setup.fixedCosts),
+  }
+}
+
+function displayBusinessProfileValue(value: string | number | boolean | null | undefined) {
+  if (value === null || value === undefined) return MISSING_PROFILE_VALUE
+  if (typeof value === "number") return Number.isFinite(value) ? value.toLocaleString("en-US") : MISSING_PROFILE_VALUE
+  if (typeof value === "boolean") return value ? "Yes" : "No"
+  const text = value.trim()
+  return text.length > 0 ? text : MISSING_PROFILE_VALUE
+}
+
+function configuredString(value: string | null | undefined) {
+  if (value === null || value === undefined) return null
+  const text = value.trim()
+  return text.length > 0 ? text : null
+}
+
+function formatFiscalYear(start: string | null | undefined, end: string | null | undefined) {
+  const values = [configuredString(start), configuredString(end)].filter(Boolean)
+  return values.length > 0 ? values.join(" to ") : null
+}
+
+function formatTaxEntries(entries: TaxEntry[]) {
+  return formatEntryList(entries, (entry) => {
+    const label = formatLabel(entry.taxType)
+    const percentage = configuredString(entry.percentage)
+    const fixedAmount = configuredString(entry.fixedAmount)
+    const frequency = configuredString(entry.frequency)
+    return [
+      label,
+      percentage ? `${percentage}%` : null,
+      fixedAmount ? `fixed ${fixedAmount}` : null,
+      frequency,
+    ].filter(Boolean).join(" ")
+  })
+}
+
+function formatEmployerContributions(entries: EmployerContribution[]) {
+  return formatEntryList(entries, (entry) => {
+    const label = formatLabel(entry.contributionType)
+    const percentage = configuredString(entry.percentage)
+    const monthlyCost = configuredString(entry.monthlyCost)
+    const annualCost = configuredString(entry.annualCost)
+    return [
+      label,
+      percentage ? `${percentage}%` : null,
+      monthlyCost ? `${monthlyCost} monthly` : null,
+      annualCost ? `${annualCost} annual` : null,
+    ].filter(Boolean).join(" ")
+  })
+}
+
+function formatFixedCosts(entries: FixedCostEntry[]) {
+  return formatEntryList(entries, (entry) => {
+    const label = formatLabel(entry.costCategory)
+    const monthlyCost = configuredString(entry.monthlyCost)
+    const annualCost = configuredString(entry.annualCost)
+    return [
+      label,
+      monthlyCost ? `${monthlyCost} monthly` : null,
+      annualCost ? `${annualCost} annual` : null,
+    ].filter(Boolean).join(" ")
+  })
+}
+
+function formatEntryList<T>(entries: T[], formatEntry: (entry: T) => string) {
+  const formatted = entries.map(formatEntry).map((entry) => entry.trim()).filter(Boolean)
+  return formatted.length > 0 ? formatted.join("; ") : null
+}
+
+function formatLabel(value: string | null | undefined) {
+  const text = configuredString(value)
+  if (!text) return null
+  return text.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function getDeployedCommitHash() {
+  const envCommit = process.env.SOURCE_COMMIT || process.env.GITHUB_SHA || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA
+  if (envCommit) return envCommit
+
+  const manifestPath = join(process.cwd(), "deployment-manifest.json")
+  if (!existsSync(manifestPath)) return "unknown"
+
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { sourceCommit?: string }
+    return manifest.sourceCommit || "unknown"
+  } catch {
+    return "unknown"
+  }
 }
 
 function getFocusedDatasetCategory(dataset: { datasetType?: string | null; analysis: unknown }) {
@@ -436,3 +611,21 @@ const bookkeepingColumns: DataTableColumn<Record<string, unknown>>[] = [
     ),
   },
 ]
+
+function logAccountancyBusinessProfileDiagnostic(event: string, details: Record<string, unknown>) {
+  console.warn("[ACCOUNTANCY_BUSINESS_PROFILE]", JSON.stringify({ event, ...details }))
+}
+
+function serializeAccountancyBusinessProfileError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause instanceof Error
+        ? { name: error.cause.name, message: error.cause.message, stack: error.cause.stack }
+        : error.cause ? String(error.cause) : undefined,
+    }
+  }
+  return { message: String(error) }
+}

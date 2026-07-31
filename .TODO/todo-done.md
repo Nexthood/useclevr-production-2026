@@ -45,6 +45,8 @@ moving work between states.
 
 ## Label: upload
 
+- T-966. Show Accountancy Business Profile load failures as a real error state and expose temporary runtime diagnostics for verifying deployed profile data. (labels: business, upload, testing; commit: worktree)
+- T-965. Read Accountancy Business Profile context through the same saved Business Profile repository used by the Business page and display the six persisted accounting context fields from that profile only. (labels: business, upload, testing; commit: worktree)
 - T-964. Read Accountancy Business Profile context from the organization-scoped Business Profile record and display tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs through one normalized profile mapping. (labels: business, upload, testing; commit: worktree)
 - T-963. Process Accountancy and Pre-bookkeeping CSV, Excel, PDF, receipt, invoice, and bank-export uploads through type-specific server validation, parsing, extraction, storage, staged UI errors, retry-safe dataset saving, and failed-upload credit protection. (labels: upload, data, testing; commit: worktree)
 - T-947. Repair Square OAuth callback routing with a public callback proxy exemption, canonical redirect URI generation, state-owned callback completion, safe redirects, and focused OAuth tests. (labels: upload, api, testing; commit: worktree)
@@ -125,6 +127,8 @@ moving work between states.
 
 ## Label: business
 
+- T-968. Load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database. (labels: business, auth, api, testing; commit: worktree)
+- T-967. Log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures. (labels: business, logging, testing; commit: worktree)
 - T-882. Refine Business Profile setup into a polished SaaS onboarding flow with context-aware copy, intelligent examples, clear validation, accessible navigation, and a stronger completion state. (labels: business, ui, accessibility; commit: worktree)
 - T-867. Expand Business Profile setup into a professional multi-step wizard with conditional tax, payroll, insurance, fixed-cost, margin, cash-reserve, and growth questions for uploaded-data analysis context. (labels: business, ui, data; commit: worktree)
 - T-865. Accountancy shows a pre-bookkeeping empty state, document-upload and package-generation actions, accountant handoff fields, and saved Business Profile accounting context for new-user workflows. (labels: business, ui, workflow; commit: worktree)

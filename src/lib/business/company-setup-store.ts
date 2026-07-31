@@ -13,12 +13,30 @@ import {
 } from "./company-setup"
 
 export async function getCompanySetup(userId: string, businessId?: string): Promise<CompanySetupPayload> {
+  const startedAt = Date.now()
   const db = getDb()
-  if (!db) return emptyCompanySetupPayload()
+  if (!db) {
+    logBusinessProfileDiagnostic("getCompanySetup.finished", {
+      status: "database_unavailable",
+      userId,
+      businessId,
+      durationMs: Date.now() - startedAt,
+    })
+    return emptyCompanySetupPayload()
+  }
 
   try {
     const organization = await resolveBusinessProfileOrganization(userId, businessId)
-    if (!organization) return emptyCompanySetupPayload()
+    if (!organization) {
+      logBusinessProfileDiagnostic("getCompanySetup.finished", {
+        status: "missing_organization",
+        userId,
+        businessId,
+        organizationId: null,
+        durationMs: Date.now() - startedAt,
+      })
+      return emptyCompanySetupPayload()
+    }
 
     const [profile] = await db
       .select({ payload: businessProfiles.payload })
@@ -27,15 +45,53 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
       .limit(1)
 
     if (profile?.payload && typeof profile.payload === "object" && Object.keys(profile.payload as object).length > 0) {
-      return normalizeCompanySetupPayload(profile.payload as Partial<CompanySetupPayload>)
+      const payload = normalizeCompanySetupPayload(profile.payload as Partial<CompanySetupPayload>)
+      logBusinessProfileDiagnostic("getCompanySetup.finished", {
+        status: "profile_loaded",
+        userId,
+        businessId,
+        organizationId: organization.id,
+        source: "business_profile",
+        responseBody: summarizeCompanySetupPayload(payload),
+        durationMs: Date.now() - startedAt,
+      })
+      return payload
     }
 
     if (organization.companySetup && typeof organization.companySetup === "object" && Object.keys(organization.companySetup as object).length > 0) {
-      return normalizeCompanySetupPayload(organization.companySetup as Partial<CompanySetupPayload>)
+      const payload = normalizeCompanySetupPayload(organization.companySetup as Partial<CompanySetupPayload>)
+      logBusinessProfileDiagnostic("getCompanySetup.finished", {
+        status: "profile_loaded",
+        userId,
+        businessId,
+        organizationId: organization.id,
+        source: "Business.companySetup",
+        responseBody: summarizeCompanySetupPayload(payload),
+        durationMs: Date.now() - startedAt,
+      })
+      return payload
     }
 
+    logBusinessProfileDiagnostic("getCompanySetup.finished", {
+      status: "null_query_result",
+      userId,
+      businessId,
+      organizationId: organization.id,
+      durationMs: Date.now() - startedAt,
+    })
     return emptyCompanySetupPayload()
-  } catch {
+  } catch (error) {
+    logBusinessProfileDiagnostic("getCompanySetup.failed", {
+      status: "repository_exception",
+      userId,
+      businessId,
+      durationMs: Date.now() - startedAt,
+      error: serializeErrorForBusinessProfileLogs(error),
+      sqlQuery: [
+        'select "id", "companySetup" from "Business" where "userId" = $userId and ("id" = $businessId or "isPrimary" = true) limit 1',
+        'select "payload" from "business_profile" where "organization_id" = $organizationId limit 1',
+      ],
+    })
     return emptyCompanySetupPayload()
   }
 }
@@ -156,4 +212,41 @@ async function resolveBusinessProfileOrganization(
     .returning()
 
   return created ? { id: created.id, companySetup: created.companySetup } : null
+}
+
+function logBusinessProfileDiagnostic(event: string, details: Record<string, unknown>) {
+  console.warn("[BUSINESS_PROFILE_DIAGNOSTIC]", JSON.stringify({ event, ...details }))
+}
+
+function serializeErrorForBusinessProfileLogs(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause instanceof Error
+        ? { name: error.cause.name, message: error.cause.message, stack: error.cause.stack }
+        : error.cause ? String(error.cause) : undefined,
+    }
+  }
+  return { message: String(error) }
+}
+
+function summarizeCompanySetupPayload(payload: CompanySetupPayload) {
+  return {
+    setupStatus: {
+      completed: payload.setupStatus.completed,
+      setupAccuracy: payload.setupStatus.setupAccuracy,
+      missingFieldCount: payload.setupStatus.missingFields.length,
+    },
+    normalizedProfile: {
+      taxCountry: payload.companyInfo.taxResidenceCountry || null,
+      currency: payload.currencySettings.primaryCurrency || null,
+      fiscalYearStart: payload.companyInfo.fiscalYearStart || null,
+      fiscalYearEnd: payload.companyInfo.fiscalYearEnd || null,
+      vatSalesTaxCount: payload.taxSettings.taxEntries.length,
+      payrollCount: payload.employerContributions.length,
+      fixedCostsCount: payload.fixedCosts.length,
+    },
+  }
 }

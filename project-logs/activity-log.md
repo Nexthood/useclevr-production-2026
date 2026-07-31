@@ -172,3 +172,7 @@
 - fixed: store Business Profile setup in one organization-scoped profile table, upsert wizard saves, revalidate dependent modules, and route Accountancy, Tax, Compliance, Reporting, Business, and AI reads through the same profile record
 - fixed: process Accountancy and Pre-bookkeeping CSV, Excel, PDF, receipt, invoice, and bank-export uploads through dedicated server-side validators, parsers, document storage, staged errors, duplicate retry protection, and focused regression coverage
 - fixed: read Accountancy Business Profile context through a shared normalized Business Profile mapping so saved tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the organization-scoped profile record
+- fixed: read Accountancy Business Profile context directly from the same saved Business Profile repository used by the Business page and remove the separate Accountancy profile context query
+- fixed: separate Accountancy Business Profile load failures from missing profile fields and add a temporary runtime diagnostics panel for deployed profile verification
+- fixed: log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures
+- fixed: load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database

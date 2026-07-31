@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-07-31
-- **Goal**: Fix Accountancy Business Profile context so Accountancy shows saved Business Profile values.
-- **Durable change**: Accountancy reads tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs through one shared normalized Business Profile context mapping backed by the organization-scoped Business Profile record.
-- **Verification**: Business Profile context regression, TypeScript, focused ESLint, and production build.
+- **Date**: 2026-08-01
+- **Goal**: Fix the exact backend error behind the failing Accountancy Business Profile request.
+- **Durable change**: Built-in dashboard account profile initialization writes only deployed profile columns so Business Profile API reads no longer fail before loading saved profile data.
+- **Verification**: Authenticated deployed API reproduction, backend guard reproduction against the production database, corrected guard verification, TypeScript, and focused ESLint.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
