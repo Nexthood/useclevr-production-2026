@@ -8,6 +8,7 @@ import {
   type AccountancyUploadMeta,
   type AccountancyUploadType,
 } from "../../src/lib/accountancy/upload-processing";
+import { categorizePrebookkeepingRows } from "../../src/lib/accountancy/prebookkeeping-categorization";
 
 const baseMeta = (uploadType: AccountancyUploadType, fileName: string, mimeType: string): AccountancyUploadMeta => ({
   fileName,
@@ -32,6 +33,8 @@ async function run() {
   await testCsvBankExport();
   await testXlsxBankExport();
   await testOfxBankExport();
+  testPrebookkeepingCategorization();
+  testTwoHundredRowLedgerCategorization();
   testUnsupportedFiles();
   testUiWiring();
   testApiRouteWiring();
@@ -277,11 +280,83 @@ function testUiWiring() {
 function testApiRouteWiring() {
   const route = readFileSync("src/app/api/accountancy/upload/route.ts", "utf8");
   const processor = readFileSync("src/lib/accountancy/upload-processing.ts", "utf8");
+  const prebookkeepingPage = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8");
   assert.ok(route.includes("processAccountancyUpload"), "API route uses Accountancy processor");
   assert.ok(route.includes("stage"), "API route returns staged errors");
   assert.ok(processor.includes("eq(datasets.checksum, checksum)"), "processor reuses duplicate datasets by checksum");
+  assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows)"), "Pre-bookkeeping uploads start categorization automatically");
+  assert.ok(prebookkeepingPage.includes("Ready for review"), "Pre-bookkeeping page shows ready-for-review status");
+  assert.ok(prebookkeepingPage.includes("StartCategorizationButton"), "Pre-bookkeeping page exposes a categorization action for legacy datasets");
   assert.ok(!route.includes("reserveCredits") && !processor.includes("reserveCredits"), "failed uploads do not reserve credits");
   assert.ok(!route.includes("finalizeCredits") && !processor.includes("finalizeCredits"), "Accountancy upload route does not finalize credits");
+}
+
+function testPrebookkeepingCategorization() {
+  const summary = categorizePrebookkeepingRows([
+    { date: "2026-01-01", description: "Customer payment INV-1", credit: 100, currency: "EUR", vat: 21, reference: "INV-1" },
+    { date: "2026-01-02", description: "Monthly rent", debit: 40, currency: "EUR", vat: 8, reference: "BILL-1" },
+    { date: "2026-01-03", description: "Average Gross Salary", debit: 60, currency: "EUR", reference: "PAY-1" },
+    { date: "2026-01-04", description: "Bank fee", debit: 2, currency: "EUR", reference: "FEE-1" },
+    { date: "2026-01-05", description: "VAT payment", debit: 10, currency: "EUR", reference: "TAX-1" },
+    { date: "2026-01-06", description: "Internal transfer", amount: 0, currency: "EUR", reference: "TR-1" },
+    { date: "2026-01-07", description: "", currency: "EUR" },
+  ]);
+
+  assert.equal(summary.status, "ready_for_review");
+  assert.equal(summary.categoryCounts.revenue, 1);
+  assert.equal(summary.categoryCounts.fixed_costs, 1);
+  assert.equal(summary.categoryCounts.payroll, 1);
+  assert.equal(summary.categoryCounts.bank_fees, 1);
+  assert.equal(summary.categoryCounts.taxes, 1);
+  assert.equal(summary.categoryCounts.transfers, 1);
+  assert.equal(summary.categoryCounts.uncategorized, 1);
+  assert.equal(summary.incomeTotal, 100);
+  assert.equal(summary.expenseTotal, 112);
+  assert.equal(summary.vatTaxSummary.total, 29);
+}
+
+function testTwoHundredRowLedgerCategorization() {
+  const rows = Array.from({ length: 200 }, (_, index) => {
+    const rowNumber = index + 1;
+    const type = rowNumber % 8;
+    return {
+      transaction_date: `2026-01-${String((rowNumber % 28) + 1).padStart(2, "0")}`,
+      description:
+        type === 0
+          ? "Customer payment"
+          : type === 1
+            ? "Office supplies"
+            : type === 2
+              ? "Monthly rent"
+              : type === 3
+                ? "Average Gross Salary"
+                : type === 4
+                  ? "VAT payment"
+                  : type === 5
+                    ? "Bank fee"
+                    : type === 6
+                      ? "Internal transfer"
+                      : "",
+      supplier_customer: type === 0 ? "Customer" : "Supplier",
+      debit: type === 0 ? "" : 10 + rowNumber,
+      credit: type === 0 ? 25 + rowNumber : "",
+      amount: "",
+      currency: "EUR",
+      vat_tax: type === 1 || type === 2 ? 2 : "",
+      category: "",
+      invoice_reference: `REF-${rowNumber}`,
+      cost_center: "HQ",
+      notes: "",
+    };
+  });
+
+  const summary = categorizePrebookkeepingRows(rows);
+  assert.equal(summary.rowCount, 200);
+  assert.equal(Object.keys(rows[0] || {}).length, 12);
+  assert.equal(summary.transactions.length, 200);
+  assert.ok(summary.categorizedCount > summary.uncategorizedCount);
+  assert.ok(summary.incomeTotal > 0);
+  assert.ok(summary.expenseTotal > 0);
 }
 
 function workbookBuffer(rows: unknown[][]) {

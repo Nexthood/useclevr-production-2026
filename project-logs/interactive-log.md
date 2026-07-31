@@ -1473,3 +1473,36 @@ Merged title rows must not become candidate headers after merge expansion; requi
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Post-upload Categorization
+
+1. Interaction title
+Pre-bookkeeping post-upload categorization.
+
+2. What was the user goal
+Complete the workflow after a successful Pre-bookkeeping upload so the saved ledger moves from a passive ready-for-categorization state into categorized review output.
+
+3. What changed
+Pre-bookkeeping uploads now run deterministic transaction categorization after parsing and saving. The categorizer detects transaction date, description, supplier or customer, debit, credit, amount, currency, VAT or tax amount, source category, and invoice or reference columns; classifies transactions into revenue, operating expenses, payroll, fixed costs, taxes, bank fees, transfers, or uncategorized; computes income, expense, VAT/tax, duplicate, missing-data, category-count, and transaction-preview outputs; and stores the result on the existing Pre-bookkeeping dataset. Retry reuse still returns the existing dataset and categorizes older matching datasets without creating duplicates. The Pre-bookkeeping selected-dataset page now shows Ready for review, categorized transactions, summary totals, warnings, duplicate signals, and actions for reviewing transactions, opening the bookkeeping summary, exporting for an accountant, or asking AI about the dataset. Legacy datasets without categorization show a real Start categorization button.
+
+4. Problems marked
+blocker: none.
+risk: The deterministic classifier uses column names and transaction text; rows without recognizable text or amount signals remain uncategorized for human review.
+observation: The real `10_accountancy_ledger.xlsx` dataset has 200 rows and 12 columns; read-only verification categorizes 140 rows, leaves 60 uncategorized, detects no VAT/tax amount column, and reports five possible duplicate groups.
+
+5. User learning
+Pre-bookkeeping review output now uses the existing dataset record and row storage instead of creating a separate bookkeeping dataset.
+
+6. AI-agent learning
+Do not parse tax codes as tax money totals; a VAT/tax summary total needs a tax amount column, while tax-code-only ledgers should show a missing VAT/tax amount warning.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

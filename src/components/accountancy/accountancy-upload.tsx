@@ -43,6 +43,7 @@ export function AccountancyUpload({
   const [limitReachedInfo, setLimitReachedInfo] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
+  const [processingLabel, setProcessingLabel] = React.useState("Uploading")
 const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
    const [selectedType, setSelectedType] = React.useState<UploadType>("csv")
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
@@ -166,11 +167,23 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     setUploadProgress(0)
     setErrorMessage("")
     setLimitReachedInfo(null)
+    setProcessingStep(1)
+    setProcessingLabel("Uploading")
 
     let progressInterval: NodeJS.Timeout | undefined
 
     progressInterval = setInterval(() => {
-      setUploadProgress((prev) => Math.min(prev + 10, 90))
+      setUploadProgress((prev) => {
+        const next = Math.min(prev + 10, 90)
+        if (next >= 70) {
+          setProcessingStep(3)
+          setProcessingLabel("Saving")
+        } else if (next >= 35) {
+          setProcessingStep(2)
+          setProcessingLabel("Parsing")
+        }
+        return next
+      })
     }, 200)
 
     const fileId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -194,9 +207,12 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
       if (progressInterval) clearInterval(progressInterval)
 
       if (response.ok) {
+        setProcessingStep(4)
+        setProcessingLabel("Categorizing")
         setUploadProgress(100)
         setUploadStatus("success")
         setProcessingStep(5)
+        setProcessingLabel("Ready for review")
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
 
         const result = await response.json().catch(() => ({}))
@@ -222,7 +238,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
         showNotice({
           type: "success",
-          title: "File uploaded and processed",
+          title: "File uploaded and categorized",
           message: `${file.name}: ${result.rowsProcessed ?? extractedData.length} row(s) processed`,
         })
 
@@ -333,12 +349,13 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   const selectedOption = fileTypeOptions.find((opt) => opt.type === selectedType)
 
   const resetSelectedFileState = React.useCallback(() => {
-    setUploadStatus("idle")
-    setUploadProgress(0)
-    setProcessingStep(0)
-    setErrorMessage("")
-    setCurrentFileName("")
-    setLimitReachedInfo(null)
+      setUploadStatus("idle")
+      setUploadProgress(0)
+      setProcessingStep(0)
+      setProcessingLabel("Uploading")
+      setErrorMessage("")
+      setCurrentFileName("")
+      setLimitReachedInfo(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -472,8 +489,8 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                 </>
               ) : uploadStatus === "success" ? (
                 <>
-                  <h3 className="text-base font-semibold text-green-500">Upload complete!</h3>
-                  <p className="text-xs text-muted-foreground">Extracting and categorizing transactions...</p>
+                  <h3 className="text-base font-semibold text-green-500">Ready for review</h3>
+                  <p className="text-xs text-muted-foreground">Transactions were categorized for bookkeeping review.</p>
                 </>
               ) : uploadStatus === "error" ? (
                 <>
@@ -578,7 +595,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                   />
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-1">
-                  {uploadProgress}% complete
+                  {processingLabel} • {uploadProgress}% complete
                 </p>
               </div>
             )}

@@ -1,10 +1,14 @@
 import { getBusinessModelRedirect } from "@/lib/data/business-model";
+import {
+  categorizePrebookkeepingRows,
+  isPrebookkeepingCategorization,
+} from "@/lib/accountancy/prebookkeeping-categorization";
 import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, type DatasetBusinessModel } from "@/lib/db/schema";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { createHash } from "node:crypto";
@@ -262,6 +266,11 @@ export async function processAccountancyUpload(input: {
   });
 
   if (existingDataset) {
+    const prebookkeepingCategorization =
+      input.datasetType === "prebookkeeping"
+        ? await ensureExistingPrebookkeepingCategorization(existingDataset.id, existingDataset.analysis)
+        : null;
+
     debugLog("[ACCOUNTANCY-UPLOAD] duplicate upload returned existing dataset", {
       fileName: input.fileName,
       extension,
@@ -296,12 +305,15 @@ export async function processAccountancyUpload(input: {
       storageKey: existingDataset.storageKey,
       checksum,
       duplicate: true,
-      extractedData: [],
+      extractedData: prebookkeepingCategorization?.transactions.slice(0, PREVIEW_ROW_COUNT).map((transaction) => ({ ...transaction })) || [],
       preview: {
         headers: Array.isArray(existingDataset.columns) ? existingDataset.columns : [],
         rows: Array.isArray(existingDataset.data) ? existingDataset.data.slice(0, 5) : [],
       },
-      warnings: ["This file already exists, so the existing dataset was reused."],
+      warnings: [
+        "This file already exists, so the existing dataset was reused.",
+        ...(prebookkeepingCategorization ? ["Existing Pre-bookkeeping dataset is categorized and ready for review."] : []),
+      ],
     };
   }
 
@@ -363,6 +375,10 @@ export async function processAccountancyUpload(input: {
   const businessModel: DatasetBusinessModel = "generic";
   const redirectTo = getBusinessModelRedirect({ datasetType: input.datasetType, businessModel, datasetId });
   const precomputedMetrics = parsed.rows.length > 0 ? computePrecomputedMetrics(parsed.rows, parsed.columns) : null;
+  const prebookkeepingCategorization =
+    input.datasetType === "prebookkeeping" && parsed.rows.length > 0
+      ? categorizePrebookkeepingRows(parsed.rows)
+      : null;
 
   const insertData = {
     id: datasetId,
@@ -383,7 +399,7 @@ export async function processAccountancyUpload(input: {
     status: "ready",
     analysisStatus: "ready",
     analysisProgress: 100,
-    analysisMessage: "Accountancy upload processed.",
+    analysisMessage: prebookkeepingCategorization ? "Ready for review." : "Accountancy upload processed.",
     analysisError: null,
     analysis: {
       dataset_type: input.datasetType,
@@ -397,6 +413,8 @@ export async function processAccountancyUpload(input: {
       documentTextStatus: parsed.documentTextStatus,
       extractedData: parsed.extractedData,
       warnings: parsed.warnings,
+      categorizationStatus: prebookkeepingCategorization ? "ready_for_review" : undefined,
+      prebookkeepingCategorization,
     },
     precomputedMetrics,
     columnMapping: {
@@ -468,6 +486,47 @@ export async function processAccountancyUpload(input: {
     },
     warnings: parsed.warnings,
   };
+}
+
+async function ensureExistingPrebookkeepingCategorization(datasetId: string, analysis: unknown) {
+  const existingAnalysis = isRecord(analysis) ? analysis : {};
+  const existingCategorization = existingAnalysis.prebookkeepingCategorization;
+  if (isPrebookkeepingCategorization(existingCategorization)) return existingCategorization;
+
+  const db = getDb();
+  if (!db) return null;
+
+  const rows = await db.query.datasetRows.findMany({
+    where: eq(datasetRows.datasetId, datasetId),
+    orderBy: [asc(datasetRows.rowIndex)],
+    columns: {
+      data: true,
+    },
+  });
+
+  if (rows.length === 0) return null;
+
+  const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>));
+  await db
+    .update(datasets)
+    .set({
+      analysisStatus: "ready",
+      analysisProgress: 100,
+      analysisMessage: "Ready for review.",
+      analysis: {
+        ...existingAnalysis,
+        categorizationStatus: "ready_for_review",
+        prebookkeepingCategorization: categorization,
+      },
+      updatedAt: new Date(),
+    })
+    .where(eq(datasets.id, datasetId));
+
+  return categorization;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function parseCsvUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
