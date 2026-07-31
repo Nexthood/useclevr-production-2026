@@ -175,3 +175,4 @@
 - fixed: read Accountancy Business Profile context directly from the same saved Business Profile repository used by the Business page and remove the separate Accountancy profile context query
 - fixed: separate Accountancy Business Profile load failures from missing profile fields and add a temporary runtime diagnostics panel for deployed profile verification
 - fixed: log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures
+- fixed: load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database

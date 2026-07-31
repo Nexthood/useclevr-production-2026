@@ -3,6 +3,7 @@
 ### Fixed
 
 - Fix Accountancy Business Profile context so tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the saved Business Profile values.
+- Fix Business Profile loading for built-in dashboard accounts so Accountancy can fetch the saved profile instead of showing a load failure.
 - Fix Accountancy Business Profile context to read the same saved Business Profile source as the Business page.
 - Log Accountancy Business Profile load diagnostics with authenticated user, organization, response status, response shape, query stage, and stack traces so deployed failures expose the real backend cause.
 - Show Accountancy Business Profile load failures as a real error state and add a temporary runtime diagnostic panel for verifying deployed profile data.

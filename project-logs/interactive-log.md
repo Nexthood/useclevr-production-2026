@@ -1,3 +1,37 @@
+## Accountancy Business Profile API Root Cause
+
+1. Interaction title
+Accountancy Business Profile API root cause.
+
+2. What was the user goal
+Run the failing Accountancy Business Profile request, report the exact HTTP failure, backend exception, database error, and file location, then fix only that error.
+
+3. What changed
+The built-in dashboard account initialization path now writes the profile row with a minimal deployed-column SQL upsert. This prevents Business Profile API requests from failing before they reach the shared Business Profile repository when the deployed `Profile` table does not contain newer optional profile columns.
+
+4. Problems marked
+blocker: none.
+risk: The deployed API still requires the pushed fix before the authenticated endpoint returns `200` in the test environment.
+observation: The authenticated deployed API returned `500` with `{"error":"Could not load Business Profile."}`. The reproduced backend exception is PostgreSQL `42703`, `column "regionalPreferences" of relation "Profile" does not exist`, thrown from the built-in user profile upsert before `getCompanySetup` runs.
+
+5. User learning
+Business and Accountancy server pages can display the profile because they call the shared profile repository directly, while the client Business Profile API failed first in built-in-account record synchronization.
+
+6. AI-agent learning
+When a client API fails but the server page renders shared repository data, compare API-only guards and side effects before changing profile mapping or UI.
+
+7. Follow-up tasks
+- Deploy the fix and rerun authenticated `GET /api/business/setup` to confirm HTTP `200` and saved profile payload.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Business Profile Backend Diagnostics
 
 1. Interaction title

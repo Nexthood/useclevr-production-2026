@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 
 import { getDb } from "@/lib/db"
-import { profiles, users } from "@/lib/db/schema"
+import { users } from "@/lib/db/schema"
 import { findBuiltinUserById } from "./builtin-users"
 
 function builtinSubscriptionTier(role: string) {
@@ -40,28 +40,17 @@ export async function ensureBuiltinUserRecord(userId?: string | null): Promise<b
       },
     })
 
-  await db
-    .insert(profiles)
-    .values({
-      id: `profile_${uuidv4()}`,
-      userId: builtinUser.id,
-      email: builtinUser.email,
-      fullName: builtinUser.name,
-      role: builtinUser.role,
-      subscriptionTier: builtinSubscriptionTier(builtinUser.role),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: profiles.userId,
-      set: {
-        email: builtinUser.email,
-        fullName: builtinUser.name,
-        role: builtinUser.role,
-        subscriptionTier: builtinSubscriptionTier(builtinUser.role),
-        updatedAt: new Date(),
-      },
-    })
+  const now = new Date()
+  await db.execute(sql`
+    INSERT INTO "Profile" ("id", "userId", "email", "fullName", "role", "subscriptionTier", "createdAt", "updatedAt")
+    VALUES (${`profile_${uuidv4()}`}, ${builtinUser.id}, ${builtinUser.email}, ${builtinUser.name}, ${builtinUser.role}, ${builtinSubscriptionTier(builtinUser.role)}, ${now}, ${now})
+    ON CONFLICT ("userId") DO UPDATE SET
+      "email" = EXCLUDED."email",
+      "fullName" = EXCLUDED."fullName",
+      "role" = EXCLUDED."role",
+      "subscriptionTier" = EXCLUDED."subscriptionTier",
+      "updatedAt" = EXCLUDED."updatedAt"
+  `)
 
   return true
 }
