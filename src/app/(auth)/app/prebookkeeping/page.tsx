@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import {
   isPrebookkeepingCategorization,
+  normalizePrebookkeepingCategorization,
   type PrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization"
 import { resolveDatasetType } from "@/lib/data/dataset-category"
@@ -201,7 +202,7 @@ function PrebookkeepingReviewPanel({
 function getPrebookkeepingCategorization(analysis: unknown) {
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) return null
   const categorization = (analysis as { prebookkeepingCategorization?: unknown }).prebookkeepingCategorization
-  return isPrebookkeepingCategorization(categorization) ? categorization : null
+  return isPrebookkeepingCategorization(categorization) ? normalizePrebookkeepingCategorization(categorization) : null
 }
 
 function ProfileContextRow({ label, value }: { label: string; value: string }) {

@@ -8,7 +8,10 @@ import {
   type AccountancyUploadMeta,
   type AccountancyUploadType,
 } from "../../src/lib/accountancy/upload-processing";
-import { categorizePrebookkeepingRows } from "../../src/lib/accountancy/prebookkeeping-categorization";
+import {
+  categorizePrebookkeepingRows,
+  normalizePrebookkeepingCategorization,
+} from "../../src/lib/accountancy/prebookkeeping-categorization";
 
 const baseMeta = (uploadType: AccountancyUploadType, fileName: string, mimeType: string): AccountancyUploadMeta => ({
   fileName,
@@ -34,6 +37,7 @@ async function run() {
   await testXlsxBankExport();
   await testOfxBankExport();
   testPrebookkeepingCategorization();
+  testLegacyCategorizationReviewSummaryNormalization();
   testTwoHundredRowLedgerCategorization();
   testUnsupportedFiles();
   testUiWiring();
@@ -288,7 +292,10 @@ function testApiRouteWiring() {
   assert.ok(route.includes("stage"), "API route returns staged errors");
   assert.ok(processor.includes("eq(datasets.checksum, checksum)"), "processor reuses duplicate datasets by checksum");
   assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules)"), "Pre-bookkeeping uploads start categorization automatically");
+  assert.ok(processor.includes("createDefaultPrebookkeepingReviewSummary(parsed.rowCount"), "Accountancy uploads initialize review summary defaults");
+  assert.ok(processor.includes("hasCompleteReviewSummary"), "legacy review summaries are backfilled with safe defaults");
   assert.ok(prebookkeepingPage.includes("Ready for review"), "Pre-bookkeeping page shows ready-for-review status");
+  assert.ok(prebookkeepingPage.includes("normalizePrebookkeepingCategorization"), "Pre-bookkeeping page normalizes legacy review summaries before rendering");
   assert.ok(prebookkeepingPage.includes("StartCategorizationButton"), "Pre-bookkeeping page exposes a categorization action for legacy datasets");
   assert.ok(reviewRoute.includes("prebookkeepingLearningRules"), "manual category edits persist learning rules");
   assert.ok(reviewRoute.includes("prebookkeepingAuditEvents"), "review actions write audit events");
@@ -322,6 +329,22 @@ function testPrebookkeepingCategorization() {
   assert.equal(summary.incomeTotal, 100);
   assert.equal(summary.expenseTotal, 112);
   assert.equal(summary.vatTaxSummary.total, 29);
+}
+
+function testLegacyCategorizationReviewSummaryNormalization() {
+  const summary = categorizePrebookkeepingRows([
+    { date: "2026-01-01", description: "Customer payment", credit: 100, currency: "EUR" },
+    { date: "2026-01-02", description: "Monthly rent", debit: 40, currency: "EUR" },
+  ]);
+  const legacy = { ...summary };
+  delete (legacy as { reviewSummary?: unknown }).reviewSummary;
+
+  const normalized = normalizePrebookkeepingCategorization(legacy);
+  assert.equal(normalized.reviewSummary.reviewedCount, 0);
+  assert.equal(normalized.reviewSummary.totalCount, 2);
+  assert.equal(normalized.reviewSummary.progress, 0);
+  assert.equal(normalized.reviewSummary.status, "ready_for_review");
+  assert.equal(normalized.reviewSummary.transactionsAnalyzed, 2);
 }
 
 function testTwoHundredRowLedgerCategorization() {

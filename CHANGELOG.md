@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Accountancy review dashboards so CSV, Excel, processing, failed, empty, and legacy datasets receive safe review summary defaults instead of crashing on missing review data.
 - Fix Accountancy, Tax, Compliance, and Reporting Business Profile context so each module reads the same saved setup object as the Business Profile wizard.
 - Add Pre-bookkeeping AI review so categorized ledgers get summary recommendations, review queues, editable suggestions, VAT and duplicate review, reviewed-only exports, learning rules, and audit history.
 - Complete Pre-bookkeeping post-upload review by categorizing transactions, showing bookkeeping totals, warnings, duplicate signals, and review/export/AI actions after successful uploads.

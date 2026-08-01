@@ -77,20 +77,27 @@ export interface PrebookkeepingCategorization {
     invoiceReference: string | null;
   };
   categoryCounts: Record<PrebookkeepingCategory, number>;
-  reviewSummary: {
-    transactionsAnalyzed: number;
-    categorizedAutomatically: number;
-    requiresReview: number;
-    possibleDuplicatesDetected: number;
-    missingDataWarnings: number;
-    vatMissingPercent: number;
-    confidenceScore: number;
-    reviewedCount: number;
-    reviewProgressPercent: number;
-  };
+  reviewSummary: PrebookkeepingReviewSummary;
   recommendations: string[];
   transactions: CategorizedTransaction[];
 }
+
+export type PrebookkeepingReviewStatus = "pending" | "processing" | "ready_for_review" | "ready_for_accountant" | "failed";
+
+export type PrebookkeepingReviewSummary = {
+  transactionsAnalyzed: number;
+  categorizedAutomatically: number;
+  requiresReview: number;
+  possibleDuplicatesDetected: number;
+  missingDataWarnings: number;
+  vatMissingPercent: number;
+  confidenceScore: number;
+  reviewedCount: number;
+  reviewProgressPercent: number;
+  totalCount: number;
+  progress: number;
+  status: PrebookkeepingReviewStatus;
+};
 
 const categories: PrebookkeepingCategory[] = [
   "revenue",
@@ -164,6 +171,9 @@ export function categorizePrebookkeepingRows(
     confidenceScore,
     reviewedCount,
     reviewProgressPercent: Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100),
+    totalCount: transactions.length,
+    progress: Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100),
+    status: "ready_for_review" as const,
   };
 
   return {
@@ -200,6 +210,77 @@ export function isPrebookkeepingCategorization(value: unknown): value is Prebook
       (value as { status?: unknown }).status === "ready_for_review" &&
       Array.isArray((value as { transactions?: unknown }).transactions),
   );
+}
+
+export function createDefaultPrebookkeepingReviewSummary(
+  totalCount: number,
+  status: PrebookkeepingReviewStatus = "pending",
+): PrebookkeepingReviewSummary {
+  return {
+    transactionsAnalyzed: totalCount,
+    categorizedAutomatically: 0,
+    requiresReview: totalCount,
+    possibleDuplicatesDetected: 0,
+    missingDataWarnings: 0,
+    vatMissingPercent: totalCount > 0 ? 100 : 0,
+    confidenceScore: 0,
+    reviewedCount: 0,
+    reviewProgressPercent: 0,
+    totalCount,
+    progress: 0,
+    status,
+  };
+}
+
+export function normalizePrebookkeepingCategorization(
+  value: PrebookkeepingCategorization,
+): PrebookkeepingCategorization {
+  const rows = Array.isArray(value.transactions) ? value.transactions : [];
+  const possibleDuplicates = Array.isArray(value.possibleDuplicates) ? value.possibleDuplicates : [];
+  const missingDataWarnings = Array.isArray(value.missingDataWarnings) ? value.missingDataWarnings : [];
+  const categoryCounts = { ...Object.fromEntries(categories.map((category) => [category, 0])), ...(isRecord(value.categoryCounts) ? value.categoryCounts : {}) } as Record<PrebookkeepingCategory, number>;
+  const existing: Record<string, unknown> = isRecord(value.reviewSummary) ? value.reviewSummary : {};
+  const reviewedCount = numberOrDefault(existing.reviewedCount, rows.filter((transaction) => transaction.reviewed).length);
+  const totalCount = numberOrDefault(existing.totalCount, numberOrDefault(existing.transactionsAnalyzed, rows.length));
+  const progress = numberOrDefault(
+    existing.progress,
+    numberOrDefault(existing.reviewProgressPercent, Math.round((reviewedCount / Math.max(totalCount, 1)) * 100)),
+  );
+  const status = normalizeReviewStatus(existing.status, progress >= 100 && totalCount > 0 ? "ready_for_accountant" : "ready_for_review");
+
+  const reviewSummary: PrebookkeepingReviewSummary = {
+    transactionsAnalyzed: numberOrDefault(existing.transactionsAnalyzed, totalCount),
+    categorizedAutomatically: numberOrDefault(existing.categorizedAutomatically, numberOrDefault(value.categorizedCount, rows.length - categoryCounts.uncategorized)),
+    requiresReview: numberOrDefault(existing.requiresReview, rows.filter((transaction) => transaction.needsReview).length),
+    possibleDuplicatesDetected: numberOrDefault(existing.possibleDuplicatesDetected, possibleDuplicates.length),
+    missingDataWarnings: numberOrDefault(existing.missingDataWarnings, missingDataWarnings.length),
+    vatMissingPercent: numberOrDefault(
+      existing.vatMissingPercent,
+      Math.round((rows.filter((transaction) => transaction.vatStatus === "missing").length / Math.max(totalCount, 1)) * 100),
+    ),
+    confidenceScore: numberOrDefault(
+      existing.confidenceScore,
+      Math.round((rows.reduce((sum, transaction) => sum + transaction.confidence, 0) / Math.max(rows.length, 1)) * 100),
+    ),
+    reviewedCount,
+    reviewProgressPercent: numberOrDefault(existing.reviewProgressPercent, progress),
+    totalCount,
+    progress,
+    status,
+  };
+
+  return {
+    ...value,
+    reviewSummary,
+    recommendations: Array.isArray(value.recommendations) && value.recommendations.length > 0
+      ? value.recommendations
+      : buildRecommendations({
+          reviewSummary,
+          categoryCounts,
+          expenseTotal: numberOrDefault(value.expenseTotal, 0),
+          incomeTotal: numberOrDefault(value.incomeTotal, 0),
+        }),
+  };
 }
 
 function detectPrebookkeepingColumns(rows: Record<string, unknown>[]) {
@@ -376,6 +457,27 @@ export function normalizeReviewCategory(value: unknown): PrebookkeepingCategory 
 function normalizeRuleKey(value: unknown) {
   const text = String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
   return text.length >= 3 ? text.slice(0, 120) : null;
+}
+
+function numberOrDefault(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeReviewStatus(value: unknown, fallback: PrebookkeepingReviewStatus): PrebookkeepingReviewStatus {
+  if (
+    value === "pending" ||
+    value === "processing" ||
+    value === "ready_for_review" ||
+    value === "ready_for_accountant" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+  return fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function suggestFallbackCategory(amount: number | null): PrebookkeepingReviewCategory | null {

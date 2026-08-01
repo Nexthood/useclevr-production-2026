@@ -29,7 +29,7 @@ export default function AppError({
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Something went wrong</h1>
           <p className="text-muted-foreground">
-            We encountered an error while loading the dashboard. This might be due to a database connection issue.
+            We encountered an error while loading this page. The details have been logged for troubleshooting.
           </p>
         </div>
 
@@ -50,7 +50,7 @@ export default function AppError({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          If the problem persists, please check your database connection.
+          If the problem persists, refresh the page or try again from the dashboard.
         </p>
       </div>
     </div>

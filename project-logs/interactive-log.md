@@ -1474,6 +1474,39 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Accountancy Review Summary Crash Fix
+
+1. Interaction title
+Accountancy review summary crash fix.
+
+2. What was the user goal
+Prevent the Accountancy dashboard from crashing after CSV or Excel upload when uploaded or legacy datasets do not contain `reviewSummary`.
+
+3. What changed
+Pre-bookkeeping categorization now exposes a normalized review summary shape with reviewed count, total count, progress, status, analyzed count, automatic categorization count, duplicate count, warning count, VAT missing percentage, and confidence score. Upload creation stores a default review summary for Accountancy and Pre-bookkeeping datasets before categorization finishes. Existing Pre-bookkeeping datasets are normalized and backfilled when reused or categorized. The Pre-bookkeeping page normalizes legacy categorization before render, and the review workspace reads from one normalized `reviewSummary` object instead of raw nested fields. The app error boundary uses neutral page-load copy and logs the actual exception.
+
+4. Problems marked
+blocker: none.
+risk: Live browser verification still depends on a deployed authenticated session, but source and regression checks cover fresh CSV, fresh Excel, legacy missing-summary categorization, processing defaults, and hard-refresh-safe normalization paths.
+observation: The crashing component was the Pre-bookkeeping review workspace, which directly accessed `categorization.reviewSummary.reviewedCount` while the type guard accepted legacy categorizations with transactions but no review summary.
+
+5. User learning
+Fresh and legacy accounting uploads can show zero/default review progress while processing instead of requiring immediate categorization output.
+
+6. AI-agent learning
+Type guards for persisted JSON must validate all fields used by render code, or route the value through a single normalizer before UI access.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Business Profile Accounting Source Of Truth
 
 1. Interaction title

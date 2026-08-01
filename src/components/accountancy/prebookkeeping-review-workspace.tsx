@@ -3,7 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import type { CategorizedTransaction, PrebookkeepingCategorization } from "@/lib/accountancy/prebookkeeping-categorization";
+import {
+  normalizePrebookkeepingCategorization,
+  type CategorizedTransaction,
+  type PrebookkeepingCategorization,
+} from "@/lib/accountancy/prebookkeeping-categorization";
 import { Bot, Check, Download, Loader2 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -60,18 +64,20 @@ export function PrebookkeepingReviewWorkspace({
   datasetName: string;
   initialCategorization: PrebookkeepingCategorization;
 }) {
-  const [categorization, setCategorization] = React.useState(initialCategorization);
+  const [categorization, setCategorization] = React.useState(() => normalizePrebookkeepingCategorization(initialCategorization));
   const [filter, setFilter] = React.useState<FilterKey>("all");
   const [selectedRows, setSelectedRows] = React.useState<number[]>([]);
   const [saving, setSaving] = React.useState(false);
   const { toast } = useToast();
 
   const rows = categorization.transactions;
+  const reviewSummary = categorization.reviewSummary;
   const filteredRows = rows.filter((row) => matchesFilter(row, filter)).slice(0, 100);
   const filterCounts = React.useMemo(() => buildFilterCounts(rows), [rows]);
   const currency = rows.find((row) => row.currency)?.currency || null;
-  const reviewedCount = categorization.reviewSummary.reviewedCount;
-  const readyForAccountant = reviewedCount === rows.length && rows.length > 0;
+  const reviewedCount = reviewSummary.reviewedCount;
+  const totalCount = reviewSummary.totalCount || rows.length;
+  const readyForAccountant = reviewSummary.status === "ready_for_accountant" || (reviewedCount === totalCount && totalCount > 0);
 
   async function saveReview(payload: Record<string, unknown>, toastTitle = "Review saved") {
     setSaving(true);
@@ -83,7 +89,7 @@ export function PrebookkeepingReviewWorkspace({
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || "Review update failed.");
-      setCategorization(result.categorization);
+      setCategorization(normalizePrebookkeepingCategorization(result.categorization));
       toast({ title: toastTitle, description: "Your bookkeeping review changes were saved." });
     } catch (error) {
       toast({
@@ -112,25 +118,25 @@ export function PrebookkeepingReviewWorkspace({
           <div>
             <h3 className="text-lg font-semibold text-foreground">AI Review Summary</h3>
             <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-              <li>{categorization.reviewSummary.transactionsAnalyzed.toLocaleString()} transactions analyzed</li>
-              <li>{categorization.reviewSummary.categorizedAutomatically.toLocaleString()} categorized automatically</li>
-              <li>{categorization.reviewSummary.requiresReview.toLocaleString()} require review</li>
-              <li>{categorization.reviewSummary.possibleDuplicatesDetected.toLocaleString()} possible duplicates detected</li>
-              <li>{categorization.reviewSummary.missingDataWarnings.toLocaleString()} missing data warning(s)</li>
-              <li>VAT information missing on {categorization.reviewSummary.vatMissingPercent}% of transactions</li>
-              <li>Confidence score: {categorization.reviewSummary.confidenceScore}%</li>
+              <li>{reviewSummary.transactionsAnalyzed.toLocaleString()} transactions analyzed</li>
+              <li>{reviewSummary.categorizedAutomatically.toLocaleString()} categorized automatically</li>
+              <li>{reviewSummary.requiresReview.toLocaleString()} require review</li>
+              <li>{reviewSummary.possibleDuplicatesDetected.toLocaleString()} possible duplicates detected</li>
+              <li>{reviewSummary.missingDataWarnings.toLocaleString()} missing data warning(s)</li>
+              <li>VAT information missing on {reviewSummary.vatMissingPercent}% of transactions</li>
+              <li>Confidence score: {reviewSummary.confidenceScore}%</li>
             </ul>
           </div>
           <div className="min-w-0 lg:w-80">
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="font-medium text-foreground">Review Progress</span>
-              <span className="text-muted-foreground">{reviewedCount.toLocaleString()} / {rows.length.toLocaleString()} reviewed</span>
+              <span className="text-muted-foreground">{reviewedCount.toLocaleString()} / {totalCount.toLocaleString()} reviewed</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary" style={{ width: `${categorization.reviewSummary.reviewProgressPercent}%` }} />
+              <div className="h-full bg-primary" style={{ width: `${reviewSummary.progress}%` }} />
             </div>
             <p className={`mt-3 text-sm font-medium ${readyForAccountant ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
-              {readyForAccountant ? "Ready for Accountant" : "Review required before accountant export"}
+              {readyForAccountant ? "Ready for Accountant" : formatReviewStatus(reviewSummary.status)}
             </p>
           </div>
         </div>
@@ -352,6 +358,14 @@ function matchesFilter(row: CategorizedTransaction, filter: FilterKey) {
 
 function formatCategory(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatReviewStatus(status: string) {
+  if (status === "pending") return "Loading analysis";
+  if (status === "processing") return "Processing categorization";
+  if (status === "failed") return "Failed to process";
+  if (status === "ready_for_review") return "Ready for review";
+  return "Review required before accountant export";
 }
 
 function formatMoney(value: number | null, currency: string | null) {
