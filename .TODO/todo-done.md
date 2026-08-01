@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-972. Accountancy, Tax, Compliance, and Reporting read Business Profile context from the same saved setup object as the Business Profile wizard. (labels: business, upload, testing; commit: worktree)
 - T-966. Show Accountancy Business Profile load failures as a real error state and expose temporary runtime diagnostics for verifying deployed profile data. (labels: business, upload, testing; commit: worktree)
 - T-965. Read Accountancy Business Profile context through the same saved Business Profile repository used by the Business page and display the six persisted accounting context fields from that profile only. (labels: business, upload, testing; commit: worktree)
 - T-964. Read Accountancy Business Profile context from the organization-scoped Business Profile record and display tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs through one normalized profile mapping. (labels: business, upload, testing; commit: worktree)
@@ -518,6 +519,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-971. Pre-bookkeeping review turns categorized ledgers into an AI-assisted bookkeeping workflow with editable suggestions, learning rules, audit events, and reviewed-only exports. (labels: upload, ai, data, testing; commit: worktree)
 - T-970. Pre-bookkeeping uploads categorize transactions, show ready-for-review summaries, and keep retry reuse from creating duplicate datasets. (labels: upload, data, testing; commit: worktree)
 - T-969. Accountancy Excel uploads inspect every worksheet, select generic tabular data, support merged title rows, and return detailed invalid-sheet reasons. (labels: upload, data, testing; commit: worktree)
 

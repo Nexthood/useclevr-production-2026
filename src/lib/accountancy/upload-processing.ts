@@ -5,7 +5,7 @@ import {
 } from "@/lib/accountancy/prebookkeeping-categorization";
 import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
-import { datasetRows, datasets, type DatasetBusinessModel } from "@/lib/db/schema";
+import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { and, asc, eq } from "drizzle-orm";
@@ -375,9 +375,21 @@ export async function processAccountancyUpload(input: {
   const businessModel: DatasetBusinessModel = "generic";
   const redirectTo = getBusinessModelRedirect({ datasetType: input.datasetType, businessModel, datasetId });
   const precomputedMetrics = parsed.rows.length > 0 ? computePrecomputedMetrics(parsed.rows, parsed.columns) : null;
+  const learningRules =
+    input.datasetType === "prebookkeeping"
+      ? await db.query.prebookkeepingLearningRules.findMany({
+          where: eq(prebookkeepingLearningRules.userId, input.userId),
+          columns: {
+            supplierKey: true,
+            descriptionKeyword: true,
+            merchantKey: true,
+            category: true,
+          },
+        })
+      : [];
   const prebookkeepingCategorization =
     input.datasetType === "prebookkeeping" && parsed.rows.length > 0
-      ? categorizePrebookkeepingRows(parsed.rows)
+      ? categorizePrebookkeepingRows(parsed.rows, learningRules)
       : null;
 
   const insertData = {

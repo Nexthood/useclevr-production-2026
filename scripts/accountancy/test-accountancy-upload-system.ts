@@ -281,12 +281,21 @@ function testApiRouteWiring() {
   const route = readFileSync("src/app/api/accountancy/upload/route.ts", "utf8");
   const processor = readFileSync("src/lib/accountancy/upload-processing.ts", "utf8");
   const prebookkeepingPage = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8");
+  const reviewRoute = readFileSync("src/app/api/prebookkeeping/review/route.ts", "utf8");
+  const exportRoute = readFileSync("src/app/api/prebookkeeping/export/route.ts", "utf8");
+  const reviewWorkspace = readFileSync("src/components/accountancy/prebookkeeping-review-workspace.tsx", "utf8");
   assert.ok(route.includes("processAccountancyUpload"), "API route uses Accountancy processor");
   assert.ok(route.includes("stage"), "API route returns staged errors");
   assert.ok(processor.includes("eq(datasets.checksum, checksum)"), "processor reuses duplicate datasets by checksum");
-  assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows)"), "Pre-bookkeeping uploads start categorization automatically");
+  assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules)"), "Pre-bookkeeping uploads start categorization automatically");
   assert.ok(prebookkeepingPage.includes("Ready for review"), "Pre-bookkeeping page shows ready-for-review status");
   assert.ok(prebookkeepingPage.includes("StartCategorizationButton"), "Pre-bookkeeping page exposes a categorization action for legacy datasets");
+  assert.ok(reviewRoute.includes("prebookkeepingLearningRules"), "manual category edits persist learning rules");
+  assert.ok(reviewRoute.includes("prebookkeepingAuditEvents"), "review actions write audit events");
+  assert.ok(exportRoute.includes("reviewedRows"), "exports use reviewed transactions only");
+  assert.ok(reviewWorkspace.includes("AI Review Summary"), "review workspace shows AI review summary");
+  assert.ok(reviewWorkspace.includes("Missing VAT"), "review workspace includes review queue filters");
+  assert.ok(reviewWorkspace.includes("Confidence"), "review workspace displays prediction confidence");
   assert.ok(!route.includes("reserveCredits") && !processor.includes("reserveCredits"), "failed uploads do not reserve credits");
   assert.ok(!route.includes("finalizeCredits") && !processor.includes("finalizeCredits"), "Accountancy upload route does not finalize credits");
 }

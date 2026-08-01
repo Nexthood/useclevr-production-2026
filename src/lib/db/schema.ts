@@ -1899,3 +1899,58 @@ export const demoSessions = pgTable(
     expiresAtIdx: index("DemoSession_expiresAt_idx").on(table.expiresAt),
   }),
 );
+
+export const prebookkeepingLearningRules = pgTable(
+  "PrebookkeepingLearningRule",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    supplierKey: text("supplierKey"),
+    descriptionKeyword: text("descriptionKeyword"),
+    merchantKey: text("merchantKey"),
+    category: varchar("category", { length: 80 }).notNull(),
+    source: varchar("source", { length: 40 }).default("manual_edit").notNull(),
+    usageCount: integer("usageCount").default(0).notNull(),
+    lastUsedAt: timestamp("lastUsedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "PrebookkeepingLearningRule_userId_fkey",
+    }).onDelete("cascade"),
+    userRuleIdx: index("PrebookkeepingLearningRule_userId_idx").on(table.userId),
+    supplierIdx: index("PrebookkeepingLearningRule_supplierKey_idx").on(table.userId, table.supplierKey),
+    keywordIdx: index("PrebookkeepingLearningRule_descriptionKeyword_idx").on(table.userId, table.descriptionKeyword),
+  }),
+);
+
+export const prebookkeepingAuditEvents = pgTable(
+  "PrebookkeepingAuditEvent",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    datasetId: text("datasetId").notNull(),
+    rowIndex: integer("rowIndex"),
+    action: varchar("action", { length: 80 }).notNull(),
+    before: jsonb("before").$type<Record<string, unknown>>(),
+    after: jsonb("after").$type<Record<string, unknown>>(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "PrebookkeepingAuditEvent_userId_fkey",
+    }).onDelete("cascade"),
+    datasetIdFk: foreignKey({
+      columns: [table.datasetId],
+      foreignColumns: [datasets.id],
+      name: "PrebookkeepingAuditEvent_datasetId_fkey",
+    }).onDelete("cascade"),
+    datasetIdx: index("PrebookkeepingAuditEvent_datasetId_idx").on(table.datasetId),
+    userIdx: index("PrebookkeepingAuditEvent_userId_idx").on(table.userId),
+  }),
+);

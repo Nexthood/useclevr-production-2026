@@ -1474,6 +1474,39 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Business Profile Accounting Source Of Truth
+
+1. Interaction title
+Business Profile accounting source of truth.
+
+2. What was the user goal
+Stop speculative Business Profile fixes and make Accountancy, Tax, Compliance, and Reporting reuse the exact Business Profile loader used by the Business Profile wizard.
+
+3. What changed
+Accountancy no longer imports or queries the `business_profile` table directly, no longer resolves a primary organization separately, and no longer renders the temporary profile debug panel. Accountancy, Tax, Compliance, and Reporting all load the saved Business Profile through `getCompanySetup()`, which is the same repository function used by the `/api/business/setup` endpoint that the Business Profile wizard fetches and saves against. Compliance now derives profile, location, and industry readiness from the shared setup object instead of separate business details.
+
+4. Problems marked
+blocker: none.
+risk: Live authenticated browser proof still requires a deployed session; the source-level invariant is that the four accounting modules and the Business Profile API now share the same loader.
+observation: Static search finds no Accountancy-specific `businessProfiles`, `business_profile`, `getPrimaryBusinessDetails`, or debug-panel profile loader references under the Accountancy route.
+
+5. User learning
+Accountancy profile context is not a separate model; it is a display of the saved Business Profile setup object.
+
+6. AI-agent learning
+When the Business page already has a working source of truth, dependent modules must import the same loader instead of adding direct database probes or diagnostic profile fetchers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Pre-bookkeeping Post-upload Categorization
 
 1. Interaction title
@@ -1495,6 +1528,39 @@ Pre-bookkeeping review output now uses the existing dataset record and row stora
 
 6. AI-agent learning
 Do not parse tax codes as tax money totals; a VAT/tax summary total needs a tax amount column, while tax-code-only ledgers should show a missing VAT/tax amount warning.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping AI Review And Learning
+
+1. Interaction title
+Pre-bookkeeping AI Review and Learning workflow.
+
+2. What was the user goal
+Turn the working Pre-bookkeeping upload, categorization, KPI, and review table into an AI-assisted bookkeeping review workflow with editable categories, learning, audit history, VAT and duplicate review, bulk actions, exports, AI chat prompts, and progress status.
+
+3. What changed
+Pre-bookkeeping categorization now includes review metadata, confidence scores, suggested categories, review status, duplicate status, VAT status, large-transaction flags, AI review summary metrics, and deterministic recommendations. The review workspace shows queue filters with live counts, confidence-backed suggestions, Accept and Change controls, category dropdowns, VAT quick buttons, duplicate actions, bulk actions, reviewed progress, Ready for Accountant status, reviewed-only exports for CSV, Excel, DATEV, QuickBooks, and Xero, and AI question links. Review updates persist in the existing dataset analysis, write audit events, and save learning rules from supplier, description, keyword, and merchant signals so future uploads can apply user changes. Pre-bookkeeping export excludes merged duplicate rows while preserving them in the audit trail.
+
+4. Problems marked
+blocker: none.
+risk: The current learning system is deterministic and rule-based; it stores user correction rules and applies them to future uploads, but it does not train a model.
+observation: The real `10_accountancy_ledger.xlsx` dataset has 200 rows and 12 columns. Read-only verification after debit/credit normalization categorizes all 200 rows, marks all rows for review because VAT amount data is missing, reports 100% missing VAT, and computes a 71% confidence score.
+
+5. User learning
+Accountant exports now require reviewed rows, and rows marked merged by duplicate review stay out of export while remaining auditable.
+
+6. AI-agent learning
+Debit and credit normalization must ignore zero-valued opposite-side columns so `credit: 0` does not override a real debit amount.
 
 7. Follow-up tasks
 - None.

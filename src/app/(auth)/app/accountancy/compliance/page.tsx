@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
-import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
+import { getCompanySetup } from "@/lib/business/company-setup-store"
 import { CheckCircle2, FileText, Shield } from "lucide-react"
 import type React from "react"
 
@@ -10,12 +10,11 @@ export const metadata = {
 
 export default async function AccountancyCompliancePage() {
   const session = await auth()
-  const details = await getPrimaryBusinessDetails(session?.user?.id)
-  const safeDetails = details ?? {}
+  const setup = session?.user?.id ? await getCompanySetup(session.user.id) : null
 
-  const profileComplete = !!(safeDetails.businessName && safeDetails.industry && safeDetails.location)
-  const locationComplete = !!safeDetails.location
-  const industryComplete = !!safeDetails.industry
+  const profileComplete = Boolean(setup?.setupStatus.completed)
+  const locationComplete = Boolean(configuredString(setup?.companyInfo.taxResidenceCountry) || configuredString(setup?.companyInfo.countryOfRegistration) || configuredString(setup?.companyInfo.country))
+  const industryComplete = Boolean(configuredString(setup?.companyInfo.industry))
 
   return (
     <Card className="border-border bg-card">
@@ -47,6 +46,12 @@ export default async function AccountancyCompliancePage() {
       </CardContent>
     </Card>
   )
+}
+
+function configuredString(value: string | null | undefined) {
+  if (value === null || value === undefined) return null
+  const text = value.trim()
+  return text.length > 0 ? text : null
 }
 
 function ComplianceItem({
