@@ -179,3 +179,4 @@
 - fixed: parse Accountancy Excel workbooks by scanning every worksheet, selecting generic tabular data, handling merged report titles, and returning detailed sheet rejection reasons
 - fixed: complete Pre-bookkeeping post-upload categorization with deterministic transaction normalization, review summaries, duplicate and missing-data warnings, retry-safe reuse, and accountant export or AI actions
 - changed: add Pre-bookkeeping AI review with queue filters, confidence-backed suggestions, manual category and VAT edits, duplicate decisions, bulk review actions, reviewed-only exports, learning rules, and audit events
+- fixed: route Accountancy, Tax, Compliance, and Reporting Business Profile context through the same saved setup object used by the Business Profile wizard and remove Accountancy-specific profile loading

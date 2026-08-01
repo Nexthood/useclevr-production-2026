@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-972. Accountancy, Tax, Compliance, and Reporting read Business Profile context from the same saved setup object as the Business Profile wizard. (labels: business, upload, testing; commit: worktree)
 - T-966. Show Accountancy Business Profile load failures as a real error state and expose temporary runtime diagnostics for verifying deployed profile data. (labels: business, upload, testing; commit: worktree)
 - T-965. Read Accountancy Business Profile context through the same saved Business Profile repository used by the Business page and display the six persisted accounting context fields from that profile only. (labels: business, upload, testing; commit: worktree)
 - T-964. Read Accountancy Business Profile context from the organization-scoped Business Profile record and display tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs through one normalized profile mapping. (labels: business, upload, testing; commit: worktree)
