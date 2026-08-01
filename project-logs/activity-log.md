@@ -178,3 +178,4 @@
 - fixed: load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database
 - fixed: parse Accountancy Excel workbooks by scanning every worksheet, selecting generic tabular data, handling merged report titles, and returning detailed sheet rejection reasons
 - fixed: complete Pre-bookkeeping post-upload categorization with deterministic transaction normalization, review summaries, duplicate and missing-data warnings, retry-safe reuse, and accountant export or AI actions
+- changed: add Pre-bookkeeping AI review with queue filters, confidence-backed suggestions, manual category and VAT edits, duplicate decisions, bulk review actions, reviewed-only exports, learning rules, and audit events

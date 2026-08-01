@@ -6,7 +6,20 @@ export type PrebookkeepingCategory =
   | "taxes"
   | "bank_fees"
   | "transfers"
+  | "assets"
+  | "liabilities"
+  | "equity"
+  | "other"
   | "uncategorized";
+
+export type PrebookkeepingReviewCategory = Exclude<PrebookkeepingCategory, "uncategorized">;
+
+export interface PrebookkeepingLearningRuleInput {
+  supplierKey?: string | null;
+  descriptionKeyword?: string | null;
+  merchantKey?: string | null;
+  category: string;
+}
 
 export interface CategorizedTransaction {
   rowIndex: number;
@@ -19,10 +32,18 @@ export interface CategorizedTransaction {
   currency: string | null;
   vatTax: number | null;
   category: PrebookkeepingCategory;
+  suggestedCategory: PrebookkeepingReviewCategory | null;
   sourceCategory: string | null;
   invoiceReference: string | null;
   confidence: number;
   reasons: string[];
+  reviewed: boolean;
+  needsReview: boolean;
+  reviewStatus: "pending" | "reviewed";
+  duplicateStatus: "none" | "possible_duplicate" | "keep_both" | "merged" | "ignored";
+  vatStatus: "present" | "missing";
+  vatRate: number | null;
+  isLargeTransaction: boolean;
 }
 
 export interface PrebookkeepingCategorization {
@@ -56,6 +77,18 @@ export interface PrebookkeepingCategorization {
     invoiceReference: string | null;
   };
   categoryCounts: Record<PrebookkeepingCategory, number>;
+  reviewSummary: {
+    transactionsAnalyzed: number;
+    categorizedAutomatically: number;
+    requiresReview: number;
+    possibleDuplicatesDetected: number;
+    missingDataWarnings: number;
+    vatMissingPercent: number;
+    confidenceScore: number;
+    reviewedCount: number;
+    reviewProgressPercent: number;
+  };
+  recommendations: string[];
   transactions: CategorizedTransaction[];
 }
 
@@ -67,12 +100,34 @@ const categories: PrebookkeepingCategory[] = [
   "taxes",
   "bank_fees",
   "transfers",
+  "assets",
+  "liabilities",
+  "equity",
+  "other",
   "uncategorized",
 ];
 
-export function categorizePrebookkeepingRows(rows: Record<string, unknown>[]): PrebookkeepingCategorization {
+export function categorizePrebookkeepingRows(
+  rows: Record<string, unknown>[],
+  learningRules: PrebookkeepingLearningRuleInput[] = [],
+): PrebookkeepingCategorization {
   const columns = detectPrebookkeepingColumns(rows);
-  const transactions = rows.map((row, index) => normalizeTransaction(row, index, columns));
+  const learnedRules = normalizeLearningRules(learningRules);
+  const initialTransactions = rows.map((row, index) => normalizeTransaction(row, index, columns, learnedRules));
+  const duplicateGroups = findPossibleDuplicates(initialTransactions);
+  const duplicateRows = new Set(duplicateGroups.flatMap((group) => group.rowIndexes));
+  const largeThreshold = detectLargeTransactionThreshold(initialTransactions);
+  const transactions = initialTransactions.map((transaction) => ({
+    ...transaction,
+    duplicateStatus: duplicateRows.has(transaction.rowIndex) ? "possible_duplicate" as const : "none" as const,
+    isLargeTransaction: typeof transaction.amount === "number" && Math.abs(transaction.amount) >= largeThreshold,
+    needsReview:
+      transaction.category === "uncategorized" ||
+      transaction.confidence < 0.7 ||
+      duplicateRows.has(transaction.rowIndex) ||
+      transaction.vatStatus === "missing" ||
+      !transaction.supplierCustomer,
+  }));
   const categoryCounts = Object.fromEntries(categories.map((category) => [category, 0])) as Record<PrebookkeepingCategory, number>;
 
   for (const transaction of transactions) {
@@ -90,8 +145,26 @@ export function categorizePrebookkeepingRows(rows: Record<string, unknown>[]): P
       .reduce((sum, transaction) => sum + Math.abs(transaction.amount || transaction.debit || 0), 0),
   );
   const vatTaxRows = transactions.filter((transaction) => typeof transaction.vatTax === "number");
-  const possibleDuplicates = findPossibleDuplicates(transactions);
+  const possibleDuplicates = duplicateGroups;
   const missingDataWarnings = buildMissingDataWarnings(columns, transactions);
+  const reviewedCount = transactions.filter((transaction) => transaction.reviewed).length;
+  const confidenceScore = Math.round(
+    (transactions.reduce((sum, transaction) => sum + transaction.confidence, 0) / Math.max(transactions.length, 1)) * 100,
+  );
+  const vatMissingPercent = Math.round(
+    (transactions.filter((transaction) => transaction.vatStatus === "missing").length / Math.max(transactions.length, 1)) * 100,
+  );
+  const reviewSummary = {
+    transactionsAnalyzed: transactions.length,
+    categorizedAutomatically: transactions.length - categoryCounts.uncategorized,
+    requiresReview: transactions.filter((transaction) => transaction.needsReview).length,
+    possibleDuplicatesDetected: possibleDuplicates.length,
+    missingDataWarnings: missingDataWarnings.length,
+    vatMissingPercent,
+    confidenceScore,
+    reviewedCount,
+    reviewProgressPercent: Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100),
+  };
 
   return {
     status: "ready_for_review",
@@ -109,6 +182,13 @@ export function categorizePrebookkeepingRows(rows: Record<string, unknown>[]): P
     missingDataWarnings,
     columns,
     categoryCounts,
+    reviewSummary,
+    recommendations: buildRecommendations({
+      reviewSummary,
+      categoryCounts,
+      expenseTotal,
+      incomeTotal,
+    }),
     transactions,
   };
 }
@@ -144,11 +224,19 @@ function normalizeTransaction(
   row: Record<string, unknown>,
   rowIndex: number,
   columns: ReturnType<typeof detectPrebookkeepingColumns>,
+  learningRules: NormalizedLearningRule[],
 ): CategorizedTransaction {
   const debit = readNumber(row, columns.debit);
   const credit = readNumber(row, columns.credit);
   const explicitAmount = readNumber(row, columns.amount);
-  const amount = typeof explicitAmount === "number" ? explicitAmount : typeof credit === "number" ? Math.abs(credit) : typeof debit === "number" ? -Math.abs(debit) : null;
+  const amount =
+    typeof explicitAmount === "number"
+      ? explicitAmount
+      : typeof credit === "number" && credit !== 0
+        ? Math.abs(credit)
+        : typeof debit === "number" && debit !== 0
+          ? -Math.abs(debit)
+          : null;
   const description = readText(row, columns.description);
   const supplierCustomer = readText(row, columns.supplierCustomer) || inferParty(description);
   const sourceCategory = readText(row, columns.category);
@@ -160,7 +248,11 @@ function normalizeTransaction(
     description,
     supplierCustomer,
     sourceCategory,
-  });
+  }, learningRules);
+  const suggestedCategory = categoryResult.category === "uncategorized"
+    ? suggestFallbackCategory(amount)
+    : categoryResult.category;
+  const needsReview = categoryResult.category === "uncategorized" || categoryResult.confidence < 0.7 || vatTax === null || !supplierCustomer;
 
   return {
     rowIndex,
@@ -173,10 +265,18 @@ function normalizeTransaction(
     currency: readText(row, columns.currency),
     vatTax,
     category: categoryResult.category,
+    suggestedCategory,
     sourceCategory,
     invoiceReference: readText(row, columns.invoiceReference),
     confidence: categoryResult.confidence,
     reasons: categoryResult.reasons,
+    reviewed: false,
+    needsReview,
+    reviewStatus: "pending",
+    duplicateStatus: "none",
+    vatStatus: vatTax === null ? "missing" : "present",
+    vatRate: null,
+    isLargeTransaction: false,
   };
 }
 
@@ -187,7 +287,7 @@ function classifyTransaction(input: {
   description: string | null;
   supplierCustomer: string | null;
   sourceCategory: string | null;
-}): { category: PrebookkeepingCategory; confidence: number; reasons: string[] } {
+}, learningRules: NormalizedLearningRule[]): { category: PrebookkeepingCategory; confidence: number; reasons: string[] } {
   const text = [input.description, input.supplierCustomer, input.sourceCategory].filter(Boolean).join(" ").toLowerCase();
   const reasons: string[] = [];
   const has = (pattern: RegExp, reason: string) => {
@@ -195,6 +295,21 @@ function classifyTransaction(input: {
     reasons.push(reason);
     return true;
   };
+
+  const learnedMatch = learningRules.find((rule) => {
+    if (rule.supplierKey && input.supplierCustomer?.toLowerCase().includes(rule.supplierKey)) return true;
+    if (rule.merchantKey && text.includes(rule.merchantKey)) return true;
+    if (rule.descriptionKeyword && text.includes(rule.descriptionKeyword)) return true;
+    return false;
+  });
+
+  if (learnedMatch) {
+    return {
+      category: learnedMatch.category,
+      confidence: 0.96,
+      reasons: ["learned user rule"],
+    };
+  }
 
   if (has(/salary|payroll|wage|employee|pension|social security|gross salary/i, "payroll keyword")) {
     return { category: "payroll", confidence: 0.9, reasons };
@@ -207,6 +322,15 @@ function classifyTransaction(input: {
   }
   if (has(/transfer|internal transfer|savings|owner draw|capital injection|loan repayment/i, "transfer keyword")) {
     return { category: "transfers", confidence: 0.82, reasons };
+  }
+  if (has(/asset|equipment|computer|furniture|vehicle/i, "asset keyword")) {
+    return { category: "assets", confidence: 0.78, reasons };
+  }
+  if (has(/loan|liability|credit card payable|accounts payable/i, "liability keyword")) {
+    return { category: "liabilities", confidence: 0.78, reasons };
+  }
+  if (has(/owner contribution|share capital|equity|retained earnings/i, "equity keyword")) {
+    return { category: "equity", confidence: 0.78, reasons };
   }
   if (has(/rent|lease|insurance|subscription|software|hosting|utilities|internet|phone/i, "fixed-cost keyword")) {
     return { category: "fixed_costs", confidence: 0.8, reasons };
@@ -224,6 +348,63 @@ function classifyTransaction(input: {
   }
 
   return { category: "uncategorized", confidence: 0.2, reasons: ["no deterministic category signal"] };
+}
+
+type NormalizedLearningRule = {
+  supplierKey: string | null;
+  descriptionKeyword: string | null;
+  merchantKey: string | null;
+  category: PrebookkeepingCategory;
+}
+
+function normalizeLearningRules(rules: PrebookkeepingLearningRuleInput[]): NormalizedLearningRule[] {
+  return rules
+    .map((rule) => ({
+      supplierKey: normalizeRuleKey(rule.supplierKey),
+      descriptionKeyword: normalizeRuleKey(rule.descriptionKeyword),
+      merchantKey: normalizeRuleKey(rule.merchantKey),
+      category: normalizeReviewCategory(rule.category),
+    }))
+    .filter((rule) => rule.category !== "uncategorized" && (rule.supplierKey || rule.descriptionKeyword || rule.merchantKey));
+}
+
+export function normalizeReviewCategory(value: unknown): PrebookkeepingCategory {
+  const normalized = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+  return categories.includes(normalized as PrebookkeepingCategory) ? normalized as PrebookkeepingCategory : "uncategorized";
+}
+
+function normalizeRuleKey(value: unknown) {
+  const text = String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return text.length >= 3 ? text.slice(0, 120) : null;
+}
+
+function suggestFallbackCategory(amount: number | null): PrebookkeepingReviewCategory | null {
+  if (typeof amount !== "number") return "other";
+  return amount >= 0 ? "revenue" : "operating_expenses";
+}
+
+function detectLargeTransactionThreshold(transactions: CategorizedTransaction[]) {
+  const amounts = transactions
+    .map((transaction) => Math.abs(transaction.amount || 0))
+    .filter((amount) => amount > 0)
+    .sort((a, b) => a - b);
+  if (amounts.length === 0) return Number.POSITIVE_INFINITY;
+  return amounts[Math.max(Math.floor(amounts.length * 0.9) - 1, 0)] || Number.POSITIVE_INFINITY;
+}
+
+function buildRecommendations(input: {
+  reviewSummary: PrebookkeepingCategorization["reviewSummary"];
+  categoryCounts: Record<PrebookkeepingCategory, number>;
+  expenseTotal: number;
+  incomeTotal: number;
+}) {
+  const recommendations: string[] = [];
+  if (input.reviewSummary.requiresReview > 0) recommendations.push("Review uncategorized and low-confidence transactions first.");
+  if (input.reviewSummary.possibleDuplicatesDetected > 0) recommendations.push("Verify possible duplicate transactions before export.");
+  if (input.reviewSummary.vatMissingPercent > 0) recommendations.push("Complete VAT information before exporting reviewed data.");
+  if (input.categoryCounts.fixed_costs > 0 && input.expenseTotal > input.incomeTotal * 0.5) recommendations.push("Fixed costs appear unusually high this period.");
+  if (recommendations.length === 0) recommendations.push("All detected bookkeeping items are ready for accountant review.");
+  return recommendations;
 }
 
 function findPossibleDuplicates(transactions: CategorizedTransaction[]) {

@@ -3,7 +3,7 @@ import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { categorizePrebookkeepingRows } from "@/lib/accountancy/prebookkeeping-categorization";
 import { resolveDatasetType } from "@/lib/data/dataset-category";
 import { getDb } from "@/lib/db";
-import { datasetRows, datasets } from "@/lib/db/schema";
+import { datasetRows, datasets, prebookkeepingLearningRules } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -61,7 +61,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "No transaction rows are available for categorization." }, { status: 422 });
     }
 
-    const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>));
+    const learningRules = await db.query.prebookkeepingLearningRules.findMany({
+      where: eq(prebookkeepingLearningRules.userId, userId),
+      columns: {
+        supplierKey: true,
+        descriptionKeyword: true,
+        merchantKey: true,
+        category: true,
+      },
+    });
+    const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>), learningRules);
     const currentAnalysis = isRecord(dataset.analysis) ? dataset.analysis : {};
 
     await db

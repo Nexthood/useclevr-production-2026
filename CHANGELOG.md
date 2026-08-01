@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Add Pre-bookkeeping AI review so categorized ledgers get summary recommendations, review queues, editable suggestions, VAT and duplicate review, reviewed-only exports, learning rules, and audit history.
 - Complete Pre-bookkeeping post-upload review by categorizing transactions, showing bookkeeping totals, warnings, duplicate signals, and review/export/AI actions after successful uploads.
 - Fix Accountancy Excel uploads so formatted workbooks, multi-sheet exports, and generic tabular sheets are detected with detailed worksheet rejection reasons.
 - Fix Accountancy Business Profile context so tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the saved Business Profile values.

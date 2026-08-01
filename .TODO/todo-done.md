@@ -518,6 +518,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-971. Pre-bookkeeping review turns categorized ledgers into an AI-assisted bookkeeping workflow with editable suggestions, learning rules, audit events, and reviewed-only exports. (labels: upload, ai, data, testing; commit: worktree)
 - T-970. Pre-bookkeeping uploads categorize transactions, show ready-for-review summaries, and keep retry reuse from creating duplicate datasets. (labels: upload, data, testing; commit: worktree)
 - T-969. Accountancy Excel uploads inspect every worksheet, select generic tabular data, support merged title rows, and return detailed invalid-sheet reasons. (labels: upload, data, testing; commit: worktree)
 
