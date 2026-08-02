@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-976. Pre-bookkeeping accountant exports generate reviewed CSV, Excel, DATEV, QuickBooks, and Xero files from the selected dataset, and bookkeeping assistant questions return deterministic dataset-grounded answers when providers are unavailable. (labels: upload, ai, reports, testing; commit: worktree)
 - T-975. Pre-bookkeeping validation covers CSV, Excel, PDF, receipt, invoice, and bank-export parser paths, and text invoice PDFs produce reviewable bookkeeping rows. (labels: upload, data, testing; commit: worktree)
 - T-974. Accountancy upload and review responses validate API data and normalize missing transaction strings before display formatting. (labels: upload, data, quality, testing; commit: worktree)
 - T-973. Accountancy review dashboards load CSV, Excel, processing, failed, empty, and legacy datasets with normalized review summary defaults. (labels: upload, data, testing; commit: worktree)

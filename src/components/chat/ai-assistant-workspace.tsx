@@ -185,6 +185,8 @@ export function AiAssistantWorkspace() {
   const [datasets, setDatasets] = React.useState<DatasetOption[]>([])
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string>(() => {
     if (typeof window !== "undefined") {
+      const urlDatasetId = new URLSearchParams(window.location.search).get("datasetId")
+      if (urlDatasetId) return urlDatasetId
       return sessionStorage.getItem(ACTIVE_DATASET_ID_KEY) || ""
     }
     return ""
@@ -216,10 +218,26 @@ export function AiAssistantWorkspace() {
   const [searching, setSearching] = React.useState(false)
   const [showDataNotice, setShowDataNotice] = React.useState(true)
   const [feedbackMap, setFeedbackMap] = React.useState<Record<string, "positive" | "negative">>({})
+  const initialUrlQuestionRef = React.useRef<string | null>(null)
+  const initialUrlQuestionAskedRef = React.useRef(false)
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isAsking])
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const datasetId = params.get("datasetId")
+    const question = params.get("question")
+    if (datasetId) {
+      setSelectedDatasetId(datasetId)
+      sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, datasetId)
+    }
+    if (question?.trim()) {
+      initialUrlQuestionRef.current = question.trim()
+      setInputValue(question.trim())
+    }
+  }, [])
 
   React.useEffect(() => {
     let cancelled = false
@@ -467,6 +485,12 @@ export function AiAssistantWorkspace() {
     setInputValue(question)
     void askAssistant(question)
   }
+
+  React.useEffect(() => {
+    if (!selectedDatasetId || initialUrlQuestionAskedRef.current || !initialUrlQuestionRef.current) return
+    initialUrlQuestionAskedRef.current = true
+    void askAssistant(initialUrlQuestionRef.current)
+  }, [selectedDatasetId])
 
   const INITIAL_SUGGESTIONS = [
     "What is the total revenue?",

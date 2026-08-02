@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Pre-bookkeeping accountant exports and AI Assistant answers so reviewed transactions download in supported accounting formats and provider failures return grounded bookkeeping analysis.
 - Fix Pre-bookkeeping text invoice PDF processing so extracted supplier, invoice, date, currency, subtotal, VAT, total, and line-item data becomes a reviewable bookkeeping row.
 - Fix Accountancy review formatting so missing category, supplier, description, duplicate, or API response fields show fallbacks instead of crashing.
 - Fix Accountancy review dashboards so CSV, Excel, processing, failed, empty, and legacy datasets receive safe review summary defaults instead of crashing on missing review data.

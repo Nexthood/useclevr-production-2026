@@ -12,6 +12,8 @@ import {
   categorizePrebookkeepingRows,
   normalizePrebookkeepingCategorization,
 } from "../../src/lib/accountancy/prebookkeeping-categorization";
+import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/accountancy/prebookkeeping-ai-assistant";
+import { buildPrebookkeepingExport, PrebookkeepingExportError } from "../../src/lib/accountancy/prebookkeeping-export";
 
 const baseMeta = (uploadType: AccountancyUploadType, fileName: string, mimeType: string): AccountancyUploadMeta => ({
   fileName,
@@ -41,6 +43,8 @@ async function run() {
   await testQifBankExport();
   await testQfxBankExport();
   testPrebookkeepingCategorization();
+  testPrebookkeepingExports();
+  testPrebookkeepingAssistantFallback();
   testLegacyCategorizationReviewSummaryNormalization();
   testMalformedLegacyTransactionNormalization();
   testTwoHundredRowLedgerCategorization();
@@ -381,7 +385,7 @@ function testApiRouteWiring() {
   assert.ok(prebookkeepingPage.includes("StartCategorizationButton"), "Pre-bookkeeping page exposes a categorization action for legacy datasets");
   assert.ok(reviewRoute.includes("prebookkeepingLearningRules"), "manual category edits persist learning rules");
   assert.ok(reviewRoute.includes("prebookkeepingAuditEvents"), "review actions write audit events");
-  assert.ok(exportRoute.includes("reviewedRows"), "exports use reviewed transactions only");
+  assert.ok(exportRoute.includes("buildPrebookkeepingExport"), "exports use the dedicated reviewed-transaction export generator");
   assert.ok(reviewWorkspace.includes("AI Review Summary"), "review workspace shows AI review summary");
   assert.ok(reviewWorkspace.includes("Missing VAT"), "review workspace includes review queue filters");
   assert.ok(reviewWorkspace.includes("Confidence"), "review workspace displays prediction confidence");
@@ -413,6 +417,91 @@ function testPrebookkeepingCategorization() {
   assert.equal(summary.incomeTotal, 100);
   assert.equal(summary.expenseTotal, 112);
   assert.equal(summary.vatTaxSummary.total, 29);
+}
+
+function testPrebookkeepingExports() {
+  const categorization = normalizePrebookkeepingCategorization(categorizePrebookkeepingRows([
+    { date: "2026-01-01", description: "Customer payment INV-1", supplier: "Customer A", credit: 100, currency: "EUR", vat: 21, reference: "INV-1" },
+    { date: "2026-01-02", description: "Monthly rent", supplier: "Office Landlord", debit: 40, currency: "EUR", vat: 8, reference: "BILL-1" },
+    { date: "2026-01-03", description: "Mystery transaction", amount: -5, currency: "EUR", reference: "MISSING-CAT" },
+  ]));
+  const reviewedCategorization = {
+    ...categorization,
+    transactions: categorization.transactions.map((transaction, index) => ({
+      ...transaction,
+      reviewed: true,
+      reviewStatus: "reviewed" as const,
+      category: index === 2 ? "uncategorized" as const : transaction.category,
+      duplicateStatus: "none" as const,
+    })),
+  };
+
+  const csv = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "csv" });
+  assert.equal(csv.contentType, "text/csv; charset=utf-8");
+  assert.ok(typeof csv.body === "string" && csv.body.startsWith("\uFEFF"), "CSV exports include UTF-8 BOM");
+  assert.ok(String(csv.body).includes("Date,Description,Supplier/Customer,Amount,Debit,Credit,Currency,VAT,VAT Rate,Category,Reference,Review Status"));
+  assert.ok(String(csv.body).includes("Customer payment INV-1"));
+
+  const excel = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "excel" });
+  assert.ok(excel.body instanceof Uint8Array, "Excel export returns binary workbook");
+  const workbook = XLSX.read(excel.body, { type: "array" });
+  assert.deepEqual(workbook.SheetNames, ["Reviewed Transactions", "Summary", "VAT Summary"]);
+
+  const quickBooks = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "quickbooks" });
+  assert.ok(String(quickBooks.body).includes("Transaction Type"));
+  assert.ok(String(quickBooks.body).includes("Rent or Lease"));
+
+  const xero = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "xero" });
+  assert.ok(String(xero.body).includes("Payee"));
+  assert.ok(String(xero.body).includes("Spend Money"));
+
+  assert.throws(
+    () => buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "datev" }),
+    (error) => error instanceof PrebookkeepingExportError && error.stage === "setup",
+  );
+
+  const datevReadyCategorization = {
+    ...reviewedCategorization,
+    transactions: reviewedCategorization.transactions.map((transaction) => ({
+      ...transaction,
+      category: transaction.category === "uncategorized" ? "operating_expenses" as const : transaction.category,
+    })),
+  };
+  const datev = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: datevReadyCategorization, format: "datev" });
+  assert.ok(String(datev.body).includes("Umsatz;Soll/Haben-Kennzeichen"));
+  assert.ok(String(datev.body).includes("4980"));
+}
+
+function testPrebookkeepingAssistantFallback() {
+  const categorization = normalizePrebookkeepingCategorization(categorizePrebookkeepingRows([
+    { date: "2026-01-01", description: "Customer payment INV-1", supplier: "Customer A", credit: 100, currency: "EUR", vat: 21, reference: "INV-1" },
+    { date: "2026-01-02", description: "Monthly rent", supplier: "Office Landlord", debit: 40, currency: "EUR", reference: "BILL-1" },
+    { date: "2026-01-03", description: "Monthly rent", supplier: "Office Landlord", debit: 40, currency: "EUR", reference: "BILL-1-DUP" },
+    { date: "2026-01-04", description: "Stripe fee", supplier: "Stripe Ltd", debit: 3, currency: "EUR", reference: "FEE-1" },
+  ]));
+
+  const expenseAnswer = answerPrebookkeepingQuestionDeterministically({
+    question: "What are my largest expenses?",
+    categorization,
+  });
+  assert.ok(expenseAnswer.answer.includes("Answer\n"));
+  assert.ok(expenseAnswer.answer.includes("Evidence\n"));
+  assert.ok(expenseAnswer.answer.includes("Takeaway\n"));
+  assert.ok(expenseAnswer.answer.includes("Next action\n"));
+  assert.equal(expenseAnswer.result.type, "prebookkeeping_direct_analysis");
+
+  const duplicateAnswer = answerPrebookkeepingQuestionDeterministically({
+    question: "Show possible duplicates.",
+    categorization,
+  });
+  assert.equal(duplicateAnswer.result.intent, "duplicates");
+
+  const vatAnswer = answerPrebookkeepingQuestionDeterministically({
+    question: "Which transactions are missing VAT?",
+    categorization,
+  });
+  assert.equal(vatAnswer.result.intent, "missing_vat");
+  assert.ok(vatAnswer.answer.includes("VAT"));
 }
 
 function testLegacyCategorizationReviewSummaryNormalization() {

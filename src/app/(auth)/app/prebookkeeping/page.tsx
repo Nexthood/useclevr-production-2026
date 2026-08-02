@@ -179,7 +179,7 @@ function PrebookkeepingReviewPanel({
             <>
               <ActionLink href="#categorized-transactions" label="Review transactions" icon={<ListChecks className="h-4 w-4" />} />
               <ActionLink href="#bookkeeping-summary" label="Open bookkeeping summary" icon={<ArrowRight className="h-4 w-4" />} />
-              <ActionLink href={`/api/reports/download?datasetId=${dataset.id}&format=csv`} label="Export for accountant" icon={<Download className="h-4 w-4" />} />
+              <ActionLink href={`/api/prebookkeeping/export?datasetId=${dataset.id}&format=csv`} label="Export for accountant" icon={<Download className="h-4 w-4" />} />
               <ActionLink href={`/app/assistant?datasetId=${dataset.id}`} label="Ask AI about this dataset" icon={<Bot className="h-4 w-4" />} />
             </>
           ) : (
