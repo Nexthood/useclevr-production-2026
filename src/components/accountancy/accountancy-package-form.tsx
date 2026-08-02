@@ -204,12 +204,14 @@ export function AccountancyPackageForm({
   )
 }
 
-function escapeCsv(value: string) {
-  return `"${value.replace(/"/g, '""')}"`
+function escapeCsv(value: unknown) {
+  const safeValue = typeof value === "string" ? value : String(value ?? "")
+  return `"${safeValue.replace(/"/g, '""')}"`
 }
 
-function escapeHtml(value: string) {
-  return value
+function escapeHtml(value: unknown) {
+  const safeValue = typeof value === "string" ? value : String(value ?? "")
+  return safeValue
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

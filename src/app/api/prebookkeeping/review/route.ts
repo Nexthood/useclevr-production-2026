@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import {
   isPrebookkeepingCategorization,
+  normalizePrebookkeepingCategorization,
   normalizeReviewCategory,
   type CategorizedTransaction,
   type PrebookkeepingCategorization,
@@ -67,10 +68,11 @@ export async function PATCH(request: Request) {
     }
 
     const analysis = isRecord(dataset.analysis) ? dataset.analysis : {};
-    const categorization = analysis.prebookkeepingCategorization;
-    if (!isPrebookkeepingCategorization(categorization)) {
+    const categorizationValue = analysis.prebookkeepingCategorization;
+    if (!isPrebookkeepingCategorization(categorizationValue)) {
       return jsonError("Categorization must be completed before review edits can be saved.", 409);
     }
+    const categorization = normalizePrebookkeepingCategorization(categorizationValue);
 
     const now = new Date();
     const beforeByRow = new Map(
@@ -196,6 +198,7 @@ function rebuildCategorization(
   const reviewedCount = transactions.filter((transaction) => transaction.reviewed).length;
   const requiresReview = transactions.filter((transaction) => transaction.needsReview).length;
   const vatRows = transactions.filter((transaction) => transaction.vatStatus === "present");
+  const reviewProgressPercent = Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100);
   return {
     ...categorization,
     categoryCounts,
@@ -211,7 +214,10 @@ function rebuildCategorization(
       requiresReview,
       reviewedCount,
       vatMissingPercent: Math.round((transactions.filter((transaction) => transaction.vatStatus === "missing").length / Math.max(transactions.length, 1)) * 100),
-      reviewProgressPercent: Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100),
+      reviewProgressPercent,
+      totalCount: transactions.length,
+      progress: reviewProgressPercent,
+      status: reviewProgressPercent === 100 && transactions.length > 0 ? "ready_for_accountant" : "ready_for_review",
     },
     transactions,
   };

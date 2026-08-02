@@ -1,7 +1,9 @@
 import { getBusinessModelRedirect } from "@/lib/data/business-model";
 import {
   categorizePrebookkeepingRows,
+  createDefaultPrebookkeepingReviewSummary,
   isPrebookkeepingCategorization,
+  normalizePrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization";
 import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
@@ -391,6 +393,9 @@ export async function processAccountancyUpload(input: {
     input.datasetType === "prebookkeeping" && parsed.rows.length > 0
       ? categorizePrebookkeepingRows(parsed.rows, learningRules)
       : null;
+  const reviewSummary = prebookkeepingCategorization
+    ? prebookkeepingCategorization.reviewSummary
+    : createDefaultPrebookkeepingReviewSummary(parsed.rowCount, parsed.rowCount > 0 ? "pending" : "pending");
 
   const insertData = {
     id: datasetId,
@@ -425,6 +430,7 @@ export async function processAccountancyUpload(input: {
       documentTextStatus: parsed.documentTextStatus,
       extractedData: parsed.extractedData,
       warnings: parsed.warnings,
+      reviewSummary,
       categorizationStatus: prebookkeepingCategorization ? "ready_for_review" : undefined,
       prebookkeepingCategorization,
     },
@@ -503,7 +509,13 @@ export async function processAccountancyUpload(input: {
 async function ensureExistingPrebookkeepingCategorization(datasetId: string, analysis: unknown) {
   const existingAnalysis = isRecord(analysis) ? analysis : {};
   const existingCategorization = existingAnalysis.prebookkeepingCategorization;
-  if (isPrebookkeepingCategorization(existingCategorization)) return existingCategorization;
+  if (isPrebookkeepingCategorization(existingCategorization)) {
+    const normalized = normalizePrebookkeepingCategorization(existingCategorization);
+    if (!hasCompleteReviewSummary((existingCategorization as { reviewSummary?: unknown }).reviewSummary)) {
+      await updatePrebookkeepingCategorization(datasetId, existingAnalysis, normalized);
+    }
+    return normalized;
+  }
 
   const db = getDb();
   if (!db) return null;
@@ -519,6 +531,19 @@ async function ensureExistingPrebookkeepingCategorization(datasetId: string, ana
   if (rows.length === 0) return null;
 
   const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>));
+  await updatePrebookkeepingCategorization(datasetId, existingAnalysis, categorization);
+
+  return categorization;
+}
+
+async function updatePrebookkeepingCategorization(
+  datasetId: string,
+  existingAnalysis: Record<string, unknown>,
+  categorization: ReturnType<typeof normalizePrebookkeepingCategorization>,
+) {
+  const db = getDb();
+  if (!db) return;
+
   await db
     .update(datasets)
     .set({
@@ -527,18 +552,29 @@ async function ensureExistingPrebookkeepingCategorization(datasetId: string, ana
       analysisMessage: "Ready for review.",
       analysis: {
         ...existingAnalysis,
+        reviewSummary: categorization.reviewSummary,
         categorizationStatus: "ready_for_review",
         prebookkeepingCategorization: categorization,
       },
       updatedAt: new Date(),
     })
     .where(eq(datasets.id, datasetId));
-
-  return categorization;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function hasCompleteReviewSummary(value: unknown) {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.reviewedCount === "number" &&
+    typeof value.totalCount === "number" &&
+    typeof value.progress === "number" &&
+    typeof value.status === "string" &&
+    typeof value.transactionsAnalyzed === "number" &&
+    typeof value.reviewProgressPercent === "number"
+  );
 }
 
 function parseCsvUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
@@ -981,8 +1017,9 @@ function normalizeExcelCell(value: unknown) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function looksLikeMostlyNumeric(value: string) {
-  const compact = value.replace(/[^\dA-Za-z]/g, "");
+function looksLikeMostlyNumeric(value: unknown) {
+  const safeValue = typeof value === "string" ? value : String(value ?? "");
+  const compact = safeValue.replace(/[^\dA-Za-z]/g, "");
   if (!compact) return false;
   const digitCount = (compact.match(/\d/g) || []).length;
   return digitCount / compact.length > 0.6;

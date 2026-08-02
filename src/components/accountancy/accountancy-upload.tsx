@@ -26,6 +26,19 @@ interface UploadedFile {
   category?: string
 }
 
+type AccountancyUploadApiResponse = {
+  datasetId: string | null
+  redirectTo: string | null
+  rowsProcessed: number | null
+  extractedData: Record<string, unknown>[]
+  previewRows: Record<string, unknown>[]
+  error: string | null
+  message: string | null
+  stage: string | null
+  datasetLimit: Record<string, unknown> | null
+  usage: Record<string, unknown> | null
+}
+
 export function AccountancyUpload({
   onFilesChange,
   packageReady,
@@ -215,15 +228,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         setProcessingLabel("Ready for review")
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
 
-        const result = await response.json().catch(() => ({}))
-        const extractedData = Array.isArray(result.extractedData)
-          ? result.extractedData
-          : Array.isArray(result.preview?.rows)
-            ? result.preview.rows
-            : []
+        const result = validateUploadApiResponse(await response.json().catch(() => ({})))
+        const extractedData = result.extractedData.length > 0 ? result.extractedData : result.previewRows
 
         const newFile: UploadedFile = {
-          id: result.datasetId || fileId,
+          id: result.datasetId ?? fileId,
           name: file.name,
           type: selectedType,
           size: file.size,
@@ -242,9 +251,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           message: `${file.name}: ${result.rowsProcessed ?? extractedData.length} row(s) processed`,
         })
 
-        if (result.redirectTo) {
+        const redirectTo = result.redirectTo
+        if (redirectTo) {
           setTimeout(() => {
-            window.location.href = result.redirectTo
+            window.location.href = redirectTo
           }, 500)
         } else {
           setTimeout(() => {
@@ -254,17 +264,17 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           }, 2000)
         }
       } else {
-        const result = await response.json().catch(() => ({ error: "Upload failed" }))
+        const result = validateUploadApiResponse(await response.json().catch(() => ({ error: "Upload failed" })))
         const uploadError = result.message || result.error || "Upload failed"
-        const stage = typeof result.stage === "string" ? result.stage : ""
+        const stage = result.stage || ""
         const stagedError = stage ? `${stage}: ${uploadError}` : uploadError
 
         // Plan limits are an upgrade state, not an upload failure.
-        if (result.datasetLimit?.limitReached) {
+        if (result.datasetLimit?.limitReached === true) {
           const datasetLimit = {
-            currentCount: result.datasetLimit.currentCount,
-            limit: result.datasetLimit.limit,
-            planName: result.datasetLimit.planName || "Free",
+            currentCount: safeNumber(result.datasetLimit.currentCount) ?? 0,
+            limit: safeNumber(result.datasetLimit.limit) ?? 0,
+            planName: safeString(result.datasetLimit.planName) ?? "Free",
           }
           setUploadStatus("limit-reached")
           setLimitReachedInfo(datasetLimit)
@@ -283,10 +293,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
             message: "Upgrade to continue uploading and analyzing new datasets.",
           })
           return
-        } else if (result.usage?.limitReached) {
+        } else if (result.usage?.limitReached === true) {
           setUpgradeModalData({
-            currentCount: result.usage.analysisCount || 2,
-            limit: result.usage.total || 2,
+            currentCount: safeNumber(result.usage.analysisCount) ?? 2,
+            limit: safeNumber(result.usage.total) ?? 2,
             planName: "Free",
           })
           setUpgradeModalCopy({
@@ -676,4 +686,40 @@ function AccountancyPlanSummaryCard({
       </ul>
     </div>
   )
+}
+
+function validateUploadApiResponse(value: unknown): AccountancyUploadApiResponse {
+  const record = isRecord(value) ? value : {}
+  const preview = isRecord(record.preview) ? record.preview : {}
+
+  return {
+    datasetId: safeString(record.datasetId),
+    redirectTo: safeString(record.redirectTo),
+    rowsProcessed: safeNumber(record.rowsProcessed),
+    extractedData: arrayOfRecords(record.extractedData),
+    previewRows: arrayOfRecords(preview.rows),
+    error: safeString(record.error),
+    message: safeString(record.message),
+    stage: safeString(record.stage),
+    datasetLimit: isRecord(record.datasetLimit) ? record.datasetLimit : null,
+    usage: isRecord(record.usage) ? record.usage : null,
+  }
+}
+
+function arrayOfRecords(value: unknown) {
+  return Array.isArray(value) ? value.filter(isRecord) : []
+}
+
+function safeString(value: unknown) {
+  if (typeof value !== "string") return null
+  const text = value.trim()
+  return text.length > 0 ? text : null
+}
+
+function safeNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value))
 }

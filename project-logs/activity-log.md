@@ -180,3 +180,5 @@
 - fixed: complete Pre-bookkeeping post-upload categorization with deterministic transaction normalization, review summaries, duplicate and missing-data warnings, retry-safe reuse, and accountant export or AI actions
 - changed: add Pre-bookkeeping AI review with queue filters, confidence-backed suggestions, manual category and VAT edits, duplicate decisions, bulk review actions, reviewed-only exports, learning rules, and audit events
 - fixed: route Accountancy, Tax, Compliance, and Reporting Business Profile context through the same saved setup object used by the Business Profile wizard and remove Accountancy-specific profile loading
+- fixed: prevent Accountancy review dashboards from crashing when uploaded or legacy datasets do not contain review summary fields
+- fixed: validate Accountancy upload and review API responses and normalize missing category, supplier, description, duplicate, and VAT fields before display formatting
