@@ -884,15 +884,31 @@ function parsePdfUpload(buffer: Buffer, _meta: AccountancyUploadMeta): Accountan
     );
   }
 
-  const rows = extractedData.length > 0 ? extractedData : [{ status: "scanner_required", reason: "No embedded PDF text detected" }];
+  const rows = extractedData.length > 0
+    ? buildAccountingDocumentRows(extractedData)
+    : [{ document_status: "scanner_required", description: "OCR required", reason: "No embedded PDF text detected" }];
 
   return {
     route: scannerRequired ? "receipt_document_scanner" : uploadSpecs.pdf.route,
-    columns: ["field", "value", "confidence"],
+    columns: extractedData.length > 0
+      ? ["transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]
+      : ["document_status", "description", "reason"],
     rows,
     rowCount: rows.length,
-    columnCount: 3,
-    columnTypes: { field: "text", value: "text", confidence: "decimal" },
+    columnCount: extractedData.length > 0 ? 9 : 3,
+    columnTypes: extractedData.length > 0
+      ? {
+          transaction_date: "date",
+          description: "text",
+          supplier_customer: "text",
+          amount: "decimal",
+          currency: "text",
+          vat_tax: "decimal",
+          invoice_reference: "text",
+          subtotal: "decimal",
+          line_items: "json",
+        }
+      : { document_status: "text", description: "text", reason: "text" },
     previewRows: rows,
     extractedData,
     documentTextStatus: scannerRequired ? "scanner_required" : "embedded_text",
@@ -1127,7 +1143,69 @@ function extractAccountingFields(text: string) {
   add("subtotal", /(?:subtotal|net amount)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
   add("tax", /(?:vat|tax|gst)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
   add("total", /\b(?:total|amount due|grand total)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.85);
+  const lineItems = extractLineItems(text);
+  if (lineItems.length > 0) fields.push({ field: "lineItems", value: lineItems, confidence: 0.65 });
   return fields;
+}
+
+function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
+  const valueFor = (field: string) => extractedData.find((item) => item.field === field)?.value;
+  const supplier = stringOrNull(valueFor("supplier"));
+  const invoiceNumber = stringOrNull(valueFor("invoiceNumber"));
+  const total = parseLocalizedNumber(valueFor("total"));
+  const tax = parseLocalizedNumber(valueFor("tax"));
+  const subtotal = parseLocalizedNumber(valueFor("subtotal"));
+  const lineItems = valueFor("lineItems");
+
+  return [
+    {
+      transaction_date: stringOrNull(valueFor("date")),
+      description: [supplier, invoiceNumber ? `invoice ${invoiceNumber}` : null].filter(Boolean).join(" - ") || "Extracted accounting document",
+      supplier_customer: supplier,
+      amount: Number.isFinite(total) ? total : null,
+      currency: normalizeCurrency(valueFor("currency")),
+      vat_tax: Number.isFinite(tax) ? tax : null,
+      invoice_reference: invoiceNumber,
+      subtotal: Number.isFinite(subtotal) ? subtotal : null,
+      line_items: Array.isArray(lineItems) ? lineItems : [],
+    },
+  ];
+}
+
+function extractLineItems(text: string) {
+  const seen = new Set<string>();
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .map((line) => /^(?:item|line item)[:\s-]+(.+?)\s+(?:qty[:\s]+)?(\d+(?:[.,]\d+)?)\s+(?:total[:\s]+)?([€$£]?\s?\d[\d.,]*)$/i.exec(line))
+    .filter((match): match is RegExpExecArray => Boolean(match))
+    .map((match) => ({
+      description: match[1]?.trim() || "",
+      quantity: parseLocalizedNumber(match[2]),
+      total: parseLocalizedNumber(match[3]),
+    }))
+    .filter((item) => item.description && Number.isFinite(item.quantity) && Number.isFinite(item.total))
+    .filter((item) => {
+      const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function stringOrNull(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  return text.length > 0 ? text : null;
+}
+
+function normalizeCurrency(value: unknown) {
+  const text = stringOrNull(value);
+  if (!text) return null;
+  if (text === "€") return "EUR";
+  if (text === "$") return "USD";
+  if (text === "£") return "GBP";
+  return text.toUpperCase();
 }
 
 function inferMimeType(fileName: string) {

@@ -333,7 +333,7 @@ function detectPrebookkeepingColumns(rows: Record<string, unknown>[]) {
     credit: find(/^credit$/, /deposit|paidin|bijschrijving|moneyin/),
     amount: find(/^amount$/, /transactionamount|bedrag|value|total|gross/),
     currency: find(/currency|valuta|ccy/),
-    vatTax: find(/vatamount|taxamount|gstamount|btwamount|sales.?tax.?amount|vatvalue|taxvalue/, /^vat$|^tax$|^gst$|^btw$|sales.?tax/),
+    vatTax: find(/vattax|taxvat|vatamount|taxamount|gstamount|btwamount|sales.?tax.?amount|vatvalue|taxvalue/, /^vat$|^tax$|^gst$|^btw$|sales.?tax/),
     category: find(/^category$/, /account|ledger|classification|type/),
     invoiceReference: find(/invoice|reference|ref|document|receipt|number|transactionid/),
   };

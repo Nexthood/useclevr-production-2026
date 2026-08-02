@@ -25,6 +25,7 @@ async function run() {
   await testCommaCsv();
   await testSemicolonCsv();
   await testExcel();
+  await testLegacyXls();
   await testMultiSheetExcel();
   await testExcelRejectsNonTabularFirstSheet();
   await testExcelMergedFormattedHeaderRows();
@@ -35,7 +36,10 @@ async function run() {
   await testImageReceipts();
   await testCsvBankExport();
   await testXlsxBankExport();
+  await testXlsBankExport();
   await testOfxBankExport();
+  await testQifBankExport();
+  await testQfxBankExport();
   testPrebookkeepingCategorization();
   testLegacyCategorizationReviewSummaryNormalization();
   testMalformedLegacyTransactionNormalization();
@@ -75,6 +79,30 @@ async function testExcel() {
   assert.equal(parsed.selectedSheet, "Sheet1");
   assert.equal(parsed.rowCount, 1);
   assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
+}
+
+async function testLegacyXls() {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Notes"], ["not data"]]), "Read me");
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet([
+      ["transaction_date", "description", "debit", "credit", "currency", "balance", "reference"],
+      ["2026-01-01", "Office rent", 120, "", "EUR", 880, "INV-1"],
+      ["2026-01-02", "Customer payment", "", 250, "EUR", 1130, "INV-2"],
+    ]),
+    "Ledger",
+  );
+
+  const parsed = await parseAccountancyUploadBuffer(
+    XLSX.write(workbook, { type: "buffer", bookType: "xls" }) as Buffer,
+    baseMeta("excel", "ledger.xls", "application/vnd.ms-excel"),
+  );
+
+  assert.equal(parsed.route, "accountancy_excel_workbook_parser");
+  assert.equal(parsed.selectedSheet, "Ledger");
+  assert.equal(parsed.rowCount, 2);
+  assert.deepEqual(parsed.columns, ["transaction_date", "description", "debit", "credit", "currency", "balance", "reference"]);
 }
 
 async function testMultiSheetExcel() {
@@ -204,13 +232,29 @@ async function testExcelNoValidSheetExplainsRejectedSheets() {
 
 async function testTextPdfInvoice() {
   const pdf = Buffer.from(
-    "%PDF-1.4\n(Supplier: ACME Ltd)\n(Invoice Number: INV-1001)\n(Date: 2026-01-31)\n(Currency: EUR)\n(Subtotal: 100.00)\n(VAT: 21.00)\n(Total: 121.00)\n%%EOF",
+    "%PDF-1.4\n(Supplier: ACME Ltd)\n(Invoice Number: INV-1001)\n(Date: 2026-01-31)\n(Currency: EUR)\n(Subtotal: 100.00)\n(VAT: 21.00)\n(Total: 121.00)\n(Item: Hosting 1 100.00)\n%%EOF",
   );
   const parsed = await parseAccountancyUploadBuffer(pdf, baseMeta("pdf", "invoice.pdf", "application/pdf"));
   assert.equal(parsed.route, "accountancy_pdf_document_processor");
   assert.equal(parsed.documentTextStatus, "embedded_text");
+  assert.deepEqual(parsed.columns, ["transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]);
+  assert.equal(parsed.rows[0]?.transaction_date, "2026-01-31");
+  assert.equal(parsed.rows[0]?.supplier_customer, "ACME Ltd");
+  assert.equal(parsed.rows[0]?.invoice_reference, "INV-1001");
+  assert.equal(parsed.rows[0]?.amount, 121);
+  assert.equal(parsed.rows[0]?.currency, "EUR");
+  assert.equal(parsed.rows[0]?.vat_tax, 21);
+  assert.equal(parsed.rows[0]?.subtotal, 100);
+  assert.ok(Array.isArray(parsed.rows[0]?.line_items));
+  assert.equal((parsed.rows[0]?.line_items as Record<string, unknown>[])[0]?.description, "Hosting");
+  assert.equal((parsed.rows[0]?.line_items as Record<string, unknown>[]).length, 1);
   assert.ok(parsed.extractedData.some((field) => field.field === "invoiceNumber" && field.value === "INV-1001"));
   assert.ok(parsed.extractedData.some((field) => field.field === "total" && field.value === "121.00"));
+  assert.ok(parsed.extractedData.some((field) => field.field === "lineItems"));
+  const categorization = categorizePrebookkeepingRows(parsed.rows);
+  assert.equal(categorization.reviewSummary.totalCount, 1);
+  assert.equal(categorization.vatTaxSummary.rowsWithTax, 1);
+  assert.equal(categorization.vatTaxSummary.total, 21);
 }
 
 async function testScannedPdf() {
@@ -227,6 +271,10 @@ async function testImageReceipts() {
   const png = await parseAccountancyUploadBuffer(Buffer.from([137, 80, 78, 71]), baseMeta("receipt", "receipt.png", "image/png"));
   assert.equal(png.route, "receipt_invoice_document_scanner");
   assert.equal(png.documentTextStatus, "image_scanner");
+
+  const webp = await parseAccountancyUploadBuffer(Buffer.from("RIFF....WEBP"), baseMeta("receipt", "receipt.webp", "image/webp"));
+  assert.equal(webp.route, "receipt_invoice_document_scanner");
+  assert.equal(webp.documentTextStatus, "image_scanner");
 }
 
 async function testCsvBankExport() {
@@ -248,11 +296,43 @@ async function testXlsxBankExport() {
   assert.equal(parsed.rows[0]?.normalizedAmount, 250);
 }
 
+async function testXlsBankExport() {
+  const parsed = await parseAccountancyUploadBuffer(
+    workbookBuffer([["date", "description", "debit", "credit", "currency", "balance", "reference"], ["2026-01-01", "Bank fee", 9.99, "", "EUR", 90, "FEE-1"]], "xls"),
+    baseMeta("bank", "bank.xls", "application/vnd.ms-excel"),
+  );
+  assert.equal(parsed.route, "bank_transaction_parser");
+  assert.equal(parsed.rows[0]?.normalizedAmount, -9.99);
+  assert.equal(parsed.rows[0]?.transactionDate, "2026-01-01");
+  assert.equal(parsed.rows[0]?.transactionDescription, "Bank fee");
+  assert.equal(parsed.rows[0]?.transactionCurrency, "EUR");
+  assert.equal(parsed.rows[0]?.transactionBalance, 90);
+  assert.equal(parsed.rows[0]?.transactionReference, "FEE-1");
+}
+
 async function testOfxBankExport() {
   const ofx = Buffer.from("<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20260101<TRNAMT>-9.99<FITID>1<NAME>Bank fee</BANKTRANLIST></OFX>");
   const parsed = await parseAccountancyUploadBuffer(ofx, baseMeta("bank", "bank.ofx", "application/octet-stream"));
   assert.equal(parsed.route, "bank_transaction_parser");
   assert.equal(parsed.rows[0]?.normalizedAmount, -9.99);
+}
+
+async function testQifBankExport() {
+  const qif = Buffer.from("D01/01/2026\nT-9.99\nPBank fee\nNFEE-1\n^");
+  const parsed = await parseAccountancyUploadBuffer(qif, baseMeta("bank", "bank.qif", "application/octet-stream"));
+  assert.equal(parsed.route, "bank_transaction_parser");
+  assert.equal(parsed.rows[0]?.normalizedAmount, -9.99);
+  assert.equal(parsed.rows[0]?.transactionDescription, "Bank fee");
+  assert.equal(parsed.rows[0]?.transactionReference, "FEE-1");
+}
+
+async function testQfxBankExport() {
+  const qfx = Buffer.from("<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20260101<TRNAMT>25.00<FITID>QFX-1<NAME>Customer payment</BANKTRANLIST></OFX>");
+  const parsed = await parseAccountancyUploadBuffer(qfx, baseMeta("bank", "bank.qfx", "application/vnd.intu.qfx"));
+  assert.equal(parsed.route, "bank_transaction_parser");
+  assert.equal(parsed.rows[0]?.normalizedAmount, 25);
+  assert.equal(parsed.rows[0]?.transactionDescription, "Customer payment");
+  assert.equal(parsed.rows[0]?.transactionReference, "QFX-1");
 }
 
 function testUnsupportedFiles() {
@@ -429,10 +509,10 @@ function testTwoHundredRowLedgerCategorization() {
   assert.ok(summary.expenseTotal > 0);
 }
 
-function workbookBuffer(rows: unknown[][]) {
+function workbookBuffer(rows: unknown[][], bookType: "xlsx" | "xls" = "xlsx") {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Sheet1");
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  return XLSX.write(workbook, { type: "buffer", bookType }) as Buffer;
 }
 
 run().catch((error) => {
