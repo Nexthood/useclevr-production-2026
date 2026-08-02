@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
+  isPrebookkeepingCategorization,
   normalizePrebookkeepingCategorization,
   type CategorizedTransaction,
   type PrebookkeepingCategorization,
@@ -88,8 +89,9 @@ export function PrebookkeepingReviewWorkspace({
         body: JSON.stringify({ datasetId, ...payload }),
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || "Review update failed.");
-      setCategorization(normalizePrebookkeepingCategorization(result.categorization));
+      const validated = validateReviewApiResponse(result, response.ok);
+      if (!validated.ok) throw new Error(validated.error);
+      setCategorization(validated.categorization);
       toast({ title: toastTitle, description: "Your bookkeeping review changes were saved." });
     } catch (error) {
       toast({
@@ -356,16 +358,40 @@ function matchesFilter(row: CategorizedTransaction, filter: FilterKey) {
   return true;
 }
 
-function formatCategory(value: string) {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+function validateReviewApiResponse(value: unknown, responseOk: boolean) {
+  if (!isRecord(value)) return { ok: false as const, error: "Review update returned an invalid response." };
+  if (!responseOk || value.ok !== true) return { ok: false as const, error: safeText(value.error, "Review update failed.") };
+  if (!isPrebookkeepingCategorization(value.categorization)) {
+    return { ok: false as const, error: "Review update returned invalid categorization data." };
+  }
+  return { ok: true as const, categorization: normalizePrebookkeepingCategorization(value.categorization) };
 }
 
-function formatReviewStatus(status: string) {
+function formatCategory(value: unknown) {
+  const safeValue = safeText(value, "Uncategorized");
+  return safeValue.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatReviewStatus(status: unknown) {
   if (status === "pending") return "Loading analysis";
   if (status === "processing") return "Processing categorization";
   if (status === "failed") return "Failed to process";
   if (status === "ready_for_review") return "Ready for review";
   return "Review required before accountant export";
+}
+
+function safeText(value: unknown, fallback: string) {
+  if (typeof value === "string") {
+    const text = value.trim();
+    return text.length > 0 ? text : fallback;
+  }
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text.length > 0 ? text : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function formatMoney(value: number | null, currency: string | null) {

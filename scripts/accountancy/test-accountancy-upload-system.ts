@@ -38,6 +38,7 @@ async function run() {
   await testOfxBankExport();
   testPrebookkeepingCategorization();
   testLegacyCategorizationReviewSummaryNormalization();
+  testMalformedLegacyTransactionNormalization();
   testTwoHundredRowLedgerCategorization();
   testUnsupportedFiles();
   testUiWiring();
@@ -274,6 +275,7 @@ function testUnsupportedFiles() {
 function testUiWiring() {
   const source = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8");
   assert.ok(source.includes('fetch("/api/accountancy/upload"'), "Accountancy UI uses dedicated route");
+  assert.ok(source.includes("validateUploadApiResponse"), "Accountancy upload API responses are validated before rendering");
   assert.ok(source.includes('formData.append("uploadType", selectedType)'), "selected upload type is submitted");
   assert.ok(source.includes("resetSelectedFileState"), "tab switching clears selected file and errors");
   assert.ok(source.includes("fileInputRef.current.value = \"\""), "file input is cleared on tab switch");
@@ -303,6 +305,8 @@ function testApiRouteWiring() {
   assert.ok(reviewWorkspace.includes("AI Review Summary"), "review workspace shows AI review summary");
   assert.ok(reviewWorkspace.includes("Missing VAT"), "review workspace includes review queue filters");
   assert.ok(reviewWorkspace.includes("Confidence"), "review workspace displays prediction confidence");
+  assert.ok(reviewWorkspace.includes("validateReviewApiResponse"), "review workspace validates review API responses");
+  assert.ok(reviewWorkspace.includes('safeText(value, "Uncategorized")'), "review workspace normalizes category values before formatting");
   assert.ok(!route.includes("reserveCredits") && !processor.includes("reserveCredits"), "failed uploads do not reserve credits");
   assert.ok(!route.includes("finalizeCredits") && !processor.includes("finalizeCredits"), "Accountancy upload route does not finalize credits");
 }
@@ -339,12 +343,46 @@ function testLegacyCategorizationReviewSummaryNormalization() {
   const legacy = { ...summary };
   delete (legacy as { reviewSummary?: unknown }).reviewSummary;
 
-  const normalized = normalizePrebookkeepingCategorization(legacy);
+  const normalized = normalizePrebookkeepingCategorization(
+    legacy as Parameters<typeof normalizePrebookkeepingCategorization>[0],
+  );
   assert.equal(normalized.reviewSummary.reviewedCount, 0);
   assert.equal(normalized.reviewSummary.totalCount, 2);
   assert.equal(normalized.reviewSummary.progress, 0);
   assert.equal(normalized.reviewSummary.status, "ready_for_review");
   assert.equal(normalized.reviewSummary.transactionsAnalyzed, 2);
+}
+
+function testMalformedLegacyTransactionNormalization() {
+  const summary = categorizePrebookkeepingRows([
+    { date: "2026-01-01", description: "Customer payment", credit: 100, currency: "EUR" },
+  ]);
+  const legacy = {
+    ...summary,
+    transactions: [
+      {
+        rowIndex: 0,
+        description: undefined,
+        supplierCustomer: undefined,
+        category: undefined,
+        suggestedCategory: undefined,
+        duplicateStatus: undefined,
+        confidence: undefined,
+        reviewed: false,
+      },
+    ],
+  };
+
+  const normalized = normalizePrebookkeepingCategorization(
+    legacy as unknown as Parameters<typeof normalizePrebookkeepingCategorization>[0],
+  );
+  assert.equal(normalized.transactions[0]?.category, "uncategorized");
+  assert.equal(normalized.transactions[0]?.suggestedCategory, null);
+  assert.equal(normalized.transactions[0]?.description, null);
+  assert.equal(normalized.transactions[0]?.supplierCustomer, null);
+  assert.equal(normalized.transactions[0]?.duplicateStatus, "none");
+  assert.equal(normalized.transactions[0]?.vatStatus, "missing");
+  assert.equal(normalized.reviewSummary.totalCount, 1);
 }
 
 function testTwoHundredRowLedgerCategorization() {

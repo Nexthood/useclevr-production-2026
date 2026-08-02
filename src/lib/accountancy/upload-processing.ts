@@ -1017,8 +1017,9 @@ function normalizeExcelCell(value: unknown) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function looksLikeMostlyNumeric(value: string) {
-  const compact = value.replace(/[^\dA-Za-z]/g, "");
+function looksLikeMostlyNumeric(value: unknown) {
+  const safeValue = typeof value === "string" ? value : String(value ?? "");
+  const compact = safeValue.replace(/[^\dA-Za-z]/g, "");
   if (!compact) return false;
   const digitCount = (compact.match(/\d/g) || []).length;
   return digitCount / compact.length > 0.6;

@@ -101,8 +101,9 @@ function csvCell(value: unknown) {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-function safeFileName(value: string) {
-  return value.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "prebookkeeping";
+function safeFileName(value: unknown) {
+  const safeValue = typeof value === "string" ? value : String(value ?? "");
+  return safeValue.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "prebookkeeping";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1605,3 +1605,36 @@ Debit and credit normalization must ignore zero-valued opposite-side columns so 
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Replace Crash Fix
+
+1. Interaction title
+Accountancy replace crash fix.
+
+2. What was the user goal
+Fix the Accountancy runtime crash that reported `can't access property "replace", e is undefined` after CSV or Excel upload.
+
+3. What changed
+The Pre-bookkeeping review workspace now validates review API responses before updating client state, normalizes categorization data once, and formats category labels only after converting missing values into an explicit fallback. Accountancy upload API responses now pass through a runtime validator before the UI uses dataset ids, redirect URLs, row counts, preview rows, staged errors, or limit metadata. Accountancy export and package helpers normalize unknown values before filename, CSV, and HTML escaping. The categorization normalizer now rebuilds transaction rows with safe string, number, category, duplicate, VAT, confidence, and review-status defaults so malformed or legacy rows load without display crashes.
+
+4. Problems marked
+blocker: none.
+risk: Browser-only hard-refresh validation still depends on a signed-in deployed session and representative uploaded files.
+observation: The exact crash path is `src/components/accountancy/prebookkeeping-review-workspace.tsx`, original `formatCategory(value: string)` at line 359/360. The minified variable `e` is the `value` argument, which becomes undefined when persisted or API transaction JSON lacks both `suggestedCategory` and `category`.
+
+5. User learning
+Missing Accountancy category, supplier, description, duplicate, VAT, or API response fields now show safe fallbacks instead of crashing the review screen.
+
+6. AI-agent learning
+Runtime API payloads must be treated as unknown data even when TypeScript models say a field is a string.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
