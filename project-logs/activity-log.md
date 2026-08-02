@@ -182,3 +182,4 @@
 - fixed: route Accountancy, Tax, Compliance, and Reporting Business Profile context through the same saved setup object used by the Business Profile wizard and remove Accountancy-specific profile loading
 - fixed: prevent Accountancy review dashboards from crashing when uploaded or legacy datasets do not contain review summary fields
 - fixed: validate Accountancy upload and review API responses and normalize missing category, supplier, description, duplicate, and VAT fields before display formatting
+- fixed: validate Pre-bookkeeping upload parser paths across CSV, Excel, PDF, receipt, invoice, and bank-export formats, and turn text invoice PDF extraction into reviewable bookkeeping rows

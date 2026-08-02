@@ -45,6 +45,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-975. Pre-bookkeeping validation covers CSV, Excel, PDF, receipt, invoice, and bank-export parser paths, and text invoice PDFs produce reviewable bookkeeping rows. (labels: upload, data, testing; commit: worktree)
 - T-974. Accountancy upload and review responses validate API data and normalize missing transaction strings before display formatting. (labels: upload, data, quality, testing; commit: worktree)
 - T-973. Accountancy review dashboards load CSV, Excel, processing, failed, empty, and legacy datasets with normalized review summary defaults. (labels: upload, data, testing; commit: worktree)
 - T-972. Accountancy, Tax, Compliance, and Reporting read Business Profile context from the same saved setup object as the Business Profile wizard. (labels: business, upload, testing; commit: worktree)

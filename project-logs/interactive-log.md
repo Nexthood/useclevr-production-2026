@@ -1638,3 +1638,37 @@ Runtime API payloads must be treated as unknown data even when TypeScript models
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Upload Validation
+
+1. Interaction title
+Pre-bookkeeping upload validation.
+
+2. What was the user goal
+Validate the production Pre-bookkeeping upload system across CSV, Excel, PDF, receipts, invoices, and bank exports without assuming any upload type works.
+
+3. What changed
+The Accountancy upload regression matrix now covers CSV, semicolon CSV, XLSX, legacy XLS, multi-sheet workbook selection, formatted header rows, Excel, Google Sheets, and LibreOffice-style workbooks, text invoice PDFs, scanned-PDF scanner routing, JPG, PNG, WEBP receipt routing, CSV bank exports, XLSX bank exports, XLS bank exports, OFX, QIF, and QFX bank exports. Text invoice PDF extraction now builds a single reviewable bookkeeping row containing transaction date, description, supplier or customer, amount, currency, VAT or tax, invoice reference, subtotal, and line items while preserving extracted field metadata. Pre-bookkeeping categorization recognizes `vat_tax` as a VAT/tax column.
+
+4. Problems marked
+blocker: Authenticated production upload validation is not complete from this session because no signed-in browser session or reusable production cookies are available, and Railway log access returns unauthorized through the CLI.
+risk: Scanned PDFs and image receipts still route to the document scanner placeholder because the source tree does not include an OCR engine or external OCR adapter.
+observation: The deployed test application health endpoint returns 200 with database status healthy, and unauthenticated `/api/accountancy/upload` requests return 401 as expected.
+
+5. User learning
+Text invoice PDFs now become reviewable Pre-bookkeeping rows instead of field-value metadata rows.
+
+6. AI-agent learning
+Validation for document uploads must use real generated PDFs in addition to fake text PDF buffers, because PDF text extraction can behave differently across encodings and streams.
+
+7. Follow-up tasks
+- Add or connect a production OCR adapter for scanned PDFs and image receipts before marking those document paths fully complete. (labels: upload, data)
+- Run authenticated browser uploads against the deployed test application with representative files and capture Railway request logs for `/api/accountancy/upload`. (labels: upload, deployment, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
