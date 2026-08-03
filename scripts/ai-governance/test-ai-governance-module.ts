@@ -46,10 +46,29 @@ const schemaSource = readFileSync("src/lib/db/schema.ts", "utf8")
 assert.ok(schemaSource.includes("AiGovernanceOverride"), "schema includes AI governance override table")
 assert.ok(schemaSource.includes("aiGovernanceOverrideActions"), "schema constrains override actions")
 const predeploySource = readFileSync("scripts/runtime/railway-predeploy.cjs", "utf8")
+for (const migration of [
+  "0004_byoai_provider_config.sql",
+  "0005_ai_provider_manager.sql",
+  "0006_ai_provider_priority.sql",
+  "0007_ai_request_audit_logs.sql",
+  "0016_byok_provider_audit_metadata.sql",
+  "0021_ai_governance_fresh_install_support.sql",
+  "0020_ai_governance_overrides.sql",
+]) {
+  assert.ok(predeploySource.includes(migration), `Railway predeploy applies ${migration}`)
+}
+assert.ok(
+  predeploySource.indexOf("0021_ai_governance_fresh_install_support.sql") <
+    predeploySource.indexOf("0020_ai_governance_overrides.sql"),
+  "Railway predeploy creates AI interaction traces before governance overrides reference them",
+)
 assert.ok(predeploySource.includes("0020_ai_governance_overrides.sql"), "Railway predeploy applies AI Governance override migration")
 const governanceServiceSource = readFileSync("src/lib/ai-governance/governance-service.ts", "utf8")
 assert.ok(governanceServiceSource.includes("safeGetOverrideStats"), "AI Governance renders fallback override stats when override table is absent")
+assert.ok(governanceServiceSource.includes("snapshot-build"), "AI Governance has a top-level snapshot render fallback")
 assert.ok(governanceServiceSource.includes("logGovernanceDataError"), "AI Governance logs failed data source stages with stack details")
+const freshInstallMigration = readFileSync("src/lib/db/migrations/0021_ai_governance_fresh_install_support.sql", "utf8")
+assert.ok(freshInstallMigration.includes('CREATE TABLE IF NOT EXISTS "AiInteractionTrace"'), "fresh install migration creates AI interaction traces")
 
 for (const route of ["overview", "audit-log", "provider-status", "settings", "overrides", "reports"]) {
   const routeSource = readFileSync(`src/app/api/ai-governance/${route}/route.ts`, "utf8")
