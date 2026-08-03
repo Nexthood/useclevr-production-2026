@@ -188,3 +188,4 @@
 - changed: add AI Governance with transparency metadata, provider status, audit logs, policies, privacy and compliance dashboards, human override logging, governance reports, and assistant response controls
 - fixed: prevent AI Governance server rendering from crashing when the override table or other governance data sources are absent, and include the override-table migration in Railway predeploy
 - fixed: require Pre-bookkeeping exports to use an explicit filtered, reviewed, or all-transaction scope so CSV and Excel row counts match the chosen review table set
+- fixed: stabilize AI Governance fresh-install rendering by applying AI provider, audit-log, interaction-trace, and governance-override table dependencies during Railway predeploy

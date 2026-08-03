@@ -88,6 +88,7 @@ into the active queue.
 
 ## Label: deployment
 
+- Add a migration coverage check that verifies every table read by release-blocking Server Components has an idempotent fresh-install SQL path. (labels: deployment, testing, stability)
 - Align Drizzle migration journal metadata with source SQL migrations 0005 through 0015 so the primary migration command can apply current database changes noninteractively. (labels: deployment, data, workflow)
 - Prepare Payload and Fumadocs migration notes only. Map current app structure to future `apps/web` and `apps/docs`, but do not migrate until Railway deploy is stable. (labels: deployment, dashboard, ui, docs)
 - Add verified root scripts for `dev:web`, `dev:docs`, `build:web`, `build:docs`, `lint:web`, and `lint:docs`, and keep the existing deploy flow unchanged. (labels: deployment, ci-build, docs, workflow)

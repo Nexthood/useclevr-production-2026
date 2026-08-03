@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-03
-- **Goal**: Fix the Pre-bookkeeping export pipeline row-count mismatch.
-- **Durable change**: Pre-bookkeeping CSV and Excel exports require an explicit export scope for current filtered rows, reviewed transactions, or all transactions; filtered exports send row indexes to the backend, Excel files contain Transactions, Summary, and VAT Summary sheets, and unsupported accountant-package exports show Coming soon.
-- **Verification**: Accountancy upload/export regression script, TypeScript, focused ESLint, and diff whitespace checks passed.
+- **Goal**: Stabilize AI Governance server rendering on fresh installations.
+- **Durable change**: Railway predeploy applies the AI provider, audit-log, interaction-trace, and governance-override table dependencies before AI Governance reads them, and the governance snapshot builder returns default empty-state data if any unexpected snapshot assembly failure occurs.
+- **Verification**: Local dev route request, direct server snapshot stack capture, all-section server render smoke, AI Governance regression script, TypeScript, focused ESLint, dist config validation, and production build passed.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

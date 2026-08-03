@@ -1474,6 +1474,40 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## AI Governance Fresh-install Render Stabilization
+
+1. Interaction title
+AI Governance fresh-install render stabilization.
+
+2. What was the user goal
+Make AI Governance load successfully on a completely fresh installation and capture the real local server stack instead of relying on a production digest.
+
+3. What changed
+Railway predeploy now applies the AI provider configuration migrations, AI request audit-log migrations, the BYOK audit metadata migration, the AI interaction trace fresh-install support migration, and the AI Governance override migration in dependency order. A new idempotent migration creates `AiInteractionTrace`, which was present in the Drizzle schema but missing from SQL migrations. The governance snapshot loader now has a top-level `snapshot-build` fallback that returns normalized empty governance data if any unexpected assembly failure escapes the per-query guards.
+
+4. Problems marked
+observation: Local unauthenticated `/app/ai-governance` returned a 307 redirect before rendering, so the authenticated crash path was reproduced by invoking `getAiGovernanceSnapshot({ id: "local-admin", role: "superadmin" })` and server-rendering every AI Governance section.
+observation: The captured stack showed missing-table query failures from `listPublicAiProviderConfigs()` at `src/lib/ai/byoai-provider.ts:256`, `listAiRequestAuditLogs()` through `safeListAudit()`, `safeListTraces()` at `src/lib/ai-governance/governance-service.ts`, and `getOverrideStats()` at `src/lib/ai-governance/governance-service.ts`.
+observation: The failing queries read `AiProviderConfig`, `AiRequestAuditLog`, `AiInteractionTrace`, and `AiGovernanceOverride`; Railway predeploy previously applied only the override migration from that dependency set.
+root-cause: `AiInteractionTrace` existed in `src/lib/db/schema.ts` but no SQL migration created it, and `0020_ai_governance_overrides.sql` references it with a foreign key.
+
+5. User learning
+AI Governance fresh installs require the complete AI governance dependency table chain, not only the final override table.
+
+6. AI-agent learning
+Fresh-install validation for Server Components must exercise the authenticated loader directly when local browser access redirects before rendering.
+
+7. Follow-up tasks
+- Add a dedicated migration coverage check that verifies every table read by release-blocking Server Components has an idempotent fresh-install SQL path. (labels: deployment, testing, stability)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Pre-bookkeeping Export Pipeline Row Counts
 
 1. Interaction title

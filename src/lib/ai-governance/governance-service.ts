@@ -55,41 +55,68 @@ export type AiGovernanceOverrideInput = {
 }
 
 export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
-  const [providers, settings, auditEntries, traces, overrideStats] = await Promise.all([
-    safeListProviders(user.id),
-    safeGetGovernanceSettings(user.id),
-    safeListAudit(user, 100),
-    safeListTraces(user, 50),
-    safeGetOverrideStats(user),
-  ])
+  try {
+    const [providers, settings, auditEntries, traces, overrideStats] = await Promise.all([
+      safeListProviders(user.id),
+      safeGetGovernanceSettings(user.id),
+      safeListAudit(user, 100),
+      safeListTraces(user, 50),
+      safeGetOverrideStats(user),
+    ])
 
-  const providerStats = summarizeProviders(providers)
-  const auditStats = summarizeAudit(auditEntries, traces, overrideStats.totalOverrides)
-  const privacy = buildPrivacyPosture(settings, providers)
+    return buildGovernanceSnapshot({
+      providers,
+      settings,
+      auditEntries,
+      traces,
+      overrideStats,
+    })
+  } catch (error) {
+    logGovernanceDataError("snapshot-build", error)
+    return buildGovernanceSnapshot({
+      providers: [],
+      settings: defaultGovernanceSettings("automatic", [], true),
+      auditEntries: [],
+      traces: [],
+      overrideStats: emptyOverrideStats(),
+    })
+  }
+}
+
+function buildGovernanceSnapshot(input: {
+  providers: PublicAiProviderConfig[]
+  settings: AiGovernanceSettings
+  auditEntries: Awaited<ReturnType<typeof listAiRequestAuditLogs>>
+  traces: Awaited<ReturnType<typeof safeListTraces>>
+  overrideStats: Awaited<ReturnType<typeof safeGetOverrideStats>>
+}) {
+  const providerStats = summarizeProviders(input.providers)
+  const auditStats = summarizeAudit(input.auditEntries, input.traces, input.overrideStats.totalOverrides)
+  const privacy = buildPrivacyPosture(input.settings, input.providers)
   const risk = buildRiskPosture(auditStats, providerStats, privacy)
   const compliance = buildComplianceScore({
-    auditLogged: auditEntries.length > 0 || traces.length > 0,
+    auditLogged: input.auditEntries.length > 0 || input.traces.length > 0,
     providerMonitoring: providerStats.total > 0,
-    humanOversight: overrideStats.totalOverrides > 0,
+    humanOversight: input.overrideStats.totalOverrides > 0,
     privacyConfigured: privacy.items.some((item) => item.status === "Configured"),
-    feedbackAvailable: traces.some((trace) => trace.feedback),
+    feedbackAvailable: input.traces.some((trace) => trace.feedback),
     policiesAvailable: true,
   })
 
   return {
     generatedAt: new Date().toISOString(),
-    settings,
+    settings: input.settings,
     providers: providerStats,
     audit: auditStats,
     privacy,
     risk,
     compliance,
-    recentTraces: traces.map(toTraceSummary),
-    recentAuditEntries: auditEntries.map(toAuditSummary),
-    overrides: overrideStats,
+    recentTraces: input.traces.map(toTraceSummary),
+    recentAuditEntries: input.auditEntries.map(toAuditSummary),
+    overrides: input.overrideStats,
     policies: getAiGovernancePolicies(),
     literacy: getAiLiteracyContent(),
-    reports: buildReports(auditEntries, traces, providers, compliance.score),
+    reports: buildReports(input.auditEntries, input.traces, input.providers, compliance.score),
   }
 }
 

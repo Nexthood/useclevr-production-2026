@@ -294,10 +294,16 @@ function readMigrationStatement(relativePath) {
 }
 
 const migrationStatements = [
+  readMigrationStatement("src/lib/db/migrations/0004_byoai_provider_config.sql"),
+  readMigrationStatement("src/lib/db/migrations/0005_ai_provider_manager.sql"),
+  readMigrationStatement("src/lib/db/migrations/0006_ai_provider_priority.sql"),
+  readMigrationStatement("src/lib/db/migrations/0007_ai_request_audit_logs.sql"),
   readMigrationStatement("src/lib/db/migrations/0015_retail_pos_integrations.sql"),
+  readMigrationStatement("src/lib/db/migrations/0016_byok_provider_audit_metadata.sql"),
   readMigrationStatement("src/lib/db/migrations/0017_square_provider_environment.sql"),
   readMigrationStatement("src/lib/db/migrations/0018_business_profile_ssot.sql"),
   readMigrationStatement("src/lib/db/migrations/0019_prebookkeeping_review_learning.sql"),
+  readMigrationStatement("src/lib/db/migrations/0021_ai_governance_fresh_install_support.sql"),
   readMigrationStatement("src/lib/db/migrations/0020_ai_governance_overrides.sql"),
 ];
 
