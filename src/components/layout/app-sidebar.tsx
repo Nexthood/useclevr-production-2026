@@ -21,6 +21,8 @@ import {
   Tag,
   Users,
   X,
+  Activity,
+  Gauge,
 } from "lucide-react";
 import type { Session } from "next-auth";
 import Link from "next/link";
@@ -45,8 +47,6 @@ type NavigationItem = {
 const primaryNavigation: NavigationItem[] = [
   { name: "Dashboard", href: "/app", icon: BarChart3 },
   { name: "Datasets", href: "/app/datasets", icon: Database },
-  { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
-  { name: "AI Governance", href: "/app/ai-governance", icon: ShieldCheck },
   { name: "Risk Intelligence", href: "/app/risk-intelligence", icon: ShieldAlert },
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Business", href: "/app/business", icon: Building2 },
@@ -55,14 +55,22 @@ const primaryNavigation: NavigationItem[] = [
   { name: "Referral", href: "/app/referral", icon: Gift },
 ];
 
+const aiNavigation: NavigationItem[] = [
+  { name: "AI Assistant", href: "/app/assistant", icon: Sparkles },
+  { name: "AI Governance", href: "/app/ai-governance", icon: ShieldCheck },
+];
+
+const adminAiNavigation: NavigationItem[] = [
+  { name: "AI Traces", href: "/app/admin/ai-traces", icon: Activity },
+  { name: "AI Benchmarking", href: "/app/admin/ai-benchmarking", icon: Gauge },
+  { name: "AI Cost Optimizer", href: "/app/admin/ai-cost-optimizer", icon: BarChart3 },
+];
+
 const adminNavigation: NavigationItem[] = [
   { name: "Customers", href: "/app/admin/customers", icon: Users },
   { name: "Customer Levels", href: "/app/admin/levels", icon: Award },
   { name: "Discount Rules", href: "/app/admin/discounts", icon: Tag },
   { name: "Billing Settings", href: "/app/admin/billing-settings", icon: CreditCard },
-  { name: "AI Cost Optimizer", href: "/app/admin/ai-cost-optimizer", icon: BarChart3 },
-  { name: "AI Traces", href: "/app/admin/ai-traces", icon: BarChart3 },
-  { name: "AI Benchmarking", href: "/app/admin/ai-benchmarking", icon: BarChart3 },
   { name: "MCP Tokens", href: "/app/admin/mcp-tokens", icon: KeyRound },
 ];
 
@@ -111,10 +119,9 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
     if (item.name === "Retail") return { ...item, status: retailStatus }
     return item
   })
-  const navigationItems =
-    user.role === "superadmin" ? [...navigationWithStatus, ...adminNavigation] : navigationWithStatus;
-  const dashboardItem = navigationItems[0];
-  const remainingNavigationItems = navigationItems.slice(1);
+  const dashboardItem = navigationWithStatus[0];
+  const workspaceNavigationItems = navigationWithStatus.slice(1);
+  const aiNavigationItems = user.role === "superadmin" ? [...aiNavigation, ...adminAiNavigation] : aiNavigation;
 
   const sidebarContent = (
     <>
@@ -153,20 +160,29 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
           </div>
         )}
 
-        {remainingNavigationItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const href = !hasUnlimitedAdminAccess && item.status && !isStatusComplete(item.status) ? item.status.hrefWhenIncomplete : item.href
-          return (
-            <SidebarLink
-              key={item.name}
-              item={item}
-              href={href}
-              isActive={isActive}
-              isCollapsed={isCollapsed}
-              forceComplete={hasUnlimitedAdminAccess}
-            />
-          );
-        })}
+        <SidebarGroup
+          label="AI"
+          items={aiNavigationItems}
+          pathname={pathname}
+          isCollapsed={isCollapsed}
+          hasUnlimitedAdminAccess={hasUnlimitedAdminAccess}
+        />
+        <SidebarGroup
+          label="Workspace"
+          items={workspaceNavigationItems}
+          pathname={pathname}
+          isCollapsed={isCollapsed}
+          hasUnlimitedAdminAccess={hasUnlimitedAdminAccess}
+        />
+        {user.role === "superadmin" && (
+          <SidebarGroup
+            label="Admin"
+            items={adminNavigation}
+            pathname={pathname}
+            isCollapsed={isCollapsed}
+            hasUnlimitedAdminAccess={hasUnlimitedAdminAccess}
+          />
+        )}
       </nav>
 
       <div className="space-y-3 border-t border-sidebar-border p-4">
@@ -228,6 +244,47 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
       )}
     </>
   );
+}
+
+function SidebarGroup({
+  label,
+  items,
+  pathname,
+  isCollapsed,
+  hasUnlimitedAdminAccess,
+}: {
+  label: string
+  items: NavigationItem[]
+  pathname: string
+  isCollapsed: boolean
+  hasUnlimitedAdminAccess: boolean
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <div className="space-y-1 pt-3 first:pt-0">
+      {!isCollapsed && (
+        <p className="px-3 text-[11px] font-semibold uppercase text-sidebar-foreground/55">{label}</p>
+      )}
+      {items.map((item) => {
+        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+        const href =
+          !hasUnlimitedAdminAccess && item.status && !isStatusComplete(item.status)
+            ? item.status.hrefWhenIncomplete
+            : item.href
+        return (
+          <SidebarLink
+            key={item.name}
+            item={item}
+            href={href}
+            isActive={isActive}
+            isCollapsed={isCollapsed}
+            forceComplete={hasUnlimitedAdminAccess}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 function SidebarLink({

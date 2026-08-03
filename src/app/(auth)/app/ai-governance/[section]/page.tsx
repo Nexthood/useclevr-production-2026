@@ -1,4 +1,8 @@
-import { AiGovernanceView, normalizeGovernanceSection } from "@/components/ai-governance/governance-view"
+import {
+  AiGovernanceHeaderActions,
+  AiGovernanceView,
+  normalizeGovernanceSection,
+} from "@/components/ai-governance/governance-view"
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { auth } from "@/lib/auth/auth"
 import { getAiGovernanceSnapshot } from "@/lib/ai-governance/governance-service"
@@ -34,6 +38,7 @@ export default async function AiGovernanceSectionPage({ params }: PageProps) {
         { label: "AI Governance", href: "/app/ai-governance" },
         { label: activeSection.replaceAll("-", " ") },
       ]}
+      actions={<AiGovernanceHeaderActions activeSection={activeSection} />}
     >
       <AiGovernanceView activeSection={activeSection} snapshot={snapshot} />
     </DashboardSubpageLayout>
