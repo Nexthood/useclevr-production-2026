@@ -1,13 +1,15 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
 
 import { formatAiProviderLimit, getHybridAiEntitlement, canUseHybridAiFeature } from "../../src/lib/hybrid-ai/features"
 import {
   calculateRiskIntelligence,
+  getDatasetSourceHref,
   isSupportedRiskDatasetType,
   type RiskDataRow,
   type RiskDatasetInput,
 } from "../../src/lib/risk-intelligence/risk-engine"
-import { canAccessRiskDataset } from "../../src/lib/risk-intelligence/risk-service"
+import { canAccessRiskDataset, normalizeRiskModuleScope, riskScopeEmptyMessage } from "../../src/lib/risk-intelligence/risk-service"
 
 function buildDataset(overrides: Partial<RiskDatasetInput> = {}): RiskDatasetInput {
   return {
@@ -181,5 +183,32 @@ assert.equal(
 assert.equal(canAccessRiskDataset({ id: "user_a", role: "user", email: "a@example.com" }, "user_a"), true, "owner can access dataset")
 assert.equal(canAccessRiskDataset({ id: "user_a", role: "user", email: "a@example.com" }, "user_b"), false, "normal users cannot access another user's dataset")
 assert.equal(canAccessRiskDataset({ id: "user_a", role: "user", email: "superadmin@useclevr.com" }, "user_b"), true, "official superadmin can access managed datasets")
+
+assert.equal(normalizeRiskModuleScope("pre-bookkeeping"), "prebookkeeping", "risk scope normalizes pre-bookkeeping")
+assert.equal(normalizeRiskModuleScope("retail"), "retail", "risk scope normalizes retail")
+assert.equal(normalizeRiskModuleScope("unknown"), null, "unknown risk scope is rejected")
+assert.equal(
+  riskScopeEmptyMessage("prebookkeeping"),
+  "No Pre-bookkeeping dataset available. Upload an accounting file first.",
+  "pre-bookkeeping scope has a module-specific empty state",
+)
+assert.equal(
+  getDatasetSourceHref("acct_123", "prebookkeeping"),
+  "/app/prebookkeeping?datasetId=acct_123",
+  "pre-bookkeeping risk source links back to the selected pre-bookkeeping dataset",
+)
+
+const riskServiceSource = readFileSync("src/lib/risk-intelligence/risk-service.ts", "utf8")
+const riskPageSource = readFileSync("src/app/(auth)/app/risk-intelligence/page.tsx", "utf8")
+const prebookkeepingPageSource = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8")
+const accountancyUploadSource = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8")
+assert.ok(riskServiceSource.includes("scope ? eq(datasets.datasetType, scope)"), "risk dataset list filters by dataset_type scope")
+assert.ok(riskServiceSource.includes("datasetId ? eq(datasets.id, datasetId)"), "risk dataset list filters by current dataset ID when supplied")
+assert.ok(riskServiceSource.includes("dedupeByDatasetId"), "risk dataset list deduplicates by immutable dataset ID")
+assert.ok(riskServiceSource.includes("isVisibleRiskDataset"), "risk dataset list hides test and seed records from production selectors")
+assert.ok(riskPageSource.includes('params?.scope || "standard"'), "risk page defaults to standard scope instead of every user dataset")
+assert.ok(riskPageSource.includes("datasetId: params?.datasetId || null"), "risk page scopes the selector to the supplied dataset ID")
+assert.ok(prebookkeepingPageSource.includes("scope=prebookkeeping"), "pre-bookkeeping review links risk intelligence with pre-bookkeeping scope")
+assert.ok(accountancyUploadSource.includes("useclevr_active_prebookkeeping_dataset_id"), "successful pre-bookkeeping upload persists active dataset ID")
 
 console.log("Risk Intelligence engine tests passed.")

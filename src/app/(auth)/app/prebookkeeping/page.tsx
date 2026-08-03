@@ -13,7 +13,7 @@ import { resolveDatasetType } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
-import { ArrowRight, Bot, Download, FileText, ListChecks, Upload } from "lucide-react"
+import { ArrowRight, Bot, Download, FileText, ListChecks, ShieldAlert, Upload } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
@@ -181,6 +181,7 @@ function PrebookkeepingReviewPanel({
               <ActionLink href="#bookkeeping-summary" label="Open bookkeeping summary" icon={<ArrowRight className="h-4 w-4" />} />
               <ActionLink href={`/api/prebookkeeping/export?datasetId=${dataset.id}&format=csv`} label="Export for accountant" icon={<Download className="h-4 w-4" />} />
               <ActionLink href={`/app/assistant?datasetId=${dataset.id}`} label="Ask AI about this dataset" icon={<Bot className="h-4 w-4" />} />
+              <ActionLink href={`/app/risk-intelligence?datasetId=${dataset.id}&scope=prebookkeeping`} label="Open Risk Intelligence" icon={<ShieldAlert className="h-4 w-4" />} />
             </>
           ) : (
             <StartCategorizationButton datasetId={dataset.id} />

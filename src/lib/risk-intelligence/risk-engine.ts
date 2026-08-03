@@ -624,7 +624,8 @@ export function getDatasetSourceHref(datasetId: string, datasetType?: string | n
   const normalized = normalizeDatasetType(datasetType)
   if (normalized === "retail") return "/app/retail"
   if (normalized === "profitability") return "/app/upload"
-  if (normalized === "accountancy" || normalized === "prebookkeeping") return "/app/accountancy"
+  if (normalized === "prebookkeeping") return `/app/prebookkeeping?datasetId=${encoded}`
+  if (normalized === "accountancy") return `/app/accountancy?datasetId=${encoded}`
   return `/app/datasets/${encoded}/analyze`
 }
 

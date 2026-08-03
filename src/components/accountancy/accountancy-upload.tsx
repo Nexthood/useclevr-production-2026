@@ -16,6 +16,8 @@ import * as React from "react"
 type UploadType = "csv" | "excel" | "pdf" | "receipt" | "bank"
 type AccountancyUploadDatasetType = "accountancy" | "prebookkeeping"
 
+const ACTIVE_PREBOOKKEEPING_DATASET_ID_KEY = "useclevr_active_prebookkeeping_dataset_id"
+
 interface UploadedFile {
   id: string
   name: string
@@ -230,6 +232,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
         const result = validateUploadApiResponse(await response.json().catch(() => ({})))
         const extractedData = result.extractedData.length > 0 ? result.extractedData : result.previewRows
+        if (datasetType === "prebookkeeping" && result.datasetId) {
+          sessionStorage.setItem(ACTIVE_PREBOOKKEEPING_DATASET_ID_KEY, result.datasetId)
+          localStorage.setItem(ACTIVE_PREBOOKKEEPING_DATASET_ID_KEY, result.datasetId)
+        }
 
         const newFile: UploadedFile = {
           id: result.datasetId ?? fileId,

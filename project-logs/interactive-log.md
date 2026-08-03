@@ -1705,3 +1705,36 @@ Pre-bookkeeping assistant questions must prefer deterministic dataset calculatio
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Risk Intelligence Dataset Scoping
+
+1. Interaction title
+Risk Intelligence dataset scoping and stale dataset leakage.
+
+2. What was the user goal
+Limit Accountancy and Pre-bookkeeping Risk Intelligence to the newly uploaded or explicitly selected Pre-bookkeeping dataset, prevent cross-module dataset leakage, hide stale test records, and keep risk calculation isolated to one dataset and one module scope.
+
+3. What changed
+Risk Intelligence dataset listing now accepts a module scope and selected dataset ID, filters by authenticated tenant unless the user can read all datasets, filters by `dataset_type`, excludes deleted and archived records, hides test, seed, demo, sample, codex, and known provider-path records from production selectors, and deduplicates by immutable dataset ID. Risk calculation now rejects scope mismatches, hidden test records, deleted records, archived records, and unsupported dataset types before loading rows. The Risk Intelligence page defaults to the Standard scope, preserves scope in selector links, shows a Pre-bookkeeping-specific empty state, and uses the requested dataset ID before falling back to the latest valid dataset in scope. Pre-bookkeeping review actions link Risk Intelligence with `datasetId=<current_dataset_id>&scope=prebookkeeping`, and successful Pre-bookkeeping uploads persist the active dataset ID in browser storage for current-session navigation.
+
+4. Problems marked
+observation: The leakage root cause was the Risk Intelligence list query loading broad user datasets, loading every dataset for superadmin, and selecting the first supported dataset without module or selected-dataset scope.
+observation: The duplicate-display root cause in code was an unscoped selector without immutable ID dedupe. If production contains two distinct database records named `10_accountancy_ledger`, both are legitimate history records and require explicit admin cleanup rather than automatic deletion.
+risk: Authenticated production UI validation is not complete from this session because no reusable signed-in production session is available inside the workspace.
+
+5. User learning
+Accountancy Risk Intelligence opens from Pre-bookkeeping with the current dataset ID and does not fall back to Retail, Startup, Standard, test, seed, or stale datasets.
+
+6. AI-agent learning
+Risk and analytics selectors must treat module scope and selected dataset ID as required request constraints rather than optional UI hints.
+
+7. Follow-up tasks
+- Add an admin dataset cleanup action for explicitly marking stale test or seed datasets outside production selectors. (labels: data, upload, workflow)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
