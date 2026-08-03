@@ -1,4 +1,8 @@
-import { AiGovernanceView, normalizeGovernanceSection } from "@/components/ai-governance/governance-view"
+import {
+  AiGovernanceHeaderActions,
+  AiGovernanceView,
+  normalizeGovernanceSection,
+} from "@/components/ai-governance/governance-view"
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { auth } from "@/lib/auth/auth"
 import { getAiGovernanceSnapshot } from "@/lib/ai-governance/governance-service"
@@ -28,12 +32,13 @@ export default async function AiGovernanceSectionPage({ params }: PageProps) {
   return (
     <DashboardSubpageLayout
       title="AI Governance"
-      description="EU AI Act readiness controls for transparency, oversight, privacy, provider health, audit logs, and reporting."
+      description="EU AI Act readiness, transparency, oversight, privacy, provider monitoring, and auditability."
       breadcrumbs={[
         { label: "Dashboard", href: "/app" },
         { label: "AI Governance", href: "/app/ai-governance" },
         { label: activeSection.replaceAll("-", " ") },
       ]}
+      actions={<AiGovernanceHeaderActions activeSection={activeSection} />}
     >
       <AiGovernanceView activeSection={activeSection} snapshot={snapshot} />
     </DashboardSubpageLayout>

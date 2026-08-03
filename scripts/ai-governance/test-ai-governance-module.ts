@@ -20,6 +20,16 @@ for (const section of requiredSections) {
   assert.ok(governanceViewSource.includes(`slug: "${section}"`), `AI Governance exposes ${section} page section`)
 }
 assert.ok(governanceViewSource.includes('return found?.slug || "overview"'), "unknown governance route falls back to overview")
+assert.ok(governanceViewSource.includes("max-w-[1360px]"), "AI Governance uses a centered production content width")
+assert.ok(governanceViewSource.includes("Export compliance report"), "AI Governance header includes compliance report export")
+assert.ok(governanceViewSource.includes("Configure AI"), "AI Governance header includes provider configuration action")
+assert.ok(governanceViewSource.includes("Refresh status"), "AI Governance header includes status refresh action")
+assert.ok(governanceViewSource.includes("aria-current"), "AI Governance segmented navigation exposes the active page")
+assert.ok(governanceViewSource.includes("Compliance readiness"), "AI Governance overview includes readiness context")
+assert.ok(governanceViewSource.includes("Control matrix"), "AI Governance overview includes the control matrix")
+assert.ok(governanceViewSource.includes("AI-generated response"), "AI Governance overview includes the AI transparency example")
+assert.ok(governanceViewSource.includes("Report center"), "AI Governance reports page is presented as a report center")
+assert.ok(governanceViewSource.includes("No AI requests recorded"), "AI Governance renders useful empty states")
 for (const policy of ["Transparency Policy", "Privacy Policy", "AI Usage Policy", "Acceptable Use Policy"]) {
   assert.ok(readFileSync("src/lib/ai-governance/governance-service.ts", "utf8").includes(policy), `AI governance includes ${policy}`)
 }
@@ -30,6 +40,13 @@ for (const literacy of ["How AI Works", "Limitations", "Confidence", "Verificati
 const sidebarSource = readFileSync("src/components/layout/app-sidebar.tsx", "utf8")
 assert.ok(sidebarSource.includes('name: "AI Governance"'), "sidebar includes AI Governance")
 assert.ok(sidebarSource.includes('href: "/app/ai-governance"'), "sidebar links to AI Governance overview")
+assert.ok(sidebarSource.includes("const aiNavigation"), "sidebar groups AI Assistant and AI Governance")
+assert.ok(sidebarSource.includes("const adminAiNavigation"), "sidebar groups admin AI tools")
+assert.ok(sidebarSource.includes("showLabel={false}"), "sidebar keeps AI tools grouped without a visible AI label")
+assert.ok(!sidebarSource.includes('label="AI"'), "sidebar does not render a visible AI group label")
+for (const item of ["AI Assistant", "AI Governance", "AI Traces", "AI Benchmarking", "AI Cost Optimizer"]) {
+  assert.ok(sidebarSource.includes(`name: "${item}"`), `AI sidebar group includes ${item}`)
+}
 
 const assistantSource = readFileSync("src/components/chat/ai-assistant-workspace.tsx", "utf8")
 assert.ok(assistantSource.includes("AI-generated"), "assistant responses display AI-generated label")

@@ -534,6 +534,8 @@ moving work between states.
 
 ## Label: ui
 
+- T-983. Polish AI Governance spacing, status hierarchy, readiness visualization, control matrix balance, compact metrics, and sidebar density. (labels: ui, ai, accessibility; commit: worktree)
+- T-982. Redesign AI Governance with compact status badges, segmented navigation, readiness controls, report cards, useful empty states, and a grouped AI sidebar section. (labels: ui, ai, accessibility; commit: worktree)
 - Add reduced motion accessibility toggle in theme switcher with `.reduced-motion` CSS override. (labels: ui, accessibility; commit: worktree)
 - Add TOCs to MCP documentation files for improved navigation. (labels: ui, docs; commit: worktree)
 

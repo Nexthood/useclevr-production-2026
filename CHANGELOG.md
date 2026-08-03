@@ -23,6 +23,8 @@
 
 ### Changed
 
+- Polish AI Governance spacing, status hierarchy, compact metrics, readiness visualization, control cards, and sidebar density so the module feels sharper on desktop and tablet.
+- Redesign AI Governance with compact readiness cards, segmented navigation, report center states, useful empty states, and a grouped AI sidebar section so governance review feels production-ready.
 - Add AI Governance so users can review AI transparency, provider health, model metadata, audit activity, privacy posture, human oversight, policies, compliance readiness, feedback, and governance reports from one workspace module.
 - Route Dataset AI metric questions through intent classification and deterministic metric resolution so average order value, order counts, customer rankings, margin questions, risks, trends, forecasts, and comparisons answer the requested metric or explain the missing data instead of returning a generic revenue summary.
 - Add the Business Intelligence universal forecast and scenario engine so datasets receive explainable business forecasts, confidence intervals, scenario comparisons, uncertainty warnings, statistics, plugin registration, and future forecasting extension points from EDIE, KPI, insight, and recommendation profiles.

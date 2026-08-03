@@ -189,3 +189,5 @@
 - fixed: prevent AI Governance server rendering from crashing when the override table or other governance data sources are absent, and include the override-table migration in Railway predeploy
 - fixed: require Pre-bookkeeping exports to use an explicit filtered, reviewed, or all-transaction scope so CSV and Excel row counts match the chosen review table set
 - fixed: stabilize AI Governance fresh-install rendering by applying AI provider, audit-log, interaction-trace, and governance-override table dependencies during Railway predeploy
+- changed: redesign AI Governance with compact readiness status, sticky segmented navigation, report center cards, transparency metadata, useful empty states, and a grouped AI sidebar section
+- changed: polish AI Governance with denser sidebar spacing, stronger tabs, compact activity metrics, larger readiness visualization, equal-height control cards, and consistent status colors

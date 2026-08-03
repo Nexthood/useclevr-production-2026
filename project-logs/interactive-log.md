@@ -1872,3 +1872,66 @@ New runtime tables must be added to the Railway predeploy migration list in addi
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Interface Redesign
+
+1. Interaction title
+AI Governance production SaaS UI redesign.
+
+2. What was the user goal
+Redesign AI Governance so the module feels like a compact production compliance and AI operations workspace while preserving existing routes, data loaders, report actions, tenant isolation, and superadmin behavior.
+
+3. What changed
+AI Governance now uses a centered 1360px content width, compact live status badges, sticky horizontally scrollable segmented navigation, four KPI cards, a readiness visualization with contextual next action, a control matrix, a compact AI-generated response transparency example, improved provider/model/audit/privacy/risk/feedback cards, and a report center that disables report generation when meaningful data is unavailable. The app sidebar now groups AI Assistant, AI Governance, AI Traces, AI Benchmarking, and AI Cost Optimizer under one AI section for superadmin users, while regular users see AI Assistant and AI Governance together.
+
+4. Problems marked
+observation: The route wrapper already renders the semantic AI Governance page heading, so the redesigned module places the export, configuration, and refresh actions in the shared page header and keeps the content header focused on live status data to avoid duplicate headings.
+observation: Local server-render smoke used safe dummy environment values and confirmed every Governance section renders even when backend reads fail and the snapshot service falls back to empty-state data.
+
+5. User learning
+AI Governance presents current governance readiness, provider state, audit availability, privacy posture, human oversight, and reports in a denser production interface without fabricating unavailable data.
+
+6. AI-agent learning
+When a submodule is wrapped by `DashboardSubpageLayout`, page-level actions should live in `AppPageHeader` and module content should avoid repeating the same top-level heading.
+
+7. Follow-up tasks
+- Capture visual screenshots for AI Governance at desktop, tablet, and mobile widths in an authenticated browser session. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance UI Polish
+
+1. Interaction title
+AI Governance final visual polish.
+
+2. What was the user goal
+Refine the AI Governance interface visually without changing functionality, routes, data loaders, or report behavior.
+
+3. What changed
+The visible AI sidebar label is removed while the AI links stay grouped, the space after Dashboard is reduced, the page description is shorter, the Governance status bar is tighter, the segmented navigation has larger tabs and a stronger active state, the duplicated overview KPI cards are replaced with a compact activity strip, the Compliance readiness visualization is larger and better balanced with its text and action, the Control Matrix cards use equal-height rows, and the status system uses Ready as green, Needs setup as blue, Needs data as amber, Warning as yellow, and Error as red.
+
+4. Problems marked
+observation: The render smoke used dummy local database settings, so the governance data-source fallback logs appeared by design and every Governance tab still rendered.
+
+5. User learning
+AI Governance keeps the same working data and actions while the visual hierarchy is denser and more enterprise-ready.
+
+6. AI-agent learning
+Visual polish passes should remove visible labels exactly when requested, including sidebar group labels that were helpful structurally but noisy in the final UI.
+
+7. Follow-up tasks
+- Capture authenticated visual screenshots for AI Governance desktop and tablet widths after the next deployed build is available. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
