@@ -48,6 +48,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-985. Keep Retail Square OAuth authorization, callback, and post-callback redirects on the deployed app host so the flow does not jump to an unserved apex domain. (labels: upload, payment, auth, testing; commit: worktree)
 - T-984. Start Retail Square OAuth through a server-side redirect route and use the canonical production callback URL for both authorization and token exchange. (labels: upload, payment, auth, testing; commit: worktree)
 - T-980. Pre-bookkeeping exports require an explicit selected row scope and generate CSV or Excel files whose transaction rows match the chosen filtered, reviewed, or complete dataset count. (labels: upload, reports, testing; commit: worktree)
 - T-977. Scope Risk Intelligence dataset selection and calculation to the requested module and selected dataset so Accountancy and Pre-bookkeeping risk views exclude stale, test, duplicate, and cross-module datasets. (labels: upload, data, testing; commit: worktree)

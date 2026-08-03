@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Retail Square OAuth routing so Connect, callback, token exchange, and return redirects stay on the deployed app host instead of sending users to an unserved apex route.
 - Fix Retail Square Connect so OAuth starts through the server redirect flow and production uses the canonical Square callback URL.
 - Fix AI Governance fresh-install rendering by applying its provider, audit, trace, and override table dependencies before the workspace reads governance data.
 - Fix Pre-bookkeeping exports so users choose filtered, reviewed, or all transactions and CSV or Excel downloads contain the exact selected row count.

@@ -1474,6 +1474,39 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Retail Square OAuth LiteSpeed 404 Fix
+
+1. Interaction title
+Retail Square OAuth deployed-host redirect fix.
+
+2. What was the user goal
+Investigate the full Square Connect redirect chain and fix the LiteSpeed 404 that appears after the browser leaves the deployed UseClevr app host.
+
+3. What changed
+Square OAuth callback URL generation now accepts the active request URL. The Connect route passes its request URL into Square config resolution, the callback route passes its request URL into token exchange config resolution, and the Square connector validates authorization and token-exchange redirect URIs against that same request-aware callback. Square callback result redirects also use the callback request host, so test-host callbacks return to test-host Retail Integrations.
+
+4. Problems marked
+observation: Direct live checks show `https://useclevr.com/api/integrations/retail/square/connect` and `https://useclevr.com/api/integrations/retail/square/callback` return HTTP 404 from LiteSpeed, which proves the apex domain is not serving the Next.js API routes.
+observation: Direct live checks show `https://test.useclevr.com/api/integrations/retail/square/connect` returns HTTP 401 from Next.js when unauthenticated, and `https://test.useclevr.com/api/integrations/retail/square/callback?error=access_denied&error_description=test` reaches Next.js before redirecting, which proves the App Router routes are deployed on the test host.
+observation: The previous production callback helper always resolved production Square OAuth to `https://useclevr.com/api/integrations/retail/square/callback`, so a Connect click from the test deployment generated a Square flow that could return to an unserved apex host.
+
+5. User learning
+Square OAuth is not failing at the provider layer in this case; the browser reaches a missing host route because `useclevr.com` is still served outside the deployed Next.js application.
+
+6. AI-agent learning
+OAuth callback and post-callback redirect helpers must preserve the request host for test deployments when production provider endpoints are used before the apex domain migration is complete.
+
+7. Follow-up tasks
+- Verify the deployed Square Connect flow in an authenticated test browser session after beta deploys and ensure the Square Developer Dashboard includes the active callback host used by that deployment. (labels: payment, auth, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Retail Square OAuth Redirect Fix
 
 1. Interaction title

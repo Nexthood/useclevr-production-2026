@@ -3,6 +3,7 @@ import {
   getSquareCallbackUrl,
   logSquareOAuthDiagnostics,
   requireSquareRedirectUri,
+  type SquareOAuthUrlOptions,
   type SquareEnvironment,
 } from "./square-oauth";
 
@@ -27,14 +28,14 @@ const squareEnvironmentConfig: Record<SquareEnvironment, { oauthHost: string; ap
   },
 };
 
-export function getSquareConfig() {
+export function getSquareConfig(options: SquareOAuthUrlOptions = {}) {
   const environment = readSquareEnvironment(process.env.SQUARE_ENVIRONMENT);
   const endpointConfig = squareEnvironmentConfig[environment];
   const oauthBaseUrl = `https://${endpointConfig.oauthHost}/oauth2`;
   const apiBaseUrl = `https://${endpointConfig.apiHost}/v2`;
   const applicationId = process.env.SQUARE_APPLICATION_ID?.trim();
   const applicationSecret = process.env.SQUARE_APPLICATION_SECRET?.trim();
-  const redirectUri = getSquareCallbackUrl(environment);
+  const redirectUri = getSquareCallbackUrl(environment, options);
   const webhookNotificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL?.trim();
   const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY?.trim();
 
@@ -55,8 +56,8 @@ export function getSquareConfig() {
   };
 }
 
-export function requireSquareOAuthConfig() {
-  const config = getSquareConfig();
+export function requireSquareOAuthConfig(options: SquareOAuthUrlOptions = {}) {
+  const config = getSquareConfig(options);
   if (!config.applicationId || !config.applicationSecret) {
     throw new SquareOAuthConfigurationError("square_config_missing", "Square OAuth is not configured.");
   }
@@ -68,7 +69,7 @@ export function requireSquareOAuthConfig() {
   }
   assertSquareApplicationIdMatchesEnvironment(config.applicationId, config.environment);
   assertSquareApplicationSecretMatchesEnvironment(config.applicationSecret, config.environment);
-  requireSquareRedirectUri(config.environment);
+  requireSquareRedirectUri(config.environment, options);
   logSquareOAuthDiagnostics({
     environment: config.environment,
     authorizationUrl: config.authorizationUrl,
