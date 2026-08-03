@@ -2,7 +2,9 @@ import { auth } from "@/lib/auth/auth";
 import { isPrebookkeepingCategorization } from "@/lib/accountancy/prebookkeeping-categorization";
 import {
   buildPrebookkeepingExport,
+  isPrebookkeepingExportScope,
   isPrebookkeepingExportFormat,
+  isSupportedPrebookkeepingExportFormat,
   PrebookkeepingExportError,
 } from "@/lib/accountancy/prebookkeeping-export";
 import { resolveDatasetType } from "@/lib/data/dataset-category";
@@ -23,8 +25,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const datasetId = searchParams.get("datasetId") || "";
   const format = searchParams.get("format") || "csv";
+  const scope = searchParams.get("scope") || "reviewed";
+  const rowIndexes = parseRowIndexes(searchParams.get("rowIndexes"));
   if (!datasetId || !isPrebookkeepingExportFormat(format)) {
     return NextResponse.json({ error: "A supported export format and dataset ID are required." }, { status: 400 });
+  }
+  if (!isPrebookkeepingExportScope(scope)) {
+    return NextResponse.json({ error: "A supported export scope is required." }, { status: 400 });
+  }
+  if (!isSupportedPrebookkeepingExportFormat(format)) {
+    return NextResponse.json({ error: `${format.toUpperCase()} export is coming soon.`, stage: "setup" }, { status: 501 });
   }
 
   const db = getDb();
@@ -34,6 +44,8 @@ export async function GET(request: Request) {
     requestId,
     datasetId,
     format,
+    scope,
+    requestedRowCount: rowIndexes.length,
     userId,
     route: "/api/prebookkeeping/export",
     stage: "load_dataset",
@@ -68,6 +80,8 @@ export async function GET(request: Request) {
       datasetName: dataset.name,
       categorization,
       format,
+      scope,
+      rowIndexes,
     });
 
     await db.update(datasets).set({
@@ -80,6 +94,7 @@ export async function GET(request: Request) {
             requestId,
             filename: exportResult.filename,
             rowCount: exportResult.rowCount,
+            requestedRowCount: scope === "filtered" ? rowIndexes.length : exportResult.rowCount,
           },
         ].slice(-20),
       },
@@ -90,7 +105,9 @@ export async function GET(request: Request) {
       requestId,
       datasetId,
       format,
+      scope,
       rowCount: exportResult.rowCount,
+      requestedRowCount: scope === "filtered" ? rowIndexes.length : exportResult.rowCount,
       userId,
       stage: "generation",
     });
@@ -124,6 +141,14 @@ export async function GET(request: Request) {
     });
     return NextResponse.json({ error: message, stage, requestId }, { status });
   }
+}
+
+function parseRowIndexes(value: string | null) {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isInteger(item) && item >= 0);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

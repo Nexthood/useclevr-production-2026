@@ -298,6 +298,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0017_square_provider_environment.sql"),
   readMigrationStatement("src/lib/db/migrations/0018_business_profile_ssot.sql"),
   readMigrationStatement("src/lib/db/migrations/0019_prebookkeeping_review_learning.sql"),
+  readMigrationStatement("src/lib/db/migrations/0020_ai_governance_overrides.sql"),
 ];
 
 const constraints = [

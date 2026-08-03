@@ -6,8 +6,11 @@ import {
 import * as XLSX from "xlsx";
 
 export const prebookkeepingExportFormats = ["csv", "excel", "datev", "quickbooks", "xero"] as const;
+export const supportedPrebookkeepingExportFormats = ["csv", "excel"] as const;
 
 export type PrebookkeepingExportFormat = (typeof prebookkeepingExportFormats)[number];
+export type SupportedPrebookkeepingExportFormat = (typeof supportedPrebookkeepingExportFormats)[number];
+export type PrebookkeepingExportScope = "filtered" | "reviewed" | "all";
 
 export type PrebookkeepingExportResult = {
   body: string | Uint8Array;
@@ -17,7 +20,9 @@ export type PrebookkeepingExportResult = {
   rowCount: number;
   metadata: {
     generatedAt: string;
+    selectedRows: number;
     reviewedRows: number;
+    scope: PrebookkeepingExportScope;
     format: PrebookkeepingExportFormat;
   };
 };
@@ -37,25 +42,36 @@ export function isPrebookkeepingExportFormat(value: unknown): value is Prebookke
   return prebookkeepingExportFormats.includes(value as PrebookkeepingExportFormat);
 }
 
+export function isSupportedPrebookkeepingExportFormat(value: unknown): value is SupportedPrebookkeepingExportFormat {
+  return supportedPrebookkeepingExportFormats.includes(value as SupportedPrebookkeepingExportFormat);
+}
+
+export function isPrebookkeepingExportScope(value: unknown): value is PrebookkeepingExportScope {
+  return value === "filtered" || value === "reviewed" || value === "all";
+}
+
 export function buildPrebookkeepingExport(input: {
   datasetName: string;
   categorization: PrebookkeepingCategorization;
   format: PrebookkeepingExportFormat;
+  scope?: PrebookkeepingExportScope;
+  rowIndexes?: number[];
 }): PrebookkeepingExportResult {
   const categorization = normalizePrebookkeepingCategorization(input.categorization);
-  const rows = categorization.transactions.filter((transaction) =>
-    transaction.reviewed && transaction.duplicateStatus !== "merged"
-  );
+  const scope = input.scope || "reviewed";
+  const rows = selectTransactionsForExport(categorization.transactions, scope, input.rowIndexes);
 
   if (rows.length === 0) {
-    throw new PrebookkeepingExportError("validation", "Review at least one transaction before exporting.");
+    throw new PrebookkeepingExportError("validation", emptyExportMessage(scope));
   }
 
   const filenameBase = safeFileName(input.datasetName);
   const generatedAt = new Date().toISOString();
   const metadata = {
     generatedAt,
-    reviewedRows: rows.length,
+    selectedRows: rows.length,
+    reviewedRows: rows.filter((transaction) => transaction.reviewed).length,
+    scope,
     format: input.format,
   };
 
@@ -116,6 +132,25 @@ export function buildPrebookkeepingExport(input: {
   };
 }
 
+function selectTransactionsForExport(
+  transactions: CategorizedTransaction[],
+  scope: PrebookkeepingExportScope,
+  rowIndexes: number[] = [],
+) {
+  if (scope === "filtered") {
+    const selected = new Set(rowIndexes.filter((rowIndex) => Number.isInteger(rowIndex)));
+    return transactions.filter((transaction) => selected.has(transaction.rowIndex));
+  }
+  if (scope === "all") return transactions;
+  return transactions.filter((transaction) => transaction.reviewed);
+}
+
+function emptyExportMessage(scope: PrebookkeepingExportScope) {
+  if (scope === "filtered") return "No filtered transactions are available for export.";
+  if (scope === "all") return "No transactions are available for export.";
+  return "No reviewed transactions are available for export.";
+}
+
 function buildAccountantCsvRows(rows: CategorizedTransaction[]) {
   return rows.map((transaction) => ({
     Date: transaction.transactionDate || "",
@@ -135,9 +170,10 @@ function buildAccountantCsvRows(rows: CategorizedTransaction[]) {
 
 function buildExcelWorkbook(rows: CategorizedTransaction[], categorization: PrebookkeepingCategorization) {
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(buildAccountantCsvRows(rows)), "Reviewed Transactions");
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(buildAccountantCsvRows(rows)), "Transactions");
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([
-    { Metric: "Reviewed transactions", Value: rows.length },
+    { Metric: "Exported transactions", Value: rows.length },
+    { Metric: "Reviewed transactions", Value: rows.filter((row) => row.reviewed).length },
     { Metric: "Income total", Value: categorization.incomeTotal },
     { Metric: "Expense total", Value: categorization.expenseTotal },
     { Metric: "Uncategorized count", Value: categorization.uncategorizedCount },

@@ -31,6 +31,8 @@ moving work between states.
 
 ## Label: ai
 
+- T-979. Prevent AI Governance server rendering from crashing when governance tables, settings, providers, audit logs, traces, or override records are missing, and apply the override-table migration during Railway predeploy. (labels: ai, stability, deployment, testing; commit: worktree)
+- T-978. Add AI Governance pages, APIs, audit reports, provider status, privacy and compliance readiness, human override controls, and assistant transparency metadata for EU AI Act preparation. (labels: ai, security, reporting, testing; commit: worktree)
 - T-962. Classify selected-dataset AI Analyst questions before calculation and resolve requested business metrics with deterministic answers or precise missing-data explanations. (labels: ai, data, metrics, testing; commit: worktree)
 
 ## Label: docs
@@ -45,6 +47,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-980. Pre-bookkeeping exports require an explicit selected row scope and generate CSV or Excel files whose transaction rows match the chosen filtered, reviewed, or complete dataset count. (labels: upload, reports, testing; commit: worktree)
 - T-977. Scope Risk Intelligence dataset selection and calculation to the requested module and selected dataset so Accountancy and Pre-bookkeeping risk views exclude stale, test, duplicate, and cross-module datasets. (labels: upload, data, testing; commit: worktree)
 - T-976. Pre-bookkeeping accountant exports generate reviewed CSV, Excel, DATEV, QuickBooks, and Xero files from the selected dataset, and bookkeeping assistant questions return deterministic dataset-grounded answers when providers are unavailable. (labels: upload, ai, reports, testing; commit: worktree)
 - T-975. Pre-bookkeeping validation covers CSV, Excel, PDF, receipt, invoice, and bank-export parser paths, and text invoice PDFs produce reviewable bookkeeping rows. (labels: upload, data, testing; commit: worktree)

@@ -42,6 +42,7 @@ type DatasetOption = {
 type AssistantMessage = {
   id: string
   traceId?: string
+  datasetId?: string
   role: "user" | "assistant"
   content: string
   insight?: string
@@ -59,6 +60,7 @@ type AssistantMessage = {
   replyToId?: string
   deterministicAnalysis?: SegmentDeclineAnalysisPayload
   analyticalResult?: SupportedAnalyticalResult
+  generatedAt?: string
 }
 
 type ProviderStatus = {
@@ -68,6 +70,8 @@ type ProviderStatus = {
   fallbackActive: boolean
   route?: "local" | "cloud" | "direct" | "none"
 }
+
+type OverrideAction = "accept" | "reject" | "edit" | "undo"
 
 type HistoryEntry = {
   id: string
@@ -218,6 +222,7 @@ export function AiAssistantWorkspace() {
   const [searching, setSearching] = React.useState(false)
   const [showDataNotice, setShowDataNotice] = React.useState(true)
   const [feedbackMap, setFeedbackMap] = React.useState<Record<string, "positive" | "negative">>({})
+  const [overrideMap, setOverrideMap] = React.useState<Record<string, OverrideAction>>({})
   const initialUrlQuestionRef = React.useRef<string | null>(null)
   const initialUrlQuestionAskedRef = React.useRef(false)
 
@@ -339,6 +344,7 @@ export function AiAssistantWorkspace() {
         const assistantMessage: AssistantMessage = {
           id: `assistant-error-${Date.now()}`,
           traceId: typeof body.traceId === "string" ? body.traceId : undefined,
+          datasetId: selectedDatasetId || undefined,
           role: "assistant",
           content: errorMessage,
           error: errorMessage,
@@ -349,6 +355,7 @@ export function AiAssistantWorkspace() {
           modelName: typeof body.modelName === "string" ? body.modelName : undefined,
           providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
           privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
+          generatedAt: new Date().toISOString(),
         }
         setMessages((current) => [...current, assistantMessage])
         return
@@ -357,6 +364,7 @@ export function AiAssistantWorkspace() {
       const assistantMessage: AssistantMessage = {
         id: `assistant-${Date.now()}`,
         traceId: typeof body.traceId === "string" ? body.traceId : undefined,
+        datasetId: selectedDatasetId || undefined,
         role: "assistant",
         replyToId: userMessageId,
         content: responseText(body),
@@ -371,6 +379,7 @@ export function AiAssistantWorkspace() {
         modelName: typeof body.modelName === "string" ? body.modelName : undefined,
         providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
         privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
+        generatedAt: new Date().toISOString(),
       }
 
       setMessages((current) => [...current, assistantMessage])
@@ -405,6 +414,27 @@ export function AiAssistantWorkspace() {
         body: JSON.stringify({ traceId, feedback }),
       })
     } catch { /* ignore */ }
+  }
+
+  async function recordOverride(message: AssistantMessage, action: OverrideAction) {
+    setOverrideMap((prev) => ({ ...prev, [message.id]: action }))
+    const editedValue = action === "edit" ? window.prompt("Edit this AI suggestion before using it.", message.content) : null
+    try {
+      await fetch("/api/ai-governance/overrides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          traceId: message.traceId,
+          datasetId: message.datasetId,
+          action,
+          originalValue: message.content,
+          editedValue,
+          reason: action === "accept" ? "User accepted AI suggestion" : action === "undo" ? "User undid a prior AI decision" : undefined,
+        }),
+      })
+    } catch (error) {
+      debugError("[AI_GOVERNANCE] Override feedback failed", error)
+    }
   }
 
   async function reRunQuestion(prompt: string) {
@@ -601,6 +631,9 @@ export function AiAssistantWorkspace() {
                       <Sparkles className="h-4 w-4 text-primary" />
                       AI Analyst
                       <span className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+                        <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          AI-generated
+                        </span>
                         {message.providerName && (
                           <span className="text-[10px] font-normal text-muted-foreground">
                             Using: {message.providerName}
@@ -623,6 +656,10 @@ export function AiAssistantWorkspace() {
                         )}
                       </span>
                     </div>
+                  )}
+
+                  {message.role === "assistant" && !message.error && (
+                    <AiGovernanceMetadata message={message} />
                   )}
 
                   {message.role === "assistant" && message.error && (
@@ -685,7 +722,23 @@ export function AiAssistantWorkspace() {
 
                   {/* Feedback buttons */}
                   {message.role === "assistant" && !message.error && (
-                    <div className="mt-3 flex items-center gap-2 border-t border-border/30 pt-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/30 pt-2">
+                      <span className="mr-1 text-[10px] font-medium uppercase text-muted-foreground">Human control</span>
+                      {(["accept", "reject", "edit", "undo"] as const).map((action) => (
+                        <button
+                          key={action}
+                          type="button"
+                          onClick={() => recordOverride(message, action)}
+                          className={`rounded border px-2 py-1 text-[10px] font-medium transition ${
+                            overrideMap[message.id] === action
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                          }`}
+                        >
+                          {action === "accept" ? "Accept" : action === "reject" ? "Reject" : action === "edit" ? "Edit" : "Undo"}
+                        </button>
+                      ))}
+                      <span className="ml-auto text-[10px] font-medium uppercase text-muted-foreground">Feedback</span>
                       <button
                         type="button"
                         onClick={() => sendFeedback(message.traceId, "positive")}
@@ -1020,6 +1073,46 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
       </div>
     </div>
   )
+}
+
+function AiGovernanceMetadata({ message }: { message: AssistantMessage }) {
+  const route = message.providerStatus?.route
+  const mode =
+    route === "local"
+      ? "Local AI"
+      : route === "cloud"
+        ? message.providerStatus?.fallbackActive
+          ? "Hybrid AI"
+          : "Cloud AI"
+        : route === "direct"
+          ? "Direct Data Analysis"
+          : "Hybrid AI"
+  const confidence = estimateMessageConfidence(message)
+  const generatedAt = message.generatedAt ? new Date(message.generatedAt).toLocaleString() : new Date().toLocaleString()
+  const reasoningSummary =
+    message.explanation ||
+    (message.deterministicAnalysis || message.analyticalResult
+      ? "Answer uses deterministic calculations from the selected dataset."
+      : message.providerStatus?.message || "Answer uses the configured AI routing policy and available dataset context.")
+
+  return (
+    <div className="mb-3 grid gap-2 rounded-md border border-border bg-background/70 p-2 text-[11px] text-muted-foreground sm:grid-cols-2">
+      <span><strong className="text-foreground">Provider:</strong> {message.providerName || "Direct Data Analysis"}</span>
+      <span><strong className="text-foreground">Model:</strong> {message.modelName || "Deterministic engine"}</span>
+      <span><strong className="text-foreground">Mode:</strong> {mode}</span>
+      <span><strong className="text-foreground">Confidence:</strong> {confidence}%</span>
+      <span><strong className="text-foreground">Generated:</strong> {generatedAt}</span>
+      <span><strong className="text-foreground">Reason:</strong> {reasoningSummary}</span>
+    </div>
+  )
+}
+
+function estimateMessageConfidence(message: AssistantMessage) {
+  if (message.deterministicAnalysis || message.analyticalResult || message.providerStatus?.route === "direct") return 94
+  if (message.providerStatus?.state === "connection_healthy") return 88
+  if (message.providerStatus?.state === "fallback_active") return 82
+  if (message.providerStatus?.state === "provider_unavailable" || message.providerStatus?.state === "local_unavailable") return 58
+  return 75
 }
 
 function errorExplanation(message: AssistantMessage) {

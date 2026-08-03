@@ -259,6 +259,7 @@ into the active queue.
 - Add upload progress tracking with resumable uploads for large files. (labels: upload, api)
 - Implement upload file validation beyond extension (MIME type, content inspection). (labels: upload, api)
 - Connect a production OCR adapter for scanned PDFs and image receipts so Pre-bookkeeping can extract document fields instead of only routing files to scanner status. (labels: upload, data)
+- Complete production-grade DATEV, QuickBooks, and Xero export mapping setup before enabling those Pre-bookkeeping export buttons. (labels: upload, reports, testing)
 - Run authenticated browser upload validation against the deployed test application with representative CSV, Excel, PDF, receipt, invoice, and bank-export files, and capture request logs for `/api/accountancy/upload`. (labels: upload, deployment, testing)
 
 ## Label: workflow

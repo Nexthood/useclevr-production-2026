@@ -185,3 +185,6 @@
 - fixed: validate Pre-bookkeeping upload parser paths across CSV, Excel, PDF, receipt, invoice, and bank-export formats, and turn text invoice PDF extraction into reviewable bookkeeping rows
 - fixed: generate Pre-bookkeeping accountant exports from reviewed transactions for CSV, Excel, DATEV, QuickBooks, and Xero, route export actions through the selected dataset, and answer bookkeeping assistant questions with deterministic fallback analysis when providers are unavailable
 - fixed: scope Risk Intelligence dataset selection and calculation to the selected module dataset, preserve Pre-bookkeeping dataset IDs in risk links, and hide stale test entries from Accountancy risk views
+- changed: add AI Governance with transparency metadata, provider status, audit logs, policies, privacy and compliance dashboards, human override logging, governance reports, and assistant response controls
+- fixed: prevent AI Governance server rendering from crashing when the override table or other governance data sources are absent, and include the override-table migration in Railway predeploy
+- fixed: require Pre-bookkeeping exports to use an explicit filtered, reviewed, or all-transaction scope so CSV and Excel row counts match the chosen review table set

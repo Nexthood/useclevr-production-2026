@@ -1382,6 +1382,40 @@ export const aiRequestAuditLogs = pgTable(
   }),
 );
 
+export const aiGovernanceOverrideActions = ["accept", "reject", "edit", "undo"] as const;
+export type AiGovernanceOverrideAction = (typeof aiGovernanceOverrideActions)[number];
+
+export const aiGovernanceOverrides = pgTable(
+  "AiGovernanceOverride",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    traceId: text("traceId"),
+    datasetId: text("datasetId"),
+    action: varchar("action", { length: 20 }).notNull().$type<AiGovernanceOverrideAction>(),
+    originalValue: text("originalValue"),
+    editedValue: text("editedValue"),
+    reason: text("reason"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "AiGovernanceOverride_userId_fkey",
+    }).onDelete("cascade"),
+    traceIdFk: foreignKey({
+      columns: [table.traceId],
+      foreignColumns: [aiInteractionTraces.id],
+      name: "AiGovernanceOverride_traceId_fkey",
+    }).onDelete("set null"),
+    userIdIdx: index("AiGovernanceOverride_userId_idx").on(table.userId),
+    traceIdIdx: index("AiGovernanceOverride_traceId_idx").on(table.traceId),
+    datasetIdIdx: index("AiGovernanceOverride_datasetId_idx").on(table.datasetId),
+    createdAtIdx: index("AiGovernanceOverride_createdAt_idx").on(table.createdAt),
+  }),
+);
+
 export const aiProviderConfigs = pgTable(
   "AiProviderConfig",
   {

@@ -1474,6 +1474,39 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Pre-bookkeeping Export Pipeline Row Counts
+
+1. Interaction title
+Pre-bookkeeping export pipeline row-count fix.
+
+2. What was the user goal
+Find why the review table showed 42 filtered transactions while the exported Excel file contained one transaction, then fix CSV and Excel exports so exported rows match the selected transaction set.
+
+3. What changed
+The review workspace now opens an export choice panel before CSV or Excel download and asks for Current filtered rows, Reviewed transactions, or All transactions with live row counts. Filtered exports send the matching transaction row indexes to `/api/prebookkeeping/export`. The export route validates `scope`, parses `rowIndexes`, logs the requested and exported counts, and passes the explicit selection to the export builder. The export builder selects transactions once from the requested scope instead of always filtering to reviewed rows. Excel exports contain `Transactions`, `Summary`, and `VAT Summary` sheets, and the Summary sheet distinguishes exported transactions from reviewed transactions. DATEV, QuickBooks, and Xero buttons are disabled with Coming soon in the UI, and direct API calls for those formats return a 501 Coming soon response.
+
+4. Problems marked
+observation: The collection was reduced in `buildPrebookkeepingExport()` because it always used `categorization.transactions.filter((transaction) => transaction.reviewed && transaction.duplicateStatus !== "merged")`.
+observation: The UI export request sent only `datasetId` and `format`, so backend export could not know whether the user expected filtered, reviewed, or complete dataset rows.
+observation: The reported 42-filtered-row to one-exported-row mismatch happens when the current filter contains 42 transactions but only one transaction has `reviewed: true`.
+
+5. User learning
+CSV and Excel exports now make the chosen transaction set explicit and report the row count before download.
+
+6. AI-agent learning
+Review-table exports must send the selected collection contract to the server rather than relying on backend default filters that can diverge from the visible table state.
+
+7. Follow-up tasks
+- Complete production-grade DATEV, QuickBooks, and Xero mapping setup before enabling those export buttons. (labels: upload, reports, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Review Summary Crash Fix
 
 1. Interaction title
@@ -1730,6 +1763,73 @@ Risk and analytics selectors must treat module scope and selected dataset ID as 
 
 7. Follow-up tasks
 - Add an admin dataset cleanup action for explicitly marking stale test or seed datasets outside production selectors. (labels: data, upload, workflow)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance And EU AI Act Readiness
+
+1. Interaction title
+AI Governance and EU AI Act readiness module.
+
+2. What was the user goal
+Prepare UseClevr for AI transparency, governance, documentation, provider monitoring, privacy, risk, feedback, reports, and human-control expectations while keeping the architecture scalable for future regulatory changes.
+
+3. What changed
+The authenticated app now includes an AI Governance sidebar entry and module routes for Overview, Transparency, Providers, Models, Audit Log, AI Policies, Privacy, Compliance, Risk, Feedback, and Reports. The governance service reads existing AI interaction traces, AI request audit logs, provider configs, and AI mode settings, stores per-user governance settings in AppSetting, and records manual human decisions in a new AiGovernanceOverride table. Authenticated APIs expose governance overview, searchable audit-log filters, provider status, settings load/save, manual override recording, and downloadable JSON reports for usage, audit, providers, errors, and compliance. Assistant responses now display AI-generated metadata with provider, model, mode, confidence, generation time, and reasoning summary, and they expose Accept, Reject, Edit, and Undo controls that record manual override decisions.
+
+4. Problems marked
+risk: The module provides readiness controls and reporting, but it is not a legal certification of EU AI Act compliance.
+risk: Prompt-injection detection is reported as limited because the product does not yet expose a dedicated prompt-injection classifier control.
+blocker: Authenticated production browser validation is not complete from this session because no reusable signed-in production session is available inside the workspace.
+
+5. User learning
+AI governance metadata and human oversight controls are visible in the assistant and summarized in a dedicated governance workspace.
+
+6. AI-agent learning
+Governance features should reuse existing AI trace and provider audit tables before adding new storage, and new storage should only cover missing governance events such as manual override decisions.
+
+7. Follow-up tasks
+- Add a dedicated prompt-injection classifier and route its results into the AI Governance risk dashboard. (labels: ai, security, testing)
+- Add legal-review copy approval for AI Governance policy text before using it as a formal compliance statement. (labels: docs, security)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Render Crash Fix
+
+1. Interaction title
+AI Governance server render crash fix.
+
+2. What was the user goal
+Find and fix the production Server Components render crash on AI Governance without suppressing the real error, and ensure the page renders safe empty states when governance data is missing.
+
+3. What changed
+Railway predeploy now applies `0020_ai_governance_overrides.sql`, which creates the `AiGovernanceOverride` table used by human oversight events. The AI Governance snapshot loader now wraps settings, provider, request-audit, interaction-trace, and override-stat queries in safe loaders. Failed data-source stages log `[AI_GOVERNANCE] Data source failed` with stage, message, and stack details, while the Server Component receives normalized defaults and renders empty cards such as no providers, no audit entries, and zero manual overrides.
+
+4. Problems marked
+observation: The failing component path is the AI Governance Server Component using `getAiGovernanceSnapshot()`. The failing function was `getOverrideStats()`, and the failing query was `db.select({ total: count() }).from(aiGovernanceOverrides).where(where)` against `AiGovernanceOverride`.
+observation: The root cause was deployment drift: the migration file existed in source, but `scripts/runtime/railway-predeploy.cjs` did not apply `0020_ai_governance_overrides.sql`, so existing production databases could miss the table.
+blocker: Railway log retrieval through `pnpm railway:logs` returned exit code 1 without usable log output in this workspace.
+
+5. User learning
+AI Governance renders default empty cards while logging missing-table or missing-data failures, so a fresh or partially migrated database no longer crashes the workspace.
+
+6. AI-agent learning
+New runtime tables must be added to the Railway predeploy migration list in addition to the Drizzle schema and SQL migration file.
+
+7. Follow-up tasks
+- Verify the next Railway deployment log confirms `0020_ai_governance_overrides.sql` applied successfully. (labels: deployment, ai, testing)
 
 8. Instruction sources
 - AGENTS.md

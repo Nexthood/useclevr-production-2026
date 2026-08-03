@@ -385,10 +385,16 @@ function testApiRouteWiring() {
   assert.ok(prebookkeepingPage.includes("StartCategorizationButton"), "Pre-bookkeeping page exposes a categorization action for legacy datasets");
   assert.ok(reviewRoute.includes("prebookkeepingLearningRules"), "manual category edits persist learning rules");
   assert.ok(reviewRoute.includes("prebookkeepingAuditEvents"), "review actions write audit events");
-  assert.ok(exportRoute.includes("buildPrebookkeepingExport"), "exports use the dedicated reviewed-transaction export generator");
+  assert.ok(exportRoute.includes("buildPrebookkeepingExport"), "exports use the dedicated transaction export generator");
+  assert.ok(exportRoute.includes("isSupportedPrebookkeepingExportFormat"), "unsupported accountant-package formats return Coming soon");
+  assert.ok(exportRoute.includes("parseRowIndexes"), "filtered exports pass selected row indexes into the export generator");
   assert.ok(reviewWorkspace.includes("AI Review Summary"), "review workspace shows AI review summary");
   assert.ok(reviewWorkspace.includes("Missing VAT"), "review workspace includes review queue filters");
   assert.ok(reviewWorkspace.includes("Confidence"), "review workspace displays prediction confidence");
+  assert.ok(reviewWorkspace.includes("Current filtered rows"), "export dialog offers current filtered rows");
+  assert.ok(reviewWorkspace.includes("Reviewed transactions"), "export dialog offers reviewed transactions");
+  assert.ok(reviewWorkspace.includes("All transactions"), "export dialog offers all transactions");
+  assert.ok(reviewWorkspace.includes("Coming soon"), "unsupported accountant package exports are visibly disabled");
   assert.ok(reviewWorkspace.includes("validateReviewApiResponse"), "review workspace validates review API responses");
   assert.ok(reviewWorkspace.includes('safeText(value, "Uncategorized")'), "review workspace normalizes category values before formatting");
   assert.ok(!route.includes("reserveCredits") && !processor.includes("reserveCredits"), "failed uploads do not reserve credits");
@@ -436,27 +442,69 @@ function testPrebookkeepingExports() {
     })),
   };
 
-  const csv = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "csv" });
+  const csv = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "csv", scope: "reviewed" });
   assert.equal(csv.contentType, "text/csv; charset=utf-8");
+  assert.equal(csv.rowCount, 3);
   assert.ok(typeof csv.body === "string" && csv.body.startsWith("\uFEFF"), "CSV exports include UTF-8 BOM");
   assert.ok(String(csv.body).includes("Date,Description,Supplier/Customer,Amount,Debit,Credit,Currency,VAT,VAT Rate,Category,Reference,Review Status"));
   assert.ok(String(csv.body).includes("Customer payment INV-1"));
 
-  const excel = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "excel" });
+  const excel = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "excel", scope: "reviewed" });
   assert.ok(excel.body instanceof Uint8Array, "Excel export returns binary workbook");
   const workbook = XLSX.read(excel.body, { type: "array" });
-  assert.deepEqual(workbook.SheetNames, ["Reviewed Transactions", "Summary", "VAT Summary"]);
+  assert.deepEqual(workbook.SheetNames, ["Transactions", "Summary", "VAT Summary"]);
+  assert.equal((XLSX.utils.sheet_to_json(workbook.Sheets.Transactions || {}) as unknown[]).length, 3);
 
-  const quickBooks = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "quickbooks" });
+  const oneRow = buildPrebookkeepingExport({
+    datasetName: "Ledger Export",
+    categorization: reviewedCategorization,
+    format: "csv",
+    scope: "filtered",
+    rowIndexes: [reviewedCategorization.transactions[0]?.rowIndex ?? 0],
+  });
+  assert.equal(oneRow.rowCount, 1);
+
+  const allRows = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "excel", scope: "all" });
+  assert.equal(allRows.rowCount, 3);
+
+  const fortyTwoRowCategorization = {
+    ...reviewedCategorization,
+    transactions: Array.from({ length: 42 }, (_, index) => ({
+      ...reviewedCategorization.transactions[index % reviewedCategorization.transactions.length],
+      rowIndex: index,
+      reviewed: index < 14,
+      reviewStatus: index < 14 ? "reviewed" as const : "pending" as const,
+    })),
+  };
+  const filteredFortyTwo = buildPrebookkeepingExport({
+    datasetName: "Ledger Export",
+    categorization: fortyTwoRowCategorization,
+    format: "excel",
+    scope: "filtered",
+    rowIndexes: Array.from({ length: 42 }, (_, index) => index),
+  });
+  assert.equal(filteredFortyTwo.rowCount, 42);
+  const fortyTwoWorkbook = XLSX.read(filteredFortyTwo.body, { type: "array" });
+  assert.equal((XLSX.utils.sheet_to_json(fortyTwoWorkbook.Sheets.Transactions || {}) as unknown[]).length, 42);
+
+  const reviewedFourteen = buildPrebookkeepingExport({
+    datasetName: "Ledger Export",
+    categorization: fortyTwoRowCategorization,
+    format: "csv",
+    scope: "reviewed",
+  });
+  assert.equal(reviewedFourteen.rowCount, 14);
+
+  const quickBooks = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "quickbooks", scope: "reviewed" });
   assert.ok(String(quickBooks.body).includes("Transaction Type"));
   assert.ok(String(quickBooks.body).includes("Rent or Lease"));
 
-  const xero = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "xero" });
+  const xero = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "xero", scope: "reviewed" });
   assert.ok(String(xero.body).includes("Payee"));
   assert.ok(String(xero.body).includes("Spend Money"));
 
   assert.throws(
-    () => buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "datev" }),
+    () => buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "datev", scope: "reviewed" }),
     (error) => error instanceof PrebookkeepingExportError && error.stage === "setup",
   );
 
@@ -467,7 +515,7 @@ function testPrebookkeepingExports() {
       category: transaction.category === "uncategorized" ? "operating_expenses" as const : transaction.category,
     })),
   };
-  const datev = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: datevReadyCategorization, format: "datev" });
+  const datev = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: datevReadyCategorization, format: "datev", scope: "reviewed" });
   assert.ok(String(datev.body).includes("Umsatz;Soll/Haben-Kennzeichen"));
   assert.ok(String(datev.body).includes("4980"));
 }
