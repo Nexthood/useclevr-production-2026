@@ -1474,6 +1474,38 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Retail Square OAuth Redirect Fix
+
+1. Interaction title
+Retail Square OAuth Connect redirect fix.
+
+2. What was the user goal
+Fix the Retail Square Connect button so clicking it starts the real Square OAuth browser redirect instead of showing a production callback-host configuration message.
+
+3. What changed
+The Retail Connect action navigates directly to the server-side Square OAuth start route. The start route supports browser GET redirects to Square while preserving the existing POST JSON contract. Production Square OAuth callback resolution uses the canonical UseClevr production callback path for both authorization URL generation and token exchange, while sandbox keeps its configured test callback behavior.
+
+4. Problems marked
+observation: The visible Connect button previously called the OAuth start route through a client-side POST and then assigned the returned URL, so a server configuration error surfaced in the UI before a browser redirect happened.
+observation: Production callback resolution could be influenced by the public app URL or explicit redirect URI value, which allowed a test or preview host to block production Square OAuth before redirect.
+
+5. User learning
+Retail Square OAuth uses `/api/integrations/retail/square/callback` as the established callback route, so the Square Developer Dashboard production callback must include `https://useclevr.com/api/integrations/retail/square/callback`.
+
+6. AI-agent learning
+OAuth start buttons should navigate to same-origin server routes and let server code construct provider URLs, because client-side provider URL construction or JSON handoff can expose configuration errors as broken UI actions.
+
+7. Follow-up tasks
+- Verify the deployed Retail Square Connect button in a signed-in production browser session after the beta deployment completes. (labels: payment, auth, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## AI Governance Fresh-install Render Stabilization
 
 1. Interaction title

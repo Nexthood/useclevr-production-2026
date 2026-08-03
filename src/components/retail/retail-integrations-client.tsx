@@ -89,20 +89,10 @@ export function RetailIntegrationsClient() {
     void load();
   }, [load]);
 
-  async function connectSquare() {
+  function connectSquare() {
     setBusyAction("connect-square");
     setError(null);
-    try {
-      const response = await fetch("/api/integrations/retail/square/connect", { method: "POST" });
-      const payload = (await response.json()) as { authorizationUrl?: string; error?: string };
-      if (!response.ok || !payload.authorizationUrl) {
-        throw new Error(payload.error || "Square connection could not start.");
-      }
-      window.location.href = payload.authorizationUrl;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Square connection could not start.");
-      setBusyAction(null);
-    }
+    window.location.assign("/api/integrations/retail/square/connect");
   }
 
   async function syncNow(connectionId: string) {

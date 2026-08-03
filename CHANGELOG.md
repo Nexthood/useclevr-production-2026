@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Retail Square Connect so OAuth starts through the server redirect flow and production uses the canonical Square callback URL.
 - Fix AI Governance fresh-install rendering by applying its provider, audit, trace, and override table dependencies before the workspace reads governance data.
 - Fix Pre-bookkeeping exports so users choose filtered, reviewed, or all transactions and CSV or Excel downloads contain the exact selected row count.
 - Fix AI Governance rendering so empty or not-yet-migrated governance data shows safe default cards instead of crashing the workspace.

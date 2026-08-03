@@ -46,6 +46,8 @@ const tests: TestCase[] = [
     name: "Square callback route exists, supports GET parameters, and is public through the proxy",
     run() {
       const routeSource = readProjectFile("src/app/api/integrations/retail/square/callback/route.ts");
+      const connectRouteSource = readProjectFile("src/app/api/integrations/retail/square/connect/route.ts");
+      const retailClientSource = readProjectFile("src/components/retail/retail-integrations-client.tsx");
       const proxySource = readProjectFile("src/proxy.ts");
       assert.ok(routeSource.includes("export async function GET"), "callback route exports GET");
       assert.ok(routeSource.includes('searchParams.get("code")'), "callback accepts code");
@@ -54,6 +56,9 @@ const tests: TestCase[] = [
       assert.ok(routeSource.includes('searchParams.get("error_description")'), "callback accepts provider error description");
       assert.ok(routeSource.includes("consumeOauthState"), "callback consumes stored OAuth state");
       assert.ok(routeSource.includes("getSquareIntegrationRedirectUrl"), "callback redirects through safe helper");
+      assert.ok(connectRouteSource.includes("export async function GET"), "connect route supports browser navigation");
+      assert.ok(connectRouteSource.includes("NextResponse.redirect(result.authorizationUrl)"), "connect route redirects to Square server-side");
+      assert.ok(retailClientSource.includes('window.location.assign("/api/integrations/retail/square/connect")'), "Square Connect button navigates to the OAuth start route");
       assert.ok(proxySource.includes("SQUARE_CALLBACK_PATH"), "proxy imports the canonical Square callback path");
       assert.ok(proxySource.includes("publicApiPaths"), "proxy keeps a public API allowlist");
     },
@@ -196,9 +201,10 @@ const tests: TestCase[] = [
       assert.equal(parsed.searchParams.has("redirect_url"), false);
 
       withSquareEnv("production", () => {
-        process.env.NEXT_PUBLIC_APP_URL = SQUARE_PRODUCTION_APP_ORIGIN;
+        process.env.NEXT_PUBLIC_APP_URL = SQUARE_TEST_APP_ORIGIN;
         process.env.SQUARE_REDIRECT_URI = `${SQUARE_TEST_APP_ORIGIN}${squareCallbackPath}`;
-        assert.throws(() => getSquareConfig(), /useclevr\.com|configured application URL/);
+        assert.equal(getSquareCallbackUrl(), `${SQUARE_PRODUCTION_APP_ORIGIN}${squareCallbackPath}`);
+        assert.equal(getSquareConfig().redirectUri, `${SQUARE_PRODUCTION_APP_ORIGIN}${squareCallbackPath}`);
       });
     },
   },
