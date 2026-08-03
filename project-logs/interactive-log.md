@@ -1738,3 +1738,37 @@ Risk and analytics selectors must treat module scope and selected dataset ID as 
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance And EU AI Act Readiness
+
+1. Interaction title
+AI Governance and EU AI Act readiness module.
+
+2. What was the user goal
+Prepare UseClevr for AI transparency, governance, documentation, provider monitoring, privacy, risk, feedback, reports, and human-control expectations while keeping the architecture scalable for future regulatory changes.
+
+3. What changed
+The authenticated app now includes an AI Governance sidebar entry and module routes for Overview, Transparency, Providers, Models, Audit Log, AI Policies, Privacy, Compliance, Risk, Feedback, and Reports. The governance service reads existing AI interaction traces, AI request audit logs, provider configs, and AI mode settings, stores per-user governance settings in AppSetting, and records manual human decisions in a new AiGovernanceOverride table. Authenticated APIs expose governance overview, searchable audit-log filters, provider status, settings load/save, manual override recording, and downloadable JSON reports for usage, audit, providers, errors, and compliance. Assistant responses now display AI-generated metadata with provider, model, mode, confidence, generation time, and reasoning summary, and they expose Accept, Reject, Edit, and Undo controls that record manual override decisions.
+
+4. Problems marked
+risk: The module provides readiness controls and reporting, but it is not a legal certification of EU AI Act compliance.
+risk: Prompt-injection detection is reported as limited because the product does not yet expose a dedicated prompt-injection classifier control.
+blocker: Authenticated production browser validation is not complete from this session because no reusable signed-in production session is available inside the workspace.
+
+5. User learning
+AI governance metadata and human oversight controls are visible in the assistant and summarized in a dedicated governance workspace.
+
+6. AI-agent learning
+Governance features should reuse existing AI trace and provider audit tables before adding new storage, and new storage should only cover missing governance events such as manual override decisions.
+
+7. Follow-up tasks
+- Add a dedicated prompt-injection classifier and route its results into the AI Governance risk dashboard. (labels: ai, security, testing)
+- Add legal-review copy approval for AI Governance policy text before using it as a formal compliance statement. (labels: docs, security)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

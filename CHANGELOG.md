@@ -20,6 +20,7 @@
 
 ### Changed
 
+- Add AI Governance so users can review AI transparency, provider health, model metadata, audit activity, privacy posture, human oversight, policies, compliance readiness, feedback, and governance reports from one workspace module.
 - Route Dataset AI metric questions through intent classification and deterministic metric resolution so average order value, order counts, customer rankings, margin questions, risks, trends, forecasts, and comparisons answer the requested metric or explain the missing data instead of returning a generic revenue summary.
 - Add the Business Intelligence universal forecast and scenario engine so datasets receive explainable business forecasts, confidence intervals, scenario comparisons, uncertainty warnings, statistics, plugin registration, and future forecasting extension points from EDIE, KPI, insight, and recommendation profiles.
 - Add the Business Intelligence universal recommendation engine so datasets receive evidence-backed business actions, priority scoring, implementation difficulty and benefit estimates, dependency mapping, duplicate and conflict detection, statistics, plugin registration, and future recommendation extension points from EDIE, KPI, and insight profiles.
