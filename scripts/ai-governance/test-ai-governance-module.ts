@@ -45,6 +45,11 @@ assert.ok(assistantSource.includes("/api/ai-governance/overrides"), "assistant r
 const schemaSource = readFileSync("src/lib/db/schema.ts", "utf8")
 assert.ok(schemaSource.includes("AiGovernanceOverride"), "schema includes AI governance override table")
 assert.ok(schemaSource.includes("aiGovernanceOverrideActions"), "schema constrains override actions")
+const predeploySource = readFileSync("scripts/runtime/railway-predeploy.cjs", "utf8")
+assert.ok(predeploySource.includes("0020_ai_governance_overrides.sql"), "Railway predeploy applies AI Governance override migration")
+const governanceServiceSource = readFileSync("src/lib/ai-governance/governance-service.ts", "utf8")
+assert.ok(governanceServiceSource.includes("safeGetOverrideStats"), "AI Governance renders fallback override stats when override table is absent")
+assert.ok(governanceServiceSource.includes("logGovernanceDataError"), "AI Governance logs failed data source stages with stack details")
 
 for (const route of ["overview", "audit-log", "provider-status", "settings", "overrides", "reports"]) {
   const routeSource = readFileSync(`src/app/api/ai-governance/${route}/route.ts`, "utf8")

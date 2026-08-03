@@ -1772,3 +1772,36 @@ Governance features should reuse existing AI trace and provider audit tables bef
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Render Crash Fix
+
+1. Interaction title
+AI Governance server render crash fix.
+
+2. What was the user goal
+Find and fix the production Server Components render crash on AI Governance without suppressing the real error, and ensure the page renders safe empty states when governance data is missing.
+
+3. What changed
+Railway predeploy now applies `0020_ai_governance_overrides.sql`, which creates the `AiGovernanceOverride` table used by human oversight events. The AI Governance snapshot loader now wraps settings, provider, request-audit, interaction-trace, and override-stat queries in safe loaders. Failed data-source stages log `[AI_GOVERNANCE] Data source failed` with stage, message, and stack details, while the Server Component receives normalized defaults and renders empty cards such as no providers, no audit entries, and zero manual overrides.
+
+4. Problems marked
+observation: The failing component path is the AI Governance Server Component using `getAiGovernanceSnapshot()`. The failing function was `getOverrideStats()`, and the failing query was `db.select({ total: count() }).from(aiGovernanceOverrides).where(where)` against `AiGovernanceOverride`.
+observation: The root cause was deployment drift: the migration file existed in source, but `scripts/runtime/railway-predeploy.cjs` did not apply `0020_ai_governance_overrides.sql`, so existing production databases could miss the table.
+blocker: Railway log retrieval through `pnpm railway:logs` returned exit code 1 without usable log output in this workspace.
+
+5. User learning
+AI Governance renders default empty cards while logging missing-table or missing-data failures, so a fresh or partially migrated database no longer crashes the workspace.
+
+6. AI-agent learning
+New runtime tables must be added to the Railway predeploy migration list in addition to the Drizzle schema and SQL migration file.
+
+7. Follow-up tasks
+- Verify the next Railway deployment log confirms `0020_ai_governance_overrides.sql` applied successfully. (labels: deployment, ai, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

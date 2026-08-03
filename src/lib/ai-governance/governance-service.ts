@@ -17,6 +17,7 @@ import {
   appSettings,
   type AiGovernanceOverrideAction,
 } from "@/lib/db/schema"
+import { debugError } from "@/lib/utils/debug"
 import { and, count, desc, eq, ilike, or } from "drizzle-orm"
 
 export type AiGovernanceUser = {
@@ -56,10 +57,10 @@ export type AiGovernanceOverrideInput = {
 export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
   const [providers, settings, auditEntries, traces, overrideStats] = await Promise.all([
     safeListProviders(user.id),
-    getAiGovernanceSettings(user.id),
+    safeGetGovernanceSettings(user.id),
     safeListAudit(user, 100),
     safeListTraces(user, 50),
-    getOverrideStats(user),
+    safeGetOverrideStats(user),
   ])
 
   const providerStats = summarizeProviders(providers)
@@ -117,11 +118,16 @@ export async function listAiGovernanceAuditRows(user: AiGovernanceUser, filters:
     )
   }
 
-  return db.query.aiRequestAuditLogs.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
-    orderBy: desc(aiRequestAuditLogs.createdAt),
-    limit,
-  })
+  try {
+    return await db.query.aiRequestAuditLogs.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      orderBy: desc(aiRequestAuditLogs.createdAt),
+      limit,
+    })
+  } catch (error) {
+    logGovernanceDataError("audit-log-query", error)
+    return []
+  }
 }
 
 export async function getAiGovernanceSettings(userId: string): Promise<AiGovernanceSettings> {
@@ -133,12 +139,17 @@ export async function getAiGovernanceSettings(userId: string): Promise<AiGoverna
   ])
   if (!db) return defaultGovernanceSettings(mode, providers, allowFallback)
 
-  const [row] = await db
-    .select({ value: appSettings.value })
-    .from(appSettings)
-    .where(eq(appSettings.key, settingsKey(userId)))
-    .limit(1)
-  return normalizeSettings(row?.value, mode, providers, allowFallback)
+  try {
+    const [row] = await db
+      .select({ value: appSettings.value })
+      .from(appSettings)
+      .where(eq(appSettings.key, settingsKey(userId)))
+      .limit(1)
+    return normalizeSettings(row?.value, mode, providers, allowFallback)
+  } catch (error) {
+    logGovernanceDataError("settings-query", error)
+    return defaultGovernanceSettings(mode, providers, allowFallback)
+  }
 }
 
 export async function saveAiGovernanceSettings(userId: string, input: Partial<AiGovernanceSettings>) {
@@ -420,12 +431,36 @@ async function getOverrideStats(user: AiGovernanceUser) {
   }
 }
 
+async function safeGetGovernanceSettings(userId: string) {
+  try {
+    return await getAiGovernanceSettings(userId)
+  } catch (error) {
+    logGovernanceDataError("settings-load", error)
+    return defaultGovernanceSettings("automatic", [], true)
+  }
+}
+
+async function safeGetOverrideStats(user: AiGovernanceUser) {
+  try {
+    return await getOverrideStats(user)
+  } catch (error) {
+    logGovernanceDataError("override-stats-query", error)
+    return emptyOverrideStats()
+  }
+}
+
 async function safeListProviders(userId: string) {
-  return listPublicAiProviderConfigs(userId).catch(() => [])
+  return listPublicAiProviderConfigs(userId).catch((error) => {
+    logGovernanceDataError("provider-list-query", error)
+    return []
+  })
 }
 
 async function safeListAudit(user: AiGovernanceUser, limit: number) {
-  return listAiRequestAuditLogs({ userId: user.id, role: user.role, limit }).catch(() => [])
+  return listAiRequestAuditLogs({ userId: user.id, role: user.role, limit }).catch((error) => {
+    logGovernanceDataError("request-audit-query", error)
+    return []
+  })
 }
 
 async function safeListTraces(user: AiGovernanceUser, limit: number) {
@@ -436,7 +471,18 @@ async function safeListTraces(user: AiGovernanceUser, limit: number) {
     where: isAdmin ? undefined : eq(aiInteractionTraces.userId, user.id),
     orderBy: desc(aiInteractionTraces.createdAt),
     limit,
-  }).catch(() => [])
+  }).catch((error) => {
+    logGovernanceDataError("interaction-trace-query", error)
+    return []
+  })
+}
+
+function emptyOverrideStats() {
+  return {
+    totalOverrides: 0,
+    byAction: {} as Record<string, number>,
+    recent: [] as Array<{ id: string; traceId: string | null; datasetId: string | null; action: string; reason: string | null; createdAt: string }>,
+  }
 }
 
 function defaultGovernanceSettings(
@@ -548,4 +594,12 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
 function average(values: number[]) {
   if (values.length === 0) return 0
   return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function logGovernanceDataError(stage: string, error: unknown) {
+  debugError("[AI_GOVERNANCE] Data source failed", {
+    stage,
+    message: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  })
 }
