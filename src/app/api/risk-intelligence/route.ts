@@ -18,7 +18,7 @@ async function handleRiskRequest(request: Request) {
   if (!gate.success) return gate.error
 
   try {
-    const datasetId = await getDatasetId(request)
+    const { datasetId, scope } = await getRiskRequestInput(request)
     if (!datasetId) {
       return NextResponse.json(
         {
@@ -34,6 +34,8 @@ async function handleRiskRequest(request: Request) {
       id: gate.session.user.id,
       role: gate.access.role,
       email: gate.session.user.email,
+    }, {
+      scope,
     })
 
     if (!calculated.success) {
@@ -61,19 +63,24 @@ async function handleRiskRequest(request: Request) {
   }
 }
 
-async function getDatasetId(request: Request) {
+async function getRiskRequestInput(request: Request) {
   const url = new URL(request.url)
   const queryDatasetId = url.searchParams.get("datasetId")?.trim()
-  if (queryDatasetId) return queryDatasetId
+  const queryScope = url.searchParams.get("scope")?.trim()
+  if (queryDatasetId) return { datasetId: queryDatasetId, scope: queryScope || null }
 
-  if (request.method !== "POST") return null
+  if (request.method !== "POST") return { datasetId: null, scope: queryScope || null }
 
   const contentType = request.headers.get("content-type") || ""
-  if (!contentType.includes("application/json")) return null
+  if (!contentType.includes("application/json")) return { datasetId: null, scope: queryScope || null }
 
   const body = await request.json().catch(() => null)
-  if (!body || typeof body !== "object" || Array.isArray(body)) return null
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { datasetId: null, scope: queryScope || null }
 
   const datasetId = "datasetId" in body ? body.datasetId : null
-  return typeof datasetId === "string" && datasetId.trim() ? datasetId.trim() : null
+  const scope = "scope" in body ? body.scope : null
+  return {
+    datasetId: typeof datasetId === "string" && datasetId.trim() ? datasetId.trim() : null,
+    scope: typeof scope === "string" && scope.trim() ? scope.trim() : queryScope || null,
+  }
 }

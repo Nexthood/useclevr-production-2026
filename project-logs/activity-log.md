@@ -183,3 +183,5 @@
 - fixed: prevent Accountancy review dashboards from crashing when uploaded or legacy datasets do not contain review summary fields
 - fixed: validate Accountancy upload and review API responses and normalize missing category, supplier, description, duplicate, and VAT fields before display formatting
 - fixed: validate Pre-bookkeeping upload parser paths across CSV, Excel, PDF, receipt, invoice, and bank-export formats, and turn text invoice PDF extraction into reviewable bookkeeping rows
+- fixed: generate Pre-bookkeeping accountant exports from reviewed transactions for CSV, Excel, DATEV, QuickBooks, and Xero, route export actions through the selected dataset, and answer bookkeeping assistant questions with deterministic fallback analysis when providers are unavailable
+- fixed: scope Risk Intelligence dataset selection and calculation to the selected module dataset, preserve Pre-bookkeeping dataset IDs in risk links, and hide stale test entries from Accountancy risk views

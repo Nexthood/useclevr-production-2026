@@ -69,6 +69,7 @@ export function PrebookkeepingReviewWorkspace({
   const [filter, setFilter] = React.useState<FilterKey>("all");
   const [selectedRows, setSelectedRows] = React.useState<number[]>([]);
   const [saving, setSaving] = React.useState(false);
+  const [exportingFormat, setExportingFormat] = React.useState<string | null>(null);
   const { toast } = useToast();
 
   const rows = categorization.transactions;
@@ -111,6 +112,38 @@ export function PrebookkeepingReviewWorkspace({
     }
     void saveReview({ action, rowIndexes: selectedRows, ...extra }, "Bulk action saved");
     setSelectedRows([]);
+  }
+
+  async function downloadExport(format: string) {
+    if (exportingFormat) return;
+    setExportingFormat(format);
+    try {
+      const response = await fetch(`/api/prebookkeeping/export?datasetId=${encodeURIComponent(datasetId)}&format=${encodeURIComponent(format)}`);
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(safeText((result as Record<string, unknown>).error, "Export could not be generated."));
+      }
+
+      const blob = await response.blob();
+      if (blob.size === 0) throw new Error("Export generated an empty file.");
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filenameFromDisposition(response.headers.get("Content-Disposition")) || `prebookkeeping-${format}-export`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      toast({ title: "Export ready", description: `${format.toUpperCase()} export downloaded.` });
+    } catch (error) {
+      toast({
+        title: "Could not export",
+        description: error instanceof Error ? error.message : "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingFormat(null);
+    }
   }
 
   return (
@@ -209,10 +242,18 @@ export function PrebookkeepingReviewWorkspace({
           </div>
           <div className="flex flex-wrap gap-2">
             {["csv", "excel", "datev", "quickbooks", "xero"].map((format) => (
-              <a key={format} href={`/api/prebookkeeping/export?datasetId=${datasetId}&format=${format}`} className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted">
-                <Download className="h-4 w-4" />
+              <Button
+                key={format}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadExport(format)}
+                disabled={Boolean(exportingFormat)}
+                className="gap-2"
+              >
+                {exportingFormat === format ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 {format.toUpperCase()}
-              </a>
+              </Button>
             ))}
           </div>
         </div>
@@ -388,6 +429,12 @@ function safeText(value: unknown, fallback: string) {
   if (value === null || value === undefined) return fallback;
   const text = String(value).trim();
   return text.length > 0 ? text : fallback;
+}
+
+function filenameFromDisposition(value: string | null) {
+  if (!value) return null;
+  const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(value);
+  return match ? decodeURIComponent(match[1].replace(/"/g, "")) : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

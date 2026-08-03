@@ -5,15 +5,19 @@ import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
   const gate = await requireHybridAiFeature("dashboardInsights")
   if (!gate.success) return gate.error
 
   try {
+    const url = new URL(request.url)
     const datasets = await listRiskIntelligenceDatasets({
       id: gate.session.user.id,
       role: gate.access.role,
       email: gate.session.user.email,
+    }, {
+      scope: url.searchParams.get("scope"),
+      datasetId: url.searchParams.get("datasetId"),
     })
 
     return NextResponse.json({ success: true, datasets })

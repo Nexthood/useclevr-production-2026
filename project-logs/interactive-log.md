@@ -1672,3 +1672,69 @@ Validation for document uploads must use real generated PDFs in addition to fake
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Export And Assistant Workflow
+
+1. Interaction title
+Pre-bookkeeping export and assistant workflow.
+
+2. What was the user goal
+Fix dead accountant export links, make CSV, Excel, DATEV, QuickBooks, and Xero download buttons generate real server-side files, and make the Pre-bookkeeping AI Assistant answer selected-dataset bookkeeping questions even when Gemini or another provider is unavailable.
+
+3. What changed
+Pre-bookkeeping exports now use the selected dataset ID and the dedicated Pre-bookkeeping export route instead of the generic report-download route. The export service generates reviewed-only CSV with UTF-8 BOM, Excel workbooks with reviewed transaction, summary, and VAT summary sheets, DATEV-compatible CSV with account mapping validation, QuickBooks CSV, and Xero bank-import CSV. The review workspace fetches export files as blobs, disables duplicate clicks, reports structured export errors, and revokes object URLs after download. Dataset AI now recognizes Pre-bookkeeping datasets from persisted module type, includes the normalized categorization context, allows superadmin dataset access, and returns deterministic bookkeeping answers for expenses, review blockers, duplicates, suppliers, income and expenses, VAT gaps, fixed costs, uncategorized rows, and unusual transactions. Pre-bookkeeping dataset suggestions now use bookkeeping prompts instead of generic SaaS prompts.
+
+4. Problems marked
+blocker: Authenticated production browser validation is still not complete from this session because no reusable signed-in production session is available inside the workspace.
+risk: DATEV export uses built-in category account mappings and blocks uncategorized reviewed rows with a setup error; customer-specific DATEV chart-of-accounts configuration remains separate work.
+observation: The dead JSON root cause is `Export for accountant` pointing to `/api/reports/download?datasetId=...`, which selects an in-memory report by dataset and returns `Report not found` when no report object exists.
+
+5. User learning
+Pre-bookkeeping accountant exports now come from the current reviewed categorization instead of expired report IDs.
+
+6. AI-agent learning
+Pre-bookkeeping assistant questions must prefer deterministic dataset calculations for bookkeeping review workflows so provider outages do not block export-readiness analysis.
+
+7. Follow-up tasks
+- Add customer-specific DATEV chart-of-accounts setup before enabling locale-specific accountant export templates. (labels: reports, upload, workflow)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Risk Intelligence Dataset Scoping
+
+1. Interaction title
+Risk Intelligence dataset scoping and stale dataset leakage.
+
+2. What was the user goal
+Limit Accountancy and Pre-bookkeeping Risk Intelligence to the newly uploaded or explicitly selected Pre-bookkeeping dataset, prevent cross-module dataset leakage, hide stale test records, and keep risk calculation isolated to one dataset and one module scope.
+
+3. What changed
+Risk Intelligence dataset listing now accepts a module scope and selected dataset ID, filters by authenticated tenant unless the user can read all datasets, filters by `dataset_type`, excludes deleted and archived records, hides test, seed, demo, sample, codex, and known provider-path records from production selectors, and deduplicates by immutable dataset ID. Risk calculation now rejects scope mismatches, hidden test records, deleted records, archived records, and unsupported dataset types before loading rows. The Risk Intelligence page defaults to the Standard scope, preserves scope in selector links, shows a Pre-bookkeeping-specific empty state, and uses the requested dataset ID before falling back to the latest valid dataset in scope. Pre-bookkeeping review actions link Risk Intelligence with `datasetId=<current_dataset_id>&scope=prebookkeeping`, and successful Pre-bookkeeping uploads persist the active dataset ID in browser storage for current-session navigation.
+
+4. Problems marked
+observation: The leakage root cause was the Risk Intelligence list query loading broad user datasets, loading every dataset for superadmin, and selecting the first supported dataset without module or selected-dataset scope.
+observation: The duplicate-display root cause in code was an unscoped selector without immutable ID dedupe. If production contains two distinct database records named `10_accountancy_ledger`, both are legitimate history records and require explicit admin cleanup rather than automatic deletion.
+risk: Authenticated production UI validation is not complete from this session because no reusable signed-in production session is available inside the workspace.
+
+5. User learning
+Accountancy Risk Intelligence opens from Pre-bookkeeping with the current dataset ID and does not fall back to Retail, Startup, Standard, test, seed, or stale datasets.
+
+6. AI-agent learning
+Risk and analytics selectors must treat module scope and selected dataset ID as required request constraints rather than optional UI hints.
+
+7. Follow-up tasks
+- Add an admin dataset cleanup action for explicitly marking stale test or seed datasets outside production selectors. (labels: data, upload, workflow)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

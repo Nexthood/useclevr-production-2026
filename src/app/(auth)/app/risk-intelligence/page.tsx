@@ -10,6 +10,7 @@ import {
 import {
   calculateRiskIntelligenceForDataset,
   listRiskIntelligenceDatasets,
+  riskScopeEmptyMessage,
   type RiskDatasetSummary,
 } from "@/lib/risk-intelligence/risk-service"
 import { RISK_SEVERITY_LABELS, type RiskSeverity } from "@/lib/risk-intelligence/risk-rules"
@@ -18,10 +19,8 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 type RiskIntelligencePageProps = {
-  searchParams?: Promise<{ datasetId?: string }>
+  searchParams?: Promise<{ datasetId?: string; scope?: string }>
 }
-
-const EMPTY_STATE_TEXT = "No supported business data is available yet. Upload or connect a dataset to generate risk intelligence."
 
 export default async function RiskIntelligencePage({ searchParams }: RiskIntelligencePageProps) {
   const session = await auth()
@@ -43,10 +42,14 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
   }
 
   const params = await searchParams
+  const requestedScope = params?.scope || "standard"
   const datasets = await listRiskIntelligenceDatasets({
     id: session.user.id,
     role: access.role,
     email: session.user.email,
+  }, {
+    scope: requestedScope,
+    datasetId: params?.datasetId || null,
   })
   const supportedDatasets = datasets.filter((dataset) => dataset.supported)
   const selectedDatasetId =
@@ -57,6 +60,8 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
         id: session.user.id,
         role: access.role,
         email: session.user.email,
+      }, {
+        scope: requestedScope,
       })
     : null
   const intelligence = riskResult?.success ? riskResult.result : null
@@ -69,13 +74,13 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
     >
       <div className="space-y-5">
         {supportedDatasets.length > 0 ? (
-          <DatasetSelector datasets={supportedDatasets} selectedDatasetId={selectedDatasetId} />
+          <DatasetSelector datasets={supportedDatasets} selectedDatasetId={selectedDatasetId} scope={requestedScope} />
         ) : null}
 
         {intelligence ? (
           <RiskDashboard intelligence={intelligence} />
         ) : (
-          <EmptyState message={riskResult && !riskResult.success ? riskResult.error : EMPTY_STATE_TEXT} />
+          <EmptyState message={riskResult && !riskResult.success ? riskResult.error : riskScopeEmptyMessage(requestedScope)} />
         )}
       </div>
     </DashboardSubpageLayout>
@@ -115,9 +120,11 @@ function LockedState() {
 function DatasetSelector({
   datasets,
   selectedDatasetId,
+  scope,
 }: {
   datasets: RiskDatasetSummary[]
   selectedDatasetId: string | null
+  scope: string
 }) {
   return (
     <section className="rounded-lg border border-border bg-card p-4">
@@ -130,7 +137,7 @@ function DatasetSelector({
           {datasets.slice(0, 8).map((dataset) => (
             <Link
               key={dataset.id}
-              href={`/app/risk-intelligence?datasetId=${encodeURIComponent(dataset.id)}`}
+              href={`/app/risk-intelligence?datasetId=${encodeURIComponent(dataset.id)}&scope=${encodeURIComponent(scope)}`}
               className={[
                 "inline-flex min-h-9 items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition",
                 selectedDatasetId === dataset.id

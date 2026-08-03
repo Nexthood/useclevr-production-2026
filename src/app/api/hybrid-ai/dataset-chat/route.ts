@@ -14,6 +14,10 @@ import {
 import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
+import {
+  answerPrebookkeepingQuestionDeterministically,
+} from "@/lib/accountancy/prebookkeeping-ai-assistant";
+import { isPrebookkeepingCategorization } from "@/lib/accountancy/prebookkeeping-categorization";
 import { auth } from "@/lib/auth/auth";
 import { normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
@@ -22,6 +26,7 @@ import {
   type AnalyticalUnsupportedCode,
 } from "@/lib/data/analytical-intents";
 import { answerDatasetQuestionDeterministically } from "@/lib/data/dataset-assistant-deterministic";
+import { resolveDatasetType } from "@/lib/data/dataset-category";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
 import { db } from "@/lib/db";
@@ -175,8 +180,12 @@ export async function POST(request: Request) {
     stage: "load_dataset",
   });
 
+  const datasetWhere =
+    session.user.role === "superadmin"
+      ? eq(datasets.id, parsed.datasetId)
+      : and(eq(datasets.id, parsed.datasetId), eq(datasets.userId, userId));
   const dataset = await db.query.datasets.findFirst({
-    where: and(eq(datasets.id, parsed.datasetId), eq(datasets.userId, userId)),
+    where: datasetWhere,
     columns: {
       id: true,
       name: true,
@@ -230,7 +239,7 @@ export async function POST(request: Request) {
   }
   const profileRows = analysisRows.slice(0, MAX_PROFILE_ROWS);
   const columns = normalizeColumns(dataset.columns, profileRows);
-  const datasetType = dataset.datasetType || detectDatasetTypeFromColumns(columns, dataset.name);
+  const datasetType = resolveDatasetType(dataset.datasetType, dataset.analysis) || detectDatasetTypeFromColumns(columns, dataset.name);
   const context = buildDatasetContext({
     id: dataset.id,
     name: dataset.name,
@@ -241,6 +250,7 @@ export async function POST(request: Request) {
     detectedColumns: dataset.detectedColumns,
     precomputedMetrics: dataset.precomputedMetrics,
     analysis: dataset.analysis,
+    datasetType,
   });
   const latestQuestion = latestUserMessage(messages);
   if (latestQuestion) {
@@ -334,6 +344,58 @@ export async function POST(request: Request) {
         mode: "direct",
         route: "direct",
         analyticalResult: deterministicResult.result,
+        datasetContext: contextForClient(context),
+        privacyWarning: null,
+        providerStatus,
+        requestId,
+      });
+    }
+
+    const prebookkeepingCategorization = readPrebookkeepingCategorization(dataset.analysis);
+    if (datasetType === "prebookkeeping" && prebookkeepingCategorization) {
+      const prebookkeepingResult = answerPrebookkeepingQuestionDeterministically({
+        question: latestQuestion,
+        categorization: prebookkeepingCategorization,
+      });
+      const providerStatus = directDataAnalysisStatus();
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Direct data analysis",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: true,
+      });
+      debugLog("[DATASET_AI] Direct pre-bookkeeping response generated", {
+        requestId,
+        datasetId: parsed.datasetId,
+        datasetType,
+        userId,
+        tenant: userId,
+        provider: "Direct data analysis",
+        model: "none",
+        stage: "direct_prebookkeeping_answer",
+        durationMs: Date.now() - startedAt,
+        httpStatus: 200,
+      });
+      return NextResponse.json({
+        success: true,
+        answer: prebookkeepingResult.answer,
+        content: prebookkeepingResult.answer,
+        insight: prebookkeepingResult.insight,
+        explanation: prebookkeepingResult.explanation,
+        recommendation: prebookkeepingResult.recommendation,
+        data: prebookkeepingResult.data,
+        chartType: prebookkeepingResult.chartType,
+        providerName: "Not required",
+        modelName: "",
+        mode: "direct",
+        route: "direct",
+        analyticalResult: prebookkeepingResult.result,
         datasetContext: contextForClient(context),
         privacyWarning: null,
         providerStatus,
@@ -1047,10 +1109,11 @@ function buildDatasetContext(input: {
   detectedColumns: unknown;
   precomputedMetrics: unknown;
   analysis: unknown;
+  datasetType?: string | null;
 }): DatasetContextSummary {
   const columns = input.columns.slice(0, MAX_COLUMNS_IN_CONTEXT);
   const detectedColumns = normalizeRecord(input.detectedColumns) ?? detectBusinessColumns(input.rows);
-  const datasetType = detectDatasetTypeFromColumns(columns, input.name);
+  const datasetType = input.datasetType || detectDatasetTypeFromColumns(columns, input.name);
   const columnProfiles = columns.map((column) => profileColumn(column, input.rows));
   const kpis = buildKpiExtract(input.rows, columns, input.precomputedMetrics, input.analysis);
   const topGroups = buildTopGroups(input.rows, columns);
@@ -1101,6 +1164,12 @@ function contextForClient(context: DatasetContextSummary) {
 
 function normalizeRows(rows: unknown[]): Record<string, unknown>[] {
   return rows.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object" && !Array.isArray(row));
+}
+
+function readPrebookkeepingCategorization(analysis: unknown) {
+  const record = normalizeRecord(analysis);
+  const categorization = record?.prebookkeepingCategorization;
+  return isPrebookkeepingCategorization(categorization) ? categorization : null;
 }
 
 function normalizeColumns(columns: unknown, rows: Record<string, unknown>[]) {
