@@ -42,7 +42,8 @@ assert.ok(sidebarSource.includes('name: "AI Governance"'), "sidebar includes AI 
 assert.ok(sidebarSource.includes('href: "/app/ai-governance"'), "sidebar links to AI Governance overview")
 assert.ok(sidebarSource.includes("const aiNavigation"), "sidebar groups AI Assistant and AI Governance")
 assert.ok(sidebarSource.includes("const adminAiNavigation"), "sidebar groups admin AI tools")
-assert.ok(sidebarSource.includes('label="AI"'), "sidebar renders a dedicated AI section label")
+assert.ok(sidebarSource.includes("showLabel={false}"), "sidebar keeps AI tools grouped without a visible AI label")
+assert.ok(!sidebarSource.includes('label="AI"'), "sidebar does not render a visible AI group label")
 for (const item of ["AI Assistant", "AI Governance", "AI Traces", "AI Benchmarking", "AI Cost Optimizer"]) {
   assert.ok(sidebarSource.includes(`name: "${item}"`), `AI sidebar group includes ${item}`)
 }

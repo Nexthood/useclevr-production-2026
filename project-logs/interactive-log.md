@@ -1904,3 +1904,34 @@ When a submodule is wrapped by `DashboardSubpageLayout`, page-level actions shou
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance UI Polish
+
+1. Interaction title
+AI Governance final visual polish.
+
+2. What was the user goal
+Refine the AI Governance interface visually without changing functionality, routes, data loaders, or report behavior.
+
+3. What changed
+The visible AI sidebar label is removed while the AI links stay grouped, the space after Dashboard is reduced, the page description is shorter, the Governance status bar is tighter, the segmented navigation has larger tabs and a stronger active state, the duplicated overview KPI cards are replaced with a compact activity strip, the Compliance readiness visualization is larger and better balanced with its text and action, the Control Matrix cards use equal-height rows, and the status system uses Ready as green, Needs setup as blue, Needs data as amber, Warning as yellow, and Error as red.
+
+4. Problems marked
+observation: The render smoke used dummy local database settings, so the governance data-source fallback logs appeared by design and every Governance tab still rendered.
+
+5. User learning
+AI Governance keeps the same working data and actions while the visual hierarchy is denser and more enterprise-ready.
+
+6. AI-agent learning
+Visual polish passes should remove visible labels exactly when requested, including sidebar group labels that were helpful structurally but noisy in the final UI.
+
+7. Follow-up tasks
+- Capture authenticated visual screenshots for AI Governance desktop and tablet widths after the next deployed build is available. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

@@ -32,7 +32,7 @@ export default async function AiGovernanceSectionPage({ params }: PageProps) {
   return (
     <DashboardSubpageLayout
       title="AI Governance"
-      description="EU AI Act readiness controls for transparency, oversight, privacy, provider health, audit logs, and reporting."
+      description="EU AI Act readiness, transparency, oversight, privacy, provider monitoring, and auditability."
       breadcrumbs={[
         { label: "Dashboard", href: "/app" },
         { label: "AI Governance", href: "/app/ai-governance" },

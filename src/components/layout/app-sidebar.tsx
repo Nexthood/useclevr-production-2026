@@ -161,11 +161,12 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
         )}
 
         <SidebarGroup
-          label="AI"
           items={aiNavigationItems}
           pathname={pathname}
           isCollapsed={isCollapsed}
           hasUnlimitedAdminAccess={hasUnlimitedAdminAccess}
+          showLabel={false}
+          className="pt-1"
         />
         <SidebarGroup
           label="Workspace"
@@ -252,18 +253,22 @@ function SidebarGroup({
   pathname,
   isCollapsed,
   hasUnlimitedAdminAccess,
+  showLabel = true,
+  className = "",
 }: {
-  label: string
+  label?: string
   items: NavigationItem[]
   pathname: string
   isCollapsed: boolean
   hasUnlimitedAdminAccess: boolean
+  showLabel?: boolean
+  className?: string
 }) {
   if (items.length === 0) return null
 
   return (
-    <div className="space-y-1 pt-3 first:pt-0">
-      {!isCollapsed && (
+    <div className={`space-y-1 pt-3 first:pt-0 ${className}`.trim()}>
+      {showLabel && label && !isCollapsed && (
         <p className="px-3 text-[11px] font-semibold uppercase text-sidebar-foreground/55">{label}</p>
       )}
       {items.map((item) => {

@@ -11,7 +11,6 @@ import {
   Download,
   FileBarChart2,
   FileText,
-  Gauge,
   History,
   Info,
   KeyRound,
@@ -44,7 +43,7 @@ export const AI_GOVERNANCE_SECTIONS = [
 
 export type AiGovernanceSection = (typeof AI_GOVERNANCE_SECTIONS)[number]["slug"]
 export type AiGovernanceSnapshot = Awaited<ReturnType<typeof getAiGovernanceSnapshot>>
-type GovernanceStatus = "Ready" | "Needs setup" | "Needs data" | "Warning" | "Unavailable"
+type GovernanceStatus = "Ready" | "Needs setup" | "Needs data" | "Warning" | "Error"
 
 export function normalizeGovernanceSection(value?: string | null): AiGovernanceSection {
   const found = AI_GOVERNANCE_SECTIONS.find((section) => section.slug === value)
@@ -61,8 +60,8 @@ export function AiGovernanceView({
   const activeLabel = AI_GOVERNANCE_SECTIONS.find((section) => section.slug === activeSection)?.label || "Overview"
 
   return (
-    <div className="mx-auto w-full max-w-[1360px] space-y-5 px-3 sm:px-5 lg:px-6">
-      <section className="rounded-lg border border-cyan-400/20 bg-card/95 p-3 shadow-sm sm:p-4" aria-label="AI Governance live status">
+    <div className="mx-auto w-full max-w-[1360px] space-y-4 px-3 sm:px-5 lg:px-6">
+      <section className="rounded-lg border border-cyan-400/20 bg-card/90 p-2.5 shadow-sm sm:p-3" aria-label="AI Governance live status">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <HeaderBadge label="Compliance score" value={`${snapshot.compliance.score}%`} status={statusForScore(snapshot.compliance.score)} />
           <HeaderBadge label="Active providers" value={`${snapshot.providers.online}/${snapshot.providers.total}`} status={snapshot.providers.online > 0 ? "Ready" : "Needs setup"} />
@@ -72,17 +71,17 @@ export function AiGovernanceView({
         </div>
       </section>
 
-      <nav className="sticky top-16 z-20 overflow-x-auto rounded-lg border border-border bg-background/95 p-1 shadow-sm backdrop-blur" aria-label="AI Governance sections">
-        <div className="flex min-w-max gap-1">
+      <nav className="sticky top-16 z-20 overflow-x-auto rounded-lg border border-border bg-background/95 p-1.5 shadow-sm backdrop-blur" aria-label="AI Governance sections">
+        <div className="flex min-w-max gap-1.5">
           {AI_GOVERNANCE_SECTIONS.map((section) => (
             <Link
               key={section.slug}
               href={section.slug === "overview" ? "/app/ai-governance" : `/app/ai-governance/${section.slug}`}
               aria-current={section.slug === activeSection ? "page" : undefined}
               className={[
-                "inline-flex min-h-9 items-center rounded-md px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300",
+                "inline-flex min-h-10 items-center rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300",
                 section.slug === activeSection
-                  ? "bg-cyan-400 text-slate-950 shadow-sm"
+                  ? "bg-cyan-400 text-slate-950 shadow-md shadow-cyan-950/20 ring-1 ring-cyan-200/40"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               ].join(" ")}
             >
@@ -92,7 +91,7 @@ export function AiGovernanceView({
         </div>
       </nav>
 
-      <div>
+      <div className="-mb-1">
         <h3 className="text-xl font-semibold text-foreground">{activeLabel}</h3>
       </div>
 
@@ -143,18 +142,11 @@ function renderSection(section: AiGovernanceSection, snapshot: AiGovernanceSnaps
 }
 
 function OverviewSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
-  const readiness = readinessModel(snapshot)
-
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard icon={Gauge} label="Compliance readiness" value={`${snapshot.compliance.score}%`} description="Transparency and oversight controls" status={readiness.status} tooltip="Calculated from current logging, provider, oversight, privacy, feedback, and policy data." />
-        <KpiCard icon={Activity} label="AI requests" value={formatNumber(snapshot.audit.aiRequests)} description="Provider audit metadata entries" status={snapshot.audit.aiRequests > 0 ? "Ready" : "Needs data"} tooltip="Requests appear after AI provider calls are logged." />
-        <KpiCard icon={Server} label="Active providers" value={`${snapshot.providers.online}/${snapshot.providers.total}`} description="Healthy providers over configured providers" status={snapshot.providers.online > 0 ? "Ready" : "Needs setup"} tooltip="Provider health comes from configured AI provider checks." />
-        <KpiCard icon={UserCheck} label="Manual overrides" value={formatNumber(snapshot.overrides.totalOverrides)} description="Accept, reject, edit, and undo events" status={snapshot.overrides.totalOverrides > 0 ? "Ready" : "Needs data"} tooltip="Human override events are recorded when users act on AI suggestions." />
-      </div>
+    <div className="space-y-4">
+      <OverviewStatusStrip snapshot={snapshot} />
 
-      <div className="grid gap-4 xl:grid-cols-[5fr_7fr]">
+      <div className="grid gap-4 xl:grid-cols-[5.5fr_6.5fr]">
         <ReadinessCard snapshot={snapshot} />
         <ControlMatrix snapshot={snapshot} />
       </div>
@@ -164,14 +156,55 @@ function OverviewSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
   )
 }
 
+function OverviewStatusStrip({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
+  const items = [
+    {
+      icon: Activity,
+      label: "Requests",
+      value: formatNumber(snapshot.audit.aiRequests),
+      status: snapshot.audit.aiRequests > 0 ? "Ready" as const : "Needs data" as const,
+      tooltip: "Provider audit request count.",
+    },
+    {
+      icon: History,
+      label: "Traces",
+      value: formatNumber(snapshot.audit.interactionTraces),
+      status: snapshot.audit.interactionTraces > 0 ? "Ready" as const : "Needs data" as const,
+      tooltip: "AI interaction trace count.",
+    },
+    {
+      icon: MessageSquare,
+      label: "Feedback",
+      value: formatNumber(snapshot.audit.feedbackCount),
+      status: snapshot.audit.feedbackCount > 0 ? "Ready" as const : "Needs data" as const,
+      tooltip: "Helpful and not-helpful feedback count.",
+    },
+    {
+      icon: AlertTriangle,
+      label: "Failures",
+      value: formatNumber(snapshot.audit.failures),
+      status: snapshot.audit.failures > 0 ? "Warning" as const : "Ready" as const,
+      tooltip: "Provider failures recorded in audit metadata.",
+    },
+  ]
+
+  return (
+    <section className="grid gap-2 rounded-lg border border-border bg-card/70 p-2 shadow-sm sm:grid-cols-2 xl:grid-cols-4" aria-label="AI Governance activity status">
+      {items.map((item) => (
+        <CompactMetric key={item.label} {...item} />
+      ))}
+    </section>
+  )
+}
+
 function ReadinessCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
   const readiness = readinessModel(snapshot)
   const missing = snapshot.compliance.checks.filter((check) => !check.complete)
   const nextAction = nextRecommendedAction(snapshot)
 
   return (
-    <Card className="overflow-hidden border-cyan-400/20 bg-card shadow-sm">
-      <CardHeader className="pb-3">
+    <Card className="overflow-hidden border-cyan-400/25 bg-card shadow-md shadow-cyan-950/10">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-4">
           <div>
             <CardTitle className="text-lg">Compliance readiness</CardTitle>
@@ -181,8 +214,8 @@ function ReadinessCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
-          <div className="relative h-28 w-28">
+        <div className="grid gap-5 md:grid-cols-[10rem_minmax(0,1fr)] md:items-center xl:grid-cols-[11rem_minmax(0,1fr)]">
+          <div className="relative mx-auto h-36 w-36 md:h-40 md:w-40">
             <div className="absolute inset-0 rounded-full bg-muted" />
             <div
               className="absolute inset-0 rounded-full"
@@ -190,12 +223,12 @@ function ReadinessCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
                 background: `conic-gradient(rgb(34 211 238) ${snapshot.compliance.score * 3.6}deg, hsl(var(--muted)) 0deg)`,
               }}
             />
-            <div className="absolute inset-2 grid place-items-center rounded-full bg-card">
-              <span className="text-2xl font-semibold text-foreground">{snapshot.compliance.score}%</span>
+            <div className="absolute inset-3 grid place-items-center rounded-full border border-border bg-card">
+              <span className="text-3xl font-semibold text-foreground">{snapshot.compliance.score}%</span>
             </div>
           </div>
           <div className="min-w-0 space-y-2">
-            <p className="text-base font-semibold text-foreground">{readiness.label}</p>
+            <p className="text-lg font-semibold text-foreground">{readiness.label}</p>
             <p className="text-sm leading-6 text-muted-foreground">{readiness.explanation}</p>
             {missing.length > 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -207,9 +240,9 @@ function ReadinessCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
             )}
           </div>
         </div>
-        <div className="rounded-md border border-border bg-background p-3">
+        <div className="rounded-md border border-cyan-400/20 bg-cyan-400/5 p-3">
           <p className="text-xs font-semibold uppercase text-muted-foreground">Next recommended action</p>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <p className="text-sm text-foreground">{nextAction.text}</p>
             <Link href={nextAction.href} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
               {nextAction.label}
@@ -225,22 +258,22 @@ function ReadinessCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
 function ControlMatrix({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
   const controls = controlItems(snapshot)
   return (
-    <Card className="border-border bg-card shadow-sm">
+    <Card className="border-border bg-card/95 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Control matrix</CardTitle>
         <CardDescription>Operational readiness across transparency, logging, oversight, privacy, and risk controls.</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3 md:grid-cols-2">
+      <CardContent className="grid auto-rows-fr gap-3 md:grid-cols-2">
         {controls.map((control) => (
-          <div key={control.label} className="rounded-md border border-border bg-background p-3">
-            <div className="flex items-start gap-3">
+          <div key={control.label} className="flex h-full rounded-md border border-border bg-background p-3">
+            <div className="flex w-full items-start gap-3">
               <StatusIcon status={control.status} />
-              <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium text-foreground">{control.label}</p>
                   <StatusPill status={control.status} />
                 </div>
-                <p className="mt-1 text-sm leading-5 text-muted-foreground">{control.description}</p>
+                <p className="mt-1 flex-1 text-sm leading-5 text-muted-foreground">{control.description}</p>
                 <Link href={control.href} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-cyan-300 transition hover:text-cyan-200">
                   {control.action}
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -287,9 +320,9 @@ function ProvidersSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard icon={CheckCircle2} label="Ready" value={formatNumber(snapshot.providers.online)} description="Healthy providers" status={snapshot.providers.online > 0 ? "Ready" : "Needs setup"} tooltip="Providers with successful health status." compact />
-        <KpiCard icon={XCircle} label="Unavailable" value={formatNumber(snapshot.providers.offline)} description="Unavailable or untested" status={snapshot.providers.offline > 0 ? "Unavailable" : "Ready"} tooltip="Providers without a healthy status." compact />
+        <KpiCard icon={XCircle} label="Errors" value={formatNumber(snapshot.providers.offline)} description="Unavailable or untested" status={snapshot.providers.offline > 0 ? "Error" : "Ready"} tooltip="Providers without a healthy status." compact />
         <KpiCard icon={AlertTriangle} label="Warnings" value={formatNumber(snapshot.providers.rateLimited)} description="Provider throttling" status={snapshot.providers.rateLimited > 0 ? "Warning" : "Ready"} tooltip="Rate-limited providers need attention." compact />
-        <KpiCard icon={KeyRound} label="Invalid keys" value={formatNumber(snapshot.providers.invalidKey)} description="Credential failures" status={snapshot.providers.invalidKey > 0 ? "Unavailable" : "Ready"} tooltip="Invalid credentials block cloud calls." compact />
+        <KpiCard icon={KeyRound} label="Invalid keys" value={formatNumber(snapshot.providers.invalidKey)} description="Credential failures" status={snapshot.providers.invalidKey > 0 ? "Error" : "Ready"} tooltip="Invalid credentials block cloud calls." compact />
         <KpiCard icon={Zap} label="Fallback" value={formatNumber(snapshot.providers.fallbackActive)} description="Fallback providers" status={snapshot.providers.fallbackActive > 0 ? "Ready" : "Needs setup"} tooltip="Fallback providers protect continuity." compact />
       </div>
       <Card className="border-border bg-card shadow-sm">
@@ -547,6 +580,38 @@ function SettingsCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
   )
 }
 
+function CompactMetric({
+  icon: Icon,
+  label,
+  value,
+  status,
+  tooltip,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  status: GovernanceStatus
+  tooltip: string
+}) {
+  return (
+    <div className="flex min-h-16 items-center gap-3 rounded-md border border-border bg-background/80 px-3 py-2">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{label}</p>
+          <button type="button" title={tooltip} aria-label={`${label}: ${tooltip}`} className="rounded-sm text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+        <p className="mt-0.5 truncate text-lg font-semibold text-foreground">{value}</p>
+      </div>
+      <StatusDot status={status} />
+    </div>
+  )
+}
+
 function KpiCard({
   icon: Icon,
   label,
@@ -565,7 +630,7 @@ function KpiCard({
   compact?: boolean
 }) {
   return (
-    <Card className="border-border bg-card shadow-sm">
+    <Card className="border-border bg-card/90 shadow-sm">
       <CardContent className={compact ? "p-4" : "p-5"}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-400/10 text-cyan-300">
@@ -644,7 +709,7 @@ function ActionButton({ href, icon: Icon, label, primary = false }: { href: stri
 
 function HeaderBadge({ label, value, status }: { label: string; value: string; status: GovernanceStatus }) {
   return (
-    <div className="rounded-md border border-border bg-background px-3 py-2">
+    <div className="rounded-md border border-border bg-background/85 px-3 py-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
         <StatusDot status={status} />
@@ -934,7 +999,7 @@ function statusForScore(score: number): GovernanceStatus {
 function normalizeProviderStatus(value: string): GovernanceStatus {
   if (value === "Online" || value === "Fallback Active") return "Ready"
   if (value === "Rate Limited") return "Warning"
-  if (value === "Invalid Key") return "Unavailable"
+  if (value === "Invalid Key" || value === "Offline") return "Error"
   return "Needs setup"
 }
 
@@ -956,13 +1021,13 @@ function statusStyles(status: GovernanceStatus): { Icon: LucideIcon; className: 
     return { Icon: CheckCircle2, className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", dotClassName: "bg-emerald-400" }
   }
   if (status === "Warning") {
-    return { Icon: AlertTriangle, className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300", dotClassName: "bg-amber-400" }
+    return { Icon: AlertTriangle, className: "border-yellow-500/35 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300", dotClassName: "bg-yellow-400" }
   }
-  if (status === "Unavailable") {
+  if (status === "Error") {
     return { Icon: XCircle, className: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300", dotClassName: "bg-red-400" }
   }
   if (status === "Needs setup") {
     return { Icon: Settings, className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300", dotClassName: "bg-cyan-400" }
   }
-  return { Icon: Clock3, className: "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300", dotClassName: "bg-slate-400" }
+  return { Icon: Clock3, className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300", dotClassName: "bg-amber-400" }
 }
