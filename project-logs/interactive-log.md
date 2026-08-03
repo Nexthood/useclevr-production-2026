@@ -1474,6 +1474,39 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Pre-bookkeeping Export Pipeline Row Counts
+
+1. Interaction title
+Pre-bookkeeping export pipeline row-count fix.
+
+2. What was the user goal
+Find why the review table showed 42 filtered transactions while the exported Excel file contained one transaction, then fix CSV and Excel exports so exported rows match the selected transaction set.
+
+3. What changed
+The review workspace now opens an export choice panel before CSV or Excel download and asks for Current filtered rows, Reviewed transactions, or All transactions with live row counts. Filtered exports send the matching transaction row indexes to `/api/prebookkeeping/export`. The export route validates `scope`, parses `rowIndexes`, logs the requested and exported counts, and passes the explicit selection to the export builder. The export builder selects transactions once from the requested scope instead of always filtering to reviewed rows. Excel exports contain `Transactions`, `Summary`, and `VAT Summary` sheets, and the Summary sheet distinguishes exported transactions from reviewed transactions. DATEV, QuickBooks, and Xero buttons are disabled with Coming soon in the UI, and direct API calls for those formats return a 501 Coming soon response.
+
+4. Problems marked
+observation: The collection was reduced in `buildPrebookkeepingExport()` because it always used `categorization.transactions.filter((transaction) => transaction.reviewed && transaction.duplicateStatus !== "merged")`.
+observation: The UI export request sent only `datasetId` and `format`, so backend export could not know whether the user expected filtered, reviewed, or complete dataset rows.
+observation: The reported 42-filtered-row to one-exported-row mismatch happens when the current filter contains 42 transactions but only one transaction has `reviewed: true`.
+
+5. User learning
+CSV and Excel exports now make the chosen transaction set explicit and report the row count before download.
+
+6. AI-agent learning
+Review-table exports must send the selected collection contract to the server rather than relying on backend default filters that can diverge from the visible table state.
+
+7. Follow-up tasks
+- Complete production-grade DATEV, QuickBooks, and Xero mapping setup before enabling those export buttons. (labels: upload, reports, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Review Summary Crash Fix
 
 1. Interaction title

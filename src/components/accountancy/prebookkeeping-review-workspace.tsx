@@ -27,6 +27,8 @@ type FilterKey =
   | "payroll"
   | "taxes";
 
+type ExportScope = "filtered" | "reviewed" | "all";
+
 const categoryOptions = [
   ["revenue", "Revenue"],
   ["operating_expenses", "Operating Expenses"],
@@ -70,12 +72,20 @@ export function PrebookkeepingReviewWorkspace({
   const [selectedRows, setSelectedRows] = React.useState<number[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [exportingFormat, setExportingFormat] = React.useState<string | null>(null);
+  const [exportDialogFormat, setExportDialogFormat] = React.useState<"csv" | "excel" | null>(null);
+  const [exportScope, setExportScope] = React.useState<ExportScope>("filtered");
   const { toast } = useToast();
 
   const rows = categorization.transactions;
   const reviewSummary = categorization.reviewSummary;
-  const filteredRows = rows.filter((row) => matchesFilter(row, filter)).slice(0, 100);
+  const filteredRows = rows.filter((row) => matchesFilter(row, filter));
+  const reviewedRows = rows.filter((row) => row.reviewed);
   const filterCounts = React.useMemo(() => buildFilterCounts(rows), [rows]);
+  const exportCounts = React.useMemo(() => ({
+    filtered: filteredRows.length,
+    reviewed: reviewedRows.length,
+    all: rows.length,
+  }), [filteredRows.length, reviewedRows.length, rows.length]);
   const currency = rows.find((row) => row.currency)?.currency || null;
   const reviewedCount = reviewSummary.reviewedCount;
   const totalCount = reviewSummary.totalCount || rows.length;
@@ -114,11 +124,24 @@ export function PrebookkeepingReviewWorkspace({
     setSelectedRows([]);
   }
 
-  async function downloadExport(format: string) {
+  async function downloadExport(format: "csv" | "excel", scope: ExportScope) {
     if (exportingFormat) return;
+    const rowCount = exportCounts[scope];
+    if (rowCount === 0) {
+      toast({ title: "Nothing to export", description: "Choose an export option with at least one transaction." });
+      return;
+    }
     setExportingFormat(format);
     try {
-      const response = await fetch(`/api/prebookkeeping/export?datasetId=${encodeURIComponent(datasetId)}&format=${encodeURIComponent(format)}`);
+      const params = new URLSearchParams({
+        datasetId,
+        format,
+        scope,
+      });
+      if (scope === "filtered") {
+        params.set("rowIndexes", filteredRows.map((row) => String(row.rowIndex)).join(","));
+      }
+      const response = await fetch(`/api/prebookkeeping/export?${params.toString()}`);
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
         throw new Error(safeText((result as Record<string, unknown>).error, "Export could not be generated."));
@@ -134,7 +157,8 @@ export function PrebookkeepingReviewWorkspace({
       link.click();
       link.remove();
       URL.revokeObjectURL(objectUrl);
-      toast({ title: "Export ready", description: `${format.toUpperCase()} export downloaded.` });
+      toast({ title: "Export ready", description: `${format.toUpperCase()} export downloaded with ${rowCount.toLocaleString()} transaction(s).` });
+      setExportDialogFormat(null);
     } catch (error) {
       toast({
         title: "Could not export",
@@ -241,13 +265,16 @@ export function PrebookkeepingReviewWorkspace({
             <p className="text-sm text-muted-foreground">Showing {filteredRows.length.toLocaleString()} filtered transaction(s) for {datasetName}.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {["csv", "excel", "datev", "quickbooks", "xero"].map((format) => (
+            {(["csv", "excel"] as const).map((format) => (
               <Button
                 key={format}
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => downloadExport(format)}
+                onClick={() => {
+                  setExportDialogFormat(format);
+                  setExportScope(filter === "all" ? "all" : "filtered");
+                }}
                 disabled={Boolean(exportingFormat)}
                 className="gap-2"
               >
@@ -255,8 +282,60 @@ export function PrebookkeepingReviewWorkspace({
                 {format.toUpperCase()}
               </Button>
             ))}
+            {(["datev", "quickbooks", "xero"] as const).map((format) => (
+              <Button key={format} type="button" variant="outline" size="sm" disabled title="Coming soon.">
+                {format.toUpperCase()} · Coming soon
+              </Button>
+            ))}
           </div>
         </div>
+        {exportDialogFormat && (
+          <div className="mt-4 rounded-md border border-border bg-background p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Export {exportDialogFormat.toUpperCase()}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Choose which transactions to include. The exported file row count must match this selection.</p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setExportDialogFormat(null)} disabled={Boolean(exportingFormat)}>
+                Cancel
+              </Button>
+            </div>
+            <fieldset className="mt-4 grid gap-2 md:grid-cols-3">
+              {([
+                ["filtered", "Current filtered rows", exportCounts.filtered],
+                ["reviewed", "Reviewed transactions", exportCounts.reviewed],
+                ["all", "All transactions", exportCounts.all],
+              ] as const).map(([scope, label, count]) => (
+                <label key={scope} className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 text-sm hover:bg-muted/50">
+                  <input
+                    type="radio"
+                    name="prebookkeeping-export-scope"
+                    value={scope}
+                    checked={exportScope === scope}
+                    onChange={() => setExportScope(scope)}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block font-medium text-foreground">{label}</span>
+                    <span className="block text-muted-foreground">{count.toLocaleString()} row{count === 1 ? "" : "s"}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                onClick={() => downloadExport(exportDialogFormat, exportScope)}
+                disabled={Boolean(exportingFormat) || exportCounts[exportScope] === 0}
+                className="gap-2"
+              >
+                {exportingFormat === exportDialogFormat ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Export {exportCounts[exportScope].toLocaleString()} row{exportCounts[exportScope] === 1 ? "" : "s"}
+              </Button>
+              <span className="text-sm text-muted-foreground">CSV and Excel exports use the selected transaction set.</span>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 overflow-x-auto rounded-md border border-border">
           <table className="min-w-[1180px] w-full text-sm">

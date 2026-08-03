@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Pre-bookkeeping exports so users choose filtered, reviewed, or all transactions and CSV or Excel downloads contain the exact selected row count.
 - Fix AI Governance rendering so empty or not-yet-migrated governance data shows safe default cards instead of crashing the workspace.
 - Fix Risk Intelligence dataset scoping so Accountancy and Pre-bookkeeping risk views use only the selected module dataset and hide stale test entries.
 - Fix Pre-bookkeeping accountant exports and AI Assistant answers so reviewed transactions download in supported accounting formats and provider failures return grounded bookkeeping analysis.
