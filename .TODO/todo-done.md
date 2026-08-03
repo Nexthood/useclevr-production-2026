@@ -48,6 +48,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-984. Start Retail Square OAuth through a server-side redirect route and use the canonical production callback URL for both authorization and token exchange. (labels: upload, payment, auth, testing; commit: worktree)
 - T-980. Pre-bookkeeping exports require an explicit selected row scope and generate CSV or Excel files whose transaction rows match the chosen filtered, reviewed, or complete dataset count. (labels: upload, reports, testing; commit: worktree)
 - T-977. Scope Risk Intelligence dataset selection and calculation to the requested module and selected dataset so Accountancy and Pre-bookkeeping risk views exclude stale, test, duplicate, and cross-module datasets. (labels: upload, data, testing; commit: worktree)
 - T-976. Pre-bookkeeping accountant exports generate reviewed CSV, Excel, DATEV, QuickBooks, and Xero files from the selected dataset, and bookkeeping assistant questions return deterministic dataset-grounded answers when providers are unavailable. (labels: upload, ai, reports, testing; commit: worktree)

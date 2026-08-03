@@ -191,3 +191,4 @@
 - fixed: stabilize AI Governance fresh-install rendering by applying AI provider, audit-log, interaction-trace, and governance-override table dependencies during Railway predeploy
 - changed: redesign AI Governance with compact readiness status, sticky segmented navigation, report center cards, transparency metadata, useful empty states, and a grouped AI sidebar section
 - changed: polish AI Governance with denser sidebar spacing, stronger tabs, compact activity metrics, larger readiness visualization, equal-height control cards, and consistent status colors
+- fixed: start Retail Square OAuth through a server-side browser redirect, keep callback handling on `/api/integrations/retail/square/callback`, and make production authorization plus token exchange use the canonical `https://useclevr.com` callback URL

@@ -38,6 +38,7 @@ const safeFailureReasons = new Set([
   "missing_configuration",
   "missing_state",
   "oauth_denied",
+  "oauth_start_failed",
   "provider_error",
   "square_account_not_activated",
   "square_account_region_unsupported",
@@ -51,6 +52,10 @@ const safeFailureReasons = new Set([
 ]);
 
 export function getSquareCallbackUrl(environment: SquareEnvironment = readSquareEnvironmentForOAuth()) {
+  if (environment === "production") {
+    return `${SQUARE_PRODUCTION_APP_ORIGIN}${SQUARE_CALLBACK_PATH}`;
+  }
+
   const explicit = process.env.SQUARE_REDIRECT_URI?.trim();
   if (!explicit) {
     throw new SquareOAuthConfigurationError(
@@ -116,6 +121,10 @@ export function logSquareOAuthDiagnostics(input: {
 }
 
 export function getCanonicalSquareAppBaseUrl() {
+  if (readOptionalSquareEnvironmentForOAuth() === "production") {
+    return SQUARE_PRODUCTION_APP_ORIGIN;
+  }
+
   const candidates = [
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.AUTH_URL,
@@ -290,6 +299,11 @@ function readSquareEnvironmentForOAuth(): SquareEnvironment {
     "square_config_missing",
     "SQUARE_ENVIRONMENT must be set exactly to production or sandbox.",
   );
+}
+
+function readOptionalSquareEnvironmentForOAuth(): SquareEnvironment | null {
+  const value = process.env.SQUARE_ENVIRONMENT;
+  return value === "production" || value === "sandbox" ? value : null;
 }
 
 function getSafeApplicationIdPrefix(applicationId: string | null | undefined) {
