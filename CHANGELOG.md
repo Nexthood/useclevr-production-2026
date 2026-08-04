@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Accountancy Business Profile loading so Business, Accountancy, Tax, Compliance, and Reporting read the same current-tenant profile source and load failures no longer claim the profile is incomplete.
 - Fix Free upload credits so deleting datasets no longer restores consumed credits during the billing period.
 - Fix Retail Square OAuth routing so Connect, callback, token exchange, and return redirects stay on the deployed app host instead of sending users to an unserved apex route.
 - Fix Retail Square Connect so OAuth starts through the server redirect flow and production uses the canonical Square callback URL.

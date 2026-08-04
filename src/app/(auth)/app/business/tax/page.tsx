@@ -1,8 +1,7 @@
 import { StatCard } from "@/components/ui/stat-card"
 import { DashboardContent } from "@/components/layout/dashboard-subpage-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth/auth"
-import { getPrimaryBusinessDetails } from "@/lib/business/business-store"
+import { getBusinessProfileForCurrentTenant } from "@/lib/business/current-business-profile"
 import { Landmark } from "lucide-react"
 
 export const metadata = {
@@ -10,9 +9,8 @@ export const metadata = {
 }
 
 export default async function BusinessTaxPage() {
-  const session = await auth()
-  const details = await getPrimaryBusinessDetails(session?.user?.id)
-  const safe = details ?? {}
+  const businessProfile = await getBusinessProfileForCurrentTenant()
+  const setup = businessProfile.setup
 
   return (
     <DashboardContent>
@@ -23,11 +21,17 @@ export default async function BusinessTaxPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2">
-            <StatCard icon={Landmark} label="Tax region" value={safe.location || "Not configured"} />
-            <StatCard icon={Landmark} label="Business activity" value={safe.industry || "Not configured"} />
+            <StatCard icon={Landmark} label="Tax region" value={displayProfileValue(setup?.companyInfo.taxResidenceCountry)} />
+            <StatCard icon={Landmark} label="Business activity" value={displayProfileValue(setup?.companyInfo.industry)} />
           </div>
         </CardContent>
       </Card>
     </DashboardContent>
   )
+}
+
+function displayProfileValue(value: string | null | undefined) {
+  if (value === null || value === undefined) return "Not configured"
+  const text = value.trim()
+  return text.length > 0 ? text : "Not configured"
 }

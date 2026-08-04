@@ -3,17 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertTriangle, Building2, CheckCircle2, ChevronRight, Sparkles, TriangleAlert } from "lucide-react"
 import Link from "next/link"
 import type { Metadata } from "next"
-import { getSetupStatus } from "@/lib/business/company-setup-store"
-import { auth } from "@/lib/auth/auth"
+import { getBusinessProfileForCurrentTenant } from "@/lib/business/current-business-profile"
 
 export const metadata: Metadata = {
   title: "Business - UseClevr",
 }
 
 export default async function BusinessPage() {
-  const session = await auth()
-  const userId = session?.user?.id
-  const setupStatus = userId ? await getSetupStatus(userId) : null
+  const businessProfile = await getBusinessProfileForCurrentTenant()
+  const setupStatus = businessProfile.setup?.setupStatus ?? null
 
   const completionPercent = setupStatus?.setupAccuracy ?? 0
   const hasIncompleteProfile = completionPercent < 80

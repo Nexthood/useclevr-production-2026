@@ -5,14 +5,19 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { BookOpenCheck, Receipt } from "lucide-react"
 import Link from "next/link"
+import { useEffect } from "react"
 
 export default function AccountancyError({
-  error: _error,
-  reset: _reset,
+  error,
+  reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    console.error("[ACCOUNTANCY] Page render failed.", error)
+  }, [error])
+
   return (
     <div className="flex min-h-[520px] flex-col items-center justify-center p-5">
       <div className="w-full max-w-2xl">
@@ -27,9 +32,6 @@ export default function AccountancyError({
                 Upload receipts, invoices, bank exports, PDFs, Excel, or CSV files. We extract, categorize, and generate a
                 bookkeeping summary ready for your accountant.
               </p>
-              <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-                Complete your Business Profile first for accurate tax categorization and fiscal year alignment.
-              </p>
             </div>
           </div>
         </Card>
@@ -43,11 +45,11 @@ export default function AccountancyError({
             </p>
           </div>
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            Could not load Business Profile. Reload Accountancy or open Business Profile Setup to confirm the saved values.
+            Could not load Accountancy. Retry the page and check the server logs for the saved error details.
           </div>
-          <Link href="/app/business/setup" className="mt-4 inline-flex text-sm font-medium text-primary hover:underline">
-            Complete Business Profile Setup
-          </Link>
+          <Button type="button" variant="outline" className="mt-4" onClick={reset}>
+            Retry
+          </Button>
         </Card>
 
         <Card className="border-border bg-card p-5 mt-5">

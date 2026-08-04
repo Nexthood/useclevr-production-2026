@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth/auth"
-import { getCompanySetup } from "@/lib/business/company-setup-store"
+import { getBusinessProfileForCurrentTenant } from "@/lib/business/current-business-profile"
 import { CheckCircle2, FileText, Shield } from "lucide-react"
 import type React from "react"
 
@@ -9,8 +8,8 @@ export const metadata = {
 }
 
 export default async function AccountancyCompliancePage() {
-  const session = await auth()
-  const setup = session?.user?.id ? await getCompanySetup(session.user.id) : null
+  const businessProfile = await getBusinessProfileForCurrentTenant()
+  const setup = businessProfile.setup
 
   const profileComplete = Boolean(setup?.setupStatus.completed)
   const locationComplete = Boolean(configuredString(setup?.companyInfo.taxResidenceCountry) || configuredString(setup?.companyInfo.countryOfRegistration) || configuredString(setup?.companyInfo.country))
