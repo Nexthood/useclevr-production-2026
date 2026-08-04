@@ -1,3 +1,36 @@
+## Accountancy Upload Credit Enforcement
+
+1. Interaction title
+Accountancy upload credit enforcement.
+
+2. What was the user goal
+Block every Accountancy and Pre-bookkeeping upload type when a Free user has used all included upload credits, using the same central server-side credit guard as standard uploads.
+
+3. What changed
+Accountancy and Pre-bookkeeping uploads now reserve one `dataset_upload` credit through the central Credit Engine before parsing, storing, categorizing, or saving new files. Successful uploads finalize the credit, failed parsing/storage/database work releases the reservation, duplicate existing datasets return before reserving a new credit, and exhausted accounts receive a structured `UPLOAD_CREDITS_EXHAUSTED` 402 response. The upload UI reads `/api/usage/credits`, disables upload tabs, drag-and-drop, and file picker controls when credits are exhausted, and shows upgrade copy using the included-credit count.
+
+4. Problems marked
+blocker: none.
+risk: Direct production browser validation still requires an authenticated Free account at exactly 2/2 used after deployment.
+observation: The bypass was `/api/accountancy/upload` and `processAccountancyUpload`; both authenticated the user but did not call `reserveCredits`, `finalizeCredits`, or `releaseCredits`.
+
+5. User learning
+The visible sidebar counter is informational only; Accountancy upload requests now re-check and reserve credits server-side before file processing begins.
+
+6. AI-agent learning
+Upload modules that bypass the shared upload action must still use the central `dataset_upload` credit lifecycle at their earliest parser boundary.
+
+7. Follow-up tasks
+- Verify a deployed Free user at 2/2 receives HTTP 402 for CSV, Excel, PDF, receipt, and bank uploads before parser logs appear.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Empty-State Loader Stabilization
 
 1. Interaction title

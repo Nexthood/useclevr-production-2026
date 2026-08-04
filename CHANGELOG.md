@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Accountancy upload credits so CSV, Excel, PDF, receipt, invoice, and bank-export uploads stop when included upload credits are used.
 - Fix Accountancy loading so first-time or incomplete workspaces show an empty state instead of failing the page.
 - Fix Railway predeploy schema sync so the upload-credit backfill conflict target matches the Credit Ledger idempotency-key unique index.
 - Fix Accountancy Business Profile loading so Business, Accountancy, Tax, Compliance, and Reporting read the same current-tenant profile source and load failures no longer claim the profile is incomplete.
