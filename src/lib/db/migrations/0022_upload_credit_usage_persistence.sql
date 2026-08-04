@@ -2,6 +2,10 @@
 -- This backfills legacy Profile.analysisCount usage into UserCredit when older
 -- upload paths incremented the profile counter without writing CreditLedger rows.
 
+CREATE UNIQUE INDEX IF NOT EXISTS "CreditLedger_idempotencyKey_key"
+  ON "CreditLedger" ("idempotencyKey")
+  WHERE "idempotencyKey" IS NOT NULL;
+
 WITH legacy_usage AS (
   SELECT
     uc."userId",
@@ -74,4 +78,4 @@ LEFT JOIN "Profile" p ON p."userId" = uc."userId"
 WHERE COALESCE(p."role", '') NOT IN ('admin', 'superadmin')
   AND COALESCE(p."subscriptionTier", '') NOT IN ('admin', 'superadmin')
   AND COALESCE(p."analysisCount", 0) > 0
-ON CONFLICT ("idempotencyKey") DO NOTHING;
+ON CONFLICT ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL DO NOTHING;

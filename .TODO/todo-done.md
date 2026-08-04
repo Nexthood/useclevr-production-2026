@@ -14,6 +14,7 @@ moving work between states.
 
 ## Label: deployment
 
+- T-988. Railway predeploy applies the upload-credit backfill with a conflict target that matches the Credit Ledger idempotency-key unique index. (labels: deployment, billing, stability; commit: worktree)
 - T-776. Wrap Payload CMS seed onInit with graceful table-existence check before querying cms-users collection, so static page generation succeeds on fresh databases without relying on generic try/catch. (labels: deployment, content, ci-build; commit: worktree)
 
 ## Label: monitoring
