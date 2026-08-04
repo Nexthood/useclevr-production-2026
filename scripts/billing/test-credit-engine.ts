@@ -216,6 +216,15 @@ const tests: TestCase[] = [
       assert.ok(migration.includes('"Profile" p ON p."userId" = uc."userId"'))
       assert.ok(migration.includes("'dataset_upload'"))
       assert.ok(migration.includes("Deleted historical uploads cannot be reconstructed"))
+      assert.ok(
+        migration.includes('CREATE UNIQUE INDEX IF NOT EXISTS "CreditLedger_idempotencyKey_key"') &&
+          migration.includes('WHERE "idempotencyKey" IS NOT NULL'),
+        "backfill ensures the partial unique idempotency key index exists",
+      )
+      assert.ok(
+        migration.includes('ON CONFLICT ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL DO NOTHING'),
+        "backfill conflict target matches the partial unique idempotency key index",
+      )
       assert.ok(predeploy.includes("0022_upload_credit_usage_persistence.sql"))
     },
   },

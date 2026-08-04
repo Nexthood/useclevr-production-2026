@@ -2066,3 +2066,36 @@ When a page-specific error boundary names a nested data source, first verify whe
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Railway Predeploy ON CONFLICT Constraint Fix
+
+1. Interaction title
+Railway predeploy PostgreSQL conflict-target repair.
+
+2. What was the user goal
+Fix the Railway predeploy failure caused by PostgreSQL rejecting an `ON CONFLICT` clause without a matching unique or exclusion constraint.
+
+3. What changed
+The upload-credit persistence migration now ensures the `CreditLedger_idempotencyKey_key` partial unique index exists before the legacy usage backfill insert and uses the matching conflict target predicate: `ON CONFLICT ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL DO NOTHING`. The billing regression script verifies the index and conflict target stay aligned.
+
+4. Problems marked
+root cause: `0022_upload_credit_usage_persistence.sql` inserted into `CreditLedger` with `ON CONFLICT ("idempotencyKey") DO NOTHING`, but the database unique index is partial: `UNIQUE ("idempotencyKey") WHERE ("idempotencyKey" IS NOT NULL)`.
+observation: PostgreSQL requires an `ON CONFLICT` target to match an actual primary key, unique constraint, exclusion constraint, or matching partial unique index predicate.
+observation: Local Railway predeploy reproduced the deployment error before the fix and completed after the migration target matched the partial unique index.
+
+5. User learning
+Railway predeploy applies upload-credit migration SQL whose idempotency backfill now matches the live Credit Ledger uniqueness rule and does not duplicate ledger rows.
+
+6. AI-agent learning
+For PostgreSQL partial unique indexes, `ON CONFLICT (column)` does not infer the index unless the conflict target includes the same `WHERE` predicate.
+
+7. Follow-up tasks
+- Monitor the next Railway beta deployment until predeploy completes and the app health check passes. (labels: deployment, monitoring)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

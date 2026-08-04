@@ -195,3 +195,4 @@
 - fixed: keep Square OAuth authorization, callback, token exchange, and Retail return redirects on the deployed UseClevr app host so test-host flows no longer redirect into the LiteSpeed apex 404
 - fixed: persist upload credit usage in the billing ledger so deleting datasets does not restore Free upload credits during the billing period
 - fixed: load Accountancy Business Profile context through the same current-tenant Business Profile loader as Business, Tax, Compliance, and Reporting so saved profile fields are shared and load failures do not appear as incomplete setup
+- fixed: align the Railway upload-credit backfill conflict target with the Credit Ledger idempotency-key partial unique index so predeploy schema sync completes
