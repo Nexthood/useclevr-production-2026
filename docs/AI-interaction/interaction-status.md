@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-03
-- **Goal**: Fix the Square OAuth LiteSpeed 404 by tracing the redirect chain and keeping the flow on a deployed Next.js host.
-- **Durable change**: Square OAuth URL generation is request-host aware, so the Connect start route, authorization callback, token exchange, and Retail return redirects use the same deployed app host instead of jumping from `test.useclevr.com` to the unserved apex route.
-- **Verification**: Direct route checks confirmed the apex host returns LiteSpeed 404 while the test host exposes the App Router routes; Retail POS OAuth integration checks, TypeScript, and focused ESLint passed.
+- **Date**: 2026-08-04
+- **Goal**: Fix upload credit enforcement so deleting uploaded datasets does not restore consumed Free-plan credits.
+- **Durable change**: Dataset creation paths reserve and finalize upload credits through the persistent billing ledger, failed post-insert uploads clean up their datasets and release reservations, billing-period resets start a fresh allowance without rollover, and a migration backfills legacy profile-based usage where a durable counter exists.
+- **Verification**: Billing credit regression script, TypeScript, and focused ESLint passed.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -193,3 +193,4 @@
 - changed: polish AI Governance with denser sidebar spacing, stronger tabs, compact activity metrics, larger readiness visualization, equal-height control cards, and consistent status colors
 - fixed: start Retail Square OAuth through a server-side browser redirect, keep callback handling on `/api/integrations/retail/square/callback`, and make production authorization plus token exchange use the canonical `https://useclevr.com` callback URL
 - fixed: keep Square OAuth authorization, callback, token exchange, and Retail return redirects on the deployed UseClevr app host so test-host flows no longer redirect into the LiteSpeed apex 404
+- fixed: persist upload credit usage in the billing ledger so deleting datasets does not restore Free upload credits during the billing period

@@ -1474,6 +1474,39 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Upload Credit Persistence Fix
+
+1. Interaction title
+Upload credit persistence after dataset deletion.
+
+2. What was the user goal
+Fix Free-plan upload credit enforcement so deleting uploaded datasets never restores consumed upload credits during the billing period.
+
+3. What changed
+Direct dataset creation uses the same persistent credit reservation and finalization flow as upload routes. Successful uploads create finalized ledger charges, failed uploads release pending reservations, post-insert persistence failures clean up created dataset records before returning failure, and dataset deletion remains ledger-neutral. Billing-period reset starts a fresh monthly allowance without carrying unused or stale reserved credits forward. A migration backfills legacy profile-based usage into persistent credit counters where that legacy counter exists.
+
+4. Problems marked
+observation: The direct dataset API checked persistent usage but consumed credits through the legacy profile analysis counter, so the persistent upload counter stayed unchanged and dataset-count limits could be bypassed after deletion.
+observation: Dataset deletion code removes datasets, rows, related analysis records, reports, and storage objects, but does not refund or delete credit ledger rows.
+limitation: Deleted historical uploads cannot be reconstructed when no durable dataset, ledger, or legacy profile counter exists, so the migration uses the safest available existing counter instead of inventing missing history.
+
+5. User learning
+Free upload credits are billing-period usage events, not active dataset slots, so deleting files clears storage but does not restore included upload credits.
+
+6. AI-agent learning
+Legacy usage endpoints that mutate profile counters must be removed from upload or dataset creation paths once `UserCredit` and `CreditLedger` exist.
+
+7. Follow-up tasks
+- Verify a production Free user uploads two datasets, deletes both, hard-refreshes, and still sees zero available upload credits after the beta deployment completes. (labels: billing, upload, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Retail Square OAuth LiteSpeed 404 Fix
 
 1. Interaction title

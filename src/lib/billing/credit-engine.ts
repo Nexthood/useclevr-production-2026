@@ -826,14 +826,13 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
   const now = new Date()
   const nextReset = nextResetDate(tier)
   const idempotencyKey = `subscription-reset:${userId}:${plan.id}:${creditInfo.creditsResetAt.toISOString().slice(0, 10)}`
-  const newRemaining = creditInfo.remainingCredits + monthlyCredits
-
   await db.transaction(async (tx) => {
     await tx.update(userCredits)
       .set({
         totalCredits: monthlyCredits,
         usedCredits: 0,
-        remainingCredits: newRemaining,
+        reservedCredits: 0,
+        remainingCredits: monthlyCredits,
         creditsResetAt: nextReset,
         lastResetAt: now,
         lifetimeCreditsEarned: creditInfo.lifetimeCreditsEarned + monthlyCredits,
@@ -853,14 +852,14 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
       amount: monthlyCredits,
       credits: monthlyCredits,
       balanceBefore: creditInfo.remainingCredits,
-      balanceAfter: newRemaining,
+      balanceAfter: monthlyCredits,
       source: "subscription",
       feature: "monthly_allowance",
       action: "monthly_credit_reset",
       description: `Monthly credit reset for ${plan.name} plan`,
       relatedPlanId: plan.id,
       currency: "EUR",
-      metadata: { tier: plan.tier, rollover: true },
+      metadata: { tier: plan.tier, rollover: false, previousReservedCredits: creditInfo.reservedCredits ?? 0 },
       finalizedAt: now,
     }).onConflictDoNothing()
   })
