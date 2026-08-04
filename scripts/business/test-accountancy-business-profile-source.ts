@@ -31,6 +31,13 @@ const accountancyPage = readFileSync("src/app/(auth)/app/accountancy/page.tsx", 
 assert.ok(accountancyPage.includes("await getBusinessProfileForCurrentTenant()"), "Accountancy Overview loads the exact shared Business Profile source")
 assert.ok(accountancyPage.includes("businessProfileResult.profile"), "Accountancy consumes the normalized shared profile object")
 assert.ok(accountancyPage.includes("profileLoadFailed"), "Accountancy distinguishes profile load failure from missing field values")
+assert.ok(accountancyPage.includes("AccountancyPageContent"), "Accountancy renders through a guarded server content loader")
+assert.ok(accountancyPage.includes("serializeAccountancyError"), "Accountancy logs server loader failures with stack details")
+assert.ok(accountancyPage.includes("function AccountancyEmptyState"), "Accountancy returns an empty state when loader data is unavailable")
+assert.ok(accountancyPage.includes("getSetupCompleted(companySetup)"), "Accountancy null-guards setupStatus before reading completion")
+assert.ok(accountancyPage.includes("getCompanyName(companySetup)"), "Accountancy null-guards companyInfo before reading the company name")
+assert.ok(accountancyPage.includes("formatAccountancyCount(focusedDataset.rowCount)"), "Accountancy null-guards focused dataset row counts")
+assert.ok(accountancyPage.includes("formatAccountancyCount(focusedDataset.columnCount)"), "Accountancy null-guards focused dataset column counts")
 assert.ok(!accountancyPage.includes("getBusinessProfileContext"), "Accountancy Overview does not use a separate profile context query")
 assert.ok(!accountancyPage.includes("value || MISSING_PROFILE_VALUE"), "Accountancy Overview does not hide valid falsy values")
 

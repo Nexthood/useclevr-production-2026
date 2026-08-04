@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-04
-- **Goal**: Fix Railway predeploy failure caused by a PostgreSQL `ON CONFLICT` target without a matching uniqueness rule.
-- **Durable change**: The upload-credit persistence migration ensures the Credit Ledger idempotency-key partial unique index exists and uses the matching `ON CONFLICT ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL DO NOTHING` target.
-- **Verification**: Local Railway predeploy, focused Credit Engine regression tests, TypeScript, Railway config validation, TODO lint, changelog lint, and secret lint passed.
+- **Goal**: Prevent the Accountancy server loader from failing when a first-time or incomplete workspace has no Accountancy summary data.
+- **Durable change**: Accountancy renders through a guarded server content loader, normalizes optional profile and focused dataset fields before render, logs loader stack details, and returns a usable empty workspace when loader data is unavailable.
+- **Verification**: Focused Accountancy Business Profile source test and TypeScript passed before commit workflow.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

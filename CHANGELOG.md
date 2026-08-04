@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Accountancy loading so first-time or incomplete workspaces show an empty state instead of failing the page.
 - Fix Railway predeploy schema sync so the upload-credit backfill conflict target matches the Credit Ledger idempotency-key unique index.
 - Fix Accountancy Business Profile loading so Business, Accountancy, Tax, Compliance, and Reporting read the same current-tenant profile source and load failures no longer claim the profile is incomplete.
 - Fix Free upload credits so deleting datasets no longer restores consumed credits during the billing period.

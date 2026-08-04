@@ -1,3 +1,4 @@
+- fixed: load Accountancy with a server-side empty state when profile setup or focused dataset summary fields are missing, and log Accountancy loader exceptions with file, function, and stack details
 - changed: route selected-dataset AI Analyst questions through intent classification and deterministic metric resolution for AOV, ASP, orders, customers, rankings, concentration, risk, trends, forecast baselines, comparisons, and margin explanations
 - changed: add EDIE universal entity intelligence scanner with registry-driven entity profiles, pattern recognition, cross-column validation, duplicate candidates, statistics, quality scoring, logs, and pipeline integration
 - changed: add EDIE universal semantic intelligence scanner with configurable multilingual dictionary aliases, evidence-based confidence, unknown-field review, semantic coverage, quality scoring, deterministic caching, and pipeline integration

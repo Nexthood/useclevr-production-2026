@@ -1,3 +1,36 @@
+## Accountancy Empty-State Loader Stabilization
+
+1. Interaction title
+Accountancy empty-state loader stabilization.
+
+2. What was the user goal
+Fix the server-side Accountancy loader failure that renders "Could not load Accountancy" and make the page load for first-time users without Accountancy data.
+
+3. What changed
+The Accountancy page now renders through a guarded server content loader, logs loader exceptions with file, function, error message, and stack details, returns a usable empty workspace when loader data is unavailable, and normalizes profile completion, company name, and focused dataset row and column counts before rendering.
+
+4. Problems marked
+blocker: none.
+risk: Direct Railway runtime logs could not be captured from this shell because the Railway CLI returned an interactive-login authorization error for historical logs.
+observation: The unsafe Accountancy server component accesses were `companySetup?.setupStatus.completed`, `companySetup?.companyInfo.companyName`, `focusedDataset.rowCount.toLocaleString()`, and `focusedDataset.columnCount.toLocaleString()`.
+
+5. User learning
+Accountancy loading failures can come from missing first-time or legacy dataset/profile fields even when the shared Business Profile source is working.
+
+6. AI-agent learning
+Accountancy server pages must normalize optional database-shaped values before JSX render and keep empty workspace rendering independent from optional summary data.
+
+7. Follow-up tasks
+- Capture Railway runtime stack logs after authenticated CLI access is restored if production still emits the Accountancy error boundary.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Business Profile API Root Cause
 
 1. Interaction title

@@ -32,6 +32,19 @@ type AccountancyPageProps = {
 }
 
 export default async function AccountancyPage({ searchParams }: AccountancyPageProps) {
+  try {
+    return await AccountancyPageContent({ searchParams })
+  } catch (error) {
+    console.error("[ACCOUNTANCY] Server loader failed.", {
+      file: "src/app/(auth)/app/accountancy/page.tsx",
+      function: "AccountancyPageContent",
+      error: serializeAccountancyError(error),
+    })
+    return <AccountancyEmptyState />
+  }
+}
+
+async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
   const businessProfileResult = await getBusinessProfileForCurrentTenant()
   const userId = businessProfileResult.userId
   const profileLoadFailed = businessProfileResult.status === "error"
@@ -94,8 +107,8 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
     }
   }
 
-  const profileComplete = !profileLoadFailed && Boolean(companySetup?.setupStatus.completed)
-  const companyName = companySetup?.companyInfo.companyName || ""
+  const profileComplete = !profileLoadFailed && getSetupCompleted(companySetup)
+  const companyName = getCompanyName(companySetup)
   const sharedBusinessProfile = businessProfileResult.profile ?? {
     taxCountry: null,
     currency: null,
@@ -289,8 +302,8 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
                   </p>
                 </div>
                 <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-80">
-                  <ProfileContextRow label="Rows" value={focusedDataset.rowCount.toLocaleString()} />
-                  <ProfileContextRow label="Columns" value={focusedDataset.columnCount.toLocaleString()} />
+                  <ProfileContextRow label="Rows" value={formatAccountancyCount(focusedDataset.rowCount)} />
+                  <ProfileContextRow label="Columns" value={formatAccountancyCount(focusedDataset.columnCount)} />
                   <ProfileContextRow label="Category" value={getFocusedDatasetCategory(focusedDataset)} />
                   <ProfileContextRow label="Status" value="Ready for accounting review" />
                 </div>
@@ -331,6 +344,42 @@ export default async function AccountancyPage({ searchParams }: AccountancyPageP
   )
 }
 
+function AccountancyEmptyState() {
+  return (
+    <DashboardSubpageLayout
+      title="Accountancy"
+      description="Keep bookkeeping records, tax checks, and monthly reporting in one accounting workspace."
+      breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Accountancy" }]}
+      icon={BookOpenCheck}
+    >
+      <div className="flex-1 overflow-y-auto px-5 pb-5 pt-6">
+        <div className="mx-auto max-w-6xl space-y-5">
+          <Card className="border-primary/30 bg-primary/5 p-6">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <BookOpenCheck className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-2xl font-semibold text-foreground">Accountancy workspace</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Accountancy is ready. Upload accounting CSV or Excel files to start bookkeeping review, tax checks, and monthly reporting.
+              </p>
+            </div>
+          </Card>
+
+          <Card className="border-border bg-card p-5">
+            <h2 className="text-lg font-semibold text-foreground">No Accountancy data yet</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              First-time workspaces load with an empty state instead of blocking the page. Add a financial dataset to populate this workspace.
+            </p>
+          </Card>
+
+          <AccountancyUpload datasetType="accountancy" />
+        </div>
+      </div>
+    </DashboardSubpageLayout>
+  )
+}
+
 function ProfileContextRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
@@ -343,6 +392,30 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
 function getFocusedDatasetCategory(dataset: { datasetType?: string | null; analysis: unknown }) {
   const category = resolveDatasetType(dataset.datasetType, dataset.analysis)
   return getDatasetCategoryLabel(category)
+}
+
+function getSetupCompleted(setup: unknown) {
+  if (!setup || typeof setup !== "object") return false
+  const setupStatus = (setup as { setupStatus?: unknown }).setupStatus
+  if (!setupStatus || typeof setupStatus !== "object") return false
+  return Boolean((setupStatus as { completed?: unknown }).completed)
+}
+
+function getCompanyName(setup: unknown) {
+  if (!setup || typeof setup !== "object") return ""
+  const companyInfo = (setup as { companyInfo?: unknown }).companyInfo
+  if (!companyInfo || typeof companyInfo !== "object") return ""
+  const companyName = (companyInfo as { companyName?: unknown }).companyName
+  return typeof companyName === "string" ? companyName : ""
+}
+
+function formatAccountancyCount(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value.toLocaleString()
+  if (typeof value === "string") {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed.toLocaleString()
+  }
+  return "0"
 }
 
 function ProfitabilityMetricGrid({ metrics }: { metrics: unknown }) {
@@ -378,6 +451,17 @@ function formatAccountancyMoney(value: unknown) {
 function formatAccountancyPercent(value: unknown) {
   if (typeof value !== "number" || Number.isNaN(value)) return "No data"
   return `${value.toFixed(1)}%`
+}
+
+function serializeAccountancyError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    }
+  }
+  return { message: String(error) }
 }
 
 function CloseStep({ label, complete, href }: { label: string; complete: boolean; href: string }) {
