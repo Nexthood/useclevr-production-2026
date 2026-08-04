@@ -14,7 +14,7 @@ moving work between states.
 
 ## Label: deployment
 
-- T-988. Railway predeploy applies the upload-credit backfill with a conflict target that matches the Credit Ledger idempotency-key unique index. (labels: deployment, billing, stability; commit: worktree)
+- T-988. Railway predeploy applies the upload-credit backfill with a conflict target that matches the Credit Ledger idempotency-key unique index. (labels: deployment, billing, stability; commit: b9eb8f5)
 - T-776. Wrap Payload CMS seed onInit with graceful table-existence check before querying cms-users collection, so static page generation succeeds on fresh databases without relying on generic try/catch. (labels: deployment, content, ci-build; commit: worktree)
 
 ## Label: monitoring
@@ -49,6 +49,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-989. Accountancy loads an empty workspace instead of failing when profile, dataset, or focused dataset summary data is absent. (labels: upload, stability, testing; commit: worktree)
 - T-985. Keep Retail Square OAuth authorization, callback, and post-callback redirects on the deployed app host so the flow does not jump to an unserved apex domain. (labels: upload, payment, auth, testing; commit: worktree)
 - T-984. Start Retail Square OAuth through a server-side redirect route and use the canonical production callback URL for both authorization and token exchange. (labels: upload, payment, auth, testing; commit: worktree)
 - T-980. Pre-bookkeeping exports require an explicit selected row scope and generate CSV or Excel files whose transaction rows match the chosen filtered, reviewed, or complete dataset count. (labels: upload, reports, testing; commit: worktree)
