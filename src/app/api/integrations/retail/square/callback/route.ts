@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const config = requireSquareOAuthConfig();
+    const config = requireSquareOAuthConfig({ requestUrl: request.url });
     const oauthState = await consumeOauthState({
       state,
       provider: "square",

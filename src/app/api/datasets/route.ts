@@ -7,7 +7,8 @@ import { recordActivity } from "@/lib/activity/activity-store"
 import { deleteDatasetsForUser, MAX_DELETE_BATCH_SIZE, sanitizeDatasetIds } from "@/lib/data/delete-datasets"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
-import { consumeAnalystCredit, requireAnalystCredit } from "@/lib/usage/analyst-credits"
+import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine"
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
 import { getDatasetLimitInfo, getDatasetLimitError } from "@/lib/usage/dataset-limits"
 import { eq } from "drizzle-orm"
@@ -46,6 +47,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  let creditOperationId: string | null = null
+  let creditReserved = false
+  let creditFinalized = false
+  let datasetId: string | null = null
+
   try {
     if (!db) {
       return NextResponse.json({ error: "Database is not configured" }, { status: 503 })
@@ -67,11 +73,11 @@ export async function POST(request: Request) {
 
     const { name, fileName, fileSize, columns, rows } = validation.data
 
-    const currentUsage = await requireAnalystCredit(session.user.id, session.user.role, session.user.email)
-    if (!currentUsage.canAnalyze) {
+    const currentUsage = await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email)
+    if (!currentUsage.unlimited && (currentUsage.availableCredits ?? 0) <= 0) {
       return NextResponse.json({
-        error: "Analyst credit limit reached",
-        message: "You have used your included AI credits for this plan. Upgrade to continue uploading another dataset.",
+        error: "Upload credit limit reached",
+        message: "You have used all included upload credits for this billing period.",
         usage: currentUsage,
       }, { status: 402 })
     }
@@ -87,11 +93,43 @@ export async function POST(request: Request) {
     }
 
     // Create dataset record
-    const datasetId = `ds_${uuidv4()}`
+    const createdDatasetId = `ds_${uuidv4()}`
+    datasetId = createdDatasetId
+    creditOperationId = `upload:${session.user.id}:${createdDatasetId}`
     const now = new Date()
+
+    let usage = currentUsage
+    if (!currentUsage.unlimited) {
+      const reservation = await reserveCredits({
+        userId: session.user.id,
+        operationId: creditOperationId,
+        idempotencyKey: creditOperationId,
+        estimatedCredits: 1,
+        feature: "dataset_upload",
+        source: "api_dataset_create",
+        role: session.user.role ?? null,
+        email: session.user.email ?? null,
+        metadata: {
+          datasetId: createdDatasetId,
+          fileName: fileName || name || "dataset",
+          rowCount: rows?.length || 0,
+          datasetType: "standard",
+        },
+      })
+
+      if (!reservation.success) {
+        return NextResponse.json({
+          error: "Upload credit limit reached",
+          message: "You have used all included upload credits for this billing period.",
+          usage: await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email),
+        }, { status: 402 })
+      }
+
+      creditReserved = true
+    }
     
     await db.insert(datasets).values({
-      id: datasetId,
+      id: createdDatasetId,
       userId: session.user.id,
       name: name || fileName,
       fileName: fileName || "",
@@ -108,14 +146,43 @@ export async function POST(request: Request) {
       await db.insert(datasetRows).values(
         rows.map((row: Record<string, unknown>, index: number) => ({
           id: `row_${uuidv4()}`,
-          datasetId,
+          datasetId: createdDatasetId,
           rowIndex: index,
           data: row,
         }))
       )
     }
 
-    const usage = await consumeAnalystCredit(session.user.id, session.user.role, session.user.email)
+    if (creditReserved && creditOperationId) {
+      const finalized = await finalizeCredits({
+        operationId: creditOperationId,
+        actualCredits: 1,
+        metadata: {
+          datasetId: createdDatasetId,
+          fileName: fileName || name || "dataset",
+          rowCount: rows?.length || 0,
+          datasetType: "standard",
+        },
+      })
+
+      if (!finalized.success) {
+        await db.transaction(async (tx) => {
+          if (datasetId) {
+            await tx.delete(datasetRows).where(eq(datasetRows.datasetId, createdDatasetId))
+            await tx.delete(datasets).where(eq(datasets.id, createdDatasetId))
+          }
+        })
+        await releaseCredits(creditOperationId, "dataset_api_credit_settlement_failed")
+        return NextResponse.json({
+          error: "Upload credit settlement failed",
+          message: "The dataset could not be saved with a finalized upload credit. Please try again.",
+        }, { status: 500 })
+      }
+
+      creditFinalized = true
+      usage = await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email)
+    }
+
     await recordActivity({
       userId: session.user.id,
       userEmail: session.user.email,
@@ -124,7 +191,7 @@ export async function POST(request: Request) {
       title: "Dataset uploaded",
       description: `${name || fileName || "Dataset"} was added with ${rows?.length || 0} rows.`,
       metadata: {
-        datasetId,
+        datasetId: createdDatasetId,
         name: name || fileName,
         rowCount: rows?.length || 0,
         columnCount: columns?.length || 0,
@@ -133,13 +200,26 @@ export async function POST(request: Request) {
  
     return NextResponse.json({
       dataset: {
-        id: datasetId,
+        id: createdDatasetId,
         name: name || fileName,
         createdAt: now,
       },
       usage,
     })
   } catch (error) {
+    if (creditReserved && creditOperationId && !creditFinalized) {
+      await releaseCredits(creditOperationId, "dataset_api_create_failed").catch((releaseError) => {
+        debugError("Error releasing reserved dataset upload credit:", releaseError)
+      })
+    }
+    if (datasetId && !creditFinalized) {
+      await db.transaction(async (tx) => {
+        await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId!))
+        await tx.delete(datasets).where(eq(datasets.id, datasetId!))
+      }).catch((cleanupError) => {
+        debugError("Error cleaning failed dataset create:", cleanupError)
+      })
+    }
     debugError("Error creating dataset:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

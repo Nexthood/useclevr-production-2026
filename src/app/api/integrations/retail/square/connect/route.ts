@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
 import { getRetailConnector } from "@/integrations/retail/core/connector.factory";
@@ -10,25 +10,25 @@ import { getSquareIntegrationRedirectUrl } from "@/integrations/retail/providers
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const result = await createSquareAuthorizationUrl();
+export async function GET(request: NextRequest) {
+  const result = await createSquareAuthorizationUrl(request);
   if (!result.ok) {
     return NextResponse.redirect(
-      getSquareIntegrationRedirectUrl({ status: "error", reason: "oauth_start_failed" }),
+      getSquareIntegrationRedirectUrl({ requestUrl: request.url, status: "error", reason: "oauth_start_failed" }),
     );
   }
   return NextResponse.redirect(result.authorizationUrl);
 }
 
-export async function POST() {
-  const result = await createSquareAuthorizationUrl();
+export async function POST(request: NextRequest) {
+  const result = await createSquareAuthorizationUrl(request);
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: result.status });
   }
   return NextResponse.json({ authorizationUrl: result.authorizationUrl });
 }
 
-async function createSquareAuthorizationUrl(): Promise<
+async function createSquareAuthorizationUrl(request: NextRequest): Promise<
   | { ok: true; authorizationUrl: string }
   | { ok: false; reason: string; status: number }
 > {
@@ -39,7 +39,7 @@ async function createSquareAuthorizationUrl(): Promise<
 
   try {
     const organizationId = await requirePrimaryRetailOrganization(session.user.id);
-    const config = requireSquareOAuthConfig();
+    const config = requireSquareOAuthConfig({ requestUrl: request.url });
     const state = await createOauthState({
       organizationId,
       provider: "square",

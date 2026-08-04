@@ -57,6 +57,7 @@ const tests: TestCase[] = [
       assert.ok(routeSource.includes("consumeOauthState"), "callback consumes stored OAuth state");
       assert.ok(routeSource.includes("getSquareIntegrationRedirectUrl"), "callback redirects through safe helper");
       assert.ok(connectRouteSource.includes("export async function GET"), "connect route supports browser navigation");
+      assert.ok(connectRouteSource.includes("requestUrl: request.url"), "connect route preserves the active app host for OAuth redirects");
       assert.ok(connectRouteSource.includes("NextResponse.redirect(result.authorizationUrl)"), "connect route redirects to Square server-side");
       assert.ok(retailClientSource.includes('window.location.assign("/api/integrations/retail/square/connect")'), "Square Connect button navigates to the OAuth start route");
       assert.ok(proxySource.includes("SQUARE_CALLBACK_PATH"), "proxy imports the canonical Square callback path");
@@ -166,6 +167,14 @@ const tests: TestCase[] = [
         assert.equal(getSquareCallbackFailureReason(new OauthStateError("expired_state")), "expired_state");
         assert.equal(getSquareCallbackFailureReason(new OauthStateError("environment_mismatch")), "square_environment_mismatch");
         assert.equal(getSquareCallbackFailureReason(new Error("Square token response failed")), "token_exchange_failed");
+        assert.equal(
+          getSquareIntegrationRedirectUrl({
+            requestUrl: `${SQUARE_TEST_APP_ORIGIN}${SQUARE_CALLBACK_PATH}?error=access_denied`,
+            status: "error",
+            reason: "access_denied",
+          }).toString(),
+          "https://test.useclevr.com/app/retail/integrations?connection=square&status=error&reason=access_denied",
+        );
       });
     },
   },
@@ -203,9 +212,26 @@ const tests: TestCase[] = [
       withSquareEnv("production", () => {
         process.env.NEXT_PUBLIC_APP_URL = SQUARE_TEST_APP_ORIGIN;
         process.env.SQUARE_REDIRECT_URI = `${SQUARE_TEST_APP_ORIGIN}${squareCallbackPath}`;
-        assert.equal(getSquareCallbackUrl(), `${SQUARE_PRODUCTION_APP_ORIGIN}${squareCallbackPath}`);
-        assert.equal(getSquareConfig().redirectUri, `${SQUARE_PRODUCTION_APP_ORIGIN}${squareCallbackPath}`);
+        assert.equal(getSquareCallbackUrl(), `${SQUARE_TEST_APP_ORIGIN}${squareCallbackPath}`);
+        assert.equal(getSquareConfig().redirectUri, `${SQUARE_TEST_APP_ORIGIN}${squareCallbackPath}`);
       });
+
+      const productionUrlFromTestDeployment = await withSquareEnv("production", async () => {
+        delete process.env.SQUARE_REDIRECT_URI;
+        const config = getSquareConfig({ requestUrl: `${SQUARE_TEST_APP_ORIGIN}/api/integrations/retail/square/connect` });
+        assert.equal(config.redirectUri, `${SQUARE_TEST_APP_ORIGIN}${squareCallbackPath}`);
+        return new SquareConnector().getAuthorizationUrl({
+          state: "state-production-test-host",
+          redirectUri: config.redirectUri,
+        });
+      });
+
+      const parsedTestDeploymentAuth = new URL(productionUrlFromTestDeployment);
+      assert.equal(parsedTestDeploymentAuth.host, squareProductionHost);
+      assert.equal(
+        parsedTestDeploymentAuth.searchParams.get("redirect_uri"),
+        `${SQUARE_TEST_APP_ORIGIN}${SQUARE_CALLBACK_PATH}`,
+      );
     },
   },
   {

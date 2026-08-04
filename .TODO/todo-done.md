@@ -48,6 +48,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-985. Keep Retail Square OAuth authorization, callback, and post-callback redirects on the deployed app host so the flow does not jump to an unserved apex domain. (labels: upload, payment, auth, testing; commit: worktree)
 - T-984. Start Retail Square OAuth through a server-side redirect route and use the canonical production callback URL for both authorization and token exchange. (labels: upload, payment, auth, testing; commit: worktree)
 - T-980. Pre-bookkeeping exports require an explicit selected row scope and generate CSV or Excel files whose transaction rows match the chosen filtered, reviewed, or complete dataset count. (labels: upload, reports, testing; commit: worktree)
 - T-977. Scope Risk Intelligence dataset selection and calculation to the requested module and selected dataset so Accountancy and Pre-bookkeeping risk views exclude stale, test, duplicate, and cross-module datasets. (labels: upload, data, testing; commit: worktree)
@@ -67,6 +68,8 @@ moving work between states.
 - T-910. Show Free plan dataset-limit responses as an informational upgrade state on upload surfaces, with Pro and Business upgrade actions, plan comparison copy, and disabled drag-and-drop until the account upgrades. (labels: upload, billing, ui; commit: worktree)
 
 ## Label: billing
+
+- T-986. Keep consumed upload credits in the persistent billing ledger for the current billing period after datasets are deleted, and block additional Free uploads until reset or plan change. (labels: billing, upload, testing; commit: worktree)
 
 - T-935. Limit Demo mode to the Free plan's shared dataset, row, upload, AI-credit, and feature-access rules across backend enforcement and usage displays. (labels: billing, auth, security; commit: worktree)
 - T-934. Show Business as a stronger paid plan with 5000 AI credits, 250 datasets, larger uploads, Accounting AI, document processing, dedicated support, and Upgrade to Business CTAs. (labels: billing, ui, content; commit: worktree)

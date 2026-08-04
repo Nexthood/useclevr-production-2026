@@ -7,6 +7,10 @@ export const SQUARE_PRODUCTION_APP_ORIGIN = "https://useclevr.com";
 
 export type SquareEnvironment = "sandbox" | "production";
 
+export type SquareOAuthUrlOptions = {
+  requestUrl?: string | URL | null;
+};
+
 export type SquareOAuthErrorCode =
   | "square_config_missing"
   | "square_environment_mismatch"
@@ -51,41 +55,52 @@ const safeFailureReasons = new Set([
   "token_exchange_failed",
 ]);
 
-export function getSquareCallbackUrl(environment: SquareEnvironment = readSquareEnvironmentForOAuth()) {
+export function getSquareCallbackUrl(
+  environment: SquareEnvironment = readSquareEnvironmentForOAuth(),
+  options: SquareOAuthUrlOptions = {},
+): string {
+  const requestBaseUrl = getSquareRequestBaseUrl(options.requestUrl, environment);
+  if (requestBaseUrl) {
+    return `${requestBaseUrl}${SQUARE_CALLBACK_PATH}`;
+  }
+
+  const explicit = process.env.SQUARE_REDIRECT_URI?.trim();
+  if (explicit) {
+    const redirectUri = normalizeSquareRedirectUri(explicit);
+    if (!redirectUri) {
+      throw new SquareOAuthConfigurationError("square_redirect_uri_invalid", "Square redirect URI is invalid.");
+    }
+    if (new URL(explicit).toString() !== redirectUri) {
+      throw new SquareOAuthConfigurationError(
+        "square_redirect_uri_invalid",
+        "Square redirect URI must match exactly and must not include a trailing slash after the callback path.",
+      );
+    }
+
+    assertSquareRedirectUriMatchesAppUrl(redirectUri, environment);
+    assertSquareRedirectUriAllowed(redirectUri, environment);
+    return redirectUri;
+  }
+
   if (environment === "production") {
     return `${SQUARE_PRODUCTION_APP_ORIGIN}${SQUARE_CALLBACK_PATH}`;
   }
 
-  const explicit = process.env.SQUARE_REDIRECT_URI?.trim();
-  if (!explicit) {
-    throw new SquareOAuthConfigurationError(
-      "square_redirect_uri_missing",
-      "SQUARE_REDIRECT_URI must be set to the Square OAuth callback URL.",
-    );
-  }
-
-  const redirectUri = normalizeSquareRedirectUri(explicit);
-  if (!redirectUri) {
-    throw new SquareOAuthConfigurationError("square_redirect_uri_invalid", "Square redirect URI is invalid.");
-  }
-  if (new URL(explicit).toString() !== redirectUri) {
-    throw new SquareOAuthConfigurationError(
-      "square_redirect_uri_invalid",
-      "Square redirect URI must match exactly and must not include a trailing slash after the callback path.",
-    );
-  }
-
-  assertSquareRedirectUriMatchesAppUrl(redirectUri);
-  assertSquareRedirectUriAllowed(redirectUri, environment);
-  return redirectUri;
+  throw new SquareOAuthConfigurationError(
+    "square_redirect_uri_missing",
+    "SQUARE_REDIRECT_URI must be set to the Square OAuth callback URL.",
+  );
 }
 
-export function getSquareRedirectUri() {
-  return getSquareCallbackUrl();
+export function getSquareRedirectUri(options: SquareOAuthUrlOptions = {}): string {
+  return getSquareCallbackUrl(readSquareEnvironmentForOAuth(), options);
 }
 
-export function requireSquareRedirectUri(environment: SquareEnvironment) {
-  const redirectUri = getSquareCallbackUrl(environment);
+export function requireSquareRedirectUri(
+  environment: SquareEnvironment,
+  options: SquareOAuthUrlOptions = {},
+): string {
+  const redirectUri = getSquareCallbackUrl(environment, options);
   assertSquareRedirectUriAllowed(redirectUri, environment);
   return redirectUri;
 }
@@ -103,11 +118,10 @@ export function logSquareOAuthDiagnostics(input: {
   if (hasLoggedSquareOAuthDiagnostics) return;
   hasLoggedSquareOAuthDiagnostics = true;
 
-  const appUrl = getCanonicalSquareAppBaseUrl();
   const parsedCallback = new URL(input.redirectUri);
   const parsedAuthorization = new URL(input.authorizationUrl);
   console.warn("[SQUARE_OAUTH] Resolved configuration", {
-    appUrl,
+    appUrl: parsedCallback.origin,
     squareEnvironment: input.environment,
     authorizationHostname: parsedAuthorization.hostname,
     callbackHostname: parsedCallback.hostname,
@@ -120,8 +134,14 @@ export function logSquareOAuthDiagnostics(input: {
   });
 }
 
-export function getCanonicalSquareAppBaseUrl() {
-  if (readOptionalSquareEnvironmentForOAuth() === "production") {
+export function getCanonicalSquareAppBaseUrl(options: SquareOAuthUrlOptions = {}) {
+  const environment = readOptionalSquareEnvironmentForOAuth();
+  const requestBaseUrl = getSquareRequestBaseUrl(options.requestUrl, environment);
+  if (requestBaseUrl) {
+    return requestBaseUrl;
+  }
+
+  if (environment === "production") {
     return SQUARE_PRODUCTION_APP_ORIGIN;
   }
 
@@ -147,7 +167,7 @@ export function getSquareIntegrationRedirectUrl(input: {
   status: "success" | "error";
   reason?: string | null;
 }) {
-  const baseUrl = getCanonicalSquareAppBaseUrl();
+  const baseUrl = getCanonicalSquareAppBaseUrl({ requestUrl: input.requestUrl });
   const redirectUrl = new URL(SQUARE_INTEGRATIONS_PATH, baseUrl);
   redirectUrl.searchParams.set("connection", "square");
   redirectUrl.searchParams.set("status", input.status);
@@ -226,21 +246,24 @@ export function assertSquareRedirectUriAllowed(redirectUri: string, environment:
     throw new SquareOAuthConfigurationError("square_redirect_uri_invalid", "Square redirect URI must use HTTPS.");
   }
 
-  const expectedOrigin = environment === "sandbox" ? SQUARE_TEST_APP_ORIGIN : SQUARE_PRODUCTION_APP_ORIGIN;
-  if (parsed.origin !== expectedOrigin) {
+  const allowedOrigins = getAllowedSquareRedirectOrigins(environment);
+  if (!allowedOrigins.includes(parsed.origin)) {
     throw new SquareOAuthConfigurationError(
       "square_redirect_uri_mismatch",
-      `Square ${environment} redirect URI must use ${expectedOrigin}.`,
+      `Square ${environment} redirect URI must use ${allowedOrigins.join(" or ")}.`,
     );
   }
 }
 
-function assertSquareRedirectUriMatchesAppUrl(redirectUri: string) {
+function assertSquareRedirectUriMatchesAppUrl(redirectUri: string, environment: SquareEnvironment) {
   const configuredBaseUrl = getConfiguredSquareAppBaseUrl();
   if (!configuredBaseUrl) return;
 
   const redirectUrl = new URL(redirectUri);
   const appUrl = new URL(configuredBaseUrl);
+  const allowedOrigins = getAllowedSquareRedirectOrigins(environment);
+  if (allowedOrigins.includes(redirectUrl.origin) && allowedOrigins.includes(appUrl.origin)) return;
+
   if (redirectUrl.origin !== appUrl.origin) {
     throw new SquareOAuthConfigurationError(
       "square_redirect_uri_mismatch",
@@ -262,6 +285,34 @@ function getConfiguredSquareAppBaseUrl() {
   }
 
   return "";
+}
+
+function getSquareRequestBaseUrl(requestUrl: SquareOAuthUrlOptions["requestUrl"], environment: SquareEnvironment | null) {
+  if (!requestUrl) return "";
+
+  try {
+    const parsed = new URL(requestUrl);
+    const origin = normalizeSquareBaseUrl(parsed.origin);
+    if (!origin) return "";
+    const allowedOrigins = environment ? getAllowedSquareRedirectOrigins(environment) : [
+      SQUARE_TEST_APP_ORIGIN,
+      SQUARE_PRODUCTION_APP_ORIGIN,
+    ];
+    if (allowedOrigins.includes(origin) || (environment !== "production" && isLocalhost(parsed.hostname))) {
+      return origin;
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+
+function getAllowedSquareRedirectOrigins(environment: SquareEnvironment) {
+  if (environment === "production") {
+    return [SQUARE_PRODUCTION_APP_ORIGIN, SQUARE_TEST_APP_ORIGIN];
+  }
+  return [SQUARE_TEST_APP_ORIGIN];
 }
 
 function normalizeSquareRedirectUri(value: string | undefined) {

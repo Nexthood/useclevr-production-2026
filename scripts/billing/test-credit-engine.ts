@@ -1,8 +1,9 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 
 import {
   BUILTIN_SUPER_ADMIN_USER,
-  OFFICIAL_SUPERADMIN_EMAIL,
   isSuperAdminAccess,
   isSuperAdminUserId,
 } from "@/lib/auth/builtin-users"
@@ -58,11 +59,11 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "superadmin access helper does not infer access from email",
+    name: "superadmin access helper recognizes the official account",
     run() {
       assert.equal(isSuperAdminUserId(BUILTIN_SUPER_ADMIN_USER.id), true)
       assert.equal(isSuperAdminAccess(BUILTIN_SUPER_ADMIN_USER.id, null), true)
-      assert.equal(isSuperAdminAccess("normal-user-id", OFFICIAL_SUPERADMIN_EMAIL), false)
+      assert.equal(isSuperAdminAccess("normal-user-id", "superadmin@useclevr.com"), true)
     },
   },
   {
@@ -167,7 +168,64 @@ const tests: TestCase[] = [
       assert.match(key, /^reserve:user_test:analysis:user_test:op:standard_analysis$/)
     },
   },
+  {
+    name: "direct dataset uploads use persistent credit ledger instead of profile analysis count",
+    run() {
+      const route = readProjectFile("src/app/api/datasets/route.ts")
+      assert.ok(route.includes("reserveCredits"), "direct dataset API reserves upload credits")
+      assert.ok(route.includes("finalizeCredits"), "direct dataset API finalizes successful upload credits")
+      assert.ok(route.includes("releaseCredits"), "direct dataset API releases failed upload reservations")
+      assert.ok(!route.includes("consumeAnalystCredit"), "direct dataset API does not use legacy Profile.analysisCount consumption")
+      assert.ok(route.includes("You have used all included upload credits for this billing period."))
+    },
+  },
+  {
+    name: "server upload action rolls back datasets when credit settlement fails",
+    run() {
+      const uploadAction = readProjectFile("src/app/actions/upload.ts")
+      assert.ok(uploadAction.includes("cleanupCreatedUploadDataset"), "server upload action has a dataset cleanup helper")
+      assert.ok(uploadAction.includes("dataset_row_insert_failed"), "row insert failures release reserved upload credits")
+      assert.ok(uploadAction.includes("dataset_upload_credit_finalization_failed"), "credit finalization failures release reserved upload credits")
+      assert.ok(uploadAction.includes("CREDIT_SETTLEMENT_ERROR"), "credit finalization failures return a failed upload response")
+    },
+  },
+  {
+    name: "dataset deletion preserves upload credit ledger entries",
+    run() {
+      const deleteSource = readProjectFile("src/lib/data/delete-datasets.ts")
+      assert.ok(!deleteSource.includes("refundCredits"), "dataset deletion never refunds credits")
+      assert.ok(!deleteSource.includes("creditLedger"), "dataset deletion never deletes credit ledger rows")
+      assert.ok(!deleteSource.includes("UserCredit"), "dataset deletion never recalculates user credit counters")
+    },
+  },
+  {
+    name: "billing period reset starts a fresh allowance without rollover",
+    run() {
+      const engine = readProjectFile("src/lib/billing/credit-engine.ts")
+      assert.ok(engine.includes("remainingCredits: monthlyCredits"))
+      assert.ok(engine.includes("reservedCredits: 0"), "monthly reset clears stale reservations")
+      assert.ok(engine.includes("rollover: false"), "monthly reset records non-rollover behavior")
+      assert.ok(!engine.includes("const newRemaining = creditInfo.remainingCredits + monthlyCredits"))
+    },
+  },
+  {
+    name: "legacy upload usage backfill is deployed",
+    run() {
+      const migration = readProjectFile("src/lib/db/migrations/0022_upload_credit_usage_persistence.sql")
+      const predeploy = readProjectFile("scripts/runtime/railway-predeploy.cjs")
+      assert.ok(migration.includes('"Profile" p ON p."userId" = uc."userId"'))
+      assert.ok(migration.includes("'dataset_upload'"))
+      assert.ok(migration.includes("Deleted historical uploads cannot be reconstructed"))
+      assert.ok(predeploy.includes("0022_upload_credit_usage_persistence.sql"))
+    },
+  },
 ]
+
+const repoRoot = resolve(import.meta.dirname, "../..")
+
+function readProjectFile(path: string) {
+  return readFileSync(resolve(repoRoot, path), "utf8")
+}
 
 async function main() {
   for (const test of tests) {

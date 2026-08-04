@@ -39,7 +39,7 @@ type SquareRequestOptions = {
 
 export class SquareConnector implements RetailPOSConnector {
   async getAuthorizationUrl(input: AuthorizationInput): Promise<string> {
-    const config = requireSquareOAuthConfig();
+    const config = requireSquareOAuthConfig({ requestUrl: input.redirectUri });
     const redirectUri = requireMatchingRedirectUri(input.redirectUri, config.redirectUri);
     const url = new URL(config.authorizationUrl);
     url.searchParams.set("client_id", config.applicationId);
@@ -65,7 +65,7 @@ export class SquareConnector implements RetailPOSConnector {
   }
 
   async exchangeAuthorizationCode(input: AuthorizationCodeInput): Promise<TokenResult> {
-    const config = requireSquareOAuthConfig();
+    const config = requireSquareOAuthConfig({ requestUrl: input.redirectUri });
     const redirectUri = requireMatchingRedirectUri(input.redirectUri, config.redirectUri);
     const payload = await this.oauthRequest("/token", {
       client_id: config.applicationId,

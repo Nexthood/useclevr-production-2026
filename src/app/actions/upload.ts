@@ -113,6 +113,13 @@ function isDatabaseConnectionError(error: unknown) {
   );
 }
 
+async function cleanupCreatedUploadDataset(db: NonNullable<ReturnType<typeof getDb>>, datasetId: string) {
+  await db.transaction(async (tx) => {
+    await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId));
+    await tx.delete(datasets).where(eq(datasets.id, datasetId));
+  });
+}
+
 /**
  * Upload CSV file and store in database
  */
@@ -708,6 +715,9 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         if (uploadCreditOperationId) {
           await releaseCredits(uploadCreditOperationId, "dataset_row_insert_failed");
         }
+        await cleanupCreatedUploadDataset(db, datasetId).catch((cleanupError) => {
+          debugError("[UPLOAD] DATASET CLEANUP AFTER ROW INSERT FAILED:", cleanupError);
+        });
         debugError("[UPLOAD] ROW INSERT FAILED:", rowErr);
         debugError(
           "[UPLOAD] ROW INSERT ERROR:",
@@ -865,11 +875,21 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const previewRowsToReturn = useStreamingStorage ? previewRows : allRows.slice(0, 5);
 
     if (uploadCreditOperationId) {
-      await finalizeCredits({
+      const finalized = await finalizeCredits({
         operationId: uploadCreditOperationId,
         actualCredits: 1,
         metadata: { datasetId, rowCount: totalRowCount, datasetType: datasetCategory, businessModel },
       });
+      if (!finalized.success) {
+        await cleanupCreatedUploadDataset(db, datasetId).catch((cleanupError) => {
+          debugError("[UPLOAD] DATASET CLEANUP AFTER CREDIT FINALIZATION FAILED:", cleanupError);
+        });
+        await releaseCredits(uploadCreditOperationId, "dataset_upload_credit_finalization_failed");
+        return fail(
+          UPLOAD_STAGES.CREDITS_DEDUCTED,
+          "CREDIT_SETTLEMENT_ERROR|The dataset could not be saved with a finalized upload credit. Please try again.",
+        );
+      }
       uploadUsage = await getAnalystCreditUsage(
         effectiveUserId,
         session?.user?.role,
