@@ -1,7 +1,6 @@
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth/auth"
-import { getCompanySetup } from "@/lib/business/company-setup-store"
+import { getBusinessProfileForCurrentTenant } from "@/lib/business/current-business-profile"
 import { Landmark } from "lucide-react"
 
 export const metadata = {
@@ -9,8 +8,8 @@ export const metadata = {
 }
 
 export default async function AccountancyTaxPage() {
-  const session = await auth()
-  const setup = session?.user?.id ? await getCompanySetup(session.user.id) : null
+  const businessProfile = await getBusinessProfileForCurrentTenant()
+  const setup = businessProfile.setup
   const taxCountry = displayProfileValue(setup?.companyInfo.taxResidenceCountry)
   const industry = displayProfileValue(setup?.companyInfo.industry)
 

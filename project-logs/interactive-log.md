@@ -2033,3 +2033,36 @@ Visual polish passes should remove visible labels exactly when requested, includ
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Shared Loader
+
+1. Interaction title
+Accountancy Business Profile completed-profile loading fix.
+
+2. What was the user goal
+Make Accountancy show the exact saved Business Profile values that Business already displays, without creating another profile source, table, or form.
+
+3. What changed
+Business Profile loading now exposes one current-tenant server loader that authenticates the user with the same bootstrap path as the Business setup API, reads the organization-scoped profile repository once, returns the source organization context, and normalizes tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs in one place. Business, Accountancy, Accountancy Tax, Accountancy Compliance, Accountancy Reporting, and Business Tax read that shared loader. Accountancy no longer owns six-field profile formatting logic, and its route error boundary no longer claims the profile is incomplete when a render failure occurs.
+
+4. Problems marked
+root cause: The working Business wizard loaded `/api/business/setup`, which calls the Business Profile repository with authenticated user and built-in-account bootstrap, while Accountancy pages loaded and formatted profile state independently in server components.
+root cause: The Accountancy error boundary displayed “Could not load Business Profile” for any Accountancy render crash and offered the Business setup link, which made non-profile failures look like incomplete profile data.
+observation: The authoritative table is `business_profile`, keyed by `organization_id`, with a legacy read fallback from `Business.companySetup`.
+
+5. User learning
+Accountancy profile context uses the same saved Business Profile source as Business and distinguishes loading failures from truly missing fields.
+
+6. AI-agent learning
+When a page-specific error boundary names a nested data source, first verify whether the boundary is masking a broader route render failure before changing the data source.
+
+7. Follow-up tasks
+- Verify the deployed Accountancy page with an authenticated completed Business Profile session after the beta deployment finishes. (labels: business, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

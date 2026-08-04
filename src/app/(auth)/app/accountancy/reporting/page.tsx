@@ -1,7 +1,7 @@
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
-import { getCompanySetup } from "@/lib/business/company-setup-store"
+import { getBusinessProfileForCurrentTenant } from "@/lib/business/current-business-profile"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { count, eq, sum } from "drizzle-orm"
@@ -43,7 +43,8 @@ export default async function AccountancyReportingPage() {
   const session = await auth()
   const userId = session?.user?.id
   const metrics = await getReportingMetrics(userId)
-  const setup = userId ? await getCompanySetup(userId) : null
+  const businessProfile = await getBusinessProfileForCurrentTenant()
+  const setup = businessProfile.setup
   const reportingCurrency = displayProfileValue(setup?.currencySettings.primaryCurrency)
 
   return (

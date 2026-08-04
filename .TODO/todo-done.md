@@ -141,6 +141,7 @@ moving work between states.
 
 ## Label: business
 
+- T-987. Route Accountancy, Business, Tax, Compliance, and Reporting Business Profile context through one current-tenant loader, and show profile load failures separately from missing field values. (labels: business, reporting, caching; commit: worktree)
 - T-968. Load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database. (labels: business, auth, api, testing; commit: worktree)
 - T-967. Log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures. (labels: business, logging, testing; commit: worktree)
 - T-882. Refine Business Profile setup into a polished SaaS onboarding flow with context-aware copy, intelligent examples, clear validation, accessible navigation, and a stronger completion state. (labels: business, ui, accessibility; commit: worktree)

@@ -12,8 +12,29 @@ import {
   normalizeCompanySetupPayload,
 } from "./company-setup"
 
+export type CompanySetupRecordSource =
+  | "business_profile"
+  | "Business.companySetup"
+  | "database_unavailable"
+  | "missing_organization"
+  | "empty"
+  | "repository_exception"
+
+export type CompanySetupRecord = {
+  payload: CompanySetupPayload
+  organizationId: string | null
+  source: CompanySetupRecordSource
+  error?: ReturnType<typeof serializeErrorForBusinessProfileLogs>
+}
+
 export async function getCompanySetup(userId: string, businessId?: string): Promise<CompanySetupPayload> {
+  const record = await getCompanySetupRecord(userId, businessId)
+  return record.payload
+}
+
+export async function getCompanySetupRecord(userId: string, businessId?: string): Promise<CompanySetupRecord> {
   const startedAt = Date.now()
+  const emptyPayload = emptyCompanySetupPayload()
   const db = getDb()
   if (!db) {
     logBusinessProfileDiagnostic("getCompanySetup.finished", {
@@ -22,7 +43,7 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
       businessId,
       durationMs: Date.now() - startedAt,
     })
-    return emptyCompanySetupPayload()
+    return { payload: emptyPayload, organizationId: null, source: "database_unavailable" }
   }
 
   try {
@@ -35,7 +56,7 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
         organizationId: null,
         durationMs: Date.now() - startedAt,
       })
-      return emptyCompanySetupPayload()
+      return { payload: emptyPayload, organizationId: null, source: "missing_organization" }
     }
 
     const [profile] = await db
@@ -55,7 +76,7 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
         responseBody: summarizeCompanySetupPayload(payload),
         durationMs: Date.now() - startedAt,
       })
-      return payload
+      return { payload, organizationId: organization.id, source: "business_profile" }
     }
 
     if (organization.companySetup && typeof organization.companySetup === "object" && Object.keys(organization.companySetup as object).length > 0) {
@@ -69,7 +90,7 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
         responseBody: summarizeCompanySetupPayload(payload),
         durationMs: Date.now() - startedAt,
       })
-      return payload
+      return { payload, organizationId: organization.id, source: "Business.companySetup" }
     }
 
     logBusinessProfileDiagnostic("getCompanySetup.finished", {
@@ -79,20 +100,21 @@ export async function getCompanySetup(userId: string, businessId?: string): Prom
       organizationId: organization.id,
       durationMs: Date.now() - startedAt,
     })
-    return emptyCompanySetupPayload()
+    return { payload: emptyPayload, organizationId: organization.id, source: "empty" }
   } catch (error) {
+    const serializedError = serializeErrorForBusinessProfileLogs(error)
     logBusinessProfileDiagnostic("getCompanySetup.failed", {
       status: "repository_exception",
       userId,
       businessId,
       durationMs: Date.now() - startedAt,
-      error: serializeErrorForBusinessProfileLogs(error),
+      error: serializedError,
       sqlQuery: [
         'select "id", "companySetup" from "Business" where "userId" = $userId and ("id" = $businessId or "isPrimary" = true) limit 1',
         'select "payload" from "business_profile" where "organization_id" = $organizationId limit 1',
       ],
     })
-    return emptyCompanySetupPayload()
+    return { payload: emptyPayload, organizationId: null, source: "repository_exception", error: serializedError }
   }
 }
 
