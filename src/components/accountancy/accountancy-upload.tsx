@@ -37,6 +37,10 @@ type AccountancyUploadApiResponse = {
   error: string | null
   message: string | null
   stage: string | null
+  code: string | null
+  used: number | null
+  limit: number | null
+  remaining: number | null
   datasetLimit: Record<string, unknown> | null
   usage: Record<string, unknown> | null
 }
@@ -56,6 +60,7 @@ export function AccountancyUpload({
   const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline" | "limit-reached">("idle")
   const [errorMessage, setErrorMessage] = React.useState("")
   const [limitReachedInfo, setLimitReachedInfo] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
+  const [creditExhaustedInfo, setCreditExhaustedInfo] = React.useState<{used: number, limit: number, remaining: number} | null>(null)
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
   const [processingLabel, setProcessingLabel] = React.useState("Uploading")
@@ -77,6 +82,8 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   const isOffline = connectionMode === "offline"
   const _isHybrid = connectionMode === "hybrid"
   const isPlanLimitReached = uploadStatus === "limit-reached"
+  const isCreditExhausted = Boolean(creditExhaustedInfo && creditExhaustedInfo.remaining <= 0)
+  const isUploadBlocked = isPlanLimitReached || isCreditExhausted
 
   const getConnectionIcon = (mode: ConnectionMode) => {
     switch (mode) {
@@ -100,11 +107,46 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     }
   }
 
+  const refreshCreditStatus = React.useCallback(async () => {
+    try {
+      const response = await fetch("/api/usage/credits", { cache: "no-store" })
+      if (!response.ok) return
+      const usage = await response.json().catch(() => null)
+      if (!isRecord(usage) || usage.unlimited === true) {
+        setCreditExhaustedInfo(null)
+        return
+      }
+
+      const credits = isRecord(usage.credits) ? usage.credits : {}
+      const used = safeNumber(credits.used) ?? safeNumber(usage.usedCredits) ?? safeNumber(usage.analysisCount) ?? 0
+      const limit = safeNumber(credits.total) ?? safeNumber(usage.total) ?? 0
+      const remaining = safeNumber(credits.available) ?? safeNumber(usage.availableCredits) ?? 0
+      if (limit > 0 && remaining <= 0) {
+        setCreditExhaustedInfo({ used, limit, remaining: 0 })
+        setUpgradeModalData({ currentCount: used, limit, planName: "Free" })
+        setUpgradeModalCopy({
+          title: "Upload Credits Used",
+          description: `You have used all ${limit} included upload credits. Upgrade to upload more files.`,
+          usageLabel: "upload credits used",
+        })
+        setUploadStatus("limit-reached")
+      } else {
+        setCreditExhaustedInfo(null)
+      }
+    } catch (error) {
+      debugError("[ACCOUNTANCY-UPLOAD] Failed to refresh credit status:", error)
+    }
+  }, [])
+
   React.useEffect(() => {
     const handleOnline = () => processOfflineQueue()
     window.addEventListener("online", handleOnline)
     return () => window.removeEventListener("online", handleOnline)
   }, [])
+
+  React.useEffect(() => {
+    refreshCreditStatus()
+  }, [refreshCreditStatus])
 
   async function processOfflineQueue() {
     const queue = JSON.parse(localStorage.getItem("useclevr_accountancy_queue") || "[]")
@@ -120,7 +162,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (isPlanLimitReached) {
+    if (isUploadBlocked) {
       setDragActive(false)
       return
     }
@@ -136,7 +178,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     e.stopPropagation()
     setDragActive(false)
 
-    if (isPlanLimitReached) return
+    if (isUploadBlocked) return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await uploadFile(e.dataTransfer.files[0])
@@ -170,6 +212,12 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   }
 
   const uploadFile = async (file: File) => {
+    if (isUploadBlocked) {
+      setUploadStatus("limit-reached")
+      setShowUpgradeModal(Boolean(creditExhaustedInfo))
+      return
+    }
+
     if (!validateFile(file)) {
       setUploadStatus("error")
       setProcessingStep(0)
@@ -229,6 +277,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         setProcessingStep(5)
         setProcessingLabel("Ready for review")
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+        refreshCreditStatus()
 
         const result = validateUploadApiResponse(await response.json().catch(() => ({})))
         const extractedData = result.extractedData.length > 0 ? result.extractedData : result.previewRows
@@ -275,7 +324,36 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         const stage = result.stage || ""
         const stagedError = stage ? `${stage}: ${uploadError}` : uploadError
 
-        // Plan limits are an upgrade state, not an upload failure.
+        // Credit and plan limits are upgrade states, not upload failures.
+        if (result.code === "UPLOAD_CREDITS_EXHAUSTED") {
+          const creditInfo = {
+            used: result.used ?? safeNumber(result.usage?.usedCredits) ?? safeNumber(result.usage?.analysisCount) ?? 2,
+            limit: result.limit ?? safeNumber(result.usage?.total) ?? 2,
+            remaining: result.remaining ?? safeNumber(result.usage?.availableCredits) ?? 0,
+          }
+          setCreditExhaustedInfo(creditInfo)
+          setUploadStatus("limit-reached")
+          setUpgradeModalData({
+            currentCount: creditInfo.used,
+            limit: creditInfo.limit,
+            planName: "Free",
+          })
+          setUpgradeModalCopy({
+            title: "Upload Credits Used",
+            description: `You have used all ${creditInfo.limit} included upload credits. Upgrade to upload more files.`,
+            usageLabel: "upload credits used",
+          })
+          setShowUpgradeModal(true)
+          setProcessingStep(0)
+          setErrorMessage(`You have used all ${creditInfo.limit} included upload credits. Upgrade to upload more files.`)
+          showNotice({
+            type: "info",
+            title: "Upload credits used",
+            message: `You have used all ${creditInfo.limit} included upload credits. Upgrade to upload more files.`,
+          })
+          return
+        }
+
         if (result.datasetLimit?.limitReached === true) {
           const datasetLimit = {
             currentCount: safeNumber(result.datasetLimit.currentCount) ?? 0,
@@ -372,10 +450,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
       setErrorMessage("")
       setCurrentFileName("")
       setLimitReachedInfo(null)
+      if (!isCreditExhausted) setCreditExhaustedInfo(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
-  }, [])
+  }, [isCreditExhausted])
 
   React.useEffect(() => {
     if (!selectedOption) {
@@ -389,11 +468,14 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         {fileTypeOptions.map((option) => (
           <button
             key={option.type}
+            type="button"
+            disabled={isUploadBlocked || uploading}
             onClick={() => {
+              if (isUploadBlocked || uploading) return
               setSelectedType(option.type)
               resetSelectedFileState()
             }}
-            className={`flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-xs font-medium transition-all ${
+            className={`flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedType === option.type
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted"
@@ -407,7 +489,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
       <Card
         className={`relative border-2 border-dashed transition-all duration-300 overflow-hidden ${
-          isPlanLimitReached
+          isUploadBlocked
             ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
             : dragActive
               ? "border-primary bg-primary/5 scale-[1.01] shadow-lg shadow-primary/10"
@@ -429,11 +511,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
           className="hidden"
           id={`accountancy-upload-${selectedType}`}
-          disabled={uploading || isPlanLimitReached}
+          disabled={uploading || isUploadBlocked}
         />
         <label
           htmlFor={`accountancy-upload-${selectedType}`}
-          className={`block p-5 sm:p-7 ${uploading || isPlanLimitReached ? "cursor-not-allowed" : "cursor-pointer"}`}
+          className={`block p-5 sm:p-7 ${uploading || isUploadBlocked ? "cursor-not-allowed" : "cursor-pointer"}`}
         >
           <div className="flex flex-col items-center gap-3">
             {uploading && processingStep > 0 && (
@@ -528,13 +610,19 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
               ) : uploadStatus === "limit-reached" ? (
                 <div className="mx-auto max-w-2xl space-y-5 text-left">
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold text-foreground">Free plan limit reached</h3>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {creditExhaustedInfo ? "Upload credits used" : "Free plan limit reached"}
+                    </h3>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      You have reached the maximum number of datasets included in your Free plan.
+                      {creditExhaustedInfo
+                        ? `You have used all ${creditExhaustedInfo.limit} included upload credits. Upgrade to upload more files.`
+                        : "You have reached the maximum number of datasets included in your Free plan."}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Continue analyzing your business by upgrading your account.
-                    </p>
+                    {!creditExhaustedInfo && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Continue analyzing your business by upgrading your account.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid gap-3 text-sm sm:grid-cols-3">
@@ -572,6 +660,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                   {limitReachedInfo && (
                     <p className="text-center text-xs text-muted-foreground">
                       Current usage: {limitReachedInfo.currentCount} of {limitReachedInfo.limit} datasets included in {limitReachedInfo.planName}.
+                    </p>
+                  )}
+                  {creditExhaustedInfo && (
+                    <p className="text-center text-xs text-muted-foreground">
+                      Current usage: {creditExhaustedInfo.used} of {creditExhaustedInfo.limit} upload credits used.
                     </p>
                   )}
                 </div>
@@ -707,6 +800,10 @@ function validateUploadApiResponse(value: unknown): AccountancyUploadApiResponse
     error: safeString(record.error),
     message: safeString(record.message),
     stage: safeString(record.stage),
+    code: safeString(record.code),
+    used: safeNumber(record.used),
+    limit: safeNumber(record.limit),
+    remaining: safeNumber(record.remaining),
     datasetLimit: isRecord(record.datasetLimit) ? record.datasetLimit : null,
     usage: isRecord(record.usage) ? record.usage : null,
   }

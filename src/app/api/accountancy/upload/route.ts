@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       userId,
       datasetType,
       uploadType,
+      role: session.user.role ?? null,
+      email: session.user.email ?? null,
     });
 
     revalidatePath("/app/datasets");
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof AccountancyUploadError) {
-      return structuredError(error.stage, error.code, error.message, error.status, error.retryable);
+      return structuredError(error.stage, error.code, error.message, error.status, error.retryable, error.details);
     }
 
     debugError("[ACCOUNTANCY-UPLOAD] unexpected route failure", error);
@@ -77,6 +79,7 @@ function structuredError(
   message: string,
   status: number,
   retryable: boolean,
+  details?: Record<string, unknown>,
 ) {
   return NextResponse.json(
     {
@@ -88,6 +91,7 @@ function structuredError(
       error: message,
       message,
       retryable,
+      ...(details ?? {}),
     },
     { status },
   );

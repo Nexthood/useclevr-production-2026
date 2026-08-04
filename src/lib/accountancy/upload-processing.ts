@@ -8,6 +8,8 @@ import {
 import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
+import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { and, asc, eq } from "drizzle-orm";
@@ -68,14 +70,23 @@ export class AccountancyUploadError extends Error {
   readonly code: string;
   readonly status: number;
   readonly retryable: boolean;
+  readonly details?: Record<string, unknown>;
 
-  constructor(stage: AccountancyUploadStage, code: string, message: string, status = 400, retryable = false) {
+  constructor(
+    stage: AccountancyUploadStage,
+    code: string,
+    message: string,
+    status = 400,
+    retryable = false,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "AccountancyUploadError";
     this.stage = stage;
     this.code = code;
     this.status = status;
     this.retryable = retryable;
+    this.details = details;
   }
 }
 
@@ -230,6 +241,8 @@ export async function processAccountancyUpload(input: {
   userId: string;
   datasetType: AccountancyDatasetType;
   uploadType: AccountancyUploadType;
+  role?: string | null;
+  email?: string | null;
 }): Promise<AccountancyUploadResult> {
   const requestMeta: AccountancyUploadMeta = {
     fileName: input.fileName,
@@ -319,10 +332,62 @@ export async function processAccountancyUpload(input: {
     };
   }
 
+  const datasetId = `acct_${Date.now()}_${checksum.slice(0, 8)}`;
+  const datasetName = input.fileName.replace(/\.(csv|xlsx|xls|pdf|jpg|jpeg|png|webp|ofx|qif|qfx)$/i, "");
+  const uploadCreditOperationId = `accountancy-upload:${input.userId}:${datasetId}`;
+  const reservation = await reserveCredits({
+    userId: input.userId,
+    operationId: uploadCreditOperationId,
+    idempotencyKey: uploadCreditOperationId,
+    estimatedCredits: 1,
+    feature: "dataset_upload",
+    source: "accountancy_upload",
+    role: input.role ?? null,
+    email: input.email ?? null,
+    metadata: {
+      datasetId,
+      fileName: input.fileName,
+      datasetType: input.datasetType,
+      uploadType: input.uploadType,
+      checksum,
+    },
+  });
+
+  if (!reservation.success) {
+    const usage = await getAnalystCreditUsage(input.userId, input.role ?? null, input.email ?? null);
+    const used = usage.usedCredits ?? Math.max(0, (usage.total ?? 0) - (usage.remainingCredits ?? 0));
+    const limit = usage.total ?? 0;
+    throw new AccountancyUploadError(
+      "validation",
+      "UPLOAD_CREDITS_EXHAUSTED",
+      `You have used all ${limit} included upload credits. Upgrade to upload more files.`,
+      402,
+      false,
+      {
+        used,
+        limit,
+        remaining: usage.availableCredits ?? 0,
+        usage: {
+          limitReached: true,
+          analysisCount: used,
+          total: limit,
+          availableCredits: usage.availableCredits ?? 0,
+          reservedCredits: usage.reservedCredits ?? 0,
+          usedCredits: used,
+          remainingCredits: usage.remainingCredits ?? 0,
+          subscriptionTier: usage.subscriptionTier,
+          unlimited: usage.unlimited,
+          unlimitedLabel: usage.unlimitedLabel,
+        },
+      },
+    );
+  }
+
   let parsed: AccountancyParsedUpload;
   try {
     parsed = await parseAccountancyUploadBuffer(input.buffer, requestMeta);
   } catch (error) {
+    await releaseCredits(uploadCreditOperationId, "accountancy_upload_parse_failed");
     if (error instanceof AccountancyUploadError) throw error;
     debugError("[ACCOUNTANCY-UPLOAD] parsing failed", safeLogMeta(input, "parsing", error));
     throw new AccountancyUploadError(
@@ -350,6 +415,7 @@ export async function processAccountancyUpload(input: {
   try {
     storage = await storeUploadedFile(input.buffer, input.fileName, input.mimeType || inferMimeType(input.fileName));
   } catch (error) {
+    await releaseCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", error));
     throw new AccountancyUploadError(
       "storage",
@@ -361,6 +427,7 @@ export async function processAccountancyUpload(input: {
   }
 
   if (!storage.success) {
+    await releaseCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", storage.error));
     throw new AccountancyUploadError(
       "storage",
@@ -371,8 +438,6 @@ export async function processAccountancyUpload(input: {
     );
   }
 
-  const datasetId = `acct_${Date.now()}_${checksum.slice(0, 8)}`;
-  const datasetName = input.fileName.replace(/\.(csv|xlsx|xls|pdf|jpg|jpeg|png|webp|ofx|qif|qfx)$/i, "");
   const now = new Date();
   const businessModel: DatasetBusinessModel = "generic";
   const redirectTo = getBusinessModelRedirect({ datasetType: input.datasetType, businessModel, datasetId });
@@ -461,12 +526,40 @@ export async function processAccountancyUpload(input: {
       }
     });
   } catch (error) {
+    await releaseCredits(uploadCreditOperationId, "accountancy_upload_database_failed");
     await deleteFile(storage.storageKey).catch(() => false);
     debugError("[ACCOUNTANCY-UPLOAD] database failed", safeLogMeta(input, "database", error));
     throw new AccountancyUploadError(
       "database",
       "DATABASE_FAILED",
       error instanceof Error ? error.message : "The dataset could not be saved.",
+      500,
+      true,
+    );
+  }
+
+  const finalized = await finalizeCredits({
+    operationId: uploadCreditOperationId,
+    actualCredits: 1,
+    metadata: {
+      datasetId,
+      rowCount: parsed.rowCount,
+      datasetType: input.datasetType,
+      uploadType: input.uploadType,
+      checksum,
+    },
+  });
+  if (!finalized.success) {
+    await db.transaction(async (tx) => {
+      await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId));
+      await tx.delete(datasets).where(eq(datasets.id, datasetId));
+    }).catch(() => undefined);
+    await deleteFile(storage.storageKey).catch(() => false);
+    await releaseCredits(uploadCreditOperationId, "accountancy_upload_credit_finalization_failed");
+    throw new AccountancyUploadError(
+      "database",
+      "CREDIT_SETTLEMENT_ERROR",
+      "The Accountancy upload could not be saved with a finalized upload credit. Please try again.",
       500,
       true,
     );

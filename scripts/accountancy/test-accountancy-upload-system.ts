@@ -370,13 +370,22 @@ function testUiWiring() {
 function testApiRouteWiring() {
   const route = readFileSync("src/app/api/accountancy/upload/route.ts", "utf8");
   const processor = readFileSync("src/lib/accountancy/upload-processing.ts", "utf8");
+  const source = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8");
   const prebookkeepingPage = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8");
   const reviewRoute = readFileSync("src/app/api/prebookkeeping/review/route.ts", "utf8");
   const exportRoute = readFileSync("src/app/api/prebookkeeping/export/route.ts", "utf8");
   const reviewWorkspace = readFileSync("src/components/accountancy/prebookkeeping-review-workspace.tsx", "utf8");
   assert.ok(route.includes("processAccountancyUpload"), "API route uses Accountancy processor");
   assert.ok(route.includes("stage"), "API route returns staged errors");
+  assert.ok(route.includes("error.details"), "API route returns structured credit exhaustion details");
   assert.ok(processor.includes("eq(datasets.checksum, checksum)"), "processor reuses duplicate datasets by checksum");
+  assert.ok(processor.includes("reserveCredits"), "Accountancy processor reserves upload credits before parsing");
+  assert.ok(processor.includes('feature: "dataset_upload"'), "Accountancy processor uses the central dataset upload credit feature");
+  assert.ok(processor.includes("finalizeCredits"), "Accountancy processor finalizes successful upload credits");
+  assert.ok(processor.includes("releaseCredits"), "Accountancy processor releases failed upload reservations");
+  assert.ok(processor.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy processor blocks exhausted upload credits");
+  assert.ok(processor.indexOf("reserveCredits") < processor.indexOf("parseAccountancyUploadBuffer"), "Accountancy credit reservation happens before parsing");
+  assert.ok(processor.indexOf("if (existingDataset)") < processor.indexOf("const reservation = await reserveCredits"), "duplicate existing datasets return before a new credit reservation");
   assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules)"), "Pre-bookkeeping uploads start categorization automatically");
   assert.ok(processor.includes("createDefaultPrebookkeepingReviewSummary(parsed.rowCount"), "Accountancy uploads initialize review summary defaults");
   assert.ok(processor.includes("hasCompleteReviewSummary"), "legacy review summaries are backfilled with safe defaults");
@@ -397,8 +406,10 @@ function testApiRouteWiring() {
   assert.ok(reviewWorkspace.includes("Coming soon"), "unsupported accountant package exports are visibly disabled");
   assert.ok(reviewWorkspace.includes("validateReviewApiResponse"), "review workspace validates review API responses");
   assert.ok(reviewWorkspace.includes('safeText(value, "Uncategorized")'), "review workspace normalizes category values before formatting");
-  assert.ok(!route.includes("reserveCredits") && !processor.includes("reserveCredits"), "failed uploads do not reserve credits");
-  assert.ok(!route.includes("finalizeCredits") && !processor.includes("finalizeCredits"), "Accountancy upload route does not finalize credits");
+  assert.ok(source.includes('fetch("/api/usage/credits"'), "Accountancy upload UI loads authoritative credit status");
+  assert.ok(source.includes("isUploadBlocked"), "Accountancy upload UI disables actions when credits are exhausted");
+  assert.ok(source.includes("You have used all"), "Accountancy upload UI shows exhausted-credit upgrade copy");
+  assert.ok(source.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy upload UI handles the structured exhausted-credit error");
 }
 
 function testPrebookkeepingCategorization() {
