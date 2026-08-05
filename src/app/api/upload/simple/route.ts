@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
@@ -467,27 +468,46 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logStageError(requestId, "credit_reservation_failed", error, { operationId });
-        return jsonError(402, "credits_deducted", "You have used all included credits in your Free plan.", false, {
-          code: "INSUFFICIENT_CREDITS",
-          title: "No credits remaining",
+        const creditUsage = usage ?? {
+          limitReached: true,
+          analysisCount: 2,
+          total: 2,
+          availableCredits: 0,
+          reservedCredits: 0,
+          usedCredits: 2,
+          remainingCredits: 0,
+          subscriptionTier: "free",
+          unlimited: false,
+          unlimitedLabel: null,
+        };
+        return jsonError(402, "credits_deducted", buildUploadCreditLimitInlineMessage(creditUsage.total), false, {
+          code: "UPLOAD_CREDITS_EXHAUSTED",
+          title: "Free upload limit reached",
           requestId,
           upgradeRequired: true,
-          usage,
+          used: creditUsage.usedCredits ?? creditUsage.analysisCount,
+          limit: creditUsage.total,
+          remaining: creditUsage.availableCredits,
+          usage: creditUsage,
         });
       }
 
       if (!reservation.success) {
+        const latestUsage = await getUsagePayload(userId, session?.user?.role, session?.user?.email);
         return jsonError(
           402,
           "credits_deducted",
-          "You have used all included credits in your Free plan.",
+          buildUploadCreditLimitInlineMessage(latestUsage.total),
           false,
           {
-            code: "INSUFFICIENT_CREDITS",
-            title: "No credits remaining",
+            code: "UPLOAD_CREDITS_EXHAUSTED",
+            title: "Free upload limit reached",
             requestId,
             upgradeRequired: true,
-            usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+            used: latestUsage.usedCredits,
+            limit: latestUsage.total,
+            remaining: latestUsage.availableCredits,
+            usage: latestUsage,
           },
         );
       }

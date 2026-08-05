@@ -9,6 +9,7 @@ import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
@@ -360,7 +361,7 @@ export async function processAccountancyUpload(input: {
     throw new AccountancyUploadError(
       "validation",
       "UPLOAD_CREDITS_EXHAUSTED",
-      `You have used all ${limit} included upload credits. Upgrade to upload more files.`,
+      buildUploadCreditLimitInlineMessage(limit),
       402,
       false,
       {

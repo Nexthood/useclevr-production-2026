@@ -1,4 +1,5 @@
 import { uploadCSV } from "@/app/actions/upload"
+import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
 import { allowedUploadDatasetCategories, getDatasetCategoryFromUpload, getUploadCategoryCandidate, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import { NextResponse } from "next/server"
 
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
       const databaseUnavailable = errorCode === "DB_UNAVAILABLE"
       const limitReached = errorCode === "DATASET_LIMIT_REACHED"
       const rowLimitExceeded = errorCode === "ROW_LIMIT_EXCEEDED"
-      const insufficientCredits = errorCode === "INSUFFICIENT_CREDITS"
+      const insufficientCredits = errorCode === "INSUFFICIENT_CREDITS" || errorCode === "UPLOAD_CREDITS_EXHAUSTED"
       const usageLimitReached = errorCode === "USAGE_LIMIT_REACHED"
       const fileProcessingError = errorCode === "FILE_PROCESSING_ERROR"
       const databaseWriteError = errorCode === "DATABASE_INSERT_ERROR" || errorCode === "DATASET_CREATE_ERROR"
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
       } else if (limitReached) {
         userMessage = structuredMessage || "You have reached the dataset limit for your plan."
       } else if (insufficientCredits || analystLimitReached) {
-        userMessage = "You have used all included credits in your Free plan."
+        userMessage = buildUploadCreditLimitInlineMessage()
       }
 
       const stage = normalizeStage(result.step)
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
         error: stageMessage,
         message: stageMessage,
         code: errorCode || undefined,
-        title: insufficientCredits ? "No credits remaining" : undefined,
+        title: insufficientCredits ? "Free upload limit reached" : undefined,
         upgradeRequired: insufficientCredits || undefined,
         stage,
         step: stage,

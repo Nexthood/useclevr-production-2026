@@ -371,6 +371,8 @@ function testApiRouteWiring() {
   const route = readFileSync("src/app/api/accountancy/upload/route.ts", "utf8");
   const processor = readFileSync("src/lib/accountancy/upload-processing.ts", "utf8");
   const source = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8");
+  const usy = readFileSync("src/components/ui/help-chatbox.tsx", "utf8");
+  const uploadCreditCopy = readFileSync("src/lib/billing/upload-credit-messaging.ts", "utf8");
   const prebookkeepingPage = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8");
   const reviewRoute = readFileSync("src/app/api/prebookkeeping/review/route.ts", "utf8");
   const exportRoute = readFileSync("src/app/api/prebookkeeping/export/route.ts", "utf8");
@@ -408,8 +410,12 @@ function testApiRouteWiring() {
   assert.ok(reviewWorkspace.includes('safeText(value, "Uncategorized")'), "review workspace normalizes category values before formatting");
   assert.ok(source.includes('fetch("/api/usage/credits"'), "Accountancy upload UI loads authoritative credit status");
   assert.ok(source.includes("isUploadBlocked"), "Accountancy upload UI disables actions when credits are exhausted");
-  assert.ok(source.includes("You have used all"), "Accountancy upload UI shows exhausted-credit upgrade copy");
+  assert.ok(source.includes("buildUploadCreditLimitCopy"), "Accountancy upload UI uses centralized exhausted-credit copy");
   assert.ok(source.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy upload UI handles the structured exhausted-credit error");
+  assert.ok(processor.includes("buildUploadCreditLimitInlineMessage"), "Accountancy upload API uses centralized exhausted-credit copy");
+  assert.ok(uploadCreditCopy.includes("Deleting datasets does not restore credits."), "central upload-credit copy documents that deletion does not restore credits");
+  assert.ok(!usy.includes(["delete", "an", "old", "dataset"].join(" ")), "Usy does not suggest deleting datasets for upload credits");
+  assert.ok(!usy.includes(["likely", "blocked"].join(" ")), "Usy does not guess when upload credits are exhausted");
 }
 
 function testPrebookkeepingCategorization() {

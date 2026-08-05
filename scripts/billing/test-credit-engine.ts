@@ -176,7 +176,8 @@ const tests: TestCase[] = [
       assert.ok(route.includes("finalizeCredits"), "direct dataset API finalizes successful upload credits")
       assert.ok(route.includes("releaseCredits"), "direct dataset API releases failed upload reservations")
       assert.ok(!route.includes("consumeAnalystCredit"), "direct dataset API does not use legacy Profile.analysisCount consumption")
-      assert.ok(route.includes("You have used all included upload credits for this billing period."))
+      assert.ok(route.includes("UPLOAD_CREDITS_EXHAUSTED"))
+      assert.ok(route.includes("buildUploadCreditLimitInlineMessage"))
     },
   },
   {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useNotice } from "@/components/ui/notice-bar"
+import { buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import { debugError } from "@/lib/utils/debug"
 import * as React from "react"
 
@@ -106,12 +107,13 @@ export function useUsage() {
     }
 
     limitNoticeShownRef.current = true
+    const creditCopy = buildUploadCreditLimitCopy({ used: usage, limit: total, remaining: available })
     showNotice({
       type: "info",
-      title: "Included credits used.",
-      message: "You have used all included AI credits for your plan. Upgrade to continue.",
+      title: creditCopy.title,
+      message: creditCopy.inlineMessage,
     })
-  }, [showNotice])
+  }, [available, showNotice, total, usage])
 
   const refreshUsage = React.useCallback(async () => {
     try {
