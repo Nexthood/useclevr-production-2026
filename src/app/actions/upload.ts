@@ -26,6 +26,7 @@ import {
   releaseCredits,
   reserveCredits,
 } from "@/lib/billing/credit-engine";
+import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -413,7 +414,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         );
         return fail(
           UPLOAD_STAGES.CREDITS_DEDUCTED,
-          "INSUFFICIENT_CREDITS|No credits remaining|You have used all included credits in your Free plan.",
+          `UPLOAD_CREDITS_EXHAUSTED|Free upload limit reached|${buildUploadCreditLimitInlineMessage(uploadUsage.total)}`,
           {
             usage: {
               limitReached: true,

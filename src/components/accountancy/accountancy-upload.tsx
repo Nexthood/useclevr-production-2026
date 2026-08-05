@@ -9,6 +9,7 @@ import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
+import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileText, Loader2, Receipt, Sparkles, Wifi, WifiOff } from "lucide-react"
 import * as React from "react"
@@ -122,12 +123,13 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
       const limit = safeNumber(credits.total) ?? safeNumber(usage.total) ?? 0
       const remaining = safeNumber(credits.available) ?? safeNumber(usage.availableCredits) ?? 0
       if (limit > 0 && remaining <= 0) {
+        const creditCopy = buildUploadCreditLimitCopy({ used, limit, remaining: 0 })
         setCreditExhaustedInfo({ used, limit, remaining: 0 })
         setUpgradeModalData({ currentCount: used, limit, planName: "Free" })
         setUpgradeModalCopy({
-          title: "Upload Credits Used",
-          description: `You have used all ${limit} included upload credits. Upgrade to upload more files.`,
-          usageLabel: "upload credits used",
+          title: creditCopy.title,
+          description: creditCopy.inlineMessage,
+          usageLabel: creditCopy.usageLabel,
         })
         setUploadStatus("limit-reached")
       } else {
@@ -331,6 +333,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
             limit: result.limit ?? safeNumber(result.usage?.total) ?? 2,
             remaining: result.remaining ?? safeNumber(result.usage?.availableCredits) ?? 0,
           }
+          const creditCopy = buildUploadCreditLimitCopy(creditInfo)
           setCreditExhaustedInfo(creditInfo)
           setUploadStatus("limit-reached")
           setUpgradeModalData({
@@ -339,17 +342,17 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
             planName: "Free",
           })
           setUpgradeModalCopy({
-            title: "Upload Credits Used",
-            description: `You have used all ${creditInfo.limit} included upload credits. Upgrade to upload more files.`,
-            usageLabel: "upload credits used",
+            title: creditCopy.title,
+            description: creditCopy.inlineMessage,
+            usageLabel: creditCopy.usageLabel,
           })
           setShowUpgradeModal(true)
           setProcessingStep(0)
-          setErrorMessage(`You have used all ${creditInfo.limit} included upload credits. Upgrade to upload more files.`)
+          setErrorMessage(creditCopy.inlineMessage)
           showNotice({
             type: "info",
-            title: "Upload credits used",
-            message: `You have used all ${creditInfo.limit} included upload credits. Upgrade to upload more files.`,
+            title: creditCopy.title,
+            message: creditCopy.inlineMessage,
           })
           return
         }
@@ -378,15 +381,20 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           })
           return
         } else if (result.usage?.limitReached === true) {
+          const creditCopy = buildUploadCreditLimitCopy({
+            used: safeNumber(result.usage.analysisCount) ?? safeNumber(result.usage.usedCredits) ?? 2,
+            limit: safeNumber(result.usage.total) ?? 2,
+            remaining: safeNumber(result.usage.availableCredits) ?? safeNumber(result.usage.remainingCredits) ?? 0,
+          })
           setUpgradeModalData({
             currentCount: safeNumber(result.usage.analysisCount) ?? 2,
             limit: safeNumber(result.usage.total) ?? 2,
             planName: "Free",
           })
           setUpgradeModalCopy({
-            title: "Analyst Credits Used",
-            description: "You have used your 2 included analyst credits. Upgrade to continue uploading, analyzing, and generating reports.",
-            usageLabel: "analyst credits used",
+            title: creditCopy.title,
+            description: creditCopy.inlineMessage,
+            usageLabel: creditCopy.usageLabel,
           })
           setShowUpgradeModal(true)
         }
@@ -611,13 +619,20 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                 <div className="mx-auto max-w-2xl space-y-5 text-left">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-foreground">
-                      {creditExhaustedInfo ? "Upload credits used" : "Free plan limit reached"}
+                      {creditExhaustedInfo ? buildUploadCreditLimitCopy(creditExhaustedInfo).title : "Free plan limit reached"}
                     </h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {creditExhaustedInfo
-                        ? `You have used all ${creditExhaustedInfo.limit} included upload credits. Upgrade to upload more files.`
-                        : "You have reached the maximum number of datasets included in your Free plan."}
-                    </p>
+                    {creditExhaustedInfo ? (
+                      <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                        <p className="font-medium text-foreground">{buildUploadCreditLimitCopy(creditExhaustedInfo).usageLabel}</p>
+                        {buildUploadCreditLimitCopy(creditExhaustedInfo).message.split("\n\n").map((line) => (
+                          <p key={line}>{line}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        You have reached the maximum number of datasets included in your Free plan.
+                      </p>
+                    )}
                     {!creditExhaustedInfo && (
                       <p className="mt-1 text-sm text-muted-foreground">
                         Continue analyzing your business by upgrading your account.
@@ -641,7 +656,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                       }}
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
-                      Upgrade to Pro
+                      {UPLOAD_CREDIT_LIMIT_BUTTONS.pro}
                     </Button>
                     <Button
                       type="button"
@@ -653,7 +668,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                       }}
                     >
                       <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                      Upgrade to Business
+                      {UPLOAD_CREDIT_LIMIT_BUTTONS.business}
                     </Button>
                   </div>
 
@@ -664,7 +679,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                   )}
                   {creditExhaustedInfo && (
                     <p className="text-center text-xs text-muted-foreground">
-                      Current usage: {creditExhaustedInfo.used} of {creditExhaustedInfo.limit} upload credits used.
+                      {buildUploadCreditLimitCopy(creditExhaustedInfo).usageLabel}.
                     </p>
                   )}
                 </div>

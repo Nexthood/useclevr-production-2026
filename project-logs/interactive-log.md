@@ -1,3 +1,36 @@
+## Upload Credit Messaging Source of Truth
+
+1. Interaction title
+Upload credit messaging source of truth.
+
+2. What was the user goal
+Make every upload-credit exhausted state, API response, and Usy answer explain that successful uploads permanently consume credits and deleting datasets does not restore them.
+
+3. What changed
+Upload-credit exhausted copy now lives in a shared billing messaging module. Standard Upload, Accountancy and Pre-bookkeeping uploads, upload API responses, usage notices, and Usy fallback/system prompt guidance use the same title, message, usage label, and upgrade action labels. Upload areas switch into a blocked state from authoritative credit usage before a request starts.
+
+4. Problems marked
+blocker: none.
+risk: Full authenticated production matrix still requires deployed Free, paid, and superadmin accounts with controlled credit balances.
+observation: Usy had both deterministic fallback text and system prompt guidance that suggested deleting old datasets as a workaround for upload limits.
+
+5. User learning
+Upload credits are lifetime usage events for successful uploads within the billing rules; deleting datasets affects storage/history only and does not restore upload allowance.
+
+6. AI-agent learning
+Credit lifecycle rules must be represented by a shared copy module and prompt rule, not duplicated strings in individual upload components or assistant fallbacks.
+
+7. Follow-up tasks
+- Verify deployed Free users at 0/2, 1/2, and 2/2 see the same upload-credit messaging in Standard Upload, Accountancy Upload, and Usy.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Upload Credit Enforcement
 
 1. Interaction title

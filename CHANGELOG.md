@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix upload-credit limit messaging so upload screens, notices, APIs, and Usy explain that successful uploads permanently consume credits and dataset deletion does not restore them.
 - Fix Accountancy upload credits so CSV, Excel, PDF, receipt, invoice, and bank-export uploads stop when included upload credits are used.
 - Fix Accountancy loading so first-time or incomplete workspaces show an empty state instead of failing the page.
 - Fix Railway predeploy schema sync so the upload-credit backfill conflict target matches the Credit Ledger idempotency-key unique index.

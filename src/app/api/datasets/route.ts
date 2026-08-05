@@ -8,6 +8,7 @@ import { deleteDatasetsForUser, MAX_DELETE_BATCH_SIZE, sanitizeDatasetIds } from
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine"
+import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
 import { getDatasetLimitInfo, getDatasetLimitError } from "@/lib/usage/dataset-limits"
@@ -77,7 +78,12 @@ export async function POST(request: Request) {
     if (!currentUsage.unlimited && (currentUsage.availableCredits ?? 0) <= 0) {
       return NextResponse.json({
         error: "Upload credit limit reached",
-        message: "You have used all included upload credits for this billing period.",
+        code: "UPLOAD_CREDITS_EXHAUSTED",
+        title: "Free upload limit reached",
+        message: buildUploadCreditLimitInlineMessage(currentUsage.total),
+        used: currentUsage.usedCredits,
+        limit: currentUsage.total,
+        remaining: currentUsage.availableCredits,
         usage: currentUsage,
       }, { status: 402 })
     }
@@ -118,10 +124,16 @@ export async function POST(request: Request) {
       })
 
       if (!reservation.success) {
+        const usage = await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email)
         return NextResponse.json({
           error: "Upload credit limit reached",
-          message: "You have used all included upload credits for this billing period.",
-          usage: await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email),
+          code: "UPLOAD_CREDITS_EXHAUSTED",
+          title: "Free upload limit reached",
+          message: buildUploadCreditLimitInlineMessage(usage.total),
+          used: usage.usedCredits,
+          limit: usage.total,
+          remaining: usage.availableCredits,
+          usage,
         }, { status: 402 })
       }
 

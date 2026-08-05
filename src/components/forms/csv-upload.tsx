@@ -10,6 +10,7 @@ import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
+import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import type { UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileSpreadsheet, Loader2, Sparkles, Wifi, WifiOff } from "lucide-react"
@@ -134,27 +135,32 @@ export function CsvUpload() {
     const limit = usage?.total ?? creditUsage.total
     const planName = usage?.subscriptionTier || "Free"
     const modalData = { currentCount, limit, planName }
+    const creditCopy = buildUploadCreditLimitCopy({
+      used: currentCount,
+      limit,
+      remaining: usage?.availableCredits ?? usage?.remainingCredits ?? creditUsage.available,
+    })
 
     setUploadStatus("limit-reached")
     setLimitReachedInfo(modalData)
     setUpgradeModalData(modalData)
     setUpgradeModalCopy({
-      title: "No credits remaining",
-      description: "You have used all included credits in your Free plan.",
-      usageLabel: "included credits used",
-      primaryActionLabel: "Upgrade plan",
+      title: creditCopy.title,
+      description: creditCopy.inlineMessage,
+      usageLabel: creditCopy.usageLabel,
+      primaryActionLabel: UPLOAD_CREDIT_LIMIT_BUTTONS.pro,
       primaryActionHref: "/app/settings/checkout?plan=pro_monthly&discount=auto",
-      secondaryActionLabel: "View usage",
+      secondaryActionLabel: UPLOAD_CREDIT_LIMIT_BUTTONS.billing,
       secondaryActionHref: "/app/settings/subscription?tab=usage",
     })
     setShowUpgradeModal(true)
     setProcessingStep(0)
     showNotice({
       type: "info",
-      title: "No credits remaining",
-      message: "You have used all included credits in your Free plan.",
+      title: creditCopy.title,
+      message: creditCopy.inlineMessage,
     })
-  }, [creditUsage.total, creditUsage.usage, showNotice])
+  }, [creditUsage.available, creditUsage.total, creditUsage.usage, showNotice])
 
   // Get connection status icon and color
   const getConnectionIcon = (mode: ConnectionMode) => {
@@ -185,6 +191,36 @@ export function CsvUpload() {
     window.addEventListener('online', handleOnline)
     return () => window.removeEventListener('online', handleOnline)
   }, [])
+
+  React.useEffect(() => {
+    if (!isCreditLimitReached) return
+
+    const creditCopy = buildUploadCreditLimitCopy({
+      used: creditUsage.usage,
+      limit: creditUsage.total,
+      remaining: creditUsage.available,
+    })
+    setUploadStatus("limit-reached")
+    setLimitReachedInfo({
+      currentCount: creditCopy.used,
+      limit: creditCopy.limit,
+      planName: "Free",
+    })
+    setUpgradeModalData({
+      currentCount: creditCopy.used,
+      limit: creditCopy.limit,
+      planName: "Free",
+    })
+    setUpgradeModalCopy({
+      title: creditCopy.title,
+      description: creditCopy.inlineMessage,
+      usageLabel: creditCopy.usageLabel,
+      primaryActionLabel: UPLOAD_CREDIT_LIMIT_BUTTONS.pro,
+      primaryActionHref: "/app/settings/checkout?plan=pro_monthly&discount=auto",
+      secondaryActionLabel: UPLOAD_CREDIT_LIMIT_BUTTONS.billing,
+      secondaryActionHref: "/app/settings/subscription?tab=usage",
+    })
+  }, [creditUsage.available, creditUsage.total, creditUsage.usage, isCreditLimitReached])
 
   // Notify user about queued uploads when back online
   async function processOfflineQueue() {
@@ -349,10 +385,15 @@ export function CsvUpload() {
         })
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         if (result.usage?.limitReached) {
+          const creditCopy = buildUploadCreditLimitCopy({
+            used: result.usage.usedCredits ?? result.usage.analysisCount ?? creditUsage.usage,
+            limit: result.usage.total ?? creditUsage.total,
+            remaining: result.usage.availableCredits ?? result.usage.remainingCredits ?? creditUsage.available,
+          })
           showNotice({
             type: "info",
-            title: "Included credits used.",
-            message: "You have used all included AI credits for your plan. Upgrade to continue.",
+            title: creditCopy.title,
+            message: creditCopy.inlineMessage,
           })
         } else if (result.usage) {
           showNotice({
@@ -646,9 +687,28 @@ export function CsvUpload() {
                   <h3 className="text-lg font-semibold text-foreground">
                     {upgradeModalCopy.title || "Free plan limit reached"}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {upgradeModalCopy.description || "You have reached the maximum number of datasets included in your Free plan."}
-                  </p>
+                  {upgradeModalCopy.title === "Free upload limit reached" ? (
+                    <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                      <p className="font-medium text-foreground">
+                        {buildUploadCreditLimitCopy({
+                          used: limitReachedInfo?.currentCount ?? creditUsage.usage,
+                          limit: limitReachedInfo?.limit ?? creditUsage.total,
+                          remaining: creditUsage.available,
+                        }).usageLabel}
+                      </p>
+                      {buildUploadCreditLimitCopy({
+                        used: limitReachedInfo?.currentCount ?? creditUsage.usage,
+                        limit: limitReachedInfo?.limit ?? creditUsage.total,
+                        remaining: creditUsage.available,
+                      }).message.split("\n\n").map((line) => (
+                        <p key={line}>{line}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {upgradeModalCopy.description || "You have reached the maximum number of datasets included in your Free plan."}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3 text-sm sm:grid-cols-3">

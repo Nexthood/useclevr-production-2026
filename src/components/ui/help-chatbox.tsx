@@ -2,6 +2,7 @@
 
 import usyAvatar from "@/assets/images/avatar.png";
 import { Button } from "@/components/ui/button";
+import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy, buildUploadCreditLimitMessage } from "@/lib/billing/upload-credit-messaging";
 import { publicMonthlyPlanPrices, publicProMonthlyLaunchPrices } from "@/lib/billing/plans";
 import { ArrowUp, Bot, Loader2, MessageCircle, Sparkles, X } from "lucide-react";
 import Image from "next/image";
@@ -458,17 +459,7 @@ const usyIntents: UsyIntent[] = [
     label: "Credits",
     keywords: ["credit", "credits", "free credits", "ai credits"],
     followUps: userFollowUps.credits,
-    answer: (context) => {
-      const usageText =
-        typeof context.usage?.analysisCount === "number" &&
-        typeof context.usage?.total === "number" &&
-        !context.usage.unlimited
-          ? ` Your current usage is ${context.usage.analysisCount}/${context.usage.total} included credits.`
-          : context.usage?.unlimited
-            ? ` Your account has ${context.usage.unlimitedLabel || "unlimited"} analyst usage.`
-            : "";
-      return `AI Credits control included analysis usage on Free accounts.${usageText} Pro launch pricing is ${proLaunchPriceText} and unlocks more analysis capacity with advanced AI features. Business is €${publicMonthlyPlanPrices.business}/month for broader team and business usage. Open Billing or Settings to review your current plan.`;
-    },
+    answer: (context) => buildUsyCreditsExplanation(context),
   },
   {
     id: "billing",
@@ -797,13 +788,45 @@ function formatDemoUsageText(context: UsyContext) {
   return null;
 }
 
+function buildUsyUploadCreditLimitAnswer(context: UsyContext) {
+  const limit = context.usage?.total ?? 2;
+  const used = context.usage?.analysisCount ?? limit;
+  const creditCopy = buildUploadCreditLimitCopy({ used, limit, remaining: 0 });
+
+  return [
+    creditCopy.title,
+    "",
+    buildUploadCreditLimitMessage(creditCopy.limit),
+    "",
+    "Actions:",
+    `- ${UPLOAD_CREDIT_LIMIT_BUTTONS.compare}`,
+    `- ${UPLOAD_CREDIT_LIMIT_BUTTONS.pro}`,
+    `- ${UPLOAD_CREDIT_LIMIT_BUTTONS.business}`,
+    `- ${UPLOAD_CREDIT_LIMIT_BUTTONS.billing}`,
+  ].join("\n");
+}
+
+function buildUsyCreditsExplanation(context: UsyContext) {
+  const usageText = formatDemoUsageText(context);
+  const usageLine = usageText ? `Current upload usage: ${usageText} upload credits used.` : "";
+
+  return [
+    "Upload credits control how many files a Free account can successfully upload.",
+    usageLine,
+    "A successful upload permanently consumes one upload credit.",
+    "Failed uploads do not consume upload credits.",
+    "Deleting datasets does not restore upload credits.",
+    "Retrying the same failed upload should not double-charge credits.",
+    "Pro and Business include higher limits or broader upload capacity.",
+  ].filter(Boolean).join(" ");
+}
+
 function localizedFallbackAnswer(
   question: string,
   context: UsyContext,
   language: SupportedUsyLanguage,
 ) {
   const normalized = normalizeQuestion(question);
-  const usageText = formatDemoUsageText(context);
   const unrelated = isUnrelatedQuestion(normalized, context);
   const uploadBlocked =
     context.usage?.limitReached ||
@@ -881,10 +904,8 @@ function localizedFallbackAnswer(
       return `Ja. Ich kann dir auf Englisch, Deutsch, Niederländisch, Spanisch, Ungarisch und Rumänisch helfen.`;
     if (wantsCapabilities)
       return "UseClevr hilft dir, CSV- und Excel-Dateien hochzuladen, Geschäftsdaten zu analysieren, Lagerprobleme zu erkennen, Umsatz und Marge auszuwerten, Rechnungen und Belege zu verarbeiten und Berichte als PDF oder Excel zu exportieren.";
-    if (uploadBlocked)
-      return `Dein Upload ist wahrscheinlich durch ein Planlimit blockiert. Free erlaubt bis zu 2 Datensätze. ${usageText ? `Aktuelle Nutzung: ${usageText}. ` : ""}Upgrade auf Pro oder lösche einen alten Datensatz, um weiterzumachen.`;
-    if (wantsCredits)
-      return `KI-Credits steuern, wie viele Analysen du nutzen kannst. Free enthält 50 KI-Credits und bis zu 2 Datensätze. ${priceLine}`;
+    if (uploadBlocked) return buildUsyUploadCreditLimitAnswer(context);
+    if (wantsCredits) return buildUsyCreditsExplanation(context);
     if (wantsPlan)
       return `Free eignet sich zum Testen. Pro passt für wachsende Unternehmen mit mehr Datensätzen und Analysekapazität. Business ist für Accounting AI, Rechnungs- und Belegverarbeitung sowie dedizierten Support. ${priceLine}`;
     if (wantsInvoices)
@@ -901,10 +922,8 @@ function localizedFallbackAnswer(
       return `Ja. Ik kan helpen in Engels, Duits, Nederlands, Spaans, Hongaars en Roemeens.`;
     if (wantsCapabilities)
       return "UseClevr helpt je CSV- en Excel-bestanden te uploaden, bedrijfsdata te analyseren, voorraadproblemen te herkennen, omzet en marge te beoordelen, facturen en bonnetjes te verwerken en rapporten als PDF of Excel te exporteren.";
-    if (uploadBlocked)
-      return `Je upload is waarschijnlijk geblokkeerd door je planlimiet. Free staat maximaal 2 datasets toe. ${usageText ? `Huidig gebruik: ${usageText}. ` : ""}Upgrade naar Pro of verwijder een oude dataset om door te gaan.`;
-    if (wantsCredits)
-      return `AI-credits bepalen hoeveel analyse je kunt gebruiken. Free bevat 50 AI-credits en maximaal 2 datasets. ${priceLine}`;
+    if (uploadBlocked) return buildUsyUploadCreditLimitAnswer(context);
+    if (wantsCredits) return buildUsyCreditsExplanation(context);
     if (wantsPlan)
       return `Free is om te testen. Pro is voor groeiende bedrijven met meer datasets en analysecapaciteit. Business is voor Accounting AI, factuur- en bonverwerking en dedicated support. ${priceLine}`;
     if (wantsInvoices)
@@ -921,10 +940,8 @@ function localizedFallbackAnswer(
       return `Sí. Puedo ayudarte en inglés, alemán, neerlandés, español, húngaro y rumano.`;
     if (wantsCapabilities)
       return "UseClevr te ayuda a subir archivos CSV y Excel, analizar datos de negocio, detectar problemas de inventario, evaluar ingresos y margen, procesar facturas y recibos, y exportar informes en PDF o Excel.";
-    if (uploadBlocked)
-      return `Tu carga probablemente está bloqueada por el límite de tu plan. Free permite hasta 2 datasets. ${usageText ? `Uso actual: ${usageText}. ` : ""}Actualiza a Pro o elimina un dataset antiguo para continuar.`;
-    if (wantsCredits)
-      return `Los créditos de IA controlan el uso incluido para análisis. Free incluye 50 créditos de IA y hasta 2 datasets. ${priceLine}`;
+    if (uploadBlocked) return buildUsyUploadCreditLimitAnswer(context);
+    if (wantsCredits) return buildUsyCreditsExplanation(context);
     if (wantsPlan)
       return `Free sirve para probar. Pro es para empresas en crecimiento con más datasets y capacidad de análisis. Business añade Accounting AI, procesamiento de facturas y recibos, y soporte dedicado. ${priceLine}`;
     if (wantsInvoices)
@@ -941,10 +958,8 @@ function localizedFallbackAnswer(
       return `Igen. Tudok segíteni angolul, németül, hollandul, spanyolul, magyarul és románul.`;
     if (wantsCapabilities)
       return "A UseClevr segít CSV és Excel fájlok feltöltésében, üzleti adatok elemzésében, készletproblémák felismerésében, bevétel- és árréselemzésben, számlák és nyugták feldolgozásában, valamint PDF vagy Excel riportok készítésében.";
-    if (uploadBlocked)
-      return `A feltöltésed valószínűleg csomaglimit miatt blokkolt. A Free csomag legfeljebb 2 adatállományt enged. ${usageText ? `Jelenlegi használat: ${usageText}. ` : ""}Válts Pro csomagra, vagy törölj egy régi adatállományt a folytatáshoz.`;
-    if (wantsCredits)
-      return `Az AI kreditek határozzák meg a benne foglalt elemzési használatot. A Free 50 AI kreditet és legfeljebb 2 adatállományt tartalmaz. ${priceLine}`;
+    if (uploadBlocked) return buildUsyUploadCreditLimitAnswer(context);
+    if (wantsCredits) return buildUsyCreditsExplanation(context);
     if (wantsPlan)
       return `A Free tesztelésre jó. A Pro növekvő vállalkozásoknak való több adatállománnyal és erősebb elemzéssel. A Business Accounting AI-t, számla- és nyugtafeldolgozást, valamint dedikált támogatást ad. ${priceLine}`;
     if (wantsInvoices)
@@ -961,10 +976,8 @@ function localizedFallbackAnswer(
       return `Da. Te pot ajuta în engleză, germană, neerlandeză, spaniolă, maghiară și română.`;
     if (wantsCapabilities)
       return "UseClevr te ajută să încarci fișiere CSV și Excel, să analizezi date de business, să identifici probleme de stoc, să evaluezi veniturile și marja, să procesezi facturi și chitanțe și să exporți rapoarte PDF sau Excel.";
-    if (uploadBlocked)
-      return `Uploadul este probabil blocat de limita planului. Free permite maximum 2 seturi de date. ${usageText ? `Utilizare curentă: ${usageText}. ` : ""}Fă upgrade la Pro sau șterge un set de date vechi ca să continui.`;
-    if (wantsCredits)
-      return `Creditele AI controlează utilizarea inclusă pentru analiză. Free include 50 de credite AI și până la 2 seturi de date. ${priceLine}`;
+    if (uploadBlocked) return buildUsyUploadCreditLimitAnswer(context);
+    if (wantsCredits) return buildUsyCreditsExplanation(context);
     if (wantsPlan)
       return `Free este pentru testare. Pro este pentru afaceri în creștere, cu mai multe seturi de date și capacitate de analiză. Business adaugă Accounting AI, procesare de facturi și chitanțe, plus suport dedicat. ${priceLine}`;
     if (wantsInvoices)
@@ -980,10 +993,8 @@ function localizedFallbackAnswer(
     if (wantsLanguages) return `Yes. I can help in ${supportedLanguageList}.`;
     if (wantsCapabilities)
       return "UseClevr helps you upload CSV and Excel files, analyze business data, detect inventory problems, evaluate revenue and margin, process invoices and receipts, and export reports as PDF or Excel.";
-    if (uploadBlocked)
-      return `Your upload is likely blocked by your plan limit. Free allows up to 2 datasets. ${usageText ? `Current usage: ${usageText}. ` : ""}Upgrade to Pro or delete an old dataset to continue.`;
-    if (wantsCredits)
-      return `AI credits control included analysis usage. Free includes 50 AI credits and up to 2 datasets. ${priceLine}`;
+    if (uploadBlocked) return buildUsyUploadCreditLimitAnswer(context);
+    if (wantsCredits) return buildUsyCreditsExplanation(context);
     if (wantsPlan)
       return `Free is for testing. Pro is for growing businesses with more datasets and analysis capacity. Business adds Accounting AI, invoice processing, receipt processing, and dedicated support. ${priceLine}`;
     if (wantsInvoices)
@@ -1179,7 +1190,8 @@ function buildUsySystemPrompt(context: UsyContext) {
     "Normal users can receive help only with their own datasets, uploads, dashboards, reports, AI analysis, credits, billing, subscription, and Business Profile.",
     "Admins and superadmins can use Usy as UseClevr Company Brain Lite for customers, plans, credits, uploads, errors, failed analyses, AI traces, billing settings, discount rules, MCP tokens, user issues, platform status, and usage monitoring.",
     "UseClevr skills: CSV and Excel uploads, datasets, AI credits, upload limits, Free/Pro/Business plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscription, business profile, troubleshooting, and upgrade flow.",
-    "If upload is blocked by Free plan limits, explain that Free allows up to 2 datasets and suggest upgrading to Pro or deleting an old dataset.",
+    `If upload credits are exhausted, answer deterministically: ${buildUploadCreditLimitCopy({ used: context.usage?.analysisCount, limit: context.usage?.total }).title}. ${buildUploadCreditLimitCopy({ used: context.usage?.analysisCount, limit: context.usage?.total }).inlineMessage}`,
+    "Never describe upload blocking as probable or uncertain. Never suggest deleting or removing datasets to restore upload credits.",
     "Stay focused on UseClevr and business data workflows. Do not behave like a general-purpose chatbot.",
     "If the question is outside UseClevr, politely decline in the user's language and redirect back to UseClevr business data, uploads, credits, reports, billing, and analytics.",
     "Never expose platform-brain or admin guidance to normal users. Never hallucinate private customer data, dataset values, secrets, API keys, or hidden account state.",

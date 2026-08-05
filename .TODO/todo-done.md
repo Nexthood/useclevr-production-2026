@@ -49,6 +49,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-991. Upload-credit exhaustion copy uses one shared rule across Standard Upload, Accountancy Upload, upload APIs, usage notices, and Usy so deleting datasets is never presented as a credit-restoring action. (labels: upload, billing, ui, ai, testing; commit: worktree)
 - T-990. Accountancy and Pre-bookkeeping uploads reserve, finalize, release, and block upload credits through the central credit engine before parsing any new file. (labels: upload, billing, testing, stability; commit: worktree)
 - T-989. Accountancy loads an empty workspace instead of failing when profile, dataset, or focused dataset summary data is absent. (labels: upload, stability, testing; commit: c8d8510)
 - T-985. Keep Retail Square OAuth authorization, callback, and post-callback redirects on the deployed app host so the flow does not jump to an unserved apex domain. (labels: upload, payment, auth, testing; commit: worktree)
