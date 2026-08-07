@@ -26,6 +26,8 @@ type ReviewAction =
   | "bulk_accept_suggestions"
   | "bulk_change_category"
   | "bulk_add_vat"
+  | "apply_business_default_vat"
+  | "apply_vat_to_matching"
   | "bulk_mark_reviewed"
   | "bulk_delete_duplicates";
 
@@ -113,7 +115,16 @@ export async function PATCH(request: Request) {
         })),
       );
 
-      if (action === "change_category" || action === "bulk_change_category" || action === "accept_suggestion" || action === "bulk_accept_suggestions") {
+      if (
+        action === "change_category" ||
+        action === "bulk_change_category" ||
+        action === "accept_suggestion" ||
+        action === "bulk_accept_suggestions" ||
+        action === "add_vat" ||
+        action === "bulk_add_vat" ||
+        action === "apply_business_default_vat" ||
+        action === "apply_vat_to_matching"
+      ) {
         const changedRows = updated.transactions.filter((transaction) => rowIndexes.includes(transaction.rowIndex));
         const rules = changedRows
           .filter((transaction) => transaction.category !== "uncategorized")
@@ -124,7 +135,9 @@ export async function PATCH(request: Request) {
             descriptionKeyword: normalizeRuleText(transaction.description),
             merchantKey: normalizeRuleText(transaction.supplierCustomer),
             category: transaction.category,
-            source: "manual_edit",
+            countryKey: normalizeRuleText(categorization.taxProfile.taxCountry),
+            vatRate: transaction.vatSource === "manual_review" ? transaction.vatRate : null,
+            source: transaction.vatSource === "manual_review" ? "manual_vat_edit" : "manual_edit",
             usageCount: 0,
             createdAt: now,
             updatedAt: now,
@@ -150,11 +163,14 @@ function applyReviewAction(
 ): PrebookkeepingCategorization {
   const selected = new Set(rowIndexes);
   const category = normalizeReviewCategory(body.category);
-  const vatRate = typeof body.vatRate === "number" ? body.vatRate : Number(body.vatRate);
+  const fallbackVatRate = action === "apply_business_default_vat" ? categorization.taxProfile.defaultVatRate : null;
+  const vatRate = normalizeVatRate(body.vatRate, fallbackVatRate);
   const duplicateStatus = normalizeDuplicateStatus(body.duplicateStatus);
+  const matchingRows = action === "apply_vat_to_matching" ? findMatchingVatRows(categorization.transactions, rowIndexes) : selected;
 
   const transactions = categorization.transactions.map((transaction) => {
-    if (!selected.has(transaction.rowIndex)) return transaction;
+    const appliesToRow = action === "apply_vat_to_matching" ? matchingRows.has(transaction.rowIndex) : selected.has(transaction.rowIndex);
+    if (!appliesToRow) return transaction;
     const next: CategorizedTransaction = { ...transaction };
 
     if (action === "accept_suggestion" || action === "bulk_accept_suggestions") {
@@ -168,10 +184,26 @@ function applyReviewAction(
       next.reviewed = true;
       next.reasons = ["manual category edit"];
     }
-    if ((action === "add_vat" || action === "bulk_add_vat") && Number.isFinite(vatRate)) {
+    if (
+      (action === "add_vat" ||
+        action === "bulk_add_vat" ||
+        action === "apply_business_default_vat" ||
+        action === "apply_vat_to_matching") &&
+      typeof vatRate === "number"
+    ) {
       next.vatRate = vatRate;
       next.vatTax = typeof next.amount === "number" ? Math.round(Math.abs(next.amount) * (vatRate / 100) * 100) / 100 : 0;
       next.vatStatus = "present";
+      next.vatConfidence = 1;
+      next.vatReason = action === "apply_business_default_vat"
+        ? "Business Profile default VAT rate was applied by the reviewer."
+        : "VAT rate was confirmed during review.";
+      next.vatBusinessRule = action === "apply_vat_to_matching"
+        ? "Apply this reviewed VAT rate to matching supplier/category/country transactions."
+        : "Use the reviewer-confirmed VAT rate for this transaction.";
+      next.vatSource = "manual_review";
+      next.vatNeedsReview = false;
+      next.reviewed = true;
     }
     if (action === "mark_reviewed" || action === "bulk_mark_reviewed") next.reviewed = true;
     if (action === "duplicate_action" && duplicateStatus) next.duplicateStatus = duplicateStatus;
@@ -214,6 +246,9 @@ function rebuildCategorization(
       requiresReview,
       reviewedCount,
       vatMissingPercent: Math.round((transactions.filter((transaction) => transaction.vatStatus === "missing").length / Math.max(transactions.length, 1)) * 100),
+      manualCorrections: transactions.filter((transaction) => transaction.vatSource === "manual_review" || transaction.reasons.includes("manual category edit")).length,
+      averageVatConfidence: Math.round((transactions.reduce((sum, transaction) => sum + transaction.vatConfidence, 0) / Math.max(transactions.length, 1)) * 100),
+      confidenceDistribution: buildVatConfidenceDistribution(transactions),
       reviewProgressPercent,
       totalCount: transactions.length,
       progress: reviewProgressPercent,
@@ -221,6 +256,20 @@ function rebuildCategorization(
     },
     transactions,
   };
+}
+
+function findMatchingVatRows(transactions: CategorizedTransaction[], rowIndexes: number[]) {
+  const selected = transactions.filter((transaction) => rowIndexes.includes(transaction.rowIndex));
+  const matches = new Set(rowIndexes);
+  for (const source of selected) {
+    const supplier = normalizeRuleText(source.supplierCustomer);
+    const category = source.category;
+    for (const transaction of transactions) {
+      if (transaction.category !== category) continue;
+      if (supplier && normalizeRuleText(transaction.supplierCustomer) === supplier) matches.add(transaction.rowIndex);
+    }
+  }
+  return matches;
 }
 
 function normalizeRowIndexes(value: unknown): number[] {
@@ -232,6 +281,27 @@ function normalizeDuplicateStatus(value: unknown) {
   const normalized = String(value || "");
   if (normalized === "keep_both" || normalized === "merged" || normalized === "ignored") return normalized;
   return null;
+}
+
+function normalizeVatRate(value: unknown, fallback: number | null) {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return Math.round(value * 100) / 100;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace("%", "").replace(",", ".").trim());
+    if (Number.isFinite(parsed) && parsed >= 0) return Math.round(parsed * 100) / 100;
+  }
+  return typeof fallback === "number" ? fallback : null;
+}
+
+function buildVatConfidenceDistribution(transactions: CategorizedTransaction[]) {
+  return transactions.reduce(
+    (distribution, transaction) => {
+      if (transaction.vatConfidence >= 0.9) distribution.high += 1;
+      else if (transaction.vatConfidence >= 0.7) distribution.medium += 1;
+      else distribution.low += 1;
+      return distribution;
+    },
+    { high: 0, medium: 0, low: 0 },
+  );
 }
 
 function normalizeRuleText(value: unknown) {

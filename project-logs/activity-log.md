@@ -203,3 +203,4 @@
 - fixed: align the Railway upload-credit backfill conflict target with the Credit Ledger idempotency-key partial unique index so predeploy schema sync completes
 - changed: strengthen dataset-aware AI analysis by mapping marketplace columns to GMV, marketplace revenue, merchant payout, customer, merchant, product category, and geography semantics, then using those roles for deterministic KPIs, dashboards, and governance source disclosure
 - fixed: hide the Retail upload success dataset-detail action so successful Retail uploads show Open Retail and Upload Another File only
+- changed: add intelligent Accounting AI VAT prediction from Business Profile tax configuration with explainable confidence, exception review, scoped manual learning, bulk assignment, and VAT audit fields in exports

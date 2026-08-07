@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- Add intelligent Accounting AI VAT workflow so Business Profile tax settings drive explainable VAT predictions, exception review, scoped corrections, bulk assignment, and export-ready VAT audit details.
+
 ### Fixed
 
 - Fix Retail upload success actions so users continue to Retail analysis or upload another file without opening an unavailable dataset page.

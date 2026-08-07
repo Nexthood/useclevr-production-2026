@@ -205,6 +205,9 @@ export interface TaxSettings {
   taxRegistered: TaxRegistered | ""
   taxType: TaxType | ""
   standardTaxRate: string
+  reducedTaxRate: string
+  zeroTaxRate: string
+  reverseChargeEnabled: "yes" | "no" | "not_sure" | ""
   revenueAmountType: AmountType | ""
   expenseAmountType: AmountType | ""
   estimateTaxes: EstimateTaxes | ""
@@ -497,6 +500,9 @@ export function emptyCompanySetupPayload(): CompanySetupPayload {
       taxRegistered: "",
       taxType: "",
       standardTaxRate: "",
+      reducedTaxRate: "",
+      zeroTaxRate: "",
+      reverseChargeEnabled: "",
       revenueAmountType: "",
       expenseAmountType: "",
       estimateTaxes: "",

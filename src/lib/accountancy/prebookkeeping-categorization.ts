@@ -1,3 +1,12 @@
+import {
+  buildBusinessTaxProfile,
+  calculateVatAmount,
+  predictVatForTransaction,
+  type BusinessTaxProfile,
+  type PrebookkeepingVatLearningRuleInput,
+  type VatPredictionSource,
+} from "@/lib/accountancy/prebookkeeping-vat";
+
 export type PrebookkeepingCategory =
   | "revenue"
   | "operating_expenses"
@@ -19,6 +28,8 @@ export interface PrebookkeepingLearningRuleInput {
   descriptionKeyword?: string | null;
   merchantKey?: string | null;
   category: string;
+  countryKey?: string | null;
+  vatRate?: number | null;
 }
 
 export interface CategorizedTransaction {
@@ -43,6 +54,11 @@ export interface CategorizedTransaction {
   duplicateStatus: "none" | "possible_duplicate" | "keep_both" | "merged" | "ignored";
   vatStatus: "present" | "missing";
   vatRate: number | null;
+  vatConfidence: number;
+  vatReason: string | null;
+  vatBusinessRule: string | null;
+  vatSource: VatPredictionSource | null;
+  vatNeedsReview: boolean;
   isLargeTransaction: boolean;
 }
 
@@ -78,6 +94,7 @@ export interface PrebookkeepingCategorization {
   };
   categoryCounts: Record<PrebookkeepingCategory, number>;
   reviewSummary: PrebookkeepingReviewSummary;
+  taxProfile: BusinessTaxProfile;
   recommendations: string[];
   transactions: CategorizedTransaction[];
 }
@@ -97,6 +114,15 @@ export type PrebookkeepingReviewSummary = {
   totalCount: number;
   progress: number;
   status: PrebookkeepingReviewStatus;
+  manualCorrections: number;
+  averageVatConfidence: number;
+  defaultVatRate: number | null;
+  businessCountry: string | null;
+  confidenceDistribution: {
+    high: number;
+    medium: number;
+    low: number;
+  };
 };
 
 const categories: PrebookkeepingCategory[] = [
@@ -117,10 +143,14 @@ const categories: PrebookkeepingCategory[] = [
 export function categorizePrebookkeepingRows(
   rows: Record<string, unknown>[],
   learningRules: PrebookkeepingLearningRuleInput[] = [],
+  options: {
+    taxProfile?: BusinessTaxProfile;
+  } = {},
 ): PrebookkeepingCategorization {
   const columns = detectPrebookkeepingColumns(rows);
   const learnedRules = normalizeLearningRules(learningRules);
-  const initialTransactions = rows.map((row, index) => normalizeTransaction(row, index, columns, learnedRules));
+  const taxProfile = options.taxProfile ?? buildBusinessTaxProfile(null);
+  const initialTransactions = rows.map((row, index) => normalizeTransaction(row, index, columns, learnedRules, taxProfile, learningRules));
   const duplicateGroups = findPossibleDuplicates(initialTransactions);
   const duplicateRows = new Set(duplicateGroups.flatMap((group) => group.rowIndexes));
   const largeThreshold = detectLargeTransactionThreshold(initialTransactions);
@@ -133,6 +163,7 @@ export function categorizePrebookkeepingRows(
       transaction.confidence < 0.7 ||
       duplicateRows.has(transaction.rowIndex) ||
       transaction.vatStatus === "missing" ||
+      transaction.vatNeedsReview ||
       !transaction.supplierCustomer,
   }));
   const categoryCounts = Object.fromEntries(categories.map((category) => [category, 0])) as Record<PrebookkeepingCategory, number>;
@@ -174,6 +205,13 @@ export function categorizePrebookkeepingRows(
     totalCount: transactions.length,
     progress: Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100),
     status: "ready_for_review" as const,
+    manualCorrections: 0,
+    averageVatConfidence: Math.round(
+      (transactions.reduce((sum, transaction) => sum + transaction.vatConfidence, 0) / Math.max(transactions.length, 1)) * 100,
+    ),
+    defaultVatRate: taxProfile.defaultVatRate,
+    businessCountry: taxProfile.taxCountry,
+    confidenceDistribution: buildVatConfidenceDistribution(transactions),
   };
 
   return {
@@ -193,6 +231,7 @@ export function categorizePrebookkeepingRows(
     columns,
     categoryCounts,
     reviewSummary,
+    taxProfile,
     recommendations: buildRecommendations({
       reviewSummary,
       categoryCounts,
@@ -229,6 +268,11 @@ export function createDefaultPrebookkeepingReviewSummary(
     totalCount,
     progress: 0,
     status,
+    manualCorrections: 0,
+    averageVatConfidence: 0,
+    defaultVatRate: null,
+    businessCountry: null,
+    confidenceDistribution: { high: 0, medium: 0, low: totalCount },
   };
 }
 
@@ -251,6 +295,7 @@ export function normalizePrebookkeepingCategorization(
     numberOrDefault(existing.reviewProgressPercent, Math.round((reviewedCount / Math.max(totalCount, 1)) * 100)),
   );
   const status = normalizeReviewStatus(existing.status, progress >= 100 && totalCount > 0 ? "ready_for_accountant" : "ready_for_review");
+  const taxProfile = normalizeBusinessTaxProfile(value.taxProfile);
 
   const reviewSummary: PrebookkeepingReviewSummary = {
     transactionsAnalyzed: numberOrDefault(existing.transactionsAnalyzed, totalCount),
@@ -271,6 +316,14 @@ export function normalizePrebookkeepingCategorization(
     totalCount,
     progress,
     status,
+    manualCorrections: numberOrDefault(existing.manualCorrections, rows.filter((transaction) => transaction.vatSource === "manual_review").length),
+    averageVatConfidence: numberOrDefault(
+      existing.averageVatConfidence,
+      Math.round((rows.reduce((sum, transaction) => sum + transaction.vatConfidence, 0) / Math.max(rows.length, 1)) * 100),
+    ),
+    defaultVatRate: nullableNumber(existing.defaultVatRate),
+    businessCountry: stringOrNull(existing.businessCountry) ?? taxProfile.taxCountry,
+    confidenceDistribution: normalizeConfidenceDistribution(existing.confidenceDistribution, buildVatConfidenceDistribution(rows)),
   };
 
   return {
@@ -280,6 +333,7 @@ export function normalizePrebookkeepingCategorization(
     uncategorizedCount: categoryCounts.uncategorized,
     transactions: rows,
     reviewSummary,
+    taxProfile,
     recommendations: Array.isArray(value.recommendations) && value.recommendations.length > 0
       ? value.recommendations
       : buildRecommendations({
@@ -317,6 +371,11 @@ function normalizeCategorizedTransaction(value: unknown, index: number): Categor
     duplicateStatus: normalizeDuplicateStatus(row.duplicateStatus),
     vatStatus: row.vatStatus === "present" ? "present" : "missing",
     vatRate: nullableNumber(row.vatRate),
+    vatConfidence: clamp(numberOrDefault(row.vatConfidence, row.vatStatus === "present" ? 1 : 0), 0, 1),
+    vatReason: stringOrNull(row.vatReason),
+    vatBusinessRule: stringOrNull(row.vatBusinessRule),
+    vatSource: normalizeVatSource(row.vatSource),
+    vatNeedsReview: row.vatNeedsReview === true || row.vatStatus !== "present",
     isLargeTransaction: row.isLargeTransaction === true,
   };
 }
@@ -344,6 +403,8 @@ function normalizeTransaction(
   rowIndex: number,
   columns: ReturnType<typeof detectPrebookkeepingColumns>,
   learningRules: NormalizedLearningRule[],
+  taxProfile: BusinessTaxProfile,
+  vatLearningRules: PrebookkeepingVatLearningRuleInput[],
 ): CategorizedTransaction {
   const debit = readNumber(row, columns.debit);
   const credit = readNumber(row, columns.credit);
@@ -371,7 +432,20 @@ function normalizeTransaction(
   const suggestedCategory = categoryResult.category === "uncategorized"
     ? suggestFallbackCategory(amount)
     : categoryResult.category;
-  const needsReview = categoryResult.category === "uncategorized" || categoryResult.confidence < 0.7 || vatTax === null || !supplierCustomer;
+  const currency = readText(row, columns.currency);
+  const vatPrediction = predictVatForTransaction({
+    amount,
+    description,
+    supplierCustomer,
+    sourceCategory,
+    category: categoryResult.category,
+    currency,
+    existingVatTax: vatTax,
+  }, taxProfile, vatLearningRules);
+  const predictedVatTax = vatTax ?? calculateVatAmount(amount, vatPrediction.vatRate);
+  const vatStatus = vatPrediction.status === "needs_review" || predictedVatTax === null ? "missing" : "present";
+  const vatNeedsReview = vatPrediction.status === "needs_review" || vatPrediction.confidence < 0.7;
+  const needsReview = categoryResult.category === "uncategorized" || categoryResult.confidence < 0.7 || vatNeedsReview || !supplierCustomer;
 
   return {
     rowIndex,
@@ -381,8 +455,8 @@ function normalizeTransaction(
     debit,
     credit,
     amount,
-    currency: readText(row, columns.currency),
-    vatTax,
+    currency,
+    vatTax: predictedVatTax,
     category: categoryResult.category,
     suggestedCategory,
     sourceCategory,
@@ -393,8 +467,13 @@ function normalizeTransaction(
     needsReview,
     reviewStatus: "pending",
     duplicateStatus: "none",
-    vatStatus: vatTax === null ? "missing" : "present",
-    vatRate: null,
+    vatStatus,
+    vatRate: vatPrediction.vatRate,
+    vatConfidence: vatPrediction.confidence,
+    vatReason: vatPrediction.reason,
+    vatBusinessRule: vatPrediction.businessRule,
+    vatSource: vatPrediction.source,
+    vatNeedsReview,
     isLargeTransaction: false,
   };
 }
@@ -517,6 +596,56 @@ function normalizeReviewStatus(value: unknown, fallback: PrebookkeepingReviewSta
 function normalizeDuplicateStatus(value: unknown): CategorizedTransaction["duplicateStatus"] {
   if (value === "possible_duplicate" || value === "keep_both" || value === "merged" || value === "ignored") return value;
   return "none";
+}
+
+function normalizeVatSource(value: unknown): CategorizedTransaction["vatSource"] {
+  if (value === "business_profile" || value === "learning_rule" || value === "transaction_data" || value === "manual_review") return value;
+  return null;
+}
+
+function normalizeBusinessTaxProfile(value: unknown): BusinessTaxProfile {
+  if (!isRecord(value)) return buildBusinessTaxProfile(null);
+  const availableRates = Array.isArray(value.availableRates)
+    ? value.availableRates.map(nullableNumber).filter((rate): rate is number => typeof rate === "number")
+    : [];
+  return {
+    taxCountry: stringOrNull(value.taxCountry),
+    vatRegistered: typeof value.vatRegistered === "boolean" ? value.vatRegistered : null,
+    defaultVatRate: nullableNumber(value.defaultVatRate),
+    reducedVatRate: nullableNumber(value.reducedVatRate),
+    zeroVatRate: nullableNumber(value.zeroVatRate),
+    reverseChargeEnabled: value.reverseChargeEnabled === true,
+    fiscalYear: stringOrNull(value.fiscalYear),
+    currency: stringOrNull(value.currency),
+    taxRegime: stringOrNull(value.taxRegime),
+    businessType: stringOrNull(value.businessType),
+    availableRates: Array.from(new Set(availableRates)).sort((a, b) => a - b),
+    source: "business_profile",
+  };
+}
+
+function normalizeConfidenceDistribution(
+  value: unknown,
+  fallback: PrebookkeepingReviewSummary["confidenceDistribution"],
+): PrebookkeepingReviewSummary["confidenceDistribution"] {
+  const record = isRecord(value) ? value : {};
+  return {
+    high: numberOrDefault(record.high, fallback.high),
+    medium: numberOrDefault(record.medium, fallback.medium),
+    low: numberOrDefault(record.low, fallback.low),
+  };
+}
+
+function buildVatConfidenceDistribution(transactions: CategorizedTransaction[]) {
+  return transactions.reduce(
+    (distribution, transaction) => {
+      if (transaction.vatConfidence >= 0.9) distribution.high += 1;
+      else if (transaction.vatConfidence >= 0.7) distribution.medium += 1;
+      else distribution.low += 1;
+      return distribution;
+    },
+    { high: 0, medium: 0, low: 0 },
+  );
 }
 
 function stringOrNull(value: unknown) {
