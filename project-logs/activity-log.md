@@ -201,3 +201,4 @@
 - fixed: persist upload credit usage in the billing ledger so deleting datasets does not restore Free upload credits during the billing period
 - fixed: load Accountancy Business Profile context through the same current-tenant Business Profile loader as Business, Tax, Compliance, and Reporting so saved profile fields are shared and load failures do not appear as incomplete setup
 - fixed: align the Railway upload-credit backfill conflict target with the Credit Ledger idempotency-key partial unique index so predeploy schema sync completes
+- changed: strengthen dataset-aware AI analysis by mapping marketplace columns to GMV, marketplace revenue, merchant payout, customer, merchant, product category, and geography semantics, then using those roles for deterministic KPIs, dashboards, and governance source disclosure

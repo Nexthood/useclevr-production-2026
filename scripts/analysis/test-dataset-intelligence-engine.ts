@@ -76,11 +76,18 @@ function main() {
   assert.equal(die.fileStructure.headerRow, 1);
   assert.equal(die.fileStructure.dataStartRow, 2);
 
+  assert.equal(findSemanticColumn(die, ["GMV"])?.columnName, "gross_merchandise_value");
   assert.equal(findSemanticColumn(die, ["Revenue"])?.columnName, "gross_merchandise_value");
+  assert.equal(findSemanticColumn(die, ["Marketplace Revenue"])?.columnName, "platform_fee");
   assert.equal(findSemanticColumn(die, ["Commission"])?.columnName, "platform_fee");
+  assert.equal(findSemanticColumn(die, ["Merchant Payout"])?.columnName, "seller_payout");
+  assert.equal(findSemanticColumn(die, ["Customer"])?.columnName, "buyer_id");
   assert.equal(findSemanticColumn(die, ["Buyer"])?.columnName, "buyer_id");
+  assert.equal(findSemanticColumn(die, ["Merchant"])?.columnName, "seller_id");
   assert.equal(findSemanticColumn(die, ["Seller"])?.columnName, "seller_id");
+  assert.equal(findSemanticColumn(die, ["Geography"])?.columnName, "country");
   assert.equal(findSemanticColumn(die, ["Country"])?.columnName, "country");
+  assert.equal(findSemanticColumn(die, ["Product Category"])?.columnName, "category");
   assert.ok((findSemanticColumn(die, ["Revenue"])?.confidence || 0) >= 0.7);
   assert.ok(die.columns.every((column) => column.explanation.length > 0));
 
@@ -88,13 +95,18 @@ function main() {
   assert.ok(die.businessModel.confidence >= 0.7);
   assert.ok(die.relationships.some((relationship) => relationship.id === "gmv_from_seller_payout_platform_fee"));
   assert.ok(die.relationships.some((relationship) => relationship.id === "average_order_value"));
+  assert.ok(die.kpis.some((kpi) => kpi.id === "total_gmv" && kpi.value === 2550));
   assert.ok(die.kpis.some((kpi) => kpi.id === "total_revenue" && kpi.value === 2550));
+  assert.ok(die.kpis.some((kpi) => kpi.id === "marketplace_revenue" && kpi.value === 345));
   assert.ok(die.kpis.some((kpi) => kpi.id === "commission" && kpi.value === 345));
+  assert.ok(die.kpis.some((kpi) => kpi.id === "merchant_payout" && kpi.value === 2205));
   assert.ok(die.kpis.some((kpi) => kpi.id === "take_rate" && kpi.value === 13.53));
   assert.ok(die.dashboard.widgets.some((widget) => widget.id === "revenue_over_time"));
   assert.equal(die.dashboard.generatedFrom, "semantic-dataset-intelligence-engine");
   assert.equal(die.aiContext.businessModel.model, "Marketplace");
-  assert.ok(die.aiContext.semanticColumns.some((column) => column.columnName === "platform_fee" && column.canonicalRole === "Commission"));
+  assert.ok(die.aiContext.semanticColumns.some((column) => column.columnName === "platform_fee" && column.canonicalRole === "Marketplace Revenue"));
+  assert.equal(die.aiContext.governance.providerDisclosure, "No provider-generated values were used.");
+  assert.equal(die.aiContext.governance.calculationSource, "deterministic_dataset_intelligence_engine");
 
   const saasDie = buildDatasetIntelligenceEngine({
     rows: saasRows,

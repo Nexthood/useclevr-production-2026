@@ -681,11 +681,11 @@ export function buildDatasetIntelligence(data: DatasetRecord[]): DatasetIntellig
   // 2. Generate metrics
   const numericColumns = columns.filter((col) =>
     columnStats[col]?.type === 'numeric' ||
-    semanticMetadata.columns.some((column) => column.columnName === col && ["Revenue", "Commission", "Cost", "Profit", "Margin", "Quantity", "Percentage", "Metric"].includes(column.canonicalRole))
+    semanticMetadata.columns.some((column) => column.columnName === col && ["Revenue", "GMV", "Marketplace Revenue", "Commission", "Cost", "Merchant Payout", "Refund", "Profit", "Margin", "Quantity", "Percentage", "Metric"].includes(column.canonicalRole))
   );
   const categoricalColumns = columns.filter((col) =>
     columnStats[col]?.type === 'categorical' ||
-    semanticMetadata.columns.some((column) => column.columnName === col && ["Category", "Country", "Region", "City", "Product", "Customer", "Seller", "Buyer", "Status", "SKU"].includes(column.canonicalRole))
+    semanticMetadata.columns.some((column) => column.columnName === col && ["Category", "Product Category", "Geography", "Country", "Region", "City", "Product", "Customer", "Merchant", "Seller", "Buyer", "Status", "SKU"].includes(column.canonicalRole))
   );
   const dateColumns = columns.filter((col) =>
     columnStats[col]?.type === 'date' ||
@@ -719,19 +719,19 @@ export function buildDatasetIntelligence(data: DatasetRecord[]): DatasetIntellig
     categoryColumns: mergeUnique(
       detectCategoryColumns(columns, columnStats),
       semanticMetadata.columns
-        .filter((column) => ["Category", "Product", "Customer", "Seller", "Buyer", "Status", "SKU"].includes(column.canonicalRole))
+        .filter((column) => ["Category", "Product Category", "Product", "Customer", "Merchant", "Seller", "Buyer", "Status", "SKU"].includes(column.canonicalRole))
         .map((column) => column.columnName),
     ),
     numericMetrics: mergeUnique(
       detectNumericMetrics(columns, columnStats),
       semanticMetadata.columns
-        .filter((column) => ["Revenue", "Commission", "Cost", "Profit", "Margin", "Quantity", "Percentage", "Metric"].includes(column.canonicalRole))
+        .filter((column) => ["Revenue", "GMV", "Marketplace Revenue", "Commission", "Cost", "Merchant Payout", "Refund", "Profit", "Margin", "Quantity", "Percentage", "Metric"].includes(column.canonicalRole))
         .map((column) => column.columnName),
     ),
     geographicColumns: mergeUnique(
       detectGeographicColumns(columns),
       semanticMetadata.columns
-        .filter((column) => ["Country", "Region", "City"].includes(column.canonicalRole))
+        .filter((column) => ["Geography", "Country", "Region", "City"].includes(column.canonicalRole))
         .map((column) => column.columnName),
     )
   };

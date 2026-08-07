@@ -2237,3 +2237,36 @@ For PostgreSQL partial unique indexes, `ON CONFLICT (column)` does not infer the
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## UseClevr Stabilization and Product Differentiation Sprint
+
+1. Interaction title
+AI Analyst, Dataset Intelligence, dashboard consistency, and Business plan differentiation stabilization.
+
+2. What was the user goal
+Improve existing UseClevr intelligence accuracy without redesigning the app, adding experimental features, or changing pricing.
+
+3. What changed
+Dataset Intelligence now recognizes marketplace-specific semantics for GMV, marketplace revenue, merchant payout, refunds, customers from buyer fields, merchants from seller fields, product categories, and geography. The compatibility layer lets existing Revenue, Commission, Cost, Seller, Buyer, Category, and Country callers keep working while newer dashboards and AI context receive more precise roles. Dashboard AOV calculation uses detected order IDs or record count instead of requiring quantity. AI context includes deterministic governance disclosure, evidence, confidence, calculation source, dataset source, and provider source. Business plan copy highlights existing AI business intelligence value without changing prices or limits.
+
+4. Problems marked
+observation: The Question Intent Engine and Metric Resolver already classify business questions and block generic revenue fallback across 60 regression questions.
+improvement: The older dashboard wrapper needs to read the same semantic role compatibility list as Dataset Intelligence so marketplace currency-string fields remain available as metrics.
+observation: Deterministic Dataset Intelligence outputs identify provider source as none and disclose that no provider-generated values were used.
+
+5. User learning
+Marketplace uploads expose GMV, platform fee, merchant payout, customer, merchant, category, and geography semantics directly in deterministic KPIs and dashboard metadata.
+
+6. AI-agent learning
+When adding precise semantic roles, preserve compatibility aliases for existing callers so current dashboard, reports, and AI Analyst paths keep using one dataset profile.
+
+7. Follow-up tasks
+- Validate restaurant, manufacturing, healthcare, legal, multilingual, and large-file fixtures through the same Dataset Intelligence compatibility layer. (labels: data, ai, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

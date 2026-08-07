@@ -69,8 +69,8 @@ export function buildDashboard(
   const _costCol = findSemanticColumn(semantic, ["Cost"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('cost') || c.toLowerCase().includes('cogs')
   );
-  const quantityCol = findSemanticColumn(semantic, ["Quantity"])?.columnName || numericCols.find(c =>
-    c.toLowerCase().includes('quantity') || c.toLowerCase().includes('units') || c.toLowerCase().includes('qty')
+  const orderCol = findSemanticColumn(semantic, ["Order"])?.columnName || categoricalCols.find(c =>
+    c.toLowerCase().includes('order') || c.toLowerCase().includes('transaction')
   );
 
   // Generate KPIs
@@ -117,10 +117,12 @@ export function buildDashboard(
   }
 
   // 5. Average Order Value
-  if (revenueCol && quantityCol) {
+  if (revenueCol) {
     const totalRevenue = aggregateSum(data, revenueCol);
-    const totalQuantity = aggregateSum(data, quantityCol);
-    const aov = totalQuantity > 0 ? totalRevenue / data.length : 0;
+    const orderCount = orderCol
+      ? new Set(data.map((row) => String(row[orderCol] ?? '').trim()).filter(Boolean)).size
+      : data.length;
+    const aov = orderCount > 0 ? totalRevenue / orderCount : 0;
     kpis.push({
       id: 'avg_order_value',
       title: 'Avg Order Value',
@@ -132,7 +134,7 @@ export function buildDashboard(
   // Generate Charts
   // 1. Revenue by Category (bar chart)
   if (revenueCol && categoricalCols.length > 0) {
-    const groupCol = findSemanticColumn(semantic, ["Category", "Product", "Customer", "Seller", "Buyer"])?.columnName || categoricalCols[0];
+    const groupCol = findSemanticColumn(semantic, ["Category", "Product Category", "Product", "Customer", "Seller", "Merchant", "Buyer"])?.columnName || categoricalCols[0];
     const chartData = aggregateGroup(data, groupCol, revenueCol);
     charts.push({
       id: 'revenue_by_category',
@@ -146,7 +148,7 @@ export function buildDashboard(
 
   // 2. Revenue by Region (bar chart)
   if (revenueCol && geoCols.length > 0) {
-    const groupCol = findSemanticColumn(semantic, ["Country", "Region", "City"])?.columnName || geoCols[0];
+    const groupCol = findSemanticColumn(semantic, ["Geography", "Country", "Region", "City"])?.columnName || geoCols[0];
     const chartData = aggregateGroup(data, groupCol, revenueCol);
     charts.push({
       id: 'revenue_by_region',
