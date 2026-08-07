@@ -2270,3 +2270,35 @@ When adding precise semantic roles, preserve compatibility aliases for existing 
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Retail Upload Success Dataset Action Removal
+
+1. Interaction title
+Retail upload success action cleanup.
+
+2. What was the user goal
+Remove the broken View Dataset action from the Retail upload success screen while keeping the Retail upload flow and other upload flows unchanged.
+
+3. What changed
+The shared upload success panel now hides dataset navigation only when the upload mode is Retail. Retail success shows Open Retail and Upload Another File, while Standard, Profitability, Accountancy, and Pre-bookkeeping keep their existing action paths.
+
+4. Problems marked
+root cause: Retail reused the shared non-standard upload success actions, so a successful Retail upload displayed a dataset-detail link that opens an unavailable dataset page.
+observation: The remaining Retail action column uses the existing flex layout, so no empty action slot remains.
+
+5. User learning
+Retail uploads continue directly into Retail analysis and no longer advertise a dataset page that is unavailable for the flow.
+
+6. AI-agent learning
+When a shared upload success component serves module-specific flows, gate action visibility by upload mode rather than changing route helpers or dataset persistence.
+
+7. Follow-up tasks
+- Verify the Retail upload success screen in authenticated light and dark browser sessions after the beta deployment finishes. (labels: upload, ui, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

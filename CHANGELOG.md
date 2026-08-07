@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Fix Retail upload success actions so users continue to Retail analysis or upload another file without opening an unavailable dataset page.
 - Fix type validation so Next.js route declarations generate before TypeScript checks run in clean worktrees.
 - Fix upload-credit limit messaging so upload screens, notices, APIs, and Usy explain that successful uploads permanently consume credits and dataset deletion does not restore them.
 - Fix Accountancy upload credits so CSV, Excel, PDF, receipt, invoice, and bank-export uploads stop when included upload credits are used.

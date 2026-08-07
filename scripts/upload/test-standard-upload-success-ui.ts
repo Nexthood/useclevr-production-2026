@@ -91,6 +91,8 @@ function main() {
   assertIncludes(sharedPanelSource, 'if (uploadMode === "accountancy") return "/app/accountancy"', "Accountancy Upload route remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "prebookkeeping") return "/app/prebookkeeping"', "Pre-bookkeeping Upload route remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "retail") return "Open Retail"', "Retail Upload label remains unchanged")
+  assertIncludes(sharedPanelSource, 'const showDatasetAction = uploadMode !== "retail"', "Retail Upload hides the dataset action")
+  assertIncludes(sharedPanelSource, "{showDatasetAction && (", "dataset action rendering is guarded by upload mode")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "profitability") return "Open Profitability"', "Profitability Upload label remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "accountancy") return "Open Accountancy"', "Accountancy Upload label remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "prebookkeeping") return "Open Pre-bookkeeping"', "Pre-bookkeeping Upload label remains unchanged")
