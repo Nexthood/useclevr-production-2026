@@ -204,3 +204,4 @@
 - changed: strengthen dataset-aware AI analysis by mapping marketplace columns to GMV, marketplace revenue, merchant payout, customer, merchant, product category, and geography semantics, then using those roles for deterministic KPIs, dashboards, and governance source disclosure
 - fixed: hide the Retail upload success dataset-detail action so successful Retail uploads show Open Retail and Upload Another File only
 - changed: add intelligent Accounting AI VAT prediction from Business Profile tax configuration with explainable confidence, exception review, scoped manual learning, bulk assignment, and VAT audit fields in exports
+- fixed: guide Pre-bookkeeping accountant export through reviewed-transaction validation and render bookkeeping Risk Intelligence with deterministic risk findings or graceful problem states instead of server crashes

@@ -1,4 +1,10 @@
 import {
+  isPrebookkeepingCategorization,
+  normalizePrebookkeepingCategorization,
+  type CategorizedTransaction,
+  type PrebookkeepingCategorization,
+} from "@/lib/accountancy/prebookkeeping-categorization"
+import {
   analyzeBusinessData,
   detectBusinessColumns,
   type DetectedBusinessColumns,
@@ -33,6 +39,7 @@ export type RiskDatasetInput = {
   updatedAt?: Date | string | null
   precomputedMetrics?: unknown
   detectedColumns?: unknown
+  analysis?: unknown
 }
 
 export type RiskMetric = {
@@ -115,6 +122,9 @@ const CATEGORY_ORDER: RiskCategory[] = [
 
 export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskDataRow[]): RiskIntelligenceResult | null {
   const datasetType = normalizeDatasetType(dataset.datasetType)
+  const bookkeepingRisk = datasetType === "prebookkeeping" ? calculatePrebookkeepingRiskIntelligence(dataset) : null
+  if (bookkeepingRisk) return bookkeepingRisk
+
   const normalizedRows = rows.filter(isRecord)
   const columns = getColumns(dataset.columns, normalizedRows)
 
@@ -190,6 +200,300 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
       .map(([metric]) => metric as RiskMetricKey),
     trendComparison: derived.hasComparableHistory ? derived.trendComparison : "No previous comparison available.",
   }
+}
+
+export function calculatePrebookkeepingRiskIntelligence(dataset: RiskDatasetInput): RiskIntelligenceResult | null {
+  const analysis: Record<string, unknown> | null = isRecord(dataset.analysis)
+    ? dataset.analysis
+    : null
+  const categorizationValue = analysis?.prebookkeepingCategorization
+  if (!isPrebookkeepingCategorization(categorizationValue)) return null
+
+  const categorization = normalizePrebookkeepingCategorization(categorizationValue)
+  const transactions = categorization.transactions
+  if (transactions.length === 0) return null
+
+  const findings = buildPrebookkeepingFindings(dataset, categorization)
+  const categorySummaries = buildPrebookkeepingCategorySummaries(findings)
+  const overallScore = findings.length > 0
+    ? clampScore(Math.round(findings.reduce((sum, finding) => sum + finding.score * finding.weight, 0) / findings.reduce((sum, finding) => sum + finding.weight, 0)))
+    : 0
+  const overallSeverity = getSeverityForScore(overallScore)
+
+  return {
+    engineVersion: RISK_ENGINE_VERSION,
+    dataset: {
+      id: dataset.id,
+      name: dataset.name,
+      fileName: dataset.fileName || null,
+      datasetType: "prebookkeeping",
+      businessModel: dataset.businessModel || "bookkeeping",
+      rowCount: dataset.rowCount ?? transactions.length,
+      sourceHref: getDatasetSourceHref(dataset.id, "prebookkeeping"),
+    },
+    calculatedAt: new Date().toISOString(),
+    scope: "Single Pre-bookkeeping dataset",
+    overallScore,
+    overallSeverity,
+    overallSeverityLabel: RISK_SEVERITY_LABELS[overallSeverity],
+    severityCounts: countSeverities(findings),
+    categorySummaries,
+    findings,
+    metrics: {
+      deadStockRatio: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
+      revenueGrowthPct: metricFromValue(null, "percent", "Bookkeeping categorization"),
+      grossMarginTrendPct: metricFromValue(null, "percent", "Bookkeeping categorization"),
+      netMarginPct: metricFromValue(calculateBookkeepingNetMargin(categorization), "percent", "Bookkeeping income and expense summary"),
+      unprofitableProductRatio: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
+      costRevenueGrowthGapPct: metricFromValue(null, "percent", "Bookkeeping categorization"),
+      expenseRevenueRatio: metricFromValue(calculateBookkeepingExpenseRevenueRatio(categorization), "percent", "Bookkeeping income and expense summary"),
+      topProductRevenueShare: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
+      topCategoryRevenueShare: metricFromValue(calculateTopExpenseCategoryShare(transactions), "percent", "Bookkeeping category summary"),
+      topCustomerRevenueShare: metricFromValue(calculateSupplierConcentrationShare(transactions), "percent", "Bookkeeping supplier summary"),
+      missingValueRatio: metricFromValue(calculateBookkeepingMissingDataRatio(transactions), "percent", "Bookkeeping review queue"),
+      invalidNumericRatio: metricFromValue(null, "percent", "Bookkeeping parser validation"),
+      invalidDateRatio: metricFromValue(calculateBookkeepingMissingDateRatio(transactions), "percent", "Bookkeeping transaction dates"),
+      duplicateRowRatio: metricFromValue(calculateBookkeepingDuplicateRatio(transactions), "percent", "Bookkeeping duplicate review"),
+      currencyInconsistencyRatio: metricFromValue(calculateBookkeepingCurrencyInconsistencyRatio(transactions), "percent", "Bookkeeping transaction currencies"),
+      classificationConfidence: metricFromValue(categorization.reviewSummary.confidenceScore, "score", "Accounting AI categorization confidence"),
+      historyPeriodCount: metricFromValue(calculateBookkeepingPeriodCount(transactions), "count", "Bookkeeping transaction dates"),
+    },
+    missingMetrics: [],
+    trendComparison: "Bookkeeping risk uses the current reviewed transaction set.",
+  }
+}
+
+function buildPrebookkeepingFindings(dataset: RiskDatasetInput, categorization: PrebookkeepingCategorization): RiskFinding[] {
+  const transactions = categorization.transactions
+  const sourceHref = getDatasetSourceHref(dataset.id, "prebookkeeping")
+  const findings: RiskFinding[] = []
+  const addFinding = (finding: Omit<RiskFinding, "sourceHref" | "severityLabel" | "estimatedImpact">) => {
+    findings.push({
+      ...finding,
+      sourceHref,
+      severityLabel: RISK_SEVERITY_LABELS[finding.severity],
+      estimatedImpact: Math.round(finding.score * finding.weight),
+    })
+  }
+  const total = Math.max(transactions.length, 1)
+  const duplicateRows = transactions.filter((transaction) => transaction.duplicateStatus === "possible_duplicate").length
+  const missingVatRows = transactions.filter((transaction) => transaction.vatStatus === "missing" || transaction.vatNeedsReview).length
+  const uncategorizedRows = transactions.filter((transaction) => transaction.category === "uncategorized").length
+  const missingSupplierRows = transactions.filter((transaction) => !transaction.supplierCustomer).length
+  const largeExpenses = transactions.filter((transaction) => transaction.isLargeTransaction && (transaction.amount ?? 0) < 0)
+  const supplierConcentration = calculateSupplierConcentrationShare(transactions)
+  const expenseRatio = calculateBookkeepingExpenseRevenueRatio(categorization)
+
+  if (duplicateRows > 0) {
+    const ratio = (duplicateRows / total) * 100
+    addFinding({
+      ruleId: "bookkeeping.duplicate_payments.v1",
+      category: "data_quality",
+      title: "Possible duplicate payments",
+      description: `${duplicateRows.toLocaleString()} transaction(s) are marked as possible duplicates.`,
+      severity: ratio >= 10 ? "high" : "medium",
+      score: ratio >= 10 ? 72 : 45,
+      weight: 1,
+      metric: "duplicateRowRatio",
+      metricValue: roundMetric(ratio),
+      metricUnit: "percent",
+      threshold: { severity: ratio >= 10 ? "high" : "medium", operator: ">=", value: ratio >= 10 ? 10 : 1, score: ratio >= 10 ? 72 : 45 },
+      recommendation: "Review duplicate payments before exporting the bookkeeping package.",
+      sourceLabel: "Duplicate review queue",
+    })
+  }
+
+  if (missingVatRows > 0) {
+    const ratio = (missingVatRows / total) * 100
+    addFinding({
+      ruleId: "bookkeeping.vat_review.v1",
+      category: "financial",
+      title: "VAT review required",
+      description: `${missingVatRows.toLocaleString()} transaction(s) still need VAT confirmation.`,
+      severity: ratio >= 25 ? "high" : "medium",
+      score: ratio >= 25 ? 70 : 44,
+      weight: 1.1,
+      metric: "missingValueRatio",
+      metricValue: roundMetric(ratio),
+      metricUnit: "percent",
+      threshold: { severity: ratio >= 25 ? "high" : "medium", operator: ">=", value: ratio >= 25 ? 25 : 1, score: ratio >= 25 ? 70 : 44 },
+      recommendation: "Complete VAT review before sending records to the accountant.",
+      sourceLabel: "VAT review status",
+    })
+  }
+
+  if (uncategorizedRows > 0 || missingSupplierRows > 0) {
+    const affectedRows = uncategorizedRows + missingSupplierRows
+    const ratio = (affectedRows / total) * 100
+    addFinding({
+      ruleId: "bookkeeping.missing_classification.v1",
+      category: "data_quality",
+      title: "Missing bookkeeping details",
+      description: `${affectedRows.toLocaleString()} transaction detail(s) are uncategorized or missing supplier information.`,
+      severity: ratio >= 20 ? "high" : "medium",
+      score: ratio >= 20 ? 68 : 40,
+      weight: 0.95,
+      metric: "classificationConfidence",
+      metricValue: categorization.reviewSummary.confidenceScore,
+      metricUnit: "score",
+      threshold: { severity: ratio >= 20 ? "high" : "medium", operator: ">=", value: ratio >= 20 ? 20 : 1, score: ratio >= 20 ? 68 : 40 },
+      recommendation: "Review uncategorized transactions and missing suppliers so the export is accountant-ready.",
+      sourceLabel: "Accounting AI review queue",
+    })
+  }
+
+  if (largeExpenses.length > 0) {
+    addFinding({
+      ruleId: "bookkeeping.large_expenses.v1",
+      category: "cash_flow",
+      title: "Large expense transactions",
+      description: `${largeExpenses.length.toLocaleString()} large withdrawal or expense transaction(s) need review.`,
+      severity: largeExpenses.length >= 5 ? "high" : "medium",
+      score: largeExpenses.length >= 5 ? 66 : 38,
+      weight: 0.9,
+      metric: "expenseRevenueRatio",
+      metricValue: roundMetric(calculateBookkeepingExpenseRevenueRatio(categorization) ?? largeExpenses.length),
+      metricUnit: "percent",
+      threshold: { severity: largeExpenses.length >= 5 ? "high" : "medium", operator: ">=", value: largeExpenses.length >= 5 ? 5 : 1, score: largeExpenses.length >= 5 ? 66 : 38 },
+      recommendation: "Check large withdrawals against invoices, receipts, and supplier agreements.",
+      sourceLabel: "Large transaction filter",
+    })
+  }
+
+  if (supplierConcentration !== null && supplierConcentration >= 35) {
+    addFinding({
+      ruleId: "bookkeeping.supplier_concentration.v1",
+      category: "revenue_concentration",
+      title: "Supplier concentration risk",
+      description: `The largest supplier represents ${roundMetric(supplierConcentration)}% of expense value.`,
+      severity: supplierConcentration >= 60 ? "high" : "medium",
+      score: supplierConcentration >= 60 ? 72 : 45,
+      weight: 0.85,
+      metric: "topCustomerRevenueShare",
+      metricValue: roundMetric(supplierConcentration),
+      metricUnit: "percent",
+      threshold: { severity: supplierConcentration >= 60 ? "high" : "medium", operator: ">=", value: supplierConcentration >= 60 ? 60 : 35, score: supplierConcentration >= 60 ? 72 : 45 },
+      recommendation: "Review supplier dependency and confirm recurring or unusually large supplier spend.",
+      sourceLabel: "Supplier expense concentration",
+    })
+  }
+
+  if (expenseRatio !== null && expenseRatio >= 100) {
+    addFinding({
+      ruleId: "bookkeeping.expenses_exceed_income.v1",
+      category: "cash_flow",
+      title: "Expenses exceed income",
+      description: `Detected expenses are ${roundMetric(expenseRatio)}% of detected income.`,
+      severity: expenseRatio >= 120 ? "critical" : "high",
+      score: expenseRatio >= 120 ? 90 : 72,
+      weight: 1.2,
+      metric: "expenseRevenueRatio",
+      metricValue: roundMetric(expenseRatio),
+      metricUnit: "percent",
+      threshold: { severity: expenseRatio >= 120 ? "critical" : "high", operator: ">=", value: expenseRatio >= 120 ? 120 : 100, score: expenseRatio >= 120 ? 90 : 72 },
+      recommendation: "Confirm that income and expense periods match before sending the summary to the accountant.",
+      sourceLabel: "Bookkeeping summary",
+    })
+  }
+
+  return findings.sort(compareFindings)
+}
+
+function buildPrebookkeepingCategorySummaries(findings: RiskFinding[]): RiskCategorySummary[] {
+  return CATEGORY_ORDER.map((category) => {
+    const categoryFindings = findings.filter((finding) => finding.category === category)
+    const score = categoryFindings.length > 0
+      ? clampScore(Math.round(categoryFindings.reduce((sum, finding) => sum + finding.score, 0) / categoryFindings.length))
+      : 0
+    return {
+      category,
+      label: RISK_CATEGORY_LABELS[category],
+      score,
+      severity: getSeverityForScore(score),
+      applicableRuleCount: category === "inventory" || category === "profitability" ? 0 : 1,
+      triggeredRuleCount: categoryFindings.length,
+    }
+  }).filter((summary) => summary.applicableRuleCount > 0 || summary.triggeredRuleCount > 0)
+}
+
+function calculateBookkeepingNetMargin(categorization: PrebookkeepingCategorization) {
+  const income = categorization.incomeTotal
+  if (income <= 0) return null
+  return ((income - categorization.expenseTotal) / income) * 100
+}
+
+function calculateBookkeepingExpenseRevenueRatio(categorization: PrebookkeepingCategorization) {
+  if (categorization.incomeTotal <= 0) return categorization.expenseTotal > 0 ? 100 : null
+  return (categorization.expenseTotal / categorization.incomeTotal) * 100
+}
+
+function calculateTopExpenseCategoryShare(transactions: CategorizedTransaction[]) {
+  const groups = new Map<string, number>()
+  let total = 0
+  for (const transaction of transactions) {
+    if ((transaction.amount ?? 0) >= 0) continue
+    const value = Math.abs(transaction.amount ?? transaction.debit ?? 0)
+    if (value <= 0) continue
+    total += value
+    groups.set(transaction.category, (groups.get(transaction.category) || 0) + value)
+  }
+  if (total <= 0 || groups.size === 0) return null
+  return (Math.max(...groups.values()) / total) * 100
+}
+
+function calculateSupplierConcentrationShare(transactions: CategorizedTransaction[]) {
+  const groups = new Map<string, number>()
+  let total = 0
+  for (const transaction of transactions) {
+    if ((transaction.amount ?? 0) >= 0 || !transaction.supplierCustomer) continue
+    const value = Math.abs(transaction.amount ?? transaction.debit ?? 0)
+    if (value <= 0) continue
+    total += value
+    const supplier = transaction.supplierCustomer.toLowerCase().replace(/\s+/g, " ").trim()
+    groups.set(supplier, (groups.get(supplier) || 0) + value)
+  }
+  if (total <= 0 || groups.size === 0) return null
+  return (Math.max(...groups.values()) / total) * 100
+}
+
+function calculateBookkeepingMissingDataRatio(transactions: CategorizedTransaction[]) {
+  if (transactions.length === 0) return null
+  const checks = transactions.length * 4
+  const missing = transactions.reduce((sum, transaction) => {
+    return sum +
+      (transaction.transactionDate ? 0 : 1) +
+      (transaction.description ? 0 : 1) +
+      (transaction.supplierCustomer ? 0 : 1) +
+      (transaction.category === "uncategorized" ? 1 : 0)
+  }, 0)
+  return (missing / checks) * 100
+}
+
+function calculateBookkeepingMissingDateRatio(transactions: CategorizedTransaction[]) {
+  if (transactions.length === 0) return null
+  return (transactions.filter((transaction) => !transaction.transactionDate).length / transactions.length) * 100
+}
+
+function calculateBookkeepingDuplicateRatio(transactions: CategorizedTransaction[]) {
+  if (transactions.length === 0) return null
+  return (transactions.filter((transaction) => transaction.duplicateStatus === "possible_duplicate").length / transactions.length) * 100
+}
+
+function calculateBookkeepingCurrencyInconsistencyRatio(transactions: CategorizedTransaction[]) {
+  const currencies = transactions.map((transaction) => transaction.currency?.trim().toUpperCase()).filter(Boolean) as string[]
+  if (currencies.length === 0) return null
+  const dominant = Math.max(...Object.values(countValues(currencies)))
+  return ((currencies.length - dominant) / currencies.length) * 100
+}
+
+function calculateBookkeepingPeriodCount(transactions: CategorizedTransaction[]) {
+  const periods = new Set<string>()
+  for (const transaction of transactions) {
+    const date = parseDate(transaction.transactionDate)
+    if (!date) continue
+    periods.add(`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`)
+  }
+  return periods.size
 }
 
 function deriveRiskMetrics(input: {

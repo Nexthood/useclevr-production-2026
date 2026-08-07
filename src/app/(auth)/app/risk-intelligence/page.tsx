@@ -43,27 +43,42 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
 
   const params = await searchParams
   const requestedScope = params?.scope || "standard"
-  const datasets = await listRiskIntelligenceDatasets({
-    id: session.user.id,
-    role: access.role,
-    email: session.user.email,
-  }, {
-    scope: requestedScope,
-    datasetId: params?.datasetId || null,
-  })
-  const supportedDatasets = datasets.filter((dataset) => dataset.supported)
-  const selectedDatasetId =
-    supportedDatasets.find((dataset) => dataset.id === params?.datasetId)?.id || supportedDatasets[0]?.id || null
+  let supportedDatasets: RiskDatasetSummary[] = []
+  let selectedDatasetId: string | null = null
+  let riskResult: Awaited<ReturnType<typeof calculateRiskIntelligenceForDataset>> | null = null
+  let loadError: string | null = null
 
-  const riskResult = selectedDatasetId
-    ? await calculateRiskIntelligenceForDataset(selectedDatasetId, {
-        id: session.user.id,
-        role: access.role,
-        email: session.user.email,
-      }, {
-        scope: requestedScope,
-      })
-    : null
+  try {
+    const datasets = await listRiskIntelligenceDatasets({
+      id: session.user.id,
+      role: access.role,
+      email: session.user.email,
+    }, {
+      scope: requestedScope,
+      datasetId: params?.datasetId || null,
+    })
+    supportedDatasets = datasets.filter((dataset) => dataset.supported)
+    selectedDatasetId =
+      supportedDatasets.find((dataset) => dataset.id === params?.datasetId)?.id || supportedDatasets[0]?.id || null
+
+    riskResult = selectedDatasetId
+      ? await calculateRiskIntelligenceForDataset(selectedDatasetId, {
+          id: session.user.id,
+          role: access.role,
+          email: session.user.email,
+        }, {
+          scope: requestedScope,
+        })
+      : null
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : "Risk Intelligence could not load."
+    console.error("[RISK_INTELLIGENCE_PAGE] Failed to render risk workspace", {
+      error: serializeRiskPageError(error),
+      requestedScope,
+      requestedDatasetId: params?.datasetId || null,
+      userId: session.user.id,
+    })
+  }
   const intelligence = riskResult?.success ? riskResult.result : null
 
   return (
@@ -79,11 +94,44 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
 
         {intelligence ? (
           <RiskDashboard intelligence={intelligence} />
+        ) : loadError ? (
+          <ProblemState reason={loadError} />
         ) : (
           <EmptyState message={riskResult && !riskResult.success ? riskResult.error : riskScopeEmptyMessage(requestedScope)} />
         )}
       </div>
     </DashboardSubpageLayout>
+  )
+}
+
+function ProblemState({ reason }: { reason: string }) {
+  return (
+    <section className="flex min-h-[360px] items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 p-6 text-center">
+      <div className="max-w-lg">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-amber-500/30 bg-background">
+          <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden="true" />
+        </div>
+        <h2 className="mt-4 text-lg font-semibold text-foreground">Problem detected</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Risk Intelligence could not load for this dataset.</p>
+        <p className="mt-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+          Reason: {safeRiskPageReason(reason)}
+        </p>
+        <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link
+            href="/app/risk-intelligence"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Retry
+          </Link>
+          <Link
+            href="/app/dashboard"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -334,4 +382,24 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value))
+}
+
+function safeRiskPageReason(reason: string) {
+  const text = reason.trim().toLowerCase()
+  if (text.includes("database")) return "The risk data source is temporarily unavailable."
+  if (text.includes("access") || text.includes("denied") || text.includes("unauthorized")) return "This dataset is not available in the current session."
+  if (text.includes("not found")) return "The selected dataset is no longer available."
+  return "The selected dataset could not be prepared for risk analysis."
+}
+
+function serializeRiskPageError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause instanceof Error ? { name: error.cause.name, message: error.cause.message, stack: error.cause.stack } : undefined,
+    }
+  }
+  return { message: String(error) }
 }

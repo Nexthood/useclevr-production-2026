@@ -74,6 +74,7 @@ export function PrebookkeepingReviewWorkspace({
   const [exportingFormat, setExportingFormat] = React.useState<string | null>(null);
   const [exportDialogFormat, setExportDialogFormat] = React.useState<"csv" | "excel" | null>(null);
   const [exportScope, setExportScope] = React.useState<ExportScope>("filtered");
+  const [exportNotice, setExportNotice] = React.useState<string | null>(null);
   const { toast } = useToast();
 
   const rows = categorization.transactions;
@@ -135,9 +136,14 @@ export function PrebookkeepingReviewWorkspace({
     if (exportingFormat) return;
     const rowCount = exportCounts[scope];
     if (rowCount === 0) {
-      toast({ title: "Nothing to export", description: "Choose an export option with at least one transaction." });
+      const message = scope === "reviewed"
+        ? "No reviewed transactions are available yet. Please review and approve transactions before exporting."
+        : "Choose an export option with at least one transaction.";
+      setExportNotice(message);
+      toast({ title: "Nothing to export", description: message });
       return;
     }
+    setExportNotice(null);
     setExportingFormat(format);
     try {
       const params = new URLSearchParams({
@@ -278,13 +284,28 @@ export function PrebookkeepingReviewWorkspace({
         </div>
       </Card>
 
-      <Card className="border-border bg-card p-5">
+      <Card id="accountant-export" className="border-border bg-card p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Transaction review queue</h3>
-            <p className="text-sm text-muted-foreground">Showing {filteredRows.length.toLocaleString()} filtered transaction(s) for {datasetName}.</p>
+            <h3 className="text-base font-semibold text-foreground">Export for Accountant</h3>
+            <p className="text-sm text-muted-foreground">
+              Prepare reviewed transactions with bookkeeping summary, metadata, and audit information for your accountant.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setExportDialogFormat("excel");
+                setExportScope("reviewed");
+                setExportNotice(exportCounts.reviewed === 0 ? "No reviewed transactions are available yet. Please review and approve transactions before exporting." : null);
+              }}
+              disabled={Boolean(exportingFormat)}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export for Accountant
+            </Button>
             {(["csv", "excel"] as const).map((format) => (
               <Button
                 key={format}
@@ -309,6 +330,18 @@ export function PrebookkeepingReviewWorkspace({
             ))}
           </div>
         </div>
+        {exportNotice && (
+          <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4">
+            <p className="text-sm font-semibold text-foreground">No reviewed transactions are available yet.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Please review and approve transactions before exporting.</p>
+            <a
+              href="#categorized-transactions"
+              className="mt-3 inline-flex min-h-9 items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+            >
+              Review Transactions
+            </a>
+          </div>
+        )}
         {exportDialogFormat && (
           <div className="mt-4 rounded-md border border-border bg-background p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -357,7 +390,11 @@ export function PrebookkeepingReviewWorkspace({
           </div>
         )}
 
-        <div className="mt-4 overflow-x-auto rounded-md border border-border">
+        <div id="categorized-transactions" className="mt-4 overflow-x-auto rounded-md border border-border">
+          <div className="border-b border-border bg-background px-4 py-3">
+            <h3 className="text-base font-semibold text-foreground">Transaction review queue</h3>
+            <p className="text-sm text-muted-foreground">Showing {filteredRows.length.toLocaleString()} filtered transaction(s) for {datasetName}.</p>
+          </div>
           <table className="min-w-[1180px] w-full text-sm">
             <thead className="sticky top-0 bg-muted text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
