@@ -1,9 +1,9 @@
+import { resolveQuestionMetric } from "@/lib/data/metric-resolver";
 import {
   buildSemanticSchema,
   parseBusinessNumber,
   semanticColumn,
 } from "@/lib/data/semantic-schema";
-import { resolveQuestionMetric } from "@/lib/data/metric-resolver";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -47,6 +47,10 @@ const DIMENSION_PATTERNS = [
   /category|segment/i,
   /product|sku|item/i,
   /customer|client/i,
+  /seller|vendor|merchant/i,
+  /buyer|purchaser/i,
+  /order|transaction|invoice/i,
+  /channel/i,
 ];
 
 export function answerDatasetQuestionDeterministically(
@@ -217,11 +221,11 @@ function describeRevenueRisks(input: DatasetAssistantInput & {
     })),
     ...(concentration && concentration.sharePct >= 50
       ? [{
-          risk: "Revenue concentration",
-          detail: `${concentration.segment} in ${humanizeColumn(concentration.dimension)}`,
-          value: round(concentration.sharePct, 1),
-          revenue: round(concentration.revenue),
-        }]
+        risk: "Revenue concentration",
+        detail: `${concentration.segment} in ${humanizeColumn(concentration.dimension)}`,
+        value: round(concentration.sharePct, 1),
+        revenue: round(concentration.revenue),
+      }]
       : []),
   ];
 

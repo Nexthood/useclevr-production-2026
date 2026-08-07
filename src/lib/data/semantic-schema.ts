@@ -11,6 +11,8 @@ export type SemanticField =
   | "currency"
   | "product"
   | "customer"
+  | "seller"
+  | "buyer"
   | "category"
   | "region"
   | "country";
@@ -110,9 +112,19 @@ const FIELD_RULES: FieldRule[] = [
     contains: ["product", "sku"],
   },
   {
+    field: "seller",
+    exact: ["seller", "seller_id", "merchant", "merchant_id", "vendor", "vendor_id"],
+    contains: ["seller", "merchant", "vendor"],
+  },
+  {
+    field: "buyer",
+    exact: ["buyer", "buyer_id", "purchaser", "purchaser_id"],
+    contains: ["buyer", "purchaser"],
+  },
+  {
     field: "customer",
-    exact: ["customer", "customer_id", "customer_name", "client", "client_id", "buyer", "buyer_id", "account", "account_id"],
-    contains: ["customer", "client", "buyer"],
+    exact: ["customer", "customer_id", "customer_name", "client", "client_id", "account", "account_id"],
+    contains: ["customer", "client"],
   },
   {
     field: "category",

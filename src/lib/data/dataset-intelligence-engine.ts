@@ -201,33 +201,33 @@ const COLUMN_SYNONYMS: Array<{
   valueTypes?: SemanticValueType[];
   explanation: string;
 }> = [
-  { role: "Revenue", patterns: [/\bgross_merchandise_value\b/, /\bgmv\b/, /\bsales_amount\b/, /\brevenue\b/, /\bsales\b/, /\border_total\b/, /\bnet_sales\b/, /\bamount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches revenue, sales, amount, or GMV terminology." },
-  { role: "Commission", patterns: [/\bplatform_fee\b/, /\bcommission\b/, /\btake_rate_amount\b/, /\bfee\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches commission, fee, or platform-fee terminology." },
-  { role: "Cost", patterns: [/\bcost\b/, /\bcogs\b/, /\bexpense\b/, /\bunit_cost\b/, /\bseller_payout\b/, /\bpayout\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches cost, COGS, expense, or payout terminology." },
-  { role: "Profit", patterns: [/\bprofit\b/, /\bgross_profit\b/, /\bnet_profit\b/, /\bearnings\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches profit or earnings terminology." },
-  { role: "Margin", patterns: [/\bmargin\b/, /\bprofit_margin\b/], valueTypes: ["Percentage", "Number"], explanation: "Column name matches margin terminology." },
-  { role: "Customer", patterns: [/\bcustomer\b/, /\bcustomer_id\b/, /\bclient\b/, /\baccount_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies customers, clients, or accounts." },
-  { role: "Seller", patterns: [/\bseller\b/, /\bseller_id\b/, /\bmerchant\b/, /\bvendor_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies sellers, merchants, or vendors." },
-  { role: "Buyer", patterns: [/\bbuyer\b/, /\bbuyer_id\b/, /\bpurchaser\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies buyers or purchasers." },
-  { role: "Product", patterns: [/\bproduct\b/, /\bitem\b/, /\blisting\b/, /\bproduct_name\b/], valueTypes: ["Text", "SKU"], explanation: "Column name identifies product, item, or listing entities." },
-  { role: "Category", patterns: [/\bcategory\b/, /\bsegment\b/, /\bstartup_stage\b/, /\bplan\b/, /\bchannel\b/, /\bacquisition_channel\b/, /\bdepartment\b/, /\bindustry\b/], valueTypes: ["Text"], explanation: "Column name identifies a business grouping dimension." },
-  { role: "Country", patterns: [/\bcountry\b/, /\bcountry_code\b/, /\bnation\b/], valueTypes: ["Country"], explanation: "Column name identifies country-level geography." },
-  { role: "Region", patterns: [/\bregion\b/, /\bterritory\b/, /\bstate\b/, /\bprovince\b/], valueTypes: ["Text"], explanation: "Column name identifies regional geography." },
-  { role: "City", patterns: [/\bcity\b/, /\btown\b/], valueTypes: ["City"], explanation: "Column name identifies city-level geography." },
-  { role: "Date", patterns: [/\bdate\b/, /\border_date\b/, /\bcreated_at\b/, /\btimestamp\b/, /\bmonth\b/, /\bperiod\b/, /\byear\b/, /\bquarter\b/], valueTypes: ["Date"], explanation: "Column name identifies dates or reporting periods." },
-  { role: "Quantity", patterns: [/\bquantity\b/, /\bqty\b/, /\bunits\b/, /\bunit_count\b/, /\bvolume\b/], valueTypes: ["Number"], explanation: "Column name identifies quantity or volume." },
-  { role: "Currency", patterns: [/\bcurrency\b/, /\bcurrency_code\b/, /\biso_currency\b/], valueTypes: ["Currency"], explanation: "Column name identifies a currency code." },
-  { role: "SKU", patterns: [/\bsku\b/, /\bbarcode\b/, /\bitem_code\b/], valueTypes: ["SKU"], explanation: "Column name identifies SKU or item-code values." },
-  { role: "Invoice", patterns: [/\binvoice\b/, /\binvoice_no\b/, /\breceipt\b/], valueTypes: ["Invoice"], explanation: "Column name identifies invoice or receipt references." },
-  { role: "Order", patterns: [/\border\b/, /\border_id\b/, /\btransaction\b/, /\btransaction_id\b/], valueTypes: ["Invoice", "UUID", "Text"], explanation: "Column name identifies orders or transactions." },
-  { role: "Email", patterns: [/\bemail\b/, /\be_mail\b/], valueTypes: ["Email"], explanation: "Column name identifies email addresses." },
-  { role: "Phone", patterns: [/\bphone\b/, /\bmobile\b/, /\btel\b/], valueTypes: ["Phone"], explanation: "Column name identifies phone numbers." },
-  { role: "UUID", patterns: [/\buuid\b/, /\bguid\b/], valueTypes: ["UUID"], explanation: "Column name identifies UUID values." },
-  { role: "Boolean", patterns: [/\bis_/, /\bhas_/, /\bflag\b/, /\bactive\b/], valueTypes: ["Boolean"], explanation: "Column name identifies a boolean flag." },
-  { role: "Percentage", patterns: [/\bpercent\b/, /\bpct\b/, /\brate\b/, /\bratio\b/], valueTypes: ["Percentage", "Number"], explanation: "Column name identifies a rate, ratio, or percentage." },
-  { role: "Employee", patterns: [/\bemployee\b/, /\bstaff\b/, /\bworker\b/, /\bheadcount\b/], valueTypes: ["Text", "Number"], explanation: "Column name identifies employee or workforce data." },
-  { role: "Account", patterns: [/\baccount\b/, /\bledger\b/, /\bgl_account\b/], valueTypes: ["Text"], explanation: "Column name identifies account or ledger data." },
-];
+    { role: "Revenue", patterns: [/\bgross_merchandise_value\b/, /\bgmv\b/, /\bsales_amount\b/, /\brevenue\b/, /\bsales\b/, /\border_total\b/, /\bnet_sales\b/, /\bamount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches revenue, sales, amount, or GMV terminology." },
+    { role: "Commission", patterns: [/\bplatform_fee\b/, /\bcommission\b/, /\btake_rate_amount\b/, /\bfee\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches commission, fee, or platform-fee terminology." },
+    { role: "Cost", patterns: [/\bcost\b/, /\bcogs\b/, /\bexpense\b/, /\bunit_cost\b/, /\bseller_payout\b/, /\bpayout\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches cost, COGS, expense, or payout terminology." },
+    { role: "Profit", patterns: [/\bprofit\b/, /\bgross_profit\b/, /\bnet_profit\b/, /\bearnings\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches profit or earnings terminology." },
+    { role: "Margin", patterns: [/\bmargin\b/, /\bprofit_margin\b/], valueTypes: ["Percentage", "Number"], explanation: "Column name matches margin terminology." },
+    { role: "Customer", patterns: [/\bcustomer\b/, /\bcustomer_id\b/, /\bclient\b/, /\baccount_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies customers, clients, or accounts." },
+    { role: "Seller", patterns: [/\bseller\b/, /\bseller_id\b/, /\bmerchant\b/, /\bvendor_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies sellers, merchants, or vendors." },
+    { role: "Buyer", patterns: [/\bbuyer\b/, /\bbuyer_id\b/, /\bpurchaser\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies buyers or purchasers." },
+    { role: "Product", patterns: [/\bproduct\b/, /\bitem\b/, /\blisting\b/, /\bproduct_name\b/], valueTypes: ["Text", "SKU"], explanation: "Column name identifies product, item, or listing entities." },
+    { role: "Category", patterns: [/\bcategory\b/, /\bsegment\b/, /\bstartup_stage\b/, /\bplan\b/, /\bchannel\b/, /\bacquisition_channel\b/, /\bdepartment\b/, /\bindustry\b/], valueTypes: ["Text"], explanation: "Column name identifies a business grouping dimension." },
+    { role: "Country", patterns: [/\bcountry\b/, /\bcountry_code\b/, /\bnation\b/], valueTypes: ["Country"], explanation: "Column name identifies country-level geography." },
+    { role: "Region", patterns: [/\bregion\b/, /\bterritory\b/, /\bstate\b/, /\bprovince\b/], valueTypes: ["Text"], explanation: "Column name identifies regional geography." },
+    { role: "City", patterns: [/\bcity\b/, /\btown\b/], valueTypes: ["City"], explanation: "Column name identifies city-level geography." },
+    { role: "Date", patterns: [/\bdate\b/, /\border_date\b/, /\bcreated_at\b/, /\btimestamp\b/, /\bmonth\b/, /\bperiod\b/, /\byear\b/, /\bquarter\b/], valueTypes: ["Date"], explanation: "Column name identifies dates or reporting periods." },
+    { role: "Quantity", patterns: [/\bquantity\b/, /\bqty\b/, /\bunits\b/, /\bunit_count\b/, /\bvolume\b/], valueTypes: ["Number"], explanation: "Column name identifies quantity or volume." },
+    { role: "Currency", patterns: [/\bcurrency\b/, /\bcurrency_code\b/, /\biso_currency\b/], valueTypes: ["Currency"], explanation: "Column name identifies a currency code." },
+    { role: "SKU", patterns: [/\bsku\b/, /\bbarcode\b/, /\bitem_code\b/], valueTypes: ["SKU"], explanation: "Column name identifies SKU or item-code values." },
+    { role: "Invoice", patterns: [/\binvoice\b/, /\binvoice_no\b/, /\breceipt\b/], valueTypes: ["Invoice"], explanation: "Column name identifies invoice or receipt references." },
+    { role: "Order", patterns: [/\border\b/, /\border_id\b/, /\btransaction\b/, /\btransaction_id\b/], valueTypes: ["Invoice", "UUID", "Text"], explanation: "Column name identifies orders or transactions." },
+    { role: "Email", patterns: [/\bemail\b/, /\be_mail\b/], valueTypes: ["Email"], explanation: "Column name identifies email addresses." },
+    { role: "Phone", patterns: [/\bphone\b/, /\bmobile\b/, /\btel\b/], valueTypes: ["Phone"], explanation: "Column name identifies phone numbers." },
+    { role: "UUID", patterns: [/\buuid\b/, /\bguid\b/], valueTypes: ["UUID"], explanation: "Column name identifies UUID values." },
+    { role: "Boolean", patterns: [/\bis_/, /\bhas_/, /\bflag\b/, /\bactive\b/], valueTypes: ["Boolean"], explanation: "Column name identifies a boolean flag." },
+    { role: "Percentage", patterns: [/\bpercent\b/, /\bpct\b/, /\brate\b/, /\bratio\b/], valueTypes: ["Percentage", "Number"], explanation: "Column name identifies a rate, ratio, or percentage." },
+    { role: "Employee", patterns: [/\bemployee\b/, /\bstaff\b/, /\bworker\b/, /\bheadcount\b/], valueTypes: ["Text", "Number"], explanation: "Column name identifies employee or workforce data." },
+    { role: "Account", patterns: [/\baccount\b/, /\bledger\b/, /\bgl_account\b/], valueTypes: ["Text"], explanation: "Column name identifies account or ledger data." },
+  ];
 
 const MODEL_PATTERNS: Record<Exclude<SemanticBusinessModel, "Generic">, RegExp[]> = {
   Retail: [/\bretail\b|\bstore\b|\bshop\b/, /\bsku\b|\bproduct\b|\bitem\b/, /\binventory\b|\bstock\b|\breorder\b/, /\bsupplier\b|\bvendor\b/],
@@ -634,6 +634,8 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
   const quantity = byRole("Quantity");
   const customer = byRole("Customer") || byRole("Buyer");
   const seller = byRole("Seller");
+  const buyer = byRole("Buyer");
+  const order = byRole("Order");
 
   if (revenue) kpis.push(sumKpi("total_revenue", revenue, rows, "Total Revenue"));
   if (commission) kpis.push(sumKpi("commission", commission, rows, "Commission"));
@@ -641,18 +643,24 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
   if (profit) kpis.push(sumKpi("total_profit", profit, rows, "Total Profit"));
   if (quantity) kpis.push(sumKpi("quantity", quantity, rows, "Quantity", "number"));
   if (revenue) {
+    const orderCount = order
+      ? new Set(rows.map((row) => String(row[order.columnName] ?? "").trim()).filter(Boolean)).size
+      : rows.length;
     kpis.push({
       id: "average_order_value",
       title: "Average Order Value",
-      value: rows.length > 0 ? round(sumColumn(rows, revenue.columnName) / rows.length) : null,
+      value: orderCount > 0 ? round(sumColumn(rows, revenue.columnName) / orderCount) : null,
       format: "currency",
-      sourceColumns: [revenue.columnName],
+      sourceColumns: [revenue.columnName, ...(order ? [order.columnName] : [])],
       confidence: revenue.confidence,
-      explanation: "Average order value is computed from the detected revenue metric divided by record count.",
+      explanation: order
+        ? "Average order value is computed from the detected revenue metric divided by the number of distinct orders."
+        : "Average order value is computed from the detected revenue metric divided by record count because no order ID column was detected.",
     });
   }
   if (customer) kpis.push(uniqueKpi("customers", customer, rows, "Customers"));
-  if (seller && businessModel.model === "Marketplace") kpis.push(uniqueKpi("sellers", seller, rows, "Sellers"));
+  if (buyer) kpis.push(uniqueKpi("buyers", buyer, rows, "Buyers"));
+  if (seller) kpis.push(uniqueKpi("sellers", seller, rows, "Sellers"));
   if (revenue && commission && sumColumn(rows, revenue.columnName) > 0) {
     kpis.push({
       id: "take_rate",

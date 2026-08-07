@@ -1,3 +1,4 @@
+- changed: route selected-dataset AI Analyst questions through intent classification and deterministic metric resolution so supported marketplace, order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.
 - fixed: unify upload-credit exhaustion messaging across upload APIs, Standard Upload, Accountancy Upload, usage notices, and Usy so successful uploads permanently consume credits and dataset deletion is never shown as a remedy
 - fixed: enforce central upload-credit reservation, finalization, release, and exhausted-credit blocking across Accountancy and Pre-bookkeeping upload types before parsing new files
 - fixed: load Accountancy with a server-side empty state when profile setup or focused dataset summary fields are missing, and log Accountancy loader exceptions with file, function, and stack details
