@@ -1,6 +1,7 @@
 import {
   boolean,
   customType,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -1943,6 +1944,8 @@ export const prebookkeepingLearningRules = pgTable(
     descriptionKeyword: text("descriptionKeyword"),
     merchantKey: text("merchantKey"),
     category: varchar("category", { length: 80 }).notNull(),
+    countryKey: text("countryKey"),
+    vatRate: doublePrecision("vatRate"),
     source: varchar("source", { length: 40 }).default("manual_edit").notNull(),
     usageCount: integer("usageCount").default(0).notNull(),
     lastUsedAt: timestamp("lastUsedAt"),
@@ -1958,6 +1961,7 @@ export const prebookkeepingLearningRules = pgTable(
     userRuleIdx: index("PrebookkeepingLearningRule_userId_idx").on(table.userId),
     supplierIdx: index("PrebookkeepingLearningRule_supplierKey_idx").on(table.userId, table.supplierKey),
     keywordIdx: index("PrebookkeepingLearningRule_descriptionKeyword_idx").on(table.userId, table.descriptionKeyword),
+    vatRuleIdx: index("PrebookkeepingLearningRule_vatRule_idx").on(table.userId, table.countryKey, table.category),
   }),
 );
 

@@ -59,6 +59,7 @@ export function UploadSuccessPanel({ result, uploadMode, onUploadAnother }: Uplo
 
   const datasetHref = result.datasetId ? `/app/datasets/${result.datasetId}` : "/app/datasets"
   const hasDatasetNavigation = Boolean(result.datasetId)
+  const showDatasetAction = uploadMode !== "retail"
   const rowsProcessed = typeof result.rowsProcessed === "number" ? result.rowsProcessed : null
   const columnsDetected = typeof result.columnsDetected === "number" ? result.columnsDetected : null
 
@@ -107,22 +108,24 @@ export function UploadSuccessPanel({ result, uploadMode, onUploadAnother }: Uplo
             <BarChart3 className="mr-2 h-4 w-4" />
             {primaryResultLabel(uploadMode)}
           </Link>
-          {hasDatasetNavigation ? (
-            <Link
-              href={datasetHref}
-              className="inline-flex h-10 items-center justify-start rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              <Database className="mr-2 h-4 w-4" />
-              View Dataset
-            </Link>
-          ) : (
-            <Link
-              href="/app/datasets"
-              className="inline-flex h-10 items-center justify-start rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              <Database className="mr-2 h-4 w-4" />
-              Go to Datasets
-            </Link>
+          {showDatasetAction && (
+            hasDatasetNavigation ? (
+              <Link
+                href={datasetHref}
+                className="inline-flex h-10 items-center justify-start rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Database className="mr-2 h-4 w-4" />
+                View Dataset
+              </Link>
+            ) : (
+              <Link
+                href="/app/datasets"
+                className="inline-flex h-10 items-center justify-start rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Database className="mr-2 h-4 w-4" />
+                Go to Datasets
+              </Link>
+            )
           )}
           <Button type="button" variant="outline" className="justify-start" onClick={onUploadAnother}>
             <RotateCcw className="mr-2 h-4 w-4" />

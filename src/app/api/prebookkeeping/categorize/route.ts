@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { categorizePrebookkeepingRows } from "@/lib/accountancy/prebookkeeping-categorization";
+import { buildBusinessTaxProfile } from "@/lib/accountancy/prebookkeeping-vat";
+import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { resolveDatasetType } from "@/lib/data/dataset-category";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules } from "@/lib/db/schema";
@@ -68,9 +70,13 @@ export async function POST(request: Request) {
         descriptionKeyword: true,
         merchantKey: true,
         category: true,
+        countryKey: true,
+        vatRate: true,
       },
     });
-    const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>), learningRules);
+    const companySetup = await getCompanySetup(userId);
+    const taxProfile = buildBusinessTaxProfile(companySetup);
+    const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>), learningRules, { taxProfile });
     const currentAnalysis = isRecord(dataset.analysis) ? dataset.analysis : {};
 
     await db

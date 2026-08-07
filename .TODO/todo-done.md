@@ -50,6 +50,8 @@ moving work between states.
 
 ## Label: upload
 
+- T-994. Accounting AI applies Business Profile tax configuration to VAT prediction, routes uncertain transactions to exception review, stores scoped VAT corrections for future uploads, and exports reviewed VAT audit details. (labels: upload, business, ai, testing; commit: worktree)
+- T-993. Hide the broken dataset-detail action on Retail upload success while keeping Open Retail and Upload Another File actions available. (labels: upload, ui, testing; commit: worktree)
 - T-991. Upload-credit exhaustion copy uses one shared rule across Standard Upload, Accountancy Upload, upload APIs, usage notices, and Usy so deleting datasets is never presented as a credit-restoring action. (labels: upload, billing, ui, ai, testing; commit: worktree)
 - T-990. Accountancy and Pre-bookkeeping uploads reserve, finalize, release, and block upload credits through the central credit engine before parsing any new file. (labels: upload, billing, testing, stability; commit: worktree)
 - T-989. Accountancy loads an empty workspace instead of failing when profile, dataset, or focused dataset summary data is absent. (labels: upload, stability, testing; commit: c8d8510)

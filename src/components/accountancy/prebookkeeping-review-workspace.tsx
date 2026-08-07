@@ -90,6 +90,13 @@ export function PrebookkeepingReviewWorkspace({
   const reviewedCount = reviewSummary.reviewedCount;
   const totalCount = reviewSummary.totalCount || rows.length;
   const readyForAccountant = reviewSummary.status === "ready_for_accountant" || (reviewedCount === totalCount && totalCount > 0);
+  const configuredVatRates = React.useMemo(() => {
+    const rates = categorization.taxProfile.availableRates.length > 0
+      ? categorization.taxProfile.availableRates
+      : [categorization.taxProfile.defaultVatRate, categorization.taxProfile.reducedVatRate, categorization.taxProfile.zeroVatRate]
+          .filter((rate): rate is number => typeof rate === "number" && Number.isFinite(rate));
+    return Array.from(new Set(rates)).sort((a, b) => a - b);
+  }, [categorization.taxProfile]);
 
   async function saveReview(payload: Record<string, unknown>, toastTitle = "Review saved") {
     setSaving(true);
@@ -184,6 +191,10 @@ export function PrebookkeepingReviewWorkspace({
               <li>{reviewSummary.missingDataWarnings.toLocaleString()} missing data warning(s)</li>
               <li>VAT information missing on {reviewSummary.vatMissingPercent}% of transactions</li>
               <li>Confidence score: {reviewSummary.confidenceScore}%</li>
+              <li>Manual corrections: {reviewSummary.manualCorrections.toLocaleString()}</li>
+              <li>Average VAT confidence: {reviewSummary.averageVatConfidence}%</li>
+              <li>Default VAT: {formatVatRate(reviewSummary.defaultVatRate)}</li>
+              <li>Business country: {reviewSummary.businessCountry || "Not configured"}</li>
             </ul>
           </div>
           <div className="min-w-0 lg:w-80">
@@ -242,11 +253,20 @@ export function PrebookkeepingReviewWorkspace({
               className="h-9 rounded-md border border-border bg-background px-2 text-sm"
               onChange={(event) => event.target.value && bulkPayload("bulk_add_vat", { vatRate: Number(event.target.value) })}
               defaultValue=""
-              disabled={saving}
+              disabled={saving || configuredVatRates.length === 0}
             >
-              <option value="">Add VAT</option>
-              {[0, 5, 10, 20].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}
+              <option value="">Apply VAT to selected</option>
+              {configuredVatRates.map((rate) => <option key={rate} value={rate}>{formatVatRate(rate)}</option>)}
             </select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => bulkPayload("apply_business_default_vat")}
+              disabled={saving || typeof categorization.taxProfile.defaultVatRate !== "number"}
+            >
+              Apply Business Default VAT
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => bulkPayload("bulk_mark_reviewed")} disabled={saving}>
               Mark reviewed
             </Button>
@@ -392,14 +412,29 @@ export function PrebookkeepingReviewWorkspace({
                     </select>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      {[0, 5, 10, 20].map((rate) => (
-                        <button key={rate} type="button" onClick={() => saveReview({ action: "add_vat", rowIndex: transaction.rowIndex, vatRate: rate }, "VAT saved")} className="rounded border border-border px-2 py-1 text-xs hover:bg-muted">
-                          {rate}%
-                        </button>
-                      ))}
+                    <div className="space-y-2">
+                      <div>
+                        <p className={`text-xs font-semibold ${transaction.vatNeedsReview || transaction.vatConfidence < 0.7 ? "text-amber-600 dark:text-amber-300" : "text-green-600 dark:text-green-300"}`}>
+                          {transaction.vatStatus === "missing" ? "Needs Review" : `Suggested VAT ${formatVatRate(transaction.vatRate)}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Confidence {Math.round(transaction.vatConfidence * 100)}%</p>
+                        <p className="max-w-52 text-xs text-muted-foreground">{transaction.vatReason || "No VAT prediction available."}</p>
+                        {transaction.vatBusinessRule && <p className="max-w-52 text-xs text-muted-foreground">Rule: {transaction.vatBusinessRule}</p>}
+                        <p className="text-xs text-muted-foreground">{transaction.vatStatus === "missing" ? "VAT amount pending" : formatMoney(transaction.vatTax, currency)}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {configuredVatRates.map((rate) => (
+                          <button key={rate} type="button" onClick={() => saveReview({ action: "add_vat", rowIndex: transaction.rowIndex, vatRate: rate }, "VAT saved")} className="rounded border border-border px-2 py-1 text-xs hover:bg-muted" disabled={saving}>
+                            {formatVatRate(rate)}
+                          </button>
+                        ))}
+                        {transaction.vatRate !== null && (
+                          <button type="button" onClick={() => saveReview({ action: "apply_vat_to_matching", rowIndex: transaction.rowIndex, vatRate: transaction.vatRate }, "VAT applied to matching transactions")} className="rounded border border-border px-2 py-1 text-xs hover:bg-muted" disabled={saving}>
+                            Apply to matching
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{transaction.vatStatus === "missing" ? "Add VAT" : formatMoney(transaction.vatTax, currency)}</p>
                   </td>
                   <td className="px-3 py-2">
                     {transaction.duplicateStatus === "possible_duplicate" ? (
@@ -467,7 +502,7 @@ function matchesFilter(row: CategorizedTransaction, filter: FilterKey) {
   if (filter === "needs_review") return row.needsReview;
   if (filter === "uncategorized") return row.category === "uncategorized";
   if (filter === "duplicates") return row.duplicateStatus === "possible_duplicate";
-  if (filter === "missing_vat") return row.vatStatus === "missing";
+  if (filter === "missing_vat") return row.vatStatus === "missing" || row.vatNeedsReview;
   if (filter === "missing_supplier") return !row.supplierCustomer;
   if (filter === "large_transactions") return row.isLargeTransaction;
   if (filter === "revenue") return row.category === "revenue";
@@ -498,6 +533,11 @@ function formatReviewStatus(status: unknown) {
   if (status === "failed") return "Failed to process";
   if (status === "ready_for_review") return "Ready for review";
   return "Review required before accountant export";
+}
+
+function formatVatRate(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "Not configured";
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value)}%`;
 }
 
 function safeText(value: unknown, fallback: string) {

@@ -463,7 +463,7 @@ function testPrebookkeepingExports() {
   assert.equal(csv.contentType, "text/csv; charset=utf-8");
   assert.equal(csv.rowCount, 3);
   assert.ok(typeof csv.body === "string" && csv.body.startsWith("\uFEFF"), "CSV exports include UTF-8 BOM");
-  assert.ok(String(csv.body).includes("Date,Description,Supplier/Customer,Amount,Debit,Credit,Currency,VAT,VAT Rate,Category,Reference,Review Status"));
+  assert.ok(String(csv.body).includes("Date,Description,Supplier/Customer,Amount,Debit,Credit,Currency,VAT,VAT Rate,VAT Confidence,VAT Reason,VAT Rule,VAT Source,Category,Reference,Review Status"));
   assert.ok(String(csv.body).includes("Customer payment INV-1"));
 
   const excel = buildPrebookkeepingExport({ datasetName: "Ledger Export", categorization: reviewedCategorization, format: "excel", scope: "reviewed" });

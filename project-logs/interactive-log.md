@@ -1612,6 +1612,38 @@ Merged title rows must not become candidate headers after merge expansion; requi
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Accounting AI Intelligent VAT Workflow
+
+1. Interaction title
+Accounting AI VAT prediction and exception workflow.
+
+2. What was the user goal
+Replace per-row manual VAT selection with configurable Business Profile-driven VAT prediction, review exceptions only, safe scoped learning, and export compatibility.
+
+3. What changed
+Pre-bookkeeping categorization loads the saved Business Profile tax configuration, derives configured VAT rates without country-specific hardcoding, predicts VAT with confidence, reason, rule, and source metadata, and sends missing supplier, unknown category, low-confidence, or missing-config rows into review. The review workspace uses configured rates for row and bulk actions, supports Business default VAT and matching-transaction application, stores manual VAT corrections by supplier, category, and country, and includes VAT audit fields in CSV and Excel exports.
+
+4. Problems marked
+root cause: The review UI presented fixed VAT percentages and the categorizer treated missing VAT as manual work without using saved tax settings.
+observation: Existing Business Profile tax fields cover default rate, country, currency, fiscal year, tax registration, tax type, and business type; reduced, zero-rate, and reverse-charge flags are normalized as optional profile fields.
+
+5. User learning
+Accounting AI uses Business Profile tax settings as the tax source of truth and routes uncertain VAT cases to review instead of assigning them blindly.
+
+6. AI-agent learning
+Tax automation must keep rates configurable and store corrections with supplier, category, and country scope so one manual edit does not become a global rule.
+
+7. Follow-up tasks
+- Verify the VAT workflow with authenticated production-style profiles for Germany, Netherlands, United Kingdom, France, Belgium, and United States datasets after beta deployment. (labels: upload, business, ai, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Upload Credit Persistence Fix
 
 1. Interaction title
@@ -2262,6 +2294,38 @@ When adding precise semantic roles, preserve compatibility aliases for existing 
 
 7. Follow-up tasks
 - Validate restaurant, manufacturing, healthcare, legal, multilingual, and large-file fixtures through the same Dataset Intelligence compatibility layer. (labels: data, ai, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Retail Upload Success Dataset Action Removal
+
+1. Interaction title
+Retail upload success action cleanup.
+
+2. What was the user goal
+Remove the broken View Dataset action from the Retail upload success screen while keeping the Retail upload flow and other upload flows unchanged.
+
+3. What changed
+The shared upload success panel now hides dataset navigation only when the upload mode is Retail. Retail success shows Open Retail and Upload Another File, while Standard, Profitability, Accountancy, and Pre-bookkeeping keep their existing action paths.
+
+4. Problems marked
+root cause: Retail reused the shared non-standard upload success actions, so a successful Retail upload displayed a dataset-detail link that opens an unavailable dataset page.
+observation: The remaining Retail action column uses the existing flex layout, so no empty action slot remains.
+
+5. User learning
+Retail uploads continue directly into Retail analysis and no longer advertise a dataset page that is unavailable for the flow.
+
+6. AI-agent learning
+When a shared upload success component serves module-specific flows, gate action visibility by upload mode rather than changing route helpers or dataset persistence.
+
+7. Follow-up tasks
+- Verify the Retail upload success screen in authenticated light and dark browser sessions after the beta deployment finishes. (labels: upload, ui, testing)
 
 8. Instruction sources
 - AGENTS.md
