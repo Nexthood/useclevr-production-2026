@@ -31,6 +31,37 @@ Credit lifecycle rules must be represented by a shared copy module and prompt ru
 9. Minimal destination
 Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
 
+## Dataset AI Analyst Deterministic Patch
+
+1. Interaction title
+Dataset AI Analyst deterministic metric patch.
+
+2. What was the user goal
+Improve dataset-aware AI answers so order, buyer, seller, marketplace, margin, and risk questions return the requested metric or decline low-confidence queries.
+
+3. What changed
+Added marketplace and order semantic role detection, expanded deterministic dimension patterns, and strengthened prompt guidance to refuse low-confidence dataset interpretations.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Dataset AI should prefer explicit direct answers for supported metrics and avoid inventing unsupported totals or seller/buyer semantics.
+
+6. AI-agent learning
+Deterministic dataset answer paths must surface role confidence and refuse when semantic roles are not reliable.
+
+7. Follow-up tasks
+- Validate the next dataset AI patch with seller/buyer order examples and low-confidence refusal scenarios.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Accountancy Upload Credit Enforcement
 
 1. Interaction title

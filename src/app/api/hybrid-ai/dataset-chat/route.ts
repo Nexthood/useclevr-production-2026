@@ -1,7 +1,14 @@
-import { z } from "zod";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
+import { z } from "zod";
 
+import {
+  answerPrebookkeepingQuestionDeterministically,
+} from "@/lib/accountancy/prebookkeeping-ai-assistant";
+import { isPrebookkeepingCategorization } from "@/lib/accountancy/prebookkeeping-categorization";
+import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
+import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
+import { isCloudProvider, listPrivateAiProviderConfigs } from "@/lib/ai/byoai-provider";
 import {
   generateWithUniversalAiAdapter,
   getAiMode,
@@ -11,13 +18,6 @@ import {
   logUniversalAiResponse,
   type AiMode,
 } from "@/lib/ai/universal-ai-adapter";
-import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
-import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
-import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
-import {
-  answerPrebookkeepingQuestionDeterministically,
-} from "@/lib/accountancy/prebookkeeping-ai-assistant";
-import { isPrebookkeepingCategorization } from "@/lib/accountancy/prebookkeeping-categorization";
 import { auth } from "@/lib/auth/auth";
 import { normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
@@ -693,10 +693,10 @@ export async function POST(request: Request) {
     }
     throw new Error("Cloud fallback provider returned no response.");
   } catch (cloudError) {
-    debugError("[HYBRID_AI_DATASET_CHAT] Cloud fallback failed", { 
-      userId, 
-      datasetId: parsed.datasetId, 
-      error: cloudError instanceof Error ? cloudError.message : String(cloudError) 
+    debugError("[HYBRID_AI_DATASET_CHAT] Cloud fallback failed", {
+      userId,
+      datasetId: parsed.datasetId,
+      error: cloudError instanceof Error ? cloudError.message : String(cloudError)
     });
     const defaultCloudResult = await generateDefaultCloudDatasetAnswer({
       userId,
@@ -1086,6 +1086,7 @@ function buildDatasetChatPrompt(
     "Answer only from the dataset context below. Do not invent rows, totals, products, customers, or dates.",
     "Use backend-derived KPIs and grouped summaries as the source of truth. If a metric is sample-based, say that clearly.",
     "Use semanticContext to understand business meaning: gmv and sales_amount can be revenue, platform_fee can be commission, buyer_id can be buyer/customer, seller_id can be seller, and geography/date/category fields must keep their detected roles and confidence scores.",
+    "If semantic confidence for a role is low, say the dataset cannot reliably answer that question rather than inventing details.",
     "For risks, best performers, and next actions, cite the columns or KPI extracts that support the answer.",
     "Do not ask for the full dataset unless the provided summary cannot answer the question.",
     "",

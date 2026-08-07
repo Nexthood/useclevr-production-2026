@@ -31,6 +31,7 @@
 
 ### Changed
 
+- Route dataset-aware AI Analyst metric questions through intent classification and deterministic metric resolution so supported order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.
 - Polish AI Governance spacing, status hierarchy, compact metrics, readiness visualization, control cards, and sidebar density so the module feels sharper on desktop and tablet.
 - Redesign AI Governance with compact readiness cards, segmented navigation, report center states, useful empty states, and a grouped AI sidebar section so governance review feels production-ready.
 - Add AI Governance so users can review AI transparency, provider health, model metadata, audit activity, privacy posture, human oversight, policies, compliance readiness, feedback, and governance reports from one workspace module.
