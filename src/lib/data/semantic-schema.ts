@@ -123,8 +123,8 @@ const FIELD_RULES: FieldRule[] = [
   },
   {
     field: "customer",
-    exact: ["customer", "customer_id", "customer_name", "client", "client_id", "account", "account_id"],
-    contains: ["customer", "client"],
+    exact: ["customer", "customer_id", "customer_name", "client", "client_id", "account", "account_id", "buyer", "buyer_id", "purchaser", "purchaser_id"],
+    contains: ["customer", "client", "buyer", "purchaser"],
   },
   {
     field: "category",

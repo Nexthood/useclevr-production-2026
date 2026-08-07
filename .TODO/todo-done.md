@@ -32,6 +32,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-992. Strengthen dataset-aware AI analysis with marketplace semantic roles, deterministic dashboard KPIs, governance source disclosure, and Business plan intelligence value copy. (labels: ai, data, dashboard, billing, testing; commit: worktree)
 - T-981. Stabilize AI Governance server rendering on fresh installations by applying all AI provider, audit, interaction-trace, and override table dependencies before the page reads governance data. (labels: ai, deployment, stability, testing; commit: worktree)
 - T-979. Prevent AI Governance server rendering from crashing when governance tables, settings, providers, audit logs, traces, or override records are missing, and apply the override-table migration during Railway predeploy. (labels: ai, stability, deployment, testing; commit: worktree)
 - T-978. Add AI Governance pages, APIs, audit reports, provider status, privacy and compliance readiness, human override controls, and assistant transparency metadata for EU AI Act preparation. (labels: ai, security, reporting, testing; commit: worktree)

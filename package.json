@@ -38,7 +38,7 @@
     "validate": "pnpm validate:types && pnpm validate:dist && pnpm validate:release",
     "validate:precommit": "pnpm lint:project-records && pnpm lint:todos && pnpm lint:changelog && pnpm lint:secrets && pnpm lint:package",
     "validate:prepush": "pnpm validate:types && pnpm validate:dist && pnpm lint && pnpm validate:publish",
-    "validate:types": "tsc --noEmit --pretty false",
+    "validate:types": "next typegen && tsc --noEmit --pretty false",
     "validate:build": "pnpm build",
     "validate:publish": "pnpm prod:build",
     "validate:dist": "pnpm deploy:railway:check && pnpm deploy:vercel:check",

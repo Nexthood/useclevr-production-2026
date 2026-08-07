@@ -1,3 +1,4 @@
+- fixed: generate Next.js route declarations before TypeScript validation so clean worktrees do not fail on missing `.next/types` files
 - changed: route selected-dataset AI Analyst questions through intent classification and deterministic metric resolution so supported marketplace, order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.
 - fixed: unify upload-credit exhaustion messaging across upload APIs, Standard Upload, Accountancy Upload, usage notices, and Usy so successful uploads permanently consume credits and dataset deletion is never shown as a remedy
 - fixed: enforce central upload-credit reservation, finalization, release, and exhausted-credit blocking across Accountancy and Pre-bookkeeping upload types before parsing new files
@@ -200,3 +201,4 @@
 - fixed: persist upload credit usage in the billing ledger so deleting datasets does not restore Free upload credits during the billing period
 - fixed: load Accountancy Business Profile context through the same current-tenant Business Profile loader as Business, Tax, Compliance, and Reporting so saved profile fields are shared and load failures do not appear as incomplete setup
 - fixed: align the Railway upload-credit backfill conflict target with the Credit Ledger idempotency-key partial unique index so predeploy schema sync completes
+- changed: strengthen dataset-aware AI analysis by mapping marketplace columns to GMV, marketplace revenue, merchant payout, customer, merchant, product category, and geography semantics, then using those roles for deterministic KPIs, dashboards, and governance source disclosure
