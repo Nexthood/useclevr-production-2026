@@ -1,3 +1,11 @@
+## Next.js Type Validation Pipeline
+
+- User goal: identify the real cause of TS6053 for missing `.next/types/cache-life.d.ts` and `.next/types/validator.ts`, fix the validation pipeline, and push `beta` without bypassing Husky.
+- Finding: Next.js 16.2.9 `next typegen` generates both reported files; the committed validation script ran `tsc` without generating them first.
+- Change: run `next typegen && tsc --noEmit --pretty false` from `validate:types`.
+- Verification: clean typegen output contains `cache-life.d.ts`, `routes.d.ts`, and `validator.ts`; type validation is the next gate before pre-push and push.
+- Status: commit and push remain in progress.
+
 ## Upload Credit Messaging Source of Truth
 
 1. Interaction title
