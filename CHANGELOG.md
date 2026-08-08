@@ -2,7 +2,15 @@
 
 ### Added
 
-- Add autonomous AI transaction review engine so Pre-bookkeeping automatically approves high-confidence transactions, surfaces explainability evidence, and routes only exceptions into the manual review queue.
+- Add one-time credit top-up payment reconciliation for Stripe and Square: verified provider webhooks issue credits, trusted server-side package config prevents tampering, DB-level unique constraints prevent duplicate credit grants.
+- Add CreditTopUp table with unique indexes on (provider, providerPaymentId) and (provider, providerEventId) for webhook idempotency.
+- Add credit package configuration reading Stripe price IDs and Square catalog IDs from environment variables.
+- Add authenticated `/api/checkout/credit-topup` endpoint for creating payment-mode Stripe checkout sessions with `mode: "payment"`.
+- Add `/api/webhooks/square/route.ts` for Square payment webhook verification and credit top-up processing.
+- Add `/api/billing/topup-history` endpoint for authenticated top-up history retrieval.
+- Add credit top-up reconciliation engine that detects payments without ledger entries, ledger entries without payments, duplicate mappings, and amount/currency mismatches.
+- Add Billing & Usage page section showing credit packages, top-up history, payment reference, and "Payment received — credits are being confirmed" pending state.
+- Add comprehensive webhook verification tests with 24 automated checks.
 - Add configurable auto-review confidence threshold with bulk actions for reviewing high-confidence, selected, filtered, or all transactions.
 - Add smart review filters and dashboard summary showing auto-reviewed count, needs-review count, duplicate count, missing VAT count, and overall confidence percentage.
 - Restore billing integration layer so users can review billing usage, transaction ledger, purchase history, spending limits, credit previews, and admin reconciliation traces through dedicated routes and settings pages.

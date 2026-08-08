@@ -1,3 +1,33 @@
+## Credit Top-Up Payment Reconciliation
+
+1. Interaction title
+Credit top-up payment reconciliation for Stripe and Square.
+
+2. What was the user goal
+Implement production-grade one-time credit top-up payment reconciliation for Stripe and Square, completing the final financial integrity layer of the credit system with verified provider webhooks as the single source of truth for payment credits.
+
+3. What changed
+Added CreditTopUp table with DB-level unique constraints on (provider, providerPaymentId) and (provider, providerEventId) for idempotency. Created server-side credit package configuration reading Stripe price IDs and Square catalog IDs from environment variables. Built Stripe payment-mode checkout session creation, Square checkout creation, HMAC-SHA256 webhook verification for both providers, and credit issuance in atomic database transactions. Added reconciliation engine detecting payments-without-ledger entries, ledger-without-payment entries, duplicate mappings, and amount/currency mismatches. Updated Billing & Usage page with credit top-up purchase section, top-up history table, and "Payment received — credits are being confirmed" pending state.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Payment credits must come from verified provider webhooks, not client-side redirects; credit package amounts must be resolved server-side from trusted configuration; and webhook idempotency must be enforced at the DB level with unique constraints.
+
+6. AI-agent learning
+For one-time payment reconciliation, the critical pattern is: (1) verify webhook signatures server-side, (2) resolve credit packages from server-side config not client-submitted amounts, (3) use DB-level unique constraints as the primary idempotency mechanism, (4) issue credits in a single atomic transaction with both the CreditTopUp record and ledger entry, and (5) provide a reconciliation engine for ongoing financial integrity auditing.
+
+7. Follow-up tasks
+- Run integration tests against live database to verify credit issuance and reconciliation under load.
+- Add Square payment form for credit top-ups (currently Stripe-only via checkout API).
+- Add webhook replay endpoint for top-up events.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Credit Billing Integrity Production Hardening
 
 1. Interaction title

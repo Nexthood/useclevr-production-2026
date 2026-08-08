@@ -1750,8 +1750,55 @@ export const creditLedger = pgTable(
   }),
 );
 
-export const aiProviderTypes = ["openai", "anthropic", "google", "ollama", "local"] as const;
-export type AIProviderType = (typeof aiProviderTypes)[number];
+ export const paymentProviders = ["stripe", "square"] as const;
+ export type PaymentProvider = (typeof paymentProviders)[number];
+
+ export const creditTopUpStatuses = ["pending", "completed", "failed", "refunded", "duplicate"] as const;
+ export type CreditTopUpStatus = (typeof creditTopUpStatuses)[number];
+
+ export const creditTopUps = pgTable(
+   "CreditTopUp",
+   {
+     id: text("id").primaryKey(),
+     userId: text("userId").notNull(),
+     workspaceId: text("workspaceId"),
+     provider: varchar("provider", { length: 20 }).notNull().$type<PaymentProvider>(),
+     providerPaymentId: text("providerPaymentId").notNull(),
+     providerCheckoutId: text("providerCheckoutId"),
+     providerEventId: text("providerEventId"),
+     currency: varchar("currency", { length: 3 }).notNull(),
+     amountMinor: integer("amountMinor").notNull(),
+     creditsGranted: integer("creditsGranted").notNull(),
+     creditPackageId: text("creditPackageId"),
+     pricingVersion: varchar("pricingVersion", { length: 40 }),
+     status: varchar("status", { length: 30 }).default("pending").notNull().$type<CreditTopUpStatus>(),
+     ledgerEntryId: text("ledgerEntryId"),
+     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+     createdAt: timestamp("createdAt").defaultNow().notNull(),
+     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+   },
+   (table) => ({
+     userIdFk: foreignKey({
+       columns: [table.userId],
+       foreignColumns: [users.id],
+       name: "CreditTopUp_userId_fkey",
+     }).onDelete("cascade"),
+     providerPaymentIdx: uniqueIndex("CreditTopUp_provider_payment_key").on(
+       table.provider,
+       table.providerPaymentId,
+     ),
+     providerEventIdx: uniqueIndex("CreditTopUp_provider_event_key").on(
+       table.provider,
+       table.providerEventId,
+     ),
+     statusIdx: index("CreditTopUp_status_idx").on(table.status),
+     userIdIdx: index("CreditTopUp_userId_idx").on(table.userId),
+     createdAtIdx: index("CreditTopUp_createdAt_idx").on(table.createdAt),
+   }),
+ );
+
+ export const aiProviderTypes = ["openai", "anthropic", "google", "ollama", "local"] as const;
+ export type AIProviderType = (typeof aiProviderTypes)[number];
 
 export const providerModelPricing = pgTable(
   "ProviderModelPricing",

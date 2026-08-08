@@ -227,6 +227,134 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: "stripe webhook routes payment-mode checkout to credit top-up handler",
+    run() {
+      const webhook = readProjectFile("src/app/api/webhooks/stripe/route.ts")
+      assert.ok(
+        webhook.includes("handleStripeCreditCheckoutEvent"),
+        "stripe webhook routes payment-mode checkout sessions to credit top-up handler",
+      )
+      assert.ok(
+        webhook.includes('mode === "payment"'),
+        "stripe webhook checks for payment mode checkout sessions",
+      )
+    },
+  },
+  {
+    name: "square webhook route verifies HMAC-SHA256 signature",
+    run() {
+      const webhook = readProjectFile("src/app/api/webhooks/square/route.ts")
+      assert.ok(webhook.includes("verifySquareWebhookSignature"), "square webhook imports signature verification")
+      assert.ok(
+        webhook.includes("x-square-hmacsha256-signature") ||
+          webhook.includes("hmacsha256"),
+        "square webhook checks signature header",
+      )
+      assert.ok(webhook.includes("NextResponse.json"), "square webhook returns JSON responses")
+    },
+  },
+  {
+    name: "credit top-up checkout API is user-authenticated (not admin-only)",
+    run() {
+      const route = readProjectFile("src/app/api/checkout/credit-topup/route.ts")
+      assert.ok(route.includes("auth()"), "credit top-up route checks user authentication")
+      assert.ok(route.includes("Unauthorized"), "credit top-up route rejects unauthenticated users")
+      assert.ok(!route.includes("isSuperAdminUserId"), "credit top-up route is not admin-only")
+    },
+  },
+  {
+    name: "credit top-up does not trust client-submitted amounts",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("creditPackage.monetaryAmountCents !== amountMinor"),
+        "top-up service validates amount against server-side package config",
+      )
+      assert.ok(
+        service.includes("creditPackage.currency !== currency"),
+        "top-up service validates currency against server-side package config",
+      )
+    },
+  },
+  {
+    name: "credit top-up uses trusted metadata for userId",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("resolveUserIdFromMetadata"),
+        "top-up service resolves userId from provider-signed metadata",
+      )
+      assert.ok(
+        service.includes("Unable to resolve userId from trusted metadata"),
+        "top-up service rejects payments without a trusted userId",
+      )
+    },
+  },
+  {
+    name: "CreditTopUp table has DB-level uniqueness on provider payment ID",
+    run() {
+      const schema = readProjectFile("src/lib/db/schema.ts")
+      assert.ok(schema.includes("creditTopUps"), "CreditTopUp table is defined in schema")
+      assert.ok(
+        schema.includes('providerPaymentIdx: uniqueIndex("CreditTopUp_provider_payment_key")'),
+        "CreditTopUp has unique index on provider + providerPaymentId",
+      )
+      assert.ok(
+        schema.includes("PaymentProvider"),
+        "PaymentProvider type is defined for provider column",
+      )
+    },
+  },
+  {
+    name: "credit top-up reconciliation function exists",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(service.includes("reconcileCreditTopUps"), "reconciliation function exists")
+      assert.ok(service.includes("payment_without_ledger"), "reconciliation detects payment without ledger entry")
+      assert.ok(service.includes("ledger_without_payment"), "reconciliation detects ledger without payment")
+      assert.ok(service.includes("duplicate_payment_mapping"), "reconciliation detects duplicate payment mapping")
+    },
+  },
+  {
+    name: "payment-mode checkout is excluded from subscription purchase route",
+    run() {
+      const route = readProjectFile("src/app/api/checkout/credit-topup/route.ts")
+      const service = readProjectFile("src/services/stripe/credit-checkout.ts")
+      assert.ok(route.includes("createCreditTopUpCheckoutSession"), "credit top-up route uses dedicated payment-mode checkout")
+      assert.ok(service.includes("mode: \"payment\""), "credit top-up checkout uses payment mode, not subscription mode")
+      assert.ok(
+        !route.includes("createStripeCheckoutSession"),
+        "credit top-up route does not use the subscription checkout session creator",
+      )
+    },
+  },
+  {
+    name: "billing page shows pending top-up confirmation state",
+    run() {
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      assert.ok(
+        page.includes("credits are being confirmed"),
+        "subscription page shows pending webhook confirmation messaging",
+      )
+      assert.ok(
+        page.includes("getCreditTopUpHistory"),
+        "subscription page fetches credit top-up history",
+      )
+    },
+  },
+  {
+    name: "credit packages are server-side configured via env vars",
+    run() {
+      const packages = readProjectFile("src/lib/billing/credit-packages.ts")
+      assert.ok(packages.includes("USECLEVR_CREDITS_TOP_UP_"), "credit packages read Stripe/Square IDs from env vars")
+      assert.ok(packages.includes("pricingVersion"), "credit packages include pricing version")
+      assert.ok(
+        packages.includes("resolveCreditTopUpPackageByAmount"),
+        "credit packages can be resolved by amount + currency",
+      )
+    },
+  },
+  {
     name: "rate limit messaging is separate from credit messaging",
     run() {
       const usage = readProjectFile("src/lib/billing/usage-enforcement.ts")
