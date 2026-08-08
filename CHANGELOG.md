@@ -5,6 +5,7 @@
 - Add autonomous AI transaction review engine so Pre-bookkeeping automatically approves high-confidence transactions, surfaces explainability evidence, and routes only exceptions into the manual review queue.
 - Add configurable auto-review confidence threshold with bulk actions for reviewing high-confidence, selected, filtered, or all transactions.
 - Add smart review filters and dashboard summary showing auto-reviewed count, needs-review count, duplicate count, missing VAT count, and overall confidence percentage.
+- Restore billing integration layer so users can review billing usage, transaction ledger, purchase history, spending limits, credit previews, and admin reconciliation traces through dedicated routes and settings pages.
 
 ### Fixed
 

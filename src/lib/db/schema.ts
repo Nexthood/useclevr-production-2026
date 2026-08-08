@@ -264,6 +264,17 @@ export const profiles = pgTable(
     website: text("website"),
     businessDescription: text("businessDescription"),
     mentorshipUsed: integer("mentorshipUsed").default(0).notNull(),
+    billingSettings: jsonb("billingSettings")
+      .$type<{
+        dailyLimit?: number | null
+        weeklyLimit?: number | null
+        monthlyPurchasedLimit?: number | null
+        perOperationMax?: number | null
+        lowBalanceWarningPercent?: number | null
+        autoTopUpEnabled?: boolean
+      }>()
+      .default({})
+      .notNull(),
   },
   (table) => ({
     userIdFk: foreignKey({
@@ -1613,6 +1624,9 @@ export const userCredits = pgTable(
     userId: text("userId").notNull(),
     planId: text("planId").notNull(),
     totalCredits: integer("totalCredits").notNull(),
+    includedBalance: integer("includedBalance").default(0).notNull(),
+    purchasedBalance: integer("purchasedBalance").default(0).notNull(),
+    totalPaidCents: integer("totalPaidCents").default(0).notNull(),
     usedCredits: integer("usedCredits").default(0).notNull(),
     reservedCredits: integer("reservedCredits").default(0).notNull(),
     remainingCredits: integer("remainingCredits").notNull(),
@@ -1656,6 +1670,16 @@ export const creditLedgerTypes = [
   "monthly_reset",
   "subscription_upgrade",
   "subscription_downgrade",
+  "PLAN_ALLOCATION",
+  "PLAN_RESET",
+  "TOP_UP_PURCHASE",
+  "USAGE_DEBIT",
+  "RELEASE",
+  "REFUND",
+  "REVERSAL",
+  "ADMIN_ADJUSTMENT",
+  "PROMOTIONAL_CREDIT",
+  "EXPIRATION",
 ] as const;
 export type CreditLedgerType = (typeof creditLedgerTypes)[number];
 
@@ -1677,6 +1701,11 @@ export const creditLedger = pgTable(
     credits: integer("credits").default(0).notNull(),
     balanceBefore: integer("balanceBefore").notNull(),
     balanceAfter: integer("balanceAfter").notNull(),
+    includedBalanceBefore: integer("includedBalanceBefore").default(0).notNull(),
+    includedBalanceAfter: integer("includedBalanceAfter").default(0).notNull(),
+    purchasedBalanceBefore: integer("purchasedBalanceBefore").default(0).notNull(),
+    purchasedBalanceAfter: integer("purchasedBalanceAfter").default(0).notNull(),
+    monetaryAmount: integer("monetaryAmount").default(0).notNull(),
     source: varchar("source", { length: 50 }),
     feature: varchar("feature", { length: 100 }),
     provider: varchar("provider", { length: 50 }),
@@ -1694,6 +1723,13 @@ export const creditLedger = pgTable(
     description: text("description"),
     relatedDatasetId: text("relatedDatasetId"),
     relatedPlanId: text("relatedPlanId"),
+    datasetId: text("datasetId"),
+    reportId: text("reportId"),
+    analysisId: text("analysisId"),
+    requestId: text("requestId"),
+    paymentProvider: varchar("paymentProvider", { length: 50 }),
+    providerTransactionId: varchar("providerTransactionId", { length: 255 }),
+    paymentStatus: varchar("paymentStatus", { length: 50 }),
     adminUserId: text("adminUserId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     finalizedAt: timestamp("finalizedAt"),

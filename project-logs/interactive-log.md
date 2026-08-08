@@ -2439,3 +2439,36 @@ Autonomous review should evaluate blockers independently per transaction: uncate
 
 9. Minimal destination
 Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Billing Integration Layer Restoration
+
+1. Interaction title
+Restore billing integration layer from git stash and integrate with current credit-account-service.
+
+2. What was the user goal
+Recover the seven new billing files from stash@{2} without restoring outdated modified files, then update them to work with the current billing schema and credit-account-service API.
+
+3. What changed
+Restored seven files: billing usage settings page, admin purchase traces route, admin reconcile route, billing ledger route, billing purchase route, spending limits route, and credit preview route. Updated sidebar integration to pass current UsageMonitor props. Fixed imports and removed unused variables in the restored billing usage page.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Stash restoration should extract only the new files from the untracked tree and integrate them against the current service contracts rather than blindly applying the entire stash.
+
+6. AI-agent learning
+When restoring selective files from a stash created with untracked files, use the stash's untracked tree reference (`stash^{3}`) to extract new files, then update consumers to match the current API surface.
+
+7. Follow-up tasks
+- Verify admin billing routes in production.
+- Wire spending limits into upload credit enforcement.
+- Add purchase flow frontend if needed.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

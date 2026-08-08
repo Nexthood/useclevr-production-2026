@@ -8,19 +8,19 @@ import * as React from "react"
 export const USAGE_REFRESH_EVENT = "useclevr:usage-refresh"
 
 interface UsageMonitorProps {
+  includedBalance: number
+  purchasedBalance: number
+  totalAvailable: number
   used: number
-  total?: number
+  reserved?: number
   isPro?: boolean
   unlimitedLabel?: string | null
-  available?: number
-  reserved?: number
 }
 
-export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, available, reserved = 0 }: UsageMonitorProps) {
-  const availableCredits = Math.max(0, available ?? total - used - reserved)
-  const percent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, reserved = 0, isPro = false, unlimitedLabel }: UsageMonitorProps) {
+  const availableCredits = Math.max(0, totalAvailable - used - reserved)
+  const percent = totalAvailable > 0 ? Math.min((used / totalAvailable) * 100, 100) : 0
 
-  // For pro users, show unlimited
   if (isPro) {
     return (
       <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
@@ -40,7 +40,6 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
     );
   }
 
-  // Limit reached - show premium upgrade state
   if (availableCredits <= 0) {
     return (
       <div className="usage-box rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-sm dark:bg-amber-950/10">
@@ -48,7 +47,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
           Included Credits
         </h4>
         <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-          {used} / {total} used
+          {includedBalance.toLocaleString()} included · {purchasedBalance.toLocaleString()} purchased
         </p>
         <div className="h-1.5 mt-2 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/40">
           <div
@@ -56,9 +55,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
             style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
           />
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Upgrade to a higher plan
-        </p>
+        <p className="mt-2 text-xs text-muted-foreground">Upgrade or purchase more credits</p>
       </div>
     );
   }
@@ -69,7 +66,7 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
         Included Credits
       </h4>
       <p className="text-sm font-medium text-foreground">
-        {availableCredits} available
+        {includedBalance.toLocaleString()} included · {purchasedBalance.toLocaleString()} purchased
       </p>
       {reserved > 0 && (
         <p className="mt-1 text-xs text-muted-foreground">{reserved} reserved</p>
@@ -87,11 +84,11 @@ export function UsageMonitor({ used, total = 2, isPro = false, unlimitedLabel, a
   );
 }
 
-// Hook to manage usage state
 export function useUsage() {
   const [usage, setUsage] = React.useState(0)
-  const [total, setTotal] = React.useState(2)
-  const [available, setAvailable] = React.useState(2)
+  const [includedBalance, setIncludedBalance] = React.useState(0)
+  const [purchasedBalance, setPurchasedBalance] = React.useState(0)
+  const [totalAvailable, setTotalAvailable] = React.useState(2)
   const [reserved, setReserved] = React.useState(0)
   const [isPro, setIsPro] = React.useState(false)
   const [unlimitedLabel, setUnlimitedLabel] = React.useState<string | null>(null)
@@ -107,28 +104,28 @@ export function useUsage() {
     }
 
     limitNoticeShownRef.current = true
-    const creditCopy = buildUploadCreditLimitCopy({ used: usage, limit: total, remaining: available })
+    const creditCopy = buildUploadCreditLimitCopy({ used: usage, limit: totalAvailable, remaining: totalAvailable - usage - reserved })
     showNotice({
       type: "info",
       title: creditCopy.title,
       message: creditCopy.inlineMessage,
     })
-  }, [available, showNotice, total, usage])
+  }, [showNotice, totalAvailable, usage, reserved])
 
   const refreshUsage = React.useCallback(async () => {
     try {
       const res = await fetch("/api/usage", { cache: "no-store" })
       if (res.ok) {
         const data = await res.json()
-        const hasUnlimitedAccess =
-          Boolean(data.unlimited) ||
-          ["superadmin", "admin"].includes(data.subscriptionTier)
+        const hasUnlimitedAccess = Boolean(data.unlimited) || ["superadmin", "admin"].includes(data.subscriptionTier)
         const usedCredits = data.usedCredits ?? data.analysisCount ?? 0
-        const totalCredits = hasUnlimitedAccess ? 0 : data.total ?? 2
+        const availableCredits = hasUnlimitedAccess ? 0 : Math.max(0, data.availableCredits ?? 0)
+
         setUsage(hasUnlimitedAccess ? 0 : usedCredits)
-        setTotal(totalCredits)
-        setAvailable(hasUnlimitedAccess ? 0 : Math.max(0, data.availableCredits ?? totalCredits - usedCredits - (data.reservedCredits ?? 0)))
-        setReserved(hasUnlimitedAccess ? 0 : data.reservedCredits ?? 0)
+        setIncludedBalance(hasUnlimitedAccess ? 0 : (data.includedBalance ?? 0))
+        setPurchasedBalance(hasUnlimitedAccess ? 0 : (data.purchasedBalance ?? 0))
+        setTotalAvailable(hasUnlimitedAccess ? 0 : (data.total ?? availableCredits))
+        setReserved(hasUnlimitedAccess ? 0 : (data.reservedCredits ?? 0))
         setIsPro(hasUnlimitedAccess)
         setUnlimitedLabel(data.unlimitedLabel || null)
         setLimitReached(Boolean(data.limitReached))
@@ -155,5 +152,5 @@ export function useUsage() {
     return () => window.removeEventListener(USAGE_REFRESH_EVENT, handleRefresh)
   }, [refreshUsage])
 
-  return { usage, total, available, reserved, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
+  return { usage, includedBalance, purchasedBalance, totalAvailable, available: totalAvailable, total: totalAvailable, reserved, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
 }

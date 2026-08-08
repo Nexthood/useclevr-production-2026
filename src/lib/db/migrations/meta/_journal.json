@@ -36,6 +36,13 @@
       "when": 1782839878774,
       "tag": "0004_byoai_provider_config",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786216869216,
+      "tag": "0005_useful_polaris",
+      "breakpoints": true
     }
   ]
 }

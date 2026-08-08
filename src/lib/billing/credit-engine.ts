@@ -38,6 +38,9 @@ export interface UserCreditInfo {
   userId: string
   planId: string
   totalCredits: number
+  includedBalance: number
+  purchasedBalance: number
+  totalPaidCents: number
   usedCredits: number
   reservedCredits: number
   remainingCredits: number
@@ -151,12 +154,15 @@ function toCreditInfo(row: typeof userCredits.$inferSelect): UserCreditInfo {
     userId: row.userId,
     planId: row.planId,
     totalCredits: row.totalCredits,
+    includedBalance: row.includedBalance ?? 0,
+    purchasedBalance: row.purchasedBalance ?? 0,
+    totalPaidCents: row.totalPaidCents ?? 0,
     usedCredits: row.usedCredits,
     reservedCredits,
     remainingCredits: row.remainingCredits,
     availableCredits: availableFrom({ remainingCredits: row.remainingCredits, reservedCredits }),
     creditsResetAt: row.creditsResetAt,
-    lastResetAt: row.lastResetAt,
+    lastResetAt: row.lastResetAt ?? null,
     lifetimeCreditsEarned: row.lifetimeCreditsEarned,
     lifetimeCreditsUsed: row.lifetimeCreditsUsed,
   }
@@ -184,6 +190,9 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
       userId,
       planId: plan.id,
       totalCredits: monthlyCredits,
+      includedBalance: monthlyCredits,
+      purchasedBalance: 0,
+      totalPaidCents: 0,
       usedCredits: 0,
       reservedCredits: 0,
       remainingCredits: monthlyCredits,
@@ -196,7 +205,7 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
       workspaceId: userId,
       userId,
       type: "grant",
-      transactionType: "grant",
+      transactionType: "PLAN_ALLOCATION",
       status: "finalized",
       operationId: idempotencyKey,
       idempotencyKey,
@@ -204,13 +213,17 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
       credits: monthlyCredits,
       balanceBefore: 0,
       balanceAfter: monthlyCredits,
+      includedBalanceBefore: 0,
+      includedBalanceAfter: monthlyCredits,
+      purchasedBalanceBefore: 0,
+      purchasedBalanceAfter: 0,
       source: "subscription",
       feature: "initial_allowance",
       action: "initial_credits",
       description: `Initial credits for ${plan.name} plan`,
       relatedPlanId: plan.id,
       currency: "EUR",
-      metadata: { tier: plan.tier },
+      metadata: { tier: plan.tier, includedBalance: monthlyCredits, purchasedBalance: 0 },
       finalizedAt: now,
     }).onConflictDoNothing()
   })
@@ -526,12 +539,17 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
         "remainingCredits" = "remainingCredits" - ${actualCredits},
         "usedCredits" = "usedCredits" + ${actualCredits},
         "lifetimeCreditsUsed" = "lifetimeCreditsUsed" + ${actualCredits},
+        "includedBalance" = GREATEST(0, "includedBalance" - ${actualCredits}),
+        "purchasedBalance" = CASE
+          WHEN "includedBalance" >= ${actualCredits} THEN "purchasedBalance"
+          ELSE "purchasedBalance" - GREATEST(0, ${actualCredits} - "includedBalance")
+        END,
         "updatedAt" = ${now}
       WHERE "userId" = ${reservation.userId}
         AND ("remainingCredits" - "reservedCredits" + ${reservedCredits}) >= ${actualCredits}
-      RETURNING "remainingCredits", "usedCredits"
+      RETURNING "remainingCredits", "usedCredits", "includedBalance", "purchasedBalance"
     `)
-    const row = rowsFromResult<{ remainingCredits: number; usedCredits: number }>(updated)[0]
+    const row = rowsFromResult<{ remainingCredits: number; usedCredits: number; includedBalance: number; purchasedBalance: number }>(updated)[0]
     if (!row) return null
 
     await tx.update(creditLedger)
@@ -547,7 +565,7 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
       workspaceId: reservation.workspaceId || reservation.userId,
       userId: reservation.userId,
       type: "charge",
-      transactionType: "charge",
+      transactionType: "USAGE_DEBIT",
       status: "finalized",
       operationId: reservation.operationId,
       idempotencyKey: `charge:${reservation.operationId}`,
@@ -581,7 +599,7 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
         workspaceId: reservation.workspaceId || reservation.userId,
         userId: reservation.userId,
         type: "release",
-        transactionType: "release",
+        transactionType: "RELEASE",
         status: "released",
         operationId: reservation.operationId,
         idempotencyKey: `release:${reservation.operationId}:unused`,
@@ -589,6 +607,10 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
         credits: releaseCredits,
         balanceBefore: row.remainingCredits,
         balanceAfter: row.remainingCredits,
+        includedBalanceBefore: row.includedBalance,
+        includedBalanceAfter: row.includedBalance,
+        purchasedBalanceBefore: row.purchasedBalance,
+        purchasedBalanceAfter: row.purchasedBalance,
         source: reservation.source || "application",
         feature: reservation.feature,
         action: reservation.action,
@@ -724,12 +746,18 @@ export async function refundCredits(
 
   const newRemaining = creditInfo.remainingCredits + Math.max(0, amount)
   const newUsed = Math.max(0, creditInfo.usedCredits - Math.max(0, amount))
+  const newIncluded = Math.min(creditInfo.includedBalance + Math.max(0, amount), creditInfo.totalCredits)
   const now = new Date()
 
   await db.transaction(async (tx) => {
     if (!(await hasUnlimitedCreditAccess(userId))) {
       await tx.update(userCredits)
-        .set({ remainingCredits: newRemaining, usedCredits: newUsed, updatedAt: now })
+        .set({
+          remainingCredits: newRemaining,
+          usedCredits: newUsed,
+          includedBalance: Math.min(creditInfo.includedBalance + Math.max(0, amount), creditInfo.totalCredits),
+          updatedAt: now,
+        })
         .where(eq(userCredits.userId, userId))
     }
     await tx.insert(creditLedger).values({
@@ -737,7 +765,7 @@ export async function refundCredits(
       workspaceId: userId,
       userId,
       type: "refund",
-      transactionType: "refund",
+      transactionType: "REFUND",
       status: "refunded",
       operationId,
       idempotencyKey: `refund:${userId}:${operationId}:${amount}`,
@@ -745,6 +773,10 @@ export async function refundCredits(
       credits: amount,
       balanceBefore: creditInfo.remainingCredits,
       balanceAfter: newRemaining,
+      includedBalanceBefore: creditInfo.includedBalance,
+      includedBalanceAfter: Math.min(creditInfo.includedBalance + Math.max(0, amount), creditInfo.totalCredits),
+      purchasedBalanceBefore: creditInfo.purchasedBalance,
+      purchasedBalanceAfter: creditInfo.purchasedBalance,
       source: "application",
       feature: "refund",
       action: "refund",
@@ -830,6 +862,7 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
     await tx.update(userCredits)
       .set({
         totalCredits: monthlyCredits,
+        includedBalance: monthlyCredits,
         usedCredits: 0,
         reservedCredits: 0,
         remainingCredits: monthlyCredits,
@@ -845,7 +878,7 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
       workspaceId: userId,
       userId,
       type: "subscription_reset",
-      transactionType: "subscription_reset",
+      transactionType: "PLAN_RESET",
       status: "finalized",
       operationId: idempotencyKey,
       idempotencyKey,
@@ -853,6 +886,10 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
       credits: monthlyCredits,
       balanceBefore: creditInfo.remainingCredits,
       balanceAfter: monthlyCredits,
+      includedBalanceBefore: creditInfo.includedBalance ?? creditInfo.remainingCredits,
+      includedBalanceAfter: monthlyCredits,
+      purchasedBalanceBefore: creditInfo.purchasedBalance ?? 0,
+      purchasedBalanceAfter: creditInfo.purchasedBalance ?? 0,
       source: "subscription",
       feature: "monthly_allowance",
       action: "monthly_credit_reset",
@@ -877,7 +914,8 @@ export async function processPlanChange(userId: string, newTier: string): Promis
   if (!creditInfo) return false
 
   const creditDiff = monthlyCredits - creditInfo.totalCredits
-  const newRemaining = Math.max(0, creditInfo.remainingCredits + creditDiff)
+  const newIncludedBalance = Math.max(0, monthlyCredits - creditInfo.purchasedBalance)
+  const newRemaining = Math.max(0, creditInfo.includedBalance + creditDiff)
   const now = new Date()
   const nextReset = nextResetDate(newTier)
   const operationId = `plan-change:${userId}:${plan.id}:${now.toISOString().slice(0, 10)}`
@@ -887,7 +925,8 @@ export async function processPlanChange(userId: string, newTier: string): Promis
       .set({
         planId: plan.id,
         totalCredits: monthlyCredits,
-        remainingCredits: newRemaining,
+        includedBalance: Math.max(0, newIncludedBalance),
+        remainingCredits: Math.max(0, creditInfo.includedBalance + creditDiff),
         creditsResetAt: nextReset,
         lifetimeCreditsEarned: creditInfo.lifetimeCreditsEarned + (creditDiff > 0 ? creditDiff : 0),
         updatedAt: now,
@@ -899,14 +938,18 @@ export async function processPlanChange(userId: string, newTier: string): Promis
       workspaceId: userId,
       userId,
       type: "subscription_reset",
-      transactionType: "subscription_reset",
+      transactionType: "PLAN_RESET",
       status: "finalized",
       operationId,
       idempotencyKey: operationId,
       amount: creditDiff,
       credits: Math.abs(creditDiff),
       balanceBefore: creditInfo.remainingCredits,
-      balanceAfter: newRemaining,
+      balanceAfter: Math.max(0, creditInfo.remainingCredits + creditDiff),
+      includedBalanceBefore: creditInfo.includedBalance,
+      includedBalanceAfter: Math.max(0, newIncludedBalance),
+      purchasedBalanceBefore: creditInfo.purchasedBalance,
+      purchasedBalanceAfter: creditInfo.purchasedBalance,
       source: "subscription",
       feature: "plan_change",
       action: "plan_change",
