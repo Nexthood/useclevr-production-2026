@@ -1,3 +1,41 @@
+## Accountancy Upload Error Handling and HEIC Support
+
+1. Interaction title
+Fix `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` affecting non-CSV Accountancy uploads.
+
+2. What was the user goal
+Resolve `validation.UnEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` affecting non-CSV accountancy uploads while CSV uploads continue working, and accept HEIC receipt images.
+
+3. What changed
+Wrapped all un-wrapped credit-engine calls in `processAccountancyUpload` that could throw non-`AccountancyUploadError` exceptions and escape the route handler catch-all: `checkSpendingLimits` and `reserveCredits` now have try-catch blocks that convert throws to structured `AccountancyUploadError` responses; `finalizeCredits` is wrapped in try-catch that logs the error and falls through to the existing `CREDIT_SETTLEMENT_ERROR` cleanup path; all `releaseCredits` calls in catch and error paths now use `.catch(() => undefined)` so they cannot mask the original error; the `prebookkeepingLearningRules.findMany` DB query uses `.catch(() => [])`; and `categorizePrebookkeepingRows` is wrapped in try-catch that returns `null` on failure, falling through to `createDefaultPrebookkeepingReviewSummary`. Added `image/heic` MIME type and `.heic` extension to `uploadSpecs.receipt`, updated `inferMimeType` and the dataset-name regex to handle `.heic`, and added a HEIC receipt test case.
+
+4. Problems marked
+- blocker: none.
+- risk: The underlying root cause of non-CSV upload failures could not be reproduced without a live database; fixes are defensive so any future throw in credit-engine or categorization code converts to a staged error instead of surfacing as a generic 500.
+- observation: Parser-level tests confirm non-CSV data (PDF accounting fields, receipt scanner rows, bank normalized rows) flows correctly through `computePrecomputedMetrics` and `categorizePrebookkeepingRows`; the failure surface is exclusively in un-wrapped async credit-engine and DB calls between the `reserveCredits` and `finalizeCredits` steps.
+
+5. User learning
+Accountancy upload credit reservation, finalization, and release must each be wrapped so a credit-engine DB error or throw converts to a staged `AccountancyUploadError` rather than escaping as `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR`.
+
+6. AI-agent learning
+When credit-engine functions (`reserveCredits`, `finalizeCredits`, `releaseCredits`) are called directly from a server processor without try-catch, any DB error they throw escapes the route handler catch-all. The fix is to wrap each credit-engine call in try-catch and convert to `AccountancyUploadError`, and make all `releaseCredits` calls in error paths non-blocking with `.catch()`.
+
+7. Follow-up tasks
+- Add end-to-end test for `processAccountancyUpload` with mocked DB and credit engine to exercise the full pipeline including credit reservation/finalization for non-CSV types.
+- Run `pnpm validate` in CI to confirm all checks pass after these changes.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+- Product requirement updates: none.
+- Release notes: `CHANGELOG.md`.
+- Detailed session record: `project-logs/interactive-log.md`.
+- Activity summary: `project-logs/activity-log.md`.
+- Latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Credit Top-Up Payment Reconciliation
 
 1. Interaction title

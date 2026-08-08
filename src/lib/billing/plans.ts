@@ -5,12 +5,11 @@ import {
   getProLaunchPrices,
   getProStripePriceId,
   getStripePriceIdForCheckout,
-  proPriceEnvByCurrency,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing";
 
 export type BillingPlanId = "free" | "pro_monthly" | "business_monthly" | "demo";
-export type StripePricePlanId = BillingPlanId | "pro_annual";
+export type StripePricePlanId = BillingPlanId | "pro_annual" | "business_annual";
 
 type StripePriceEnvConfig = {
   primary: string;
@@ -47,19 +46,27 @@ export interface BillingPlan {
 
 const stripePriceEnvByPlanId: Partial<Record<StripePricePlanId, StripePriceEnvConfig>> = {
   pro_monthly: {
-    primary: proPriceEnvByCurrency.EUR,
+    primary: "STRIPE_PRICE_PRO_EUR_MONTHLY",
+    fallbacks: ["STRIPE_PRICE_PRO_MONTHLY", "STRIPE_PRICE_ID_PRO_MONTHLY"],
   },
-  pro_annual: { primary: "STRIPE_PRICE_PRO_ANNUAL" },
+  pro_annual: {
+    primary: "STRIPE_PRICE_PRO_ANNUAL",
+    fallbacks: ["STRIPE_PRICE_PRO_EUR_ANNUAL"],
+  },
   business_monthly: {
-    primary: "STRIPE_BUSINESS_PRICE_ID_EUR",
+    primary: "STRIPE_PRICE_BUSINESS_EUR_MONTHLY",
     fallbacks: ["STRIPE_PRICE_BUSINESS_MONTHLY", "STRIPE_PRICE_ID_BUSINESS_MONTHLY"],
+  },
+  business_annual: {
+    primary: "STRIPE_PRICE_BUSINESS_ANNUAL",
+    fallbacks: ["STRIPE_PRICE_BUSINESS_EUR_ANNUAL"],
   },
 };
 
 export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
-  if (planId === "pro_monthly") return Object.values(proPriceEnvByCurrency);
-  if (planId === "business_monthly") {
-    return getCheckoutMarketOptions("business").flatMap((option) => option.priceEnvNames);
+  if (planId === "pro_monthly" || planId === "business_monthly") {
+    const slug = planId === "pro_monthly" ? "pro" : "business";
+    return getCheckoutMarketOptions(slug).flatMap((option) => option.priceEnvNames);
   }
 
   const config = stripePriceEnvByPlanId[planId];

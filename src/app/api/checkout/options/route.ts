@@ -1,6 +1,6 @@
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import { logMissingStripePriceId } from "@/lib/billing/plans";
-import { getCheckoutMarketOptions, getProLaunchPrices, getProStripePriceId } from "@/lib/billing/launch-pricing";
+import { getCheckoutMarketOptions, getProLaunchPrices, getProStripePriceId, getStripePriceIdForCheckout } from "@/lib/billing/launch-pricing";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -31,7 +31,14 @@ export async function GET(_request: NextRequest) {
             USD: Boolean(getProStripePriceId("USD")),
             CAD: Boolean(getProStripePriceId("CAD")),
           }
-        : null,
+        : plan.id === "business_monthly"
+          ? {
+              EUR: Boolean(getStripePriceIdForCheckout("business", "eu")),
+              GBP: Boolean(getStripePriceIdForCheckout("business", "uk")),
+              USD: Boolean(getStripePriceIdForCheckout("business", "us")),
+              CAD: Boolean(getStripePriceIdForCheckout("business", "ca")),
+            }
+          : null,
       stripePriceId: plan.stripePriceId ?? null,
       status: plan.tier === "free" || plan.stripePriceId ? "ready" : "payment_provider_not_connected",
     })),
