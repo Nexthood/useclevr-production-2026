@@ -1,3 +1,11 @@
+## Pre-bookkeeping Production Validation
+
+- User goal: perform complete production validation of the Pre-bookkeeping & Risk Intelligence workflow and fix regressions.
+- Finding: Export for Accountant button opened both a validation notice and an export dialog when no transactions were reviewed; Risk Intelligence dataset query passed undefined to drizzle `and` for superadmin access.
+- Change: export button now shows only a validation notice with no dialog when reviewed count is zero; risk query filters undefined conditions before spreading into `and`.
+- Verification: TypeScript checks pass, lint passes, pre-commit project records updated.
+- Status: commit and push in progress.
+
 ## Next.js Type Validation Pipeline
 
 - User goal: identify the real cause of TS6053 for missing `.next/types/cache-life.d.ts` and `.next/types/validator.ts`, fix the validation pipeline, and push `beta` without bypassing Husky.
@@ -1603,6 +1611,38 @@ Merged title rows must not become candidate headers after merge expansion; requi
 
 7. Follow-up tasks
 - None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-Bookkeeping Export And Risk Fix Pack
+
+1. Interaction title
+Pre-bookkeeping accountant export and bookkeeping Risk Intelligence stabilization.
+
+2. What was the user goal
+Fix production issues where accountant export lacks a clear reviewed-export workflow and Risk Intelligence opens a server error after bookkeeping upload.
+
+3. What changed
+The Pre-bookkeeping review workspace presents Export for Accountant as the primary export action, validates reviewed transaction availability with a professional Review Transactions action, and keeps the direct pre-bookkeeping page action inside the review workspace instead of linking to the export API. Risk Intelligence now calculates bookkeeping-specific findings from stored categorization for VAT review, duplicate payments, missing details, large expenses, supplier concentration, and expense pressure, and the Server Component renders a Problem detected state with retry and dashboard actions if loading fails.
+
+4. Problems marked
+root cause: The pre-bookkeeping summary action linked directly to the export API with default reviewed scope, so users with zero reviewed transactions saw the JSON validation response.
+root cause: The Risk Intelligence page executed dataset listing and calculation without a top-level Server Component guard, so any bookkeeping dataset loading or calculation exception became a framework error page.
+
+5. User learning
+Pre-bookkeeping exports are accountant-ready only after reviewed transactions exist, and bookkeeping Risk Intelligence uses the selected pre-bookkeeping dataset instead of crashing.
+
+6. AI-agent learning
+User-facing export CTAs must stay in the review workspace when a validation prerequisite exists; direct API links are only safe for downloads that cannot fail with actionable user steps.
+
+7. Follow-up tasks
+- Verify the live beta Pre-bookkeeping upload, review, accountant export, Risk Intelligence, dashboard return, reload, and repeat workflow with an authenticated account. (labels: upload, reports, testing)
 
 8. Instruction sources
 - AGENTS.md

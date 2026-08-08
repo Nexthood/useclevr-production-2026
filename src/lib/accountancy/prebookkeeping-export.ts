@@ -148,7 +148,7 @@ function selectTransactionsForExport(
 function emptyExportMessage(scope: PrebookkeepingExportScope) {
   if (scope === "filtered") return "No filtered transactions are available for export.";
   if (scope === "all") return "No transactions are available for export.";
-  return "No reviewed transactions are available for export.";
+  return "No reviewed transactions are available yet. Please review and approve transactions before exporting.";
 }
 
 function buildAccountantCsvRows(rows: CategorizedTransaction[]) {

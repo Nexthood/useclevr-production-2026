@@ -1,4 +1,5 @@
-- fixed: generate Next.js route declarations before TypeScript validation so clean worktrees do not fail on missing `.next/types` files
+- fixed: Pre-bookkeeping Export for Accountant button shows a review action when no transactions are reviewed instead of opening a disabled export dialog
+- fixed: Risk Intelligence dataset query filters undefined conditions before spreading into drizzle `and` so superadmin access does not pass undefined SQL expressions
 - changed: route selected-dataset AI Analyst questions through intent classification and deterministic metric resolution so supported marketplace, order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.
 - fixed: unify upload-credit exhaustion messaging across upload APIs, Standard Upload, Accountancy Upload, usage notices, and Usy so successful uploads permanently consume credits and dataset deletion is never shown as a remedy
 - fixed: enforce central upload-credit reservation, finalization, release, and exhausted-credit blocking across Accountancy and Pre-bookkeeping upload types before parsing new files
@@ -204,3 +205,4 @@
 - changed: strengthen dataset-aware AI analysis by mapping marketplace columns to GMV, marketplace revenue, merchant payout, customer, merchant, product category, and geography semantics, then using those roles for deterministic KPIs, dashboards, and governance source disclosure
 - fixed: hide the Retail upload success dataset-detail action so successful Retail uploads show Open Retail and Upload Another File only
 - changed: add intelligent Accounting AI VAT prediction from Business Profile tax configuration with explainable confidence, exception review, scoped manual learning, bulk assignment, and VAT audit fields in exports
+- fixed: guide Pre-bookkeeping accountant export through reviewed-transaction validation and render bookkeeping Risk Intelligence with deterministic risk findings or graceful problem states instead of server crashes

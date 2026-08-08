@@ -6,6 +6,8 @@
 
 ### Fixed
 
+- Fix Pre-bookkeeping accountant export validation so the Export for Accountant button shows a review action when no transactions are reviewed instead of opening a disabled export dialog.
+- Fix Risk Intelligence dataset query so superadmin and all-dataset roles do not pass undefined SQL expressions to the drizzle `and` clause.
 - Fix Retail upload success actions so users continue to Retail analysis or upload another file without opening an unavailable dataset page.
 - Fix type validation so Next.js route declarations generate before TypeScript checks run in clean worktrees.
 - Fix upload-credit limit messaging so upload screens, notices, APIs, and Usy explain that successful uploads permanently consume credits and dataset deletion does not restore them.
