@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
-import { categorizePrebookkeepingRows } from "@/lib/accountancy/prebookkeeping-categorization";
+import { applyAutonomousReview, categorizePrebookkeepingRows } from "@/lib/accountancy/prebookkeeping-categorization";
 import { buildBusinessTaxProfile } from "@/lib/accountancy/prebookkeeping-vat";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { resolveDatasetType } from "@/lib/data/dataset-category";
@@ -79,6 +79,8 @@ export async function POST(request: Request) {
     const categorization = categorizePrebookkeepingRows(rows.map((row) => row.data as Record<string, unknown>), learningRules, { taxProfile });
     const currentAnalysis = isRecord(dataset.analysis) ? dataset.analysis : {};
 
+    const autonomousCategorization = applyAutonomousReview(categorization, learningRules, taxProfile);
+
     await db
       .update(datasets)
       .set({
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
         analysis: {
           ...currentAnalysis,
           categorizationStatus: "ready_for_review",
-          prebookkeepingCategorization: categorization,
+          prebookkeepingCategorization: autonomousCategorization,
         },
         updatedAt: new Date(),
       })
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
 
     revalidatePath("/app/prebookkeeping");
 
-    return NextResponse.json({ ok: true, categorization });
+    return NextResponse.json({ ok: true, categorization: autonomousCategorization });
   } catch (error) {
     return NextResponse.json(
       {

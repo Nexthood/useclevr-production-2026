@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   isPrebookkeepingCategorization,
@@ -9,17 +10,20 @@ import {
   type CategorizedTransaction,
   type PrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization";
-import { Bot, Check, Download, Loader2 } from "lucide-react";
+import { Bot, Check, Download, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
 type FilterKey =
   | "all"
   | "needs_review"
+  | "auto_reviewed"
   | "uncategorized"
   | "duplicates"
   | "missing_vat"
   | "missing_supplier"
+  | "low_confidence"
+  | "high_value"
   | "large_transactions"
   | "revenue"
   | "expenses"
@@ -46,10 +50,13 @@ const categoryOptions = [
 const filterLabels: Array<[FilterKey, string]> = [
   ["all", "All"],
   ["needs_review", "Needs Review"],
+  ["auto_reviewed", "Auto Reviewed"],
   ["uncategorized", "Uncategorized"],
   ["duplicates", "Duplicates"],
   ["missing_vat", "Missing VAT"],
   ["missing_supplier", "Missing Supplier"],
+  ["low_confidence", "Low Confidence"],
+  ["high_value", "High Value"],
   ["large_transactions", "Large Transactions"],
   ["revenue", "Revenue"],
   ["expenses", "Expenses"],
@@ -75,13 +82,14 @@ export function PrebookkeepingReviewWorkspace({
   const [exportDialogFormat, setExportDialogFormat] = React.useState<"csv" | "excel" | null>(null);
   const [exportScope, setExportScope] = React.useState<ExportScope>("filtered");
   const [exportNotice, setExportNotice] = React.useState<string | null>(null);
+  const [autoReviewThreshold, setAutoReviewThreshold] = React.useState<number>(() => categorization.thresholdConfig?.autoReview ?? 0.95);
   const { toast } = useToast();
 
   const rows = categorization.transactions;
   const reviewSummary = categorization.reviewSummary;
-  const filteredRows = rows.filter((row) => matchesFilter(row, filter));
+  const filteredRows = rows.filter((row) => matchesFilter(row, filter, categorization.reviewSummary.thresholdConfig?.suggestedReview ?? 0.8));
   const reviewedRows = rows.filter((row) => row.reviewed);
-  const filterCounts = React.useMemo(() => buildFilterCounts(rows), [rows]);
+  const filterCounts = React.useMemo(() => buildFilterCounts(rows, categorization.reviewSummary.thresholdConfig?.suggestedReview ?? 0.8), [rows]);
   const exportCounts = React.useMemo(() => ({
     filtered: filteredRows.length,
     reviewed: reviewedRows.length,
@@ -130,6 +138,39 @@ export function PrebookkeepingReviewWorkspace({
     }
     void saveReview({ action, rowIndexes: selectedRows, ...extra }, "Bulk action saved");
     setSelectedRows([]);
+  }
+
+  async function runAutoReview(action: "auto_review_all_high_confidence" | "auto_review_selected" | "auto_review_all_filtered" | "auto_review_all", rowsToReview?: number[]) {
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        action,
+        datasetId,
+        threshold: autoReviewThreshold,
+      };
+      if (rowsToReview && rowsToReview.length > 0) {
+        payload.rowIndexes = rowsToReview;
+      }
+      const response = await fetch("/api/prebookkeeping/review", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      const validated = validateReviewApiResponse(result, response.ok);
+      if (!validated.ok) throw new Error(validated.error);
+      setCategorization(validated.categorization);
+      const autoCount = validated.categorization.reviewSummary.autoReviewedCount;
+      toast({ title: "Auto review complete", description: `${autoCount} transaction(s) were automatically approved.` });
+    } catch (error) {
+      toast({
+        title: "Auto review failed",
+        description: error instanceof Error ? error.message : "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function downloadExport(format: "csv" | "excel", scope: ExportScope) {
@@ -189,19 +230,58 @@ export function PrebookkeepingReviewWorkspace({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-foreground">AI Review Summary</h3>
-            <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-              <li>{reviewSummary.transactionsAnalyzed.toLocaleString()} transactions analyzed</li>
-              <li>{reviewSummary.categorizedAutomatically.toLocaleString()} categorized automatically</li>
-              <li>{reviewSummary.requiresReview.toLocaleString()} require review</li>
-              <li>{reviewSummary.possibleDuplicatesDetected.toLocaleString()} possible duplicates detected</li>
-              <li>{reviewSummary.missingDataWarnings.toLocaleString()} missing data warning(s)</li>
-              <li>VAT information missing on {reviewSummary.vatMissingPercent}% of transactions</li>
-              <li>Confidence score: {reviewSummary.confidenceScore}%</li>
-              <li>Manual corrections: {reviewSummary.manualCorrections.toLocaleString()}</li>
-              <li>Average VAT confidence: {reviewSummary.averageVatConfidence}%</li>
-              <li>Default VAT: {formatVatRate(reviewSummary.defaultVatRate)}</li>
-              <li>Business country: {reviewSummary.businessCountry || "Not configured"}</li>
-            </ul>
+            <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <p className="text-xs text-muted-foreground">Transactions</p>
+                <p className="text-base font-semibold text-foreground">{reviewSummary.transactionsAnalyzed.toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <p className="text-xs text-muted-foreground">Auto Reviewed</p>
+                <p className="text-base font-semibold text-green-600 dark:text-green-300">{reviewSummary.autoReviewedCount.toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <p className="text-xs text-muted-foreground">Needs Review</p>
+                <p className="text-base font-semibold text-amber-600 dark:text-amber-300">{reviewSummary.needsReviewCount.toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <p className="text-xs text-muted-foreground">Possible Duplicates</p>
+                <p className="text-base font-semibold text-foreground">{reviewSummary.possibleDuplicatesDetected.toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <p className="text-xs text-muted-foreground">Missing VAT</p>
+                <p className="text-base font-semibold text-foreground">{Math.round((reviewSummary.vatMissingPercent / 100) * totalCount).toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <p className="text-xs text-muted-foreground">Confidence</p>
+                <p className="text-base font-semibold text-foreground">{reviewSummary.confidenceScore}%</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Auto-review threshold</span>
+                <Input
+                  type="number"
+                  min={0.8}
+                  max={0.99}
+                  step={0.01}
+                  value={autoReviewThreshold}
+                  onChange={(event) => setAutoReviewThreshold(Number(event.target.value))}
+                  className="h-8 w-16 rounded-md border border-border bg-background px-2 text-xs"
+                />
+                <span>{Math.round(autoReviewThreshold * 100)}%</span>
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => runAutoReview("auto_review_all_high_confidence")}
+                disabled={saving}
+                className="gap-2"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Auto-review all high confidence
+              </Button>
+            </div>
           </div>
           <div className="min-w-0 lg:w-80">
             <div className="flex items-center justify-between gap-3 text-sm">
@@ -213,6 +293,9 @@ export function PrebookkeepingReviewWorkspace({
             </div>
             <p className={`mt-3 text-sm font-medium ${readyForAccountant ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
               {readyForAccountant ? "Ready for Accountant" : formatReviewStatus(reviewSummary.status)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Auto-reviewed: {reviewSummary.autoReviewedCount.toLocaleString()} | Needs review: {reviewSummary.needsReviewCount.toLocaleString()}
             </p>
           </div>
         </div>
@@ -278,6 +361,24 @@ export function PrebookkeepingReviewWorkspace({
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => bulkPayload("bulk_delete_duplicates")} disabled={saving}>
               Delete duplicates
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => runAutoReview("auto_review_selected", selectedRows)}
+              disabled={saving || selectedRows.length === 0}
+            >
+              Auto-review selected
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => runAutoReview("auto_review_all_filtered")}
+              disabled={saving}
+            >
+              Auto-review filtered
             </Button>
             {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
@@ -395,7 +496,7 @@ export function PrebookkeepingReviewWorkspace({
           </div>
         )}
 
-        <div id="categorized-transactions" className="mt-4 overflow-x-auto rounded-md border border-border">
+        <div id="categorized-transactions" className="mt-4 max-h-[60vh] overflow-auto rounded-md border border-border">
           <div className="border-b border-border bg-background px-4 py-3">
             <h3 className="text-base font-semibold text-foreground">Transaction review queue</h3>
             <p className="text-sm text-muted-foreground">Showing {filteredRows.length.toLocaleString()} filtered transaction(s) for {datasetName}.</p>
@@ -435,6 +536,19 @@ export function PrebookkeepingReviewWorkspace({
                         Confidence {Math.round(transaction.confidence * 100)}%
                       </p>
                       <p className="text-xs text-muted-foreground">Suggested: {formatCategory(transaction.suggestedCategory || transaction.category)}</p>
+                      {transaction.autoReviewed && (
+                        <div className="rounded-md border border-green-500/30 bg-green-500/10 p-2">
+                          <p className="text-xs font-semibold text-green-700 dark:text-green-300">Auto Reviewed</p>
+                          <p className="text-xs text-muted-foreground">{transaction.autoReviewReason}</p>
+                          {transaction.autoReviewEvidence.length > 0 && (
+                            <ul className="mt-1 list-disc space-y-0.5 pl-3 text-xs text-muted-foreground">
+                              {transaction.autoReviewEvidence.slice(0, 3).map((item, idx) => <li key={idx}>{item}</li>)}
+                            </ul>
+                          )}
+                          <p className="mt-1 text-xs text-muted-foreground">Rule: {transaction.autoReviewBusinessRule || "Deterministic classification"}</p>
+                          <p className="text-xs text-muted-foreground">Source: {transaction.autoReviewCalculationSource || "deterministic_classification"}</p>
+                        </div>
+                      )}
                       {transaction.category === "uncategorized" && transaction.suggestedCategory && (
                         <Button type="button" size="sm" variant="outline" onClick={() => saveReview({ action: "accept_suggestion", rowIndex: transaction.rowIndex }, "Suggestion accepted")} disabled={saving}>
                           Accept
@@ -498,7 +612,14 @@ export function PrebookkeepingReviewWorkspace({
                   </td>
                   <td className="px-3 py-2">
                     {transaction.reviewed ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-300"><Check className="h-3 w-3" /> Reviewed</span>
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-300"><Check className="h-3 w-3" /> {transaction.autoReviewed ? "Auto" : "Reviewed"}</span>
+                        {transaction.autoReviewed && (
+                          <div className="text-xs text-muted-foreground">
+                            <p>Risk: {Math.round(transaction.riskScore * 100)}%</p>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <Button type="button" size="sm" variant="outline" onClick={() => saveReview({ action: "mark_reviewed", rowIndex: transaction.rowIndex }, "Transaction reviewed")} disabled={saving}>
                         Mark reviewed
@@ -535,17 +656,20 @@ export function PrebookkeepingReviewWorkspace({
   );
 }
 
-function buildFilterCounts(rows: CategorizedTransaction[]): Record<FilterKey, number> {
-  return Object.fromEntries(filterLabels.map(([key]) => [key, rows.filter((row) => matchesFilter(row, key)).length])) as Record<FilterKey, number>;
+function buildFilterCounts(rows: CategorizedTransaction[], suggestedReviewThreshold: number): Record<FilterKey, number> {
+  return Object.fromEntries(filterLabels.map(([key]) => [key, rows.filter((row) => matchesFilter(row, key, suggestedReviewThreshold)).length])) as Record<FilterKey, number>;
 }
 
-function matchesFilter(row: CategorizedTransaction, filter: FilterKey) {
+function matchesFilter(row: CategorizedTransaction, filter: FilterKey, suggestedReviewThreshold: number) {
   if (filter === "all") return true;
   if (filter === "needs_review") return row.needsReview;
+  if (filter === "auto_reviewed") return row.autoReviewed;
   if (filter === "uncategorized") return row.category === "uncategorized";
   if (filter === "duplicates") return row.duplicateStatus === "possible_duplicate";
   if (filter === "missing_vat") return row.vatStatus === "missing" || row.vatNeedsReview;
   if (filter === "missing_supplier") return !row.supplierCustomer;
+  if (filter === "low_confidence") return row.confidence < suggestedReviewThreshold;
+  if (filter === "high_value") return typeof row.amount === "number" && Math.abs(row.amount) >= 10000;
   if (filter === "large_transactions") return row.isLargeTransaction;
   if (filter === "revenue") return row.category === "revenue";
   if (filter === "expenses") return ["operating_expenses", "bank_fees"].includes(row.category);

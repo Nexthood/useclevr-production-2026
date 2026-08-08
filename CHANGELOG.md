@@ -2,11 +2,13 @@
 
 ### Added
 
-- Add intelligent Accounting AI VAT workflow so Business Profile tax settings drive explainable VAT predictions, exception review, scoped corrections, bulk assignment, and export-ready VAT audit details.
+- Add autonomous AI transaction review engine so Pre-bookkeeping automatically approves high-confidence transactions, surfaces explainability evidence, and routes only exceptions into the manual review queue.
+- Add configurable auto-review confidence threshold with bulk actions for reviewing high-confidence, selected, filtered, or all transactions.
+- Add smart review filters and dashboard summary showing auto-reviewed count, needs-review count, duplicate count, missing VAT count, and overall confidence percentage.
 
 ### Fixed
 
-- Fix Pre-bookkeeping accountant export validation so the Export for Accountant button shows a review action when no transactions are reviewed instead of opening a disabled export dialog.
+- Add intelligent Accounting AI VAT workflow so Business Profile tax settings drive explainable VAT predictions, exception review, scoped corrections, bulk assignment, and export-ready VAT audit details.
 - Fix Risk Intelligence dataset query so superadmin and all-dataset roles do not pass undefined SQL expressions to the drizzle `and` clause.
 - Fix Retail upload success actions so users continue to Retail analysis or upload another file without opening an unavailable dataset page.
 - Fix type validation so Next.js route declarations generate before TypeScript checks run in clean worktrees.
@@ -39,6 +41,7 @@
 
 ### Changed
 
+- Improve Pre-bookkeeping transaction review scrolling so the table scrolls independently inside a fixed-height container and users do not need to reach the bottom of the page to access hidden columns.
 - Strengthen Dataset Intelligence so marketplace uploads produce role-specific KPIs, dashboard widgets, source disclosure, and customer or merchant semantics from the uploaded data.
 - Route dataset-aware AI Analyst metric questions through intent classification and deterministic metric resolution so supported order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.
 - Polish AI Governance spacing, status hierarchy, compact metrics, readiness visualization, control cards, and sidebar density so the module feels sharper on desktop and tablet.
