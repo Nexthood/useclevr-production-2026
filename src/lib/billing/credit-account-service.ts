@@ -386,42 +386,56 @@ export async function getPurchaseTraces(userId: string): Promise<PurchaseTrace[]
       eq(creditLedger.userId, userId),
       eq(creditLedger.transactionType, "TOP_UP_PURCHASE")
     ),
-    orderBy: (ledger, { desc }) => [desc(ledger.createdAt)],
+    orderBy: (ledger, { asc }) => [asc(ledger.createdAt)],
+  })
+
+  const usage = await db.query.creditLedger.findMany({
+    where: and(
+      eq(creditLedger.userId, userId),
+      eq(creditLedger.transactionType, "USAGE_DEBIT")
+    ),
+    orderBy: (ledger, { asc }) => [asc(ledger.createdAt)],
   })
 
   const traces: PurchaseTrace[] = []
 
   for (const purchase of purchases) {
-    const consumed = await db.query.creditLedger.findMany({
-      where: and(
-        eq(creditLedger.userId, userId),
-        eq(creditLedger.transactionType, "USAGE_DEBIT"),
-        sql`${creditLedger.createdAt} >= ${purchase.createdAt}`
-      ),
-      orderBy: (ledger, { asc }) => [asc(ledger.createdAt)],
-    })
-
-    const totalConsumedCredits = consumed.reduce((sum, t) => sum + Math.abs(t.credits || t.amount || 0), 0)
-    const remainingCredits = purchase.credits - totalConsumedCredits
     const monetaryEquivalentCents = purchase.monetaryAmount || 0
-    const remainingMonetaryCents = Math.max(0, monetaryEquivalentCents - (totalConsumedCredits / purchase.credits) * monetaryEquivalentCents)
+    const creditsIssued = purchase.credits || 0
+    let remainingCredits = creditsIssued
+    let remainingMonetaryCents = monetaryEquivalentCents
+    const consumedBy: PurchaseTrace["consumedBy"] = []
+
+    for (const t of usage) {
+      if (t.createdAt < purchase.createdAt) continue
+      if (remainingCredits <= 0) break
+
+      const debitCredits = Math.abs(t.credits || t.amount || 0)
+      if (debitCredits <= 0) continue
+
+      const consumed = Math.min(remainingCredits, debitCredits)
+      remainingCredits -= consumed
+      remainingMonetaryCents = Math.max(0, remainingMonetaryCents - (consumed / creditsIssued) * monetaryEquivalentCents)
+
+      consumedBy.push({
+        transactionId: t.id,
+        action: t.action,
+        feature: t.feature || "unknown",
+        credits: consumed,
+        monetaryEquivalentCents: Math.round((monetaryEquivalentCents / creditsIssued) * consumed),
+        datasetId: t.datasetId || null,
+        reportId: t.reportId || null,
+        createdAt: t.createdAt,
+      })
+    }
 
     traces.push({
       purchaseId: purchase.id,
       monetaryAmountCents: monetaryEquivalentCents,
       currency: purchase.currency || CREDIT_CURRENCY,
-      creditsIssued: purchase.credits,
+      creditsIssued,
       createdAt: purchase.createdAt,
-      consumedBy: consumed.map((t) => ({
-        transactionId: t.id,
-        action: t.action,
-        feature: t.feature || "unknown",
-        credits: Math.abs(t.credits || t.amount || 0),
-        monetaryEquivalentCents: Math.round((monetaryEquivalentCents / purchase.credits) * Math.abs(t.credits || t.amount || 0)),
-        datasetId: t.datasetId || null,
-        reportId: t.reportId || null,
-        createdAt: t.createdAt,
-      })),
+      consumedBy,
       remainingCredits: Math.max(0, remainingCredits),
       remainingMonetaryCents: Math.max(0, remainingMonetaryCents),
     })
@@ -460,7 +474,12 @@ export async function reconcileAccount(userId: string): Promise<ReconciliationRe
       total: sql<number>`COALESCE(SUM(${creditLedger.amount}), 0)`,
     })
     .from(creditLedger)
-    .where(eq(creditLedger.userId, userId))
+    .where(
+      and(
+        eq(creditLedger.userId, userId),
+        sql`${creditLedger.transactionType} NOT IN ('reservation')`
+      )
+    )
 
   const ledgerCalculatedBalance = Number(ledgerResult[0]?.total || 0)
   const actualBalance = account.totalAvailableBalance
@@ -615,6 +634,63 @@ export async function checkSpendingLimits(userId: string): Promise<{
   const account = await getCreditAccount(userId)
   if (!account) return { blocked: false, limits }
 
+  if (limits.dailyLimit !== null && limits.dailyLimit > 0) {
+    const dayStart = new Date()
+    dayStart.setHours(0, 0, 0, 0)
+
+    const dayUsageResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(${creditLedger.amount}), 0)`,
+      })
+      .from(creditLedger)
+      .where(
+        and(
+          eq(creditLedger.userId, userId),
+          eq(creditLedger.transactionType, "USAGE_DEBIT"),
+          gte(creditLedger.createdAt, dayStart)
+        )
+      )
+
+    const dayUsed = Math.abs(Number(dayUsageResult[0]?.total || 0))
+    if (dayUsed >= limits.dailyLimit) {
+      return {
+        blocked: true,
+        reason: `Daily credit limit reached (${dayUsed}/${limits.dailyLimit} credits used today).`,
+        limits,
+      }
+    }
+  }
+
+  if (limits.weeklyLimit !== null && limits.weeklyLimit > 0) {
+    const weekStart = new Date()
+    const day = weekStart.getDay()
+    const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1)
+    weekStart.setDate(diff)
+    weekStart.setHours(0, 0, 0, 0)
+
+    const weekUsageResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(${creditLedger.amount}), 0)`,
+      })
+      .from(creditLedger)
+      .where(
+        and(
+          eq(creditLedger.userId, userId),
+          eq(creditLedger.transactionType, "USAGE_DEBIT"),
+          gte(creditLedger.createdAt, weekStart)
+        )
+      )
+
+    const weekUsed = Math.abs(Number(weekUsageResult[0]?.total || 0))
+    if (weekUsed >= limits.weeklyLimit) {
+      return {
+        blocked: true,
+        reason: `Weekly credit limit reached (${weekUsed}/${limits.weeklyLimit} credits used this week).`,
+        limits,
+      }
+    }
+  }
+
   if (limits.monthlyPurchasedLimit !== null && limits.monthlyPurchasedLimit > 0) {
     const monthStart = new Date()
     monthStart.setDate(1)
@@ -638,6 +714,30 @@ export async function checkSpendingLimits(userId: string): Promise<{
       return {
         blocked: true,
         reason: `Monthly purchased credit limit reached (${monthUsed}/${limits.monthlyPurchasedLimit} credits used this month).`,
+        limits,
+      }
+    }
+  }
+
+  if (limits.perOperationMax !== null && limits.perOperationMax > 0) {
+    const pendingReservationsResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(${creditLedger.credits}), 0)`,
+      })
+      .from(creditLedger)
+      .where(
+        and(
+          eq(creditLedger.userId, userId),
+          eq(creditLedger.transactionType, "reservation"),
+          eq(creditLedger.status, "pending")
+        )
+      )
+
+    const pendingReservations = Number(pendingReservationsResult[0]?.total || 0)
+    if (pendingReservations >= limits.perOperationMax) {
+      return {
+        blocked: true,
+        reason: `Per-operation reservation limit reached (${pendingReservations}/${limits.perOperationMax} credits reserved).`,
         limits,
       }
     }

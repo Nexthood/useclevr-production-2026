@@ -1,3 +1,35 @@
+## Credit Billing Integrity Production Hardening
+
+1. Interaction title
+Credit billing integrity production hardening.
+
+2. What was the user goal
+Audit and harden the existing UseClevr Credit, Usage, Billing and Audit system for production readiness by closing concurrency, idempotency, payment source-of-truth, spending-limit enforcement, and reconciliation gaps without redesigning working functionality.
+
+3. What changed
+Restricted direct credit purchases to admin-only access, implemented full server-side spending limit enforcement across all billable entry points, fixed purchase trace FIFO attribution, corrected ledger reconciliation to exclude pending reservations, and added 25 automated billing integrity checks.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Payment credits must come from verified provider webhooks, not client-side redirects; spending limits must be enforced server-side on every billable route; and ledger reconciliation must exclude pending reservations to match actual balances.
+
+6. AI-agent learning
+Production billing hardening should prioritize surgical fixes over redesign: admin-only purchase routes, server-side spending limits wired into every entry point, FIFO purchase tracing, and reconciliation formulas that match the documented expected-balance equation.
+
+7. Follow-up tasks
+- Add one-time payment webhook handlers for Stripe and Square to replace admin-only direct purchase route.
+- Run integration tests against live database to verify concurrent debit protection under load.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Pre-bookkeeping Scrollable Transaction Review Container
 
 1. Interaction title

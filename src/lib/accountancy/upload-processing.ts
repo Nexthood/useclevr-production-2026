@@ -9,6 +9,7 @@ import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
@@ -336,6 +337,38 @@ export async function processAccountancyUpload(input: {
   const datasetId = `acct_${Date.now()}_${checksum.slice(0, 8)}`;
   const datasetName = input.fileName.replace(/\.(csv|xlsx|xls|pdf|jpg|jpeg|png|webp|ofx|qif|qfx)$/i, "");
   const uploadCreditOperationId = `accountancy-upload:${input.userId}:${datasetId}`;
+
+  const spendingLimitCheck = await checkSpendingLimits(input.userId)
+  if (spendingLimitCheck.blocked) {
+    const usage = await getAnalystCreditUsage(input.userId, input.role ?? null, input.email ?? null)
+    const used = usage.usedCredits ?? Math.max(0, (usage.total ?? 0) - (usage.remainingCredits ?? 0))
+    const limit = usage.total ?? 0
+    throw new AccountancyUploadError(
+      "validation",
+      "UPLOAD_SPENDING_LIMIT_REACHED",
+      spendingLimitCheck.reason || "Spending limit reached.",
+      402,
+      false,
+      {
+        used,
+        limit,
+        remaining: usage.availableCredits ?? 0,
+        usage: {
+          limitReached: true,
+          analysisCount: used,
+          total: limit,
+          availableCredits: usage.availableCredits ?? 0,
+          reservedCredits: usage.reservedCredits ?? 0,
+          usedCredits: used,
+          remainingCredits: usage.remainingCredits ?? 0,
+          subscriptionTier: usage.subscriptionTier,
+          unlimited: usage.unlimited,
+          unlimitedLabel: usage.unlimitedLabel,
+        },
+      },
+    )
+  }
+
   const reservation = await reserveCredits({
     userId: input.userId,
     operationId: uploadCreditOperationId,

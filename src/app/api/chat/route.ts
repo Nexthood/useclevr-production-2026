@@ -7,6 +7,7 @@ import {
 } from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { checkSpendingLimits } from '@/lib/billing/credit-account-service';
 import { emptyProviderUsage, estimateUsageFromText } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billing/usage-enforcement';
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
@@ -371,9 +372,20 @@ export async function POST(request: Request) {
 
     const operationId = `chat:${userId}:${crypto.randomUUID()}`;
     const hasUnlimitedCredits = isUnlimitedCreditRole(session?.user?.role ?? null)
+    let spendingBlocked = false
+    let spendingReason: string | undefined
+    if (!hasUnlimitedCredits) {
+      const spendingLimitCheck = await checkSpendingLimits(userId)
+      if (spendingLimitCheck.blocked) {
+        spendingBlocked = true
+        spendingReason = spendingLimitCheck.reason
+      }
+    }
     const reservation = hasUnlimitedCredits
       ? null
-      : await reserveCredits({
+      : spendingBlocked
+        ? null
+        : await reserveCredits({
           userId,
           operationId,
           idempotencyKey: request.headers.get('idempotency-key') || operationId,
@@ -391,6 +403,19 @@ export async function POST(request: Request) {
           message: reservation.error || 'You do not have enough credits for this chat request.',
           upgradeRequired: true,
           remainingCredits: reservation.availableCredits,
+        },
+        { status: 402 }
+      );
+    }
+
+    if (spendingBlocked) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: spendingReason || 'Spending limit reached.',
+          message: spendingReason || 'Your spending limit has been reached.',
+          upgradeRequired: true,
+          remainingCredits: 0,
         },
         { status: 402 }
       );

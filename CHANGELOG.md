@@ -6,6 +6,15 @@
 - Add configurable auto-review confidence threshold with bulk actions for reviewing high-confidence, selected, filtered, or all transactions.
 - Add smart review filters and dashboard summary showing auto-reviewed count, needs-review count, duplicate count, missing VAT count, and overall confidence percentage.
 - Restore billing integration layer so users can review billing usage, transaction ledger, purchase history, spending limits, credit previews, and admin reconciliation traces through dedicated routes and settings pages.
+- Add billing integrity hardening so credit deductions remain atomic under concurrency, spending limits are enforced server-side across all billable routes, purchase traces follow FIFO attribution, and reconciliation excludes pending reservations.
+
+### Fixed
+
+- Harden credit billing by restricting direct credit purchases to admin-only access, enforcing verified provider webhooks as the source of truth for payment credits.
+- Fix spending limits so daily, weekly, monthly purchased, and per-operation caps are actually enforced on analyze, chat, report generation, dataset upload, and accountancy upload entry points.
+- Fix purchase trace accuracy so FIFO chronological attribution correctly links usage debits to the originating credit purchase instead of matching all subsequent debits.
+- Fix ledger reconciliation so expected balances exclude pending reservations and match stored account balances exactly.
+- Add comprehensive billing integrity verification with 25 automated checks covering atomic debit protection, idempotency, reserve/settle/release flow, admin entitlement, workspace isolation, and module enforcement.
 
 ### Fixed
 
