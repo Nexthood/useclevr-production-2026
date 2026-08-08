@@ -122,13 +122,14 @@ export async function calculateRiskIntelligenceForDataset(
 
   const scope = normalizeRiskModuleScope(options.scope)
   const canReadAll = canAccessAllDatasets(user.role) || isSuperadmin(user)
+  const whereConditions = [
+    eq(datasets.id, datasetId),
+    canReadAll ? undefined : eq(datasets.userId, user.id),
+    ne(datasets.status, "deleted"),
+    ne(datasets.status, "archived"),
+  ].filter(Boolean) as Parameters<typeof and>
   const dataset = await db.query.datasets.findFirst({
-    where: and(
-      eq(datasets.id, datasetId),
-      canReadAll ? undefined : eq(datasets.userId, user.id),
-      ne(datasets.status, "deleted"),
-      ne(datasets.status, "archived"),
-    ),
+    where: and(...whereConditions),
   })
 
   if (!dataset) {

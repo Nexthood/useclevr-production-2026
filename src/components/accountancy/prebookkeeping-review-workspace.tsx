@@ -296,9 +296,14 @@ export function PrebookkeepingReviewWorkspace({
             <Button
               type="button"
               onClick={() => {
+                if (exportCounts.reviewed === 0) {
+                  setExportNotice("No reviewed transactions are available yet. Please review and approve transactions before exporting.");
+                  setExportDialogFormat(null);
+                  return;
+                }
                 setExportDialogFormat("excel");
                 setExportScope("reviewed");
-                setExportNotice(exportCounts.reviewed === 0 ? "No reviewed transactions are available yet. Please review and approve transactions before exporting." : null);
+                setExportNotice(null);
               }}
               disabled={Boolean(exportingFormat)}
               className="gap-2"

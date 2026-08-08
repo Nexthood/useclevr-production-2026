@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-08
-- **Goal**: Repair Pre-bookkeeping accountant export workflow and bookkeeping Risk Intelligence crashes.
-- **Durable change**: Pre-bookkeeping export validates reviewed transactions with a Review Transactions action, while Risk Intelligence renders bookkeeping-specific risk findings or a graceful problem state instead of a Server Component error.
-- **Verification**: Focused export/risk fix-pack regression, VAT workflow regression, Accountancy upload regression, and TypeScript checks pass; commit workflow is in progress.
+- **Goal**: Complete production validation of Pre-bookkeeping & Risk Intelligence workflow and fix regressions.
+- **Durable change**: Export for Accountant button validates reviewed transactions without opening a disabled dialog; Risk Intelligence dataset query safely builds drizzle `and` clauses for all roles.
+- **Verification**: TypeScript checks pass, lint passes, two production bugs fixed.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

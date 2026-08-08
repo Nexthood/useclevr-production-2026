@@ -1,3 +1,11 @@
+## Pre-bookkeeping Production Validation
+
+- User goal: perform complete production validation of the Pre-bookkeeping & Risk Intelligence workflow and fix regressions.
+- Finding: Export for Accountant button opened both a validation notice and an export dialog when no transactions were reviewed; Risk Intelligence dataset query passed undefined to drizzle `and` for superadmin access.
+- Change: export button now shows only a validation notice with no dialog when reviewed count is zero; risk query filters undefined conditions before spreading into `and`.
+- Verification: TypeScript checks pass, lint passes, pre-commit project records updated.
+- Status: commit and push in progress.
+
 ## Next.js Type Validation Pipeline
 
 - User goal: identify the real cause of TS6053 for missing `.next/types/cache-life.d.ts` and `.next/types/validator.ts`, fix the validation pipeline, and push `beta` without bypassing Husky.
