@@ -1,3 +1,4 @@
+- changed: improve Pre-bookkeeping transaction review workspace scrolling so the table scrolls independently inside a fixed-height container and users do not need to reach the bottom of the page to access hidden columns
 - fixed: Pre-bookkeeping Export for Accountant button shows a review action when no transactions are reviewed instead of opening a disabled export dialog
 - fixed: Risk Intelligence dataset query filters undefined conditions before spreading into drizzle `and` so superadmin access does not pass undefined SQL expressions
 - changed: route selected-dataset AI Analyst questions through intent classification and deterministic metric resolution so supported marketplace, order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.

@@ -1,3 +1,34 @@
+## Pre-bookkeeping Scrollable Transaction Review Container
+
+1. Interaction title
+Pre-bookkeeping scrollable transaction review container.
+
+2. What was the user goal
+Wrap the transaction review table in its own fixed-height scroll container so vertical and horizontal scrolling happen inside the table workspace without forcing users to reach the bottom of the page.
+
+3. What changed
+The transaction review queue container now uses `max-h-[60vh] overflow-auto` instead of only `overflow-x-auto`, giving the table its own independent scroll context while keeping filters, selection, category editing, VAT editing, duplicate review, exports, and page layout unchanged.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Users should work inside the table as a spreadsheet-like workspace; page navigation should not require horizontal scrolling through the entire document before reaching the table.
+
+6. AI-agent learning
+Table UX fixes should prefer constrained scroll containers over relying on page-level scrolling when wide tables force horizontal access.
+
+7. Follow-up tasks
+- Verify the fixed-height container behaves well on small viewports and with long table rows.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Pre-bookkeeping Production Validation
 
 - User goal: perform complete production validation of the Pre-bookkeeping & Risk Intelligence workflow and fix regressions.

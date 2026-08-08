@@ -395,7 +395,7 @@ export function PrebookkeepingReviewWorkspace({
           </div>
         )}
 
-        <div id="categorized-transactions" className="mt-4 overflow-x-auto rounded-md border border-border">
+        <div id="categorized-transactions" className="mt-4 max-h-[60vh] overflow-auto rounded-md border border-border">
           <div className="border-b border-border bg-background px-4 py-3">
             <h3 className="text-base font-semibold text-foreground">Transaction review queue</h3>
             <p className="text-sm text-muted-foreground">Showing {filteredRows.length.toLocaleString()} filtered transaction(s) for {datasetName}.</p>
