@@ -2405,3 +2405,37 @@ When a shared upload success component serves module-specific flows, gate action
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Autonomous AI Transaction Review Engine
+
+1. Interaction title
+Autonomous AI transaction review engine for Pre-bookkeeping.
+
+2. What was the user goal
+Transform the manual per-row review workflow into an AI-assisted enterprise workflow where high-confidence transactions are automatically approved and only exceptions remain in the manual review queue.
+
+3. What changed
+Pre-bookkeeping now applies an autonomous review engine after categorization. Transactions meeting all auto-review rules receive `autoReviewed: true`, explainability evidence, business rule metadata, calculation source, provider source, risk score, and review blockers. The review workspace shows a dashboard summary with auto-reviewed count, needs-review count, duplicate count, missing VAT count, and confidence percentage. A configurable confidence threshold controls auto-review behavior. Bulk actions include auto-review all high confidence, auto-review selected, auto-review filtered, and reset review status. Smart filters added for auto-reviewed, low-confidence, and high-value transactions. Existing exports continue working unchanged.
+
+4. Problems marked
+blocker: none.
+observation: Existing export scopes (filtered, reviewed, all) and formats (CSV, Excel) remain compatible because they only read established transaction fields.
+observation: The `PrebookkeepingCategorization` and `CategorizedTransaction` types were extended with new fields while preserving all existing fields, so older data normalizes safely.
+
+5. User learning
+Users review exceptions instead of every row. Auto-reviewed rows show confidence, evidence, business rule, and source so users understand why the AI approved each transaction. The threshold slider lets businesses tune auto-review strictness.
+
+6. AI-agent learning
+Autonomous review should evaluate blockers independently per transaction: uncategorized category, confidence below threshold, duplicate, missing VAT, VAT needs review, missing supplier, and large amount. Learning rules and Business Profile VAT sources strengthen auto-review confidence and evidence.
+
+7. Follow-up tasks
+- Add undo-last-review by storing pre-auto-review transaction snapshots. (labels: prebookkeeping, review, undo)
+- Persist thresholdConfig per user or business profile instead of dataset-level defaults. (labels: prebookkeeping, settings, persistence)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.

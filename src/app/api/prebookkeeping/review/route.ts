@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import {
+  applyAutonomousReview,
   isPrebookkeepingCategorization,
   normalizePrebookkeepingCategorization,
   normalizeReviewCategory,
@@ -29,7 +30,13 @@ type ReviewAction =
   | "apply_business_default_vat"
   | "apply_vat_to_matching"
   | "bulk_mark_reviewed"
-  | "bulk_delete_duplicates";
+  | "bulk_delete_duplicates"
+  | "auto_review_all_high_confidence"
+  | "auto_review_selected"
+  | "auto_review_all_filtered"
+  | "auto_review_all"
+  | "undo_last_review"
+  | "reset_review_status";
 
 export async function PATCH(request: Request) {
   try {
@@ -43,8 +50,13 @@ export async function PATCH(request: Request) {
     const datasetId = typeof body.datasetId === "string" ? body.datasetId : "";
     const action = typeof body.action === "string" ? body.action as ReviewAction : null;
     const rowIndexes = normalizeRowIndexes(body.rowIndexes ?? body.rowIndex);
+    const threshold = normalizeThreshold(body.threshold);
 
-    if (!datasetId || !action || rowIndexes.length === 0) {
+    if (!datasetId || !action) {
+      return jsonError("Dataset ID and action are required.", 400);
+    }
+
+    if (!isAutonomousReviewAction(action) && rowIndexes.length === 0) {
       return jsonError("Dataset ID, action, and row indexes are required.", 400);
     }
 
@@ -77,15 +89,21 @@ export async function PATCH(request: Request) {
     const categorization = normalizePrebookkeepingCategorization(categorizationValue);
 
     const now = new Date();
+    const effectiveRowIndexes = isAutonomousReviewAction(action)
+      ? categorization.transactions
+          .filter((transaction) => rowIndexes.includes(transaction.rowIndex) || rowIndexes.length === 0)
+          .map((transaction) => transaction.rowIndex)
+      : rowIndexes;
+
     const beforeByRow = new Map(
       categorization.transactions
-        .filter((transaction) => rowIndexes.includes(transaction.rowIndex))
+        .filter((transaction) => effectiveRowIndexes.includes(transaction.rowIndex))
         .map((transaction) => [transaction.rowIndex, transaction]),
     );
-    const updated = applyReviewAction(categorization, rowIndexes, action, body);
+    const updated = applyReviewAction(categorization, effectiveRowIndexes, action, body, threshold);
     const afterByRow = new Map(
       updated.transactions
-        .filter((transaction) => rowIndexes.includes(transaction.rowIndex))
+        .filter((transaction) => effectiveRowIndexes.includes(transaction.rowIndex))
         .map((transaction) => [transaction.rowIndex, transaction]),
     );
     await db.transaction(async (tx) => {
@@ -103,7 +121,7 @@ export async function PATCH(request: Request) {
         .where(eq(datasets.id, dataset.id));
 
       await tx.insert(prebookkeepingAuditEvents).values(
-        rowIndexes.map((rowIndex) => ({
+        effectiveRowIndexes.map((rowIndex) => ({
           id: `prebook_audit_${uuidv4()}`,
           userId,
           datasetId: dataset.id,
@@ -125,7 +143,7 @@ export async function PATCH(request: Request) {
         action === "apply_business_default_vat" ||
         action === "apply_vat_to_matching"
       ) {
-        const changedRows = updated.transactions.filter((transaction) => rowIndexes.includes(transaction.rowIndex));
+        const changedRows = updated.transactions.filter((transaction) => effectiveRowIndexes.includes(transaction.rowIndex));
         const rules = changedRows
           .filter((transaction) => transaction.category !== "uncategorized")
           .map((transaction) => ({
@@ -160,7 +178,40 @@ function applyReviewAction(
   rowIndexes: number[],
   action: ReviewAction,
   body: Record<string, unknown>,
+  threshold?: number,
 ): PrebookkeepingCategorization {
+  if (isAutonomousReviewAction(action)) {
+    const configuredThreshold = threshold ?? categorization.reviewSummary.thresholdConfig.autoReview;
+    const withThreshold = {
+      ...categorization,
+      thresholdConfig: {
+        ...categorization.thresholdConfig,
+        autoReview: configuredThreshold,
+      },
+    };
+
+    if (action === "reset_review_status") {
+      const resetTransactions = categorization.transactions.map((transaction) => ({
+        ...transaction,
+        reviewed: false,
+        autoReviewed: false,
+        autoReviewReason: null,
+        autoReviewEvidence: [] as string[],
+        autoReviewBusinessRule: null,
+        autoReviewCalculationSource: null,
+        autoReviewProviderSource: null,
+        reviewDecision: null as "auto" | "manual" | null,
+        riskScore: 0,
+        reviewBlockers: [] as string[],
+        reviewStatus: "pending" as const,
+        needsReview: transaction.category === "uncategorized" || transaction.confidence < 0.7 || transaction.duplicateStatus === "possible_duplicate" || transaction.vatStatus === "missing" || !transaction.supplierCustomer,
+      }));
+      return rebuildCategorization(categorization, resetTransactions);
+    }
+
+    return applyAutonomousReview(withThreshold, [], categorization.taxProfile);
+  }
+
   const selected = new Set(rowIndexes);
   const category = normalizeReviewCategory(body.category);
   const fallbackVatRate = action === "apply_business_default_vat" ? categorization.taxProfile.defaultVatRate : null;
@@ -176,6 +227,7 @@ function applyReviewAction(
     if (action === "accept_suggestion" || action === "bulk_accept_suggestions") {
       if (next.suggestedCategory) next.category = next.suggestedCategory;
       next.reviewed = true;
+      next.reviewDecision = "manual";
     }
     if ((action === "change_category" || action === "bulk_change_category") && category !== "uncategorized") {
       next.category = category;
@@ -183,6 +235,7 @@ function applyReviewAction(
       next.confidence = 1;
       next.reviewed = true;
       next.reasons = ["manual category edit"];
+      next.reviewDecision = "manual";
     }
     if (
       (action === "add_vat" ||
@@ -204,12 +257,17 @@ function applyReviewAction(
       next.vatSource = "manual_review";
       next.vatNeedsReview = false;
       next.reviewed = true;
+      next.reviewDecision = "manual";
     }
-    if (action === "mark_reviewed" || action === "bulk_mark_reviewed") next.reviewed = true;
+    if (action === "mark_reviewed" || action === "bulk_mark_reviewed") {
+      next.reviewed = true;
+      next.reviewDecision = "manual";
+    }
     if (action === "duplicate_action" && duplicateStatus) next.duplicateStatus = duplicateStatus;
     if (action === "bulk_delete_duplicates") {
       next.duplicateStatus = "merged";
       next.reviewed = true;
+      next.reviewDecision = "manual";
     }
 
     next.reviewStatus = next.reviewed ? "reviewed" : "pending";
@@ -253,9 +311,47 @@ function rebuildCategorization(
       totalCount: transactions.length,
       progress: reviewProgressPercent,
       status: reviewProgressPercent === 100 && transactions.length > 0 ? "ready_for_accountant" : "ready_for_review",
+      autoReviewedCount: transactions.filter((transaction) => transaction.autoReviewed).length,
+      needsReviewCount: requiresReview,
+      riskDistribution: buildRiskDistribution(transactions),
+      thresholdConfig: categorization.thresholdConfig ?? { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
     },
     transactions,
   };
+}
+
+function isAutonomousReviewAction(action: string): action is
+  | "auto_review_all_high_confidence"
+  | "auto_review_selected"
+  | "auto_review_all_filtered"
+  | "auto_review_all"
+  | "undo_last_review"
+  | "reset_review_status" {
+  return [
+    "auto_review_all_high_confidence",
+    "auto_review_selected",
+    "auto_review_all_filtered",
+    "auto_review_all",
+    "undo_last_review",
+    "reset_review_status",
+  ].includes(action);
+}
+
+function normalizeThreshold(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return Math.min(1, Math.max(0, value));
+}
+
+function buildRiskDistribution(transactions: CategorizedTransaction[]) {
+  return transactions.reduce(
+    (distribution, transaction) => {
+      if (transaction.riskScore < 0.3) distribution.low += 1;
+      else if (transaction.riskScore < 0.7) distribution.medium += 1;
+      else distribution.high += 1;
+      return distribution;
+    },
+    { low: 0, medium: 0, high: 0 },
+  );
 }
 
 function findMatchingVatRows(transactions: CategorizedTransaction[], rowIndexes: number[]) {

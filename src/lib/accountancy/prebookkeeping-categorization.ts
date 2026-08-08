@@ -60,6 +60,15 @@ export interface CategorizedTransaction {
   vatSource: VatPredictionSource | null;
   vatNeedsReview: boolean;
   isLargeTransaction: boolean;
+  autoReviewed: boolean;
+  autoReviewReason: string | null;
+  autoReviewEvidence: string[];
+  autoReviewBusinessRule: string | null;
+  autoReviewCalculationSource: string | null;
+  autoReviewProviderSource: string | null;
+  reviewDecision: "auto" | "manual" | null;
+  riskScore: number;
+  reviewBlockers: string[];
 }
 
 export interface PrebookkeepingCategorization {
@@ -97,6 +106,11 @@ export interface PrebookkeepingCategorization {
   taxProfile: BusinessTaxProfile;
   recommendations: string[];
   transactions: CategorizedTransaction[];
+  thresholdConfig: {
+    autoReview: number;
+    suggestedReview: number;
+    manualReview: number;
+  };
 }
 
 export type PrebookkeepingReviewStatus = "pending" | "processing" | "ready_for_review" | "ready_for_accountant" | "failed";
@@ -122,6 +136,18 @@ export type PrebookkeepingReviewSummary = {
     high: number;
     medium: number;
     low: number;
+  };
+  autoReviewedCount: number;
+  needsReviewCount: number;
+  riskDistribution: {
+    low: number;
+    medium: number;
+    high: number;
+  };
+  thresholdConfig: {
+    autoReview: number;
+    suggestedReview: number;
+    manualReview: number;
   };
 };
 
@@ -212,9 +238,13 @@ export function categorizePrebookkeepingRows(
     defaultVatRate: taxProfile.defaultVatRate,
     businessCountry: taxProfile.taxCountry,
     confidenceDistribution: buildVatConfidenceDistribution(transactions),
+    autoReviewedCount: 0,
+    needsReviewCount: transactions.filter((transaction) => transaction.needsReview).length,
+    riskDistribution: buildRiskDistribution(transactions),
+    thresholdConfig: { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
   };
 
-  return {
+  const baseCategorization: PrebookkeepingCategorization = {
     status: "ready_for_review",
     generatedAt: new Date().toISOString(),
     rowCount: transactions.length,
@@ -239,7 +269,12 @@ export function categorizePrebookkeepingRows(
       incomeTotal,
     }),
     transactions,
+    thresholdConfig: { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
   };
+
+  const withAutonomousReview = applyAutonomousReview(baseCategorization, learningRules, taxProfile);
+
+  return withAutonomousReview;
 }
 
 export function isPrebookkeepingCategorization(value: unknown): value is PrebookkeepingCategorization {
@@ -273,7 +308,178 @@ export function createDefaultPrebookkeepingReviewSummary(
     defaultVatRate: null,
     businessCountry: null,
     confidenceDistribution: { high: 0, medium: 0, low: totalCount },
+    autoReviewedCount: 0,
+    needsReviewCount: totalCount,
+    riskDistribution: { low: 0, medium: 0, high: totalCount },
+    thresholdConfig: { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
   };
+}
+
+export function applyAutonomousReview(
+  categorization: PrebookkeepingCategorization,
+  learningRules: PrebookkeepingLearningRuleInput[] = [],
+  _taxProfile: BusinessTaxProfile,
+): PrebookkeepingCategorization {
+  const threshold = categorization.thresholdConfig?.autoReview ?? 0.95;
+  const normalizedRules = normalizeLearningRules(learningRules);
+  const duplicateRows = new Set(
+    categorization.possibleDuplicates.flatMap((group) => group.rowIndexes),
+  );
+
+  const transactions = categorization.transactions.map((transaction): CategorizedTransaction => {
+    const blockers: string[] = [];
+    const evidence: string[] = [];
+    let riskScore = 0;
+
+    if (transaction.category === "uncategorized") {
+      blockers.push("Category is unknown");
+    }
+    if (transaction.confidence < threshold) {
+      blockers.push(`Confidence ${Math.round(transaction.confidence * 100)}% is below ${Math.round(threshold * 100)}% threshold`);
+      riskScore += 0.3;
+    }
+    if (duplicateRows.has(transaction.rowIndex)) {
+      blockers.push("Possible duplicate detected");
+      riskScore += 0.2;
+    }
+    if (transaction.vatStatus === "missing") {
+      blockers.push("VAT is missing");
+      riskScore += 0.2;
+    }
+    if (transaction.vatNeedsReview) {
+      blockers.push("VAT needs review");
+      riskScore += 0.1;
+    }
+    if (!transaction.supplierCustomer) {
+      blockers.push("Supplier/customer is missing");
+      riskScore += 0.15;
+    }
+    if (transaction.amount !== null && Math.abs(transaction.amount) > 10000) {
+      blockers.push("Large transaction amount");
+      riskScore += 0.1;
+    }
+
+    if (transaction.confidence >= 0.96 && normalizedRules.some((rule) => matchesLearningRule(transaction, rule))) {
+      evidence.push("Matched learned user rule");
+      riskScore = Math.max(0, riskScore - 0.1);
+    }
+    if (transaction.vatSource === "transaction_data") {
+      evidence.push("VAT amount present in uploaded data");
+    }
+    if (transaction.vatSource === "learning_rule") {
+      evidence.push("VAT matches learned supplier/category rule");
+    }
+    if (transaction.vatSource === "business_profile") {
+      evidence.push("VAT derived from Business Profile");
+    }
+    if (transaction.category !== "uncategorized") {
+      evidence.push(`Category ${transaction.category} identified by deterministic rules`);
+    }
+    if (transaction.supplierCustomer) {
+      evidence.push("Supplier/customer identified");
+    }
+
+    const canAutoReview =
+      blockers.length === 0 &&
+      transaction.category !== "uncategorized" &&
+      transaction.confidence >= threshold &&
+      !duplicateRows.has(transaction.rowIndex) &&
+      transaction.vatStatus === "present" &&
+      !transaction.vatNeedsReview &&
+      Boolean(transaction.supplierCustomer);
+
+    const autoReviewed = Boolean(canAutoReview && !transaction.reviewed);
+    const reviewDecision: "auto" | "manual" | null = autoReviewed ? "auto" : transaction.reviewDecision;
+
+    const autoReviewReason = autoReviewed
+      ? `Auto-reviewed: confidence ${Math.round(transaction.confidence * 100)}%, category ${transaction.category}, VAT present, no duplicates, no missing fields.`
+      : transaction.autoReviewReason;
+
+    const next: CategorizedTransaction = {
+      ...transaction,
+      autoReviewed,
+      autoReviewReason,
+      autoReviewEvidence: autoReviewed ? evidence : transaction.autoReviewEvidence,
+      autoReviewBusinessRule: transaction.vatBusinessRule,
+      autoReviewCalculationSource: transaction.vatSource === "transaction_data" ? "transaction_data" : transaction.vatSource === "learning_rule" ? "learning_rule" : "deterministic_classification",
+      autoReviewProviderSource: "usecler_engine",
+      reviewDecision,
+      riskScore: Math.min(1, Math.max(0, riskScore)),
+      reviewBlockers: blockers,
+      reviewed: transaction.reviewed || autoReviewed,
+      needsReview: blockers.length > 0,
+      reviewStatus: (transaction.reviewed || autoReviewed) ? "reviewed" : "pending",
+    };
+    return next;
+  });
+
+  const reviewedCount = transactions.filter((transaction) => transaction.reviewed).length;
+  const requiresReview = transactions.filter((transaction) => transaction.needsReview).length;
+  const reviewProgressPercent = Math.round((reviewedCount / Math.max(transactions.length, 1)) * 100);
+  const autoReviewedCount = transactions.filter((transaction) => transaction.autoReviewed).length;
+
+  return {
+    ...categorization,
+    transactions,
+    categoryCounts: Object.fromEntries(
+      categories.map((category) => [category, transactions.filter((t) => t.category === category).length]),
+    ) as Record<PrebookkeepingCategory, number>,
+    categorizedCount: transactions.length - transactions.filter((t) => t.category === "uncategorized").length,
+    uncategorizedCount: transactions.filter((t) => t.category === "uncategorized").length,
+    reviewSummary: {
+      ...categorization.reviewSummary,
+      reviewedCount,
+      requiresReview,
+      reviewProgressPercent,
+      progress: reviewProgressPercent,
+      status: reviewProgressPercent === 100 && transactions.length > 0 ? "ready_for_accountant" : "ready_for_review",
+      manualCorrections: transactions.filter((transaction) => transaction.vatSource === "manual_review" || transaction.reasons.includes("manual category edit")).length,
+      averageVatConfidence: Math.round((transactions.reduce((sum, transaction) => sum + transaction.vatConfidence, 0) / Math.max(transactions.length, 1)) * 100),
+      confidenceDistribution: buildVatConfidenceDistribution(transactions),
+      autoReviewedCount,
+      needsReviewCount: requiresReview,
+      riskDistribution: buildRiskDistribution(transactions),
+      thresholdConfig: categorization.thresholdConfig ?? { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
+    },
+    recommendations: buildRecommendations({
+      reviewSummary: {
+        ...categorization.reviewSummary,
+        reviewedCount,
+        requiresReview,
+        reviewProgressPercent,
+        progress: reviewProgressPercent,
+        autoReviewedCount,
+        needsReviewCount: requiresReview,
+        riskDistribution: buildRiskDistribution(transactions),
+        thresholdConfig: categorization.thresholdConfig ?? { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
+      },
+      categoryCounts: Object.fromEntries(
+        categories.map((category) => [category, transactions.filter((t) => t.category === category).length]),
+      ) as Record<PrebookkeepingCategory, number>,
+      expenseTotal: categorization.expenseTotal,
+      incomeTotal: categorization.incomeTotal,
+    }),
+  };
+}
+
+function matchesLearningRule(transaction: CategorizedTransaction, rule: NormalizedLearningRule): boolean {
+  const text = [transaction.description, transaction.supplierCustomer].filter(Boolean).join(" ").toLowerCase();
+  if (rule.supplierKey && transaction.supplierCustomer?.toLowerCase().includes(rule.supplierKey)) return true;
+  if (rule.merchantKey && text.includes(rule.merchantKey)) return true;
+  if (rule.descriptionKeyword && text.includes(rule.descriptionKeyword)) return true;
+  return false;
+}
+
+function buildRiskDistribution(transactions: CategorizedTransaction[]) {
+  return transactions.reduce(
+    (distribution, transaction) => {
+      if (transaction.riskScore < 0.3) distribution.low += 1;
+      else if (transaction.riskScore < 0.7) distribution.medium += 1;
+      else distribution.high += 1;
+      return distribution;
+    },
+    { low: 0, medium: 0, high: 0 },
+  );
 }
 
 export function normalizePrebookkeepingCategorization(
@@ -296,6 +502,14 @@ export function normalizePrebookkeepingCategorization(
   );
   const status = normalizeReviewStatus(existing.status, progress >= 100 && totalCount > 0 ? "ready_for_accountant" : "ready_for_review");
   const taxProfile = normalizeBusinessTaxProfile(value.taxProfile);
+
+  const thresholdConfig = isRecord(existing.thresholdConfig)
+    ? {
+        autoReview: numberOrDefault((existing.thresholdConfig as Record<string, unknown>).autoReview, 0.95),
+        suggestedReview: numberOrDefault((existing.thresholdConfig as Record<string, unknown>).suggestedReview, 0.8),
+        manualReview: numberOrDefault((existing.thresholdConfig as Record<string, unknown>).manualReview, 0),
+      }
+    : { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 };
 
   const reviewSummary: PrebookkeepingReviewSummary = {
     transactionsAnalyzed: numberOrDefault(existing.transactionsAnalyzed, totalCount),
@@ -324,6 +538,10 @@ export function normalizePrebookkeepingCategorization(
     defaultVatRate: nullableNumber(existing.defaultVatRate),
     businessCountry: stringOrNull(existing.businessCountry) ?? taxProfile.taxCountry,
     confidenceDistribution: normalizeConfidenceDistribution(existing.confidenceDistribution, buildVatConfidenceDistribution(rows)),
+    autoReviewedCount: numberOrDefault(existing.autoReviewedCount, rows.filter((transaction) => transaction.autoReviewed).length),
+    needsReviewCount: numberOrDefault(existing.needsReviewCount, rows.filter((transaction) => transaction.needsReview).length),
+    riskDistribution: normalizeRiskDistribution(existing.riskDistribution, buildRiskDistribution(rows)),
+    thresholdConfig,
   };
 
   return {
@@ -334,6 +552,7 @@ export function normalizePrebookkeepingCategorization(
     transactions: rows,
     reviewSummary,
     taxProfile,
+    thresholdConfig: value.thresholdConfig ?? thresholdConfig,
     recommendations: Array.isArray(value.recommendations) && value.recommendations.length > 0
       ? value.recommendations
       : buildRecommendations({
@@ -377,6 +596,15 @@ function normalizeCategorizedTransaction(value: unknown, index: number): Categor
     vatSource: normalizeVatSource(row.vatSource),
     vatNeedsReview: row.vatNeedsReview === true || row.vatStatus !== "present",
     isLargeTransaction: row.isLargeTransaction === true,
+    autoReviewed: row.autoReviewed === true,
+    autoReviewReason: stringOrNull(row.autoReviewReason),
+    autoReviewEvidence: Array.isArray(row.autoReviewEvidence) ? row.autoReviewEvidence.map(String).filter(Boolean) : [],
+    autoReviewBusinessRule: stringOrNull(row.autoReviewBusinessRule),
+    autoReviewCalculationSource: stringOrNull(row.autoReviewCalculationSource),
+    autoReviewProviderSource: stringOrNull(row.autoReviewProviderSource),
+    reviewDecision: normalizeReviewDecision(row.reviewDecision),
+    riskScore: clamp(numberOrDefault(row.riskScore, 0), 0, 1),
+    reviewBlockers: Array.isArray(row.reviewBlockers) ? row.reviewBlockers.map(String).filter(Boolean) : [],
   };
 }
 
@@ -475,6 +703,15 @@ function normalizeTransaction(
     vatSource: vatPrediction.source,
     vatNeedsReview,
     isLargeTransaction: false,
+    autoReviewed: false,
+    autoReviewReason: null,
+    autoReviewEvidence: [],
+    autoReviewBusinessRule: null,
+    autoReviewCalculationSource: null,
+    autoReviewProviderSource: null,
+    reviewDecision: null,
+    riskScore: 0,
+    reviewBlockers: [],
   };
 }
 
@@ -603,6 +840,23 @@ function normalizeVatSource(value: unknown): CategorizedTransaction["vatSource"]
   return null;
 }
 
+function normalizeReviewDecision(value: unknown): "auto" | "manual" | null {
+  if (value === "auto" || value === "manual") return value;
+  return null;
+}
+
+function normalizeRiskDistribution(
+  value: unknown,
+  fallback: PrebookkeepingReviewSummary["riskDistribution"],
+): PrebookkeepingReviewSummary["riskDistribution"] {
+  const record = isRecord(value) ? value : {};
+  return {
+    low: numberOrDefault(record.low, fallback.low),
+    medium: numberOrDefault(record.medium, fallback.medium),
+    high: numberOrDefault(record.high, fallback.high),
+  };
+}
+
 function normalizeBusinessTaxProfile(value: unknown): BusinessTaxProfile {
   if (!isRecord(value)) return buildBusinessTaxProfile(null);
   const availableRates = Array.isArray(value.availableRates)
@@ -692,7 +946,8 @@ function buildRecommendations(input: {
   incomeTotal: number;
 }) {
   const recommendations: string[] = [];
-  if (input.reviewSummary.requiresReview > 0) recommendations.push("Review uncategorized and low-confidence transactions first.");
+  if (input.reviewSummary.autoReviewedCount > 0) recommendations.push(`${input.reviewSummary.autoReviewedCount} transaction(s) were automatically approved and are ready for accountant review.`);
+  if (input.reviewSummary.needsReviewCount > 0) recommendations.push(`Review ${input.reviewSummary.needsReviewCount} exception(s) that require manual attention before export.`);
   if (input.reviewSummary.possibleDuplicatesDetected > 0) recommendations.push("Verify possible duplicate transactions before export.");
   if (input.reviewSummary.vatMissingPercent > 0) recommendations.push("Complete VAT information before exporting reviewed data.");
   if (input.categoryCounts.fixed_costs > 0 && input.expenseTotal > input.incomeTotal * 0.5) recommendations.push("Fixed costs appear unusually high this period.");

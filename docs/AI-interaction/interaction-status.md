@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-08
-- **Goal**: Wrap the Pre-bookkeeping transaction review table in a fixed-height scroll container so vertical and horizontal scrolling happen inside the table workspace.
-- **Durable change**: The transaction review queue now scrolls independently inside a `max-h-[60vh] overflow-auto` container, preserving filters, selection, category editing, VAT editing, duplicate review, exports, and page layout.
+- **Goal**: Implement an autonomous AI transaction review engine for Pre-bookkeeping that automatically approves high-confidence transactions and routes exceptions to manual review.
+- **Durable change**: Pre-bookkeeping now auto-reviews transactions above a configurable confidence threshold, surfaces explainability evidence per row, and provides bulk auto-review actions with smart filters and dashboard summary.
 - **Verification**: TypeScript checks pass, lint passes, project records updated.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
