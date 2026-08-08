@@ -6,6 +6,7 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { auth } from '@/lib/auth/auth';
 import { isSuperAdminUserId } from '@/lib/auth/builtin-users';
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { checkSpendingLimits } from '@/lib/billing/credit-account-service';
 import { emptyProviderUsage } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
 import { findAccessibleDataset } from '@/lib/data/dataset-access';
@@ -116,6 +117,30 @@ export async function POST(request: Request) {
 
     operationId = `report:${userId}:${idempotencyKey}`;
     const isUnlimited = isUnlimitedCreditRole(resolvedRole) || isSuperAdminUserId(userId);
+    if (!isUnlimited) {
+      const spendingLimitCheck = await checkSpendingLimits(userId)
+      if (spendingLimitCheck.blocked) {
+        await logAiCost({
+          userId,
+          subscriptionPlan: subscriptionTier,
+          provider: 'system',
+          model: 'report-generator',
+          actionType: 'report_generation',
+          inputTokens: 0,
+          outputTokens: 0,
+          estimatedCostEur: 0,
+          creditsCharged: 0,
+          requestStatus: 'blocked',
+          errorMessage: spendingLimitCheck.reason,
+          datasetId,
+        });
+        return NextResponse.json(
+          { success: false, error: spendingLimitCheck.reason || 'Spending limit reached.' },
+          { status: 402 }
+        );
+      }
+    }
+
     const reservation = isUnlimited
       ? null
       : await reserveCredits({

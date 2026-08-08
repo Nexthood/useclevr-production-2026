@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
@@ -442,6 +443,19 @@ export async function POST(request: Request) {
       });
     } else {
       try {
+        const spendingLimitCheck = await checkSpendingLimits(userId)
+        if (spendingLimitCheck.blocked) {
+          return jsonError(402, "credits_deducted", spendingLimitCheck.reason || "Spending limit reached.", false, {
+            code: "UPLOAD_SPENDING_LIMIT_REACHED",
+            title: "Spending limit reached",
+            requestId,
+            upgradeRequired: true,
+            used: usage?.usedCredits ?? 0,
+            limit: usage?.total ?? 0,
+            remaining: usage?.availableCredits ?? 0,
+            usage,
+          });
+        }
         logStage(requestId, "credit_reservation_started", { operationId, datasetId });
         reservation = await reserveCredits({
           userId,

@@ -8,6 +8,7 @@ import { deleteDatasetsForUser, MAX_DELETE_BATCH_SIZE, sanitizeDatasetIds } from
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine"
+import { checkSpendingLimits } from "@/lib/billing/credit-account-service"
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
@@ -106,6 +107,20 @@ export async function POST(request: Request) {
 
     let usage = currentUsage
     if (!currentUsage.unlimited) {
+      const spendingLimitCheck = await checkSpendingLimits(session.user.id)
+      if (spendingLimitCheck.blocked) {
+        return NextResponse.json({
+          error: "Upload credit limit reached",
+          code: "UPLOAD_SPENDING_LIMIT_REACHED",
+          title: "Spending limit reached",
+          message: spendingLimitCheck.reason || "Your spending limit has been reached.",
+          used: usage.usedCredits,
+          limit: usage.total,
+          remaining: usage.availableCredits,
+          usage,
+        }, { status: 402 })
+      }
+
       const reservation = await reserveCredits({
         userId: session.user.id,
         operationId: creditOperationId,

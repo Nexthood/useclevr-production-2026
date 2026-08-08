@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { checkSpendingLimits } from '@/lib/billing/credit-account-service';
 import { emptyProviderUsage } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
 import fs from 'fs';
@@ -265,6 +266,29 @@ export async function POST(request: Request) {
     const role = (session?.user as { role?: string })?.role ?? null;
     const isUnlimited = isUnlimitedCreditRole(role);
     const subscriptionTier = isUnlimited ? role || 'superadmin' : profile.subscriptionTier || 'free';
+
+    if (!isUnlimited) {
+      const spendingLimitCheck = await checkSpendingLimits(userId)
+      if (spendingLimitCheck.blocked) {
+        await logAiCost({
+          userId,
+          subscriptionPlan: subscriptionTier,
+          provider: 'system',
+          model: 'system',
+          actionType: 'report_generation',
+          inputTokens: 0,
+          outputTokens: 0,
+          estimatedCostEur: 0,
+          creditsCharged: 0,
+          requestStatus: 'blocked',
+          errorMessage: spendingLimitCheck.reason,
+        });
+        return NextResponse.json(
+          { success: false, error: spendingLimitCheck.reason || 'Spending limit reached.' },
+          { status: 402 }
+        );
+      }
+    }
 
     const operationId = `report:${userId}:${crypto.randomUUID()}`;
     const reservation = isUnlimited

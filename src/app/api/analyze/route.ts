@@ -53,6 +53,7 @@ import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { estimateUsageFromText } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
 
@@ -295,6 +296,35 @@ export async function POST(request: Request) {
       : true
 
     if (effectiveUserId && !hasUnlimitedCredits) {
+      const spendingLimitCheck = await checkSpendingLimits(effectiveUserId)
+      if (spendingLimitCheck.blocked) {
+        await logAiCost({
+          userId: effectiveUserId,
+          subscriptionPlan: subscriptionTier,
+          provider: "system",
+          model: "system",
+          actionType: "dataset_analysis",
+          inputTokens: 0,
+          outputTokens: 0,
+          estimatedCostEur: 0,
+          creditsCharged: 0,
+          requestStatus: "blocked",
+          errorMessage: spendingLimitCheck.reason,
+        })
+        return Response.json({
+          success: false,
+          error: spendingLimitCheck.reason || "Spending limit reached.",
+          answer: "Your spending limit has been reached.",
+          insight: "Spending limit reached",
+          explanation: spendingLimitCheck.reason || "Upgrade your plan or adjust your spending limits.",
+          recommendation: "Visit settings to adjust spending limits or upgrade your plan.",
+          data: [],
+          chartType: "table",
+          upgradeRequired: true,
+          remainingCredits: 0,
+        }, { status: 402 })
+      }
+
       const operationId = `analysis:${effectiveUserId}:${crypto.randomUUID()}`
       const reservation = await reserveCredits({
         userId: effectiveUserId,

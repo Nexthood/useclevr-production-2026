@@ -595,6 +595,7 @@ moving work between states.
 
 ## Label: workflow
 
+- T-996. Implement production-grade one-time credit top-up payment reconciliation for Stripe and Square: webhook verification, server-side package config, CreditTopUp table with DB-level uniqueness, reconciliation engine, and UI history. (labels: billing, payment, security, api; commit: worktree)
 - T-218. Add Mermaid editor guidance for project diagrams. (labels: workflow; commit: 53deaed7)
 - T-442. Extracted shared ErrorScreen component — replaced 7 duplicate error pages with a single reusable component. (labels: workflow; commit: 53deaed7)
 - T-305. Sign out redirect fixed to use relative URL. (labels: workflow; commit: 53deaed7)

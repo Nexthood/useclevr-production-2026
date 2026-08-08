@@ -3,6 +3,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { analyzeBusinessData, detectBusinessColumns } from "@/lib/business/business-columns";
 import { generateBusinessIntelligence } from "@/lib/business/business-intelligence-engine";
 import { buildProfileCalculationLayer } from "@/lib/business/company-calculation-context";
@@ -309,6 +310,20 @@ export async function POST(
     }
 
     if (!isUnlimitedCreditRole(session?.user?.role ?? null)) {
+      const spendingLimitCheck = await checkSpendingLimits(userId)
+      if (spendingLimitCheck.blocked) {
+        return NextResponse.json<ErrorResponse>(
+          {
+            error: spendingLimitCheck.reason || "Spending limit reached.",
+            code: "SPENDING_LIMIT_REACHED",
+            title: "Spending limit reached",
+            upgradeRequired: true,
+            usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
+          },
+          { status: 402 },
+        );
+      }
+
       creditOperationId = `dataset-analysis:${userId}:${id}:${request.headers.get("idempotency-key") || crypto.randomUUID()}`;
       const reservation = await reserveCredits({
         userId,

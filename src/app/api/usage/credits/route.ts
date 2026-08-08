@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth"
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
+import { getCreditAccount } from "@/lib/billing/credit-account-service"
 import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
@@ -16,32 +16,49 @@ export async function GET() {
   }
 
   try {
-    const usage = await getAnalystCreditUsage(
-      userId,
-      session.user.role,
-      session.user.email ?? null,
-    )
+    const account = await getCreditAccount(userId)
+
+    if (!account) {
+      return NextResponse.json(
+        {
+          unlimited: true,
+          credits: null,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      )
+    }
 
     return NextResponse.json(
       {
-        ...usage,
-        plan: usage.subscriptionTier,
+        unlimited: false,
+        plan: account.planId,
+        tier: account.tier,
         credits: {
-          total: usage.unlimited ? null : usage.total,
-          used: usage.unlimited ? null : usage.usedCredits,
-          reserved: usage.unlimited ? null : usage.reservedCredits,
-          remaining: usage.unlimited ? null : usage.remainingCredits,
-          available: usage.unlimited ? null : usage.availableCredits,
-          resetAt: usage.nextResetAt,
-          unlimited: usage.unlimited,
+          included: {
+            balance: account.includedBalance,
+            label: "Included plan credits",
+          },
+          purchased: {
+            balance: account.purchasedBalance,
+            monetaryValue: account.totalPaidCents / 100,
+            currency: account.currency,
+            label: "Purchased top-up credits",
+          },
+          totalAvailable: account.totalAvailableBalance,
+          used: account.usedCredits,
+          reserved: account.reservedCredits,
+          remaining: account.remainingCredits,
+          available: account.remainingCredits - account.reservedCredits,
+          resetAt: account.creditsResetAt.toISOString(),
+          lastResetAt: account.lastResetAt?.toISOString() ?? null,
         },
       },
       { headers: { "Cache-Control": "no-store" } },
     )
   } catch (error) {
-    console.error("[USAGE_CREDITS] Error:", error)
+    console.error("[CREDITS] Error:", error)
     return NextResponse.json(
-      { error: "Failed to fetch usage" },
+      { error: "Failed to fetch credits" },
       { status: 500, headers: { "Cache-Control": "no-store" } },
     )
   }

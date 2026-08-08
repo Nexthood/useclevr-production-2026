@@ -2,9 +2,27 @@
 
 ### Added
 
-- Add autonomous AI transaction review engine so Pre-bookkeeping automatically approves high-confidence transactions, surfaces explainability evidence, and routes only exceptions into the manual review queue.
+- Add one-time credit top-up payment reconciliation for Stripe and Square: verified provider webhooks issue credits, trusted server-side package config prevents tampering, DB-level unique constraints prevent duplicate credit grants.
+- Add CreditTopUp table with unique indexes on (provider, providerPaymentId) and (provider, providerEventId) for webhook idempotency.
+- Add credit package configuration reading Stripe price IDs and Square catalog IDs from environment variables.
+- Add authenticated `/api/checkout/credit-topup` endpoint for creating payment-mode Stripe checkout sessions with `mode: "payment"`.
+- Add `/api/webhooks/square/route.ts` for Square payment webhook verification and credit top-up processing.
+- Add `/api/billing/topup-history` endpoint for authenticated top-up history retrieval.
+- Add credit top-up reconciliation engine that detects payments without ledger entries, ledger entries without payments, duplicate mappings, and amount/currency mismatches.
+- Add Billing & Usage page section showing credit packages, top-up history, payment reference, and "Payment received — credits are being confirmed" pending state.
+- Add comprehensive webhook verification tests with 24 automated checks.
 - Add configurable auto-review confidence threshold with bulk actions for reviewing high-confidence, selected, filtered, or all transactions.
 - Add smart review filters and dashboard summary showing auto-reviewed count, needs-review count, duplicate count, missing VAT count, and overall confidence percentage.
+- Restore billing integration layer so users can review billing usage, transaction ledger, purchase history, spending limits, credit previews, and admin reconciliation traces through dedicated routes and settings pages.
+- Add billing integrity hardening so credit deductions remain atomic under concurrency, spending limits are enforced server-side across all billable routes, purchase traces follow FIFO attribution, and reconciliation excludes pending reservations.
+
+### Fixed
+
+- Harden credit billing by restricting direct credit purchases to admin-only access, enforcing verified provider webhooks as the source of truth for payment credits.
+- Fix spending limits so daily, weekly, monthly purchased, and per-operation caps are actually enforced on analyze, chat, report generation, dataset upload, and accountancy upload entry points.
+- Fix purchase trace accuracy so FIFO chronological attribution correctly links usage debits to the originating credit purchase instead of matching all subsequent debits.
+- Fix ledger reconciliation so expected balances exclude pending reservations and match stored account balances exactly.
+- Add comprehensive billing integrity verification with 25 automated checks covering atomic debit protection, idempotency, reserve/settle/release flow, admin entitlement, workspace isolation, and module enforcement.
 
 ### Fixed
 

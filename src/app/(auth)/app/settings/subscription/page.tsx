@@ -1,15 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth/auth";
+import { getActiveCreditTopUpPackages } from "@/lib/billing/credit-packages";
 import { formatPlanPrice } from "@/lib/billing/plans";
 import { getBillingSettings } from "@/lib/billing/settings-store";
+import { getCreditTopUpHistory } from "@/lib/billing/credit-topup-service";
 import { getDb } from "@/lib/db";
 import { datasets, profiles } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { count, eq, sum } from "drizzle-orm";
-import { ArrowUpRight, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles, LoaderCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CreditTopUpButton } from "@/components/shared/credit-topup-button"
 
 export const metadata: Metadata = { title: "Subscription" };
 
@@ -60,6 +63,7 @@ export default async function SubscriptionSettingsPage({
 }) {
   const params = await searchParams;
   const activeTab = normalizeTab(params?.tab);
+  const showTopUpSuccess = params?.topup === "success";
   const session = await auth();
   const usage = await getAnalystCreditUsage(
     session?.user?.id,
@@ -117,6 +121,14 @@ export default async function SubscriptionSettingsPage({
   const datasetLimit = Number.isFinite(activePlan.limits.maxDatasets)
     ? String(activePlan.limits.maxDatasets)
     : "Unlimited";
+
+  const creditPackages = getActiveCreditTopUpPackages();
+  const topUpHistory = session?.user?.id ? await getCreditTopUpHistory(session.user.id, 20) : [];
+  const pendingTopUp = topUpHistory.find(
+    (t) => t.status === "pending" || t.status === "duplicate" || t.status === "failed",
+  );
+  const showPendingTopUp = showTopUpSuccess || pendingTopUp;
+  const completedTopUps = topUpHistory.filter((t) => t.status === "completed");
 
   return (
     <Card className="min-w-0 border-border bg-card">
@@ -294,6 +306,104 @@ export default async function SubscriptionSettingsPage({
                 </div>
               </CardContent>
             </Card>
+
+            {showPendingTopUp && (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+                <div className="flex items-start gap-3">
+                  <LoaderCircle className="mt-0.5 h-5 w-5 animate-spin text-amber-600" />
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Payment received — credits are being confirmed.
+                    </p>
+                    <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                      {pendingTopUp
+                        ? `Your payment of ${pendingTopUp.amountMinor / 100} ${pendingTopUp.currency} via ${pendingTopUp.provider} has been received. Credits will appear in your account once the webhook is confirmed.`
+                        : "Your payment has been received. Credits will appear in your account once the webhook is confirmed."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isUnlimited && (
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold text-foreground">Purchase Credit Top-Ups</h3>
+                {creditPackages.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {creditPackages.map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        className="rounded-lg border border-border bg-background p-4"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-semibold text-foreground">{pkg.name}</h4>
+                          <span className="text-sm text-muted-foreground">
+                            {pkg.monetaryAmountCents / 100} {pkg.currency}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">{pkg.description}</p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {pkg.creditsGranted} credits · {pkg.pricingVersion}
+                        </p>
+                        {pkg.providers.stripe ? (
+                          <CreditTopUpButton
+                            key={pkg.id}
+                            packageId={pkg.id}
+                            provider="stripe"
+                            disabled={!session?.user?.id}
+                          />
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No credit top-up packages are currently available.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {completedTopUps.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-foreground">Credit Top-Up History</h3>
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground">
+                    <span>Date</span>
+                    <span>Provider</span>
+                    <span>Amount</span>
+                    <span>Credits</span>
+                    <span className="text-right">Status</span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {completedTopUps.map((t) => (
+                      <div key={t.id} className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] items-center px-4 py-3 text-sm">
+                        <span className="text-foreground">
+                          {new Date(t.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span className="capitalize">{t.provider}</span>
+                        <span className="text-muted-foreground">
+                          {t.amountMinor / 100} {t.currency}
+                        </span>
+                        <span className="text-foreground">{t.creditsGranted.toLocaleString()}</span>
+                        <span className="text-right">
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-300">
+                            Paid
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Payment reference: {completedTopUps[0].providerPaymentId}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

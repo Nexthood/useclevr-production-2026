@@ -1,3 +1,65 @@
+## Credit Top-Up Payment Reconciliation
+
+1. Interaction title
+Credit top-up payment reconciliation for Stripe and Square.
+
+2. What was the user goal
+Implement production-grade one-time credit top-up payment reconciliation for Stripe and Square, completing the final financial integrity layer of the credit system with verified provider webhooks as the single source of truth for payment credits.
+
+3. What changed
+Added CreditTopUp table with DB-level unique constraints on (provider, providerPaymentId) and (provider, providerEventId) for idempotency. Created server-side credit package configuration reading Stripe price IDs and Square catalog IDs from environment variables. Built Stripe payment-mode checkout session creation, Square checkout creation, HMAC-SHA256 webhook verification for both providers, and credit issuance in atomic database transactions. Added reconciliation engine detecting payments-without-ledger entries, ledger-without-payment entries, duplicate mappings, and amount/currency mismatches. Updated Billing & Usage page with credit top-up purchase section, top-up history table, and "Payment received — credits are being confirmed" pending state.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Payment credits must come from verified provider webhooks, not client-side redirects; credit package amounts must be resolved server-side from trusted configuration; and webhook idempotency must be enforced at the DB level with unique constraints.
+
+6. AI-agent learning
+For one-time payment reconciliation, the critical pattern is: (1) verify webhook signatures server-side, (2) resolve credit packages from server-side config not client-submitted amounts, (3) use DB-level unique constraints as the primary idempotency mechanism, (4) issue credits in a single atomic transaction with both the CreditTopUp record and ledger entry, and (5) provide a reconciliation engine for ongoing financial integrity auditing.
+
+7. Follow-up tasks
+- Run integration tests against live database to verify credit issuance and reconciliation under load.
+- Add Square payment form for credit top-ups (currently Stripe-only via checkout API).
+- Add webhook replay endpoint for top-up events.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Credit Billing Integrity Production Hardening
+
+1. Interaction title
+Credit billing integrity production hardening.
+
+2. What was the user goal
+Audit and harden the existing UseClevr Credit, Usage, Billing and Audit system for production readiness by closing concurrency, idempotency, payment source-of-truth, spending-limit enforcement, and reconciliation gaps without redesigning working functionality.
+
+3. What changed
+Restricted direct credit purchases to admin-only access, implemented full server-side spending limit enforcement across all billable entry points, fixed purchase trace FIFO attribution, corrected ledger reconciliation to exclude pending reservations, and added 25 automated billing integrity checks.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Payment credits must come from verified provider webhooks, not client-side redirects; spending limits must be enforced server-side on every billable route; and ledger reconciliation must exclude pending reservations to match actual balances.
+
+6. AI-agent learning
+Production billing hardening should prioritize surgical fixes over redesign: admin-only purchase routes, server-side spending limits wired into every entry point, FIFO purchase tracing, and reconciliation formulas that match the documented expected-balance equation.
+
+7. Follow-up tasks
+- Add one-time payment webhook handlers for Stripe and Square to replace admin-only direct purchase route.
+- Run integration tests against live database to verify concurrent debit protection under load.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
 ## Pre-bookkeeping Scrollable Transaction Review Container
 
 1. Interaction title
@@ -2431,6 +2493,39 @@ Autonomous review should evaluate blockers independently per transaction: uncate
 7. Follow-up tasks
 - Add undo-last-review by storing pre-auto-review transaction snapshots. (labels: prebookkeeping, review, undo)
 - Persist thresholdConfig per user or business profile instead of dataset-level defaults. (labels: prebookkeeping, settings, persistence)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Billing Integration Layer Restoration
+
+1. Interaction title
+Restore billing integration layer from git stash and integrate with current credit-account-service.
+
+2. What was the user goal
+Recover the seven new billing files from stash@{2} without restoring outdated modified files, then update them to work with the current billing schema and credit-account-service API.
+
+3. What changed
+Restored seven files: billing usage settings page, admin purchase traces route, admin reconcile route, billing ledger route, billing purchase route, spending limits route, and credit preview route. Updated sidebar integration to pass current UsageMonitor props. Fixed imports and removed unused variables in the restored billing usage page.
+
+4. Problems marked
+blocker: none.
+
+5. User learning
+Stash restoration should extract only the new files from the untracked tree and integrate them against the current service contracts rather than blindly applying the entire stash.
+
+6. AI-agent learning
+When restoring selective files from a stash created with untracked files, use the stash's untracked tree reference (`stash^{3}`) to extract new files, then update consumers to match the current API surface.
+
+7. Follow-up tasks
+- Verify admin billing routes in production.
+- Wire spending limits into upload credit enforcement.
+- Add purchase flow frontend if needed.
 
 8. Instruction sources
 - AGENTS.md

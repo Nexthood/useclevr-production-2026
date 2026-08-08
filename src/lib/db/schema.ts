@@ -264,6 +264,17 @@ export const profiles = pgTable(
     website: text("website"),
     businessDescription: text("businessDescription"),
     mentorshipUsed: integer("mentorshipUsed").default(0).notNull(),
+    billingSettings: jsonb("billingSettings")
+      .$type<{
+        dailyLimit?: number | null
+        weeklyLimit?: number | null
+        monthlyPurchasedLimit?: number | null
+        perOperationMax?: number | null
+        lowBalanceWarningPercent?: number | null
+        autoTopUpEnabled?: boolean
+      }>()
+      .default({})
+      .notNull(),
   },
   (table) => ({
     userIdFk: foreignKey({
@@ -1613,6 +1624,9 @@ export const userCredits = pgTable(
     userId: text("userId").notNull(),
     planId: text("planId").notNull(),
     totalCredits: integer("totalCredits").notNull(),
+    includedBalance: integer("includedBalance").default(0).notNull(),
+    purchasedBalance: integer("purchasedBalance").default(0).notNull(),
+    totalPaidCents: integer("totalPaidCents").default(0).notNull(),
     usedCredits: integer("usedCredits").default(0).notNull(),
     reservedCredits: integer("reservedCredits").default(0).notNull(),
     remainingCredits: integer("remainingCredits").notNull(),
@@ -1656,6 +1670,16 @@ export const creditLedgerTypes = [
   "monthly_reset",
   "subscription_upgrade",
   "subscription_downgrade",
+  "PLAN_ALLOCATION",
+  "PLAN_RESET",
+  "TOP_UP_PURCHASE",
+  "USAGE_DEBIT",
+  "RELEASE",
+  "REFUND",
+  "REVERSAL",
+  "ADMIN_ADJUSTMENT",
+  "PROMOTIONAL_CREDIT",
+  "EXPIRATION",
 ] as const;
 export type CreditLedgerType = (typeof creditLedgerTypes)[number];
 
@@ -1677,6 +1701,11 @@ export const creditLedger = pgTable(
     credits: integer("credits").default(0).notNull(),
     balanceBefore: integer("balanceBefore").notNull(),
     balanceAfter: integer("balanceAfter").notNull(),
+    includedBalanceBefore: integer("includedBalanceBefore").default(0).notNull(),
+    includedBalanceAfter: integer("includedBalanceAfter").default(0).notNull(),
+    purchasedBalanceBefore: integer("purchasedBalanceBefore").default(0).notNull(),
+    purchasedBalanceAfter: integer("purchasedBalanceAfter").default(0).notNull(),
+    monetaryAmount: integer("monetaryAmount").default(0).notNull(),
     source: varchar("source", { length: 50 }),
     feature: varchar("feature", { length: 100 }),
     provider: varchar("provider", { length: 50 }),
@@ -1694,6 +1723,13 @@ export const creditLedger = pgTable(
     description: text("description"),
     relatedDatasetId: text("relatedDatasetId"),
     relatedPlanId: text("relatedPlanId"),
+    datasetId: text("datasetId"),
+    reportId: text("reportId"),
+    analysisId: text("analysisId"),
+    requestId: text("requestId"),
+    paymentProvider: varchar("paymentProvider", { length: 50 }),
+    providerTransactionId: varchar("providerTransactionId", { length: 255 }),
+    paymentStatus: varchar("paymentStatus", { length: 50 }),
     adminUserId: text("adminUserId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     finalizedAt: timestamp("finalizedAt"),
@@ -1714,8 +1750,55 @@ export const creditLedger = pgTable(
   }),
 );
 
-export const aiProviderTypes = ["openai", "anthropic", "google", "ollama", "local"] as const;
-export type AIProviderType = (typeof aiProviderTypes)[number];
+ export const paymentProviders = ["stripe", "square"] as const;
+ export type PaymentProvider = (typeof paymentProviders)[number];
+
+ export const creditTopUpStatuses = ["pending", "completed", "failed", "refunded", "duplicate"] as const;
+ export type CreditTopUpStatus = (typeof creditTopUpStatuses)[number];
+
+ export const creditTopUps = pgTable(
+   "CreditTopUp",
+   {
+     id: text("id").primaryKey(),
+     userId: text("userId").notNull(),
+     workspaceId: text("workspaceId"),
+     provider: varchar("provider", { length: 20 }).notNull().$type<PaymentProvider>(),
+     providerPaymentId: text("providerPaymentId").notNull(),
+     providerCheckoutId: text("providerCheckoutId"),
+     providerEventId: text("providerEventId"),
+     currency: varchar("currency", { length: 3 }).notNull(),
+     amountMinor: integer("amountMinor").notNull(),
+     creditsGranted: integer("creditsGranted").notNull(),
+     creditPackageId: text("creditPackageId"),
+     pricingVersion: varchar("pricingVersion", { length: 40 }),
+     status: varchar("status", { length: 30 }).default("pending").notNull().$type<CreditTopUpStatus>(),
+     ledgerEntryId: text("ledgerEntryId"),
+     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+     createdAt: timestamp("createdAt").defaultNow().notNull(),
+     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+   },
+   (table) => ({
+     userIdFk: foreignKey({
+       columns: [table.userId],
+       foreignColumns: [users.id],
+       name: "CreditTopUp_userId_fkey",
+     }).onDelete("cascade"),
+     providerPaymentIdx: uniqueIndex("CreditTopUp_provider_payment_key").on(
+       table.provider,
+       table.providerPaymentId,
+     ),
+     providerEventIdx: uniqueIndex("CreditTopUp_provider_event_key").on(
+       table.provider,
+       table.providerEventId,
+     ),
+     statusIdx: index("CreditTopUp_status_idx").on(table.status),
+     userIdIdx: index("CreditTopUp_userId_idx").on(table.userId),
+     createdAtIdx: index("CreditTopUp_createdAt_idx").on(table.createdAt),
+   }),
+ );
+
+ export const aiProviderTypes = ["openai", "anthropic", "google", "ollama", "local"] as const;
+ export type AIProviderType = (typeof aiProviderTypes)[number];
 
 export const providerModelPricing = pgTable(
   "ProviderModelPricing",
