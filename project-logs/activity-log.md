@@ -1,3 +1,4 @@
+- changed: elevate the global enterprise design system with calmer navy tokens, softer cyan and lilac accents, premium shared cards, refined buttons, form controls, tables, dialogs, tabs, selects, and scrollbars
 - changed: transform the public News page into a What You're Missing interactive BI storytelling experience with hidden sample metric relationships, evidence-to-action flow, responsive mobile insight pairs, and updated public navigation labels
 - changed: refine the Usy assistant launcher into a circular avatar with one calm glow, a hover/focus invitation bubble, and unchanged chat behavior
 - changed: enlarge the login page AI Analyst demo with a stronger chart, bigger workflow cards, polished use-case selectors, restrained workflow animation, and tablet/mobile guardrails

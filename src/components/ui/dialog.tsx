@@ -125,8 +125,8 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
     <div
       className="fixed inset-0 z-[1200] flex items-center justify-center overflow-y-auto p-4 sm:p-6"
       style={{
-        background: "rgba(0,0,0,0.55)",
-        backdropFilter: "blur(2px)",
+        background: "rgba(8, 13, 30, 0.64)",
+        backdropFilter: "blur(8px)",
         isolation: "isolate",
       }}
       onClick={(e) => {
@@ -139,7 +139,7 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
         aria-modal="true"
         tabIndex={-1}
         className={[
-          "relative my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-2xl outline-none",
+          "relative my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/[0.08] bg-card/95 p-6 shadow-[0_34px_100px_rgba(8,13,30,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] outline-none backdrop-blur-xl",
           open ? "animate-in fade-in-0 zoom-in-95" : "animate-out fade-out-0 zoom-out-95",
           className,
         ]
@@ -151,7 +151,7 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-sm p-1 opacity-70 transition-opacity hover:opacity-100"
+          className="absolute right-4 top-4 rounded-md p-1.5 opacity-70 transition hover:bg-muted/70 hover:opacity-100"
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
@@ -178,7 +178,7 @@ type DialogHeaderProps = {
 };
 
 const DialogHeader = ({ children, className }: DialogHeaderProps) => (
-  <div className={["space-y-1.5", className].filter(Boolean).join(" ")}>{children}</div>
+  <div className={["space-y-2", className].filter(Boolean).join(" ")}>{children}</div>
 );
 DialogHeader.displayName = "DialogHeader";
 
@@ -188,7 +188,7 @@ type DialogTitleProps = {
 };
 
 const DialogTitle = ({ children, className }: DialogTitleProps) => (
-  <h2 className={["text-lg font-semibold", className].filter(Boolean).join(" ")}>{children}</h2>
+  <h2 className={["text-lg font-semibold leading-tight", className].filter(Boolean).join(" ")}>{children}</h2>
 );
 DialogTitle.displayName = "DialogTitle";
 
@@ -198,7 +198,7 @@ type DialogDescriptionProps = {
 };
 
 const DialogDescription = ({ children, className }: DialogDescriptionProps) => (
-  <p className={["text-sm text-muted-foreground", className].filter(Boolean).join(" ")}>
+  <p className={["text-sm leading-relaxed text-muted-foreground", className].filter(Boolean).join(" ")}>
     {children}
   </p>
 );
