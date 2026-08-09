@@ -2637,3 +2637,36 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Assistant Launcher Refinement
+
+1. Interaction title
+Usy assistant launcher refinement.
+
+2. What was the user goal
+Replace the permanent Ask Us pill launcher with a clean floating Usy avatar, keep assistant functionality, and add one restrained hover/focus invitation interaction.
+
+3. What changed
+The launcher now renders only the circular Usy avatar in the bottom-right corner. The permanent Ask Us text and separate chat icon are removed. The avatar uses one calm cyan breathing ring, hover and keyboard focus intensify the glow, and a compact dark glass speech bubble says "How can I help you today!?" above the avatar. Reduced-motion users do not receive the breathing animation or bubble transition.
+
+4. Problems marked
+blocker: none.
+observation: The existing click handler, aria label, title, expanded state, panel rendering, chat routing, and assistant message logic stay unchanged.
+observation: Local headless Chrome CDP inspection did not hydrate the app reliably, so responsive verification uses source-level geometry review plus the available dev-server desktop screenshot.
+
+5. User learning
+Users now see Usy as a calm avatar-first assistant entry point instead of a persistent pill, and hover or keyboard focus reveals the invitation only when needed.
+
+6. AI-agent learning
+For fixed assistant launchers, keep the avatar as the single animation owner and place hover copy inside the launcher group so focus and hover states share one interaction model.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

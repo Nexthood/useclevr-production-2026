@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-09
-- **Goal**: Improve the login page AI Analyst demo so the right-side product experience uses more desktop space, presents the chart as the visual centerpiece, and keeps authentication behavior unchanged.
-- **Durable change**: The login page now gives the right-side demo a wider centered rail, a larger auth-specific demo variant, a stronger dark glass surface, a larger chart, roomier upload/analysis/insight/action cards, polished use-case chips, and restrained workflow highlight animations. Tablet sizing stays compact, mobile keeps the auth-only layout, and the Ask Us widget remains unchanged.
-- **Verification**: `pnpm exec eslint 'src/app/(public)/login/page.tsx' src/components/public/useclevr-hero-demo.tsx` passes; `pnpm exec tsc --noEmit --pretty false` passes; `git diff --check` passes. Headless Chrome screenshots of `/login` at 1440x900, 1024x768, and 390x844 confirm desktop, tablet, and mobile layouts render without horizontal overflow, clipping, or broken mobile behavior.
+- **Goal**: Refine the Usy assistant launcher so the permanent Ask Us pill becomes a cleaner circular avatar with one calm hover interaction.
+- **Durable change**: The Usy launcher now renders as a bottom-right circular avatar with one subtle cyan glow, removes the permanent Ask Us pill text and separate chat icon, shows a compact glass invitation bubble on hover and keyboard focus, respects reduced-motion preferences, and keeps the existing chat open/close behavior unchanged.
+- **Verification**: `pnpm exec eslint src/components/ui/help-chatbox.tsx` passes; `pnpm exec tsc --noEmit --pretty false` passes; `git diff --check` passes. Source-level responsive review confirms the launcher keeps fixed bottom-right spacing, a 64px circular hit target, no horizontal overflow dependency, hover/focus invitation states, and unchanged button click behavior; a fresh dev-server desktop screenshot confirms the permanent pill is removed.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

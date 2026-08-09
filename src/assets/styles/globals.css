@@ -107,39 +107,6 @@
   100% { transform: translateX(100%); opacity: 0; }
 }
 
-@keyframes usy-soft-pulse {
-  0%, 100% {
-    opacity: 0.48;
-    transform: scale(0.99);
-    filter: blur(0) drop-shadow(0 0 7px rgba(34, 211, 238, 0.18));
-  }
-  50% {
-    opacity: 0.78;
-    transform: scale(1.035);
-    filter: blur(0.2px) drop-shadow(0 0 14px rgba(34, 211, 238, 0.34)) drop-shadow(0 0 18px rgba(216, 180, 254, 0.22));
-  }
-}
-
-@keyframes usy-orbit-pulse {
-  0%, 100% {
-    opacity: 0.18;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.46;
-    transform: scale(1.07);
-  }
-}
-
-@keyframes usy-float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
 @keyframes usy-panel-rise {
   from {
     opacity: 0;
@@ -154,48 +121,44 @@
 .usy-avatar-glow::before {
   content: "";
   position: absolute;
-  inset: -5px;
+  inset: -6px;
   border-radius: 9999px;
-  background:
-    radial-gradient(circle, rgba(103, 232, 249, 0.38), transparent 54%),
-    radial-gradient(circle, rgba(216, 180, 254, 0.28), transparent 72%);
-  animation: usy-soft-pulse 4.8s ease-in-out infinite;
+  border: 1px solid rgba(103, 232, 249, 0.34);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.2), rgba(96, 165, 250, 0.12) 45%, transparent 68%);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.22), 0 0 38px rgba(124, 58, 237, 0.12);
+  animation: usy-calm-breathe 4.8s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
 }
 
-.usy-avatar-glow::after {
-  content: "";
-  position: absolute;
-  inset: -7px;
-  border-radius: 9999px;
-  border: 1px solid rgba(125, 249, 255, 0.14);
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.16), rgba(216, 180, 254, 0.1) 46%, transparent 68%);
-  mask: radial-gradient(circle, transparent 64%, #000 65%);
-  animation: usy-orbit-pulse 5.2s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.usy-avatar-glow > div {
-  animation: usy-float 4.6s ease-in-out infinite;
+.usy-launcher:is(:hover, :focus-visible) .usy-avatar-glow::before {
+  border-color: rgba(165, 243, 252, 0.58);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.34), 0 0 48px rgba(124, 58, 237, 0.2);
 }
 
 .usy-panel-open {
   animation: usy-panel-rise 220ms ease-out;
 }
 
-.usy-launcher {
-  animation: usy-float 5s ease-in-out infinite;
+@keyframes usy-calm-breathe {
+  0%, 100% {
+    opacity: 0.74;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .usy-avatar-glow::before,
-  .usy-avatar-glow::after,
-  .usy-avatar-glow > div,
-  .usy-panel-open,
-  .usy-launcher {
+  .usy-panel-open {
     animation: none;
+  }
+
+  .usy-launcher-bubble {
+    transition: none;
   }
 }
 

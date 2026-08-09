@@ -4,7 +4,7 @@ import usyAvatar from "@/assets/images/avatar.png";
 import { Button } from "@/components/ui/button";
 import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy, buildUploadCreditLimitMessage } from "@/lib/billing/upload-credit-messaging";
 import { publicMonthlyPlanPrices, publicProMonthlyLaunchPrices } from "@/lib/billing/plans";
-import { ArrowUp, Bot, Loader2, MessageCircle, Sparkles, X } from "lucide-react";
+import { ArrowUp, Bot, Loader2, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { FormEvent } from "react";
@@ -1393,7 +1393,7 @@ export function HelpChatbox({
   }
 
   const containerClassName =
-    "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:right-6";
+    "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-4 z-[139] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:right-6";
   const panelClassName = [
     "usy-panel-open fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] top-6 flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-[30px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:top-auto sm:inset-x-auto sm:h-auto sm:max-h-[calc(100vh-8rem)] sm:w-[min(calc(100vw-2rem),520px)]",
     "sm:right-0",
@@ -1599,17 +1599,15 @@ export function HelpChatbox({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="usy-launcher group inline-flex h-16 items-center gap-3 rounded-full border border-cyan-200/35 bg-slate-950/[0.92] px-2.5 pr-5 text-white shadow-[0_20px_52px_rgba(8,13,30,0.38),0_0_30px_rgba(34,211,238,0.16)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-200/70 hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+        className="usy-launcher group relative inline-flex h-16 w-16 items-center justify-center rounded-full text-white transition duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         aria-label={open ? "Close Usy chat" : "Ask Usy"}
         aria-expanded={open}
         title="Ask Usy"
       >
+        <span className="usy-launcher-bubble pointer-events-none absolute bottom-full right-0 mb-4 w-56 rounded-2xl border border-cyan-200/25 bg-slate-950/[0.88] px-4 py-3 text-left text-sm font-semibold leading-5 text-cyan-50 opacity-0 shadow-[0_20px_54px_rgba(8,13,30,0.42),0_0_30px_rgba(34,211,238,0.16)] backdrop-blur-xl transition duration-200 ease-out before:absolute before:-bottom-1.5 before:right-6 before:h-3 before:w-3 before:rotate-45 before:border-b before:border-r before:border-cyan-200/25 before:bg-slate-950/[0.88] group-hover:pointer-events-auto group-hover:translate-y-[-4px] group-hover:opacity-100 group-focus-visible:pointer-events-auto group-focus-visible:translate-y-[-4px] group-focus-visible:opacity-100">
+          How can I help you today!?
+        </span>
         <UsyAvatar size="sm" interactive />
-        <span className="hidden text-sm font-semibold sm:inline">Ask Usy</span>
-        <MessageCircle
-          className="h-4 w-4 text-cyan-100 transition group-hover:translate-x-0.5"
-          aria-hidden="true"
-        />
       </button>
     </div>
   );
