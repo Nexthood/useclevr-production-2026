@@ -52,6 +52,7 @@ type AssistantMessage = {
   chartType?: string
   providerName?: string
   modelName?: string
+  confidence?: number
   providerStatus?: ProviderStatus
   privacyWarning?: string | null
   error?: string
@@ -353,6 +354,7 @@ export function AiAssistantWorkspace() {
           replyToId: userMessageId,
           providerName: providerNameFromResponse(body),
           modelName: typeof body.modelName === "string" ? body.modelName : undefined,
+          confidence: typeof body.confidence === "number" ? body.confidence : undefined,
           providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
           privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
           generatedAt: new Date().toISOString(),
@@ -377,6 +379,7 @@ export function AiAssistantWorkspace() {
         analyticalResult: normalizeAnalyticalResult(body.analyticalResult) ?? undefined,
         providerName: providerNameFromResponse(body),
         modelName: typeof body.modelName === "string" ? body.modelName : undefined,
+        confidence: typeof body.confidence === "number" ? body.confidence : undefined,
         providerStatus: isProviderStatus(body.providerStatus) ? body.providerStatus : undefined,
         privacyWarning: typeof body.privacyWarning === "string" ? body.privacyWarning : null,
         generatedAt: new Date().toISOString(),
@@ -1108,6 +1111,7 @@ function AiGovernanceMetadata({ message }: { message: AssistantMessage }) {
 }
 
 function estimateMessageConfidence(message: AssistantMessage) {
+  if (typeof message.confidence === "number" && Number.isFinite(message.confidence)) return Math.max(0, Math.min(100, Math.round(message.confidence)))
   if (message.deterministicAnalysis || message.analyticalResult || message.providerStatus?.route === "direct") return 94
   if (message.providerStatus?.state === "connection_healthy") return 88
   if (message.providerStatus?.state === "fallback_active") return 82

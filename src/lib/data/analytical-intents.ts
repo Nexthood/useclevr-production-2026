@@ -12,6 +12,10 @@ import {
   type SemanticSchema,
 } from "@/lib/data/semantic-schema";
 import { resolveQuestionMetric, type MetricResolutionResult } from "@/lib/data/metric-resolver";
+import {
+  analyzeTransactionAmountAnomalies,
+  type TransactionAnomalyAnalysis,
+} from "@/lib/data/transaction-anomaly-analysis";
 
 export type AnalyticalIntentId =
   | "total_revenue"
@@ -111,7 +115,10 @@ export const ANALYTICAL_INTENT_REGISTRY: AnalyticalIntentDefinition[] = [
   intent("cash_flow_risk", [/cash\s+flow.*risk|cash.*risk/i], [], ["revenue", "expenses", "date"]),
   intent("category_cost_impact", [/category.*cost|cost.*category/i], ["category"], ["cogs", "expenses"]),
   intent("margin_pressure", [/margin\s+pressure|margin.*declin/i], ["revenue", "date"], ["cogs", "gross_profit", "gross_margin"]),
-  intent("unusual_transactions", [/unusual.*transaction|outlier|anomal/i], []),
+  {
+    ...intent("unusual_transactions", [/unusual.*transaction|transaction.*unusual|outlier|anomal|abnormal|stand(s)?\s+out|suspicious.*transaction|transaction.*suspicious/i], []),
+    handler: calculateUnusualTransactions,
+  },
   intent("monthly_operating_run_rate", [/monthly.*run rate|operating.*run rate/i], ["expenses", "date"]),
   {
     ...intent("segment_decline", [/segment.*declin|declin.*segment|which sales segments are declining/i], ["revenue", "date"]),
@@ -341,6 +348,128 @@ function calculateSegmentDecline(input: AnalyticalExecutionInput): AnalyticalExe
   };
 }
 
+function calculateUnusualTransactions(input: AnalyticalExecutionInput): AnalyticalExecutionResult {
+  const result = analyzeTransactionAmountAnomalies({
+    rows: input.rows,
+    columns: input.columns,
+  });
+  const answer = anomalyAnswer(result, input.schema.currencyCode);
+  return {
+    status: "success",
+    intent: "unusual_transactions",
+    answer: answer.answer,
+    insight: answer.insight,
+    explanation: answer.explanation,
+    recommendation: answer.recommendation,
+    data: answer.data,
+    chartType: "table",
+    result: {
+      intent: "unusual_transactions",
+      status: result.status,
+      confidence: result.confidence,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      amountColumn: result.amountColumn,
+      validCount: result.validCount,
+      invalidCount: result.invalidCount,
+      median: result.median,
+      q1: result.q1,
+      q3: result.q3,
+      iqr: result.iqr,
+      lowerThreshold: result.lowerThreshold,
+      upperThreshold: result.upperThreshold,
+      outlierCount: result.candidates.length,
+      candidates: result.candidates,
+      largest: result.largest,
+    },
+  };
+}
+
+function anomalyAnswer(result: TransactionAnomalyAnalysis, currencyCode: string | null) {
+  if (result.status === "missing_amount") {
+    return {
+      answer: [
+        "Answer: I can't detect unusual transactions because no validated transaction amount field was found.",
+        "Evidence: Quantity, item count, ID, SKU, tax rate, and similar numeric identifier fields are not valid transaction amount fields.",
+        "Takeaway: UseClevr will not run anomaly detection on arbitrary numeric columns.",
+        "Next question: Upload or map an amount, transaction amount, payment amount, invoice amount, or transaction total field.",
+      ].join("\n\n"),
+      insight: "No validated transaction amount field is available for anomaly detection.",
+      explanation: "Direct data analysis refused transaction anomaly detection because amount semantics were missing.",
+      recommendation: "Upload or map a transaction amount field before asking for outliers.",
+      data: [{ capability: "transaction_amount", status: "unavailable" }],
+    };
+  }
+
+  if (result.status === "insufficient_data") {
+    const largestText = result.largest
+      ? ` The largest transaction is ${result.largest.label} at ${formatValue(result.largest.amount, currencyCode)}, but there are not enough valid observations to classify it as unusual.`
+      : "";
+    return {
+      answer: [
+        "Answer: There are not enough valid transaction amounts in this period to reliably detect statistical outliers.",
+        `Evidence: ${result.validCount.toLocaleString("en-US")} valid amount value(s) were found in "${result.amountColumn}". At least 8 valid values are required for this IQR check.${result.invalidCount > 0 ? ` ${result.invalidCount.toLocaleString("en-US")} invalid or blank value(s) were excluded.` : ""}`,
+        `Takeaway: I can show the largest transactions, but I can't reliably classify them as unusual.${largestText}`,
+        "Next question: Add more transaction rows or ask for the largest transactions instead.",
+      ].join("\n\n"),
+      insight: "Insufficient valid transaction amounts for reliable anomaly detection.",
+      explanation: "Direct data analysis requires a minimum sample before applying IQR outlier detection.",
+      recommendation: "Add more valid transaction rows or ask for largest transactions.",
+      data: result.largest ? [{ label: result.largest.label, amount: result.largest.amount, status: "largest_only" }] : [],
+    };
+  }
+
+  if (result.candidates.length === 0) {
+    const largestText = result.largest
+      ? ` The largest transaction was ${result.largest.label} at ${formatValue(result.largest.amount, currencyCode)}, but it does not exceed the anomaly threshold.`
+      : "";
+    return {
+      answer: [
+        "Answer: I didn't detect any strong transaction-amount outliers for this period.",
+        `Evidence: Median transaction: ${formatValue(result.median ?? 0, currencyCode)}. Q1: ${formatValue(result.q1 ?? 0, currencyCode)}. Q3: ${formatValue(result.q3 ?? 0, currencyCode)}. IQR: ${formatValue(result.iqr ?? 0, currencyCode)}. Upper outlier threshold: ${formatValue(result.upperThreshold ?? 0, currencyCode)}.${result.invalidCount > 0 ? ` ${result.invalidCount.toLocaleString("en-US")} invalid or blank value(s) were excluded.` : ""}`,
+        `Takeaway: No strong transaction-amount anomalies were detected.${largestText}`,
+        "Next question: No anomaly review is required based on transaction amount alone.",
+      ].join("\n\n"),
+      insight: "No strong transaction-amount outliers were detected.",
+      explanation: `Applied IQR outlier detection to "${result.amountColumn}" after excluding invalid values.`,
+      recommendation: "No anomaly review is required based on transaction amount alone.",
+      data: [
+        { metric: "Median transaction", value: result.median, unit: currencyCode ?? "number" },
+        { metric: "Upper outlier threshold", value: result.upperThreshold, unit: currencyCode ?? "number" },
+      ],
+    };
+  }
+
+  const strongest = result.candidates[0];
+  return {
+    answer: [
+      `Answer: Yes. I found ${result.candidates.length.toLocaleString("en-US")} ${result.candidates.length === 1 ? "transaction that is" : "transactions that are"} statistically unusual compared with the typical transaction size this period.`,
+      [
+        `Evidence: Median transaction: ${formatValue(result.median ?? 0, currencyCode)}`,
+        `Q1: ${formatValue(result.q1 ?? 0, currencyCode)}`,
+        `Q3: ${formatValue(result.q3 ?? 0, currencyCode)}`,
+        `IQR: ${formatValue(result.iqr ?? 0, currencyCode)}`,
+        `Upper outlier threshold: ${formatValue(result.upperThreshold ?? 0, currencyCode)}`,
+        ...(result.invalidCount > 0 ? [`${result.invalidCount.toLocaleString("en-US")} invalid or blank value(s) were excluded.`] : []),
+        ...result.candidates.slice(0, 5).map((candidate) => `${candidate.label}: ${formatValue(candidate.amount, currencyCode)} - ${candidate.thresholdMultiple ?? "above"}x threshold, ${candidate.medianMultiple ?? "above"}x median${candidate.context ? ` (${candidate.context})` : ""}`),
+      ].join("\n"),
+      `Takeaway: ${strongest.label} is the strongest outlier candidate. These transactions are statistical outlier candidates, not proof of an error or misconduct.`,
+      "Next question: Review the flagged outlier transactions and confirm that the amounts and categories are expected.",
+    ].join("\n\n"),
+    insight: `${result.candidates.length.toLocaleString("en-US")} transaction-amount outlier candidate${result.candidates.length === 1 ? "" : "s"} detected.`,
+    explanation: `Applied IQR outlier detection to "${result.amountColumn}" using ${result.validCount.toLocaleString("en-US")} valid amount values.`,
+    recommendation: "Review the flagged outlier transactions and confirm that the amounts and categories are expected.",
+    data: result.candidates.map((candidate) => ({
+      label: candidate.label,
+      amount: candidate.amount,
+      medianMultiple: candidate.medianMultiple,
+      thresholdMultiple: candidate.thresholdMultiple,
+      context: candidate.context,
+      status: "outlier_candidate",
+    })),
+  };
+}
+
 function grossMarginSuccess(input: {
   grossMarginPercent: number;
   revenue: number | null;
@@ -464,6 +593,13 @@ function calculationExplanation(method: string) {
   if (method === "revenue_minus_cogs") return "Calculation: (Revenue - COGS) / Revenue.";
   if (method === "gross_profit_over_revenue") return "Calculation: Gross profit / Revenue.";
   return "Calculation: validated gross margin field.";
+}
+
+function formatValue(value: number, currencyCode: string | null) {
+  if (currencyCode) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode, maximumFractionDigits: 2 }).format(value);
+  }
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
 }
 
 function round(value: number, decimals = 2) {

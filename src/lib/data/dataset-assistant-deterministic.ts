@@ -1,9 +1,13 @@
 import { resolveQuestionMetric } from "@/lib/data/metric-resolver";
 import {
   buildSemanticSchema,
+  detectDatasetSemanticCapabilities,
+  findExpenseTypeColumn,
+  findMonetaryAmountColumn,
   parseBusinessNumber,
   semanticColumn,
 } from "@/lib/data/semantic-schema";
+import { analyzeTransactionAmountAnomalies } from "@/lib/data/transaction-anomaly-analysis";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -92,6 +96,18 @@ export function answerDatasetQuestionDeterministically(
   }
 
   const schema = buildSemanticSchema(input);
+  if (isExpenseQuestion(question)) {
+    return describeExpenseCapability({ ...input, schema });
+  }
+
+  if (isAnomalyQuestion(question)) {
+    return describeTransactionAnomalies({ ...input, schema });
+  }
+
+  if (isLargestTransactionQuestion(question)) {
+    return describeLargestTransactions({ ...input, schema });
+  }
+
   const revenueColumn = semanticColumn(schema, "revenue");
   if (!revenueColumn) return null;
   const currencyCode = schema.currencyCode;
@@ -133,6 +149,269 @@ export function answerDatasetQuestionDeterministically(
   }
 
   return null;
+}
+
+function describeTransactionAnomalies(input: DatasetAssistantInput & {
+  schema: ReturnType<typeof buildSemanticSchema>;
+}): DatasetAssistantDeterministicResult {
+  const analysis = analyzeTransactionAmountAnomalies({
+    rows: input.rows,
+    columns: input.columns,
+  });
+  const currencyCode = input.schema.currencyCode;
+
+  if (analysis.status === "missing_amount") {
+    return {
+      status: "success",
+      answer: [
+        "Answer: I can't detect unusual transactions because no validated transaction amount field was found.",
+        "Evidence: Quantity, item count, ID, SKU, tax rate, and similar numeric identifier fields are not valid transaction amount fields.",
+        "Takeaway: UseClevr will not run anomaly detection on arbitrary numeric columns.",
+        "Next question: Upload or map an amount, transaction amount, payment amount, invoice amount, or transaction total field.",
+      ].join("\n\n"),
+      insight: "No validated transaction amount field is available for anomaly detection.",
+      explanation: "Direct data analysis refused transaction anomaly detection because amount semantics were missing.",
+      recommendation: "Upload or map a transaction amount field before asking for outliers.",
+      data: [{ capability: "transaction_amount", status: "unavailable" }],
+      chartType: "table",
+      result: anomalyResult(input, analysis),
+    };
+  }
+
+  if (analysis.status === "insufficient_data") {
+    return {
+      status: "success",
+      answer: [
+        "Answer: There are not enough valid transaction amounts in this period to reliably detect statistical outliers.",
+        `Evidence: ${analysis.validCount.toLocaleString("en-US")} valid amount value(s) were found in "${analysis.amountColumn}". At least 8 valid values are required for this IQR check.${analysis.invalidCount > 0 ? ` ${analysis.invalidCount.toLocaleString("en-US")} invalid or blank value(s) were excluded.` : ""}`,
+        `Takeaway: I can show the largest transactions, but I can't reliably classify them as unusual.${analysis.largest ? ` The largest transaction is ${analysis.largest.label} at ${formatValue(analysis.largest.amount, currencyCode)}.` : ""}`,
+        "Next question: Add more transaction rows or ask for the largest transactions instead.",
+      ].join("\n\n"),
+      insight: "Insufficient valid transaction amounts for reliable anomaly detection.",
+      explanation: "Direct data analysis requires a minimum sample before applying IQR outlier detection.",
+      recommendation: "Add more valid transaction rows or ask for largest transactions.",
+      data: analysis.largest ? [{ label: analysis.largest.label, amount: analysis.largest.amount, status: "largest_only" }] : [],
+      chartType: "table",
+      result: anomalyResult(input, analysis),
+    };
+  }
+
+  if (analysis.candidates.length === 0) {
+    return {
+      status: "success",
+      answer: [
+        "Answer: I didn't detect any strong transaction-amount outliers for this period.",
+        `Evidence: Median transaction: ${formatValue(analysis.median || 0, currencyCode)}. Q1: ${formatValue(analysis.q1 || 0, currencyCode)}. Q3: ${formatValue(analysis.q3 || 0, currencyCode)}. IQR: ${formatValue(analysis.iqr || 0, currencyCode)}. Upper outlier threshold: ${formatValue(analysis.upperThreshold || 0, currencyCode)}.${analysis.invalidCount > 0 ? ` ${analysis.invalidCount.toLocaleString("en-US")} invalid or blank value(s) were excluded.` : ""}`,
+        `Takeaway: No strong transaction-amount anomalies were detected.${analysis.largest ? ` The largest transaction was ${analysis.largest.label} at ${formatValue(analysis.largest.amount, currencyCode)}, but it does not exceed the anomaly threshold.` : ""}`,
+        "Next question: No anomaly review is required based on transaction amount alone.",
+      ].join("\n\n"),
+      insight: "No strong transaction-amount outliers were detected.",
+      explanation: `Applied IQR outlier detection to "${analysis.amountColumn}" after excluding invalid values.`,
+      recommendation: "No anomaly review is required based on transaction amount alone.",
+      data: [
+        { metric: "Median transaction", value: analysis.median },
+        { metric: "Upper outlier threshold", value: analysis.upperThreshold },
+      ],
+      chartType: "table",
+      result: anomalyResult(input, analysis),
+    };
+  }
+
+  return {
+    status: "success",
+    answer: [
+      `Answer: Yes. I found ${analysis.candidates.length.toLocaleString("en-US")} ${analysis.candidates.length === 1 ? "transaction that is" : "transactions that are"} statistically unusual compared with the typical transaction size this period.`,
+      [
+        `Evidence: Median transaction: ${formatValue(analysis.median || 0, currencyCode)}`,
+        `Q1: ${formatValue(analysis.q1 || 0, currencyCode)}`,
+        `Q3: ${formatValue(analysis.q3 || 0, currencyCode)}`,
+        `IQR: ${formatValue(analysis.iqr || 0, currencyCode)}`,
+        `Upper outlier threshold: ${formatValue(analysis.upperThreshold || 0, currencyCode)}`,
+        ...(analysis.invalidCount > 0 ? [`${analysis.invalidCount.toLocaleString("en-US")} invalid or blank value(s) were excluded.`] : []),
+        ...analysis.candidates.slice(0, 5).map((candidate) => `${candidate.label}: ${formatValue(candidate.amount, currencyCode)} - ${candidate.thresholdMultiple ?? "above"}x threshold, ${candidate.medianMultiple ?? "above"}x median${candidate.context ? ` (${candidate.context})` : ""}`),
+      ].join("\n"),
+      "Takeaway: These transactions are statistical outlier candidates, not proof of an error or misconduct.",
+      "Next question: Review the flagged outlier transactions and confirm that the amounts and categories are expected.",
+    ].join("\n\n"),
+    insight: `${analysis.candidates.length.toLocaleString("en-US")} transaction-amount outlier candidate${analysis.candidates.length === 1 ? "" : "s"} detected.`,
+    explanation: `Applied IQR outlier detection to "${analysis.amountColumn}" using ${analysis.validCount.toLocaleString("en-US")} valid amount values.`,
+    recommendation: "Review the flagged outlier transactions and confirm that the amounts and categories are expected.",
+    data: analysis.candidates.map((candidate) => ({
+      label: candidate.label,
+      amount: candidate.amount,
+      medianMultiple: candidate.medianMultiple,
+      thresholdMultiple: candidate.thresholdMultiple,
+      context: candidate.context,
+      status: "outlier_candidate",
+    })),
+    chartType: "table",
+    result: anomalyResult(input, analysis),
+  };
+}
+
+function describeLargestTransactions(input: DatasetAssistantInput & {
+  schema: ReturnType<typeof buildSemanticSchema>;
+}): DatasetAssistantDeterministicResult {
+  const analysis = analyzeTransactionAmountAnomalies({
+    rows: input.rows,
+    columns: input.columns,
+    minimumValidCount: 1,
+  });
+  if (!analysis.amountColumn || !analysis.largest) {
+    return {
+      status: "success",
+      answer: [
+        "Answer: I can't rank largest transactions because no validated transaction amount field was found.",
+        "Evidence: Quantity, IDs, SKUs, rates, and counts are not valid transaction amount fields.",
+        "Takeaway: UseClevr will not rank arbitrary numeric columns as transaction values.",
+        "Next question: Upload or map an amount, transaction amount, payment amount, invoice amount, or transaction total field.",
+      ].join("\n\n"),
+      insight: "No validated transaction amount field is available for largest-transaction ranking.",
+      explanation: "Direct data analysis refused largest-transaction ranking because amount semantics were missing.",
+      recommendation: "Upload or map a transaction amount field.",
+      data: [{ capability: "transaction_amount", status: "unavailable" }],
+      chartType: "table",
+      result: {
+        intent: "largest_transactions",
+        status: "missing_amount",
+        confidence: 0.4,
+        datasetId: input.datasetId,
+        datasetType: input.datasetType,
+      },
+    };
+  }
+  const amountColumn = analysis.amountColumn;
+  const rows = input.rows
+    .map((row, rowIndex) => ({ row, rowIndex, amount: parseBusinessNumber(row[amountColumn]) }))
+    .filter((row): row is { row: Record<string, unknown>; rowIndex: number; amount: number } => row.amount !== null)
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .slice(0, 10)
+    .map((row) => ({
+      label: labelForTransactionRow(row.row, row.rowIndex),
+      amount: round(row.amount),
+      context: contextForTransactionRow(row.row, amountColumn),
+    }));
+
+  return {
+    status: "success",
+    answer: [
+      `Answer: The largest transaction is ${rows[0].label} at ${formatValue(rows[0].amount, input.schema.currencyCode)}.`,
+      `Evidence: Ranked ${analysis.validCount.toLocaleString("en-US")} valid transaction amount value(s) from "${amountColumn}" by absolute amount.`,
+      "Takeaway: This ranking shows the largest transaction amounts only; it does not classify them as unusual.",
+      "Next question: Ask about unusual transactions to run statistical outlier detection.",
+    ].join("\n\n"),
+    insight: `Largest transaction: ${rows[0].label}.`,
+    explanation: `Ranked validated transaction values from "${amountColumn}".`,
+    recommendation: "Ask about unusual transactions to run statistical outlier detection.",
+    data: rows,
+    chartType: "table",
+    result: {
+      intent: "largest_transactions",
+      status: "success",
+      confidence: 0.9,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      amountColumn,
+      rows,
+    },
+  };
+}
+
+function describeExpenseCapability(input: DatasetAssistantInput & {
+  schema: ReturnType<typeof buildSemanticSchema>;
+}): DatasetAssistantDeterministicResult {
+  const capabilities = detectDatasetSemanticCapabilities({ schema: input.schema, rows: input.rows });
+  if (!capabilities.hasExpenseData) {
+    const alternatives = availableExpenseAlternatives(capabilities);
+    return {
+      status: "success",
+      answer: [
+        "Answer: No expense or cost data was detected in this dataset, so I can't reliably determine your largest expenses.",
+        `Insight: ${capabilities.hasRevenueData ? "The available data appears to contain sales or revenue records." : "Generic monetary fields such as amount, total, value, transaction, or price are semantically ambiguous."}`,
+        "Evidence: No validated expense category, cost field, debit classification, or trusted expense mapping was found.",
+        "Takeaway: UseClevr will not classify generic numeric values as expenses.",
+        `Next question: ${alternatives}`,
+      ].join("\n\n"),
+      insight: "No validated expense or cost semantics were detected.",
+      explanation: "Direct data analysis checked semantic field mappings and classifier values before refusing the expense calculation.",
+      recommendation: alternatives,
+      data: [
+        { capability: "expense_data", status: "unavailable", evidence: "No reliable expense/cost semantics found." },
+        { capability: "revenue_data", status: capabilities.hasRevenueData ? "available" : "unavailable", evidence: capabilities.revenueEvidence.join(" ") || null },
+      ],
+      chartType: "table",
+      result: {
+        intent: "ranking.top_expenses",
+        status: "unsupported_semantics",
+        confidence: 0.94,
+        datasetId: input.datasetId,
+        datasetType: input.datasetType,
+        hasExpenseData: false,
+        hasRevenueData: capabilities.hasRevenueData,
+        evidence: capabilities.expenseEvidence,
+      },
+    };
+  }
+
+  const expenseColumn = semanticColumn(input.schema, "expenses") || semanticColumn(input.schema, "cogs");
+  const typeColumn = findExpenseTypeColumn(input.rows, input.columns);
+  const amountColumn = typeColumn ? findMonetaryAmountColumn(input.rows, input.columns) : null;
+  const valueColumn = expenseColumn || amountColumn;
+  if (!valueColumn) {
+    return {
+      status: "success",
+      answer: [
+        "Answer: Expense analysis unavailable: expense semantics were detected, but no numeric expense amount field was validated.",
+        `Evidence: ${capabilities.expenseEvidence.join(" ")}`,
+        "Takeaway: UseClevr needs both expense classification and numeric amount values before calculating largest expenses.",
+        "Next question: Upload or map an expense amount, debit, cost, COGS, or unit cost field.",
+      ].join("\n\n"),
+      insight: "Expense labels exist, but no numeric expense amount is available.",
+      explanation: "Direct data analysis refused the calculation because amount semantics were incomplete.",
+      recommendation: "Upload or map an expense amount, debit, cost, COGS, or unit cost field.",
+      data: capabilities.expenseEvidence.map((evidence) => ({ evidence })),
+      chartType: "table",
+      result: {
+        intent: "ranking.top_expenses",
+        status: "missing_amount",
+        confidence: 0.9,
+        datasetId: input.datasetId,
+        datasetType: input.datasetType,
+        evidence: capabilities.expenseEvidence,
+      },
+    };
+  }
+
+  const groupColumn = expenseGroupColumn(input.columns, valueColumn, typeColumn);
+  const rows = expenseRows(input.rows, valueColumn, groupColumn, typeColumn).slice(0, 10);
+  const top = rows[0];
+  const evidence = capabilities.expenseEvidence.join(" ");
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${top ? `${top.segment} is the largest detected expense/cost at ${formatValue(top.amount, input.schema.currencyCode)}.` : "No expense rows with numeric values were found."}`,
+      `Evidence: ${evidence}`,
+      `Takeaway: ${top ? "This calculation uses only validated expense/cost semantics." : "Expense semantics exist, but matching rows have no usable numeric values."}`,
+      "Next question: Ask for expense trends, supplier concentration, or margin if revenue is also available.",
+    ].join("\n\n"),
+    insight: top ? `Largest detected expense/cost: ${top.segment}.` : "No numeric expense rows were available.",
+    explanation: `Calculated from ${typeColumn ? `classifier "${typeColumn}" and amount column "${valueColumn}"` : `validated cost column "${valueColumn}"`}.`,
+    recommendation: "Ask for expense trends, supplier concentration, or margin if revenue is also available.",
+    data: rows,
+    chartType: "table",
+    result: {
+      intent: "ranking.top_expenses",
+      status: "success",
+      confidence: 0.9,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      expenseColumn: valueColumn,
+      expenseTypeColumn: typeColumn,
+      groupColumn,
+      evidence: capabilities.expenseEvidence,
+      rows,
+    },
+  };
 }
 
 function describeRequestedSegment(input: DatasetAssistantInput & {
@@ -545,6 +824,107 @@ function isRevenueRiskQuestion(question: string) {
 
 function isBestSegmentQuestion(question: string) {
   return /best|top|strong|largest|highest|perform/i.test(question) && /segment|plan|channel|region|country|product|customer|category/i.test(question);
+}
+
+function isExpenseQuestion(question: string) {
+  return /expense|expenses|spend|spending|cost|costs|opex|operating\s+expense|money\s+going/i.test(question) &&
+    /largest|biggest|top|most|where|show|what|which|total|category/i.test(question);
+}
+
+function isAnomalyQuestion(question: string) {
+  return /unusual|anomal|outlier|abnormal|stand(s)?\s+out|suspicious/i.test(question) &&
+    /transaction|payment|amount|anything|any|value/i.test(question);
+}
+
+function isLargestTransactionQuestion(question: string) {
+  return /largest|biggest|highest[-\s]*value|top/i.test(question) && /transaction|payment|amount|value/i.test(question);
+}
+
+function availableExpenseAlternatives(capabilities: ReturnType<typeof detectDatasetSemanticCapabilities>) {
+  const alternatives: string[] = [];
+  if (capabilities.hasRevenueData) {
+    alternatives.push("largest revenue categories", "top-selling products", "biggest revenue transactions", "sales trends");
+  }
+  if (alternatives.length === 0) return "Ask about data quality, row counts, or upload a dataset with expense/cost columns.";
+  return `I can analyze ${alternatives.join(", ")} instead.`;
+}
+
+function expenseGroupColumn(columns: string[], valueColumn: string, typeColumn: string | null) {
+  const candidates = columns.filter((column) => column !== valueColumn && column !== typeColumn);
+  return candidates.find((column) => /category|account/i.test(column)) ??
+    candidates.find((column) => /supplier|vendor|merchant/i.test(column)) ??
+    candidates.find((column) => /product/i.test(column)) ??
+    candidates.find((column) => /description/i.test(column)) ??
+    null;
+}
+
+function expenseRows(rows: Record<string, unknown>[], valueColumn: string, groupColumn: string | null, typeColumn: string | null) {
+  const groups = new Map<string, { amount: number; rows: number }>();
+  const quantityColumn = Object.keys(rows[0] ?? {}).find((column) => /^(quantity|qty|units)$/i.test(column));
+  for (const row of rows) {
+    if (typeColumn && !/\b(expense|expenses|cost|costs|cogs|opex|debit|supplier|vendor|procurement|operating expense|fixed costs|payroll|bank fees)\b/i.test(String(row[typeColumn] ?? ""))) continue;
+    const baseValue = parseBusinessNumber(row[valueColumn]);
+    if (baseValue === null) continue;
+    const quantity = /unit[_\s-]*cost/i.test(valueColumn) && quantityColumn ? parseBusinessNumber(row[quantityColumn]) : null;
+    const amount = Math.abs(baseValue * (quantity ?? 1));
+    const segment = groupColumn ? String(row[groupColumn] ?? "Uncategorized").trim() || "Uncategorized" : valueColumn;
+    const current = groups.get(segment) ?? { amount: 0, rows: 0 };
+    current.amount += amount;
+    current.rows += 1;
+    groups.set(segment, current);
+  }
+  const total = Array.from(groups.values()).reduce((sum, row) => sum + row.amount, 0);
+  return Array.from(groups.entries())
+    .map(([segment, value]) => ({
+      segment,
+      amount: round(value.amount),
+      rows: value.rows,
+      sharePct: total > 0 ? round((value.amount / total) * 100, 1) : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+function anomalyResult(
+  input: DatasetAssistantInput,
+  analysis: ReturnType<typeof analyzeTransactionAmountAnomalies>,
+) {
+  return {
+    intent: "unusual_transactions",
+    status: analysis.status,
+    confidence: analysis.confidence,
+    datasetId: input.datasetId,
+    datasetType: input.datasetType,
+    amountColumn: analysis.amountColumn,
+    validCount: analysis.validCount,
+    invalidCount: analysis.invalidCount,
+    median: analysis.median,
+    q1: analysis.q1,
+    q3: analysis.q3,
+    iqr: analysis.iqr,
+    lowerThreshold: analysis.lowerThreshold,
+    upperThreshold: analysis.upperThreshold,
+    outlierCount: analysis.candidates.length,
+    candidates: analysis.candidates,
+    largest: analysis.largest,
+  };
+}
+
+function labelForTransactionRow(row: Record<string, unknown>, rowIndex: number) {
+  const column = Object.keys(row).find((key) => /description|merchant|supplier|vendor|product|item|category|name/i.test(key));
+  const value = column ? String(row[column] ?? "").trim() : "";
+  return value || `Row ${rowIndex + 1}`;
+}
+
+function contextForTransactionRow(row: Record<string, unknown>, amountColumn: string) {
+  const parts = Object.keys(row)
+    .filter((column) => column !== amountColumn && /category|type|merchant|supplier|vendor|product|description/i.test(column))
+    .map((column) => {
+      const value = String(row[column] ?? "").trim();
+      return value ? `${humanizeColumn(column)}: ${value}` : "";
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+  return parts.length > 0 ? parts.join("; ") : null;
 }
 
 function isGrowthQuestion(question: string) {

@@ -4,6 +4,7 @@ import {
   type PrebookkeepingCategorization,
   type PrebookkeepingCategory,
 } from "@/lib/accountancy/prebookkeeping-categorization";
+import { analyzeTransactionAmountAnomalies } from "@/lib/data/transaction-anomaly-analysis";
 
 export const prebookkeepingSuggestedQuestions = [
   "What are my largest expenses?",
@@ -29,6 +30,7 @@ export type PrebookkeepingAssistantAnswer = {
     type: "prebookkeeping_direct_analysis";
     intent: string;
     rowCount: number;
+    confidence?: number;
   };
 };
 
@@ -39,6 +41,14 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
   const categorization = normalizePrebookkeepingCategorization(input.categorization);
   const question = input.question.toLowerCase();
   const transactions = categorization.transactions;
+
+  if (isAnomalyQuestion(question)) {
+    return buildPrebookkeepingAnomalyAnswer(transactions);
+  }
+
+  if (isLargestTransactionQuestion(question)) {
+    return buildLargestTransactionAnswer(transactions);
+  }
 
   if (/duplicate/.test(question)) {
     const rows = transactions.filter((transaction) => transaction.duplicateStatus === "possible_duplicate").slice(0, 10);
@@ -112,6 +122,56 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
   }
 
   if (/income|expense|revenue|spend|recorded|summary|month/.test(question)) {
+    const capabilities = prebookkeepingCapabilities(transactions);
+    if (isExpenseOnlyQuestion(question)) {
+      if (!capabilities.hasExpenseData) {
+        return buildAnswer({
+          intent: "largest_expenses_unavailable",
+          title: "No expense or cost data was detected in this dataset, so I can't reliably determine your largest expenses.",
+          evidence: ["No validated expense category, cost field, debit classification, or trusted expense mapping was found."],
+          takeaway: "UseClevr will not classify generic numeric values as expenses.",
+          nextAction: "Map transaction type, category, debit, expense, cost, COGS, or supplier cost fields before asking for expense rankings.",
+          data: [{ capability: "expense_data", status: "unavailable" }],
+          chartType: "table",
+          rowCount: transactions.length,
+        });
+      }
+      const expenseRows = expenseBreakdown(transactions);
+      return buildAnswer({
+        intent: "largest_expenses",
+        title: expenseRows[0]
+          ? `${expenseRows[0].category} is the largest detected expense/cost category at ${formatMoney(expenseRows[0].total, currencyFor(transactions))}.`
+          : "No expense rows with numeric values were found.",
+        evidence: expenseRows.slice(0, 5).map((row) => `${row.category}: ${formatMoney(row.total, currencyFor(transactions))} across ${row.count} transaction(s)`),
+        takeaway: "Expense rankings use only validated expense/cost categories.",
+        nextAction: "Review category assignments before exporting the accountant package.",
+        data: expenseRows,
+        chartType: "bar",
+        rowCount: transactions.length,
+      });
+    }
+    if (isIncomeExpenseComparisonQuestion(question) && (!capabilities.hasExpenseData || !capabilities.hasIncomeData)) {
+      const missing = [
+        !capabilities.hasIncomeData ? "income/revenue" : null,
+        !capabilities.hasExpenseData ? "expense/cost" : null,
+      ].filter(Boolean).join(" and ");
+      return buildAnswer({
+        intent: "income_expense_summary_unavailable",
+        title: `I can't calculate income versus expenses because validated ${missing} data is unavailable.`,
+        evidence: [
+          capabilities.hasIncomeData ? "Income/revenue semantics were detected." : "No validated income/revenue semantics were detected.",
+          capabilities.hasExpenseData ? "Expense/cost semantics were detected." : "No validated expense category, cost field, debit classification, or trusted expense mapping was found.",
+        ],
+        takeaway: "UseClevr will not compare income and expenses unless both sides are semantically validated.",
+        nextAction: "Map transaction type, category, debit/credit, revenue, or expense fields before asking for an income and expense summary.",
+        data: [
+          { capability: "income_data", status: capabilities.hasIncomeData ? "available" : "unavailable" },
+          { capability: "expense_data", status: capabilities.hasExpenseData ? "available" : "unavailable" },
+        ],
+        chartType: "table",
+        rowCount: transactions.length,
+      });
+    }
     const categoryRows = categoryBreakdown(transactions);
     return buildAnswer({
       intent: "income_expense_summary",
@@ -130,6 +190,19 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
   }
 
   if (/supplier|vendor|merchant|paid|received/.test(question)) {
+    const capabilities = prebookkeepingCapabilities(transactions);
+    if (!capabilities.hasExpenseData) {
+      return buildAnswer({
+        intent: "top_suppliers_unavailable",
+        title: "No expense or cost data was detected, so supplier spending cannot be calculated reliably.",
+        evidence: ["No validated expense category, cost field, debit classification, or trusted expense mapping was found."],
+        takeaway: "UseClevr will not classify generic transaction values as supplier expenses.",
+        nextAction: "Map supplier plus expense, cost, debit, or transaction type fields before asking for supplier spending.",
+        data: [{ capability: "expense_data", status: "unavailable" }],
+        chartType: "table",
+        rowCount: transactions.length,
+      });
+    }
     const rows = groupBySupplier(transactions).slice(0, 10);
     return buildAnswer({
       intent: "top_suppliers",
@@ -160,19 +233,7 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
     });
   }
 
-  const rows = [...transactions].sort((a, b) => Math.abs(b.amount || 0) - Math.abs(a.amount || 0)).slice(0, 10);
-  return buildAnswer({
-    intent: "unusual_transactions",
-    title: rows[0]
-      ? `The largest transaction is ${formatMoney(rows[0].amount || 0, currencyFor(transactions))}: ${rows[0].description || rows[0].supplierCustomer || "Unnamed transaction"}.`
-      : "No transactions are available for direct analysis.",
-    evidence: rows.slice(0, 5).map(describeTransaction),
-    takeaway: "Large and low-confidence transactions are the best first review targets.",
-    nextAction: "Filter Large Transactions and Needs Review before accountant export.",
-    data: rows.map(transactionData),
-    chartType: "table",
-    rowCount: transactions.length,
-  });
+  return buildLargestTransactionAnswer(transactions);
 }
 
 function buildAnswer(input: {
@@ -184,6 +245,7 @@ function buildAnswer(input: {
   data: Record<string, unknown>[];
   chartType: "table" | "bar" | "summary";
   rowCount: number;
+  confidence?: number;
 }): PrebookkeepingAssistantAnswer {
   const evidence = input.evidence.length > 0 ? input.evidence : ["No matching transaction rows were found."];
   const answer = [
@@ -204,6 +266,7 @@ function buildAnswer(input: {
       type: "prebookkeeping_direct_analysis",
       intent: input.intent,
       rowCount: input.rowCount,
+      confidence: input.confidence,
     },
   };
 }
@@ -256,8 +319,12 @@ function categoryBreakdown(transactions: CategorizedTransaction[]) {
     .sort((a, b) => b.total - a.total);
 }
 
+function expenseBreakdown(transactions: CategorizedTransaction[]) {
+  return categoryBreakdown(transactions.filter(isValidatedExpense));
+}
+
 function isExpense(transaction: CategorizedTransaction) {
-  return ["operating_expenses", "payroll", "fixed_costs", "taxes", "bank_fees"].includes(transaction.category) || (transaction.amount || 0) < 0;
+  return isValidatedExpense(transaction);
 }
 
 function sumAbs(transactions: CategorizedTransaction[]) {
@@ -281,4 +348,145 @@ function formatCategory(value: string) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function buildPrebookkeepingAnomalyAnswer(transactions: CategorizedTransaction[]) {
+  const rows = transactions.map((transaction) => ({
+    amount: transaction.amount,
+    description: transaction.description,
+    supplierCustomer: transaction.supplierCustomer,
+    category: formatCategory(transaction.category),
+    sourceCategory: transaction.sourceCategory,
+  }));
+  const analysis = analyzeTransactionAmountAnomalies({
+    rows,
+    columns: ["amount", "description", "supplierCustomer", "category", "sourceCategory"],
+    amountColumn: "amount",
+    labelColumns: ["description", "supplierCustomer"],
+    contextColumns: ["category", "sourceCategory"],
+  });
+  const currency = currencyFor(transactions);
+
+  if (analysis.status === "insufficient_data") {
+    return buildAnswer({
+      intent: "unusual_transactions",
+      title: "There are not enough valid transaction amounts in this period to reliably detect statistical outliers.",
+      evidence: [
+        `${analysis.validCount.toLocaleString()} valid amount value(s) were found; at least 8 valid values are required for this IQR check.`,
+        analysis.largest ? `Largest transaction: ${analysis.largest.label} at ${formatMoney(analysis.largest.amount, currency)}.` : "No largest transaction is available.",
+      ],
+      takeaway: "I can show the largest transactions, but I can't reliably classify them as unusual.",
+      nextAction: "Add more transaction rows or ask for the largest transactions instead.",
+      data: analysis.largest ? [{ ...analysis.largest, status: "largest_only" }] : [],
+      chartType: "table",
+      rowCount: transactions.length,
+      confidence: analysis.confidence,
+    });
+  }
+
+  if (analysis.candidates.length === 0) {
+    return buildAnswer({
+      intent: "unusual_transactions",
+      title: "I didn't detect any strong transaction-amount outliers for this period.",
+      evidence: [
+        `Median transaction: ${formatMoney(analysis.median || 0, currency)}`,
+        `Q1: ${formatMoney(analysis.q1 || 0, currency)}`,
+        `Q3: ${formatMoney(analysis.q3 || 0, currency)}`,
+        `IQR: ${formatMoney(analysis.iqr || 0, currency)}`,
+        `Upper outlier threshold: ${formatMoney(analysis.upperThreshold || 0, currency)}`,
+        analysis.largest ? `Largest transaction: ${analysis.largest.label} at ${formatMoney(analysis.largest.amount, currency)}; it does not exceed the anomaly threshold.` : "No largest transaction is available.",
+      ],
+      takeaway: "No strong transaction-amount anomalies were detected.",
+      nextAction: "No anomaly review is required based on transaction amount alone.",
+      data: [
+        { metric: "Median transaction", value: analysis.median },
+        { metric: "Upper outlier threshold", value: analysis.upperThreshold },
+      ],
+      chartType: "table",
+      rowCount: transactions.length,
+      confidence: analysis.confidence,
+    });
+  }
+
+  return buildAnswer({
+    intent: "unusual_transactions",
+    title: `Yes. I found ${analysis.candidates.length.toLocaleString()} ${analysis.candidates.length === 1 ? "transaction that is" : "transactions that are"} unusually large compared with the typical transaction size this period.`,
+    evidence: [
+      `Median transaction: ${formatMoney(analysis.median || 0, currency)}`,
+      `Q1: ${formatMoney(analysis.q1 || 0, currency)}`,
+      `Q3: ${formatMoney(analysis.q3 || 0, currency)}`,
+      `IQR: ${formatMoney(analysis.iqr || 0, currency)}`,
+      `Upper outlier threshold: ${formatMoney(analysis.upperThreshold || 0, currency)}`,
+      ...(analysis.invalidCount > 0 ? [`${analysis.invalidCount.toLocaleString()} invalid or blank value(s) were excluded.`] : []),
+      ...analysis.candidates.slice(0, 5).map((candidate) => `${candidate.label}: ${formatMoney(candidate.amount, currency)} - ${candidate.thresholdMultiple ?? "above"}x threshold, ${candidate.medianMultiple ?? "above"}x median${candidate.context ? ` (${candidate.context})` : ""}`),
+    ],
+    takeaway: "These transactions are statistical outlier candidates, not proof of an error or misconduct.",
+    nextAction: "Review the flagged outlier transactions and confirm that the amounts and categories are expected.",
+    data: analysis.candidates.map((candidate) => ({ ...candidate, status: "outlier_candidate" })),
+    chartType: "table",
+    rowCount: transactions.length,
+    confidence: analysis.confidence,
+  });
+}
+
+function buildLargestTransactionAnswer(transactions: CategorizedTransaction[]) {
+  const rows = [...transactions].sort((a, b) => Math.abs(b.amount || 0) - Math.abs(a.amount || 0)).slice(0, 10);
+  return buildAnswer({
+    intent: "largest_transactions",
+    title: rows[0]
+      ? `The largest transaction is ${formatMoney(rows[0].amount || 0, currencyFor(transactions))}: ${rows[0].description || rows[0].supplierCustomer || "Unnamed transaction"}.`
+      : "No transactions are available for direct analysis.",
+    evidence: rows.slice(0, 5).map(describeTransaction),
+    takeaway: "This ranking shows the largest transaction amounts only; it does not classify them as unusual.",
+    nextAction: "Ask about unusual transactions to run statistical outlier detection.",
+    data: rows.map(transactionData),
+    chartType: "table",
+    rowCount: transactions.length,
+    confidence: rows.length >= 1 ? 0.9 : 0.4,
+  });
+}
+
+function isAnomalyQuestion(question: string) {
+  return /unusual|anomal|outlier|abnormal|stand(s)?\s+out|suspicious/.test(question) && /transaction|payment|amount|anything|any/.test(question);
+}
+
+function isLargestTransactionQuestion(question: string) {
+  return /largest|biggest|highest[-\s]*value|top/.test(question) && /transaction|payment|amount/.test(question);
+}
+
+function isExpenseOnlyQuestion(question: string) {
+  return /expense|expenses|spend|spending|cost|costs|opex|money\s+going/i.test(question) &&
+    /largest|biggest|top|most|where|show|which|category/i.test(question) &&
+    !/income|revenue/.test(question);
+}
+
+function isIncomeExpenseComparisonQuestion(question: string) {
+  return /income|revenue/.test(question) && /expense|expenses|spend|spending|cost|costs/.test(question);
+}
+
+function prebookkeepingCapabilities(transactions: CategorizedTransaction[]) {
+  return {
+    hasIncomeData: transactions.some(isValidatedIncome),
+    hasExpenseData: transactions.some(isValidatedExpense),
+  };
+}
+
+function isValidatedIncome(transaction: CategorizedTransaction) {
+  if (transaction.category === "revenue" && hasSemanticReason(transaction, /revenue|income|sale|customer payment|positive credited|learned user rule/i)) return true;
+  return typeof transaction.credit === "number" && transaction.credit > 0;
+}
+
+function isValidatedExpense(transaction: CategorizedTransaction) {
+  if (!["operating_expenses", "payroll", "fixed_costs", "taxes", "bank_fees"].includes(transaction.category)) return false;
+  if (typeof transaction.debit === "number" && transaction.debit > 0) return true;
+  if (hasSemanticReason(transaction, /payroll|tax|bank|fee|fixed|operating expense|expense|cost|learned user rule/i)) return true;
+  return hasSourceCategory(transaction, /expense|cost|cogs|opex|debit|payroll|tax|fee/i);
+}
+
+function hasSemanticReason(transaction: CategorizedTransaction, pattern: RegExp) {
+  return transaction.reasons.some((reason) => pattern.test(reason));
+}
+
+function hasSourceCategory(transaction: CategorizedTransaction, pattern: RegExp) {
+  return pattern.test(String(transaction.sourceCategory ?? ""));
 }
