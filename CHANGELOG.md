@@ -23,6 +23,8 @@
 - Fix purchase trace accuracy so FIFO chronological attribution correctly links usage debits to the originating credit purchase instead of matching all subsequent debits.
 - Fix ledger reconciliation so expected balances exclude pending reservations and match stored account balances exactly.
 - Add comprehensive billing integrity verification with 25 automated checks covering atomic debit protection, idempotency, reserve/settle/release flow, admin entitlement, workspace isolation, and module enforcement.
+- Fix Accountancy upload error handling so non-CSV uploads (PDF, receipts, images, Excel, bank exports) no longer surface as generic `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` when credit engine calls or categorization throw; credit reservation, finalization, and release failures now convert to staged structured errors.
+- Accept `image/heic` receipts and invoices with the `image/heic` MIME type and `.heic` extension alongside JPEG, PNG, and WebP.
 
 ### Fixed
 

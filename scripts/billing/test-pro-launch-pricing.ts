@@ -160,15 +160,39 @@ assert.equal(businessEu.stripePriceId, "price_business_eur_test", "Business EUR 
 
 const businessMarkets = getCheckoutMarketOptions("business")
 assert.equal(businessMarkets.find((market) => market.market === "eu")?.enabled, true, "Business EUR is selectable")
-assert.equal(businessMarkets.find((market) => market.market === "uk")?.enabled, false, "Business UK remains unavailable without approved pricing")
-assert.equal(businessMarkets.find((market) => market.market === "us")?.enabled, false, "Business US remains unavailable without approved pricing")
-assert.equal(businessMarkets.find((market) => market.market === "ca")?.enabled, false, "Business Canada remains unavailable without approved pricing")
+assert.equal(businessMarkets.find((market) => market.market === "uk")?.enabled, true, "Business UK is selectable with configured GBP price")
+assert.equal(businessMarkets.find((market) => market.market === "us")?.enabled, true, "Business US is selectable with configured USD price")
+assert.equal(businessMarkets.find((market) => market.market === "ca")?.enabled, true, "Business Canada is selectable with configured CAD price")
 
-assert.throws(
-  () => resolveCheckoutMarketPrice({ plan: "business", billingInterval: "monthly", market: "uk" }),
-  /not available/,
-  "Business unsupported markets are rejected safely",
-)
+const businessUk = resolveCheckoutMarketPrice({
+  plan: "business",
+  billingInterval: "monthly",
+  market: "uk",
+})
+assert.equal(businessUk.currency, "GBP", "Business UK currency")
+assert.equal(businessUk.amountMinor, 40950, "Business UK amount is preserved")
+assert.equal(businessUk.displayPrice, "£410/month", "Business UK display price")
+assert.equal(businessUk.stripePriceId, "price_business_gbp_test", "Business UK uses configured Stripe price")
+
+const businessUs = resolveCheckoutMarketPrice({
+  plan: "business",
+  billingInterval: "monthly",
+  market: "us",
+})
+assert.equal(businessUs.currency, "USD", "Business US currency")
+assert.equal(businessUs.amountMinor, 47250, "Business US amount is preserved")
+assert.equal(businessUs.displayPrice, "$473/month", "Business US display price")
+assert.equal(businessUs.stripePriceId, "price_business_usd_test", "Business US uses configured Stripe price")
+
+const businessCa = resolveCheckoutMarketPrice({
+  plan: "business",
+  billingInterval: "monthly",
+  market: "ca",
+})
+assert.equal(businessCa.currency, "CAD", "Business CA currency")
+assert.equal(businessCa.amountMinor, 57750, "Business CA amount is preserved")
+assert.equal(businessCa.displayPrice, "CA$578/month", "Business CA display price")
+assert.equal(businessCa.stripePriceId, "price_business_cad_test", "Business CA uses configured Stripe price")
 
 assert.equal(getSubscriptionTierForStripePriceId("price_pro_usd_test"), "pro", "webhook maps Pro market Price IDs to Pro")
 assert.equal(getSubscriptionTierForStripePriceId("price_business_eur_test"), "business", "webhook maps Business EUR Price ID to Business")
