@@ -4,6 +4,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { answerDatasetQuestionDeterministically } from "../../src/lib/data/dataset-assistant-deterministic";
+import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/accountancy/prebookkeeping-ai-assistant";
+import type { PrebookkeepingCategorization } from "../../src/lib/accountancy/prebookkeeping-categorization";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..", "..");
@@ -81,6 +83,101 @@ const usySource = readFileSync(join(repoRoot, "src", "components", "ui", "help-c
 assert.match(usySource, /fetch\("\/api\/hybrid-ai\/chat"/, "Usy Bot keeps its separate chat API");
 assert.doesNotMatch(usySource, /dataset-chat/, "Usy Bot does not route through the Dataset AI API");
 
+const retailSalesOnlyRows = [
+  { order_date: "2025-01-01", product: "Tea", category: "Drinks", sales_amount: "100", quantity: "2" },
+  { order_date: "2025-01-02", product: "Coffee", category: "Drinks", sales_amount: "250", quantity: "5" },
+];
+const retailSalesOnlyExpense = answerDatasetQuestionDeterministically({
+  question: "What are my largest expenses?",
+  datasetId: "fixture:retail-sales-only",
+  datasetType: "retail",
+  columns: Object.keys(retailSalesOnlyRows[0] ?? {}),
+  rows: retailSalesOnlyRows,
+});
+assert.ok(retailSalesOnlyExpense, "sales-only retail expense question receives a deterministic refusal");
+assert.match(retailSalesOnlyExpense.answer, /No expense or cost data was detected/i, "sales-only answer refuses expense calculation");
+assert.doesNotMatch(retailSalesOnlyExpense.answer, /250|350|expenses are|Expenses exceed income/i, "sales-only answer does not fabricate expense totals");
+assert.match(retailSalesOnlyExpense.answer, /largest revenue categories|top-selling products|sales trends/i, "sales-only answer offers supported revenue alternatives");
+
+const genericAmountRows = [
+  { Date: "2025-01-01", Description: "Opening balance", Amount: "100" },
+  { Date: "2025-01-02", Description: "Transfer", Amount: "200" },
+];
+const genericAmountExpense = answerDatasetQuestionDeterministically({
+  question: "Show my biggest costs",
+  datasetId: "fixture:generic-amount",
+  datasetType: "generic",
+  columns: Object.keys(genericAmountRows[0] ?? {}),
+  rows: genericAmountRows,
+});
+assert.ok(genericAmountExpense, "generic amount expense question receives a deterministic refusal");
+assert.match(genericAmountExpense.answer, /generic monetary fields.*ambiguous/i, "generic amount answer explains amount is ambiguous");
+assert.doesNotMatch(genericAmountExpense.answer, /300|biggest detected expense/i, "generic amount answer does not classify Amount as expense");
+
+const cogsRows = [
+  { order_date: "2025-01-01", product: "Tea", revenue: "200", cogs: "80", category: "Drinks" },
+  { order_date: "2025-01-02", product: "Coffee", revenue: "300", cogs: "150", category: "Drinks" },
+];
+const cogsExpense = answerDatasetQuestionDeterministically({
+  question: "What are my largest expenses?",
+  datasetId: "fixture:cogs",
+  datasetType: "retail",
+  columns: Object.keys(cogsRows[0] ?? {}),
+  rows: cogsRows,
+});
+assert.ok(cogsExpense, "COGS expense question receives a deterministic answer");
+assert.match(cogsExpense.answer, /largest detected expense\/cost/i, "COGS answer calculates cost analysis");
+assert.match(cogsExpense.answer, /Cost\/COGS field "cogs"/i, "COGS answer cites cost evidence");
+
+const unitCostRows = [
+  { order_date: "2025-01-01", product: "Tea", revenue: "200", unit_cost: "10", quantity: "4" },
+  { order_date: "2025-01-02", product: "Coffee", revenue: "300", unit_cost: "20", quantity: "5" },
+];
+const unitCostExpense = answerDatasetQuestionDeterministically({
+  question: "Which category costs the most?",
+  datasetId: "fixture:unit-cost",
+  datasetType: "retail",
+  columns: Object.keys(unitCostRows[0] ?? {}),
+  rows: unitCostRows,
+});
+assert.ok(unitCostExpense, "Unit Cost expense question receives a deterministic answer");
+assert.match(unitCostExpense.answer, /100/, "Unit Cost answer multiplies validated unit cost by quantity for the top ranked row");
+
+const typedExpenseRows = [
+  { Date: "2025-01-01", Description: "Client invoice", Type: "Income", Category: "Consulting", Amount: "500" },
+  { Date: "2025-01-02", Description: "Hosting", Type: "Expense", Category: "Software", Amount: "120" },
+  { Date: "2025-01-03", Description: "Ads", Type: "Expense", Category: "Marketing", Amount: "300" },
+];
+const typedExpense = answerDatasetQuestionDeterministically({
+  question: "What am I spending most on?",
+  datasetId: "fixture:typed-expense",
+  datasetType: "accounting",
+  columns: Object.keys(typedExpenseRows[0] ?? {}),
+  rows: typedExpenseRows,
+});
+assert.ok(typedExpense, "transaction type expense question receives a deterministic answer");
+assert.match(typedExpense.answer, /Marketing.*300|300.*Marketing/i, "typed expense answer uses Type = Expense rows");
+assert.match(typedExpense.answer, /Classifier field "Type"/i, "typed expense answer cites classifier evidence");
+
+const prebookkeepingGenericExpense = answerPrebookkeepingQuestionDeterministically({
+  question: "What are my largest expenses?",
+  categorization: prebookkeepingFixture([
+    { rowIndex: 0, description: "Transfer", amount: -100, category: "operating_expenses", reasons: ["negative amount"] },
+    { rowIndex: 1, description: "Transfer 2", amount: -200, category: "operating_expenses", reasons: ["negative amount"] },
+  ]),
+});
+assert.match(prebookkeepingGenericExpense.answer, /No expense or cost data was detected/i, "pre-bookkeeping generic negative amounts do not become expenses");
+assert.doesNotMatch(prebookkeepingGenericExpense.answer, /300|Expenses exceed income/i, "pre-bookkeeping generic answer does not fabricate expense totals");
+
+const prebookkeepingTypedExpense = answerPrebookkeepingQuestionDeterministically({
+  question: "What are my largest expenses?",
+  categorization: prebookkeepingFixture([
+    { rowIndex: 0, description: "Client invoice", amount: 500, category: "revenue", sourceCategory: "Income", reasons: ["revenue keyword"] },
+    { rowIndex: 1, description: "Hosting", amount: -120, debit: 120, category: "operating_expenses", sourceCategory: "Expense", reasons: ["operating expense keyword"] },
+  ]),
+});
+assert.match(prebookkeepingTypedExpense.answer, /Operating Expenses.*120/i, "pre-bookkeeping explicit expense category still works");
+
 process.stdout.write("ok - dataset AI assistant deterministic responses and Usy isolation\n");
 
 function parseFixtureCsv(fileName: string) {
@@ -93,4 +190,116 @@ function parseFixtureCsv(fileName: string) {
       return row;
     }, {});
   });
+}
+
+function prebookkeepingFixture(
+  rows: Array<Partial<PrebookkeepingCategorization["transactions"][number]>>,
+): PrebookkeepingCategorization {
+  const transactions = rows.map((row, index) => ({
+    rowIndex: row.rowIndex ?? index,
+    transactionDate: row.transactionDate ?? "2025-01-01",
+    description: row.description ?? null,
+    supplierCustomer: row.supplierCustomer ?? null,
+    debit: row.debit ?? null,
+    credit: row.credit ?? null,
+    amount: row.amount ?? null,
+    currency: row.currency ?? "EUR",
+    vatTax: row.vatTax ?? null,
+    category: row.category ?? "uncategorized",
+    suggestedCategory: row.suggestedCategory ?? null,
+    sourceCategory: row.sourceCategory ?? null,
+    invoiceReference: row.invoiceReference ?? null,
+    confidence: row.confidence ?? 0.8,
+    reasons: row.reasons ?? [],
+    reviewed: row.reviewed ?? false,
+    needsReview: row.needsReview ?? false,
+    reviewStatus: row.reviewStatus ?? "pending",
+    duplicateStatus: row.duplicateStatus ?? "none",
+    vatStatus: row.vatStatus ?? "missing",
+    vatRate: row.vatRate ?? null,
+    vatConfidence: row.vatConfidence ?? 0,
+    vatReason: row.vatReason ?? null,
+    vatBusinessRule: row.vatBusinessRule ?? null,
+    vatSource: row.vatSource ?? null,
+    vatNeedsReview: row.vatNeedsReview ?? false,
+    isLargeTransaction: row.isLargeTransaction ?? false,
+    autoReviewed: row.autoReviewed ?? false,
+    autoReviewReason: row.autoReviewReason ?? null,
+    autoReviewEvidence: row.autoReviewEvidence ?? [],
+    autoReviewBusinessRule: row.autoReviewBusinessRule ?? null,
+    autoReviewCalculationSource: row.autoReviewCalculationSource ?? null,
+    autoReviewProviderSource: row.autoReviewProviderSource ?? null,
+    reviewDecision: row.reviewDecision ?? null,
+    riskScore: row.riskScore ?? 0,
+    reviewBlockers: row.reviewBlockers ?? [],
+  }));
+  const incomeTotal = transactions.filter((row) => row.category === "revenue").reduce((sum, row) => sum + Math.max(row.amount ?? 0, 0), 0);
+  const expenseTotal = transactions.filter((row) => ["operating_expenses", "payroll", "fixed_costs", "taxes", "bank_fees"].includes(row.category)).reduce((sum, row) => sum + Math.abs(row.amount ?? row.debit ?? 0), 0);
+  return {
+    status: "ready_for_review",
+    generatedAt: "2026-08-09T00:00:00.000Z",
+    rowCount: transactions.length,
+    categorizedCount: transactions.filter((row) => row.category !== "uncategorized").length,
+    uncategorizedCount: transactions.filter((row) => row.category === "uncategorized").length,
+    incomeTotal,
+    expenseTotal,
+    vatTaxSummary: { total: 0, rowsWithTax: 0 },
+    possibleDuplicates: [],
+    missingDataWarnings: [],
+    columns: { transactionDate: "Date", description: "Description", supplierCustomer: null, debit: null, credit: null, amount: "Amount", currency: null, vatTax: null, category: "Type", invoiceReference: null },
+    categoryCounts: {
+      revenue: transactions.filter((row) => row.category === "revenue").length,
+      operating_expenses: transactions.filter((row) => row.category === "operating_expenses").length,
+      payroll: 0,
+      fixed_costs: 0,
+      taxes: 0,
+      bank_fees: 0,
+      transfers: 0,
+      assets: 0,
+      liabilities: 0,
+      equity: 0,
+      other: 0,
+      uncategorized: transactions.filter((row) => row.category === "uncategorized").length,
+    },
+    reviewSummary: {
+      transactionsAnalyzed: transactions.length,
+      categorizedAutomatically: transactions.length,
+      requiresReview: 0,
+      possibleDuplicatesDetected: 0,
+      missingDataWarnings: 0,
+      vatMissingPercent: 0,
+      confidenceScore: 80,
+      reviewedCount: 0,
+      reviewProgressPercent: 0,
+      totalCount: transactions.length,
+      progress: 0,
+      status: "ready_for_review",
+      manualCorrections: 0,
+      averageVatConfidence: 0,
+      defaultVatRate: null,
+      businessCountry: null,
+      confidenceDistribution: { high: 0, medium: transactions.length, low: 0 },
+      autoReviewedCount: 0,
+      needsReviewCount: 0,
+      riskDistribution: { low: transactions.length, medium: 0, high: 0 },
+      thresholdConfig: { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
+    },
+    taxProfile: {
+      taxCountry: null,
+      vatRegistered: null,
+      defaultVatRate: null,
+      reducedVatRate: null,
+      zeroVatRate: null,
+      reverseChargeEnabled: false,
+      fiscalYear: null,
+      currency: null,
+      taxRegime: null,
+      businessType: null,
+      availableRates: [],
+      source: "business_profile",
+    },
+    recommendations: [],
+    transactions,
+    thresholdConfig: { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
+  };
 }

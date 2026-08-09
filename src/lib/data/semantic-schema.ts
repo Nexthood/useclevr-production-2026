@@ -36,6 +36,17 @@ export type SemanticSchema = {
   mixedCurrency: boolean;
 };
 
+export type DatasetSemanticCapabilities = {
+  hasExpenseData: boolean;
+  hasRevenueData: boolean;
+  hasCostData: boolean;
+  hasMarginData: boolean;
+  hasInventoryData: boolean;
+  hasTaxData: boolean;
+  expenseEvidence: string[];
+  revenueEvidence: string[];
+};
+
 type FieldRule = {
   field: SemanticField;
   exact: string[];
@@ -47,22 +58,22 @@ type FieldRule = {
 const FIELD_RULES: FieldRule[] = [
   {
     field: "revenue",
-    exact: ["revenue", "sales", "total_sales", "amount", "sales_amount", "income", "turnover", "net_sales", "gross_sales", "order_value", "gmv", "gross_merchandise_value"],
-    contains: ["revenue", "sales_amount", "total_sales", "turnover", "gross_merchandise_value"],
+    exact: ["revenue", "sales", "total_sales", "sales_amount", "income", "turnover", "net_sales", "gross_sales", "order_value", "gmv", "gross_merchandise_value"],
+    contains: ["revenue", "sales_amount", "total_sales", "turnover", "gross_merchandise_value", "order_value"],
     rejectContains: ["cost", "expense", "profit", "margin", "tax", "discount", "refund"],
     validator: isMostlyNumeric,
   },
   {
     field: "cogs",
-    exact: ["cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "product_cost", "direct_cost", "purchase_cost"],
-    contains: ["cost_of_goods", "cost_of_sales", "product_cost", "direct_cost", "purchase_cost"],
+    exact: ["cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "product_cost", "direct_cost", "purchase_cost", "unit_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
+    contains: ["cost_of_goods", "cost_of_sales", "product_cost", "direct_cost", "purchase_cost", "unit_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
     rejectContains: ["operating", "opex", "overhead", "admin", "marketing", "advertising", "shipping", "delivery", "general"],
     validator: isMostlyNumeric,
   },
   {
     field: "expenses",
-    exact: ["expenses", "operating_expenses", "opex", "overhead", "admin_cost", "marketing_cost"],
-    contains: ["expense", "opex", "overhead", "admin_cost", "marketing_cost"],
+    exact: ["expense", "expenses", "operating_expense", "operating_expenses", "opex", "overhead", "admin_cost", "marketing_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
+    contains: ["expense", "opex", "overhead", "admin_cost", "marketing_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
     validator: isMostlyNumeric,
   },
   {
@@ -184,6 +195,41 @@ export function hasSemanticFields(schema: SemanticSchema, fields: SemanticField[
   return fields.every((field) => Boolean(schema.mappings[field]));
 }
 
+export function detectDatasetSemanticCapabilities(input: {
+  schema: SemanticSchema;
+  rows: Record<string, unknown>[];
+}): DatasetSemanticCapabilities {
+  const schema = input.schema;
+  const expenseEvidence = expenseSemanticEvidence(schema, input.rows);
+  const revenueEvidence = semanticColumn(schema, "revenue")
+    ? [`Revenue field "${semanticColumn(schema, "revenue")}" is validated by column semantics.`]
+    : [];
+
+  return {
+    hasExpenseData: expenseEvidence.length > 0,
+    hasRevenueData: revenueEvidence.length > 0,
+    hasCostData: Boolean(semanticColumn(schema, "cogs") || semanticColumn(schema, "expenses")),
+    hasMarginData: Boolean(semanticColumn(schema, "gross_margin") || semanticColumn(schema, "net_margin") || semanticColumn(schema, "gross_profit") || semanticColumn(schema, "net_profit")),
+    hasInventoryData: schema.columns.some((column) => /inventory|stock|on_hand|sku/i.test(normalizeColumnName(column))),
+    hasTaxData: schema.columns.some((column) => /(^|_)tax($|_)|vat|gst|btw/i.test(normalizeColumnName(column))),
+    expenseEvidence,
+    revenueEvidence,
+  };
+}
+
+export function findExpenseTypeColumn(rows: Record<string, unknown>[], columns: string[]) {
+  return columns.find((column) => isExpenseClassifierColumn(column, rows)) ?? null;
+}
+
+export function findMonetaryAmountColumn(rows: Record<string, unknown>[], columns: string[]) {
+  const ranked = columns
+    .filter((column) => isMostlyNumeric(rows, column))
+    .map((column) => ({ column, rank: amountColumnRank(column) }))
+    .filter((candidate) => candidate.rank > 0)
+    .sort((a, b) => b.rank - a.rank);
+  return ranked[0]?.column ?? null;
+}
+
 export function parseBusinessNumber(value: unknown) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string") return null;
@@ -263,6 +309,39 @@ function normalizeColumnName(col: string) {
     .trim()
     .replace(/\s+/g, "_")
     .replace(/[^a-z0-9_]/g, "");
+}
+
+function expenseSemanticEvidence(schema: SemanticSchema, rows: Record<string, unknown>[]) {
+  const evidence: string[] = [];
+  const expenseColumn = semanticColumn(schema, "expenses");
+  const cogsColumn = semanticColumn(schema, "cogs");
+  const typeColumn = findExpenseTypeColumn(rows, schema.columns);
+
+  if (expenseColumn) evidence.push(`Expense field "${expenseColumn}" is validated by column semantics.`);
+  if (cogsColumn) evidence.push(`Cost/COGS field "${cogsColumn}" is validated by column semantics.`);
+  if (typeColumn) evidence.push(`Classifier field "${typeColumn}" contains expense/cost values.`);
+
+  return evidence;
+}
+
+function isExpenseClassifierColumn(column: string, rows: Record<string, unknown>[]) {
+  const normalized = normalizeColumnName(column);
+  if (!/(^|_)(type|transaction_type|category|account|ledger|classification)($|_)/.test(normalized)) return false;
+  const values = rows
+    .map((row) => String(row[column] ?? "").trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 500);
+  if (values.length === 0) return false;
+  const expenseCount = values.filter((value) => /\b(expense|expenses|cost|costs|cogs|opex|debit|supplier|vendor|procurement|operating expense|fixed costs|payroll|bank fees)\b/i.test(value)).length;
+  return expenseCount > 0;
+}
+
+function amountColumnRank(column: string) {
+  const normalized = normalizeColumnName(column);
+  if (/^(amount|transaction_amount|total|value|gross|net_amount|debit|credit)$/.test(normalized)) return 3;
+  if (/(^|_)(amount|total|value|debit|credit)($|_)/.test(normalized)) return 2;
+  if (/price|revenue|sales|cost|expense|cogs|income|gmv/.test(normalized)) return 1;
+  return 0;
 }
 
 function confidenceRank(confidence: MappingConfidence) {

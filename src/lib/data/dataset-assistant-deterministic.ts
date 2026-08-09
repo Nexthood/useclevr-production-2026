@@ -1,6 +1,9 @@
 import { resolveQuestionMetric } from "@/lib/data/metric-resolver";
 import {
   buildSemanticSchema,
+  detectDatasetSemanticCapabilities,
+  findExpenseTypeColumn,
+  findMonetaryAmountColumn,
   parseBusinessNumber,
   semanticColumn,
 } from "@/lib/data/semantic-schema";
@@ -92,6 +95,10 @@ export function answerDatasetQuestionDeterministically(
   }
 
   const schema = buildSemanticSchema(input);
+  if (isExpenseQuestion(question)) {
+    return describeExpenseCapability({ ...input, schema });
+  }
+
   const revenueColumn = semanticColumn(schema, "revenue");
   if (!revenueColumn) return null;
   const currencyCode = schema.currencyCode;
@@ -133,6 +140,103 @@ export function answerDatasetQuestionDeterministically(
   }
 
   return null;
+}
+
+function describeExpenseCapability(input: DatasetAssistantInput & {
+  schema: ReturnType<typeof buildSemanticSchema>;
+}): DatasetAssistantDeterministicResult {
+  const capabilities = detectDatasetSemanticCapabilities({ schema: input.schema, rows: input.rows });
+  if (!capabilities.hasExpenseData) {
+    const alternatives = availableExpenseAlternatives(capabilities);
+    return {
+      status: "success",
+      answer: [
+        "Answer: No expense or cost data was detected in this dataset, so I can't reliably determine your largest expenses.",
+        `Insight: ${capabilities.hasRevenueData ? "The available data appears to contain sales or revenue records." : "Generic monetary fields such as amount, total, value, transaction, or price are semantically ambiguous."}`,
+        "Evidence: No validated expense category, cost field, debit classification, or trusted expense mapping was found.",
+        "Takeaway: UseClevr will not classify generic numeric values as expenses.",
+        `Next question: ${alternatives}`,
+      ].join("\n\n"),
+      insight: "No validated expense or cost semantics were detected.",
+      explanation: "Direct data analysis checked semantic field mappings and classifier values before refusing the expense calculation.",
+      recommendation: alternatives,
+      data: [
+        { capability: "expense_data", status: "unavailable", evidence: "No reliable expense/cost semantics found." },
+        { capability: "revenue_data", status: capabilities.hasRevenueData ? "available" : "unavailable", evidence: capabilities.revenueEvidence.join(" ") || null },
+      ],
+      chartType: "table",
+      result: {
+        intent: "ranking.top_expenses",
+        status: "unsupported_semantics",
+        confidence: 0.94,
+        datasetId: input.datasetId,
+        datasetType: input.datasetType,
+        hasExpenseData: false,
+        hasRevenueData: capabilities.hasRevenueData,
+        evidence: capabilities.expenseEvidence,
+      },
+    };
+  }
+
+  const expenseColumn = semanticColumn(input.schema, "expenses") || semanticColumn(input.schema, "cogs");
+  const typeColumn = findExpenseTypeColumn(input.rows, input.columns);
+  const amountColumn = typeColumn ? findMonetaryAmountColumn(input.rows, input.columns) : null;
+  const valueColumn = expenseColumn || amountColumn;
+  if (!valueColumn) {
+    return {
+      status: "success",
+      answer: [
+        "Answer: Expense analysis unavailable: expense semantics were detected, but no numeric expense amount field was validated.",
+        `Evidence: ${capabilities.expenseEvidence.join(" ")}`,
+        "Takeaway: UseClevr needs both expense classification and numeric amount values before calculating largest expenses.",
+        "Next question: Upload or map an expense amount, debit, cost, COGS, or unit cost field.",
+      ].join("\n\n"),
+      insight: "Expense labels exist, but no numeric expense amount is available.",
+      explanation: "Direct data analysis refused the calculation because amount semantics were incomplete.",
+      recommendation: "Upload or map an expense amount, debit, cost, COGS, or unit cost field.",
+      data: capabilities.expenseEvidence.map((evidence) => ({ evidence })),
+      chartType: "table",
+      result: {
+        intent: "ranking.top_expenses",
+        status: "missing_amount",
+        confidence: 0.9,
+        datasetId: input.datasetId,
+        datasetType: input.datasetType,
+        evidence: capabilities.expenseEvidence,
+      },
+    };
+  }
+
+  const groupColumn = expenseGroupColumn(input.columns, valueColumn, typeColumn);
+  const rows = expenseRows(input.rows, valueColumn, groupColumn, typeColumn).slice(0, 10);
+  const top = rows[0];
+  const evidence = capabilities.expenseEvidence.join(" ");
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${top ? `${top.segment} is the largest detected expense/cost at ${formatValue(top.amount, input.schema.currencyCode)}.` : "No expense rows with numeric values were found."}`,
+      `Evidence: ${evidence}`,
+      `Takeaway: ${top ? "This calculation uses only validated expense/cost semantics." : "Expense semantics exist, but matching rows have no usable numeric values."}`,
+      "Next question: Ask for expense trends, supplier concentration, or margin if revenue is also available.",
+    ].join("\n\n"),
+    insight: top ? `Largest detected expense/cost: ${top.segment}.` : "No numeric expense rows were available.",
+    explanation: `Calculated from ${typeColumn ? `classifier "${typeColumn}" and amount column "${valueColumn}"` : `validated cost column "${valueColumn}"`}.`,
+    recommendation: "Ask for expense trends, supplier concentration, or margin if revenue is also available.",
+    data: rows,
+    chartType: "table",
+    result: {
+      intent: "ranking.top_expenses",
+      status: "success",
+      confidence: 0.9,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      expenseColumn: valueColumn,
+      expenseTypeColumn: typeColumn,
+      groupColumn,
+      evidence: capabilities.expenseEvidence,
+      rows,
+    },
+  };
 }
 
 function describeRequestedSegment(input: DatasetAssistantInput & {
@@ -545,6 +649,55 @@ function isRevenueRiskQuestion(question: string) {
 
 function isBestSegmentQuestion(question: string) {
   return /best|top|strong|largest|highest|perform/i.test(question) && /segment|plan|channel|region|country|product|customer|category/i.test(question);
+}
+
+function isExpenseQuestion(question: string) {
+  return /expense|expenses|spend|spending|cost|costs|opex|operating\s+expense|money\s+going/i.test(question) &&
+    /largest|biggest|top|most|where|show|what|which|total|category/i.test(question);
+}
+
+function availableExpenseAlternatives(capabilities: ReturnType<typeof detectDatasetSemanticCapabilities>) {
+  const alternatives: string[] = [];
+  if (capabilities.hasRevenueData) {
+    alternatives.push("largest revenue categories", "top-selling products", "biggest revenue transactions", "sales trends");
+  }
+  if (alternatives.length === 0) return "Ask about data quality, row counts, or upload a dataset with expense/cost columns.";
+  return `I can analyze ${alternatives.join(", ")} instead.`;
+}
+
+function expenseGroupColumn(columns: string[], valueColumn: string, typeColumn: string | null) {
+  const candidates = columns.filter((column) => column !== valueColumn && column !== typeColumn);
+  return candidates.find((column) => /category|account/i.test(column)) ??
+    candidates.find((column) => /supplier|vendor|merchant/i.test(column)) ??
+    candidates.find((column) => /product/i.test(column)) ??
+    candidates.find((column) => /description/i.test(column)) ??
+    null;
+}
+
+function expenseRows(rows: Record<string, unknown>[], valueColumn: string, groupColumn: string | null, typeColumn: string | null) {
+  const groups = new Map<string, { amount: number; rows: number }>();
+  const quantityColumn = Object.keys(rows[0] ?? {}).find((column) => /^(quantity|qty|units)$/i.test(column));
+  for (const row of rows) {
+    if (typeColumn && !/\b(expense|expenses|cost|costs|cogs|opex|debit|supplier|vendor|procurement|operating expense|fixed costs|payroll|bank fees)\b/i.test(String(row[typeColumn] ?? ""))) continue;
+    const baseValue = parseBusinessNumber(row[valueColumn]);
+    if (baseValue === null) continue;
+    const quantity = /unit[_\s-]*cost/i.test(valueColumn) && quantityColumn ? parseBusinessNumber(row[quantityColumn]) : null;
+    const amount = Math.abs(baseValue * (quantity ?? 1));
+    const segment = groupColumn ? String(row[groupColumn] ?? "Uncategorized").trim() || "Uncategorized" : valueColumn;
+    const current = groups.get(segment) ?? { amount: 0, rows: 0 };
+    current.amount += amount;
+    current.rows += 1;
+    groups.set(segment, current);
+  }
+  const total = Array.from(groups.values()).reduce((sum, row) => sum + row.amount, 0);
+  return Array.from(groups.entries())
+    .map(([segment, value]) => ({
+      segment,
+      amount: round(value.amount),
+      rows: value.rows,
+      sharePct: total > 0 ? round((value.amount / total) * 100, 1) : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
 }
 
 function isGrowthQuestion(question: string) {

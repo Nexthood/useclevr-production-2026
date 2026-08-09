@@ -112,6 +112,56 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
   }
 
   if (/income|expense|revenue|spend|recorded|summary|month/.test(question)) {
+    const capabilities = prebookkeepingCapabilities(transactions);
+    if (isExpenseOnlyQuestion(question)) {
+      if (!capabilities.hasExpenseData) {
+        return buildAnswer({
+          intent: "largest_expenses_unavailable",
+          title: "No expense or cost data was detected in this dataset, so I can't reliably determine your largest expenses.",
+          evidence: ["No validated expense category, cost field, debit classification, or trusted expense mapping was found."],
+          takeaway: "UseClevr will not classify generic numeric values as expenses.",
+          nextAction: "Map transaction type, category, debit, expense, cost, COGS, or supplier cost fields before asking for expense rankings.",
+          data: [{ capability: "expense_data", status: "unavailable" }],
+          chartType: "table",
+          rowCount: transactions.length,
+        });
+      }
+      const expenseRows = expenseBreakdown(transactions);
+      return buildAnswer({
+        intent: "largest_expenses",
+        title: expenseRows[0]
+          ? `${expenseRows[0].category} is the largest detected expense/cost category at ${formatMoney(expenseRows[0].total, currencyFor(transactions))}.`
+          : "No expense rows with numeric values were found.",
+        evidence: expenseRows.slice(0, 5).map((row) => `${row.category}: ${formatMoney(row.total, currencyFor(transactions))} across ${row.count} transaction(s)`),
+        takeaway: "Expense rankings use only validated expense/cost categories.",
+        nextAction: "Review category assignments before exporting the accountant package.",
+        data: expenseRows,
+        chartType: "bar",
+        rowCount: transactions.length,
+      });
+    }
+    if (isIncomeExpenseComparisonQuestion(question) && (!capabilities.hasExpenseData || !capabilities.hasIncomeData)) {
+      const missing = [
+        !capabilities.hasIncomeData ? "income/revenue" : null,
+        !capabilities.hasExpenseData ? "expense/cost" : null,
+      ].filter(Boolean).join(" and ");
+      return buildAnswer({
+        intent: "income_expense_summary_unavailable",
+        title: `I can't calculate income versus expenses because validated ${missing} data is unavailable.`,
+        evidence: [
+          capabilities.hasIncomeData ? "Income/revenue semantics were detected." : "No validated income/revenue semantics were detected.",
+          capabilities.hasExpenseData ? "Expense/cost semantics were detected." : "No validated expense category, cost field, debit classification, or trusted expense mapping was found.",
+        ],
+        takeaway: "UseClevr will not compare income and expenses unless both sides are semantically validated.",
+        nextAction: "Map transaction type, category, debit/credit, revenue, or expense fields before asking for an income and expense summary.",
+        data: [
+          { capability: "income_data", status: capabilities.hasIncomeData ? "available" : "unavailable" },
+          { capability: "expense_data", status: capabilities.hasExpenseData ? "available" : "unavailable" },
+        ],
+        chartType: "table",
+        rowCount: transactions.length,
+      });
+    }
     const categoryRows = categoryBreakdown(transactions);
     return buildAnswer({
       intent: "income_expense_summary",
@@ -130,6 +180,19 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
   }
 
   if (/supplier|vendor|merchant|paid|received/.test(question)) {
+    const capabilities = prebookkeepingCapabilities(transactions);
+    if (!capabilities.hasExpenseData) {
+      return buildAnswer({
+        intent: "top_suppliers_unavailable",
+        title: "No expense or cost data was detected, so supplier spending cannot be calculated reliably.",
+        evidence: ["No validated expense category, cost field, debit classification, or trusted expense mapping was found."],
+        takeaway: "UseClevr will not classify generic transaction values as supplier expenses.",
+        nextAction: "Map supplier plus expense, cost, debit, or transaction type fields before asking for supplier spending.",
+        data: [{ capability: "expense_data", status: "unavailable" }],
+        chartType: "table",
+        rowCount: transactions.length,
+      });
+    }
     const rows = groupBySupplier(transactions).slice(0, 10);
     return buildAnswer({
       intent: "top_suppliers",
@@ -256,8 +319,12 @@ function categoryBreakdown(transactions: CategorizedTransaction[]) {
     .sort((a, b) => b.total - a.total);
 }
 
+function expenseBreakdown(transactions: CategorizedTransaction[]) {
+  return categoryBreakdown(transactions.filter(isValidatedExpense));
+}
+
 function isExpense(transaction: CategorizedTransaction) {
-  return ["operating_expenses", "payroll", "fixed_costs", "taxes", "bank_fees"].includes(transaction.category) || (transaction.amount || 0) < 0;
+  return isValidatedExpense(transaction);
 }
 
 function sumAbs(transactions: CategorizedTransaction[]) {
@@ -281,4 +348,41 @@ function formatCategory(value: string) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function isExpenseOnlyQuestion(question: string) {
+  return /expense|expenses|spend|spending|cost|costs|opex|money\s+going/i.test(question) &&
+    /largest|biggest|top|most|where|show|which|category/i.test(question) &&
+    !/income|revenue/.test(question);
+}
+
+function isIncomeExpenseComparisonQuestion(question: string) {
+  return /income|revenue/.test(question) && /expense|expenses|spend|spending|cost|costs/.test(question);
+}
+
+function prebookkeepingCapabilities(transactions: CategorizedTransaction[]) {
+  return {
+    hasIncomeData: transactions.some(isValidatedIncome),
+    hasExpenseData: transactions.some(isValidatedExpense),
+  };
+}
+
+function isValidatedIncome(transaction: CategorizedTransaction) {
+  if (transaction.category === "revenue" && hasSemanticReason(transaction, /revenue|income|sale|customer payment|positive credited|learned user rule/i)) return true;
+  return typeof transaction.credit === "number" && transaction.credit > 0;
+}
+
+function isValidatedExpense(transaction: CategorizedTransaction) {
+  if (!["operating_expenses", "payroll", "fixed_costs", "taxes", "bank_fees"].includes(transaction.category)) return false;
+  if (typeof transaction.debit === "number" && transaction.debit > 0) return true;
+  if (hasSemanticReason(transaction, /payroll|tax|bank|fee|fixed|operating expense|expense|cost|learned user rule/i)) return true;
+  return hasSourceCategory(transaction, /expense|cost|cogs|opex|debit|payroll|tax|fee/i);
+}
+
+function hasSemanticReason(transaction: CategorizedTransaction, pattern: RegExp) {
+  return transaction.reasons.some((reason) => pattern.test(reason));
+}
+
+function hasSourceCategory(transaction: CategorizedTransaction, pattern: RegExp) {
+  return pattern.test(String(transaction.sourceCategory ?? ""));
 }

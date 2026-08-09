@@ -286,6 +286,7 @@ export async function POST(request: Request) {
         chartType: analyticalResult.chartType,
         providerName: "Not required",
         modelName: "",
+        confidence: confidenceFromResult(analyticalResult.result),
         mode: "direct",
         route: "direct",
         analyticalResult: analyticalResult.result,
@@ -341,6 +342,7 @@ export async function POST(request: Request) {
         chartType: deterministicResult.chartType,
         providerName: "Not required",
         modelName: "",
+        confidence: confidenceFromResult(deterministicResult.result),
         mode: "direct",
         route: "direct",
         analyticalResult: deterministicResult.result,
@@ -393,6 +395,7 @@ export async function POST(request: Request) {
         chartType: prebookkeepingResult.chartType,
         providerName: "Not required",
         modelName: "",
+        confidence: confidenceFromResult(prebookkeepingResult.result),
         mode: "direct",
         route: "direct",
         analyticalResult: prebookkeepingResult.result,
@@ -720,6 +723,13 @@ export async function POST(request: Request) {
       fallbackUsed: true,
     });
   }
+}
+
+function confidenceFromResult(result: Record<string, unknown>) {
+  const confidence = result.confidence;
+  if (typeof confidence !== "number" || !Number.isFinite(confidence)) return null;
+  if (confidence <= 1) return Math.round(confidence * 100);
+  return Math.round(confidence);
 }
 
 async function resolveDatasetAiProviderSettings(input: {

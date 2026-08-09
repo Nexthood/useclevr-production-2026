@@ -86,6 +86,7 @@ Text rules for this file:
 - Classify every selected-dataset AI Analyst question into a structured business intent before metric calculation or provider routing.
 - Resolve selected-dataset metric questions through deterministic calculations for revenue, average order value, average selling price, order count, customer count, revenue grouping, rankings, concentration, risk, trend, customer growth, forecast baselines, comparisons, and margin.
 - Return a precise missing-data explanation when a requested metric lacks required validated columns, and do not replace the requested metric with a generic revenue summary.
+- Refuse selected-dataset expense calculations when no validated expense category, cost field, debit classification, or trusted expense mapping exists, and offer only alternatives supported by the detected dataset semantics.
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
 - Answer selected-dataset AI Assistant questions from normalized dataset rows before provider routing when deterministic revenue, segment, risk, trend, best-segment, forecast-baseline, or summary answers are available.
 - Interpret short dataset questions such as plan, segment, growth, forecast, risk, and best-segment prompts against the selected dataset context without requiring perfect wording.

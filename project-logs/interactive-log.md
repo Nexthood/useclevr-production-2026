@@ -1,3 +1,38 @@
+## AI Analyst Expense Semantics Guard
+
+1. Interaction title
+AI Analyst expense semantics guard.
+
+2. What was the user goal
+Prevent UseClevr AI analysis from treating sales-only, retail, or generic monetary datasets as expense data when the selected dataset contains no validated expense or cost semantics.
+
+3. What changed
+The semantic schema keeps generic amount, total, value, transaction, and price fields neutral for expense analysis. Dataset AI now checks expense capabilities before answering expense questions, refuses unsupported expense calculations with clear evidence text, and offers only revenue alternatives when revenue semantics are validated. Valid expense analysis still works for COGS, Unit Cost with quantity, and Transaction Type or category values that classify rows as expenses. Pre-bookkeeping assistant summaries now require validated income and expense evidence before comparing both sides, and expense-only rankings require validated expense semantics. Direct deterministic responses can pass confidence metadata to the AI Analyst panel.
+
+4. Problems marked
+- blocker: none.
+- risk: Existing pre-bookkeeping categorizations that rely only on negative amount sign no longer qualify as expense evidence until a debit, category, source category, learned rule, or expense keyword validates the semantics.
+- improvement: Future expense trend and income-versus-expense analytical intents can reuse the semantic capability helpers.
+- observation: Focused tests cover sales-only retail refusal, generic Amount refusal, COGS analysis, Unit Cost with quantity, Transaction Type = Expense classification, pre-bookkeeping generic negative-amount refusal, and explicit pre-bookkeeping expense preservation.
+
+5. User learning
+UseClevr must prefer a clear missing-evidence refusal over precise-looking financial numbers when the dataset does not prove that numeric fields are expenses.
+
+6. AI-agent learning
+Expense questions must run before generic revenue fallback in selected-dataset chat because words such as largest, category, and cost can otherwise route into revenue-oriented ranking behavior.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Upload Error Handling and HEIC Support
 
 1. Interaction title

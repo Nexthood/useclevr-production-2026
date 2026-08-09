@@ -1,3 +1,4 @@
+- fixed: prevent AI Analyst expense answers from using sales-only, retail, or generic monetary values as expenses; Dataset AI now refuses unsupported expense calculations, cites missing expense evidence, keeps COGS and classified expenses valid, and passes direct confidence metadata to the assistant panel
 - changed: elevate the global enterprise design system with calmer navy tokens, softer cyan and lilac accents, premium shared cards, refined buttons, form controls, tables, dialogs, tabs, selects, and scrollbars
 - changed: transform the public News page into a What You're Missing interactive BI storytelling experience with hidden sample metric relationships, evidence-to-action flow, responsive mobile insight pairs, and updated public navigation labels
 - changed: refine the Usy assistant launcher into a circular avatar with one calm glow, a hover/focus invitation bubble, and unchanged chat behavior
