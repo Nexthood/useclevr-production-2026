@@ -2572,3 +2572,36 @@ When restoring selective files from a stash created with untracked files, use th
 
 9. Minimal destination
 Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Provider Card Icon Spacing
+
+1. Interaction title
+AI Governance provider card icon spacing polish.
+
+2. What was the user goal
+Move the AI Governance Providers dashboard card status icons lower while keeping all provider cards equal-height, responsive, horizontally centered, and visually balanced.
+
+3. What changed
+The compact AI Governance KPI card layout now renders provider cards as equal-height centered columns with a shared minimum height, lower icon offset, consistent title, number, description, and status badge spacing, and unchanged colors, typography, borders, shadows, widths, and functionality. The info action remains available in the card corner.
+
+4. Problems marked
+blocker: none.
+risk: Authenticated desktop, tablet, and mobile screenshots are not captured in this local session because the AI Governance route requires a signed-in browser session.
+observation: The provider row is the only compact KPI card use, so the layout polish stays scoped to Providers and does not alter Feedback KPI cards.
+
+5. User learning
+Provider cards now present status icons with more breathing room and use consistent card geometry across responsive breakpoints.
+
+6. AI-agent learning
+For compact governance KPI cards, use a separate compact rendering branch when only one dashboard row needs adjusted spacing; this keeps other KPI surfaces unchanged.
+
+7. Follow-up tasks
+- Capture authenticated AI Governance Providers screenshots at desktop, tablet, and mobile widths after a signed-in browser session is available. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

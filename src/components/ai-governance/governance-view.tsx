@@ -629,9 +629,32 @@ function KpiCard({
   tooltip: string
   compact?: boolean
 }) {
+  if (compact) {
+    return (
+      <Card className="h-full border-border bg-card/90 shadow-sm">
+        <CardContent className="relative flex h-full min-h-[184px] flex-col items-center p-4 pt-8 text-center">
+          <button type="button" title={tooltip} aria-label={`${label}: ${tooltip}`} className="absolute right-4 top-4 rounded-sm text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+            <Info className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-400/10 text-cyan-300">
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div className="mt-4 min-w-0">
+            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+            <p className="mt-2 text-sm leading-5 text-muted-foreground">{description}</p>
+          </div>
+          <div className="mt-4">
+            <StatusPill status={status} />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="border-border bg-card/90 shadow-sm">
-      <CardContent className={compact ? "p-4" : "p-5"}>
+      <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-400/10 text-cyan-300">
             <Icon className="h-5 w-5" aria-hidden="true" />

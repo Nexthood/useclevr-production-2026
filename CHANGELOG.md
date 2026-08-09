@@ -61,6 +61,7 @@
 
 ### Changed
 
+- Balance AI Governance provider cards so status icons, labels, metrics, and badges stay evenly spaced across desktop, tablet, and mobile layouts.
 - Improve Pre-bookkeeping transaction review scrolling so the table scrolls independently inside a fixed-height container and users do not need to reach the bottom of the page to access hidden columns.
 - Strengthen Dataset Intelligence so marketplace uploads produce role-specific KPIs, dashboard widgets, source disclosure, and customer or merchant semantics from the uploaded data.
 - Route dataset-aware AI Analyst metric questions through intent classification and deterministic metric resolution so supported order, buyer, seller, margin, and risk questions answer the requested metric or explain missing data.
