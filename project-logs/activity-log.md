@@ -1,3 +1,4 @@
+- changed: transform the public News page into a What You're Missing interactive BI storytelling experience with hidden sample metric relationships, evidence-to-action flow, responsive mobile insight pairs, and updated public navigation labels
 - changed: refine the Usy assistant launcher into a circular avatar with one calm glow, a hover/focus invitation bubble, and unchanged chat behavior
 - changed: enlarge the login page AI Analyst demo with a stronger chart, bigger workflow cards, polished use-case selectors, restrained workflow animation, and tablet/mobile guardrails
 - changed: balance AI Governance provider cards so status icons, labels, metrics, descriptions, and badges use consistent spacing while cards stay equal-height across responsive layouts

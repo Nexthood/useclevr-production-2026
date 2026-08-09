@@ -105,7 +105,7 @@ export function PublicHeader() {
           </Link>
 
           <Link href="/news" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors px-2">
-            News
+            What You&apos;re Missing
           </Link>
         </nav>
         
@@ -224,7 +224,7 @@ export function PublicHeader() {
               className="rounded-md px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
               onClick={() => setMobileOpen(false)}
             >
-              News
+              What You&apos;re Missing
             </Link>
             <Link
               href="/faq"

@@ -61,6 +61,7 @@
 
 ### Changed
 
+- Transform the public News page into a What You're Missing storytelling experience that shows how UseClevr reveals hidden relationships, risks, and actions inside sample business metrics.
 - Refine the Usy assistant launcher into a circular avatar with a calm glow and hover invitation so the help entry point feels cleaner and less distracting.
 - Enlarge the login page AI Analyst demo so the product preview, chart, workflow cards, and use-case selectors better communicate UseClevr's business intelligence value on desktop.
 - Balance AI Governance provider cards so status icons, labels, metrics, and badges stay evenly spaced across desktop, tablet, and mobile layouts.

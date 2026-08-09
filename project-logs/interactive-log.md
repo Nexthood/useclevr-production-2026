@@ -2670,3 +2670,37 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## What You're Missing News Page Transformation
+
+1. Interaction title
+What You're Missing public page transformation.
+
+2. What was the user goal
+Replace the conventional News page with a premium interactive storytelling experience that demonstrates how correct business metrics can hide contradictions, risks, and opportunities between the numbers.
+
+3. What changed
+The `/news` page now uses a dark enterprise BI editorial design with a pain-point hero, healthy metric cards, hidden relationship reveals, contradiction cards, a memorable insight reveal, a connected Data to Action intelligence stack, status-labeled technology modules, and an evidence-to-action sequence. The visible public header and footer labels now say What You're Missing while the route remains `/news` for navigation and SEO compatibility. Existing news content structures and detail routes remain intact.
+
+4. Problems marked
+blocker: none.
+observation: DevTools mobile emulation confirms 390px mobile has no horizontal overflow, with the hero, visualization panel, and circular Usy launcher inside viewport bounds.
+observation: Sample inventory values use non-currency notation so the public story does not conflict with pricing validation rules.
+observation: Plain headless Chrome `--window-size` screenshots can mimic a clipped desktop viewport on mobile-sized windows, so DevTools mobile emulation is the reliable responsive measurement for this page.
+
+5. User learning
+Visitors now encounter the product problem first: the numbers can look healthy while margins, order value, inventory, and stockout risk tell a different business story.
+
+6. AI-agent learning
+For public storytelling pages, keep complex desktop relationship visuals and mobile insight pairs as separate responsive presentations so the narrative stays readable without horizontal scrolling.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
