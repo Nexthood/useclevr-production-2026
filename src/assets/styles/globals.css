@@ -384,6 +384,18 @@
     animation-delay: 0.45s;
   }
 
+  .hero-insight-card {
+    animation: hero-insight-activate 20s ease-in-out infinite;
+  }
+
+  .hero-action-card {
+    animation: hero-action-activate 20s ease-in-out infinite;
+  }
+
+  .hero-chart-signal {
+    animation: hero-chart-signal 5.5s ease-out infinite;
+  }
+
   @keyframes hero-demo-pain-panel {
     0% {
       opacity: 0;
@@ -497,12 +509,57 @@
     }
   }
 
+  @keyframes hero-insight-activate {
+    0%, 63% {
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+    }
+    70%, 82% {
+      border-color: rgba(34, 211, 238, 0.28);
+      box-shadow: 0 0 24px rgba(34, 211, 238, 0.08);
+    }
+    88%, 100% {
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+    }
+  }
+
+  @keyframes hero-action-activate {
+    0%, 80% {
+      box-shadow: none;
+    }
+    88%, 98% {
+      box-shadow: 0 0 28px rgba(124, 58, 237, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    100% {
+      box-shadow: none;
+    }
+  }
+
+  @keyframes hero-chart-signal {
+    0%, 42% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    58%, 88% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0.92;
+      transform: translateY(0);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .hero-demo-panel,
     .hero-demo-progress,
     .hero-chart-line,
     .hero-chart-area,
-    .hero-chart-marker {
+    .hero-chart-marker,
+    .hero-insight-card,
+    .hero-action-card,
+    .hero-chart-signal {
       animation: none;
     }
 
@@ -527,7 +584,8 @@
     }
 
     .hero-chart-area,
-    .hero-chart-marker {
+    .hero-chart-marker,
+    .hero-chart-signal {
       opacity: 1;
       transform: none;
     }

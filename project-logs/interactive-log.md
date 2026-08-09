@@ -2605,3 +2605,35 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Login Page AI Analyst Demo Presentation
+
+1. Interaction title
+Login page AI Analyst demo presentation polish.
+
+2. What was the user goal
+Make the right-side UseClevr AI Analyst animated product demo a stronger visual centerpiece while preserving the login card, authentication logic, routing, theme toggle, Ask Us widget, and responsive behavior.
+
+3. What changed
+The login page now gives the product demo a wider centered desktop rail. The auth demo variant uses larger responsive dimensions, a stronger dark glass surface, refined cyan and purple depth, a larger Performance snapshot chart, roomier upload and workflow cards, more polished use-case chips with a subtle active state, and restrained workflow highlight animations for analysis, insight discovery, and recommended action. Tablet sizing stays compact and mobile keeps the existing auth-only layout.
+
+4. Problems marked
+blocker: none.
+observation: Headless Chrome screenshots at 1440x900, 1024x768, and 390x844 confirm the page renders without horizontal overflow, clipping, or broken mobile behavior.
+
+5. User learning
+The login page now communicates UseClevr's AI/BI value immediately on desktop while keeping the authentication flow unchanged.
+
+6. AI-agent learning
+For the shared public demo component, keep `layout="auth"` as a separate responsive presentation branch so login-page polish does not enlarge the public landing-page demo unexpectedly.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
