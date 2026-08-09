@@ -217,3 +217,4 @@
 - fixed: hide the Retail upload success dataset-detail action so successful Retail uploads show Open Retail and Upload Another File only
 - changed: add intelligent Accounting AI VAT prediction from Business Profile tax configuration with explainable confidence, exception review, scoped manual learning, bulk assignment, and VAT audit fields in exports
 - fixed: guide Pre-bookkeeping accountant export through reviewed-transaction validation and render bookkeeping Risk Intelligence with deterministic risk findings or graceful problem states instead of server crashes
+- deployed: push the global enterprise design system polish to `origin/beta`, verify GitHub `Validate Source` and `Publish Dist-Test from Beta` success, and confirm `https://test.useclevr.com/api/health` returns app and database healthy
