@@ -13,6 +13,7 @@ into the active queue.
 
 ## Label: accessibility
 
+- Capture authenticated AI Governance Providers screenshots at desktop, tablet, and mobile widths after a signed-in browser session is available. (labels: accessibility, ui, testing)
 - Implement automated accessibility testing in CI pipeline. (labels: accessibility, testing, ci-build)
 
 ## Label: ai
